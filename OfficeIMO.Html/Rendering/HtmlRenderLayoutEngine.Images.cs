@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html.Dom;
 using System.Text;
 using System.Xml.Linq;
 
@@ -7,19 +8,20 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
+        if (IsInlineFrameElement(element)) return LayoutFrame(element, containingWidth, style);
         string? editableImageKey = HtmlEditableLayoutProjector.GetImageSourceKey(element);
         string sourceDescription = string.IsNullOrWhiteSpace(editableImageKey)
             ? HtmlRenderStyleResolver.DescribeSource(element)
             : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);
         IReadOnlyList<string> candidates = IsInlineSvgElement(element)
             ? Array.Empty<string>()
-            : HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
+            : HtmlImageSourceResolver.SelectImageForRendering(element, _baseUri, _resourceUrlPolicy, _options).Sources;
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;
         string contentType = string.Empty;
         OfficeImageInfo? imageInfo = null;
         bool normalizationRejected = false;
-        if (TryReadInlineSvgSource(element, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
+        if (TryReadInlineSvgSource(element, style.Font.Size, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
             bytes = inlineSvg;
             contentType = "image/svg+xml";
             imageInfo = inlineSvgInfo;
@@ -50,9 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double imageX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
-        string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
-            ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
-            : null);
+        string? link = inheritedLink ?? ResolveAncestorLink(element);
         string? alternativeText = element.GetAttribute("alt") ?? element.GetAttribute("aria-label");
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,
@@ -68,7 +68,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     hasIntrinsicSize ? intrinsicWidth : 0D,
                     hasIntrinsicSize ? intrinsicHeight : 0D,
                     sourceDescription,
-                    out OfficeDrawing? svgDrawing) && svgDrawing != null) {
+                    out OfficeDrawing? svgDrawing,
+                    viewportWidth: IsInlineSvgElement(element) ? placement.FullWidth : null,
+                    viewportHeight: IsInlineSvgElement(element) ? placement.FullHeight : null) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
                         link, sourceDescription);
                     addedObject = true;
@@ -91,13 +93,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (!addedObject && placement.IsVisible && !normalizationRejected) {
             OfficeShape placeholder = OfficeShape.Rectangle(placement.Width, placement.Height);
-            placeholder.FillColor = OfficeColor.FromRgb(245, 245, 245);
-            placeholder.StrokeColor = OfficeColor.FromRgb(160, 160, 160);
-            placeholder.StrokeWidth = 1D;
-            objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
+            // Keep the missing image's hit area without painting over its authored CSS background.
+            placeholder.FillColor = OfficeColor.Transparent;
+            placeholder.StrokeWidth = 0D;
+            objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count,
+                link, sourceDescription, isAtomicReplacedPlaceholder: true));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
-                double textHeight = Math.Min(placement.Height, style.LineHeight);
-                objectVisuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, objectVisuals.Count, link, sourceDescription, "figure-alternative-text", null, null, null, false, null, null, style.UnderlineStyle, style.StrikethroughStyle, style.Baseline, style.BaselineLevel, style.BaselineScale, style.BaselineOffset, decorationColor: style.DecorationColor, featureSettings: style.TextFeatureSettings, fontPalette: style.FontPalette));
+                AddMissingImageAlternativeText(objectVisuals, alternativeText!, imageX + placement.X,
+                    imageY + placement.Y, placement.Width, placement.Height, style, link, sourceDescription);
             }
         }
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);
@@ -134,13 +137,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool IsReplacedImageElementTag(string tagName) =>
         tagName.Equals("img", StringComparison.OrdinalIgnoreCase)
-        || tagName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+        || tagName.Equals("svg", StringComparison.OrdinalIgnoreCase)
+        || tagName.Equals("iframe", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInlineFrameElement(IElement element) =>
+        element.LocalName.Equals("iframe", StringComparison.OrdinalIgnoreCase)
+        && element.NamespaceUri == HtmlElement.HtmlNamespace;
 
     private static bool IsInlineSvgElement(IElement element) =>
         element.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);
 
     private bool TryReadInlineSvgSource(
         IElement element,
+        double resolvedRootFontSize,
         out byte[]? bytes,
         out OfficeImageInfo? imageInfo) {
         bytes = null;
@@ -155,9 +164,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .ToArray();
             IReadOnlyList<XElement> svgElements = svg.DescendantsAndSelf().ToArray();
             int count = Math.Min(htmlElements.Count, svgElements.Count);
+            var fontSizes = new Dictionary<IElement, double>();
             for (int index = 0; index < count; index++) {
-                if (!_computedStyles.Elements.TryGetValue(htmlElements[index], out HtmlComputedStyle? computed)) continue;
-                string computedSvgStyle = BuildInlineSvgComputedStyle(computed);
+                IElement current = htmlElements[index];
+                double inheritedFontSize = current.ParentElement != null && fontSizes.TryGetValue(current.ParentElement, out double parentSize)
+                    ? parentSize : resolvedRootFontSize;
+                if (!_computedStyles.Elements.TryGetValue(current, out HtmlComputedStyle? computed)) {
+                    fontSizes[current] = inheritedFontSize;
+                    continue;
+                }
+                string fontSizeValue = computed.GetValue("font-size");
+                bool hasSpecifiedFontSize = computed.IsSpecifiedValue("font-size")
+                    || computed.IsResetValue("font-size")
+                    || !computed.IsImplicitlyInheritedValue("font-size")
+                        && (computed.IsInheritedValue("font-size") || !string.IsNullOrWhiteSpace(fontSizeValue));
+                string? presentationFontSize = hasSpecifiedFontSize ? null : current.GetAttribute("font-size");
+                // CSS font sizes use the HTML used-value context. Presentation attributes remain
+                // in SVG for its tolerant reader; their value also establishes descendant em/% context.
+                double usedFontSize = index == 0 && string.IsNullOrWhiteSpace(presentationFontSize)
+                    ? resolvedRootFontSize
+                    : computed.IsResetValue("font-size")
+                    ? _options.DefaultFontSize
+                    : hasSpecifiedFontSize && computed.IsInheritedValue("font-size")
+                    ? inheritedFontSize
+                    : !hasSpecifiedFontSize && double.TryParse(presentationFontSize,
+                        System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double presentationSize)
+                        && !double.IsNaN(presentationSize) && !double.IsInfinity(presentationSize) && presentationSize >= 0D
+                    ? presentationSize
+                    : _styleResolver.ResolveFontSize(hasSpecifiedFontSize ? fontSizeValue : presentationFontSize ?? string.Empty,
+                        inheritedFontSize, _styleResolver.RootFontSize);
+                fontSizes[current] = usedFontSize;
+                bool projectFontSize = hasSpecifiedFontSize || index == 0 && string.IsNullOrWhiteSpace(presentationFontSize);
+                string computedSvgStyle = BuildInlineSvgComputedStyle(computed, projectFontSize ? usedFontSize : null);
                 if (computedSvgStyle.Length > 0) svgElements[index].SetAttributeValue("style", computedSvgStyle);
             }
             source = svg.ToString(SaveOptions.DisableFormatting);
@@ -171,13 +209,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private static string BuildInlineSvgComputedStyle(HtmlComputedStyle computed) {
+    private static string BuildInlineSvgComputedStyle(HtmlComputedStyle computed, double? fontSize) {
         var style = new StringBuilder();
         foreach (KeyValuePair<string, string> property in computed.Properties) {
+            if (property.Key.Equals("font-size", StringComparison.OrdinalIgnoreCase)) continue;
             if (!property.Key.StartsWith("--", StringComparison.Ordinal)
                 && !IsSvgComputedStyleProperty(property.Key)) continue;
             if (style.Length > 0) style.Append(';');
             style.Append(property.Key).Append(':').Append(property.Value);
+        }
+        if (fontSize.HasValue) {
+            if (style.Length > 0) style.Append(';');
+            style.Append("font-size:").Append(fontSize.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append("px");
         }
         return style.ToString();
     }
@@ -196,15 +239,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double fallbackWidth,
         double fallbackHeight,
         string sourceDescription,
-        out OfficeDrawing? drawing) {
-        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        out OfficeDrawing? drawing,
+        double? viewportWidth = null,
+        double? viewportHeight = null) {
+        var readerOptions = new OfficeSvgDrawingReaderOptions {
+            CancellationToken = _cancellationToken,
+            ViewportWidth = viewportWidth,
+            ViewportHeight = viewportHeight,
+            DefaultFontFamily = _options.DefaultFontFamily,
+            FontTextUsageObserver = _fontUsage == null ? null : _fontUsage.Observe
+        };
+        bool canRasterizeSvg = _options.ImageCodec != null
+            && (!viewportWidth.HasValue || OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes, readerOptions));
         readerOptions.Fonts.AddRange(_fonts);
         if (_options.SvgForeignObjectDepth < _options.MaxSvgForeignObjectDepth) {
             readerOptions.ForeignObjectRenderer = RenderSvgForeignObject;
         }
         if (OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out drawing, out int unsupportedFeatures) && drawing != null) {
             if (unsupportedFeatures > 0) {
-                if (TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
+                if (canRasterizeSvg &&
+                    TryRasterizeSvgFallback(bytes, drawing.Width, drawing.Height, sourceDescription, unsupportedFeatures, out OfficeDrawing? rasterFallback)) {
                     drawing = rasterFallback;
                     return true;
                 }
@@ -220,7 +274,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
 
-        if (TryRasterizeSvgFallback(bytes, fallbackWidth, fallbackHeight, sourceDescription, null, out drawing)) {
+        if (canRasterizeSvg &&
+            TryRasterizeSvgFallback(bytes, fallbackWidth, fallbackHeight, sourceDescription, null, out drawing)) {
             return true;
         }
 
@@ -259,9 +314,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderOptions nestedOptions = _options.Clone();
         nestedOptions.Mode = HtmlRenderMode.Continuous;
         nestedOptions.ViewportWidth = context.Width;
+        nestedOptions.CssMediaWidthOverride = null;
+        nestedOptions.CssMediaHeightOverride = null;
         nestedOptions.ViewportHeight = context.Height;
         nestedOptions.Margins = HtmlRenderMargins.All(0D);
         nestedOptions.HonorCssPageRules = false;
+        nestedOptions.AutoFitWidePrintRoot = false;
+        nestedOptions.PrintFitContentWidth = null;
+        nestedOptions.PrintFitScale = null;
         nestedOptions.BackgroundColor = OfficeColor.Transparent;
         nestedOptions.FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
         nestedOptions.MaxHtmlNodes = Math.Min(nestedOptions.MaxHtmlNodes, _options.MaxSvgForeignObjectHtmlNodes);
@@ -270,7 +330,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nestedOptions.SynchronousResourceResolver = null;
         nestedOptions.AdditionalStylesheets.Clear();
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(nestedDocument, nestedOptions, _cancellationToken);
+        HtmlRenderDocument rendered = HtmlRenderEngine.RenderEmbedded(nestedDocument, nestedOptions, _resources, _cancellationToken);
         _diagnostics.AddRange(rendered.Diagnostics);
         HtmlRenderPage page = rendered.Pages[0];
         OfficeDrawing nested = page.CreateDrawing(_cancellationToken);
@@ -365,14 +425,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        double visibleWidthRatio = Math.Max(
-            OfficeImageSourceCrop.MinimumVisibleRatio,
-            1D - placement.SourceCrop.Left - placement.SourceCrop.Right);
-        double visibleHeightRatio = Math.Max(
-            OfficeImageSourceCrop.MinimumVisibleRatio,
-            1D - placement.SourceCrop.Top - placement.SourceCrop.Bottom);
-        double fullWidth = placement.Width / visibleWidthRatio;
-        double fullHeight = placement.Height / visibleHeightRatio;
+        double fullWidth = placement.FullWidth;
+        double fullHeight = placement.FullHeight;
         var child = new HtmlRenderDrawing(
             drawing,
             visibleX - fullWidth * placement.SourceCrop.Left,
@@ -413,6 +467,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         contentType = string.Empty;
         imageInfo = null;
         string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, _baseUri, _resourceUrlPolicy);
+        _resources.MarkImageUsed(resolvedSource);
         string extension = string.Empty;
         if (_resources.TryGet(source, resolvedSource, out HtmlResolvedResource resolvedResource)) {
             bytes = resolvedResource.EncodedBytes;
@@ -463,6 +518,70 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return true;
+    }
+
+    private static string CollapseImageAlternativeText(string value) =>
+        string.Join(" ", value.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries));
+
+    private void AddMissingImageAlternativeText(ICollection<HtmlRenderVisual> visuals, string alternativeText,
+        double x, double y, double width, double height, HtmlRenderBoxStyle style, string? link, string source) {
+        double horizontalInset = Math.Min(4D, width / 4D);
+        double verticalInset = Math.Min(4D, height / 4D);
+        double textWidth = Math.Max(0.01D, width - horizontalInset * 2D);
+        double lineHeight = Math.Max(0.01D, style.LineHeight);
+        string normalized = CollapseImageAlternativeText(alternativeText);
+        _fontUsage?.Observe(normalized, style.Font.FamilyName, style.FontDescriptor);
+        // Alternative text can be arbitrarily long, but only a small prefix can paint inside an image.
+        // Keep the remainder as one clipped text visual so PDF text extraction retains the full value.
+        int wrappedLength = Math.Min(normalized.Length, 1024);
+        if (wrappedLength < normalized.Length && char.IsHighSurrogate(normalized[wrappedLength - 1])) wrappedLength--;
+        IReadOnlyList<string> lines = WrapTextToWidth(normalized.Substring(0, wrappedLength), textWidth,
+            style, softWrap: !style.PreventTextWrapping);
+        ChargeLayoutOperations(lines.Count, source);
+        var textVisuals = new List<HtmlRenderVisual>(lines.Count + (wrappedLength < normalized.Length ? 1 : 0));
+        for (int index = 0; index < lines.Count; index++) {
+            if (lines[index].Length == 0) continue;
+            textVisuals.Add(new HtmlRenderText(
+                lines[index],
+                x + horizontalInset,
+                y + verticalInset + index * lineHeight,
+                textWidth,
+                lineHeight,
+                style.Font,
+                style.Color,
+                OfficeTextAlignment.Left,
+                lineHeight,
+                textVisuals.Count,
+                link,
+                source,
+                "figure-alternative-text",
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                style.UnderlineStyle,
+                style.StrikethroughStyle,
+                style.Baseline,
+                style.BaselineLevel,
+                style.BaselineScale,
+                style.BaselineOffset,
+                decorationColor: style.DecorationColor,
+                featureSettings: style.TextFeatureSettings,
+                fontPalette: style.FontPalette,
+                fontDescriptor: style.FontDescriptor));
+        }
+        if (wrappedLength < normalized.Length) {
+            textVisuals.Add(new HtmlRenderText(
+                normalized.Substring(wrappedLength), x + horizontalInset, y + height + lineHeight,
+                textWidth, lineHeight, style.Font, style.Color, OfficeTextAlignment.Left,
+                lineHeight, textVisuals.Count, link, source, "figure-alternative-text"));
+        }
+        if (textVisuals.Count > 0) {
+            visuals.Add(new HtmlRenderClipGroup(x, y, width, height, true, true,
+                textVisuals, visuals.Count, source + ":alternative-clip"));
+        }
     }
 
     private static string NormalizeImageContentType(string contentType) =>

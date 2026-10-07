@@ -56,15 +56,20 @@
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\OpenXmlValidationFormatting.cs" Link="Shared\OpenXmlValidationFormatting.cs" />
-    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingCorpus.cs" Link="Shared\HtmlRenderingCorpus.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingRepresentativeCorpus.cs" Link="Shared\HtmlRenderingRepresentativeCorpus.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlRenderingAdvancedHeldOutCorpus.cs" Link="Shared\HtmlRenderingAdvancedHeldOutCorpus.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\HtmlQualificationCorpus.cs" Link="Shared\HtmlQualificationCorpus.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Math.cs" Link="Shared\ManagedTextShapingTestAssets.Math.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.MathGlyphs.cs" Link="Shared\ManagedTextShapingTestAssets.MathGlyphs.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Tracking.cs" Link="Shared\ManagedTextShapingTestAssets.Tracking.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\OfficeIMO.TestAssets\Documents\Html\Css\**" Link="Documents\Html\Css\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Html\**" Link="Documents\Html\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\WebpAlpha\alpha-gradient.webp" Link="Images\alpha-gradient.webp" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\WebpAlpha\alpha-gradient.rgba" Link="Images\alpha-gradient.rgba" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\avif-alpha.avif" Link="Images\avif-alpha.avif" CopyToOutputDirectory="PreserveNewest" />

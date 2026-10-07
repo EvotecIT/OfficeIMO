@@ -192,6 +192,47 @@ Hyperlinks can also be supplied through `SheetOptions.hyperlinks`. Each link add
 
 `sheet.addImage({ data: pngBytes, row: 6, column: 1, width: 640, height: 320, description: "Latency chart" })` places a PNG, such as a rendered chart, without changing table data. Supply a `Uint8Array` containing the complete PNG; the library checks its signature/IHDR and copies the bytes. Anchors are one-based; display dimensions are CSS pixels at 96 DPI. The writer embeds the image and a one-cell drawing anchor. It does not render charts or convert SVG. Multiple worksheets can each contain a table, links and images.
 
+## Live Excel conditional formatting
+
+`conditionalFormats` writes native Excel rules that recalculate when users edit workbook values. Use these alongside resolved row/cell highlights when the report needs both an exported appearance and live spreadsheet behavior:
+
+```ts
+import { Workbook } from "@evotecit/officeimo/xlsx";
+
+const book = new Workbook({ limits: { maxConditionalFormats: 100, maxDifferentialStyles: 50 } });
+const sheet = book.addSheet("Latency", {
+  columns: [
+    { header: "Name", key: "name", width: 24 },
+    { header: "Latency", key: "latency", type: "number", format: "0.000", width: 18 }
+  ],
+  table: { name: "LatencyReport" },
+  conditionalFormats: [
+    { type: "cellIs", range: { column: "latency" }, operator: "greaterThan", value: 100,
+      style: { fill: { color: "FFC7CE" }, font: { color: "9C0006" } }, stopIfTrue: true },
+    { type: "expression", range: { column: "name", through: "latency" }, formula: "$B2>100",
+      style: { font: { bold: true } } },
+    { type: "dataBar", range: { column: "latency" }, color: "638EC6" }
+  ]
+});
+await sheet.addRows([{ name: "Łódź", latency: 125.75 }, { name: "Warsaw", latency: 25 }]);
+const blob = await book.toBlob();
+```
+
+A column target uses an unambiguous declared key or a one-based column number. Optional `through` extends it across adjacent columns. The writer resolves the final data range after all appends, excluding report titles, grouped/leaf headings and footer totals. An empty data export emits no column-targeted rule. An explicit uppercase A1 cell or rectangle, such as `"B2:B20"`, can include headings or totals but must stay within the declared columns and exported rows; row bounds are checked when the worksheet closes. Overlapping rules are supported.
+
+| Rule type | Contract |
+| --- | --- |
+| `cellIs` | `equal`, `notEqual`, `greaterThan`, `greaterThanOrEqual`, `lessThan` or `lessThanOrEqual` with one finite numeric `value`; `between` or `notBetween` with an ordered pair of numeric `values`. Dates can be compared using Excel serial numbers or an expression. |
+| `expression` | An Excel formula and a differential `style`. Relative references are anchored to the top-left cell of the target range; use the first data row appropriate to your title/heading layout. |
+| `colorScale` | Two or three `stops`, each with a hex `color` and `threshold`. |
+| `dataBar` | A hex `color`, optional `minimum`/`maximum` thresholds and `showValue`, default true. Writes standard gradient data bars. |
+
+Thresholds use `{ type: "min" }` at the start, `{ type: "max" }` at the end, `{ type: "number", value: 100 }`, percent/percentile values from 0 through 100, or `{ type: "formula", value: "MAX($B$2:$B$20)" }`. Color scales require two or three stops; a three-color scale can use a 50th-percentile middle stop. Numeric thresholds of the same type must be ordered. Data bars default to the range minimum and maximum. Icon sets and Office extension features such as solid bars, negative-bar colors and axes are outside this writer contract.
+
+Array order sets worksheet-wide rule priority, starting at one. `stopIfTrue` applies to comparison and expression rules. A differential style changes only supplied font flags/color, solid fill, individual border edges or a number-format string. Explicit `false` clears a font flag. Omitting the number format preserves the cell's existing numeric/date formatting; font family/size, wrapping, alignment and numeric style-component indexes are unsupported in differential styles and fail explicitly.
+
+Rules are captured at worksheet creation and retain metadata rather than source rows or per-cell style assignments. Identical differential styles share one workbook definition. `maxConditionalFormats` and `maxDifferentialStyles` each default to 1,000 across the workbook, independently of `maxStyles`; zero disables the corresponding feature. Even a column rule on an empty worksheet counts toward the rule limit. Formula text uses invariant Excel syntax, accepts an optional leading `=`, and is limited to 8,192 characters. The writer stores formulas without evaluating them; XML-invalid formula characters are rejected under either text policy so cleanup cannot change their meaning. CSV does not carry conditional rules.
+
 ## CSV
 
 ```ts
@@ -311,7 +352,7 @@ const blob = await workbook.toBlob();
 
 Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive column, row, column index and sheet-name context. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
 
-`conditionalFormats` and `dataValidation` are reserved worksheet options. Supplying either, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader, formula engine or report-grid adapter in this package's current writer contract. Row/cell highlighting is resolved during export; it does not create rules that recalculate in Excel. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
+`dataValidation` is a reserved worksheet option. Supplying it, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader, formula engine or report-grid adapter in this package's current writer contract. Row/cell callbacks resolve highlighting during export; `conditionalFormats` separately writes the supported native rules for Excel to evaluate. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
 
 ## Portable classic scripts and the .NET asset package
 

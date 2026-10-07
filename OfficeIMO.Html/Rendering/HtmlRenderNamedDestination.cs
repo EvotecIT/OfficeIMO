@@ -17,9 +17,9 @@ public sealed class HtmlRenderNamedDestination : HtmlRenderVisual {
     /// <summary>Stable destination name used by document-internal links.</summary>
     public string Name { get; }
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderNamedDestination(Name, X + offsetX, Y + offsetY, paintOrder, Source, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderNamedDestination(Name, X + offsetX, Y + offsetY, paintOrder, Source, LayoutY);
 }

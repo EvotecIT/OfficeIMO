@@ -44,5 +44,8 @@ public enum HtmlRenderVisualKind {
     LayoutRegion = 12,
 
     /// <summary>Paint-neutral named navigation destination.</summary>
-    NamedDestination = 13
+    NamedDestination = 13,
+
+    /// <summary>Paint-neutral link hit area owned by one HTML anchor fragment.</summary>
+    AnchorFragment = 14
 }

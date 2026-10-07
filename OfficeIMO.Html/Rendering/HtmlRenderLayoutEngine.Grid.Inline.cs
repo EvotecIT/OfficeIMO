@@ -70,7 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<GridIntrinsicContribution> contributions = CollectGridIntrinsicContributions(items, availableBoxWidth, style.ColumnGap, columnLineNames, rowLineNames, depth);
         var measured = new Dictionary<FlexItem, (double Minimum, double Maximum)>();
         List<double> maximumSizes = ResolveGridIntrinsicTrackBases(tracks, contributions, availableBoxWidth, style.ColumnGap,
-            includeFractionTracks: true, depth: depth, measurements: measured);
+            includeFractionTracks: true, depth: depth, autoTracksUseMaxContent: true, measurements: measured);
         List<double> minimumSizes = ResolveGridIntrinsicTrackBases(tracks, contributions, availableBoxWidth, style.ColumnGap,
             includeFractionTracks: true, depth: depth, minimumContribution: true, measurements: measured);
         return (ResolveWidth(minimumSizes), ResolveWidth(maximumSizes));

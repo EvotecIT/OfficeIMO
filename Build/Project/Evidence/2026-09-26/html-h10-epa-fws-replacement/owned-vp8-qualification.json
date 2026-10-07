@@ -1,0 +1,304 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b30a8edf75d9d4f8815bc0f935727c529868552f",
+  "sourceClean": true,
+  "decoderSourceCommit": "fc25e2fcf795d9c9a09b88708c47bdfeed5c446d",
+  "partitionFixUpstreamCommit": "ad84d4be80ce5395ec655a8e1b149c6b11767942",
+  "scope": "Opaque static VP8 keyframes; separate lossy alpha and animation remain unsupported by the owned decoder.",
+  "tests": {
+    "drawing": {
+      "net8": {
+        "passed": 2635,
+        "failed": 0
+      },
+      "net10": {
+        "passed": 2635,
+        "failed": 0
+      }
+    },
+    "html": {
+      "net8": {
+        "passed": 3551,
+        "failed": 0
+      },
+      "net10": {
+        "passed": 3551,
+        "failed": 0
+      }
+    },
+    "codeGlyphXWebp": {
+      "net8": {
+        "passed": 115,
+        "failed": 0
+      },
+      "net10": {
+        "passed": 115,
+        "failed": 0
+      }
+    }
+  },
+  "builds": {
+    "officeImoCoreNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "codeGlyphXNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "codeGlyphXNet472": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "packageConsumer": {
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "directPackages": [
+      "OfficeIMO.Core"
+    ],
+    "transitiveRuntimePackages": [],
+    "independentPixelsPassed": true,
+    "malformedPartitionRejected": true,
+    "thirdPartyNoticesIncluded": true
+  },
+  "h4": {
+    "environment": {
+      "osDescription": "macOS 27.0.0",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "officeImoVersion": "3.4.3+b30a8edf75d9d4f8815bc0f935727c529868552f",
+      "peachPdfVersion": "0.9.19",
+      "htmlTinkerXVersion": "3.0.1",
+      "chromiumVersion": "151.0.7922.34",
+      "externalPdfRasterizer": "pdftoppm version 26.09.0"
+    },
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "configurationSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+    "passed": true,
+    "caseCount": 8,
+    "failures": [],
+    "printReferencePairsInspected": 13
+  },
+  "archiveReplay": {
+    "sourceSha256": "644CCACFE10DDE7484549E46642BE88727C34F9BA98FB36407CB6FCA9F1F2FD4",
+    "measurementBoundary": "Frozen source; exploratory 40000 CSS rule limit. Measured before checkpoint commit with the same functional candidate; no exact-clean-head timing claim.",
+    "residentMemory": "Unavailable: PeakWorkingSet64 returned zero on this host.",
+    "intents": [
+      {
+        "intent": "PrintPaged",
+        "pages": 5,
+        "pdfSha256": "c23e9c537caf757b1deecf807b86e273dacecf0dbd53deadc604c84820da86ed",
+        "byteIdenticalToCanonical": true,
+        "imageOmissions": 0,
+        "conversionAllocatedBytes": 4576477744,
+        "embeddedImages": [
+          {
+            "index": 0,
+            "width": 992,
+            "height": 662,
+            "rgbaSha256": "2DEF480598C818AE601CCF33F90A79AA184C448E814A19D9E72973C0D1ADB5C0"
+          },
+          {
+            "index": 1,
+            "width": 64,
+            "height": 44,
+            "rgbaSha256": "4C691A7A1E9F7EFF683188AFCAFBBC8BAD977DA8DBAF281108AC66AB3453F343"
+          },
+          {
+            "index": 2,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "E415F07018838160ECF86F0E8A698EDEC78597A5F6FE831A031A9776727AE54B"
+          },
+          {
+            "index": 3,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "288834D49D493F65BDAB5657A7D591DE4D3857F7A1EF5207880E2A5034706CCB"
+          },
+          {
+            "index": 4,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "43D3E9A0C23AB3A968DCB9CBE80989E304AC4ABB1487326D0E35E87B3B2F031C"
+          },
+          {
+            "index": 5,
+            "width": 992,
+            "height": 596,
+            "rgbaSha256": "391995A8E645DCE11581FCB6D95DDA4B654A3B3279D127954A6D0F4C3C6FB22D"
+          },
+          {
+            "index": 6,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "BA6A6D97FF83948ACCFA9BD46D6FE69846D326F5E8C54B29F915FE5801EC877B"
+          },
+          {
+            "index": 7,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "DB5A86B1A3BF8A47498852F5E8F4FD0E7EBA0D156033E0EA547FD3C77C585801"
+          },
+          {
+            "index": 8,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "030A1A556282F1B84B0E8F39930940803212EAC6C4FFC6FEA56E9672D64CDF63"
+          }
+        ]
+      },
+      {
+        "intent": "ScreenMediaPaged",
+        "pages": 6,
+        "pdfSha256": "d86f39d0b5b0104d254fdfe555e2cebc295b3aa5b230ba469cd94029ae6b5d76",
+        "byteIdenticalToCanonical": true,
+        "imageOmissions": 0,
+        "conversionAllocatedBytes": 4823793496,
+        "embeddedImages": [
+          {
+            "index": 0,
+            "width": 794,
+            "height": 175,
+            "rgbaSha256": "DC166C0D98F5835B03A8C2C453133CE63AD0C6E56560B21A2586A1CEDEC1F2C5"
+          },
+          {
+            "index": 1,
+            "width": 64,
+            "height": 44,
+            "rgbaSha256": "4C691A7A1E9F7EFF683188AFCAFBBC8BAD977DA8DBAF281108AC66AB3453F343"
+          },
+          {
+            "index": 2,
+            "width": 992,
+            "height": 662,
+            "rgbaSha256": "2DEF480598C818AE601CCF33F90A79AA184C448E814A19D9E72973C0D1ADB5C0"
+          },
+          {
+            "index": 3,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "E415F07018838160ECF86F0E8A698EDEC78597A5F6FE831A031A9776727AE54B"
+          },
+          {
+            "index": 4,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "288834D49D493F65BDAB5657A7D591DE4D3857F7A1EF5207880E2A5034706CCB"
+          },
+          {
+            "index": 5,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "43D3E9A0C23AB3A968DCB9CBE80989E304AC4ABB1487326D0E35E87B3B2F031C"
+          },
+          {
+            "index": 6,
+            "width": 992,
+            "height": 596,
+            "rgbaSha256": "391995A8E645DCE11581FCB6D95DDA4B654A3B3279D127954A6D0F4C3C6FB22D"
+          },
+          {
+            "index": 7,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "BA6A6D97FF83948ACCFA9BD46D6FE69846D326F5E8C54B29F915FE5801EC877B"
+          },
+          {
+            "index": 8,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "DB5A86B1A3BF8A47498852F5E8F4FD0E7EBA0D156033E0EA547FD3C77C585801"
+          },
+          {
+            "index": 9,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "030A1A556282F1B84B0E8F39930940803212EAC6C4FFC6FEA56E9672D64CDF63"
+          }
+        ]
+      },
+      {
+        "intent": "ScreenSnapshotPaged",
+        "pages": 6,
+        "pdfSha256": "8e45a831c6b2e822ccd8da215c77ae45b522c9678a3fdfa239bf7c7d0eb63e70",
+        "byteIdenticalToCanonical": true,
+        "imageOmissions": 0,
+        "conversionAllocatedBytes": 4493697784,
+        "embeddedImages": [
+          {
+            "index": 0,
+            "width": 816,
+            "height": 175,
+            "rgbaSha256": "EA079331F9F691818001C564096E139C491E2B0BA6190A1C56241B1A8B37DC58"
+          },
+          {
+            "index": 1,
+            "width": 992,
+            "height": 662,
+            "rgbaSha256": "2DEF480598C818AE601CCF33F90A79AA184C448E814A19D9E72973C0D1ADB5C0"
+          },
+          {
+            "index": 2,
+            "width": 64,
+            "height": 44,
+            "rgbaSha256": "4C691A7A1E9F7EFF683188AFCAFBBC8BAD977DA8DBAF281108AC66AB3453F343"
+          },
+          {
+            "index": 3,
+            "width": 992,
+            "height": 662,
+            "rgbaSha256": "2DEF480598C818AE601CCF33F90A79AA184C448E814A19D9E72973C0D1ADB5C0"
+          },
+          {
+            "index": 4,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "E415F07018838160ECF86F0E8A698EDEC78597A5F6FE831A031A9776727AE54B"
+          },
+          {
+            "index": 5,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "288834D49D493F65BDAB5657A7D591DE4D3857F7A1EF5207880E2A5034706CCB"
+          },
+          {
+            "index": 6,
+            "width": 992,
+            "height": 661,
+            "rgbaSha256": "43D3E9A0C23AB3A968DCB9CBE80989E304AC4ABB1487326D0E35E87B3B2F031C"
+          },
+          {
+            "index": 7,
+            "width": 992,
+            "height": 596,
+            "rgbaSha256": "391995A8E645DCE11581FCB6D95DDA4B654A3B3279D127954A6D0F4C3C6FB22D"
+          },
+          {
+            "index": 8,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "BA6A6D97FF83948ACCFA9BD46D6FE69846D326F5E8C54B29F915FE5801EC877B"
+          },
+          {
+            "index": 9,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "DB5A86B1A3BF8A47498852F5E8F4FD0E7EBA0D156033E0EA547FD3C77C585801"
+          },
+          {
+            "index": 10,
+            "width": 480,
+            "height": 350,
+            "rgbaSha256": "030A1A556282F1B84B0E8F39930940803212EAC6C4FFC6FEA56E9672D64CDF63"
+          }
+        ]
+      }
+    ]
+  },
+  "resourceAcceptance": false,
+  "unfamiliarPageFidelityAcceptance": false
+}

@@ -1,0 +1,289 @@
+{
+  "recordedAt": "2026-10-01T15:46:44.787090+00:00",
+  "baseCommit": "7c175c51e2bfe5394744d4e238150426395bb4ec",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "d6cf70c249c6a4959c83381912973a108f637e71dceb51dde474644cfd60e9ea",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1RestorationFilter.cs": "4148bc4aef85e42679b1de5d3a49269ab69338b566070a9f30edeec11d85d878",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Restorer.cs": "3c0d311b6099381a008aedc2f830abad9609af187ec82a964488f46003ba8cf2",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Main10Frames.cs": "f5b7ad9e94caffc7df9b01f8611dcf1075706cba7b68d014398b5dc1faaa8e7e",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Main10Headers.cs": "55509ae019d25822942ffd1cc5542802f05f87d901621df3c24d0bd27ebcadc3",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Reconstruction.cs": "0c0a6b845590ff144d5a9a39b0f691182b26afcd47d325734bca68c73b4ea875",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.RestoredFrames.cs": "aae0a4f0cd31b19e61b514d4d8e83d569eb875ffc40d6588fb3bb3e3677efcd8",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "4897175205872130de26b4a07c18af15a64cb389f8a5c3ea6c66674b9913bdd2",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/EncodeRestorationControls.c": "456171cbd4d01b0fbba81dca6694b5ea018d5e27d82502ea6be8709e192a19a0",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateRestorationMain10Fixtures.py": "6ca8bc7ad2d5c2fd11aff9d3f574b6a8620c1e1c2f54cddc5b8d748bb42f363c",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeRestorationProbe.inc": "8a4ed7d00329aa83a250683d83d1de3acf12d76555e9da3f033748e7a5c18b3c",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadRestorationKernels.c": "6e9bdedd03c37656cea0812f56bfa2d4961f3d33eb3512eb215634a2f5d516c6",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/restored-main10-reference.json.gz": "c9be302d361a1530368818464ffb2b9c5415a378f4f70471d7e9667b0d0cacf6"
+  },
+  "checks": [
+    {
+      "file": "before/_evomini_2026-10-01_17_31_05.trx",
+      "sha256": "bdccd3dbdb76b3f1f4859d87a0c4cbc521e351a13f38e6d3d93402d10274256a",
+      "counters": {
+        "total": "49",
+        "executed": "49",
+        "passed": "2",
+        "failed": "47",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "focused/_evomini_2026-10-01_17_34_15.trx",
+      "sha256": "cb86f99b2b2a591470304a3611baf9e97a49e192a4136c60ad36eb1cbd3ab888",
+      "counters": {
+        "total": "106",
+        "executed": "106",
+        "passed": "106",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "focused-final/_evomini_2026-10-01_17_38_57.trx",
+      "sha256": "ea89370b0c862bd904c1a5ad106dfe512c57b12b46f2d786ee1228d771b45f80",
+      "counters": {
+        "total": "108",
+        "executed": "108",
+        "passed": "108",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "full-final-net10/_evomini_2026-10-01_17_44_24.trx",
+      "sha256": "5507ea66a540d06956a4c557ac801c890ebbcee12956937bdeeb2d6dc7c407af",
+      "counters": {
+        "total": "3166",
+        "executed": "3166",
+        "passed": "3166",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "full-final-net8/_evomini_2026-10-01_17_44_51.trx",
+      "sha256": "220c6e4f6bd9f119d71ee43ad56cac0e4a890307edf868f258d5cedadb38fcd1",
+      "counters": {
+        "total": "3166",
+        "executed": "3166",
+        "passed": "3166",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "full-net10/_evomini_2026-10-01_17_40_08.trx",
+      "sha256": "3afacb49ff9df3ddcfe58430718aeb4bba1a1e57d07ce0f15b20bd91aaae05fd",
+      "counters": {
+        "total": "3166",
+        "executed": "3166",
+        "passed": "3158",
+        "failed": "8",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "html-net10/_evomini_2026-10-01_17_45_31.trx",
+      "sha256": "87e2f2956bd7795051e9c8cdd21592bac2bf9446014ba9284281218ca542d08d",
+      "counters": {
+        "total": "14",
+        "executed": "14",
+        "passed": "14",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "html-net8/_evomini_2026-10-01_17_45_52.trx",
+      "sha256": "f5850763ec414f71c179be6d04d8fe6d7f0d126f0f64005dce563147e23a43b0",
+      "counters": {
+        "total": "14",
+        "executed": "14",
+        "passed": "14",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "package": {
+    "package": "OfficeIMO.Core.3.4.4.nupkg",
+    "sha256": "6c920e5db92b9f8e7fc50cea63fc703ed7a44cdac73679dd3f8ef88d51e4aad7",
+    "targets": [
+      "lib/net10.0/OfficeIMO.Core.dll",
+      "lib/net8.0/OfficeIMO.Core.dll",
+      "lib/netstandard2.0/OfficeIMO.Core.dll"
+    ],
+    "externalRuntimeDependencies": 0,
+    "nativeReferenceAssets": false
+  },
+  "review": {
+    "task": "/root/avif_main10_restoration_review",
+    "stagedDiffFingerprint": "7bbb0a2cb8f502989ac6778c95bd826574ff0a40",
+    "boundary": "candidate-reviewed",
+    "findings": "OneP2 stale header rejection assertion; corrected tosuccessfulinternalRestored whilepreserving publiccodecguard. Noadditionalproductionfindings. Finalfullsuite3166/3166eachdirectlyexercises correction.",
+    "confirmationUsed": false
+  },
+  "commands": [
+    "dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj -c Release -f net10.0 --filter Category!=Performance",
+    "same net8.0",
+    "dotnet pack OfficeIMO.Core/OfficeIMO.Core.csproj -c Release",
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --filter FullyQualifiedName~Avif",
+    "same net8.0"
+  ],
+  "remaining": "FinalMain10color/alpha/defaultdecode, publicrendered/packageconsumeracceptance andplatformproof stillopen; nopublicsupportcatalogchange.",
+  "sourceCommit": "771cf2da304f39da9246417acae9d44d639fb28d",
+  "nativeReference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "restorationSourcesSha256": {
+      "av1/common/restoration.c": "5a547e46f94b52e8117cc9e9f47e60c9677e6ea3e82f3f1a49047fd57611c92d",
+      "av1/common/convolve.c": "979df52cfcbe8046d9057aecc350b62128f8801c01a810e16988ca0e31e511dd"
+    },
+    "encoderPolicySourceSha256": "098561c7dd795d9605625c4d15c997959b9cf275f52eba9bc2826a6e61809b21",
+    "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+    "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+    "assetsSha256": {
+      "GenerateRestorationMain10Fixtures.py": "6ca8bc7ad2d5c2fd11aff9d3f574b6a8620c1e1c2f54cddc5b8d748bb42f363c",
+      "GenerateReconstructionFixtures.py": "83849acf40c853ea197b4239c2fa8e0d4da6ae895c28c7f000f51414d0eec668",
+      "TraceSuperres.patch": "7666b8f4873bc904e4f231b170b49290057a9fe6c6480eb19c00f509b650e181",
+      "OfficeRestorationProbe.inc": "8a4ed7d00329aa83a250683d83d1de3acf12d76555e9da3f033748e7a5c18b3c",
+      "OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+      "ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+      "ReadRestorationKernels.c": "6e9bdedd03c37656cea0812f56bfa2d4961f3d33eb3512eb215634a2f5d516c6",
+      "EncodeRestorationControls.c": "456171cbd4d01b0fbba81dca6694b5ea018d5e27d82502ea6be8709e192a19a0",
+      "ForceRestorationUnits.patch": "c4e4bc492999901e946733569c0c224eb7c1fb28a3ad31a05c1c0fc591f869d1",
+      "upscaled-main10-reference.json.gz": "66438a9cc80b084f55ba5e138729aecf7672bb19a7c9a036c8cdd540c9f2b155",
+      "restored-reference.json.gz": "fb48f22fe5c7cd57adbf6fe9ca6c30fe1c9de79c302de5013b453dfec4eb3675"
+    },
+    "fixtureSha256": "c9be302d361a1530368818464ffb2b9c5415a378f4f70471d7e9667b0d0cacf6",
+    "canonicalJsonSha256": "6b1299a717620e6330361f4f63a1d6d05f8c232f0b03388d8e0b92cf2c6369df",
+    "cases": 46,
+    "kernels": 640,
+    "changedKernelCases": 297,
+    "nativeUnitTypes": [
+      0,
+      1,
+      2
+    ],
+    "activeUnitSizes": [
+      32,
+      64,
+      128,
+      256
+    ],
+    "eightBitFramesIdentical": 29,
+    "eightBitKernelsIdentical": 160
+  },
+  "nativeReplayAfterCleanup": {
+    "10": {
+      "frames": 46,
+      "kernels": 640,
+      "allFieldsIdentical": true
+    },
+    "8": {
+      "frames": 29,
+      "kernels": 160,
+      "allFieldsIdentical": true
+    },
+    "recordedAt": "2026-10-01T15:48:17.586305+00:00",
+    "restoredMain10Samples": 5076445,
+    "changedMain10Samples": 3694327,
+    "activeMain10Frames": 20
+  },
+  "cleanup": {
+    "removedBytes": 459452977,
+    "verifiedAbsent": true,
+    "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-restoration-work-7c175c51e",
+    "retainedBytes": 3606801,
+    "replay": "Aftercapture/intermediatecleanup,46ten-bitframes640kernelsand29eight-bitframes160kernelsreplayedidentically; tworeplayexecutables andre-extractionhelperretained. Inputbytescome fromchecked-infixtures/containerassets."
+  }
+}

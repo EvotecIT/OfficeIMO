@@ -341,6 +341,7 @@ public static partial class HtmlEditableLayoutProjector {
         foreach (HtmlRenderPage page in rendered.Pages) {
             occurrences.AddRange(EnumerateRegions(page.Scene, page.PageNumber, null));
         }
+        occurrences = CoalescePaintProjectionOccurrences(occurrences);
 
         var diagnostics = new HtmlDiagnosticReport();
         foreach (IElement element in unsupportedPositionedElementCandidates) {

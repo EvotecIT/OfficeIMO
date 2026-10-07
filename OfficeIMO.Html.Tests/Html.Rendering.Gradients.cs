@@ -460,9 +460,50 @@ public sealed partial class HtmlRenderingTests {
         OfficeLinearGradient gradient = Assert.Single(
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 130D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         Assert.Equal(new[] { 0D, 0.5D, 0.5D, 1D }, gradient.Stops.Select(stop => stop.Offset));
         Assert.Equal(new[] { OfficeColor.Red, OfficeColor.Red, OfficeColor.Blue, OfficeColor.Blue }, gradient.Stops.Select(stop => stop.Color));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(30, 15));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(85, 15));
+        Assert.Equal(2, CountBackgroundOccurrences(svg, "offset=\"50%\""));
+        Assert.Contains("/Bounds [0.4999999 0.5000001]", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
+    public void OfficeConicGradient_UniformPaintDoesNotLeakBetweenVectorSegments() {
+        var gradient = new OfficeConicGradient(
+            0.5D,
+            0.5D,
+            0D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Red)
+            });
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(gradient.CreateDrawing(100D, 100D, 12), 1D, OfficeColor.White);
+
+        byte maximumLeak = 0;
+        int maximumLeakX = 0;
+        int maximumLeakY = 0;
+        for (int y = 1; y < 99; y++) {
+            for (int x = 1; x < 99; x++) {
+                OfficeColor pixel = raster.GetPixel(x, y);
+                Assert.Equal((byte)255, pixel.R);
+                byte leak = Math.Max(pixel.G, pixel.B);
+                if (leak <= maximumLeak) continue;
+                maximumLeak = leak;
+                maximumLeakX = x;
+                maximumLeakY = y;
+            }
+        }
+        Assert.True(maximumLeak <= 4, $"Uniform conic paint leaked {maximumLeak}/255 background color at ({maximumLeakX},{maximumLeakY}).");
     }
 
     [Fact]

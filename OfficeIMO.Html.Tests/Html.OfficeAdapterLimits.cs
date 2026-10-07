@@ -614,7 +614,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         switch (limitKind) {
             case "rules":
                 limits.MaxCssRules = 1;
-                html = "<style>p { color:red } strong { color:blue }</style><p>text</p>";
+                html = "<style>p { color:red } strong { color:blue }</style><p>text<strong>bold</strong></p>";
                 break;
             case "declarations":
                 limits.MaxCssDeclarations = 1;

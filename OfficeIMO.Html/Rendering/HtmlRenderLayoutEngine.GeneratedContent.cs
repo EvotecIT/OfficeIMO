@@ -19,10 +19,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || style.Display == "none") {
             return;
         }
+        if (CanPositionGeneratedContentLocally(style, parentStyle)) return;
 
         string source = DescribePseudoSource(element, kind);
         ReportUnsupportedGeneratedLayout(style, source);
         ResolvePositionPaintOffset(style, width, containingHeight, source, out double offsetX, out double offsetY);
+        if (content.Fragments.Count == 1
+            && content.Fragments[0].Kind == HtmlGeneratedContentFragmentKind.Text
+            && content.Fragments[0].Value.Length == 0
+            && style.Display is "inline-block" or "inline-flex" or "inline-grid") {
+            double boxWidth = ResolveBoxWidth(Math.Max(1D, width - style.MarginLeft - style.MarginRight), style);
+            double boxHeight = ResolveBoxHeight(0D, boxWidth, style);
+            var visuals = new List<HtmlRenderVisual>();
+            AddGeneratedBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
+            AddGeneratedBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
+            var box = new HtmlRenderFlowBlock(
+                style.MarginLeft + boxWidth + style.MarginRight,
+                Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom),
+                visuals,
+                style.BreakBefore,
+                style.BreakAfter,
+                style.AvoidBreakInside,
+                source);
+            runs.Add(new HtmlInlineRun(box, style, link, source,
+                inheritedPaintOffsetX + offsetX, inheritedPaintOffsetY + offsetY, element));
+            return;
+        }
         AddGeneratedInlineFragments(
             content,
             element,
@@ -46,6 +68,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || style.Display == "none") {
             return;
         }
+        if (CanPositionGeneratedContentLocally(style, parentStyle)) return;
+
+        blocks.Add(CreateGeneratedContentBlock(element, kind, containingWidth, parentStyle, style, content));
+    }
+
+    private HtmlRenderFlowBlock CreateGeneratedContentBlock(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        double containingWidth,
+        HtmlRenderBoxStyle parentStyle,
+        HtmlRenderBoxStyle style,
+        HtmlGeneratedContent content,
+        bool positioned = false) {
 
         string source = DescribePseudoSource(element, kind);
         ReportUnsupportedGeneratedLayout(style, source);
@@ -74,7 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .Select(offset => contentY + offset)
             .Concat(new[] { outerHeight });
         var block = new HtmlRenderFlowBlock(
-            containingWidth,
+            positioned ? style.MarginLeft + boxWidth + style.MarginRight : containingWidth,
             outerHeight,
             visuals,
             style.BreakBefore,
@@ -86,7 +121,61 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Orphans,
             style.Widows,
             pageName: style.PageName ?? parentStyle.PageName);
-        blocks.Add(ApplyPositioning(block, style, containingWidth, ResolveContainingBlockHeight(parentStyle), source));
+        return positioned
+            ? block
+            : ApplyPositioning(block, style, containingWidth, ResolveContainingBlockHeight(parentStyle), source);
+    }
+
+    private static bool CanPositionGeneratedContentLocally(HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle) =>
+        style.Position == "absolute"
+        && (style.Display is "block" or "flow-root" or "list-item")
+        && style.ExplicitWidth.HasValue
+        && style.ExplicitHeight.HasValue
+        && (parentStyle.Position is "relative" or "sticky")
+        && (parentStyle.Display is "block" or "flow-root" or "list-item" or "inline-block")
+        && (!IsAutoInset(style.Left) || !IsAutoInset(style.Right))
+        && (!IsAutoInset(style.Top) || !IsAutoInset(style.Bottom));
+
+    private bool TryGetLocallyPositionedGeneratedContentZIndex(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        double containingWidth,
+        HtmlRenderBoxStyle parentStyle,
+        out int zIndex) {
+        zIndex = 0;
+        if (!_generatedContent.TryGetContent(element, kind, out _)
+            || !_styleResolver.TryResolvePseudo(element, kind, containingWidth, parentStyle, out HtmlRenderBoxStyle style)
+            || !CanPositionGeneratedContentLocally(style, parentStyle)) return false;
+        zIndex = ResolvePositionedZIndex(element, style);
+        return true;
+    }
+
+    private void AppendLocallyPositionedGeneratedContent(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        double containingWidth,
+        double containingHeight,
+        double originX,
+        double originY,
+        HtmlRenderBoxStyle parentStyle,
+        ICollection<HtmlRenderVisual> visuals) {
+        if (!_generatedContent.TryGetContent(element, kind, out HtmlGeneratedContent content)
+            || !_styleResolver.TryResolvePseudo(element, kind, containingWidth, parentStyle, out HtmlRenderBoxStyle style)
+            || !CanPositionGeneratedContentLocally(style, parentStyle)) return;
+
+        string source = DescribePseudoSource(element, kind);
+        HtmlRenderFlowBlock block = CreateGeneratedContentBlock(
+            element, kind, containingWidth, parentStyle, style, content, positioned: true);
+        block = ApplyPaintEffects(block, style, containingWidth, source, out _);
+        double? left = ResolveOutOfFlowInset(style.Left, containingWidth, style, source, "left");
+        double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
+        double? top = ResolveOutOfFlowInset(style.Top, containingHeight, style, source, "top");
+        double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
+        double x = left ?? containingWidth - (right ?? 0D) - block.Width;
+        double y = top ?? containingHeight - (bottom ?? 0D) - block.Height;
+        foreach (HtmlRenderVisual visual in block.Visuals) {
+            visuals.Add(visual.Translate(originX + x, originY + y, visuals.Count));
+        }
     }
 
     private void AddGeneratedInlineFragments(
@@ -101,6 +190,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> runs) {
         for (int index = 0; index < content.Fragments.Count; index++) {
             HtmlGeneratedContentFragment fragment = content.Fragments[index];
+            if (style.Font.Size <= 0D && fragment.Kind != HtmlGeneratedContentFragmentKind.Image) continue;
             string fragmentSource = fragment.Kind == HtmlGeneratedContentFragmentKind.Text
                 ? source
                 : source + ":content-" + fragment.Kind.ToString().ToLowerInvariant()

@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// Operation-scoped owner for HTML resource policy, resolution, MIME validation, deduplication,
 /// caching, budgets, timeouts, cancellation evidence, canonical identities, and content digests.
 /// </summary>
-public sealed class HtmlResourceSession {
+public sealed partial class HtmlResourceSession {
     private int _resolverRequestCount;
     private readonly object _diagnosticSync = new object();
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(HtmlResourceIdentityComparer.Instance);
@@ -14,6 +14,7 @@ public sealed class HtmlResourceSession {
     private readonly HashSet<string> _attempted = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
     private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
     private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+    private readonly Dictionary<string, List<int>> _missingCssImageDiagnostics = new Dictionary<string, List<int>>(HtmlResourceIdentityComparer.Instance);
     private readonly List<HtmlResourceSessionEntry> _entries = new List<HtmlResourceSessionEntry>();
     private readonly IReadOnlyList<HtmlResourceSessionEntry> _readOnlyEntries;
 
@@ -134,6 +135,45 @@ public sealed class HtmlResourceSession {
         if (reference.ResolvedSource.Length > 0) _attempted.Add(reference.ResolvedSource);
     }
 
+    internal void RecordMissingCssImage(HtmlResourceReference reference) {
+        if (reference.Kind != HtmlResourceKind.Image
+            || !(reference.AttributeName.StartsWith("css-", StringComparison.Ordinal)
+                || reference.AttributeName.StartsWith("style-", StringComparison.Ordinal))) return;
+        int index = Diagnostics.Count - 1;
+        AddMissingCssImageAlias(reference.ResolvedSource, index);
+    }
+
+    private void AddMissingCssImageAlias(string source, int index) {
+        if (source.Length == 0) return;
+        if (!_missingCssImageDiagnostics.TryGetValue(source, out List<int>? indices)) {
+            indices = new List<int>();
+            _missingCssImageDiagnostics.Add(source, indices);
+        }
+        indices.Add(index);
+    }
+
+    internal void DeferMissingCssImageLoss() {
+        foreach (int index in _missingCssImageDiagnostics.Values.SelectMany(static indices => indices).Distinct()) {
+            HtmlDiagnostic diagnostic = Diagnostics[index];
+            Diagnostics.Replace(index, diagnostic.WithImpact(HtmlDiagnosticSeverity.Info, OfficeConversionLossKind.None));
+        }
+    }
+
+    internal void MarkImageUsed(string? resolvedSource) {
+        PromoteMissingCssImage(resolvedSource);
+    }
+
+    private void PromoteMissingCssImage(string? source) {
+        if (string.IsNullOrWhiteSpace(source)
+            || !_missingCssImageDiagnostics.TryGetValue(source!, out List<int>? indices)) return;
+        foreach (int index in indices) {
+            HtmlDiagnostic diagnostic = Diagnostics[index];
+            if (diagnostic.Severity == HtmlDiagnosticSeverity.Info) {
+                Diagnostics.Replace(index, diagnostic.WithImpact(HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission));
+            }
+        }
+    }
+
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
         AcceptedResourceBytes += resource.Length;
         AcceptedResourceCount++;
@@ -222,11 +262,11 @@ public sealed class HtmlResourceSession {
             stop = true;
             return false;
         }
-        if (length > MaxTotalResourceBytes - AcceptedResourceBytes) {
+        if (length > MaxTotalResourceBytes - AcceptedResourceBytes - DecodedFontBytes) {
             Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
                 "Resolved resources exceeded the configured total byte limit.",
                 HtmlDiagnosticSeverity.Error, reference.Source,
-                "bytes=" + (AcceptedResourceBytes + length), OfficeConversionLossKind.Omission);
+                "bytes=" + (AcceptedResourceBytes + DecodedFontBytes + length), OfficeConversionLossKind.Omission);
             stop = true;
             return false;
         }
@@ -258,9 +298,9 @@ public sealed class HtmlResourceSession {
             return false;
         }
 
-        if (estimatedBytes > MaxTotalResourceBytes - AcceptedResourceBytes) {
+        if (estimatedBytes > MaxTotalResourceBytes - AcceptedResourceBytes - DecodedFontBytes) {
             diagnosticCode = HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded;
-            diagnosticDetail = "bytes=" + (AcceptedResourceBytes + estimatedBytes);
+            diagnosticDetail = "bytes=" + (AcceptedResourceBytes + DecodedFontBytes + estimatedBytes);
             return false;
         }
 
@@ -549,9 +589,12 @@ internal static class HtmlRenderResourceLoader {
             ResourceUrlPolicy = result.ResourcePolicy.Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = options.ResponsiveImageSizesCharacterLimit,
             MediaContext = options.MediaContext,
-            MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaWidth = options.CssMediaWidth,
+            MediaHeight = options.CssMediaHeight,
+            DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()
         };
         bool stop = false;
@@ -623,7 +666,13 @@ internal static class HtmlRenderResourceLoader {
                 }
                 HtmlResolvedResource? resource = resolution.Resource;
                 if (resource == null) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, OfficeConversionLossKind.Omission);
+                    // The font-face loader reports loss when no source in the face is usable.
+                    // A missing alternate URL by itself does not imply a rendered omission.
+                    bool fontCandidate = reference.Kind == HtmlResourceKind.Font;
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.",
+                        fontCandidate ? HtmlDiagnosticSeverity.Info : HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource,
+                        fontCandidate ? OfficeConversionLossKind.None : OfficeConversionLossKind.Omission);
+                    result.RecordMissingCssImage(reference);
                     continue;
                 }
 

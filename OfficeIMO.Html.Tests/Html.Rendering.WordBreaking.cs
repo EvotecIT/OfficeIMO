@@ -69,6 +69,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(word.TextAdvanceWidth > 60D);
     }
 
+    [Fact]
+    public void HtmlRendering_PrintedUrlDoesNotWrapAtSolidusWhenItFitsTheNextLine() {
+        const string html = "<style>body{margin:0;font:16px Arial}p{width:500px;margin:0}"
+            + "a::after{content:' (https://www.w3.org/WAI/tutorials/tables/irregular/)'}</style>"
+            + "<p><a href='https://www.w3.org/WAI/tutorials/tables/irregular/'>Tables with irregular headers</a> have header cells</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 700D, Margins = HtmlRenderMargins.All(0D) });
+
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .GroupBy(text => text.Y)
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(text => text.X).Select(text => text.Text)).Trim())
+            .ToArray();
+
+        Assert.Equal("Tables with irregular headers", lines[0]);
+        Assert.StartsWith("(https://www.w3.org/WAI/tutorials/tables/irregular/)", lines[1], StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("overflow-wrap:anywhere")]
     [InlineData("overflow-wrap:break-word")]
@@ -91,8 +109,12 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_BreakAllUsesRemainingSpaceBeforeMovingAWordThatFitsAnEmptyLine() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='width:40px;font-size:12px;word-break:break-all'>A WWW</div>",
-            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D });
+            "<div style='width:30px;font-size:12px;word-break:break-all'>A WWW</div>",
+            new HtmlRenderOptions {
+                Mode = HtmlRenderMode.Continuous,
+                ViewportWidth = 120D,
+                Margins = HtmlRenderMargins.All(0D)
+            });
         string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
             .GroupBy(fragment => fragment.Y)
             .OrderBy(group => group.Key)
@@ -103,6 +125,45 @@ public sealed partial class HtmlRenderingTests {
         Assert.StartsWith("A ", lines[0], StringComparison.Ordinal);
         Assert.Contains("W", lines[0], StringComparison.Ordinal);
         Assert.Equal("A WWW", string.Concat(lines));
+    }
+
+    [Fact]
+    public void HtmlRendering_FloatLineUsesWhitespaceBeforeEmergencyWordBreak() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='width:120px;margin:0;font:16px/20px Arial;overflow-wrap:break-word'>"
+            + "<span style='float:left;width:20px;height:80px'></span>A Supercalifragilisticexpialidocious</p>",
+            new HtmlRenderOptions { ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D) });
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(fragment => fragment.Text.Length > 0)
+            .GroupBy(fragment => Math.Round(fragment.Y, 2))
+            .OrderBy(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text)))
+            .ToArray();
+
+        Assert.True(lines.Length > 1);
+        Assert.Equal("A", lines[0]);
+        Assert.StartsWith("Super", lines[1], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlRendering_PreferredBreakStillUsesPrecedingWhitespace(bool withFloat) {
+        string floating = withFloat ? "<span style='float:left;width:20px;height:80px'></span>" : string.Empty;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='width:120px;margin:0;font:16px/20px Arial;overflow-wrap:break-word'>"
+            + floating + "A Supercalifragilisticexpialidocious-remaining</p>",
+            new HtmlRenderOptions { ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D) });
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(fragment => fragment.Text.Length > 0)
+            .GroupBy(fragment => Math.Round(fragment.Y, 2))
+            .OrderBy(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text)))
+            .ToArray();
+
+        Assert.True(lines.Length > 1);
+        Assert.Equal("A", lines[0]);
+        Assert.StartsWith("Super", lines[1], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -251,14 +312,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("typo-", firstLine.Text);
     }
 
-    [Fact]
-    public void HtmlRendering_HyphenateLimitLastAlwaysKeepsAWholeFinalWordTogetherWhenItFitsAFreshLine() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlRendering_HyphenateLimitLastAlwaysKeepsAWholeFinalWordTogetherWhenItFitsAFreshLine(bool firstLine) {
         var lexicon = new OfficeTextHyphenationLexicon(new[] { "ty-pog-ra-phy" }, minimumPrefixLength: 1, minimumSuffixLength: 1);
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 180D }
             .UseTextHyphenationLexicon(lexicon);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>to show typography</div>",
+            (firstLine ? "<style>div::first-line{color:red}</style>" : "")
+            + "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>to show typography</div>",
             options);
         string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
             .GroupBy(fragment => fragment.Y)

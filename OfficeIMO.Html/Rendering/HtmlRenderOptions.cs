@@ -33,7 +33,14 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// </summary>
     public HtmlRenderFidelityPolicy FidelityPolicy { get; set; } = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
 
-    /// <summary>Viewport width for continuous rendering, in CSS pixels.</summary>
+    /// <summary>
+    /// Projects Chromium MHTML <c>template shadowmode</c> snapshots into static render content.
+    /// Null uses the source-format default (enabled for MHTML, disabled for ordinary HTML).
+    /// This is a diagnosed approximation of shadow DOM composition, not a live shadow tree.
+    /// </summary>
+    public bool? ProjectSerializedShadowRoots { get; set; }
+
+    /// <summary>Viewport width for continuous rendering and print-fit media selection, in CSS pixels.</summary>
     public double ViewportWidth { get; set; } = 816D;
 
     /// <summary>Optional minimum continuous-surface height, in CSS pixels.</summary>
@@ -51,16 +58,43 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default font family used when CSS does not select one.</summary>
     public string DefaultFontFamily { get; set; } = "Arial";
 
+    /// <summary>Resolves installed faces in system-UI or mathematical fallback lists through the owned font
+    /// loader. Disable this for a portable render that uses only supplied/document fonts.</summary>
+    public bool AllowSystemFontFallback { get; set; } = true;
+
+    /// <summary>Restricts target-approved installed fallback to the fixed mathematical
+    /// family set; explicit in-memory and document-embedded faces remain available.</summary>
+    internal bool MathOnlySystemFontFallback { get; set; }
+
     /// <summary>Default CSS font size in pixels.</summary>
     public double DefaultFontSize { get; set; } = 16D;
 
     // A target writer can supply its fallback font metrics without replacing document fonts.
-    internal Func<string, OfficeFontInfo, double?>? FallbackTextMeasurement { get; set; }
+    internal Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?>? FallbackTextMeasurement { get; set; }
+
+    // The same selected fallback face supplies CSS line-box metrics when it is not a document font.
+    internal Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? FallbackTextFaceMetrics { get; set; }
 
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
 
-    /// <summary>Optional caller-owned dictionary or algorithm used by CSS <c>hyphens:auto</c>.</summary>
+    /// <summary>
+    /// Bounded user-agent style defaults applied before authored CSS.
+    /// The document profile preserves the existing OfficeIMO layout contract.
+    /// </summary>
+    public HtmlRenderUserAgentStyleMode UserAgentStyles { get; set; } = HtmlRenderUserAgentStyleMode.Document;
+
+    /// <summary>
+    /// Selects the bounded browser user-agent defaults and a generic serif fallback.
+    /// Authored CSS continues to override these defaults.
+    /// </summary>
+    public HtmlRenderOptions UseBrowserUserAgentStyles() {
+        UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser;
+        DefaultFontFamily = "serif";
+        return this;
+    }
+
+    /// <summary>Optional caller-owned dictionary or algorithm that overrides embedded language patterns for CSS <c>hyphens:auto</c>.</summary>
     public OfficeTextHyphenationCallback? TextHyphenationCallback { get; set; }
 
     /// <summary>Uses or clears a shared immutable hyphenation lexicon for CSS <c>hyphens:auto</c>.</summary>
@@ -129,6 +163,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum page count accepted from one paged render operation.</summary>
     public int MaxPageCount { get; set; } = 1000;
 
+    /// <summary>Maximum visual nodes materialized while slicing or composing retained surfaces.</summary>
+    public int MaxProjectedVisuals { get; set; } = 1_000_000;
+
     /// <summary>Maximum element nesting depth processed by the layout engine.</summary>
     public int MaxLayoutDepth { get; set; } = 256;
 
@@ -162,9 +199,16 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum DOM nodes accepted by one inline SVG <c>foreignObject</c> HTML viewport.</summary>
     public int MaxSvgForeignObjectHtmlNodes { get; set; } = 1000;
 
+    /// <summary>Maximum nested iframe <c>srcdoc</c> viewports rendered into one output.</summary>
+    public int MaxFrameDepth { get; set; } = 8;
+
     // Propagated only by the managed SVG-to-HTML ownership bridge so recursive image payloads
     // cannot restart the public depth budget from zero.
     internal int SvgForeignObjectDepth { get; set; }
+
+    // Propagated only by the static iframe renderer so nested srcdoc documents cannot
+    // restart the public frame-depth budget from zero.
+    internal int FrameDepth { get; set; }
 
     /// <summary>Maximum color stops accepted in one CSS gradient.</summary>
     public int MaxGradientStops { get; set; } = 64;
@@ -193,8 +237,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum normalized UTF-16 characters retained in one CSS running-string value.</summary>
     public int MaxRunningStringCharacters { get; set; } = 4_096;
 
-    /// <summary>Gets the CSS media context selected by the current render mode.</summary>
-    public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
+    /// <summary>
+    /// Gets the CSS media context selected by an explicit render request, or by the legacy
+    /// continuous/screen and paged/print mapping when no request is active.
+    /// </summary>
+    public HtmlCssMediaContext MediaContext => CssMediaContextOverride ??
+        (Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen);
 
     /// <summary>Gets the paged surface width in CSS pixels.</summary>
     public double PageWidth => PageSize.WidthInches * CssPixelsPerInch;
@@ -210,6 +258,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         CopyImageExportOptionsTo(target);
         target.Mode = Mode;
         target.FidelityPolicy = FidelityPolicy;
+        target.ProjectSerializedShadowRoots = ProjectSerializedShadowRoots;
         target.ViewportWidth = ViewportWidth;
         target.ViewportHeight = ViewportHeight;
         target.PageSize = PageSize;
@@ -218,7 +267,11 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontFamily = DefaultFontFamily;
         target.DefaultFontSize = DefaultFontSize;
         target.FallbackTextMeasurement = FallbackTextMeasurement;
+        target.AllowSystemFontFallback = AllowSystemFontFallback;
+        target.MathOnlySystemFontFallback = MathOnlySystemFontFallback;
+        target.FallbackTextFaceMetrics = FallbackTextFaceMetrics;
         target.DefaultLineHeight = DefaultLineHeight;
+        target.UserAgentStyles = UserAgentStyles;
         target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
         target._additionalStylesheets.Clear();
@@ -238,6 +291,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
+        target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;
         target.MaxHtmlNodes = MaxHtmlNodes;
@@ -249,6 +303,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSvgForeignObjectDepth = MaxSvgForeignObjectDepth;
         target.MaxSvgForeignObjectHtmlNodes = MaxSvgForeignObjectHtmlNodes;
         target.SvgForeignObjectDepth = SvgForeignObjectDepth;
+        target.MaxFrameDepth = MaxFrameDepth;
+        target.FrameDepth = FrameDepth;
         target.MaxGradientStops = MaxGradientStops;
         target.ConicGradientQualitySegments = ConicGradientQualitySegments;
         target.MaxGridTracks = MaxGridTracks;
@@ -259,8 +315,16 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxLayoutOperations = MaxLayoutOperations;
         target.MaxRunningStringCharacters = MaxRunningStringCharacters;
         target.ResponsiveImageCandidateLimit = ResponsiveImageCandidateLimit;
+        target.ResponsiveImageSizesCharacterLimit = ResponsiveImageSizesCharacterLimit;
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
         target.ImageNormalizationBudget = ImageNormalizationBudget;
+        target.CssMediaContextOverride = CssMediaContextOverride;
+        target.CssMediaWidthOverride = CssMediaWidthOverride;
+        target.CssMediaHeightOverride = CssMediaHeightOverride;
+        target.PrintFitContentWidth = PrintFitContentWidth;
+        target.PrintFitScale = PrintFitScale;
+        target.AutoFitWidePrintRoot = AutoFitWidePrintRoot;
+        target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
         return target;
     }
 
@@ -268,6 +332,35 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     internal int? ResponsiveImageCandidateLimit { get; set; }
+
+    internal int? ResponsiveImageSizesCharacterLimit { get; set; }
+
+    // Render requests decouple CSS media from continuous or paged geometry. Legacy callers
+    // leave this unset and retain the historical continuous/screen and paged/print mapping.
+    internal HtmlCssMediaContext? CssMediaContextOverride { get; set; }
+
+    // Print fitting can lay out a wider page without changing the viewport
+    // against which CSS width media queries were selected.
+    internal double? CssMediaWidthOverride { get; set; }
+    internal double? CssMediaHeightOverride { get; set; }
+
+    // The PDF adapter may request wider print reflow while CSS @page still owns
+    // the physical sheet. Page geometry is expanded only after @page resolves.
+    internal double? PrintFitContentWidth { get; set; }
+
+    internal double? PrintFitScale { get; set; }
+
+    internal bool AutoFitWidePrintRoot { get; set; }
+
+    internal double CssMediaWidth => CssMediaWidthOverride
+        ?? (Mode == HtmlRenderMode.Paged ? PageWidth : ViewportWidth);
+
+    internal double CssMediaHeight => CssMediaHeightOverride
+        ?? (Mode == HtmlRenderMode.Paged ? PageHeight : ViewportHeight ?? 1056D);
+
+    // A viewport is a bounded continuous layout surface. Legacy ViewportHeight remains a
+    // minimum height so existing full-page output does not become clipped.
+    internal bool ClipContinuousSurfaceToViewport { get; set; }
 
     // Only the shared projector may opt the renderer into interpreting its private DOM marker.
     internal bool EnableEditableLayoutRegions { get; set; }
@@ -281,13 +374,25 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
             && FidelityPolicy != HtmlRenderFidelityPolicy.RequireNoLoss) {
             throw new ArgumentOutOfRangeException(nameof(FidelityPolicy));
         }
+        if (CssMediaContextOverride.HasValue
+            && CssMediaContextOverride.Value != HtmlCssMediaContext.Screen
+            && CssMediaContextOverride.Value != HtmlCssMediaContext.Print) {
+            throw new ArgumentOutOfRangeException(nameof(MediaContext));
+        }
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
+        if (CssMediaWidthOverride.HasValue) ValidatePositive(CssMediaWidthOverride.Value, nameof(CssMediaWidthOverride));
+        if (CssMediaHeightOverride.HasValue) ValidatePositive(CssMediaHeightOverride.Value, nameof(CssMediaHeightOverride));
+        if (PrintFitContentWidth.HasValue) ValidatePositive(PrintFitContentWidth.Value, nameof(PrintFitContentWidth));
+        if (PrintFitScale.HasValue) ValidatePositive(PrintFitScale.Value, nameof(PrintFitScale));
         if (ViewportHeight.HasValue) {
             ValidatePositive(ViewportHeight.Value, nameof(ViewportHeight));
         }
 
         ValidatePositive(DefaultFontSize, nameof(DefaultFontSize));
         ValidatePositive(DefaultLineHeight, nameof(DefaultLineHeight));
+        if (!Enum.IsDefined(typeof(HtmlRenderUserAgentStyleMode), UserAgentStyles)) {
+            throw new ArgumentOutOfRangeException(nameof(UserAgentStyles));
+        }
         (MediaFeatures ?? throw new ArgumentNullException(nameof(MediaFeatures))).Validate();
         if (string.IsNullOrWhiteSpace(DefaultFontFamily)) {
             throw new ArgumentException("A default font family is required.", nameof(DefaultFontFamily));
@@ -303,6 +408,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxPageCount <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxPageCount), "Maximum page count must be positive.");
+        }
+
+        if (MaxProjectedVisuals <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxProjectedVisuals), "Maximum projected visual count must be positive.");
         }
 
         if (MaxLayoutDepth <= 0) {
@@ -342,6 +451,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxSvgForeignObjectHtmlNodes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxSvgForeignObjectHtmlNodes), "Maximum SVG foreign-object HTML node count must be positive.");
+        }
+
+        if (MaxFrameDepth <= 0 || MaxFrameDepth > HtmlConversionInputGuard.MaxSrcDocDepth
+            || FrameDepth < 0 || FrameDepth > MaxFrameDepth) {
+            throw new ArgumentOutOfRangeException(nameof(MaxFrameDepth),
+                $"Frame nesting limits must be positive, no greater than {HtmlConversionInputGuard.MaxSrcDocDepth}, and internally consistent.");
         }
 
         if (MaxGradientStops < 2) {

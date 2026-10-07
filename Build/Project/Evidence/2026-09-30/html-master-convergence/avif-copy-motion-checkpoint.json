@@ -1,0 +1,129 @@
+{
+  "sourceCommit": "083248dab2c0451239a1514f1ccc4a9cb8067684",
+  "recordDate": "2026-10-01",
+  "previousCheckpoint": "6412df8e90a7c09cd7df50cb5018caefbb9ac917",
+  "scope": "Internal reduced-still Main-8 intra-block-copy spatial predictors, integer difference syntax and tile-source constraints. No completed tile or pixels.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CopyMotion.cs": "c9b9816236da853de5beed4b7176d69999526e91b4b8d1b38b9050d2288e89bd",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CopyMotionReader.Candidates.cs": "2b31c19df5cd139fc544e48cebf59e98b53a07c8b141f910362fc0a4c3bc1881",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CopyMotionReader.Source.cs": "3cd86577a7d0968d7f4632a6d5f3054921c769676ef6dcb4b9fe999a2e5d3966",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CopyMotionReader.cs": "6bb2a67e6781c123089df0bf7a1acf6998e8def37ff32147564ffa680c1ca3c0",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.CopyMotion.cs": "dea35e099b10ecf8975ed30511d5fc7c3bcf544df16567c6e6d603f90b687e05",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "a4db336b9fbcea0b8b90be5c3fb6b803876c153529187c2d8906d8932952c645",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateCopyFixtures.c": "11d421faefd84f92712230dae4a8f047e519b3d4d389c1209856cf43d423b822",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateCopyFixtures.py": "60f66912d50b2f2a923ddca32ca17b08a84f0eedc9c530da74fae46ed62a3c16",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/copy-reference.json.gz": "a5e6e11250c70a8fe47f221ec625b6abce3fe776d92e8c3b99a6333435ad6f10"
+  },
+  "normativeSections": [
+    "5.11.26",
+    "5.11.31",
+    "5.11.32",
+    "6.10.25",
+    "7.10.2"
+  ],
+  "specArchive": {
+    "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-frame-work-6e23fbd4c/av1-spec.txt",
+    "sha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3"
+  },
+  "oracle": {
+    "tableSourceSha256": "3472e909bbee628a2c39d91f73d1e2502c7c4d47dc488c633b0ec3718a990f35",
+    "harnessSha256": "11d421faefd84f92712230dae4a8f047e519b3d4d389c1209856cf43d423b822",
+    "generatorSha256": "60f66912d50b2f2a923ddca32ca17b08a84f0eedc9c530da74fae46ed62a3c16",
+    "fixtureSha256": "a5e6e11250c70a8fe47f221ec625b6abce3fe776d92e8c3b99a6333435ad6f10",
+    "canonicalJsonSha256": "557f1e06d59cf0856a2e88df2b75007a4b416d0e434b88ba686d85281ccfe235",
+    "cases": 258,
+    "leaves": 135288,
+    "copyLeaves": 46158,
+    "rejectionCases": 88,
+    "sourceProbes": 18,
+    "nativeSelfCheck": true
+  },
+  "freshReplay": {
+    "fixtureSha256": "a5e6e11250c70a8fe47f221ec625b6abce3fe776d92e8c3b99a6333435ad6f10",
+    "freshReplayByteIdentical": true,
+    "entropyFixtureByteIdentical": true,
+    "streams": 258,
+    "leaves": 135288,
+    "copyLeaves": 46158,
+    "blockShapes": 22,
+    "classEndpointRejections": 88,
+    "sourceSafetyAndExactControls": 18,
+    "exactClassControls": [
+      "class0-row",
+      "class0-col",
+      "class0-row",
+      "class0-col",
+      "class0-row",
+      "class0-col",
+      "class0-row",
+      "class0-col",
+      "class9-exact-control",
+      "class10-exact-control"
+    ]
+  },
+  "validation": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-copy-work-6412df8e9/copy-final-drawing-net8.trx",
+      "sha256": "0bac9a6c3ff42fe9f1499ca51211a594cb5e1a52928fea38523c1db54d2f69aa",
+      "total": 2939,
+      "passed": 2939,
+      "failed": 0
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-copy-work-6412df8e9/copy-final-drawing-net10.trx",
+      "sha256": "eb6524affe1a8abb5b0aa36022375fd3d415ae002bfde1ea93f37717940d2347",
+      "total": 2939,
+      "passed": 2939,
+      "failed": 0
+    }
+  ],
+  "coreNetstandard2Build": {
+    "configuration": "Release",
+    "sdk": "10.0.303",
+    "warnings": 0,
+    "errors": 0
+  },
+  "package": {
+    "package": "Ignore/HtmlUnknownPageQualification/static-gap-av1-copy-work-6412df8e9/package/OfficeIMO.Core.3.4.4.nupkg",
+    "sha256": "7e2b27933881895e338725b392f2c0abd8edd28f55e1b6a8bf20ff33fb96517e",
+    "runtimeDependencies": 0,
+    "libraries": {
+      "lib/net10.0/OfficeIMO.Core.dll": "6ba48409cce200d73350cc7bebcbe6bbf740d8467bfae5aa97fb7afd985607f3",
+      "lib/net8.0/OfficeIMO.Core.dll": "dccfb61c0de96fb75317a1988b93564037542ced6a65b48618988f26731c6210",
+      "lib/netstandard2.0/OfficeIMO.Core.dll": "9379e2a2fc31572380088e424997d5f8719c994c49141803681a0cb83de17a09"
+    },
+    "disposition": "Package deleted after inspection; package/DLL hashes and dependency result retained."
+  },
+  "localReview": {
+    "reason": "Arithmetic parser, spatial prediction and decoded-source safety boundary",
+    "task": "av1_copy_motion_review",
+    "stagedFingerprint": "5c06cd7087646330cb32177013657ace99edfab1",
+    "findings": [],
+    "boundary": "candidate-reviewed",
+    "postReviewChange": "Added accepted class0/9/10 exact controls and recursive source-probe prefixes; all production files hash-identical to reviewed candidate. Broad tests and fresh replay pass on final fixtures.",
+    "targetedConfirmationUsed": false,
+    "residualGap": "Original grammar harness is not an independent full AV1 decoder."
+  },
+  "defaultAvifDecodeQualified": false,
+  "supportCatalogChanged": false,
+  "externalRuntimeDependenciesAdded": false,
+  "fullMilestoneComplete": false,
+  "unchangedRendererEvidence": "No default renderer/decoder caller changes. Earlier H4/NASA/platform budgets retain their previous source boundary; rerun when decoded pixels enter the public conversion path.",
+  "remainingAvif": [
+    "Complete real tile syntax traversal and termination, including evolving leaf/restoration contexts",
+    "Prediction, dequantization, inverse transforms and reconstructed samples",
+    "In-loop filtering, color/alpha composition and independent image comparison",
+    "Direct frozen HTML/PDF acceptance, applicable unchanged ceilings and platform qualification"
+  ],
+  "unavailableProof": [
+    "Windows/net472 execution",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "cleanup": {
+    "removedBytes": 27945926,
+    "removed": "Duplicate/superseded replay builds, raw matrices, intermediate TRX/probe output and inspected package.",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-copy-work-6412df8e9",
+    "retainedBytes": 9089635,
+    "purpose": "Final full-suite TRX, source/license facts, compact receipts and native reference executable for the next traversal stage."
+  }
+}

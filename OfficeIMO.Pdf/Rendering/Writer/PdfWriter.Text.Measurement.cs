@@ -40,22 +40,25 @@ internal static partial class PdfWriter {
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) =>
         EstimateSimpleTextWidthForOptions(text, font, EffectiveRichFontSize(fontSize, baseline), options);
 
-    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+    private static double MeasureRichText(string text, PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         double effectiveFontSize = EffectiveRichFontSize(fontSize, baseline);
-        if (horizontalTextScaling == 100D && characterSpacing == 0D) {
+        if (horizontalTextScaling == 100D && characterSpacing == 0D && fontMetricScale == 1D) {
             return EstimateSimpleTextWidthForOptions(text, font, namedFont, effectiveFontSize, options, featureSettings);
         }
         if (ContainsLineBreak(text)) {
             double maximum = 0D;
             foreach (string line in text.Split(LayoutLineSeparators, StringSplitOptions.None)) {
                 maximum = Math.Max(maximum, MeasureRichText(line, font, namedFont, fontSize, baseline, options,
-                    featureSettings, horizontalTextScaling, characterSpacing, textDirection));
+                    featureSettings, horizontalTextScaling, characterSpacing, textDirection, fontMetricScale));
             }
             return maximum;
         }
 
-        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection);
+        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection, fontMetricScale);
         double naturalWidth = command.AdvanceWidth1000.GetValueOrDefault() * effectiveFontSize / 1000D;
+        double trackingAdvance = (command.Tracking?.GetAdjustment(effectiveFontSize / command.FontMetricScale) ?? 0D)
+            * effectiveFontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
+        naturalWidth += command.NegativeTracking ? -trackingAdvance : trackingAdvance;
         double advance = naturalWidth * horizontalTextScaling / 100D + command.GlyphCount * characterSpacing;
         if (double.IsNaN(advance) || double.IsInfinity(advance)) {
             throw new InvalidOperationException("The requested glyph width and character spacing produce an invalid text advance.");

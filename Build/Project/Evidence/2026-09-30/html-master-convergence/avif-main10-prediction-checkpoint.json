@@ -1,0 +1,272 @@
+{
+  "sourceCommit": "5893727f9e1a29a2909416ab9dd31812fa8856b4",
+  "baseCommit": "6b2462f27394fcd7ef5b0893cf473243df83089f",
+  "recordedAt": "2026-10-01T10:51:52.536369+00:00",
+  "scope": "Internal eight/ten-bit intra, directional, recursive-filter, CfL and palette sample prediction; actual palette syntax and public Main10 decode remain unqualified.",
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.Prediction.cs": "bd4df2b6d1b216da41c7c7c090b0ad1b34a0c6ad4aaaa897b615b7df6cc0364e",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "a47d7eda80d22d29dfaeea2af82db22c724b940314a71e652ca5db3987aeb6e4",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.Chroma.cs": "ef3c013ee23879abda9a8f99915094cd48d273a1a1012b07193af508ebc70ff6",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.Directional.cs": "81adf1001b6fdf290bc30d2a0a7967266a36cc7e25475eaaabd134bcc4d7d503",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.cs": "4374009a5d2368f0cb88a58fe8e5248b7a357a489b8581e3d1b24fb53c282b6d",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Palette.cs": "b0ab7879c4310b65dbb3c501316b87095d923cf8d29641f03b39fa060446b74f",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PaletteReader.Colors.cs": "d6fad5460494bd587a18855aa3ced58be291e381d11aa0dfbdd05b7878a2284e",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PaletteReader.cs": "016d1f3efa9417da006205f7f59fa1f725e8792f4ed91896019e7815b53b33e8",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TileReader.cs": "3dd5271fa938ba2fa1bf0aa9d9d78f38860b70aa5be3d1429d97541810f09b87",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Coefficients.cs": "dbb2574c0914475312e6cef31de5f5201fe273ed4e361ec9449eb97924570907",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Palettes.cs": "619c07e9ad01892a52d288a05870ab2ab6e371c6aeecc9f05d8393700b2a8d03",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Prediction.cs": "2b6de4423fa8d788465516a57ecbaade490dc7157a8f777cbca3f693d8e31f64",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "d502a1ccf5a04c2c7fa0e6edbb860886d45372fabc9b7a60c6985884b943944a",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePredictionFixtures.py": "a8086f0547d621fbdf66e436cf695571b2ef17cbe7e508e378ec711a79b09bff",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeCflProbe.inc": "6297c5563952e5a29a544ac980743f65f356d8907ad87ad1fdbc19e43787ad7c",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficePredictionProbe.inc": "1d0e800da5ce11920e35d39f27dc43deae20b6c6fff0abbd5e01d34a7292548f",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadPredictionReference.c": "d20a22a890ce8f3df39d875abeec0f85e473cd240d3560f3b183dc859f16c918",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/prediction-main10-reference.json.gz": "86cb88dc6cc64d96678460bc0dcab0b9a3720b17f31c4850ad90b1b558360978"
+  },
+  "nativeOracles": [
+    {
+      "bitDepth": 8,
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "nativeBuild": {
+        "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+        "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+        "reused": true
+      },
+      "sourceSha256": {
+        "av1/common/reconintra.c": "710299b97e4bede074bd098ad2c0154d21c8734f0a0cb344de15d5d03dd62fe9",
+        "av1/common/cfl.c": "2e5abfe4d008a2dda0b1c7f7bf6664bf7ca497b53fe653333941910cd37f792a",
+        "aom_dsp/intrapred.c": "a10c6bc818c606962543c61aa6b293a485a22524cdac367cd4dc4b45ca0715f3"
+      },
+      "assetsSha256": {
+        "OfficePredictionProbe.inc": "1d0e800da5ce11920e35d39f27dc43deae20b6c6fff0abbd5e01d34a7292548f",
+        "OfficeCflProbe.inc": "6297c5563952e5a29a544ac980743f65f356d8907ad87ad1fdbc19e43787ad7c",
+        "ReadPredictionReference.c": "d20a22a890ce8f3df39d875abeec0f85e473cd240d3560f3b183dc859f16c918",
+        "TracePrediction.patch": "3463b7f3269d27a8dba0ba727f1beeae64aef053f9e178375661e70f892a5410",
+        "GeneratePredictionFixtures.py": "a8086f0547d621fbdf66e436cf695571b2ef17cbe7e508e378ec711a79b09bff",
+        "GeneratePredictionTables.py": "7e949c7904722778e6167c53c8cae393e36052495ed1d8ce08694fd2bdf04063"
+      },
+      "specTextSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+      "fixtureSha256": "8c0678845cce64aad738942ef2d679821d69bd0011ed63883e5ea4a209f4bc85",
+      "canonicalJsonSha256": "f40d060670c5dd789f01b9758c9d8fbbf7b80357536adf407504b6b8cc6a3097",
+      "cases": 13262,
+      "predictionSamples": 7708672,
+      "byKind": {
+        "0": 9832,
+        "1": 2772,
+        "2": 658
+      }
+    },
+    {
+      "bitDepth": 10,
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "nativeBuild": {
+        "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+        "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+        "reused": true
+      },
+      "sourceSha256": {
+        "av1/common/reconintra.c": "710299b97e4bede074bd098ad2c0154d21c8734f0a0cb344de15d5d03dd62fe9",
+        "av1/common/cfl.c": "2e5abfe4d008a2dda0b1c7f7bf6664bf7ca497b53fe653333941910cd37f792a",
+        "aom_dsp/intrapred.c": "a10c6bc818c606962543c61aa6b293a485a22524cdac367cd4dc4b45ca0715f3"
+      },
+      "assetsSha256": {
+        "OfficePredictionProbe.inc": "1d0e800da5ce11920e35d39f27dc43deae20b6c6fff0abbd5e01d34a7292548f",
+        "OfficeCflProbe.inc": "6297c5563952e5a29a544ac980743f65f356d8907ad87ad1fdbc19e43787ad7c",
+        "ReadPredictionReference.c": "d20a22a890ce8f3df39d875abeec0f85e473cd240d3560f3b183dc859f16c918",
+        "TracePrediction.patch": "3463b7f3269d27a8dba0ba727f1beeae64aef053f9e178375661e70f892a5410",
+        "GeneratePredictionFixtures.py": "a8086f0547d621fbdf66e436cf695571b2ef17cbe7e508e378ec711a79b09bff",
+        "GeneratePredictionTables.py": "7e949c7904722778e6167c53c8cae393e36052495ed1d8ce08694fd2bdf04063"
+      },
+      "specTextSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+      "fixtureSha256": "86cb88dc6cc64d96678460bc0dcab0b9a3720b17f31c4850ad90b1b558360978",
+      "canonicalJsonSha256": "32e6aa8e6b9b1d7a4b4541ce4de3b0e2c50599a9abc27dcd5dbfe82d105d7ea8",
+      "cases": 13262,
+      "predictionSamples": 7708672,
+      "byKind": {
+        "0": 9832,
+        "1": 2772,
+        "2": 658
+      }
+    }
+  ],
+  "original8BitAndRepeatedNativeProof": {
+    "original8BitFixtureUnchanged": true,
+    "casePayloadsEqual": true,
+    "cases": 13262,
+    "samples": 7708672,
+    "oldFixtureSha256": "be28def983090b2edc5354d78c28f64e221ff7676600e33383fccf9172726561",
+    "repeat": {
+      "8": {
+        "nativeOutputByteIdentical": true,
+        "sha256": "94ca9e2bc08ca6b27cdaddad7d7bd26de60dc859b7ef2b496684b825c8c2aede"
+      },
+      "10": {
+        "nativeOutputByteIdentical": true,
+        "sha256": "81e175c7d108e4bef615209aa752bb35d6d87c8818b78cf60b2b4f4a95a46c7f"
+      }
+    }
+  },
+  "validation": {
+    "stagedFingerprint": "a2d4adc3a5396237eca6062ecfbf6f64faf91ef3",
+    "results": [
+      {
+        "file": "prediction-before-arithmetic-valid.trx",
+        "sha256": "e9ebf6f125d6b4c69e312f0396e51ab5d032597f5ab4342f5200f0b4a340116e",
+        "counters": {
+          "total": "4",
+          "executed": "4",
+          "passed": "3",
+          "failed": "1",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "failure": [
+          "Native prediction mismatch in scenario 5 kind 0 size 0"
+        ]
+      },
+      {
+        "file": "drawing-prediction-net8.trx",
+        "sha256": "1b2773aa724d7edeb09dad46d48b99ad915fdd0bef2326b246632a7904c6afdb",
+        "counters": {
+          "total": "3058",
+          "executed": "3058",
+          "passed": "3058",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "drawing-prediction-net10.trx",
+        "sha256": "8fdc75e0969761e3c7c26e80b07836e44e1c778bc601a7f6506ab7d114213589",
+        "counters": {
+          "total": "3058",
+          "executed": "3058",
+          "passed": "3058",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "prediction-owner-net10.trx",
+        "sha256": "f06b07e12f96e3d6ac21f7119780009a0a3f6de365d14eeb3b4ad01b2e7e1675",
+        "counters": {
+          "total": "147",
+          "executed": "147",
+          "passed": "147",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "html-avif-prediction-net10.trx",
+        "sha256": "eaafdd11b6d9f3056f6f97d5f48efc795f1cafa3c19fb626bd395c810171aaec",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "netstandardBuild": {
+      "framework": "netstandard2.0",
+      "warnings": 0,
+      "errors": 0,
+      "sdk": "10.0.303",
+      "source": "same candidate contents"
+    }
+  },
+  "localReview": {
+    "agent": "avif_main10_prediction_review",
+    "stagedFingerprint": "a2d4adc3a5396237eca6062ecfbf6f64faf91ef3",
+    "boundary": "current",
+    "independence": "fresh context, strictly read-only, no nested delegation or test execution",
+    "findings": [],
+    "targetedConfirmation": "not needed",
+    "risk": "Sample precision/storage, native observation and shared resource/consumer migration.",
+    "gap": "Reused native build shortcut records source/library/configuration hashes; current source/build provenance is verified, not a proof of arbitrary supplied builds."
+  },
+  "testContracts": [
+    "Every selected native output sample, preserved eight-bit payloads and repeatability of both-depth observers.",
+    "Private returned predictions survive later owner calls; input edge storage is unchanged.",
+    "Unsupported depth and out-of-depth edge/corner/CfL/palette samples reject before output publication.",
+    "Existing pixel/retained-memory/mode/availability/cancellation limits hold with two-byte sample outputs.",
+    "Full Drawing suite includes native eight-bit tile/filter/color/alpha/grayscale contracts; HTML AVIF suite preserves independent screen/PDF pixels."
+  ],
+  "notQualifiedByThisCheckpoint": [
+    "Main10 palette entropy syntax, full-width frame planes, in-loop filters, color/alpha RGBA publication or public ten-bit decode.",
+    "Non-reduced still headers and formal AVIF Baseline profile.",
+    "Main10 packaged consumers, H4/NASA/all-intent rendered acceptance or performance budgets.",
+    "Windows/net472 runtime and Windows/Linux H10 operation budgets."
+  ],
+  "nextBoundedDeliverable": "Qualify Main10 palette colors/entropy using an independent producer/reference, then widen frame planes and filter consumers with full-image plane proof before enabling public output.",
+  "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-prediction-work-6b2462f27-final10",
+  "cleanup": {
+    "state": "complete",
+    "exactVerifiedTargets": 11,
+    "generatedBytesRemoved": 124272025,
+    "retainedBytes": 713385,
+    "removed": "Duplicate native units/objects, input/output captures, duplicate gzip fixtures and successful full Drawing TRXs. Source/build producer retained for the remaining owners."
+  },
+  "retainedNativeProbe": {
+    "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-prediction-work-6b2462f27-final10/read-prediction-reference",
+    "bytes": 419224,
+    "sha256": "1c80c7d52e0d476d8ff1dbc161c6e500a81ed7a30c5e0a4fa7c477490e3a3f86"
+  }
+}

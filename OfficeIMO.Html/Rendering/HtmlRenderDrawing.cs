@@ -108,12 +108,12 @@ public sealed class HtmlRenderDrawing : HtmlRenderVisual {
 
     internal OfficeDrawing InnerDrawing => _drawing;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderDrawing(_drawing, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText,
             LinkUri, Source, LayoutY + offsetY, clone: false, _imageData, ImageContentType, SourceCrop,
             _imageX + offsetX, _imageY + offsetY, _imageWidth, _imageHeight);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderDrawing(_drawing, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText,
             LinkUri, Source, LayoutY, clone: false, _imageData, ImageContentType, SourceCrop,
             _imageX + offsetX, _imageY + offsetY, _imageWidth, _imageHeight);

@@ -1,92 +1,77 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
-    private static bool TryResolveReorderedLogicalText(IEnumerable<HtmlRenderVisual> visuals, out string logicalText) {
-        var fragments = new List<LogicalTextFragment>();
-        CollectLogicalTextFragments(visuals, fragments);
-        logicalText = string.Empty;
-        if (fragments.Count < 2 || fragments.Any(fragment => !fragment.Order.HasValue)) return false;
-
-        List<LogicalTextFragment> ordered = fragments
-            .OrderBy(fragment => fragment.Order!.Value)
-            .ThenBy(fragment => fragment.PaintSequence)
-            .ToList();
-        if (ordered.Select(fragment => fragment.PaintSequence).SequenceEqual(fragments.Select(fragment => fragment.PaintSequence))) return false;
-        logicalText = string.Concat(ordered.Select(fragment => fragment.Text));
-        return logicalText.Length > 0;
-    }
-
-    private static void CollectLogicalTextFragments(IEnumerable<HtmlRenderVisual> visuals, ICollection<LogicalTextFragment> fragments) {
-        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
-            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
-            if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                if (ContainsArtifactVisual(logicalTextGroup.Visuals)) {
-                    CollectLogicalTextFragments(logicalTextGroup.Visuals, fragments);
-                    continue;
-                }
-                int? order = ResolveLogicalTextOrder(logicalTextGroup.Visuals);
-                fragments.Add(new LogicalTextFragment(logicalTextGroup.Text, order, fragments.Count));
-                continue;
+    private static bool TryResolveReorderedLogicalText(IEnumerable<HtmlRenderVisual> visuals, out string logicalText) =>
+        HtmlRenderLogicalText.TryResolveReorderedText(visuals, out logicalText);
+    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {
+        void AddChildren(PdfCore.PdfPageCanvas target) {
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                AddVisual(target, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true, pagePaint: pagePaint);
             }
-            if (visual is HtmlRenderText text) {
-                fragments.Add(new LogicalTextFragment(text.Text, text.LogicalTextOrder, fragments.Count));
-                continue;
+        }
+        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
+            AddChildren(canvas);
+            return;
+        }
+        var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+        AddChildren(content);
+        if (!HasCanvasContent(content.Items)) {
+            canvas.AddItems(content.Items);
+            return;
+        }
+        string replacementText = group.Text;
+        IEnumerable<HtmlRenderVisual> logicalPaint = group.Visuals;
+        bool scopedText = group.LogicalScope != null && pagePaint != null;
+        if (scopedText) {
+            if (pagePaint!.IsClaimed(group.LogicalScope!)) {
+                canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
+                return;
             }
-
-            IEnumerable<HtmlRenderVisual>? children = LogicalTextChildVisuals(visual);
-            if (children != null) CollectLogicalTextFragments(children, fragments);
+            // Resolve coverage from all page-local fragments, rather than assuming
+            // the first source layer can paint or knows other layers' font failures.
+            logicalPaint = pagePaint!.GetLogicalPaint(group.LogicalScope!);
+            HtmlRenderLogicalText.TryResolveSourceText(logicalPaint.Where(visual =>
+                ContainsPdfRenderableVisual(visual, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)), out replacementText,
+                preserveBlockSeparators: group.LogicalScope!.PreserveBlockSeparators);
+        }
+        if (replacementText.Length == 0) {
+            // Artifact marking excludes tagged reading order, but independent
+            // extractors still read scalar glyphs. An empty replacement owns the
+            // secondary paint without inventing another text value or hiding links.
+            canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
+            return;
+        }
+        string? logicalText = FilterLogicalPrivateUseGlyphs(replacementText, logicalPaint, webFonts, cancellationToken);
+        if (logicalText == null) {
+            canvas.AddItems(content.Items);
+            return;
+        }
+        if (logicalText.Length == 0) {
+            canvas.AddItems(content.Items);
+            return;
+        }
+        if (scopedText && !pagePaint!.TryClaim(group.LogicalScope!)) {
+            canvas.SuppressTextExtraction(nested => nested.AddItems(content.Items));
+            return;
+        }
+        if (logicalTextOwned) canvas.AddItems(content.Items);
+        else {
+            double logicalHeight = Math.Min(group.Height, 12D);
+            ClipBounds clip = activeClip ?? new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
+            var carrier = clip.ConstrainLogicalRectangle(group.X, group.Y, group.Width, logicalHeight);
+            if (carrier.X != group.X || carrier.Y != group.Y || carrier.Width != group.Width || carrier.Height != logicalHeight) {
+                canvas.ActualText(logicalText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
+                    carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel,
+                    nested => nested.AddItems(content.Items));
+            } else canvas.ActualText(logicalText, group.X * PointsPerCssPixel,
+                (group.Y + logicalHeight) * PointsPerCssPixel, nested => nested.AddItems(content.Items));
         }
     }
 
-    private static bool ContainsArtifactVisual(IEnumerable<HtmlRenderVisual> visuals) {
-        foreach (HtmlRenderVisual visual in visuals) {
-            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) return true;
-            IEnumerable<HtmlRenderVisual>? children = LogicalTextChildVisuals(visual);
-            if (children != null && ContainsArtifactVisual(children)) return true;
-        }
-        return false;
-    }
-
-    private static int? ResolveLogicalTextOrder(IEnumerable<HtmlRenderVisual> visuals) {
-        int? order = null;
-        foreach (HtmlRenderVisual visual in visuals) {
-            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
-            int? candidate = visual is HtmlRenderText text
-                ? text.LogicalTextOrder
-                : LogicalTextChildVisuals(visual) is IEnumerable<HtmlRenderVisual> children
-                    ? ResolveLogicalTextOrder(children)
-                    : null;
-            if (candidate.HasValue && (!order.HasValue || candidate.Value < order.Value)) order = candidate;
-        }
-        return order;
-    }
-
-    private static IEnumerable<HtmlRenderVisual>? LogicalTextChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
-        ? clipGroup.Visuals
-        : visual is HtmlRenderLayoutRegion layoutRegion
-            ? layoutRegion.Visuals
-        : visual is HtmlRenderPathClipGroup pathClipGroup
-            ? pathClipGroup.Visuals
-            : visual is HtmlRenderEffectGroup effectGroup
-                ? effectGroup.Visuals
-                : visual is HtmlRenderSemanticGroup semanticGroup
-                    ? semanticGroup.Visuals
-                    : visual is HtmlRenderLogicalTextGroup logicalTextGroup
-                        ? logicalTextGroup.Visuals
-                        : visual is HtmlRenderFormField formField ? formField.Visuals : null;
-
-    private readonly struct LogicalTextFragment {
-        internal LogicalTextFragment(string text, int? order, int paintSequence) {
-            Text = text;
-            Order = order;
-            PaintSequence = paintSequence;
-        }
-
-        internal string Text { get; }
-        internal int? Order { get; }
-        internal int PaintSequence { get; }
-    }
 }
