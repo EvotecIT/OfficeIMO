@@ -115,7 +115,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, selectedFace.LineHeight, 3);
         Assert.Equal(fallback.LayoutY, selectedFace.LayoutY, 3);
         Assert.Equal(fallback.Y - 14D, selectedFace.Y, 3);
-        Assert.Equal(114D, selectedFace.Height, 3);
+        // Positioned text starts one source em above its baseline. Include the
+        // selected face's 21px descent below that baseline in the paint frame.
+        Assert.Equal(100D + (114D - 93D), selectedFace.Height, 3);
     }
 
     [Fact]
