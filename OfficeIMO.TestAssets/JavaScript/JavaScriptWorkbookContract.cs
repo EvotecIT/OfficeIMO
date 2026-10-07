@@ -60,6 +60,7 @@ internal static class JavaScriptWorkbookContract {
             Require(styles.NumberingFormats!.Elements<NumberingFormat>().Any(f => XmlConvert.DecodeName(f.FormatCode?.Value ?? "") == "\"_x003A_\"0"), "Literal number-format code differs.");
         }
         if (fixture.GetProperty("name").GetString() == "report-table") VerifyReport(sdk.WorkbookPart!, fixture);
+        if (fixture.GetProperty("name").GetString() == "conditional-report") VerifyConditionalReport(sdk.WorkbookPart!);
         if (fixture.TryGetProperty("parts", out JsonElement parts)) {
             using Package package = Package.Open(path, FileMode.Open, FileAccess.Read);
             foreach (JsonElement part in parts.EnumerateArray()) {
@@ -93,6 +94,39 @@ internal static class JavaScriptWorkbookContract {
                 "Column number-format override was not applied.");
             Require(workbook.CustomXmlParts.Count() == 1, "Custom XML part relationship differs.");
         }
+    }
+    private static void VerifyConditionalReport(WorkbookPart workbook) {
+        Worksheet worksheet = ((WorksheetPart)workbook.GetPartById(workbook.Workbook!.Sheets!.Elements<Sheet>().First().Id!.Value!)).Worksheet!;
+        var formats = worksheet.Elements<ConditionalFormatting>().ToArray();
+        Require(formats.Length == 5, "Conditional report rule count differs.");
+        var rules = formats.SelectMany(format => format.Elements<ConditionalFormattingRule>()).ToArray();
+        Require(rules.Select(rule => rule.Priority!.Value).SequenceEqual(new[] { 1, 2, 3, 4, 5 }), "Conditional priorities differ.");
+        Require(formats[0].SequenceOfReferences!.InnerText == "B4:B6" && formats[2].SequenceOfReferences!.InnerText == "A4:E6", "Conditional data ranges include headings or totals.");
+        Require(rules[0].Type!.Value == ConditionalFormatValues.CellIs && rules[0].Operator!.Value == ConditionalFormattingOperatorValues.LessThan &&
+            rules[0].StopIfTrue!.Value && rules[0].Elements<Formula>().Single().Text == "0", "Conditional comparison differs.");
+        Require(rules[2].Type!.Value == ConditionalFormatValues.Expression && rules[2].Elements<Formula>().Single().Text == "$D4=\"FAIL\"", "Conditional formula differs.");
+        ColorScale scale = rules[3].GetFirstChild<ColorScale>()!;
+        Require(scale.Elements<ConditionalFormatValueObject>().Count() == 3 && scale.Elements<Color>().Count() == 3 &&
+            scale.Elements<ConditionalFormatValueObject>().ElementAt(1).Type!.Value == ConditionalFormatValueObjectValues.Percentile &&
+            scale.Elements<ConditionalFormatValueObject>().ElementAt(1).Val!.Value == "50", "Conditional color scale differs.");
+        DataBar bar = rules[4].GetFirstChild<DataBar>()!;
+        Require(bar.ShowValue!.Value && bar.GetFirstChild<Color>()!.Rgb!.Value == "FF638EC6" && bar.Elements<ConditionalFormatValueObject>().Last().Val!.Value == "100", "Conditional data bar differs.");
+        var differential = workbook.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>().ToArray();
+        Require(differential.Length == 4 && differential.Take(3).All(style => style.NumberingFormat is null && style.Font?.FontSize is null && style.Font?.FontName is null),
+            "Conditional style resets base number/date/font formatting or is not cached.");
+        Require(differential[0].Fill!.PatternFill!.ForegroundColor!.Rgb!.Value == "FFFFC7CE" && differential[0].Fill!.PatternFill!.BackgroundColor!.Rgb!.Value == "FFFFC7CE",
+            "Conditional solid fill background differs from the native Excel contract.");
+        Require(differential[3].Font!.Bold!.Val!.Value == false && differential[3].Font!.Italic!.Val!.Value == false && differential[3].Font!.Underline!.Val!.Value == UnderlineValues.None &&
+            XmlConvert.DecodeName(differential[3].NumberingFormat!.FormatCode!.Value!) == "\"_x0041_\"0.0" && differential[3].Border!.BottomBorder!.Style!.Value == BorderStyleValues.Thin && differential[3].Border!.LeftBorder is null,
+            "Conditional explicit reset, number format or partial border differs.");
+        var empty = ((WorksheetPart)workbook.GetPartById(workbook.Workbook!.Sheets!.Elements<Sheet>().ElementAt(1).Id!.Value!)).Worksheet!.Elements<ConditionalFormatting>().ToArray();
+        Require(empty.Length == 1 && empty[0].SequenceOfReferences!.InnerText == "A1" && empty[0].Elements<ConditionalFormattingRule>().Single().Priority!.Value == 2,
+            "Empty data-only rule colors the header or changes explicit rule priority.");
+        var overrides = ((WorksheetPart)workbook.GetPartById(workbook.Workbook!.Sheets!.Elements<Sheet>().Last().Id!.Value!)).Worksheet!.Descendants<ConditionalFormattingRule>().ToArray();
+        const string threshold = "IF(\"_x0041_\"=\"_x0041_\",MAX($A$2:$A$2),100)";
+        Require(overrides.Length == 3 && XmlConvert.DecodeName(overrides[1].GetFirstChild<DataBar>()!.Elements<ConditionalFormatValueObject>().Last().Val!.Value!) == threshold &&
+            XmlConvert.DecodeName(overrides[2].GetFirstChild<ColorScale>()!.Elements<ConditionalFormatValueObject>().Last().Val!.Value!) == threshold &&
+            overrides[2].GetFirstChild<ColorScale>()!.Elements<Color>().Count() == 2, "Formula threshold or two-color scale differs.");
     }
     private static void VerifyReport(WorkbookPart workbook, JsonElement fixture) {
         WorksheetPart sheet = workbook.WorksheetParts.Single();

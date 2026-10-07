@@ -76,9 +76,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double lineHeight,
         HtmlInlineRun run,
         string paintToken,
-        string logicalToken) {
+        string logicalToken,
+        bool followsCollapsibleSpace) {
         if (paintToken.Length != logicalToken.Length) return false;
-        IReadOnlyList<int> breaks = OfficeTextLineBreaks.GetBreakPositions(
+        IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
             allowCjkBreaks: run.Style.WordBreak != "keep-all");
         if (breaks.Count == 0) return false;
@@ -93,6 +94,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, chunkWidth);
             }
             if (chunkWidth > line.AvailableWidth + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
+                if (start == 0 && followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
+                    CommitFloatLine(lines, ref line, ref y, context, lineHeight);
+                }
                 AddBrokenFloatToken(lines, ref line, ref y, context, lineHeight, run, paintChunk);
                 start = end;
                 continue;

@@ -2,12 +2,36 @@ using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlGrid_AutoTrackWrapsLongTextWithinDefiniteContainer() {
+        const string html = """
+            <div style="display:grid;width:280px;grid-template-columns:auto;grid-template-areas:'body'">
+              <main style="display:contents">
+                <section style="grid-area:body;background:#eeeeee">
+                  <p>Grid layout introduces a two-dimensional system. This paragraph contains enough ordinary words to wrap across several lines inside the available page width.</p>
+                </section>
+              </main>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 300D);
+        HtmlRenderText[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Text.Contains("Grid", StringComparison.Ordinal)
+                || text.Text.Contains("ordinary", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(lines);
+        Assert.All(lines, line => Assert.True(line.X + line.Width <= 300D,
+            $"Text extends past the 300px canvas: {line.X + line.Width} ({line.Text})."));
+    }
+
     [Fact]
     public void HtmlGrid_AutoTrackHonorsAutomaticItemMinimumBeforeStretching() {
         const string html = """
@@ -253,6 +277,68 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_RowFlowKeepsDefiniteColumnItemsInDocumentOrder() {
+        const string html = """
+            <div style="display:grid;width:320px;grid-template-columns:80px 110px 110px;grid-template-rows:60px 60px;gap:10px">
+              <div style="display:grid;grid-column:1 / 4;grid-row:1 / 3;grid-template-columns:subgrid;grid-template-rows:subgrid">
+                <span id="owner" style="grid-row:1 / 3;background:#111111">Owner</span>
+                <span id="status" style="background:#222222">Status</span>
+                <span id="evidence" style="background:#333333">Evidence</span>
+                <span id="summary" style="grid-column:2 / 4;background:#444444">Summary</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 340D);
+        HtmlRenderShape owner = FindGridShape(rendered, "span#owner");
+        HtmlRenderShape status = FindGridShape(rendered, "span#status");
+        HtmlRenderShape evidence = FindGridShape(rendered, "span#evidence");
+        HtmlRenderShape summary = FindGridShape(rendered, "span#summary");
+
+        Assert.Equal(0D, owner.X, 3);
+        Assert.Equal(90D, status.X, 3);
+        Assert.Equal(210D, evidence.X, 3);
+        Assert.Equal(90D, summary.X, 3);
+        Assert.Equal(status.Y, evidence.Y, 3);
+        Assert.True(summary.Y > status.Y);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_RowAndColumnSubgridPreservesAuthoredOperationsBoardPlacement() {
+        const string html = """
+            <style>
+            *{box-sizing:border-box}.board{display:grid;grid-template-columns:130px 1fr 1fr;grid-template-rows:auto 72px 72px;gap:10px;width:672px}
+            .team{display:grid;grid-column:1/4;grid-template-columns:subgrid;grid-template-rows:subgrid;grid-row:2/4}
+            .team>*{padding:12px;border:1px solid #b7c7dc}.label{grid-row:1/3;background:#183b66}.metric{background:#edf5ff}.wide{grid-column:2/4}
+            </style>
+            <section class="board"><strong>Team</strong><strong>Status</strong><strong>Evidence</strong><div class="team">
+              <div id="owner" class="label">Document platform</div>
+              <div id="status" class="metric">Ready</div>
+              <div id="evidence" class="metric">42 verified artifacts</div>
+              <div id="summary" class="metric wide">Reference</div>
+            </div></section>
+            """;
+
+        var parsed = HtmlDocumentParser.ParseDocument(html);
+        HtmlComputedStyle ownerStyle = HtmlComputedStyleEngine.Compute(parsed)[parsed.QuerySelector("#owner")!];
+        Assert.Equal(new[] { "1", "3" }, ownerStyle.GetValue("grid-row").Split('/').Select(value => value.Trim()));
+        Assert.True(ownerStyle.IsSpecifiedValue("grid-row"));
+        HtmlRenderDocument rendered = RenderGrid(html, 672D);
+        HtmlRenderShape owner = FindGridShape(rendered, "div#owner");
+        HtmlRenderShape status = FindGridShape(rendered, "div#status");
+        HtmlRenderShape evidence = FindGridShape(rendered, "div#evidence");
+        HtmlRenderShape summary = FindGridShape(rendered, "div#summary");
+
+        Assert.Equal(0D, owner.X, 3);
+        Assert.Equal(140D, status.X, 3);
+        Assert.True(evidence.X > status.X);
+        Assert.Equal(status.Y, evidence.Y, 3);
+        Assert.Equal(140D, summary.X, 3);
+        Assert.True(summary.Y > status.Y);
+    }
+
+    [Fact]
     public void HtmlGrid_ColumnSubgridFitsInheritedTracksInsideItsEdgeInsets() {
         const string html = """
             <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">
@@ -414,7 +500,6 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("alpha-beta")]
-    [InlineData("alpha/beta")]
     [InlineData("alpha\u200Bbeta")]
     [InlineData("漢字仮名")]
     public void HtmlGrid_MinContentUsesSharedUnicodeAndPunctuationBreaks(string content) {
@@ -430,6 +515,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_MinContentKeepsUnspacedSolidusTokenTogether() {
+        const string html = "<div style='display:grid;width:260px;grid-template-columns:min-content max-content;justify-content:start'>"
+            + "<span id='minimum' style='background:red'>alpha/beta</span>"
+            + "<span id='maximum' style='background:blue'>alpha/beta</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 280D);
+        HtmlRenderShape minimum = FindGridShape(rendered, "span#minimum");
+        HtmlRenderShape maximum = FindGridShape(rendered, "span#maximum");
+
+        Assert.Equal(maximum.Width, minimum.Width, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_MaxContentTrackIncludesReplacedContentInsideAWrapper() {
         const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
         string html = "<div style='display:grid;width:300px;grid-template-columns:max-content 1fr'>"
@@ -442,6 +540,18 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(200D, wrapper.Width, 3);
         Assert.Equal(wrapper.X + wrapper.Width, after.X, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_PercentageMaximumDoesNotCapIntrinsicImageTrack() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(500, 100));
+        string html = "<div style='display:grid;width:200px;grid-template-columns:max-content 1fr'>"
+            + "<img src='data:image/png;base64," + image + "' style='width:100%;max-width:100%'>"
+            + "<span id='after' style='background:blue'>B</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 200D);
+        HtmlRenderShape after = FindGridShape(rendered, "span#after");
+        Assert.Equal(500D, after.X, 1);
     }
 
     [Fact]
@@ -1002,6 +1112,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(first.X + first.Width, second.X, 3);
         Assert.True(after.X >= second.X + second.Width);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlInlineGrid_AutoTrackUsesMaxContentWhenLineHasRoom() {
+        const string html = """
+            <p style="margin:0"><span style="display:inline-grid;grid-template-columns:auto">
+              <span id="auto-inline-cell" style="background:#ff0000">two words together</span>
+            </span> After</p>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+        HtmlRenderShape cell = FindGridShape(rendered, "span#auto-inline-cell");
+        HtmlRenderText after = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("After", StringComparison.Ordinal));
+
+        Assert.True(cell.Width > 100D, $"The auto track collapsed to min-content width: {cell.Width}.");
+        Assert.True(after.X >= cell.X + cell.Width);
     }
 
     [Fact]

@@ -1,0 +1,25 @@
+<style>
+  @page{margin:42px 30px 38px;@top-left{content:"NORTHSTAR BANK"}@top-right{content:"Account • 1042"}@bottom-right{content:"Page " counter(page)}}
+  body{font:11px/1.35 Arial,sans-serif;color:#1f2937}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .metric{background:#edf4ff;padding:9px;border-left:3px solid #2563eb}.metric strong{display:block;font-size:15px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}thead{display:table-header-group}th{background:#23395d;color:#fff}
+  th,td{padding:6px;border-bottom:1px solid #d7deea;text-align:left}.money{text-align:right}.credit{color:#167044}
+  .notice{border:1px solid #d7deea;background:#f8fafc;padding:10px}
+</style>
+<section>
+  <h1>Account Statement</h1><p>Reporting period 1–31 July 2026 · IBAN PL00 1042 0000 0000</p>
+  <div class='summary'><div class='metric'>Opening balance<strong>1000.00</strong></div><div class='metric'>Money out<strong>-245.00</strong></div><div class='metric'>Money in<strong>220.00</strong></div></div>
+  <table><thead><tr><th>Date</th><th>Description</th><th>Reference</th><th class='money'>Amount</th></tr></thead><tbody>
+    <tr><td>2026-07-01</td><td>Cloud subscription</td><td>CS-882</td><td class='money'>-25.00</td></tr>
+    <tr><td>2026-07-04</td><td>Client transfer</td><td>ATLAS-7</td><td class='money credit'>+220.00</td></tr>
+    <tr><td>2026-07-08</td><td>Insurance premium</td><td>INS-440</td><td class='money'>-80.00</td></tr>
+    <tr><td>2026-07-12</td><td>Software license</td><td>LIC-901</td><td class='money'>-60.00</td></tr>
+    <tr><td>2026-07-18</td><td>Office supplies</td><td>SUP-114</td><td class='money'>-40.00</td></tr>
+    <tr><td>2026-07-24</td><td>Hosting</td><td>HOST-19</td><td class='money'>-40.00</td></tr>
+  </tbody></table>
+</section>
+<section style='page-break-before:always'>
+  <h2>Statement Summary</h2><div class='summary'><div class='metric'>Closing balance<strong>975.00</strong></div><div class='metric'>Transactions<strong>6</strong></div><div class='metric'>Currency<strong>EUR</strong></div></div>
+  <h3>Account notes</h3><p class='notice'>Keep this statement with your accounting records. Amounts are shown in account currency.</p>
+  <table><thead><tr><th>Category</th><th class='money'>Total</th></tr></thead><tbody><tr><td>Services</td><td class='money'>-125.00</td></tr><tr><td>Operations</td><td class='money'>-120.00</td></tr></tbody></table>
+</section>

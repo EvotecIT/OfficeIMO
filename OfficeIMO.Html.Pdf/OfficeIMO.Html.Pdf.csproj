@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Direct dependency-free HTML/PDF rendering and PDF-to-HTML conversion for OfficeIMO.</Description>
+    <Description>Direct HTML-to-PDF rendering and PDF-to-HTML conversion for OfficeIMO.</Description>
     <PackageId>OfficeIMO.Html.Pdf</PackageId>
     <AssemblyName>OfficeIMO.Html.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html.Pdf</AssemblyTitle>

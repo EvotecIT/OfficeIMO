@@ -15,6 +15,7 @@ OfficeIMO.Html.Tests/Fixtures/ExcelRaster/*.webp -text -diff
 *.avif -text -diff
 *.obu -text -diff
 *.bin -text -diff
+OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf -text -diff
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
 # Integrity-labelled document inputs and provider captures must survive Windows
@@ -26,6 +27,10 @@ OfficeIMO.TestAssets/ScanQuality/*.tif -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
+
+# Frozen HTML qualification inputs and manifests identify exact source bytes.
+# Preserve their authored line endings rather than changing their integrity pins.
+OfficeIMO.TestAssets/Documents/Html/Qualification/** -text
 
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their
 # producer line endings, because corpus SHA-256 checks must match on every OS.

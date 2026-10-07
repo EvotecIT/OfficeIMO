@@ -1,0 +1,103 @@
+{
+  "schema": "officeimo.html.component-evidence",
+  "component": "av1-q15-arithmetic-symbol-decoder",
+  "sourceHead": "2cdf5514181d26e72525be66facff2486983efab",
+  "scope": "Internal tile-bounded arithmetic reader, rising CDF adaptation, pseudo-raw bits/literals and termination. No tile grammar or pixel reconstruction; public AVIF decode remains unsupported.",
+  "specification": {
+    "url": "https://aomediacodec.github.io/av1-spec/av1-spec.pdf",
+    "pdfSha256": "ec44e9fc42c4e5851faa879a1818dcb9014d834bbdd9420ccca7dcea05a3abe9",
+    "sections": [
+      "8.2.2",
+      "8.2.3",
+      "8.2.4",
+      "8.2.5",
+      "8.2.6"
+    ]
+  },
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1SymbolReader.cs": "3caea3216c9c5bb3d03cdf32fdad10a09c94babe7c2601d9b5b43fa1ead7f329",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Symbols.cs": "6683f74b106d1262dfceee4eb178623f692ad17250a48b2a47d3d39c5a73e47b",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "9ed5de9165b2338be41bed6835c20e58498070ff11c2200ac73a62d7dd726a9a",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateEntropyFixtures.c": "680c7008ed6347192a3446486487bf427d2e18b31f7a0f3c15a4c8ad6e7279ee",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateEntropyFixtures.py": "1adb6fac5d5e0b36f74c0568fa3a6c097ed852021d33665cfda9b7e59c8bf3d1",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/entropy-oracle.json": "6a1cd820ca00493735dd2af7492ddb40b195574c4b579c0c15ae6f8f43c91bc2",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/entropy-reference.json": "edf6d3d84cc1018c05c7c356f0dfbeb67a3d02d0c030116b9610e199b9df74d5"
+  },
+  "independentReference": {
+    "tool": "AOM v3.13.1 entropy encoder/decoder, original test harness",
+    "runtimeDependency": false,
+    "receipt": "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/oracle-receipt.json",
+    "receiptSha256": "643081bac70ad2047e5b4301fa6c8b0269798a2686874e541ae1e9f547ca826e",
+    "producer": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+    "sourceManifest": "OfficeIMO.Drawing.Tests/TestAssets/Avif/entropy-oracle.json",
+    "vectors": 12,
+    "shortBooleanStreams": 4,
+    "actualAvifPrefixes": 3,
+    "nativeSelfCheck": true,
+    "freshDownloadReplayFixtureSha256": "edf6d3d84cc1018c05c7c356f0dfbeb67a3d02d0c030116b9610e199b9df74d5",
+    "observations": "All streams match decoded symbols/literals and final adaptive CDFs; three frozen tile first symbols and updated CDFs match native observations. Prefix checks do not prove complete tile grammar or termination.",
+    "reproduce": "python3 OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateEntropyFixtures.py --work-dir <task-owned-scratch>",
+    "license": "BSD-2-Clause and AOM Patent License 1.0; fetched LICENSE/PATENTS remain beside opt-in oracle sources"
+  },
+  "tests": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/av1-symbol-final-net10.trx",
+      "sha256": "fac4e78cb1df76f8a647cd9a6708a20d96b3c8502f16bc2d5703f8319e43bb68",
+      "passed": 47,
+      "failed": 0,
+      "total": 47
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/av1-symbol-final-net8.trx",
+      "sha256": "ea81cb2649c8b2cf9e5b0ecf5a0e296baca1b1fe13aa0574ddb966fa96f1dde3",
+      "passed": 47,
+      "failed": 0,
+      "total": 47
+    }
+  ],
+  "build": {
+    "project": "OfficeIMO.Core/OfficeIMO.Core.csproj",
+    "framework": "netstandard2.0",
+    "sdk": "10.0.303",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0
+  },
+  "review": {
+    "task": "av1_entropy_review",
+    "fingerprint": "e74f65caec58429cb687feddb9c21db2db6cf6f7",
+    "boundary": "current",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "gaps": [
+      "Complete AVIF tile grammar, complete real-tile termination, reconstructed pixels and rendered output remain unproved.",
+      "Windows/net472 execution and independent oracle generation on another platform remain unproved.",
+      "Runtime integration and caller work-budget/context selection are outside this boundary."
+    ]
+  },
+  "unqualified": [
+    "Tile syntax/context selection, partition tree, intra modes and coefficient decoding",
+    "Inverse transforms, prediction, loop filtering/CDEF/restoration and super-resolution pixels",
+    "Applied film grain and separate frame/tile OBUs",
+    "Color conversion, alpha composition and direct independent RGBA tolerance",
+    "Public raster/caller-codec integration and frozen AVIF HTML/PDF output",
+    "Completed-decoder H4/NASA and unchanged applicable budgets",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "runtimeDependenciesAdded": [],
+  "supportCatalogChanged": false,
+  "cleanup": {
+    "removedBytes": 207782,
+    "targets": [
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/av1-symbol-first-net10.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/oracle-replay",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/avif-alpha-prefix.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/avif-opaque-prefix.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/multitile-prefix.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/native-vectors.json",
+      "Ignore/HtmlUnknownPageQualification/static-gap-av1-entropy-work-53fc23d2e/entropy-reference.json"
+    ],
+    "retainedBytes": 257667,
+    "reason": "Remove superseded passing log, duplicate fresh oracle build and intermediate JSON. Retain final framework results, compact receipt and small isolated native reference with notices for subsequent tile grammar proof."
+  }
+}

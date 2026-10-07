@@ -33,12 +33,20 @@ internal static class QualificationVerifier {
         using var archive = ZipFile.OpenRead(path);
         if (spec.Fallback) Require(archive.Entries.All(e => e.Length == e.CompressedLength), "Compression fallback did not store entries.");
         var sheet = archive.GetEntry("xl/worksheets/sheet1.xml") ?? throw new InvalidDataException("Missing worksheet.");
-        int headerRows = spec.Styled ? 2 : 1, row = 0, column = 0;
+        int headerRows = spec.Styled ? 2 : 1, row = 0, column = 0, conditionalCount = 0, conditionalCharacters = 0;
         string[] letters = Enumerable.Range(1, spec.Columns).Select(ColumnName).ToArray();
         using (Stream stream = sheet.Open()) using (XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit })) {
             while (reader.Read()) {
                 if (reader.NodeType != XmlNodeType.Element) continue;
                 if (reader.LocalName == "row") { Require(column == 0 || column == spec.Columns, "Worksheet row width differs."); row++; column = 0; Require(reader.GetAttribute("r") == row.ToString(Culture), "Worksheet row address differs."); }
+                else if (reader.LocalName == "conditionalFormatting") {
+                    string expectedRange = conditionalCount == 1 ? "A" + (headerRows + 1) + ":" + letters[^1] + (headerRows + spec.Rows) : "A" + (headerRows + 1) + ":A" + (headerRows + spec.Rows);
+                    Require(spec.Conditional && reader.GetAttribute("sqref") == expectedRange, "Conditional data range differs.");
+                    using XmlReader subtree = reader.ReadSubtree(); XElement format = XElement.Load(subtree);
+                    XElement rule = format.Elements().Single();
+                    Require(rule.Attribute("priority")!.Value == (conditionalCount + 1).ToString(Culture) && rule.Attribute("type")!.Value == new[] { "cellIs", "expression", "colorScale", "dataBar" }[conditionalCount], "Conditional priority/type differs.");
+                    conditionalCount++; conditionalCharacters += format.ToString(SaveOptions.DisableFormatting).Length;
+                }
                 else if (reader.LocalName == "c") {
                     Require(column < spec.Columns && reader.GetAttribute("r") == letters[column] + row, "Cell address differs.");
                     string? type = reader.GetAttribute("t"); string value = ReadCell(reader);
@@ -56,6 +64,12 @@ internal static class QualificationVerifier {
             }
         }
         Require(row == spec.Rows + headerRows + (spec.Styled ? 1 : 0) && column == spec.Columns, "XLSX row count differs.");
+        if (spec.Conditional) {
+            Require(conditionalCount == 4 && conditionalCharacters < 2000, "Conditional metadata grew with row count.");
+            using Stream conditionalStyles = archive.GetEntry("xl/styles.xml")!.Open(); XDocument styles = XDocument.Load(conditionalStyles);
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            Require(styles.Root!.Element(ns + "dxfs")!.Elements().Count() == 2, "Conditional styles grew with row count.");
+        }
         if (spec.LongText) {
             using Stream overflow = archive.GetEntry("xl/worksheets/sheet2.xml")!.Open();
             using XmlReader reader = XmlReader.Create(overflow); var text = new StringBuilder();
@@ -73,7 +87,7 @@ internal static class QualificationVerifier {
         }
         // Full schema + both reader proof is bounded to smaller artifacts; large files above are checked cell by cell without a DOM.
         if (spec.Rows <= 10000) WorkbookVerifier.Verify(path, 64L * 1024 * 1024);
-        return new { rows = spec.Rows, cells = (long)spec.Rows * spec.Columns, allValues = true, preservation = spec.LongText, schema = spec.Rows <= 10000, validator = "streamed independent ZIP/XML and expected values" };
+        return new { rows = spec.Rows, cells = (long)spec.Rows * spec.Columns, allValues = true, preservation = spec.LongText, conditionalRules = conditionalCount, conditionalCharacters, schema = spec.Rows <= 10000, validator = "streamed independent ZIP/XML and expected values" };
     }
     private static string ReadCell(XmlReader outer) {
         using XmlReader reader = outer.ReadSubtree(); var result = new StringBuilder();

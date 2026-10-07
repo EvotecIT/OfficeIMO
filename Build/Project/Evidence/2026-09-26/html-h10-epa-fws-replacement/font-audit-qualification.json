@@ -1,0 +1,837 @@
+{
+  "functionalSourceHead": "33e30068863d1b457576c67b4575cef612cc3d9e",
+  "beforeSourceHead": "b56aa1aab",
+  "archiveSha256": "644ccacfe10dde7484549e46642be88727c34f9ba98fb36407cb6fca9f1f2fd4",
+  "scope": "Archived FWS fonts, variable-instance selection and shared no-variation sentinel evaluation",
+  "cssRuleLimit": 40000,
+  "cssScopeQualified": false,
+  "inventory": [
+    {
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-brands-400.woff2",
+      "ContentType": "application/octet-stream",
+      "Length": 118072,
+      "sha256": "C411F11975D26EB04CD2AA3C071181D4B18E489F1FB97060D4176A3531DFB36E",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "ContentType": "font/woff2",
+      "Length": 24576,
+      "sha256": "E310B55A7FD9677F5E3555E6C6C4D064FA1F1D24393F0DDBE217CEA12A8C432F",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": false
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "ContentType": "font/woff2",
+      "Length": 97608,
+      "sha256": "AF1BE39E2FF60EDE976BC3A93B9ACEB3AC7103207B21A62D1971E3EA8CF95B97",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": false
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sourcesanspro/v23/6xK1dSBYKcSV-LCoeQqfX1RYOo3qPZ7nsDJB9cme.woff2",
+      "ContentType": "font/woff2",
+      "Length": 14180,
+      "sha256": "B514997508FFC723A0087D6D85C7972BD0F180CD4B190325BE978CB87025DF36",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sourcesanspro/v23/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7lujVj9w.woff2",
+      "ContentType": "font/woff2",
+      "Length": 14868,
+      "sha256": "691491F1FC8BADAB623E1BE56F92CC2D98C462B16617C67E1E288D6B061444BC",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sourcesanspro/v23/6xKwdSBYKcSV-LCoeQqfX1RYOo3qPZY4lCds18S0xR41.woff2",
+      "ContentType": "font/woff2",
+      "Length": 14172,
+      "sha256": "C9D527876E5DCD48165B8AB76410201FC1EBA97003D166B090883C27B3FFBC00",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sourcesanspro/v23/6xKydSBYKcSV-LCoeQqfX1RYOo3i54rwlxdu3cOWxw.woff2",
+      "ContentType": "font/woff2",
+      "Length": 14876,
+      "sha256": "156650610835FE32914722ECFC8DAB0EBBB84795E201B842158AFA0EA873CFA4",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/sourcesanspro/v23/6xKydSBYKcSV-LCoeQqfX1RYOo3ig4vwlxdu3cOWxw.woff2",
+      "ContentType": "font/woff2",
+      "Length": 14724,
+      "sha256": "06B675A649489D21B7FD33F19B1C6D37E8BD778DED07ECFEC26BBC8F11E694F4",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://www.fws.gov/themes/custom/fws/components/fontawesome-pro/webfonts/fa-brands-400.woff2",
+      "ContentType": "font/woff2",
+      "Length": 75308,
+      "sha256": "B55616E4EADA60D4E94A044EFA03F45C3550056A0E93A55A993B0B85A7E7689B",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://www.fws.gov/themes/custom/fws_gov/components/fontawesome-pro/webfonts/fa-brands-400.woff2",
+      "ContentType": "font/woff2",
+      "Length": 75308,
+      "sha256": "B55616E4EADA60D4E94A044EFA03F45C3550056A0E93A55A993B0B85A7E7689B",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://www.fws.gov/themes/custom/fws_gov/components/fontawesome-pro/webfonts/fa-regular-400.woff2",
+      "ContentType": "font/woff2",
+      "Length": 159884,
+      "sha256": "42D979D54A12B76D10C5F34709C774B14AEDCBF25F268F332A7E9163011B658B",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    },
+    {
+      "url": "https://www.fws.gov/themes/custom/fws_gov/components/fontawesome-pro/webfonts/fa-solid-900.woff2",
+      "ContentType": "font/woff2",
+      "Length": 129832,
+      "sha256": "0C103AE844C36C58F5947F4FFAC0EF3EDF1D447D0650FE33437071D3E13645CA",
+      "accepted": true,
+      "faces": [
+        {
+          "ContainerFormat": 3,
+          "CanEmbedAsStaticPdfFont": true
+        }
+      ]
+    }
+  ],
+  "registeredFaces": [
+    {
+      "FamilyName": "Font Awesome 6 Brands",
+      "ResourceFamilyName": "Font Awesome 6 Brands",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:4201e0fe9b1b535f9b9c0e48dfe2acaa66dd76064172488986899e5661df8e4e:face=auto",
+      "probeWidth": {
+        "width": 825,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Font Awesome 5 Brands",
+      "ResourceFamilyName": "Font Awesome 5 Brands",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:72f36c318fc6854e6b391c05070c87a68b777618ce33db4509d12750a1ffad99:face=auto",
+      "probeWidth": {
+        "width": 1144,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "FontAwesome",
+      "ResourceFamilyName": "FontAwesome",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:4201e0fe9b1b535f9b9c0e48dfe2acaa66dd76064172488986899e5661df8e4e:face=auto",
+      "probeWidth": {
+        "width": 825,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Source Sans Pro",
+      "ResourceFamilyName": "Source Sans Pro__officeimo_4de3fa1a",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 1,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:537e1e70928fb6da4bb532e3a2e07c44ddbda7ff05f3f3ca434ce5517cc99155:face=auto",
+      "probeWidth": {
+        "width": 496.18800000000005,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Source Sans Pro",
+      "ResourceFamilyName": "Source Sans Pro__officeimo_8dca6bd4",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 600,
+        "StretchPercent": 100,
+        "Slant": 1,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:d89e9e5e8efd0c8e8e63c24b2fe6d26d41fb023c7bc4fc797a65b80eb6c0134e:face=auto",
+      "probeWidth": {
+        "width": 508.81600000000003,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Source Sans Pro",
+      "ResourceFamilyName": "Source Sans Pro__officeimo_80c0fca7",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:620208a478875d080483436b123ec9af88a70a378c0338b8638b3284f2a6973e:face=auto",
+      "probeWidth": {
+        "width": 512.028,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Source Sans Pro",
+      "ResourceFamilyName": "Source Sans Pro__officeimo_e7919d99",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 600,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:5b06b69ba6039a16182e69a3859720e2a2c6ed91bea59753002df828c60446bb:face=auto",
+      "probeWidth": {
+        "width": 526.592,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Source Sans Pro",
+      "ResourceFamilyName": "Source Sans Pro__officeimo_6a76ed44",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 700,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:6da649a660316c81688a97b9dd004afcdd06d291af7964e5a42846e7dd012c59:face=auto",
+      "probeWidth": {
+        "width": 540.452,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Manrope",
+      "ResourceFamilyName": "Manrope__officeimo_80c0fca7",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+      "probeWidth": {
+        "width": 539.5279999999998,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Manrope",
+      "ResourceFamilyName": "Manrope__officeimo_e7919d99",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 600,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+      "probeWidth": {
+        "width": 539.5279999999998,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Manrope",
+      "ResourceFamilyName": "Manrope__officeimo_6a76ed44",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 700,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+      "probeWidth": {
+        "width": 539.5279999999998,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Font Awesome 5 Pro",
+      "ResourceFamilyName": "Font Awesome 5 Pro",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:a76f9bd36e5710dd83029d1daa75b64560000851b76a5418c0a0dffbdca3d224:face=auto",
+      "probeWidth": {
+        "width": 1144,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Font Awesome 5 Pro",
+      "ResourceFamilyName": "Font Awesome 5 Pro__officeimo_43f1f447",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": true,
+      "Descriptor": {
+        "Weight": 900,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:0480a0b5f3f648065e12039611530f8b75659d9349622270e9d51741e7c58267:face=auto",
+      "probeWidth": {
+        "width": 1144,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Merriweather",
+      "ResourceFamilyName": "Merriweather__officeimo_80c0fca7",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+      "probeWidth": {
+        "width": 583.198,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Merriweather",
+      "ResourceFamilyName": "Merriweather__officeimo_6a76ed44",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 700,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+      "probeWidth": {
+        "width": 583.198,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Merriweather",
+      "ResourceFamilyName": "Merriweather__officeimo_ce5b611e",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 900,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+      "probeWidth": {
+        "width": 583.198,
+        "error": null
+      }
+    }
+  ],
+  "variableProbesBefore": [
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 400,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+          "width": {
+            "width": 539.5279999999998,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 400,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=400",
+          "width": {
+            "width": 560.6919999999999,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 700,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+          "width": {
+            "width": 539.5279999999998,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 700,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=700",
+          "width": {
+            "width": 592.482,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 900,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+          "width": {
+            "width": 539.5279999999998,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 900,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=800",
+          "width": {
+            "width": 603.108,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 400,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+          "width": {
+            "width": null,
+            "error": "InvalidDataException: An OpenType variation-store outer index is invalid."
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 400,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=400",
+          "width": {
+            "width": null,
+            "error": "InvalidDataException: An OpenType variation-store outer index is invalid."
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 700,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+          "width": {
+            "width": null,
+            "error": "InvalidDataException: An OpenType variation-store outer index is invalid."
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 700,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=700",
+          "width": {
+            "width": null,
+            "error": "InvalidDataException: An OpenType variation-store outer index is invalid."
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 900,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+          "width": {
+            "width": null,
+            "error": "InvalidDataException: An OpenType variation-store outer index is invalid."
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 900,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=900",
+          "width": {
+            "width": null,
+            "error": "InvalidDataException: An OpenType variation-store outer index is invalid."
+          }
+        }
+      ]
+    }
+  ],
+  "variableProbesAfter": [
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 400,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+          "width": {
+            "width": 539.5279999999998,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 400,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=400",
+          "width": {
+            "width": 560.6919999999999,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 700,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+          "width": {
+            "width": 539.5279999999998,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 700,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=700",
+          "width": {
+            "width": 592.482,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 900,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=200",
+          "width": {
+            "width": 539.5279999999998,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSvfedN4.woff2",
+      "weight": 900,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=800",
+          "width": {
+            "width": 603.108,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 400,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+          "width": {
+            "width": 583.198,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 400,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=400",
+          "width": {
+            "width": 593.736,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 700,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+          "width": {
+            "width": 583.198,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 700,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=700",
+          "width": {
+            "width": 610.06,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 900,
+      "explicitAxis": false,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=300",
+          "width": {
+            "width": 583.198,
+            "error": null
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/merriweather/v33/u-4e0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiSeqqJ-mXq1Gi.woff2",
+      "weight": 900,
+      "explicitAxis": true,
+      "faces": [
+        {
+          "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=900",
+          "width": {
+            "width": 619.6299999999999,
+            "error": null
+          }
+        }
+      ]
+    }
+  ],
+  "unchangedRenderedTextGeometry": true,
+  "renderedTextRunCount": 79,
+  "diagnosticCounts": {
+    "HtmlRenderResourceUnavailable": 211,
+    "HtmlRenderStylesheetUrlResourcesPending": 2,
+    "HtmlRenderFontFaceUnavailable": 112,
+    "HtmlRenderPositioningModeUnsupported": 12,
+    "HtmlRenderFlexValueUnsupported": 8,
+    "HtmlRenderOpenTypeFeatureUnsupported": 24,
+    "HtmlRenderSvgContentUnsupported": 2,
+    "HtmlRenderOverflowScrollSnapshot": 1
+  },
+  "fix": {
+    "owner": "OfficeIMO.Core/OfficeOpenTypeItemVariationStore.cs",
+    "contract": "FFFF/FFFF indicates no variation data and evaluates to zero; incomplete sentinel pairs and invalid indexes remain rejected",
+    "specification": "https://learn.microsoft.com/en-us/typography/opentype/spec/otvarcommonformats",
+    "reachableConsumers": [
+      "GPOS positioning",
+      "HVAR advance and side-bearing metrics",
+      "MVAR line metrics"
+    ],
+    "beforeFocusedTest": {
+      "passed": 0,
+      "failed": 1
+    },
+    "focusedNet8": 50,
+    "focusedNet10": 50,
+    "fullDrawingNet8": 2636,
+    "fullDrawingNet10": 2636,
+    "portableBuildWarnings": 0,
+    "portableBuildErrors": 0,
+    "localReview": "Skipped: narrow specification-defined sentinel correction, focused invalid-index tests and real archived-font measurement proof; CSS variable-weight remediation remains open"
+  },
+  "remaining": [
+    "CSS numeric weight descriptors do not select variable wght coordinates: Manrope registers weights 400/600/700 but loads wght=200; Merriweather registers 400/700/900 but loads wght=300",
+    "Header/footer and intent-specific layout differences remain",
+    "Current macOS warm timing budget failed; supported-platform resource qualification remains open"
+  ],
+  "fontPolicyFinding": "Embedded archived fonts load without enabling installed system font lookup; AllowDocumentFontEmbedding is not the cause of these variable-instance mismatches",
+  "acceptance": {
+    "fwsWholePageFidelity": false,
+    "resourceBudgets": false,
+    "h10Complete": false
+  },
+  "retainedAuditPath": "Ignore/HtmlUnknownPageQualification/h10-fws-font-audit/",
+  "afterProbeCleanSource": true,
+  "afterProbeSourceHead": "33e30068863d1b457576c67b4575cef612cc3d9e",
+  "afterProbeSha256": "936d827f25f6559f6f02f659d25ca6e19fddbd27b188e31239141c81e44d9dec",
+  "h4": {
+    "sourceHead": "33e30068863d1b457576c67b4575cef612cc3d9e",
+    "worktreeDirty": false,
+    "acceptedCases": 8,
+    "failedCases": 0,
+    "unchangedPdfPrintPageRasters": 13,
+    "unchangedDisplayListPrintPageRasters": 13,
+    "artifactPath": "Ignore/HtmlUnknownPageQualification/h10-h4-font-sentinel-clean-33e300688"
+  }
+}

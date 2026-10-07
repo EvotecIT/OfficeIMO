@@ -8,7 +8,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>
 /// Centralizes archive-entry safety rules shared by ZIP-backed OfficeIMO format owners.
 /// </summary>
-internal static class OfficeArchiveSafety {
+internal static partial class OfficeArchiveSafety {
     private const uint CentralDirectoryFileHeaderSignature = 0x02014b50U;
     private const uint CentralDirectoryDigitalSignature = 0x05054b50U;
     private const uint EndOfCentralDirectorySignature = 0x06054b50U;
@@ -95,9 +95,13 @@ internal static class OfficeArchiveSafety {
     /// Reads exactly the declared entry length and rejects truncated or
     /// over-expanding payloads before materializing bytes beyond that bound.
     /// </summary>
+    internal static byte[] ReadEntryBytes(Stream source, long declaredLength, long maximumLength) =>
+        ReadEntryBytes(source, declaredLength, maximumLength, CancellationToken.None);
+
     internal static byte[] ReadEntryBytes(Stream source,
-        long declaredLength, long maximumLength) {
+        long declaredLength, long maximumLength, CancellationToken cancellationToken) {
         if (source == null) throw new ArgumentNullException(nameof(source));
+        cancellationToken.ThrowIfCancellationRequested();
         if (declaredLength < 0 || declaredLength > maximumLength
             || maximumLength < 0 || declaredLength > int.MaxValue) {
             throw new InvalidDataException(
@@ -108,6 +112,7 @@ internal static class OfficeArchiveSafety {
         var buffer = new byte[81920];
         long remaining = declaredLength;
         while (remaining > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int requested = (int)Math.Min(buffer.Length, remaining);
             int read = source.Read(buffer, 0, requested);
             if (read <= 0 || read > requested) {
@@ -118,6 +123,7 @@ internal static class OfficeArchiveSafety {
             remaining -= read;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (source.Read(buffer, 0, 1) != 0) {
             throw new InvalidDataException(
                 "The archive entry exceeds its declared expansion length.");
