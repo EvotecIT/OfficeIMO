@@ -48,10 +48,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(text, box.Font.Size, availableWidth,
                     (value, _) => {
                         ChargeLayoutOperations(value?.Length ?? 0, marginBoxSource + " text measurement");
-                        return MeasureText(value ?? string.Empty, box.Font);
+                        return MeasureText(value ?? string.Empty, box.Font, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
                     });
                 double textHeight = Math.Max(lineHeight, lines.Count * lineHeight);
                 if (!TryGetMarginBoxBounds(page, box.Position, populatedPositions, textHeight, out double x, out double y, out double width, out double height)) continue;
+                _fontUsage?.Observe(text, box.Font.FamilyName, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
                 IReadOnlyList<HtmlRenderVisual> marginVisuals = new HtmlRenderVisual[] {
                     new HtmlRenderText(text, x, y, width, height, box.Font, box.Color, box.Alignment,
                         lineHeight, _paintOrder++, source: marginBoxSource, semanticRole: "page-margin").WithWrappedLines(lines)

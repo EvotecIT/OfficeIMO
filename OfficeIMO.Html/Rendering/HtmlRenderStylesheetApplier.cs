@@ -103,16 +103,6 @@ internal static class HtmlRenderStylesheetApplier {
                     cssBudget);
             }
 
-            if (HtmlResourcePipeline.HasStylesheetUrlResources(css)) {
-                diagnostics.Add(
-                    ComponentName,
-                    HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending,
-                    "The external stylesheet was applied, but its URL resources are not active in the current paint model.",
-                    HtmlDiagnosticSeverity.Warning,
-                    source,
-                    resource.ContentType);
-            }
-
             IElement style = document.CreateElement("style");
             style.TextContent = css;
             style.SetAttribute("data-officeimo-source", source);
@@ -155,9 +145,12 @@ internal static class HtmlRenderStylesheetApplier {
             ResourceUrlPolicy = options.GetResourceUrlPolicy().Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = options.ResponsiveImageSizesCharacterLimit,
             MediaContext = options.MediaContext,
-            MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaWidth = options.CssMediaWidth,
+            MediaHeight = options.CssMediaHeight,
+            DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()
         };
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
@@ -349,8 +342,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     private static bool IsApplicableMedia(string mediaText, HtmlRenderOptions options) {
-        double? width = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
-        double? height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        double? width = options.CssMediaWidth;
+        double? height = options.CssMediaHeight;
         return width.HasValue && height.HasValue
             ? HtmlComputedStyleEngine.IsApplicableMedia(
                 mediaText,

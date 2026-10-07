@@ -5,7 +5,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return "<< /Type /StructTreeRoot /K [] /RoleMap << >> >>\n";
     }
 
-    internal static string BuildStructTreeRootDictionary(IReadOnlyList<int> childElementIds, int parentTreeId, int parentTreeNextKey, IEnumerable<string>? structureTypes = null) {
+    internal static string BuildStructTreeRootDictionary(IReadOnlyList<int> childElementIds, int parentTreeId, int parentTreeNextKey, IEnumerable<string>? structureTypes = null, int? idTreeId = null) {
         Guard.NotNull(childElementIds, nameof(childElementIds));
         if (parentTreeNextKey < 0) {
             throw new ArgumentOutOfRangeException(nameof(parentTreeNextKey), parentTreeNextKey, "PDF parent-tree next key must be non-negative.");
@@ -21,6 +21,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
                 .Append(parentTreeNextKey.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
+        if (idTreeId.HasValue) sb.Append(" /IDTree ").Append(PdfSyntaxEscaper.IndirectReference(idTreeId.Value));
         sb.Append(" /RoleMap <<");
         foreach (string role in (structureTypes ?? Enumerable.Empty<string>())
             .Where(role => role == "H7" || role == "H8" || role == "H9")
@@ -57,7 +58,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds);
     }
 
-    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null) {
+    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null, string? elementId = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         Guard.NotNull(childElementIds, nameof(childElementIds));
         var sb = new StringBuilder();
@@ -81,6 +82,8 @@ internal static class PdfStructTreeRootDictionaryBuilder {
                 .Append(PdfSyntaxEscaper.TextString(alternativeText!));
         }
 
+        if (elementId != null) sb.Append(" /ID ").Append(PdfSyntaxEscaper.TextString(elementId));
+
         if (associatedFileIds != null && associatedFileIds.Count > 0) {
             sb.Append(" /AF ");
             AppendReferenceArray(sb, associatedFileIds);
@@ -90,7 +93,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null) {
+    internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null, IReadOnlyList<int>? childElementIds = null) {
         if (annotationObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(annotationObjectId), annotationObjectId, "PDF annotation object id must be positive.");
         }
@@ -118,6 +121,12 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             sb.Append(" << /Type /OBJR /Obj ")
                 .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
                 .Append(" >>");
+            AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
+            sb.Append(']');
+        } else if (childElementIds != null && childElementIds.Count > 0) {
+            sb.Append('[');
+            foreach (int child in childElementIds) sb.Append(PdfSyntaxEscaper.IndirectReference(child)).Append(' ');
+            sb.Append("<< /Type /OBJR /Obj ").Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId)).Append(" >>");
             AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
             sb.Append(']');
         } else if (hasAdditionalAnnotationObjects) {

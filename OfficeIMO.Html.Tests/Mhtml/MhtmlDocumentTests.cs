@@ -11,6 +11,136 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class MhtmlDocumentTests {
     [Theory]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged)]
+    public async Task ExplicitScreenPdfIntentLoadsArchivedStylesheet(HtmlRenderIntentProfile profile) {
+        var archive = new MhtmlDocument(
+            "<link rel='stylesheet' href='https://example.test/site.css'><p>HiddenByArchiveStyle</p><div>VisibleBody</div>",
+            new[] { new MhtmlResource(System.Text.Encoding.UTF8.GetBytes("p { display: none; }"),
+                "text/css", contentLocation: "https://example.test/site.css") },
+            "https://example.test/page.html");
+        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf,
+            new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 });
+
+        PdfCore.PdfDocumentConversionResult result = await archive.RenderToPdfDocumentResultAsync(request);
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("VisibleBody", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("HiddenByArchiveStyle", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    [Fact]
+    public async Task ScreenSnapshotClampsNegativeHeadingOutlineDestination() {
+        var archive = new MhtmlDocument("<h1 style='position:relative;top:-100px'>ShiftedHeading</h1><p>Body</p>");
+        HtmlRenderRequest request = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.ScreenSnapshotPaged,
+            HtmlRenderEncoder.Pdf,
+            new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 });
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(archive.HtmlDocument, request).Document;
+
+        double headingY = Assert.Single(rendered.Headings).Y;
+        Assert.True(headingY < 0D, $"Heading Y was {headingY}.");
+
+        PdfCore.PdfDocumentConversionResult result = await archive.RenderToPdfDocumentResultAsync(request);
+
+        Assert.Contains(PdfCore.PdfInspector.Inspect(result.ToBytes()).Outlines,
+            outline => outline.Title == "ShiftedHeading");
+    }
+
+    [Fact]
+    public async Task ChromiumSerializedShadowRootsRenderAssignedSlotsAndNestedSnapshots() {
+        const string html = """
+            <p>Before</p>
+            <sample-card><template shadowmode="open"><div>ShadowStart <slot name="title">Unused title</slot>
+            <slot>Unused default</slot> <slot name="missing">Fallback</slot>
+            <sample-code><template shadowmode="closed"><pre>NestedCode</pre></template></sample-code>
+            ShadowEnd</div></template><strong slot="title">AssignedTitle</strong> AssignedBody</sample-card>
+            <template><p>OrdinaryTemplateMustStayInert</p></template>
+            <p>After</p>
+            """;
+        var archive = new MhtmlDocument(html);
+
+        PdfCore.PdfDocumentConversionResult first = await archive.ToPdfDocumentResultAsync();
+        string text = PdfCore.PdfReadDocument.Open(first.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult second = await archive.ToPdfDocumentResultAsync();
+
+        Assert.Contains("AssignedTitle", text, StringComparison.Ordinal);
+        Assert.Contains("AssignedBody", text, StringComparison.Ordinal);
+        Assert.Contains("Fallback", text, StringComparison.Ordinal);
+        Assert.Contains("NestedCode", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unused title", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unused default", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OrdinaryTemplateMustStayInert", text, StringComparison.Ordinal);
+        Assert.Contains(first.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
+        Assert.Equal(text, PdfCore.PdfReadDocument.Open(second.ToBytes()).ExtractText());
+        Assert.Contains("<template shadowmode", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SerializedShadowRootProjectionRequiresExplicitRenderOptionForOrdinaryHtml() {
+        const string html = "<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+
+        string ordinary = PdfCore.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string projected = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions {
+            ProjectSerializedShadowRoots = true
+        })).ExtractText();
+
+        Assert.Contains("VisibleLight", ordinary, StringComparison.Ordinal);
+        Assert.DoesNotContain("HiddenSnapshot", ordinary, StringComparison.Ordinal);
+        Assert.Contains("HiddenSnapshot", projected, StringComparison.Ordinal);
+        Assert.DoesNotContain("VisibleLight", projected, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MhtmlCallerCanDisableSerializedShadowRootProjection() {
+        var archive = new MhtmlDocument("<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>");
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+            ProjectSerializedShadowRoots = false
+        });
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("VisibleLight", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("HiddenSnapshot", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Warnings,
+            warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
+    }
+
+    [Fact]
+    public async Task NestedSerializedShadowSlotsRetainOuterAssignmentThroughInnerDefaultSlot() {
+        var archive = new MhtmlDocument("""
+            <outer-el><template shadowmode="open">
+              <inner-el><template shadowmode="open"><slot>InnerFallback</slot></template>
+                <slot name="x">OuterFallback</slot></inner-el>
+            </template><b slot="x">ChainedValue</b></outer-el>
+            """);
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("ChainedValue", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("InnerFallback", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OuterFallback", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ShadowScopedStylesDoNotLeakIntoUnrelatedMhtmlContent() {
+        var archive = new MhtmlDocument("""
+            <shadow-card><template shadowmode="open"><style>p { display:none }</style><p>InsideVisible</p></template></shadow-card>
+            <p>OutsideVisible</p>
+            """);
+
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
+        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("InsideVisible", text, StringComparison.Ordinal);
+        Assert.Contains("OutsideVisible", text, StringComparison.Ordinal);
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowStyleOmitted);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task RedirectTargetsPassTheFullUrlPolicyBeforeFetcherInvocation(bool rewriteTarget) {

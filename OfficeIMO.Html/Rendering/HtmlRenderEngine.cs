@@ -3,7 +3,7 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 /// <summary>
-/// First-party dependency-free HTML layout entry point shared by image and PDF adapters.
+/// First-party browser-free HTML layout entry point shared by image and PDF adapters.
 /// </summary>
 public static class HtmlRenderEngine {
     // Raw text entry points remain internal for renderer-focused tests and low-level package code.
@@ -23,24 +23,40 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderDocument Render(
         HtmlConversionDocument document,
         HtmlRenderOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        Execute(
+            document,
+            HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All()),
+            cancellationToken).Document;
+
+    /// <summary>
+    /// Resolves an explicit render request into a backend-neutral display list. The intended output
+    /// adapter cannot change the request's CSS, layout, pagination, or page-set axes.
+    /// </summary>
+    public static HtmlRenderResult Execute(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
-        resolved.BaseUri ??= document.BaseUri;
-        ApplyDocumentPolicies(document, resolved);
-        resolved.Validate();
-        return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
-            HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
-            operationCancellationToken.ThrowIfCancellationRequested();
-            IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-            return RenderDocument(
-                renderDocument,
-                resolved,
-                initialDiagnostics: null,
-                document.Limits,
-                operationCancellationToken);
-        });
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        return ExecuteWithDeadline(resolved, cancellationToken,
+            operationCancellationToken => ExecuteCore(document, request, resolved, operationCancellationToken));
+    }
+
+    /// <summary>
+    /// Renders a bounded embedded viewport using its parent operation's resource ledger.
+    /// Resources are not prefetched: nested viewports cannot invoke the parent's resolvers.
+    /// </summary>
+    internal static HtmlRenderDocument RenderEmbedded(
+        HtmlConversionDocument document,
+        HtmlRenderOptions options,
+        HtmlResourceSession resources,
+        CancellationToken cancellationToken) {
+        var request = HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All());
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        return ExecuteCore(document, request, resolved, cancellationToken, resources).Document;
     }
 
     /// <summary>
@@ -115,7 +131,8 @@ public static class HtmlRenderEngine {
         }
         resolved.Validate();
         return ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
-            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document, operationCancellationToken);
+            HtmlRenderInputGuard.ValidateFormState(null, renderDocument, resolved, operationCancellationToken);
             HtmlEditableLayoutProjector.CopyMarkers(document, renderDocument);
             if (!sourceAlreadyValidated) {
                 HtmlRenderInputGuard.ValidateSource(
@@ -136,44 +153,57 @@ public static class HtmlRenderEngine {
         HtmlRenderOptions resolved,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics,
         HtmlConversionLimits limits,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        HtmlResourceSession? sharedResources = null) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
+        var diagnostics = new HtmlDiagnosticReport();
+        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
+        HtmlSerializedShadowRootProjector.Apply(document, resolved, diagnostics, cancellationToken);
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
-        var diagnostics = new HtmlDiagnosticReport();
-        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
             ResourceUrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
-            MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
-            MediaFeatures = resolved.MediaFeatures.Clone()
+            MediaWidth = resolved.CssMediaWidth,
+            MediaHeight = resolved.CssMediaHeight,
+            DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = resolved.DefaultFontSize,
+            MediaFeatures = resolved.MediaFeatures.Clone(),
+            IncludeDocumentIcons = false
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
-        HtmlResourceSession resources = HtmlRenderResourceLoader.Load(
+        HtmlResourceSession resources = sharedResources ?? HtmlRenderResourceLoader.Load(
             manifest,
             resolved,
             diagnostics,
             limits,
             cancellationToken,
             cssBudget);
+        if (sharedResources == null) resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
-        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved)) {
+            resolved.Validate();
+            styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        }
+        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
             document,
@@ -183,31 +213,74 @@ public static class HtmlRenderEngine {
             resources,
             pageRules,
             fonts,
-            cancellationToken).Render();
+            limits: limits,
+            cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
         return CompleteRender(rendered, resolved);
     }
 
     /// <summary>
     /// Renders a parsed HTML source while asynchronously resolving policy-approved external resources through the configured resolver.
     /// </summary>
-    public static async Task<HtmlRenderDocument> RenderAsync(HtmlConversionDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<HtmlRenderDocument> RenderAsync(HtmlConversionDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
+        (await ExecuteAsync(
+            document,
+            HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All()),
+            cancellationToken).ConfigureAwait(false)).Document;
+
+    /// <summary>
+    /// Asynchronously resolves resources and prepares an explicit render request as one retained
+    /// backend-neutral result.
+    /// </summary>
+    public static async Task<HtmlRenderResult> ExecuteAsync(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        return await ExecuteWithDeadlineAsync(resolved, cancellationToken,
+            operationCancellationToken => ExecuteCoreAsync(document, request, resolved, operationCancellationToken))
+            .ConfigureAwait(false);
+    }
+
+    internal static HtmlRenderOptions PrepareOptions(HtmlConversionDocument document, HtmlRenderRequest request) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        HtmlRenderOptions resolved = request.ResolveOptions();
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
-        return await ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
-            operationCancellationToken.ThrowIfCancellationRequested();
-            IHtmlDocument renderDocument = document.CreateDocumentForRendering();
-            return await RenderDocumentAsync(
-                renderDocument,
-                resolved,
-                initialDiagnostics: null,
-                document.Limits,
-                operationCancellationToken).ConfigureAwait(false);
-        }).ConfigureAwait(false);
+        return resolved;
+    }
+
+    internal static HtmlRenderResult ExecuteCore(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlRenderOptions resolved,
+        CancellationToken cancellationToken,
+        HtmlResourceSession? sharedResources = null) {
+        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, cancellationToken);
+        HtmlRenderDocument rendered = RenderDocument(
+            renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken, sharedResources);
+        return HtmlRenderRequestProcessor.Complete(request, rendered, resolved, cancellationToken);
+    }
+
+    internal static async Task<HtmlRenderResult> ExecuteCoreAsync(
+        HtmlConversionDocument document,
+        HtmlRenderRequest request,
+        HtmlRenderOptions resolved,
+        CancellationToken cancellationToken) {
+        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, cancellationToken);
+        HtmlRenderDocument rendered = await RenderDocumentAsync(
+            renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken).ConfigureAwait(false);
+        return HtmlRenderRequestProcessor.Complete(request, rendered, resolved, cancellationToken);
     }
 
     internal static Task<HtmlRenderDocument> RenderAsync(string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
@@ -222,7 +295,8 @@ public static class HtmlRenderEngine {
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
         return await ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
-            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+            IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document, operationCancellationToken);
+            HtmlRenderInputGuard.ValidateFormState(null, renderDocument, resolved, operationCancellationToken);
             HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
             return await RenderDocumentAsync(
                 renderDocument,
@@ -240,38 +314,51 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         CancellationToken cancellationToken) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
+        resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
+        var diagnostics = new HtmlDiagnosticReport();
+        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
+        HtmlSerializedShadowRootProjector.Apply(document, resolved, diagnostics, cancellationToken);
         HtmlRenderAdditionalStylesheetApplier.Apply(document, resolved.AdditionalStylesheets.ToList());
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
-        var diagnostics = new HtmlDiagnosticReport();
-        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
             ResourceUrlPolicy = resolved.GetResourceUrlPolicy().Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = resolved.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
-            MediaWidth = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageWidth : resolved.ViewportWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
-            MediaFeatures = resolved.MediaFeatures.Clone()
+            MediaWidth = resolved.CssMediaWidth,
+            MediaHeight = resolved.CssMediaHeight,
+            DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = resolved.DefaultFontSize,
+            MediaFeatures = resolved.MediaFeatures.Clone(),
+            IncludeDocumentIcons = false
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, limits, cancellationToken, cssBudget).ConfigureAwait(false);
+        resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
-        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved)) {
+            resolved.Validate();
+            styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        }
+        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
+        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
+            limits: limits, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
         return CompleteRender(rendered, resolved);
     }
 
@@ -315,14 +402,14 @@ public static class HtmlRenderEngine {
         }
     }
 
-    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlRenderOptions options) {
+    internal static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlRenderOptions options) {
         HtmlUrlPolicy requestedHyperlinkPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy requestedResourcePolicy = options.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
         options.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
         options.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
     }
 
-    private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics) {
+    internal static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (HtmlResourceReference reference in manifest.Resources) {
             if (!reference.IsAllowed

@@ -7,6 +7,28 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAIdentificationMetadataTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CombinedArchivalAccessibilityMetadataDeclaresOneSchemaBag(bool invoiceMetadata) {
+        var options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
+            .ConfigurePdfUaGroundwork();
+        if (invoiceMetadata) options.SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("BASIC"));
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Metadata contract")).ToBytes();
+        var xml = System.Xml.Linq.XDocument.Parse(PdfInspector.Inspect(bytes).XmpMetadata!.RawXml!);
+        System.Xml.Linq.XNamespace extension = "http://www.aiim.org/pdfa/ns/extension/";
+        System.Xml.Linq.XNamespace schema = "http://www.aiim.org/pdfa/ns/schema#";
+        System.Xml.Linq.XNamespace property = "http://www.aiim.org/pdfa/ns/property#";
+        System.Xml.Linq.XNamespace rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+        var bag = Assert.Single(xml.Descendants(extension + "schemas")).Element(rdf + "Bag")!;
+        Assert.Equal(invoiceMetadata ? 2 : 1, bag.Elements(rdf + "li").Count());
+        var ua = Assert.Single(bag.Elements(rdf + "li"), item => (string?)item.Element(schema + "prefix") == "pdfuaid");
+        Assert.Equal("http://www.aiim.org/pdfua/ns/id/", (string?)ua.Element(schema + "namespaceURI"));
+        var part = Assert.Single(ua.Descendants(property + "name"));
+        Assert.Equal("part", part.Value);
+        Assert.Equal("Integer", (string?)part.Parent!.Element(property + "valueType"));
+    }
+
     [Fact]
     public void PdfAIdentification_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
         var options = new PdfOptions()

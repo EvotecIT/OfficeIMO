@@ -109,6 +109,36 @@ public sealed class HtmlCssLengthValuesTests {
     }
 
     [Fact]
+    public void SelectedSizingAndSpacingPropertiesExposeTypedComputedValues() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("""
+            <style>
+              #target { width:calc(20px + 10%); height:40px; margin-left:-5%; padding-top:2em; }
+            </style>
+            <div id="target">Typed layout</div>
+            """);
+        OfficeIMO.Html.Dom.HtmlElement target = document.Document.QuerySelector("#target")!;
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document,
+            new HtmlComputedStyleOptions { IncludeCascadeTraces = true })[target];
+
+        Assert.True(style.TryGetTypedValue("width", out HtmlCssPropertyValue? width));
+        Assert.Equal(HtmlCssNumericType.LengthPercentage, width!.MathExpression!.Type);
+        Assert.Equal(40D, HtmlCssMathResolver.ResolveLength(width.MathExpression,
+            new HtmlCssLengthResolutionContext { PercentageReference = 200D }).Value);
+        Assert.Equal(HtmlCssPropertyParseStatus.Parsed, style.GetCascadeTrace("width")!.Candidates.Single().GrammarStatus);
+        Assert.True(style.TryGetTypedValue("margin-left", out HtmlCssPropertyValue? margin));
+        Assert.Equal(-5D, margin!.MathExpression!.Value);
+        Assert.True(style.TryGetTypedValue("padding-top", out HtmlCssPropertyValue? padding));
+        Assert.Equal(HtmlCssLengthUnit.Em, padding!.MathExpression!.Unit);
+
+        Assert.Equal(HtmlCssPropertyParseStatus.UnsupportedValue,
+            HtmlCssPropertyParser.Parse("width", "-1px").Status);
+        Assert.Equal(HtmlCssPropertyParseStatus.Parsed,
+            HtmlCssPropertyParser.Parse("margin-left", "-1px").Status);
+        Assert.Equal(HtmlCssPropertyParseStatus.UnsupportedValue,
+            HtmlCssPropertyParser.Parse("padding-left", "auto").Status);
+    }
+
+    [Fact]
     public void ParsedExpressionTreeIsStableAndReadOnly() {
         HtmlCssMathExpression expression = Parse("calc(10px + 25%)");
 

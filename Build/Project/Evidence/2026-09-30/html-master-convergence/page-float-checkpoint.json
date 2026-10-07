@@ -1,0 +1,1690 @@
+{
+  "schemaVersion": 1,
+  "codeCommit": "6d2fd539e0418077fae120e767ea9c446f6c08d2",
+  "component": "Bounded horizontal page-edge floats",
+  "owner": "OfficeIMO.Html/Rendering with the existing HTML/PDF logical text owner",
+  "contract": "Whole page-edge boxes reserve body space without advancing source anchors; bounded deferral, footnote coexistence, clipping and source reading order remain intact.",
+  "limits": [
+    "Horizontal-tb only; whole boxes smaller than a page content area.",
+    "Nested, full-page, oversized and nonhorizontal floats retain diagnosed normal flow.",
+    "Bare float:snap is nearest-edge compatibility; additional snap grammar is not qualified.",
+    "Column-edge floats and column-scoped notes remain open."
+  ],
+  "frozenGapManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "references": {
+    "PeachPDF": "0.9.20",
+    "Chromium": "151"
+  },
+  "frozenCases": [
+    {
+      "case": "page-float-top",
+      "inputSha256": "25ed5941bedead0bbf9103a9b8b20f5089b414b4c65f0c1361077afcee13debd",
+      "checks": {
+        "markersOnce": true,
+        "textMultisetMatchesChromium": true,
+        "textMultisetMatchesPeachPDF": true,
+        "noBodyOverlap": true,
+        "allWordsInsidePages": true,
+        "floatAtDeclaredEdge": true
+      },
+      "engines": [
+        {
+          "engine": "officeimo",
+          "sha256": "a43917cc9f6a4bdc114665dfab8336bcb587147d7c7712704929deee57e01cbc",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                595.276,
+                841.89
+              ],
+              "floatFillBox96dpi": [
+                25,
+                25,
+                769,
+                99
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                595.276,
+                841.89
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-top": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-TOP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-top": 1
+          },
+          "markersOnce": true
+        },
+        {
+          "engine": "peachpdf",
+          "sha256": "6a46c0a7618c9fb524b73c049eac45e968a208009d9928cd99c4b4e237014072",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                595.28,
+                841.89
+              ],
+              "floatFillBox96dpi": [
+                27,
+                27,
+                767,
+                98
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                595.28,
+                841.89
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-top": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-TOP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-top": 1
+          },
+          "markersOnce": true
+        },
+        {
+          "engine": "chromium",
+          "sha256": "3c8c0b0ecbf34f39128308a6847a4d4a45e16142c788e3a12cf96c70f3069c91",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                594.95996,
+                841.91998
+              ],
+              "floatFillBox96dpi": [
+                26,
+                554,
+                768,
+                626
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                594.95996,
+                841.91998
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-top": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-TOP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-top": 1
+          },
+          "markersOnce": true
+        }
+      ]
+    },
+    {
+      "case": "page-float-bottom",
+      "inputSha256": "dc5955a0be0a57129799df36a752d618686ea5d024b0c2cdfda0bbee22e77204",
+      "checks": {
+        "markersOnce": true,
+        "textMultisetMatchesChromium": true,
+        "textMultisetMatchesPeachPDF": true,
+        "noBodyOverlap": true,
+        "allWordsInsidePages": true,
+        "floatAtDeclaredEdge": true
+      },
+      "engines": [
+        {
+          "engine": "officeimo",
+          "sha256": "4940aa09bcba5d51ee1948ef64c6e490f065485525669f7b5423b84170ac5c69",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                595.276,
+                841.89
+              ],
+              "floatFillBox96dpi": [
+                25,
+                1024,
+                769,
+                1098
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                595.276,
+                841.89
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-bottom": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-BOTTOM": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-bottom": 1
+          },
+          "markersOnce": true
+        },
+        {
+          "engine": "peachpdf",
+          "sha256": "00ae9a721ec5b05a7c25188c3d1cc75a066aabd316df3f8ef3a93670f5c9572d",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                595.28,
+                841.89
+              ],
+              "floatFillBox96dpi": [
+                27,
+                1025,
+                767,
+                1096
+              ],
+              "bodyOverlapWords": [
+                {
+                  "text": "AFTER-15",
+                  "xMin": 17.9939,
+                  "yMin": 775.6775,
+                  "xMax": 64.4914,
+                  "yMax": 790.3295
+                },
+                {
+                  "text": "retained",
+                  "xMin": 67.2244,
+                  "yMin": 775.6775,
+                  "xMax": 108.1064,
+                  "yMax": 790.3295
+                },
+                {
+                  "text": "paragraph",
+                  "xMin": 110.824,
+                  "yMin": 775.6775,
+                  "xMax": 160.5008,
+                  "yMax": 790.3295
+                },
+                {
+                  "text": "text.",
+                  "xMin": 163.2184,
+                  "yMin": 775.6775,
+                  "xMax": 185.174,
+                  "yMax": 790.3295
+                },
+                {
+                  "text": "AFTER-16",
+                  "xMin": 17.9937,
+                  "yMin": 799.6775,
+                  "xMax": 64.4912,
+                  "yMax": 814.3295
+                },
+                {
+                  "text": "retained",
+                  "xMin": 67.2242,
+                  "yMin": 799.6775,
+                  "xMax": 108.1062,
+                  "yMax": 814.3295
+                },
+                {
+                  "text": "paragraph",
+                  "xMin": 110.8238,
+                  "yMin": 799.6775,
+                  "xMax": 160.5006,
+                  "yMax": 814.3295
+                },
+                {
+                  "text": "text.",
+                  "xMin": 163.2182,
+                  "yMin": 799.6775,
+                  "xMax": 185.1738,
+                  "yMax": 814.3295
+                }
+              ],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                595.28,
+                841.89
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-bottom": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-BOTTOM": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-bottom": 1
+          },
+          "markersOnce": true
+        },
+        {
+          "engine": "chromium",
+          "sha256": "e98fdcae4a4d5535f073bd701f040b274581691e3cfe684c2f46db84f8717c0c",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                594.95996,
+                841.91998
+              ],
+              "floatFillBox96dpi": [
+                26,
+                554,
+                768,
+                626
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                594.95996,
+                841.91998
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-bottom": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-BOTTOM": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-bottom": 1
+          },
+          "markersOnce": true
+        }
+      ]
+    },
+    {
+      "case": "page-float-snap",
+      "inputSha256": "84ae75d36e60934d5ea3e48544d18f6fba0c584787c43406ecf211c39d50767e",
+      "checks": {
+        "markersOnce": true,
+        "textMultisetMatchesChromium": true,
+        "textMultisetMatchesPeachPDF": true,
+        "noBodyOverlap": true,
+        "allWordsInsidePages": true,
+        "floatAtDeclaredEdge": true
+      },
+      "engines": [
+        {
+          "engine": "officeimo",
+          "sha256": "642b70082319e18834a5516480db5e47651ca2cb87eb38db71ad9c8f93072570",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                595.276,
+                841.89
+              ],
+              "floatFillBox96dpi": [
+                25,
+                25,
+                769,
+                99
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                595.276,
+                841.89
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-snap": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-SNAP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-snap": 1
+          },
+          "markersOnce": true
+        },
+        {
+          "engine": "peachpdf",
+          "sha256": "5d57f2c6b2529c00908665ee3b6cad65ee3d6ec2fceac058ff11577b5cb32d0d",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                595.28,
+                841.89
+              ],
+              "floatFillBox96dpi": [
+                27,
+                27,
+                767,
+                98
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                595.28,
+                841.89
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-snap": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-SNAP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-snap": 1
+          },
+          "markersOnce": true
+        },
+        {
+          "engine": "chromium",
+          "sha256": "5ed1f80e1cbd641c9a88fa004aa42a633e20662dc0f8f92abdf2abd5e03cedc3",
+          "pages": [
+            {
+              "page": 1,
+              "sizePt": [
+                594.95996,
+                841.91998
+              ],
+              "floatFillBox96dpi": [
+                26,
+                554,
+                768,
+                626
+              ],
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            },
+            {
+              "page": 2,
+              "sizePt": [
+                594.95996,
+                841.91998
+              ],
+              "floatFillBox96dpi": null,
+              "bodyOverlapWords": [],
+              "outsidePageWords": []
+            }
+          ],
+          "tokenCount": 203,
+          "markerCounts": {
+            "page-float-snap": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-SNAP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-snap": 1
+          },
+          "markersOnce": true
+        }
+      ]
+    }
+  ],
+  "referenceLimits": [
+    "Chromium prints these page-float values in normal flow and is the independent content control.",
+    "PeachPDF bottom-float output overlaps AFTER-15/AFTER-16; OfficeIMO must preserve the authored no-overlap criterion."
+  ],
+  "printDiagnostics": [],
+  "printOutputWarningCodes": [
+    "unsupported-font-ligature-substitution"
+  ],
+  "localReview": {
+    "agent": "page_float_reservation_review",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "fullFingerprint": "d8463ae2a204ac69eb3731d4b7e6329afd2e8f8e",
+    "remediatedFingerprint": "ef4bd6d67c3ce8867f44e8674f6c1a0f6db677a4",
+    "findings": [
+      {
+        "priority": "P2",
+        "defect": "Terminal anchor lost when containing section fragments",
+        "disposition": "Point ownership and final-end inclusion; direct regression passes."
+      },
+      {
+        "priority": "P2",
+        "defect": "Deferred float throws on a smaller left page",
+        "disposition": "Capacity-aware bounded deferral; direct regression passes."
+      },
+      {
+        "priority": "P2",
+        "defect": "Contained footnote and large page float chase pages",
+        "disposition": "Coordinated float/footnote capacity; direct regression passes."
+      },
+      {
+        "priority": "P2",
+        "defect": "Path clip retains later anchor in earlier fragment",
+        "disposition": "Targeted confirmation exposed sibling. Direct before-fix assertion proves float on wrong page; sliced path children fix ownership. Final focused and both full suites pass."
+      }
+    ],
+    "sourceReadingOrder": "Primary inline-order finding fixed through existing split-paint logical scope; targeted review confirms code and PDF contract.",
+    "remainingKnownFindings": [],
+    "finalNarrowFixReview": "No additional independent pass after the targeted path-clip finding; directly reproduced and covered by focused clipping/stacking, page-float and full HTML suites."
+  },
+  "tests": {
+    "net10": {
+      "total": 3961,
+      "passed": 3961,
+      "failed": 0
+    },
+    "net8": {
+      "total": 3961,
+      "passed": 3961,
+      "failed": 0
+    },
+    "focused": {
+      "total": 149,
+      "passed": 149,
+      "failed": 0
+    },
+    "catalogNet10": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    "catalogNet8": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    "originalRegression": {
+      "total": 3,
+      "passed": 0,
+      "failed": 3,
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_EdgePlacementReservesBodySpaceWithoutAdvancingTheAnchor(side: \"snap\", floatY: 10, firstY: 50)",
+          "message": "Assert.Equal() Failure: Values are not within 3 decimal places\nExpected: 10 (rounded from 10)\nActual:   30 (rounded from 30)"
+        },
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_EdgePlacementReservesBodySpaceWithoutAdvancingTheAnchor(side: \"bottom\", floatY: 130, firstY: 10)",
+          "message": "Assert.Equal() Failure: Values are not within 3 decimal places\nExpected: 130 (rounded from 130)\nActual:   30 (rounded from 30)"
+        },
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_EdgePlacementReservesBodySpaceWithoutAdvancingTheAnchor(side: \"top\", floatY: 10, firstY: 50)",
+          "message": "Assert.Equal() Failure: Values are not within 3 decimal places\nExpected: 10 (rounded from 10)\nActual:   30 (rounded from 30)"
+        }
+      ]
+    },
+    "authoredStylesheetRegression": {
+      "total": 151,
+      "passed": 148,
+      "failed": 3,
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_EdgePlacementReservesBodySpaceWithoutAdvancingTheAnchor(side: \"snap\", floatY: 10, firstY: 50)",
+          "message": "Assert.Equal() Failure: Values are not within 3 decimal places\nExpected: 10 (rounded from 10)\nActual:   30 (rounded from 30)"
+        },
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_EdgePlacementReservesBodySpaceWithoutAdvancingTheAnchor(side: \"bottom\", floatY: 130, firstY: 10)",
+          "message": "Assert.Equal() Failure: Values are not within 3 decimal places\nExpected: 130 (rounded from 130)\nActual:   30 (rounded from 30)"
+        },
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_EdgePlacementReservesBodySpaceWithoutAdvancingTheAnchor(side: \"top\", floatY: 10, firstY: 50)",
+          "message": "Assert.Equal() Failure: Values are not within 3 decimal places\nExpected: 10 (rounded from 10)\nActual:   30 (rounded from 30)"
+        }
+      ]
+    },
+    "pathClipRegression": {
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlPageFloats_TerminalAnchorSurvivesAFragmentedSection(pathClipped: True)",
+          "message": "Assert.DoesNotContain() Failure: Filter matched in collection\n             \u2193 (pos 0)\nCollection: [HtmlRenderText { Alignment = Left, Baseline = Normal, BaselineLevel = 0, BaselineOffset = 0, BaselineScale = 1, \u00b7\u00b7\u00b7 }, HtmlRenderText { Alignment = Left, Baseline = Normal, BaselineLevel = 0, BaselineOffset = 0, BaselineScale = 1, \u00b7\u00b7\u00b7 }, HtmlRenderText { Alignment = Left, Baseline = Normal, BaselineLevel = 0, BaselineOffset = 0, BaselineScale = 1, \u00b7\u00b7\u00b7 }, HtmlRenderText { Alignment = Left, Baseline = Normal, BaselineLevel = 0, BaselineOffset = 0, BaselineScale = 1, \u00b7\u00b7\u00b7 }, HtmlRenderText { Alignment = Left, Baseline = Normal, BaselineLevel = 0, BaselineOffset = 0, BaselineScale = 1, \u00b7\u00b7\u00b7 }, \u00b7\u00b7\u00b7]"
+        }
+      ]
+    }
+  },
+  "builds": [
+    {
+      "project": "OfficeIMO.Html.Pdf",
+      "framework": "netstandard2.0",
+      "warnings": 0
+    },
+    {
+      "project": "comparison/editable/static-budget/H10-budget tools",
+      "framework": "net10.0",
+      "warnings": 0
+    }
+  ],
+  "h4": {
+    "source": {
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "commit": "6d2fd539e0418077fae120e767ea9c446f6c08d2",
+      "worktreeDirty": false,
+      "caseCount": 8
+    },
+    "accepted": 8,
+    "failures": []
+  },
+  "nasa": {
+    "sourceCommit": "6d2fd539e0418077fae120e767ea9c446f6c08d2",
+    "baselineSource": "0093a146c",
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "variants": [
+      {
+        "path": "officeimo-print-browser-ua.pdf",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7756639
+      },
+      {
+        "path": "officeimo-print-fit-1200-local-fonts.pdf",
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "sameAsAccepted": true,
+        "sizeBytes": 7688930
+      },
+      {
+        "path": "officeimo-print-fit-1200.pdf",
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "sameAsAccepted": true,
+        "sizeBytes": 7688930
+      },
+      {
+        "path": "officeimo-print-fit-browser-viewport.pdf",
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "sameAsAccepted": true,
+        "sizeBytes": 7753991
+      },
+      {
+        "path": "officeimo-print-zero-margin-local-fonts.pdf",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7756639
+      },
+      {
+        "path": "officeimo-print-zero-margin.pdf",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7756639
+      },
+      {
+        "path": "officeimo-print.pdf",
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7813360
+      },
+      {
+        "path": "officeimo-screen-media-local-fonts.pdf",
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "sameAsAccepted": true,
+        "sizeBytes": 7684160
+      },
+      {
+        "path": "officeimo-screen-media.pdf",
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "sameAsAccepted": true,
+        "sizeBytes": 7684160
+      },
+      {
+        "path": "officeimo-screen-snapshot-local-fonts.pdf",
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "sameAsAccepted": true,
+        "sizeBytes": 7740830
+      },
+      {
+        "path": "officeimo-screen-snapshot.pdf",
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "sameAsAccepted": true,
+        "sizeBytes": 7740830
+      }
+    ],
+    "allOfficePdfBytesEqual": true,
+    "zeroMarginPages": 16,
+    "zeroMarginImages": 24,
+    "reportFailures": []
+  },
+  "macosStaticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-09-30T18:03:26.020803+00:00",
+    "source": {
+      "commit": "6d2fd539e0418077fae120e767ea9c446f6c08d2",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 5625.3173,
+      "peakWorkingSetBytes": 369901568,
+      "memorySampleCount": 193,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 5533.2688,
+          "managedAllocatedBytes": 1082266360,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11568.3996,
+      "peakWorkingSetBytes": 548077568,
+      "memorySampleCount": 392,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2093.5337,
+          "managedAllocatedBytes": 894518048,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1946.0202,
+          "managedAllocatedBytes": 895887168,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1911.9037,
+          "managedAllocatedBytes": 895857992,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.7925,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "macosH10Budget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-09-30T18:04:57.551409+00:00",
+    "caseId": "nasa-solar-system-terrestrial-planets",
+    "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
+    "sourceCommit": "6d2fd539e0418077fae120e767ea9c446f6c08d2",
+    "sourceClean": true,
+    "runnerVersion": "1.0.0+6d2fd539e0418077fae120e767ea9c446f6c08d2",
+    "manifestSha256": "ad84429c1bbccec1e2add012ba578d8a85ed140989c2c1ca01a5f87daf5b3928",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "archiveBytes": 2641258,
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "osDescription": "macOS 27.0.0",
+    "framework": ".NET 10.0.11",
+    "processorCount": 10,
+    "machineName": "evomini",
+    "memoryScope": "fresh child process tree per declared operation, including startup and conversion",
+    "conversionScope": "layout and PDF conversion of preloaded MHTML for PDF; MHTML load, visible-content preparation, save and reopen for editable",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "failures": [],
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 5472.493,
+        "managedAllocatedBytes": 2108497496,
+        "processMilliseconds": 6024.0945,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 443318272,
+          "sampleCount": 135,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 6201.2773,
+        "managedAllocatedBytes": 2112780664,
+        "processMilliseconds": 6729.0245,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 416661504,
+          "sampleCount": 144,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4920.0849,
+        "managedAllocatedBytes": 1651900864,
+        "processMilliseconds": 5339.6802,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 444530688,
+          "sampleCount": 115,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 5286.623,
+        "managedAllocatedBytes": 1771532136,
+        "processMilliseconds": 5823.4443,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 540082176,
+          "sampleCount": 122,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3576.8885,
+        "managedAllocatedBytes": 962716864,
+        "processMilliseconds": 3913.7697,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 317997056,
+          "sampleCount": 85,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491239,
+        "outputSha256": "49f8bba7a833a937268ecbca6a45f99f68d9f39071b6c0eade196ac349330528",
+        "pageCount": null
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3171.8232,
+        "managedAllocatedBytes": 941743576,
+        "processMilliseconds": 3455.4992,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 325632000,
+          "sampleCount": 72,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528698,
+        "outputSha256": "90ce084323df0cc21768fcddb7b368233486f5bb11e6c416dc537e8491e67bd2",
+        "pageCount": null
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3938.0689,
+        "managedAllocatedBytes": 1026939368,
+        "processMilliseconds": 4194.8583,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 318701568,
+          "sampleCount": 88,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499716,
+        "outputSha256": "3cf644a8eba0f85a757c96f6848edceb356372161f91410f8b97b66d7e006cd2",
+        "pageCount": null
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2352.2746,
+        "managedAllocatedBytes": 645701496,
+        "processMilliseconds": 2613.5541,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 268681216,
+          "sampleCount": 54,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "2eeceff8b8ed8ab7592369ad72ee91811e2bd0a154125c86f94c6b1b0a50eb44",
+        "pageCount": null
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2795.9272,
+        "managedAllocatedBytes": 859197952,
+        "processMilliseconds": 3073.0685,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 229064704,
+          "sampleCount": 61,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2127.5667,
+        "managedAllocatedBytes": 647169136,
+        "processMilliseconds": 2387.952,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 253509632,
+          "sampleCount": 50,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null
+      }
+    ]
+  },
+  "platformGap": "Windows/Linux H10 operation budgets remain unqualified. All ten editable/PDF operations still report loss.",
+  "supersededTestRuns": [
+    {
+      "file": "authored-rules.trx",
+      "total": 151,
+      "passed": 151,
+      "failed": 0
+    },
+    {
+      "file": "before.trx",
+      "total": 3,
+      "passed": 0,
+      "failed": 3
+    },
+    {
+      "file": "candidate.trx",
+      "total": 3,
+      "passed": 0,
+      "failed": 3
+    },
+    {
+      "file": "css-reference.trx",
+      "total": 89,
+      "passed": 89,
+      "failed": 0
+    },
+    {
+      "file": "final-focused.trx",
+      "total": 154,
+      "passed": 154,
+      "failed": 0
+    },
+    {
+      "file": "final-fragment-focused.trx",
+      "total": 139,
+      "passed": 138,
+      "failed": 1
+    },
+    {
+      "file": "full-candidate-net10.trx",
+      "total": 3952,
+      "passed": 3952,
+      "failed": 0
+    },
+    {
+      "file": "full-candidate-net8.trx",
+      "total": 3952,
+      "passed": 3952,
+      "failed": 0
+    },
+    {
+      "file": "full-page-float-final-net10.trx",
+      "total": 3961,
+      "passed": 3961,
+      "failed": 0
+    },
+    {
+      "file": "full-page-float-final-net8.trx",
+      "total": 3961,
+      "passed": 3961,
+      "failed": 0
+    },
+    {
+      "file": "full-reviewed-net10.trx",
+      "total": 3960,
+      "passed": 3960,
+      "failed": 0
+    },
+    {
+      "file": "interactions.trx",
+      "total": 151,
+      "passed": 151,
+      "failed": 0
+    },
+    {
+      "file": "markers-fixed.trx",
+      "total": 89,
+      "passed": 86,
+      "failed": 3
+    },
+    {
+      "file": "page-float-catalog-final-net10.trx",
+      "total": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "file": "page-float-catalog-final-net8.trx",
+      "total": 3,
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "file": "page-float-catalog-net10.trx",
+      "total": 1,
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "file": "path-clip-closure-net10.trx",
+      "total": 149,
+      "passed": 149,
+      "failed": 0
+    },
+    {
+      "file": "path-clip-owner-before.trx",
+      "total": 2,
+      "passed": 1,
+      "failed": 1
+    },
+    {
+      "file": "path-clip-placement-before-direct.trx",
+      "total": 2,
+      "passed": 1,
+      "failed": 1
+    },
+    {
+      "file": "path-clip-placement-before.trx",
+      "total": 2,
+      "passed": 1,
+      "failed": 1
+    },
+    {
+      "file": "path-clip-reproduction.trx",
+      "total": 2,
+      "passed": 1,
+      "failed": 1
+    },
+    {
+      "file": "review-final-focused-v2.trx",
+      "total": 68,
+      "passed": 68,
+      "failed": 0
+    },
+    {
+      "file": "review-final-focused.trx",
+      "total": 67,
+      "passed": 66,
+      "failed": 1
+    },
+    {
+      "file": "review-fixes.trx",
+      "total": 14,
+      "passed": 1,
+      "failed": 13
+    },
+    {
+      "file": "review-frozen-focused.trx",
+      "total": 68,
+      "passed": 68,
+      "failed": 0
+    },
+    {
+      "file": "review-logical-owner.trx",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "file": "review-logical-pdf.trx",
+      "total": 1,
+      "passed": 0,
+      "failed": 1
+    },
+    {
+      "file": "review-owned-point-fixes.trx",
+      "total": 14,
+      "passed": 13,
+      "failed": 1
+    },
+    {
+      "file": "review-point-fixes.trx",
+      "total": 14,
+      "passed": 1,
+      "failed": 13
+    },
+    {
+      "file": "review-reproductions.trx",
+      "total": 14,
+      "passed": 10,
+      "failed": 4
+    },
+    {
+      "file": "stylesheet.trx",
+      "total": 151,
+      "passed": 148,
+      "failed": 3
+    }
+  ],
+  "h4ManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+  "cleanup": {
+    "removedBytes": 176844121,
+    "removedMiB": 168.7,
+    "scope": [
+      "26 superseded test/diff/probe files; compact test results retained",
+      "superseded three-case authored capture; final clean-head capture retained",
+      "11 duplicate prior-column NASA PDFs; equality verified against current replay",
+      "10 superseded prior-column budget operation folders; archive identity and unchanged ceilings verified"
+    ],
+    "retained": "Final raw renders and gate logs; prior reports/hashes; frozen source archives and browser references."
+  }
+}

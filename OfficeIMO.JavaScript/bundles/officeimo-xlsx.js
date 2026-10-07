@@ -995,19 +995,142 @@ _modules.set("b9f1c744e81c4ffe65aeece3668443c8d6d70489841f23c9539ae6e8ac0b52d2",
 return _exports;
 })();
 
-const _m12 = _modules.get("baa5f2ab7f5c98f26d519277407aa27b5bf84d7a4a46e5cc1c6cf56337467ace") ?? (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
-
-const { OfficeIMOError } = _m3;
-
-const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
+const _m13 = _modules.get("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359") ?? (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
         throw new TypeError("Color must be RGB or ARGB hex.");
     const color = value.replace(/^#/, "").toUpperCase();
     return color.length === 6 ? "FF" + color : color;
 }
+const _exports = Object.freeze({ colorArgb: colorArgb });
+_modules.set("204def412284dfb11df9aececd57c8c0455db2927ebdb483dd255e7b29f6f359", _exports);
+return _exports;
+})();
+
+const _m14 = _modules.get("dd9b4e8a084ec621ecb096b687534647a34543b71c02c38f6ffab013352ed3f5") ?? (() => {
+const { OfficeIMOError } = _m3;
+
+const { cleanXml, escapeOoxmlAttribute } = _m9;
+
+const { colorArgb } = _m13;
+
+/** @internal Reject unsupported properties rather than silently losing presentation. */
+function fields(value, allowed, label) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new TypeError(label + " must be an object.");
+    if (typeof value.then === "function") {
+        void Promise.resolve(value).catch(() => { });
+        throw new TypeError(label + " must be synchronous.");
+    }
+    for (const key of Object.keys(value))
+        if (!allowed.includes(key))
+            throw new TypeError("Unsupported " + label + " property: " + key);
+}
+/** @internal */
+function optionalBoolean(value, name) {
+    if (value !== undefined && typeof value !== "boolean")
+        throw new TypeError(name + " must be boolean.");
+}
+/** @internal Differential styles contain no default font/fill/border properties. */
+class DifferentialStyles {
+    policy;
+    maximum;
+    numberFormat;
+    definitions = new Map();
+    constructor(policy, maximum, numberFormat) {
+        this.policy = policy;
+        this.maximum = maximum;
+        this.numberFormat = numberFormat;
+    }
+    keys(styles) {
+        // Validation and canonical XML precede registration, so equivalent property order shares a dxf.
+        const keys = styles.map(style => differentialXml(style, this.policy, () => 164));
+        const pending = new Set(keys.filter(definition => !this.definitions.has(definition)));
+        if (this.definitions.size + pending.size > this.maximum)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "maxDifferentialStyles exceeded.");
+        return keys;
+    }
+    check(styles) { this.keys(styles); }
+    add(styles) {
+        const keys = this.keys(styles);
+        for (let i = 0; i < styles.length; i++)
+            if (!this.definitions.has(keys[i]))
+                this.definitions.set(keys[i], { id: this.definitions.size, xml: differentialXml(styles[i], this.policy, this.numberFormat) });
+        return keys.map(key => this.definitions.get(key).id);
+    }
+    toXml() {
+        return this.definitions.size ? '<dxfs count="' + this.definitions.size + '">' + [...this.definitions.values()].map(style => '<dxf>' + style.xml + '</dxf>').join("") + '</dxfs>' : "";
+    }
+}
+/** @internal Also used for preflight before registering a worksheet name. */
+function differentialXml(style, policy, numberFormat) {
+    fields(style, ["font", "fill", "border", "numberFormat"], "conditional style");
+    let xml = "";
+    if (style.font !== undefined) {
+        fields(style.font, ["bold", "italic", "underline", "strike", "color"], "conditional font");
+        let font = "";
+        for (const [name, tag] of [["bold", "b"], ["italic", "i"], ["strike", "strike"]]) {
+            optionalBoolean(style.font[name], name);
+            if (style.font[name] !== undefined)
+                font += '<' + tag + ' val="' + (style.font[name] ? 1 : 0) + '"/>';
+        }
+        optionalBoolean(style.font.underline, "underline");
+        if (style.font.underline !== undefined)
+            font += '<u val="' + (style.font.underline ? "single" : "none") + '"/>';
+        if (style.font.color !== undefined)
+            font += '<color rgb="' + colorArgb(style.font.color) + '"/>';
+        if (font)
+            xml += '<font>' + font + '</font>';
+    }
+    if (style.numberFormat !== undefined) {
+        const format = style.numberFormat;
+        if (typeof format !== "string" || !format || format.length > 255 || !cleanXml(format, policy))
+            throw new TypeError("Conditional number format requires 1 through 255 XML-valid characters.");
+        xml += '<numFmt numFmtId="' + numberFormat(format) + '" formatCode="' + escapeOoxmlAttribute(format, policy) + '"/>';
+    }
+    if (style.fill !== undefined) {
+        fields(style.fill, ["color"], "conditional fill");
+        const color = colorArgb(style.fill.color);
+        // Excel reads the background color for a differential solid fill; keep both channels explicit.
+        xml += '<fill><patternFill patternType="solid"><fgColor rgb="' + color + '"/><bgColor rgb="' + color + '"/></patternFill></fill>';
+    }
+    if (style.border !== undefined) {
+        fields(style.border, ["left", "right", "top", "bottom"], "conditional border");
+        let border = "";
+        for (const side of ["left", "right", "top", "bottom"]) {
+            const edge = style.border[side];
+            if (edge !== undefined) {
+                fields(edge, ["style", "color"], "conditional border edge");
+                if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
+                    throw new TypeError("Invalid conditional border style.");
+                border += '<' + side + ' style="' + edge.style + '">' + (edge.color !== undefined ? '<color rgb="' + colorArgb(edge.color) + '"/>' : "") + '</' + side + '>';
+            }
+        }
+        if (border)
+            xml += '<border>' + border + '</border>';
+    }
+    if (!xml)
+        throw new TypeError("A conditional style must change at least one property.");
+    return xml;
+}
+const _exports = Object.freeze({ fields: fields, optionalBoolean: optionalBoolean, DifferentialStyles: DifferentialStyles, differentialXml: differentialXml });
+_modules.set("dd9b4e8a084ec621ecb096b687534647a34543b71c02c38f6ffab013352ed3f5", _exports);
+return _exports;
+})();
+
+const _m12 = _modules.get("1015bac4d75604f76cde2c2c8803d0f09f848452a15ede0a07ac8384fe3a6756") ?? (() => {
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+
+const { OfficeIMOError } = _m3;
+
+const { colorArgb } = _m13;
+
+const { DifferentialStyles } = _m14;
+
+
+
+const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
 function index(value, count, kind) {
     if (!Number.isInteger(value) || value < 0 || value >= count)
         throw new RangeError("Unknown " + kind + " index.");
@@ -1046,6 +1169,7 @@ function copyStylePatch(patch) {
 class StyleRegistry {
     policy;
     maximum;
+    differential;
     fonts = [{ name: "Calibri", size: 11, bold: false, italic: false, underline: false, strike: false, color: "" }];
     fills = [{ pattern: "none", color: "" }, { pattern: "gray125", color: "" }];
     borders = [{}];
@@ -1055,14 +1179,28 @@ class StyleRegistry {
     fontIndexes = new Map(this.fonts.map((v, i) => [JSON.stringify(v), i]));
     fillIndexes = new Map(this.fills.map((v, i) => [JSON.stringify(v), i]));
     borderIndexes = new Map(this.borders.map((v, i) => [JSON.stringify(v), i]));
-    constructor(policy = "strip", maximum = 64000) {
+    constructor(policy = "strip", maximum = 64000, maximumDifferential = 1000) {
         this.policy = policy;
         this.maximum = maximum;
         if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 64000)
             throw new RangeError("maxStyles must be from 1 through 64,000.");
+        if (!Number.isSafeInteger(maximumDifferential) || maximumDifferential < 0)
+            throw new RangeError("maxDifferentialStyles must be a nonnegative safe integer.");
+        this.differential = new DifferentialStyles(policy, maximumDifferential, format => this.addNumberFormat(format));
         cleanXml("", policy);
         this.add();
     }
+    /** @internal */
+    checkDifferentials(styles) {
+        // A batch must not register some dxfs before its shared number-format capacity fails.
+        const formats = new Set(styles.flatMap(style => style.numberFormat === undefined ? [] : [cleanXml(style.numberFormat, this.policy)])
+            .filter(format => format !== "General" && !this.formats.has(format)));
+        if (this.formats.size + formats.size > 65372)
+            throw new RangeError("Too many number formats.");
+        this.differential.check(styles);
+    }
+    /** @internal */
+    addDifferentials(styles) { this.checkDifferentials(styles); return this.differential.add(styles); }
     addFont(font) {
         if (font.name !== undefined && typeof font.name !== "string")
             throw new TypeError("Font name must be a string.");
@@ -1182,15 +1320,15 @@ class StyleRegistry {
             return '<xf numFmtId="' + s.numberFormat + '" fontId="' + s.font + '" fillId="' + s.fill + '" borderId="' + s.border + '" xfId="0"' +
                 (s.numberFormat ? ' applyNumberFormat="1"' : "") + (s.font ? ' applyFont="1"' : "") + (s.fill ? ' applyFill="1"' : "") +
                 (s.border ? ' applyBorder="1"' : "") + (alignment ? ' applyAlignment="1"' : "") + '>' + alignment + '</xf>';
-        }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+        }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, colorArgb: colorArgb, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
-_modules.set("baa5f2ab7f5c98f26d519277407aa27b5bf84d7a4a46e5cc1c6cf56337467ace", _exports);
+const _exports = Object.freeze({ colorArgb: _m13.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+_modules.set("1015bac4d75604f76cde2c2c8803d0f09f848452a15ede0a07ac8384fe3a6756", _exports);
 return _exports;
 })();
 
-const _m14 = _modules.get("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323") ?? (() => {
+const _m16 = _modules.get("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323") ?? (() => {
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -1222,10 +1360,10 @@ _modules.set("80fa481915d620aeb48899159896e695bb243397b41b9b8cda3bb438a2b15323",
 return _exports;
 })();
 
-const _m13 = _modules.get("4cbb1d11b95433192aff837158a981db59ba368aac14e29d37962711c1436d45") ?? (() => {
+const _m15 = _modules.get("641b2c9294f573e8dd7fa699a7d208f9ec2ddb734aa56b1965e7168007b5e543") ?? (() => {
 const { cleanXml, escapeXml } = _m9;
 
-const { ExportCell } = _m14;
+const { ExportCell } = _m16;
 
 /** A typed value plus a workbook-local style index. */
 class Cell {
@@ -1270,7 +1408,7 @@ function columnName(index) {
     return name;
 }
 function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
-function sheetName(requested, names, policy) {
+function sheetName(requested, names, policy, register = true) {
     if (typeof requested !== "string")
         throw new TypeError("Sheet name must be a string.");
     // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
@@ -1286,7 +1424,8 @@ function sheetName(requested, names, policy) {
         const tail = " (" + suffix++ + ")";
         name = clipName(base, 31 - tail.length) + tail;
     }
-    names.add(name.toLowerCase());
+    if (register)
+        names.add(name.toLowerCase());
     return name;
 }
 function excelDate(date, mode) {
@@ -1302,11 +1441,11 @@ function excelDate(date, mode) {
     return (time - Date.UTC(1899, 11, 31)) / 86400000 + (time >= Date.UTC(1900, 2, 1) ? 1 : 0);
 }
 const _exports = Object.freeze({ Cell: Cell, copyValue: copyValue, cellText: cellText, inlineText: inlineText, columnName: columnName, sheetName: sheetName, excelDate: excelDate });
-_modules.set("4cbb1d11b95433192aff837158a981db59ba368aac14e29d37962711c1436d45", _exports);
+_modules.set("641b2c9294f573e8dd7fa699a7d208f9ec2ddb734aa56b1965e7168007b5e543", _exports);
 return _exports;
 })();
 
-const _m16 = _modules.get("b3567060ef6d355755db17d818d4e23aa4bf205183cb0e3d5316df8c25450bc0") ?? (() => {
+const _m18 = _modules.get("b3567060ef6d355755db17d818d4e23aa4bf205183cb0e3d5316df8c25450bc0") ?? (() => {
 function rowValues(row, columns) {
     if (Array.isArray(row)) {
         if (row.length > columns.length)
@@ -1336,7 +1475,7 @@ _modules.set("b3567060ef6d355755db17d818d4e23aa4bf205183cb0e3d5316df8c25450bc0",
 return _exports;
 })();
 
-const _m17 = _modules.get("3a52be0afe7a83ec31dc316780152dcfd02a543b759a9cdbe3d8e24ea3a12aee") ?? (() => {
+const _m19 = _modules.get("3a52be0afe7a83ec31dc316780152dcfd02a543b759a9cdbe3d8e24ea3a12aee") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m9;
 
 const { officeRelationshipsNamespace } = _m6;
@@ -1400,10 +1539,10 @@ _modules.set("3a52be0afe7a83ec31dc316780152dcfd02a543b759a9cdbe3d8e24ea3a12aee",
 return _exports;
 })();
 
-const _m19 = _modules.get("67c9ed709d6d3b3ebea43d7d9235aa40076a207c3e574b8810e8a5d2ce5e1239") ?? (() => {
+const _m21 = _modules.get("67c9ed709d6d3b3ebea43d7d9235aa40076a207c3e574b8810e8a5d2ce5e1239") ?? (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m17;
+const { cellPosition } = _m19;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -1505,14 +1644,14 @@ _modules.set("67c9ed709d6d3b3ebea43d7d9235aa40076a207c3e574b8810e8a5d2ce5e1239",
 return _exports;
 })();
 
-const _m18 = _modules.get("dd93cba11d47d58012850f3a30d1846e045587830560eba52839082c05f7f744") ?? (() => {
-const { ExportCell } = _m14;
+const _m20 = _modules.get("e74eb8cfdcb658bf4a6b094e8218392a1f8239c7915e84256a7986f3538cf408") ?? (() => {
+const { ExportCell } = _m16;
 
-const { Cell, cellText, columnName } = _m13;
+const { Cell, cellText, columnName } = _m15;
 
 const { escapeOoxmlAttribute } = _m9;
 
-const { MergeRegions } = _m19;
+const { MergeRegions } = _m21;
 
 const { OfficeIMOError } = _m3;
 
@@ -1693,18 +1832,184 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("dd93cba11d47d58012850f3a30d1846e045587830560eba52839082c05f7f744", _exports);
+_modules.set("e74eb8cfdcb658bf4a6b094e8218392a1f8239c7915e84256a7986f3538cf408", _exports);
 return _exports;
 })();
 
-const _m15 = _modules.get("17f4468756b2b1f477cf0d0fd71593be4b690a34bf50b506f62a7d77e1c4f1ad") ?? (() => {
+const _m22 = _modules.get("245bcab47c5fb74eea208523698093cdf2acce107e7eb260272d57f713c245a6") ?? (() => {
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
+
+const { cellPosition } = _m19;
+
+const { columnName } = _m15;
+
+const { colorArgb } = _m13;
+
+const { fields, optionalBoolean, differentialXml } = _m14;
+
+function target(range, columns) {
+    if (typeof range === "string") {
+        const parts = range.split(":");
+        if (parts.length > 2)
+            throw new TypeError("Conditional ranges require one uppercase A1 cell or rectangle.");
+        const first = cellPosition(parts[0]), last = cellPosition(parts[1] ?? parts[0]);
+        if (last.row < first.row || last.column < first.column || last.column > columns.length)
+            throw new RangeError("Conditional ranges require ordered cells within declared columns.");
+        return { first: first.column, last: last.column, reference: range, bottom: last.row };
+    }
+    fields(range, ["column", "through"], "conditional data range");
+    function resolve(value) {
+        if (typeof value === "string") {
+            const matches = columns.flatMap((column, i) => column.key === value ? [i + 1] : []);
+            if (matches.length !== 1)
+                throw new TypeError("Conditional column keys must identify exactly one declared column.");
+            return matches[0];
+        }
+        if (!Number.isInteger(value) || value < 1 || value > columns.length)
+            throw new RangeError("Conditional column numbers must be one-based and within declared columns.");
+        return value;
+    }
+    const first = resolve(range.column), last = range.through === undefined ? first : resolve(range.through);
+    if (last < first)
+        throw new RangeError("Conditional data ranges require ordered columns.");
+    return { first, last };
+}
+function finite(value) {
+    if (typeof value !== "number" || !Number.isFinite(value))
+        throw new TypeError("Conditional values must be finite numbers.");
+    return String(value);
+}
+function formula(value) {
+    if (typeof value !== "string")
+        throw new TypeError("Conditional formulas must be strings.");
+    const text = value.trim().replace(/^=/, "");
+    if (!text.trim() || text.length > 8192)
+        throw new RangeError("Conditional formulas require 1 through 8,192 characters.");
+    // Stripping invalid characters could change a calculation; reject them even under the text-strip policy.
+    cleanXml(text, "reject");
+    return text;
+}
+function threshold(value, position) {
+    fields(value, value.type === "min" || value.type === "max" ? ["type"] : ["type", "value"], "conditional threshold");
+    if (value.type === "min" || value.type === "max") {
+        if (value.type !== (position === "first" ? "min" : position === "last" ? "max" : ""))
+            throw new TypeError("Use min only at the start and max only at the end of a scale.");
+        return '<cfvo type="' + value.type + '"/>';
+    }
+    if (value.type === "formula")
+        return '<cfvo type="formula" val="' + escapeOoxmlAttribute(formula(value.value), "reject") + '"/>';
+    if (!["number", "percent", "percentile"].includes(value.type))
+        throw new TypeError("Unsupported conditional threshold type.");
+    if (!("value" in value))
+        throw new TypeError("A numeric threshold requires a value.");
+    const number = finite(value.value);
+    if (value.type !== "number" && (value.value < 0 || value.value > 100))
+        throw new RangeError("Conditional percent/percentile thresholds must be from 0 through 100.");
+    return '<cfvo type="' + (value.type === "number" ? "num" : value.type) + '" val="' + number + '"/>';
+}
+function ordered(values) {
+    for (let i = 1; i < values.length; i++) {
+        const before = values[i - 1], after = values[i];
+        if ("value" in before && "value" in after && before.type === after.type && typeof before.value === "number" && typeof after.value === "number" && before.value > after.value)
+            throw new RangeError("Conditional thresholds of the same numeric type must be ordered.");
+    }
+}
+/** @internal Compile bounded metadata once, outside the row hot path. */
+function prepareConditionalFormats(rules, columns, policy) {
+    if (rules === undefined)
+        return [];
+    if (!Array.isArray(rules))
+        throw new TypeError("conditionalFormats must be an array.");
+    return rules.map(rule => {
+        const common = ["type", "range"], highlighting = ["style", "stopIfTrue"];
+        fields(rule, [...common, ...(rule?.type === "cellIs" ? [...highlighting, "operator", "value", "values"] : rule?.type === "expression" ? [...highlighting, "formula"] : rule?.type === "colorScale" ? ["stops"] : rule?.type === "dataBar" ? ["color", "minimum", "maximum", "showValue"] : [])], "conditional rule");
+        const selected = target(rule.range, columns);
+        let attributes = "", body = "", style;
+        if (rule.type === "cellIs" || rule.type === "expression") {
+            optionalBoolean(rule.stopIfTrue, "stopIfTrue");
+            differentialXml(rule.style, policy, () => 164);
+            style = { ...rule.style, ...(rule.style.font ? { font: { ...rule.style.font } } : {}), ...(rule.style.fill ? { fill: { ...rule.style.fill } } : {}),
+                ...(rule.style.border ? { border: Object.fromEntries(Object.entries(rule.style.border).filter(([, edge]) => edge !== undefined).map(([side, edge]) => [side, { ...edge }])) } : {}) };
+            if (rule.stopIfTrue !== undefined)
+                attributes += ' stopIfTrue="' + (rule.stopIfTrue ? 1 : 0) + '"';
+            if (rule.type === "expression")
+                body = '<formula>' + escapeXml(formula(rule.formula), "reject") + '</formula>';
+            else {
+                const pair = rule.operator === "between" || rule.operator === "notBetween";
+                if (!["equal", "notEqual", "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual", "between", "notBetween"].includes(rule.operator))
+                    throw new TypeError("Unsupported conditional comparison operator.");
+                if (pair) {
+                    if ("value" in rule || !Array.isArray(rule.values) || rule.values.length !== 2)
+                        throw new TypeError("between/notBetween require exactly two values.");
+                    body = rule.values.map(value => '<formula>' + finite(value) + '</formula>').join("");
+                    if (rule.values[0] > rule.values[1])
+                        throw new RangeError("Conditional comparison bounds must be ordered.");
+                }
+                else {
+                    if ("values" in rule || !("value" in rule))
+                        throw new TypeError("A conditional comparison requires one value.");
+                    body = '<formula>' + finite(rule.value) + '</formula>';
+                }
+                attributes += ' operator="' + rule.operator + '"';
+            }
+        }
+        else if (rule.type === "colorScale") {
+            if (!Array.isArray(rule.stops) || (rule.stops.length !== 2 && rule.stops.length !== 3))
+                throw new TypeError("Color scales require two or three stops.");
+            const colors = [], thresholds = [];
+            body = '<colorScale>' + rule.stops.map((stop, i) => {
+                fields(stop, ["threshold", "color"], "color stop");
+                colors.push(colorArgb(stop.color));
+                thresholds.push(stop.threshold);
+                return threshold(stop.threshold, i === 0 ? "first" : i === rule.stops.length - 1 ? "last" : "middle");
+            }).join("") + colors.map(color => '<color rgb="' + color + '"/>').join("") + '</colorScale>';
+            ordered(thresholds);
+        }
+        else if (rule.type === "dataBar") {
+            optionalBoolean(rule.showValue, "showValue");
+            const lower = rule.minimum === undefined ? { type: "min" } : rule.minimum, upper = rule.maximum === undefined ? { type: "max" } : rule.maximum;
+            body = '<dataBar showValue="' + (rule.showValue === false ? 0 : 1) + '">' + threshold(lower, "first") + threshold(upper, "last") + '<color rgb="' + colorArgb(rule.color) + '"/></dataBar>';
+            ordered([lower, upper]);
+        }
+        else
+            throw new TypeError("Unsupported conditional rule type.");
+        return { target: selected, type: rule.type, attributes, body, ...(style ? { style } : {}) };
+    });
+}
+/** @internal Immutable worksheet-owned rule metadata; no cells or rows are retained. */
+class ConditionalFormats {
+    rules;
+    constructor(prepared, styles) {
+        const differential = styles.addDifferentials(prepared.flatMap(rule => rule.style ? [rule.style] : []));
+        let styleIndex = 0;
+        this.rules = prepared.map((rule, i) => ({ target: rule.target,
+            xml: '<cfRule type="' + rule.type + '" priority="' + (i + 1) + '"' + (rule.style ? ' dxfId="' + differential[styleIndex++] + '"' : "") + rule.attributes + '>' + rule.body + '</cfRule>' }));
+    }
+    get count() { return this.rules.length; }
+    *xml(headerRows, dataRows, totalRows) {
+        for (const rule of this.rules) {
+            if (rule.target.bottom !== undefined && rule.target.bottom > totalRows)
+                throw new RangeError("Conditional ranges must stay within exported rows.");
+            if (!rule.target.reference && !dataRows)
+                continue;
+            const reference = rule.target.reference ?? columnName(rule.target.first) + (headerRows + 1) + ':' + columnName(rule.target.last) + (headerRows + dataRows);
+            yield '<conditionalFormatting sqref="' + reference + '">' + rule.xml + '</conditionalFormatting>';
+        }
+    }
+}
+const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
+_modules.set("245bcab47c5fb74eea208523698093cdf2acce107e7eb260272d57f713c245a6", _exports);
+return _exports;
+})();
+
+const _m17 = _modules.get("1f8526ef111b0cc8f6dc4a4c69eebc1106f475f60ddc7ed4ebb0ce147b053a57") ?? (() => {
 const { checkAbort, inputRows } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { copyColumns, rowValues } = _m16;
+const { copyColumns, rowValues } = _m18;
 
 const { EntryWriter } = _m11;
 
@@ -1712,17 +2017,19 @@ const { xmlDeclaration } = _m9;
 
 const { officeRelationshipsNamespace } = _m6;
 
-const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m13;
+const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m15;
 
 const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m12;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m17;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m19;
 
-const { ExportCell, assertScalar } = _m14;
+const { ExportCell, assertScalar } = _m16;
 
-const { ReportLayout, ComputedTotal, printXml } = _m18;
+const { ReportLayout, ComputedTotal, printXml } = _m20;
 
 const { cleanXml } = _m9;
+
+const { ConditionalFormats, prepareConditionalFormats } = _m22;
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
@@ -1752,7 +2059,8 @@ class Worksheet {
     internalLinks = [];
     links = [];
     pictures = [];
-    constructor(book, name, options, table, preserved = false) {
+    conditional;
+    constructor(book, name, options, table, preserved = false, conditional = []) {
         this.book = book;
         this.name = name;
         this.table = table;
@@ -1768,24 +2076,29 @@ class Worksheet {
         this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
-        for (const link of options.hyperlinks ?? []) {
-            book.retainLink();
+        for (const link of options.hyperlinks ?? [])
             this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
-        }
+        book.checkLinks(this.links.length);
         this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
             style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
             headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
                 ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
         }));
+        // Register conditional styles only after worksheet construction can no longer reject its options.
+        this.conditional = new ConditionalFormats(conditional, book.styles);
+        book.retainLink(this.links.length);
     }
     /** @internal */
-    static create(book, name, options, table, preserved = false) { return new Worksheet(book, name, options, table, preserved); }
+    static create(book, name, options, table, preserved = false, conditional) { return new Worksheet(book, name, options, table, preserved, conditional); }
     /** @internal Validate before allocating native compressor resources or registering the sheet name. */
     static validate(book, options) {
-        for (const feature of ["conditionalFormats", "dataValidation"])
+        for (const feature of ["dataValidation"])
             if (options[feature] !== undefined)
                 throw new NotSupportedError(feature);
         const columns = copyColumns(options.columns ?? []);
+        book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
+        const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
+        book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
         const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
         book.checkMerges(layout.merges.length);
         if (options.title?.style)
@@ -1843,6 +2156,7 @@ class Worksheet {
             if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255))
                 throw new TypeError("Column format must be a string of at most 255 characters.");
         }
+        return conditional;
     }
     cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false) {
         const col = this.declared[i];
@@ -2129,6 +2443,8 @@ class Worksheet {
     /** @internal */
     get mergeCount() { return this.layout.merges.length; }
     /** @internal */
+    get conditionalFormatCount() { return this.conditional.count; }
+    /** @internal */
     get totalRows() { return Math.max(1, this.headerRows + this.count + (this.options.footer ? 1 : 0)); }
     /** @internal */
     get lastColumn() { return columnName(Math.max(1, this.columns.length)); }
@@ -2177,6 +2493,8 @@ class Worksheet {
                     await this.buffer.write('<autoFilter ref="A' + this.headerRows + ':' + columnName(this.columns.length) + (this.count + this.headerRows) + '"/>');
                 if (this.layout.merges.length)
                     await this.buffer.write('<mergeCells count="' + this.layout.merges.length + '">' + this.layout.merges.map(ref => '<mergeCell ref="' + ref + '"/>').join("") + '</mergeCells>');
+                for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows))
+                    await this.buffer.write(xml);
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
@@ -2202,22 +2520,22 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("17f4468756b2b1f477cf0d0fd71593be4b690a34bf50b506f62a7d77e1c4f1ad", _exports);
+_modules.set("1f8526ef111b0cc8f6dc4a4c69eebc1106f475f60ddc7ed4ebb0ce147b053a57", _exports);
 return _exports;
 })();
 
-const _m20 = _modules.get("c6206eb9c3dc5806b54de87bb9a126323c0bc5e75afca89de6ff5fb28203d0ba") ?? (() => {
+const _m23 = _modules.get("d9a28cccf419c0443867f4eb6aa3d782569cd3232ebe82e5e8b5ba5f70dd7798") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
 
-const { cellText, columnName } = _m13;
+const { cellText, columnName } = _m15;
 
 const { spreadsheetNamespace } = _m12;
 
-const { ExportCell } = _m14;
+const { ExportCell } = _m16;
 
-const { Cell } = _m13;
+const { Cell } = _m15;
 
-const { totalFormula } = _m18;
+const { totalFormula } = _m20;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -2249,11 +2567,11 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("c6206eb9c3dc5806b54de87bb9a126323c0bc5e75afca89de6ff5fb28203d0ba", _exports);
+_modules.set("d9a28cccf419c0443867f4eb6aa3d782569cd3232ebe82e5e8b5ba5f70dd7798", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b") ?? (() => {
+const _m24 = _modules.get("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m9;
@@ -2321,7 +2639,7 @@ _modules.set("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b",
 return _exports;
 })();
 
-const _m1 = _modules.get("6948c071f99307eaf808a32405140ce8908d45b0db4cbdb3eb90764f3339ed56") ?? (() => {
+const _m1 = _modules.get("54d3beefbef6bbab388190c08d52de16ef6b80869a0c19becca1c323816d2fcc") ?? (() => {
 const { checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -2336,15 +2654,15 @@ const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
 
 const { StyleRegistry, spreadsheetNamespace } = _m12;
 
-const { sheetName } = _m13;
+const { sheetName } = _m15;
 
-const { Worksheet } = _m15;
+const { Worksheet } = _m17;
 
-const { defineTable, tableXml } = _m20;
+const { defineTable, tableXml } = _m23;
 
-const { drawingXml, drawingContentType } = _m17;
+const { drawingXml, drawingContentType } = _m19;
 
-const { TextOverflow } = _m21;
+const { TextOverflow } = _m24;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -2367,6 +2685,7 @@ class Workbook {
     imageBytes = 0;
     bufferedBytes = 0;
     mergedRanges = 0;
+    conditionalFormats = 0;
     /** @internal Shared budget across worksheet headers and data. */
     budget;
     /** @internal Immutable settings used by the worksheet owner. */
@@ -2382,7 +2701,7 @@ class Workbook {
         cleanXml("", policy);
         corePropertiesXml(options, policy);
         this.budget = new ExportBudget(options.limits);
-        this.styles = new StyleRegistry(policy, options.limits?.maxStyles);
+        this.styles = new StyleRegistry(policy, options.limits?.maxStyles, options.limits?.maxDifferentialStyles);
         if (options.sink !== undefined && typeof options.sink.write !== "function")
             throw new TypeError("sink must be a ByteSink.");
         this.settings = Object.freeze({ ...options, ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}), dateMode, compression, invalidCharacterPolicy: policy });
@@ -2448,11 +2767,12 @@ class Workbook {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxSheets exceeded.");
     }
     /** @internal */
-    retainLink() {
-        if (this.settings.limits?.maxHyperlinks !== undefined && this.links + 1 > this.settings.limits.maxHyperlinks)
+    checkLinks(count) {
+        if (this.settings.limits?.maxHyperlinks !== undefined && this.links + count > this.settings.limits.maxHyperlinks)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
-        this.links++;
     }
+    /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
+    retainLink(count = 1) { this.checkLinks(count); this.links += count; }
     /** @internal */
     retainImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
@@ -2464,6 +2784,9 @@ class Workbook {
     /** @internal Includes generated report merges across all sheets. */
     checkMerges(count) { if (this.mergedRanges + count > (this.settings.limits?.maxMergedRanges ?? 10000))
         throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded."); }
+    /** @internal */
+    checkConditionalFormats(count) { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000))
+        throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
     /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
     async openSheet(sheet) {
         if (this.activeSheet && this.activeSheet !== sheet) {
@@ -2486,7 +2809,7 @@ class Workbook {
     addWorksheet(name, options = {}) {
         this.assertOpen();
         this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
-        Worksheet.validate(this, options);
+        const conditional = Worksheet.validate(this, options);
         let tableOptions = options.table;
         if (tableOptions && tableOptions.name === undefined) {
             let suffix = this.tableCount + 1;
@@ -2497,8 +2820,10 @@ class Workbook {
         const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
         if (table && this.tableNames.has(table.name.toLowerCase()))
             throw new TypeError("Duplicate Excel table name: " + table.name);
-        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options, table);
+        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+        this.names.add(sheet.name.toLowerCase());
         this.mergedRanges += sheet.mergeCount;
+        this.conditionalFormats += sheet.conditionalFormatCount;
         if (table) {
             this.tableNames.add(table.name.toLowerCase());
             this.tableCount++;
@@ -2609,11 +2934,11 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("6948c071f99307eaf808a32405140ce8908d45b0db4cbdb3eb90764f3339ed56", _exports);
+_modules.set("54d3beefbef6bbab388190c08d52de16ef6b80869a0c19becca1c323816d2fcc", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198") ?? (() => {
+const _m25 = _modules.get("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198") ?? (() => {
 
 
 
@@ -2655,16 +2980,16 @@ function saveBlob(blob, fileName) {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
     }
 }
-const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m4.BlobByteSink, ChunkedTextSink: _m4.ChunkedTextSink, writeBytes: _m4.writeBytes, ExportCell: _m14.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
+const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m4.BlobByteSink, ChunkedTextSink: _m4.ChunkedTextSink, writeBytes: _m4.writeBytes, ExportCell: _m16.ExportCell, checkAbort: _m2.checkAbort, withAbort: _m2.withAbort, inputRows: _m2.inputRows, pause: _m2.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
 _modules.set("c06edd303983d05877ffeacc830436e7d70f04463ed99cefbf66f07f7f265198", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("2967a01292f1fd5db7d2b442e80989ce61bb25c02922f81e6c7c79e17b3ed043") ?? (() => {
+const _m0 = _modules.get("188fa32f5002472c62ee03d375fefc8f0a3a97980438450938b46082eb4cc6b2") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m15.Worksheet, Cell: _m13.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m22.saveBlob, ExportCell: _m14.ExportCell });
-_modules.set("2967a01292f1fd5db7d2b442e80989ce61bb25c02922f81e6c7c79e17b3ed043", _exports);
+const _exports = Object.freeze({ Workbook: _m1.Workbook, createWorkbook: _m1.createWorkbook, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m25.saveBlob, ExportCell: _m16.ExportCell });
+_modules.set("188fa32f5002472c62ee03d375fefc8f0a3a97980438450938b46082eb4cc6b2", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m22, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });
+Object.assign(officeimo, _m0, { core: _m25, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });
 })(globalThis);

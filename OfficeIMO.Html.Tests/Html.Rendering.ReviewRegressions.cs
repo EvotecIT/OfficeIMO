@@ -10,6 +10,22 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void HtmlPdf_DecorativeImageWithEmptyAlternativeTextConverts(string alternativeText) {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 4));
+        string html = "<p>Before image</p><img width='16' height='16' alt='"
+            + alternativeText + "' src='data:image/png;base64," + image + "'><p>After image</p>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+
+        Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Before image", text, StringComparison.Ordinal);
+        Assert.Contains("After image", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void HtmlPdf_DirectRenderer_SkipsEmptySemanticContainers() {
         const string html = "<p></p><table><caption></caption><tr></tr></table><p>AfterEmptyMarkup</p>";

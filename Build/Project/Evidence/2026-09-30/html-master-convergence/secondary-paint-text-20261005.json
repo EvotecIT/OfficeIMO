@@ -1,0 +1,777 @@
+{
+  "date": "2026-10-05",
+  "codeHead": "2a5a1d2fb",
+  "baseHead": "ed5b27cd475c4976d27818567c43ba511587638a",
+  "scope": "Static HTML/PDF secondary paint preserves one logical extraction owner, Artifact classification and separate link annotations. No relative-position projection implementation or platform budget qualification.",
+  "ownership": {
+    "core": "Internal PdfPageCanvas.SuppressTextExtraction reuses the existing ActualText item/serializer; public ActualText still rejects empty input.",
+    "adapter": "Empty logical groups and already-claimed layer scopes consume the Core primitive.",
+    "projection": "Fixed-canvas snapshot secondary text uses an empty logical group instead of a generic Artifact, preserving interactions.",
+    "publicApiChanged": false,
+    "newRuntimeDependencies": false
+  },
+  "tests": {
+    "full-html-net10-final": {
+      "sha256": "b5140b0f1d3c89ea73ddb9a406c134b2f86b43b2ec95136372a86601daf602d5",
+      "counters": {
+        "total": "4335",
+        "executed": "4335",
+        "passed": "4335",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "full-html-net8-final": {
+      "sha256": "23b2bcd45bd5a14d9fea63cf0fb5964a18418f3805394e1a91088194094262a2",
+      "counters": {
+        "total": "4335",
+        "executed": "4335",
+        "passed": "4335",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "full-pdf-net10-final": {
+      "sha256": "fc4f93bc2f11d0c0d26630d31faa38ace712888cf261fa3b525019370bbe1061",
+      "counters": {
+        "total": "8782",
+        "executed": "8782",
+        "passed": "8782",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focused-pdf-net8-final": {
+      "sha256": "d9c6a77e7e0be299d70642ccb2ea50e3ecc51d9161245b292401c183e099e67a",
+      "counters": {
+        "total": "203",
+        "executed": "203",
+        "passed": "203",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focused-pdf-final": {
+      "sha256": "b77f79e9631c403bd3b9a7ead82c1f8b4478e2b3ef07863c4ac6cfabda24a919",
+      "counters": {
+        "total": "99",
+        "executed": "99",
+        "passed": "99",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "focused-html-projector-final": {
+      "sha256": "442b51dd92724159a9bd45a943e5e55b8d75f5806472b9d11e4c04590d5c1ad7",
+      "counters": {
+        "total": "16",
+        "executed": "16",
+        "passed": "16",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  },
+  "normalBuilds": {
+    "netstandard2.0": "OfficeIMO.Html.Pdf normal project graph, zero warnings/errors",
+    "net10.0": "Ordinary owner DLLs built at clean code head. Disposable controls copy those owners and approved AngleSharp provider bytes from the same test output; missing-provider setup failure retained. This is not package-consumer qualification."
+  },
+  "independentProof": {
+    "boundary": "Shared secondary-paint extraction/tagging proof; scene projection is a disposable control and is not the relative-pagination implementation.",
+    "codeHead": "2a5a1d2fb",
+    "cases": [
+      {
+        "case": "positive-margins",
+        "pages": 3,
+        "pdfSha256": "35157e5508e4e8a547007f13cc62c90b55948868a61c0a47d9de94b7ae0054b7",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "footer-negative-link",
+        "pages": 2,
+        "pdfSha256": "e2d6430cdb1b6c67bc2eb1b5951440252f4b136f22b1da401880a5e8d435f91b",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 1,
+        "markedContentIssues": [],
+        "links": [
+          {
+            "page": 1,
+            "uri": "https://example.com/row01",
+            "rect": [
+              15.0,
+              27.0,
+              89.028,
+              42.0
+            ]
+          }
+        ],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "negative-forced-early",
+        "pages": 2,
+        "pdfSha256": "2beb1a46fe7af319c81bfd0444c8d243fcd0b97d19866d05ddc11939f5caf32e",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "footer-negative-clipped",
+        "pages": 2,
+        "pdfSha256": "beba8e306488e016b0d8e1141a3b61e3d03ed823fe50921928cbe8f03ed3068e",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 1,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "plain-positive",
+        "pages": 2,
+        "pdfSha256": "ac80f3b76323a36200a15c297070156b9620d40f63e3e5a060fa78053d2faa42",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "negative-varying-height",
+        "pages": 2,
+        "pdfSha256": "41cc2fca43512062804897c2811ef692e34e18753998a43ba67b2b432e941771",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "footer-negative",
+        "pages": 2,
+        "pdfSha256": "ed517b647b3c6dee5c1cbc1b1c165aea733a2692671d7b56af3ec4b874ed6963",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 1,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "negative-margins",
+        "pages": 2,
+        "pdfSha256": "14eb48c745a30aaf14b760c3547a1108337713ad196a138e782683dbcf6efbad",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      },
+      {
+        "case": "plain-negative",
+        "pages": 2,
+        "pdfSha256": "385efac037039cc6b18e5ff6d97f922e68d9162eb713aade4e0468f647dbb6aa",
+        "duplicateLabels": [],
+        "pixelsIdentical": [
+          true,
+          true
+        ],
+        "secondaryTextShows": 0,
+        "markedContentIssues": [],
+        "links": [],
+        "linksPreserved": true,
+        "missingPriorLabels": []
+      }
+    ],
+    "publicLayerControls": [
+      {
+        "file": "shared-h1-officeimo.pdf",
+        "text": "ALPHA BETA\n\n\f",
+        "alphaCount": 1,
+        "betaCount": 1,
+        "uris": [
+          "https://example.test/beta",
+          "https://example.test/alpha"
+        ],
+        "pdfSha256": "cbabd254b8e4da6a6d7ec946e2fb08afc6db063a2fce45f22445ed554bdf76da"
+      },
+      {
+        "file": "shared-p-officeimo.pdf",
+        "text": "ALPHA BETA\n\n\f",
+        "alphaCount": 1,
+        "betaCount": 1,
+        "uris": [
+          "https://example.test/beta",
+          "https://example.test/alpha"
+        ],
+        "pdfSha256": "e72b3a0f10d4b1497579015890b89caa76d145741c181c7d36f3593897f93e66"
+      }
+    ]
+  },
+  "reviews": {
+    "agent": "pdf_secondary_paint_review",
+    "originalFingerprint": "b871282830b12c4f8202078abe84aaece4525aa4",
+    "finalFingerprint": "b7918e7977c5d978de385f1b62ec69fbd8375c6b",
+    "fullPass": "Read-only findings delivered; finalization interrupted by service capacity error. No claim of a completed full-pass final report.",
+    "targetedConfirmation": "One confirmation found linked MCID paint inside Artifact. Both canvas rich-text entry points now honor existing structure suppression; the final writer separately owns annotation-only Link OBJR.",
+    "closure": "Primary invariant sweep, scalar/TextBox regressions and independent marked-content inspection validate the findings. No further independent confirmation or full pass claimed."
+  },
+  "retainedFailures": [
+    "Initial test setup compilation errors",
+    "Disposable projection input path/setup failures",
+    "Superseded remediation validation interrupted after linked tagging finding; no broad-pass claim for that incomplete run",
+    "Initial unclassified empty-ActualText secondary paint and intermediate linked MCID inside Artifact"
+  ],
+  "retained": "Ignore/MasterConvergenceQualification/paint-only-text-qualification-ed5b27cd4",
+  "remaining": [
+    "Named corpus/native/intent acceptance",
+    "Transformed-coordinate ActualText and external selection geometry",
+    "Current-source platform package/budget qualification and long-lived branch convergence"
+  ],
+  "snapshotCarrierClosure": {
+    "sourceCommit": "04cb30a03579d35d731326af76460cc27e0ba9da",
+    "contract": "Constrain logical carrier rectangles only for genuinely clipped finite page/clip slices. Preserve glyph paint, source-scoped exact-once ownership and authored extraction policy. Fully contained rectangle tuples remain unchanged.",
+    "publicApiChanged": false,
+    "newRuntimeDependencies": false,
+    "independentCases": [
+      {
+        "case": "bottom",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": true,
+        "sceneRastersIdentical": true,
+        "independentPopplerPaintIdentical": true
+      },
+      {
+        "case": "middle",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": true,
+        "sceneRastersIdentical": true,
+        "independentPopplerPaintIdentical": true
+      },
+      {
+        "case": "top",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 1,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker\nTrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": true,
+        "sceneRastersIdentical": true,
+        "independentPopplerPaintIdentical": true
+      },
+      {
+        "case": "bottom-tracked",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": false
+      },
+      {
+        "case": "bottom-standard",
+        "source": "3.4.4+04cb30a03579d35d731326af76460cc27e0ba9da",
+        "pages": 2,
+        "independentBoundaryCount": 1,
+        "independentTrailingCount": 1,
+        "rawPerPageText": [
+          "BoundaryExtractionMarker",
+          "TrailingExtractionMarker",
+          ""
+        ],
+        "scenePaintCompared": false
+      }
+    ],
+    "receipt": {
+      "path": "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e/final-independent-observations-04cb30a03.json",
+      "sha256": "cceeaebdda4c741cb78107f2feda8a4994d98108a0288dfc1b2e82b74a480f5d"
+    },
+    "corpusRecovery": [
+      {
+        "case": "reference",
+        "beforeSource": "38ee609814deb04b8dff37f2fab91c84d376090b",
+        "afterSource": "04cb30a03579d35d731326af76460cc27e0ba9da",
+        "addedTokens": 24,
+        "removedTokens": 0,
+        "removedVisibleCharacters": {}
+      },
+      {
+        "case": "planets",
+        "beforeSource": "38ee609814deb04b8dff37f2fab91c84d376090b",
+        "afterSource": "04cb30a03579d35d731326af76460cc27e0ba9da",
+        "addedTokens": 26,
+        "removedTokens": 0,
+        "removedVisibleCharacters": {}
+      },
+      {
+        "case": "chesapeake",
+        "beforeSource": "38ee609814deb04b8dff37f2fab91c84d376090b",
+        "afterSource": "04cb30a03579d35d731326af76460cc27e0ba9da",
+        "addedTokens": 18,
+        "removedTokens": 1,
+        "removedVisibleCharacters": {}
+      }
+    ],
+    "recoveryReceipt": {
+      "path": "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e/corpus-recovered-extraction.json",
+      "sha256": "5b429c4b97ccd2370ed05a2e3dd647620896bde09404307244db85e9cb0387a6"
+    },
+    "rawExtractionLimit": "Chesapeake SearchNationalOceanService becomes three spaced words. Original raw line diffs remain retained; no visible characters removed and no blanket token-equality claim.",
+    "tests": {
+      "net8.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net8.0.trx",
+        "sha256": "b5ae4fa5ea818c54a85cf1bb69e8d7b214f224437b90cdc8f9cd376f5deeee0b",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      "net10.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net10.0.trx",
+        "sha256": "7dc2d7bb8100604881feefdcd3b571f0d8d130d9bb16c5ff79db6590bbdbd4b1",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    },
+    "review": "One fresh read-only full pass and one targeted confirmation, candidate-reviewed; no remaining findings. Transformed-coordinate carriers and external font-envelope containment remain outside this boundary.",
+    "retainedFailures": [
+      "Intermediate4777798ff full run: 4352 passed/9 failed. Floating-point contained-width reconstruction falsely introduced clipped ActualText; original tuples now return unchanged when contained. Focused 36 and both final 4361 suites pass.",
+      "Obsolete contiguous-word bbox observer failed on interleaved overlapping text. Raw exact-once labels retained; established unique-token geometry observer used, failed original observation preserved.",
+      "Original standalone six master-font failures and prior hosted timing failures remain retained."
+    ],
+    "remaining": [
+      "Independent boundary glyph-envelope bbox extends about 1.71 PDF points outside a 300-point page despite a bounded logical carrier; no universal extractor-envelope containment claim.",
+      "Transformed-coordinate ActualText projection remains outside this finite page/clip boundary.",
+      "Hosted current-source package/budget, native/manual acceptance and qualified adoption remain open."
+    ],
+    "retained": "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e"
+  },
+  "transformedCarrierClosure": {
+    "baseCommit": "b3d4edc9140a17437d7660a2219fbf6807eeb714",
+    "status": "Final full HTML framework suites passed; clean-source/corpus/package qualification pending",
+    "contract": "Logical replacement rectangles intersect the finite page and authored clip in their actual affine coordinate spaces. Native partially-visible extraction policy and paint remain unchanged. A bounded rectangle is not a guarantee of every extractor font-envelope bound.",
+    "ownership": "Existing Html.Pdf adapter consumes Drawing transforms; fractional anchor serialization is corrected in the existing Pdf writer. No API or runtime dependency addition.",
+    "meaningfulRegressions": {
+      "originalSourceNewCasesFailed": 4,
+      "initialRemedySiblingCasesFailed": 2,
+      "finalFocusedHtmlCasesPassed": 13,
+      "directPdfFractionalHeightCasesPassed": 2,
+      "fullSuiteFailureRetained": "Initial final full HTML run4366pass/1fail: tiny rotated baseline grew through three-decimal font-size serialization. Fixed in Pdf writer; broad final rerun in progress."
+    },
+    "independentControls": {
+      "cases": 10,
+      "exactOnceMarkers": 10,
+      "beforeAfterPaintPairs": 9,
+      "allPaintPairsPixelIdentical": true,
+      "nativePolicyRawExactCases": 3,
+      "receipt": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/final-observations.json",
+      "receiptSha256": "54d7bcad32d2aebef7b2300612b24539f973b9711ff54fbc9c9c0dd6c87c49fe",
+      "cornerVisibleProof": "Refined padding189 fixture has21 dark72dpi PDF pixels before/after, identical paint; initial candidate extracts empty and final extracts one replacement. Padding195 fixture has zero glyph pixels and is geometry-only proof.",
+      "controlOriginReceipt": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/corner-visible-control-origin.json"
+    },
+    "review": {
+      "boundary": "candidate-reviewed",
+      "task": "affine_carrier_review",
+      "fullFingerprint": "fcf4b9f2a2a69c40d7e99f0c0ae704ef642814c8",
+      "confirmationFingerprint": "f9813a6213fafb5dcb10de886f2e9c35cbc23f60",
+      "fullAndTargetedUsed": true,
+      "findingsReproducedAndFixed": [
+        "Authored path clip omitted the finite physical page",
+        "Corner intersection had no full-height horizontal interval and returned off-page carrier"
+      ],
+      "confirmationFindings": [],
+      "laterChange": "Visible-ink corner fixture moved padding195 to189; direct same bytes proof. Pdf fractional-size correction is a separate numeric serialization owner."
+    },
+    "retainedArtifactRoot": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91",
+    "remaining": [
+      "Delayed exact-head standalone PR2820 CI/review and remediation",
+      "Current hosted supported-platform packages and unchanged budgets",
+      "Remaining corpus/profile appearance/resource/native acceptance and external selection/manual accessibility",
+      "Qualified long-lived branch convergence"
+    ],
+    "frameworkResults": {
+      "net8.0": {
+        "counters": {
+          "total": "4367",
+          "executed": "4367",
+          "passed": "4367",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "path": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/carrier-final-full-net8.0.trx",
+        "sha256": "9d386d3992ee2a3d7b74b266f174551b6041378e60c9498eda752499c969e25d"
+      },
+      "net10.0": {
+        "counters": {
+          "total": "4367",
+          "executed": "4367",
+          "passed": "4367",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "path": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/carrier-final-full-net10.0.trx",
+        "sha256": "98c564f05099413dc7cd2ad1e615317f90f15c9e0b194704084f72898420a7c0"
+      }
+    },
+    "pdfPrecision": {
+      "publicMasterExtractionBase": "a2e840590f0e90e509a0e204756799a9a3bc964a",
+      "directRegressionsUnpatchedMasterFailed": 2,
+      "mainFocusedPdfPassed": 16,
+      "separateOwnerReview": "Full logical_anchor_precision_review plus one targeted OCR confirmation completed; pre-existing searchable OCR sibling rounding error reproduced twice and fixed, no remaining findings.",
+      "formatter": "Existing six-decimal matrix numeric formatter only for bounded invisible logical anchor font size; ordinary painted fonts retain their formatter.",
+      "publicExtractionSource": "2cf8efe86385eb1f595415f798683a5e360e2162",
+      "focusedPasses": 135,
+      "combinedFinalPdfFrameworkResults": {
+        "net8.0": {
+          "counters": {
+            "total": "8788",
+            "executed": "8788",
+            "passed": "8788",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "path": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/main-final-pdf-net8.0.trx",
+          "sha256": "5a3c165bbe29448c14905e37b086478255b17512ff33a4c18ce978db75435ff1"
+        },
+        "net10.0": {
+          "counters": {
+            "total": "8788",
+            "executed": "8788",
+            "passed": "8788",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "path": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/main-final-pdf-net10.0.trx",
+          "sha256": "78f14003884601d94c977295f3bb4dafd2f200fca74d13806c04a5984aa15dd6"
+        }
+      },
+      "ocrSibling": "Public MakeSearchableAsync regression fails2 before fix,135 focused pass after;6 total new standard/embedded/OCR theory cases.",
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2820",
+      "standaloneValidation": {
+        "fullPassesEachFramework": 8871,
+        "normalFourTargetPackages": 2,
+        "publicPackedConsumerArtifacts": 8,
+        "independentPopplerChecks": 8,
+        "targetedOwnerConfirmation": "No remaining findings",
+        "hostedInitialState": "At13:15UTC queued/running, one complete thread page0unresolved, automatic code/security review running; not merge-ready."
+      }
+    },
+    "cleanReplay": {
+      "sourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
+      "actualApiToolRoutes": 9,
+      "additionalReferenceZeroMargin": true,
+      "all106PagesPixelIdenticalToAccepted83e": true,
+      "pageCountsImagePayloadsLinksReportsPreserved": true,
+      "finiteCoordinateLogicalExtractionChangesClassified": true,
+      "observations": "Ignore/MasterConvergenceQualification/relative-corpus-observations-b40f035ec.json"
+    },
+    "staticCorpus": {
+      "sourceHead": "b40f035ecb09cce810096e9aa210a9c69c8a6097",
+      "h4AcceptancePassed": 8,
+      "staticCases": 18,
+      "staticRunnerFailures": 0,
+      "independentPdfSemanticChecks": 36,
+      "allPdfCountsTokenMultisetsFormulaAttachmentsUriLinksPreserved": true,
+      "all18SourceVisibleCharacterMultisetsPreserved": true,
+      "globalColumnNoteOrder": "Intentionally not a global sequence; notes follow their originating column. Original observation retained.",
+      "combinedBaseline": "08277c5d42ade8a5f5dd9229d818a3f3564a59e9",
+      "byteIdenticalArtifacts": 111,
+      "totalArtifacts": 150,
+      "changedPngFiles": 33,
+      "pixelIdenticalChangedPngFiles": 30,
+      "other3Pngs": "Only53white-pixel right tail removed; common viewport pixels exactly identical. One paired contact sheet inspected.",
+      "originalStaticSetupFailure": "--verify-acceptance was invalid for static-gaps because it has no acceptance manifest; failure log retained. Corrected clean-source execution succeeds without that switch."
+    },
+    "normalPackageQualification": {
+      "sourceHead": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+      "normalPackageCount": 19,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "canonicalPackedConsumers": 2,
+      "consumerFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "allInstalledOriginsHashesAndLoadedDllsVerified": true,
+      "originReceipt": "Ignore/MasterConvergenceQualification/packages-carrier-clean-44027d598/origin-hash-verification.json",
+      "originReceiptSha256": "b5b64e499a37720eabcf9f20312ae06ee9e5870aeacc66b85d5a612118f92bde",
+      "originalPublicMathConsumer": "Both frameworks pass with exact fresh packed CoreDLL and original STIX font bytes; radical72.85x97.92 and accent238.28x21.08 match original395 source.",
+      "nativeNet472Execution": "Await current Windows hosted consumer lane; cross-target package build is not native execution."
+    },
+    "allIntentReplay": {
+      "cleanSourceHead": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "operationCount": 11,
+      "allOfficeImoOperationsComplete": true,
+      "familyVisibleCharacterMultisetsPreserved": true,
+      "allOperationsHasLoss": true,
+      "counts": {
+        "print": 19,
+        "zeroMargin": 16,
+        "fit816": 16,
+        "fit1200": 11,
+        "fit1200LocalFonts": 11,
+        "browserUa": 16,
+        "zeroMarginLocalFonts": 16,
+        "screenMedia": 21,
+        "screenMediaLocalFonts": 21,
+        "snapshot": 16,
+        "snapshotLocalFonts": 16
+      },
+      "resourceObservation": "Fourteen common decoded images; only a solid-black varying-alpha raster changes dimensions317x564 to365x649 with page margins. Observation retained, no universal source-image byte parity claim.",
+      "profileLimit": "Default conversion options differ from the explicit PortableDeterministic API/Tool profiles. These counts do not replace the canonical19/22/14 intent counts or establish visual/browser acceptance.",
+      "comparatorObservation": "Fresh isolated PeachPDF0.9.20 completes14pages; earlier bookmark failure is not reproduced on this selected source. It has different extracted text and decoded resource results, so no parity claim or unproven missing-photo defect.",
+      "artifacts": "Ignore/MasterConvergenceQualification/planetary-all-intents-clean-44027d598",
+      "independentObservation": "Ignore/MasterConvergenceQualification/transformed-carrier-qualification-b3d4edc91/all-intents-independent-44027d598.json"
+    },
+    "platformQualification": {
+      "run": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37315963943",
+      "workflowAndSourceHead": "44027d59894e78aa3a363fc386c6e6508b01a41e",
+      "dispatchUtc": "2026-10-05T13:19:57Z",
+      "sameRunnerControl": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+      "unchangedInputFilesVerified": 21,
+      "initialState": "Registered in_progress; full current-source correctness, packages and unchanged measurements await completion.",
+      "localTiming": "No current-source timing run under shared host contention. Prior timing/allocation/deadline failures remain visible."
+    },
+    "cleanup": {
+      "verifiedRemovedTargets": 310,
+      "removedBytes": 6269408008,
+      "mainTargets": 213,
+      "standaloneTargets": 97,
+      "allTargetsAbsent": true,
+      "sourceFeedsFinalArtifactsFailureLogsAndReceiptsRetained": true,
+      "mainEvidenceApproximateSize": "2.8GiB",
+      "mainEvidenceRoot": "Ignore/MasterConvergenceQualification",
+      "recovery": "Native hidden/read-only filesystem execution errors recovered with fresh guarded DotNet preflight where needed; no policy rejection bypass."
+    }
+  },
+  "latestStandaloneMerge": {
+    "number": 2817,
+    "mergeCommit": "58adc12b7b982fae32f044534741c2b35a64533c",
+    "mergedAtUtc": "2026-10-05T13:05:26Z",
+    "exactHead": "18d43803188d0621e462f65fdf388d0a860a2bde",
+    "currentHeadChecks": {
+      "success": 99,
+      "skipped": 6,
+      "failed": 0
+    },
+    "completeDelayedFeedbackClean": true,
+    "unresolvedThreads": 0,
+    "worktreeAndBranchRemoved": true,
+    "preservedProof": "Ignore/MasterConvergenceQualification/merged-transformed-paint-58adc12b7",
+    "preservedBytes": 27867741,
+    "originalWindowsTimeout": "Cancelled job had no TRX; one terminal diagnosed job rerun passed. No root cause or code fix claimed."
+  }
+}

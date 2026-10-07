@@ -1,7 +1,25 @@
-name: Verify comparison projects (manual)
+name: Verify optional qualification suites (manual)
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Qualification suite
+        type: choice
+        default: comparisons
+        options:
+          - comparisons
+          - html-static
+          - html-static-pdf-probe
+          - html-static-package-probe
+      source_ref:
+        description: Full 40-character source commit or branch (empty uses the selected workflow revision)
+        type: string
+        default: ''
+      control_source_ref:
+        description: Optional full prior-source commit for a same-runner static budget control
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -14,6 +32,7 @@ env:
 
 jobs:
   build:
+    if: inputs.suite == 'comparisons'
     name: Build isolated comparisons
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -52,3 +71,171 @@ jobs:
             dotnet restore $project
             dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
           }
+
+  html-static:
+    if: inputs.suite == 'html-static' || inputs.suite == 'html-static-pdf-probe' || inputs.suite == 'html-static-package-probe'
+    name: Static HTML qualification / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Validate optional control revision
+        if: inputs.control_source_ref != ''
+        shell: pwsh
+        env:
+          CONTROL_SOURCE_REF: ${{ inputs.control_source_ref }}
+          QUALIFICATION_SUITE: ${{ inputs.suite }}
+        run: |
+          if ($env:QUALIFICATION_SUITE -ne 'html-static' -or $env:CONTROL_SOURCE_REF -notmatch '^[0-9a-fA-F]{40}$') {
+            throw 'A control requires html-static and a full 40-character commit.'
+          }
+      - name: Checkout optional static budget control
+        if: inputs.suite == 'html-static' && inputs.control_source_ref != ''
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.control_source_ref }}
+          path: Ignore/StaticQualificationControl
+          persist-credentials: false
+      - name: Install multilingual fixture fonts
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
+      - name: Install independent PDF text extractor on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get install --yes --no-install-recommends poppler-utils
+      - name: Install independent PDF text extractor on macOS
+        if: runner.os == 'macOS'
+        run: brew install poppler
+      - name: Validate static conversion correctness
+        if: inputs.suite == 'html-static'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failedFrameworks = @()
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration Release --framework $framework --filter 'Category!=Performance' --logger "trx;LogFileName=html-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failedFrameworks += $framework }
+          }
+          if ($failedFrameworks.Count -gt 0) { throw "Static correctness failed: $($failedFrameworks -join ', ')" }
+      - name: Validate installed math font resource accounting
+        if: ${{ !cancelled() && inputs.suite == 'html-static' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --framework $framework --filter 'FullyQualifiedName~InstalledMathFontRetainsOperationBoundsAndCancellationWhenAvailable' --logger "trx;LogFileName=drawing-math-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+          }
+      - name: Validate bounded raster and numeric font-face contracts
+        if: ${{ !cancelled() && inputs.suite == 'html-static-pdf-probe' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failures = @()
+          $filter = 'FullyQualifiedName~MinificationIncludesOutputAndFloatScratchInTheSharedPixelBudget|FullyQualifiedName~EncodedImageMinificationEnforcesTheCallerLimitButNearestNeighborNeedsNoPrefilter|FullyQualifiedName~ExhaustedSamplingBudgetReportsUnavailableVisualInspectionAndRetainsStructuralFindings|FullyQualifiedName~NumericFaceSelectsTheSameAdvanceAndMathConstantsAsTheOnlyMatchingFace|FullyQualifiedName~NumericFaceUsesItsDesignedOperatorVariantRatherThanRegularFaceFallback'
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --framework $framework --filter $filter --logger "trx;LogFileName=drawing-bounded-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failures += $framework }
+          }
+          if ($failures.Count -gt 0) { throw "Bounded raster/font correctness failed: $($failures -join ', ')" }
+      - name: Validate logical flex order and shared scene geometry
+        if: ${{ !cancelled() && inputs.suite == 'html-static-pdf-probe' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failures = @()
+          $filter = 'FullyQualifiedName~HtmlFlexPdf_|FullyQualifiedName~HtmlRenderingRepresentativeCorpus_ProvesSharedSceneImageAndSearchablePdf'
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration Release --framework $framework --filter $filter --logger "trx;LogFileName=html-logical-order-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failures += $framework }
+          }
+          if ($failures.Count -gt 0) { throw "Logical order/scene correctness failed: $($failures -join ', ')" }
+      - name: Validate installed font collection selection and PDF correctness
+        if: ${{ !cancelled() && inputs.suite != 'html-static-package-probe' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $probeOnly = '${{ inputs.suite }}' -eq 'html-static-pdf-probe'
+          $env:OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT = "$env:RUNNER_TEMP/html-static-pdf-proof"
+          $env:OFFICEIMO_REQUIRE_PDF_TEXT_VALIDATOR = '1'
+          [System.IO.Directory]::CreateDirectory("$env:RUNNER_TEMP/html-static-tests") | Out-Null
+          $textValidator = Get-Command pdftotext -ErrorAction SilentlyContinue
+          $validatorPath = if (-not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFTOTEXT)) { $env:OFFICEIMO_PDFTOTEXT } elseif ($textValidator) { $textValidator.Source } else { $null }
+          $validatorVersion = if ($validatorPath) { (& $validatorPath -v 2>&1 | Out-String).Trim() } else { $null }
+          [ordered]@{ executable = $validatorPath; version = $validatorVersion } |
+            ConvertTo-Json | Set-Content "$env:RUNNER_TEMP/html-static-tests/text-validator-identity.json"
+          $failures = @()
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework $framework --filter 'FullyQualifiedName~PdfSystemFontCollectionTests|FullyQualifiedName~PdfSystemFontNameTests|FullyQualifiedName~PdfSystemFontStyleTests|FullyQualifiedName~TryFromSystemFontFiles' --logger "trx;LogFileName=pdf-fonts-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failures += "font selection $framework" }
+          }
+          $pdfFilter = if ($probeOnly) { 'FullyQualifiedName~LogicalTextReplacesPaintExactlyOnceInIndependentExtraction|FullyQualifiedName~PdfDocument_RegisteredFallback|FullyQualifiedName~BoundedLogicalSpan|FullyQualifiedName~SearchableCarrierKeepsDeclaredWidth|FullyQualifiedName~PdfRawStructureTests|FullyQualifiedName~PdfNoteStructureTests|FullyQualifiedName~PdfStructureAssociatedFileTests|FullyQualifiedName~PdfDocumentComplianceAssessmentTaggedListTableTests|FullyQualifiedName~PdfDocumentComplianceAssessmentTaggedTextImageLinkTests|FullyQualifiedName~PdfComplianceGateTests' } else { 'Category!=Performance' }
+          $pdfFrameworks = if ($probeOnly) { @('net8.0', 'net10.0') } else { @('net10.0') }
+          foreach ($framework in $pdfFrameworks) {
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework $framework --no-build --no-restore --filter $pdfFilter --logger "trx;LogFileName=pdf-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failures += "PDF correctness $framework" }
+          }
+          if ($failures.Count -gt 0) { throw "PDF correctness failed: $($failures -join ', ')" }
+      - name: Validate packed public consumers
+        if: ${{ !cancelled() && (inputs.suite == 'html-static' || inputs.suite == 'html-static-package-probe') }}
+        shell: pwsh
+        run: ./Build/Test-HtmlPackages.ps1 -ArtifactsPath "$env:RUNNER_TEMP/html-static-packages"
+      - name: Enforce opt-in static resource budgets
+        if: ${{ !cancelled() && inputs.suite == 'html-static' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet run --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj --configuration Release -- --iterations 3 --require-clean-source --output "$env:RUNNER_TEMP/html-static-budget"
+      - name: Enforce same-runner prior-source budgets
+        if: ${{ !cancelled() && inputs.suite == 'html-static' && inputs.control_source_ref != '' }}
+        working-directory: Ignore/StaticQualificationControl
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet run --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj --configuration Release -- --iterations 3 --require-clean-source --output "$env:RUNNER_TEMP/html-static-control-budget"
+      - name: Retain qualification reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: html-static-qualification-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/html-static-tests
+            ${{ runner.temp }}/html-static-budget
+            ${{ runner.temp }}/html-static-control-budget
+            ${{ runner.temp }}/html-static-pdf-proof
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Retain packed consumer origins
+        if: ${{ always() && (inputs.suite == 'html-static' || inputs.suite == 'html-static-package-probe') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: html-static-packages-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/html-static-packages/feed/*.nupkg
+            ${{ runner.temp }}/html-static-packages/packages/officeimo.*/**/*.nupkg
+            ${{ runner.temp }}/html-static-packages/packages/officeimo.*/**/.nupkg.metadata
+            ${{ runner.temp }}/html-static-packages/packages/officeimo.*/**/*.nupkg.sha512
+            Build/PackageSmoke/OfficeIMO.Html.Document/obj/project.assets.json
+            Build/PackageSmoke/OfficeIMO.Html/obj/project.assets.json
+            Build/PackageSmoke/OfficeIMO.Html.Document/bin/Release/**/OfficeIMO.*.dll
+            Build/PackageSmoke/OfficeIMO.Html/bin/Release/**/OfficeIMO.*.dll
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
