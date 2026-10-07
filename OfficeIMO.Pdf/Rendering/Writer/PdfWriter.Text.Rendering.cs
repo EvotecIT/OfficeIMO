@@ -424,7 +424,9 @@ internal static partial class PdfWriter {
                         if (textCommand.VisualGlyphs is { Count: > 0 } glyphs) {
                             double advance = 0;
                             double? wordStart = null;
-                            foreach (PdfGlyphInfo glyph in glyphs) {
+                            double trackingAdvance = GetIntrinsicGlyphTrackingAdvance(textCommand, runFontSize);
+                            for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
+                                PdfGlyphInfo glyph = glyphs[glyphIndex];
                                 bool whitespace = glyph.TextIndex >= 0 && glyph.TextIndex < s.Text.Length && char.IsWhiteSpace(s.Text[glyph.TextIndex]);
                                 if (whitespace) {
                                     if (wordStart.HasValue) {
@@ -434,7 +436,9 @@ internal static partial class PdfWriter {
                                 } else if (!wordStart.HasValue) {
                                     wordStart = advance;
                                 }
-                                advance += glyph.AdvanceWidth1000 * runFontSize / 1000D * s.HorizontalTextScaling / 100D + s.CharacterSpacing;
+                                double glyphAdvance = glyph.AdvanceWidth1000 * runFontSize / 1000D;
+                                if (textCommand.TrackingBoundaries?[glyphIndex] == true) glyphAdvance += trackingAdvance;
+                                advance += glyphAdvance * s.HorizontalTextScaling / 100D + s.CharacterSpacing;
                             }
                             if (wordStart.HasValue) {
                                 underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
