@@ -52,13 +52,27 @@ namespace OfficeIMO.Word {
                     var key = definition?.AbstractNumberId is int id ? (true, id) : (false, numbering.NumberId);
                     if (!states.TryGetValue(key, out ListCounterState? state)) states.Add(key, state = new ListCounterState());
                     int level = info.Level;
-                    if (state.LastLevel.HasValue && level < state.LastLevel.Value) {
-                        foreach (int deeper in state.Indices.Keys.Where(item => item > level).ToArray()) {
+                    foreach (int deeper in state.Indices.Keys.Where(item => item > level).ToArray()) {
+                        int? restart = definition != null && definition.Levels.TryGetValue(deeper, out ListLevelDefinition deeperDefinition)
+                            ? deeperDefinition.RestartLevel : null;
+                        int trigger = restart > 0 && restart <= deeper ? restart.Value - 1 : deeper - 1;
+                        if (restart != 0 && level <= trigger) {
                             state.Indices.Remove(deeper);
-                            state.Formats.Remove(deeper);
                         }
                     }
-                    state.LastLevel = level;
+                    // Parent placeholders use this instance's effective formats, even
+                    // when a parent was last numbered through a different instance.
+                    state.Formats.Clear();
+                    if (definition != null) foreach (var pair in definition.Levels)
+                        state.Formats[pair.Key] = pair.Value.NumberFormat.ToOfficeEnum();
+                    for (int parent = 0; parent < level; parent++) {
+                        if (!state.Indices.ContainsKey(parent)) {
+                            int start = definition != null && definition.Levels.TryGetValue(parent, out ListLevelDefinition parentDefinition)
+                                ? parentDefinition.Start : 1;
+                            // Word consumes skipped parents at their start value.
+                            state.Indices[parent] = (long)start + 1;
+                        }
+                    }
                     bool firstUse = state.SeenInstanceLevels.Add((numbering.NumberId, level));
                     bool explicitRestart = firstUse && definition?.StartOverrides.ContainsKey(level) == true;
                     if (explicitRestart) state.Indices[level] = info.Start;
@@ -80,7 +94,6 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ListCounterState {
-            internal int? LastLevel { get; set; }
             internal Dictionary<int, long> Indices { get; } = new();
             internal Dictionary<int, WordNumberFormat?> Formats { get; } = new();
             internal HashSet<(int NumberId, int Level)> SeenInstanceLevels { get; } = new();

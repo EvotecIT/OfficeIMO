@@ -376,7 +376,8 @@ namespace OfficeIMO.Word {
                         }
 
                         levelOverrides.TryGetValue(level.LevelIndex.Value, out Level? overrideLevel);
-                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level, level.StartNumberingValue?.Val?.Value ?? 1);
+                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level,
+                            level.StartNumberingValue?.Val?.Value ?? 1, level.LevelRestart?.Val?.Value);
                         levels.Add(definition.Level, definition);
                     }
                 }
@@ -397,7 +398,7 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel, int? abstractStart = null) {
+        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel, int? abstractStart = null, int? restartLevel = null) {
             // A full w:lvlOverride replaces level formatting. Its embedded w:start does
             // not change the abstract start; w:startOverride is applied separately.
             Indentation? indentation = effectiveLevel.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
@@ -419,7 +420,8 @@ namespace OfficeIMO.Word {
                 markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
                 levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
-                pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
+                pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
+                restartLevel: restartLevel);
         }
 
         private static IEnumerable<IEnumerable<WordParagraph>> EnumerateListStories(WordDocument document) {
@@ -539,7 +541,8 @@ namespace OfficeIMO.Word {
                 int? markerCharacterSpacingTwips,
                 LevelJustificationValues? levelJustification,
                 LevelSuffixValues? levelSuffix,
-                int? pictureBulletId) {
+                int? pictureBulletId,
+                int? restartLevel) {
                 Level = level;
                 Start = start;
                 NumberFormat = numberFormat;
@@ -556,6 +559,7 @@ namespace OfficeIMO.Word {
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
+                RestartLevel = restartLevel;
             }
 
             internal int Level { get; }
@@ -574,6 +578,8 @@ namespace OfficeIMO.Word {
             internal LevelJustificationValues? LevelJustification { get; }
             internal LevelSuffixValues? LevelSuffix { get; }
             internal int? PictureBulletId { get; }
+            // Word uses the abstract level's restart rule and ignores it in a full override.
+            internal int? RestartLevel { get; }
         }
 
         private static double? ResolveListMarkerFontSize(NumberingSymbolRunProperties? markerProperties) {

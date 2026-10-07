@@ -161,7 +161,7 @@ public sealed class PdfRunSpacingTests {
 
     private static Letter[] Letters(byte[] bytes) {
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        return pdf.GetPage(1).Letters.Where(letter => "ABCD".Contains(letter.Value, StringComparison.Ordinal))
+        return pdf.GetPage(1).Letters.Where(letter => "ABCD".IndexOf(letter.Value, StringComparison.Ordinal) >= 0)
             .OrderBy(letter => letter.StartBaseLine.X).ToArray();
     }
 }

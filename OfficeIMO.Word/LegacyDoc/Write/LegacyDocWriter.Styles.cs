@@ -26,7 +26,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     .Where(IsUserEndnote)
                     .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(mainPart.WordprocessingCommentsPart?.Comments?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
-                .Where(style => TryMapBuiltInParagraphStyleIndex(style.Val?.Value ?? string.Empty, out _));
+                .Where(style => TryMapBuiltInParagraphStyleIndex(style.Val?.Value ?? string.Empty, out _)
+                    || IsHeaderFooterParagraphStyle(style.Val?.Value));
             string[] usedStyleIds = body.Descendants<ParagraphStyleId>().Concat(storyStyleIds)
                 .Select(style => style.Val?.Value)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
