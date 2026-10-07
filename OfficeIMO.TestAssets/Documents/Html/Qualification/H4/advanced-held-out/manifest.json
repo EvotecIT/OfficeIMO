@@ -1,0 +1,93 @@
+{
+  "$schema": "officeimo.html.rendering-corpus",
+  "schemaVersion": "2.0",
+  "corpusId": "officeimo-html-h4-advanced-held-out",
+  "description": "Independently authored advanced held-out pages for static-rendering regression and browser-reference evaluation. Inputs and expectations are frozen before OfficeIMO evaluation.",
+  "sourceKind": "officeimo-authored-held-out-static-pages",
+  "license": "OfficeIMO repository license",
+  "frozenAtUtc": "2026-09-14T00:00:00Z",
+  "renderIntents": [ "screen-full-page-v1", "print-paged-v1", "screen-snapshot-paged-v1" ],
+  "outputFamilies": [ "pdf", "svg", "raster" ],
+  "cases": [
+    {
+      "id": "subgrid-operations",
+      "path": "subgrid-operations.html",
+      "encoding": "utf-8",
+      "length": 1278,
+      "sha256": "ad40b4e445e53f7f59c89e1e310b381bb2a7e037b890e419538aa7aa023ddd37",
+      "expectedPrintPageCount": 1,
+      "capabilities": [ "css-grid", "css-subgrid", "inherited-gaps" ],
+      "textMarkers": [ "Operations readiness", "Document platform", "42 verified artifacts", "SG-2048" ]
+    },
+    {
+      "id": "nested-fragmentation-report",
+      "path": "nested-fragmentation-report.html",
+      "encoding": "utf-8",
+      "length": 1803,
+      "sha256": "04680d6df883d87bd4e1923d588a838fa1f6e02079a12c06bad80a00ba7546b9",
+      "expectedPrintPageCount": 3,
+      "capabilities": [ "css-fragmentation", "nested-grid", "multi-column", "break-inside" ],
+      "textMarkers": [ "Resilient delivery report", "Evidence register", "Evidence item E", "NF-300" ]
+    },
+    {
+      "id": "columns-footnotes-brief",
+      "path": "columns-footnotes-brief.html",
+      "encoding": "utf-8",
+      "length": 1653,
+      "sha256": "acceb4e28b1bd2ef879b40ffa40e51aba5ec6c8b5fb2c9f98b887c3f8c2a26d7",
+      "expectedPrintPageCount": 1,
+      "capabilities": [ "multi-column", "column-span", "css-footnotes", "hyphenation" ],
+      "textMarkers": [ "Managed documents in constrained environments", "same source must support screen review", "Footnote marker CF-2", "CF-204" ]
+    },
+    {
+      "id": "named-pages-brochure",
+      "path": "named-pages-brochure.html",
+      "encoding": "utf-8",
+      "length": 1362,
+      "sha256": "910c76528fbe545e3676bc1ef3359c2780c4eda14ca536a57ff659ce3634bef2",
+      "expectedPrintPageCount": 3,
+      "capabilities": [ "css-named-pages", "page-size", "running-strings", "page-counters" ],
+      "textMarkers": [ "Static rendering without a browser process", "Architecture", "Operations", "NP-003" ]
+    },
+    {
+      "id": "stacking-clipping-board",
+      "path": "stacking-clipping-board.html",
+      "encoding": "utf-8",
+      "length": 1446,
+      "sha256": "bdb8a8b208362a3883e8aea23c30b0764a809ba057eea9b48155c485cac015a5",
+      "expectedPrintPageCount": 1,
+      "capabilities": [ "stacking-context", "clip-path", "transforms", "gradients", "shadows" ],
+      "textMarkers": [ "Layer SC-0", "Release control board", "QUALIFIED INPUT", "SC-512" ]
+    },
+    {
+      "id": "typography-specimen",
+      "path": "typography-specimen.html",
+      "encoding": "utf-8",
+      "length": 1335,
+      "sha256": "83739f290d72d040df74a146ae850fea8a7dd8175f215ca87a0bcc3809fd7b4f",
+      "expectedPrintPageCount": 1,
+      "capabilities": [ "bidi", "vertical-writing", "font-features", "hyphenation", "unicode" ],
+      "textMarkers": [ "International typography specimen", "Invoice 000124", "تقرير المستندات", "TS-2026" ]
+    },
+    {
+      "id": "professional-print-catalog",
+      "path": "professional-print-catalog.html",
+      "encoding": "utf-8",
+      "length": 1529,
+      "sha256": "920bea7010c85aa91482dc81b04b3ab41883313b3f0c13ec6cecc0b227a2c509",
+      "expectedPrintPageCount": 2,
+      "capabilities": [ "css-paged-media", "bleed", "printer-marks", "grid", "break-inside" ],
+      "textMarkers": [ "Autumn production catalog", "PP-COVER", "Atlas renderer", "PP-240" ]
+    },
+    {
+      "id": "legacy-portal",
+      "path": "legacy-portal.html",
+      "encoding": "windows-1252",
+      "length": 1483,
+      "sha256": "d43ec5ada3e7991955564d10d18c0b33611013c764920ee74633abf576e45e5d",
+      "expectedPrintPageCount": 1,
+      "capabilities": [ "html-tables", "legacy-elements", "forms", "windows-1252", "legacy-css" ],
+      "textMarkers": [ "Contoso Operations Portal 2004", "Planned maintenance", "1,248 files processed", "LP-1252" ]
+    }
+  ]
+}

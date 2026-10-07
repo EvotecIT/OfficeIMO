@@ -1,0 +1,628 @@
+{
+  "schema": "officeimo.html.static-gap-corpus",
+  "version": 1,
+  "declaredSourceHead": "802cd545cd866d667f5050fcb55b8baa664e8b76",
+  "reference": {
+    "package": "PeachPDF",
+    "version": "0.9.20",
+    "license": "BSD-3-Clause"
+  },
+  "font": {
+    "path": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+    "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+    "family": "OfficeIMO Baseline Sans",
+    "license": "SIL OFL 1.1",
+    "notice": "OfficeIMO.TestAssets/Fonts/OFL-Carlito.txt",
+    "embeddedInEveryInput": true
+  },
+  "inputPolicy": {
+    "resources": "Self-contained data URIs and local SVG references; outbound network denied. Hyperlink targets are annotations, never fetched.",
+    "page": "A4 portrait, authored 24 CSS px margins, zero caller margins, print media.",
+    "text": "Every unique visible marker exactly once after independent extraction; full per-case text also checked for omission/duplication.",
+    "visual": "Compare all pages at 96 dpi. Inspect declared geometry/color/clip/overlap criteria, not page-count equality.",
+    "diagnostics": "Retain all diagnostics and classify omissions/fallbacks against authored capability.",
+    "performance": "30-second per-case execution cap; existing H4/NASA operation ceilings unchanged."
+  },
+  "assets": [
+    {
+      "path": "avif-opaque.avif",
+      "sha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3",
+      "length": 333,
+      "referencePixels": "avif-opaque.rgba",
+      "referenceSha256": "7df83385a95f1ec33cd00193804d1b4d845f4d8ec3870170b0b0f77667b66257",
+      "width": 49,
+      "height": 33,
+      "producer": "Pillow 12.3.0/libavif 1.4.2",
+      "profile": "8-bit YUV420 still"
+    },
+    {
+      "path": "avif-alpha.avif",
+      "sha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+      "length": 548,
+      "referencePixels": "avif-alpha.rgba",
+      "referenceSha256": "a09ee797c54e75b3d96752265f340ab1be77a9f812c8d065d2b2afd6489449cd",
+      "width": 49,
+      "height": 33,
+      "producer": "Pillow 12.3.0/libavif 1.4.2",
+      "profile": "8-bit YUV420 still with alpha auxiliary image"
+    }
+  ],
+  "cases": [
+    {
+      "id": "webp-raw-filters",
+      "group": "webp-alpha",
+      "path": "webp-raw-filters.html",
+      "length": 161965,
+      "sha256": "324bcd0879696c81901d616d734d37476e1f52e7ed2b26e68c665b17ba3dedb5",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "webp-raw-filters",
+        "FILTER-0",
+        "FILTER-1",
+        "FILTER-2",
+        "FILTER-3",
+        "END-webp-raw-filters"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 8,
+      "criteria": [
+        "All four filters on white/dark backgrounds; compare color/alpha regions to independently decoded .rgba fixtures.",
+        "No decode-fallback or omitted-image diagnostic; each of eight image instances retained."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "webp-compressed-filters",
+      "group": "webp-alpha",
+      "path": "webp-compressed-filters.html",
+      "length": 145498,
+      "sha256": "352e9af17b23736dc8727dd068b643c7d71d263382a9ac93355dd2d0d0e316c5",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "webp-compressed-filters",
+        "FILTER-0",
+        "FILTER-1",
+        "FILTER-2",
+        "FILTER-3",
+        "END-webp-compressed-filters"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 8,
+      "criteria": [
+        "All four filters on white/dark backgrounds; compare color/alpha regions to independently decoded .rgba fixtures.",
+        "No decode-fallback or omitted-image diagnostic; each of eight image instances retained."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "avif-opaque",
+      "group": "avif-still",
+      "path": "avif-opaque.html",
+      "length": 142402,
+      "sha256": "e28224b7fd7ba84858bf4af40a0ad42cf631945944f8fbe66a1f0ae9838be38b",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "avif-opaque",
+        "END-avif-opaque"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 2,
+      "criteria": [
+        "Two image instances retained; contrast backgrounds and channel values agree with independently decoded .rgba (RGB tolerance 3, alpha exact).",
+        "Encoded/pixel bounds and malformed cases must be qualified through Core before support promotion."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "avif-alpha",
+      "group": "avif-still",
+      "path": "avif-alpha.html",
+      "length": 142973,
+      "sha256": "dbef59f75215a4c88beb7a0c102c9e0b8899a2bbbc86220b184b5287a946573f",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "avif-alpha",
+        "END-avif-alpha"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 2,
+      "criteria": [
+        "Two image instances retained; contrast backgrounds and channel values agree with independently decoded .rgba (RGB tolerance 3, alpha exact).",
+        "Encoded/pixel bounds and malformed cases must be qualified through Core before support promotion."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "page-float-top",
+      "group": "page-floats",
+      "path": "page-float-top.html",
+      "length": 143407,
+      "sha256": "25ed5941bedead0bbf9103a9b8b20f5089b414b4c65f0c1361077afcee13debd",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "page-float-top",
+        "BEFORE-00",
+        "BEFORE-01",
+        "BEFORE-02",
+        "BEFORE-03",
+        "BEFORE-04",
+        "BEFORE-05",
+        "BEFORE-06",
+        "BEFORE-07",
+        "BEFORE-08",
+        "BEFORE-09",
+        "BEFORE-10",
+        "BEFORE-11",
+        "BEFORE-12",
+        "BEFORE-13",
+        "BEFORE-14",
+        "FLOAT-TOP",
+        "AFTER-00",
+        "AFTER-01",
+        "AFTER-02",
+        "AFTER-03",
+        "AFTER-04",
+        "AFTER-05",
+        "AFTER-06",
+        "AFTER-07",
+        "AFTER-08",
+        "AFTER-09",
+        "AFTER-10",
+        "AFTER-11",
+        "AFTER-12",
+        "AFTER-13",
+        "AFTER-14",
+        "AFTER-15",
+        "AFTER-16",
+        "AFTER-17",
+        "AFTER-18",
+        "AFTER-19",
+        "AFTER-20",
+        "AFTER-21",
+        "AFTER-22",
+        "AFTER-23",
+        "AFTER-24",
+        "AFTER-25",
+        "AFTER-26",
+        "AFTER-27",
+        "AFTER-28",
+        "AFTER-29",
+        "AFTER-30",
+        "AFTER-31",
+        "AFTER-32",
+        "AFTER-33",
+        "AFTER-34",
+        "END-page-float-top"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "All unique paragraph/float markers exactly once; no float/body overlap.",
+        "Top/bottom occupy the corresponding page content edge. Snap chooses nearest edge under the explicitly labeled reference contract."
+      ],
+      "oracle": "Pinned reference plus CSS Page Floats for top/bottom; snap is reference-defined compatibility, not a standards claim",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "page-float-bottom",
+      "group": "page-floats",
+      "path": "page-float-bottom.html",
+      "length": 143422,
+      "sha256": "dc5955a0be0a57129799df36a752d618686ea5d024b0c2cdfda0bbee22e77204",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "page-float-bottom",
+        "BEFORE-00",
+        "BEFORE-01",
+        "BEFORE-02",
+        "BEFORE-03",
+        "BEFORE-04",
+        "BEFORE-05",
+        "BEFORE-06",
+        "BEFORE-07",
+        "BEFORE-08",
+        "BEFORE-09",
+        "BEFORE-10",
+        "BEFORE-11",
+        "BEFORE-12",
+        "BEFORE-13",
+        "BEFORE-14",
+        "FLOAT-BOTTOM",
+        "AFTER-00",
+        "AFTER-01",
+        "AFTER-02",
+        "AFTER-03",
+        "AFTER-04",
+        "AFTER-05",
+        "AFTER-06",
+        "AFTER-07",
+        "AFTER-08",
+        "AFTER-09",
+        "AFTER-10",
+        "AFTER-11",
+        "AFTER-12",
+        "AFTER-13",
+        "AFTER-14",
+        "AFTER-15",
+        "AFTER-16",
+        "AFTER-17",
+        "AFTER-18",
+        "AFTER-19",
+        "AFTER-20",
+        "AFTER-21",
+        "AFTER-22",
+        "AFTER-23",
+        "AFTER-24",
+        "AFTER-25",
+        "AFTER-26",
+        "AFTER-27",
+        "AFTER-28",
+        "AFTER-29",
+        "AFTER-30",
+        "AFTER-31",
+        "AFTER-32",
+        "AFTER-33",
+        "AFTER-34",
+        "END-page-float-bottom"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "All unique paragraph/float markers exactly once; no float/body overlap.",
+        "Top/bottom occupy the corresponding page content edge. Snap chooses nearest edge under the explicitly labeled reference contract."
+      ],
+      "oracle": "Pinned reference plus CSS Page Floats for top/bottom; snap is reference-defined compatibility, not a standards claim",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "page-float-snap",
+      "group": "page-floats",
+      "path": "page-float-snap.html",
+      "length": 143412,
+      "sha256": "84ae75d36e60934d5ea3e48544d18f6fba0c584787c43406ecf211c39d50767e",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "page-float-snap",
+        "BEFORE-00",
+        "BEFORE-01",
+        "BEFORE-02",
+        "BEFORE-03",
+        "BEFORE-04",
+        "BEFORE-05",
+        "BEFORE-06",
+        "BEFORE-07",
+        "BEFORE-08",
+        "BEFORE-09",
+        "BEFORE-10",
+        "BEFORE-11",
+        "BEFORE-12",
+        "BEFORE-13",
+        "BEFORE-14",
+        "FLOAT-SNAP",
+        "AFTER-00",
+        "AFTER-01",
+        "AFTER-02",
+        "AFTER-03",
+        "AFTER-04",
+        "AFTER-05",
+        "AFTER-06",
+        "AFTER-07",
+        "AFTER-08",
+        "AFTER-09",
+        "AFTER-10",
+        "AFTER-11",
+        "AFTER-12",
+        "AFTER-13",
+        "AFTER-14",
+        "AFTER-15",
+        "AFTER-16",
+        "AFTER-17",
+        "AFTER-18",
+        "AFTER-19",
+        "AFTER-20",
+        "AFTER-21",
+        "AFTER-22",
+        "AFTER-23",
+        "AFTER-24",
+        "AFTER-25",
+        "AFTER-26",
+        "AFTER-27",
+        "AFTER-28",
+        "AFTER-29",
+        "AFTER-30",
+        "AFTER-31",
+        "AFTER-32",
+        "AFTER-33",
+        "AFTER-34",
+        "END-page-float-snap"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "All unique paragraph/float markers exactly once; no float/body overlap.",
+        "Top/bottom occupy the corresponding page content edge. Snap chooses nearest edge under the explicitly labeled reference contract."
+      ],
+      "oracle": "Pinned reference plus CSS Page Floats for top/bottom; snap is reference-defined compatibility, not a standards claim",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "column-float-left",
+      "group": "column-floats",
+      "path": "column-float-left.html",
+      "length": 143358,
+      "sha256": "9772d72d0665d638033e9aff6ef28a3d6ea97a89183bfc879b85949fd6650970",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "column-float-left",
+        "COLUMN-LEFT",
+        "COLBEFORE-00",
+        "COLAFTER-37",
+        "COLUMN-LINK",
+        "END-column-float-left"
+      ],
+      "requiredLinks": [
+        "https://example.test/column-link"
+      ],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Float consumes space only in originating column; neighboring column retains its full content band.",
+        "All paragraph markers once; continuation has no overlap or loss; link retained."
+      ],
+      "oracle": "Pinned reference and column geometry; Chromium only supplies supported inline float controls",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "column-float-top",
+      "group": "column-floats",
+      "path": "column-float-top.html",
+      "length": 143353,
+      "sha256": "a12ba429eee9c189e2d1a569216f2b0c771f2c399b43d5ab7e0e71da8f043eff",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "column-float-top",
+        "COLUMN-TOP",
+        "COLBEFORE-00",
+        "COLAFTER-37",
+        "COLUMN-LINK",
+        "END-column-float-top"
+      ],
+      "requiredLinks": [
+        "https://example.test/column-link"
+      ],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Float consumes space only in originating column; neighboring column retains its full content band.",
+        "All paragraph markers once; continuation has no overlap or loss; link retained."
+      ],
+      "oracle": "Pinned reference and column geometry; Chromium only supplies supported inline float controls",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "column-float-bottom",
+      "group": "column-floats",
+      "path": "column-float-bottom.html",
+      "length": 143368,
+      "sha256": "df8d5dc0575e9a414241a5ecfc17a073a54a3abd34abf3c22ee3832156b35e09",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "column-float-bottom",
+        "COLUMN-BOTTOM",
+        "COLBEFORE-00",
+        "COLAFTER-37",
+        "COLUMN-LINK",
+        "END-column-float-bottom"
+      ],
+      "requiredLinks": [
+        "https://example.test/column-link"
+      ],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Float consumes space only in originating column; neighboring column retains its full content band.",
+        "All paragraph markers once; continuation has no overlap or loss; link retained."
+      ],
+      "oracle": "Pinned reference and column geometry; Chromium only supplies supported inline float controls",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "column-notes",
+      "group": "column-notes",
+      "path": "column-notes.html",
+      "length": 145199,
+      "sha256": "883a047a207023dbe9356b5c38d86888890bd7c300068cc5dbea17930ff916db",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "column-notes",
+        "CALL-A",
+        "NOTE-A",
+        "CALL-B",
+        "LONG-NOTE-00",
+        "LONG-NOTE-34",
+        "NOTE-TAIL-27",
+        "END-column-notes"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Each note bound to column of its call; all 35 long-note markers once and in order; continuation reserves space without body overlap."
+      ],
+      "oracle": "Pinned reference plus GCPM footnote semantics; Chromium does not implement this contract",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "language-hyphenation",
+      "group": "language-hyphenation",
+      "path": "language-hyphenation.html",
+      "length": 141724,
+      "sha256": "56eacf004d583dd7e3f80e5dcfd264284e6c836942df5115ede6bd46d71cb2bd",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "language-hyphenation",
+        "END-language-hyphenation"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "en-US/de-DE use declared language patterns; nested lang overrides inherited language.",
+        "Manual/none controls; unsupported language has explicit fallback, no invented pattern.",
+        "Original words preserved semantically; dictionary license/provenance recorded independently."
+      ],
+      "oracle": "Pinned reference and browser with recorded dictionary/platform availability; approved pattern corpus is decisive",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "svg-patterns",
+      "group": "svg-patterns",
+      "path": "svg-patterns.html",
+      "length": 141947,
+      "sha256": "c5a442114675dcda3eafafbc9f4552e34107a9a3a1bd7de994050d7bcb0583d3",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "svg-patterns",
+        "END-svg-patterns"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Left grid repeats 20px red/blue tiles; right rotated object-bounding-box pattern stays inside circular clip.",
+        "Independent color-region/clip checks; no fallback-colored silhouette."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "svg-filter-graph",
+      "group": "svg-filter-graph",
+      "path": "svg-filter-graph.html",
+      "length": 141971,
+      "sha256": "e5b3b75f053f6367864c664ae0920433d36e93d3c5c85d6152070d674b71b29d",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "svg-filter-graph",
+        "END-svg-filter-graph"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Blur/offset/source-alpha chain paints visible shadow beyond source bounds without clipping.",
+        "Color matrix/blend produces independent reference color; graph inputs/results honored."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "svg-resources",
+      "group": "svg-resources",
+      "path": "svg-resources.html",
+      "length": 141711,
+      "sha256": "99eb8e06fd5b6302dcf508db3717124380f01ddd886856b16c6b32b621f90847",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "svg-resources",
+        "END-svg-resources"
+      ],
+      "requiredLinks": [
+        "https://example.test/svg-link"
+      ],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Local symbol retained in green; cyclic gradient terminates within work limit with explicit fallback/diagnostic.",
+        "SVG link retained; the denied-resource sibling must enforce offline resolution."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "svg-resource-denied",
+      "group": "svg-resources",
+      "path": "svg-resource-denied.html",
+      "length": 141562,
+      "sha256": "24151127fd57f9a21ad994d646b2c67b3f39ae978eaa3bad5dba6b461c5cc0e4",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "svg-resource-denied",
+        "DENIED-RESOURCE-SAFE-TEXT",
+        "END-svg-resource-denied"
+      ],
+      "requiredLinks": [],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "File URI is rejected without accessing the filesystem; adjacent green geometry and safe text remain.",
+        "Rejection/fallback is observable in diagnostics; resource/work limits bound failed resolution."
+      ],
+      "oracle": "Chromium print and published managed reference",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "mathml-semantics",
+      "group": "mathml-semantics",
+      "path": "mathml-semantics.html",
+      "length": 141547,
+      "sha256": "eeb36c25ca894cb7da3856426b7d44e21fd2e3c87c2760df87e84d2b826281bb",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "mathml-semantics",
+        "FORMULA-PREFIX",
+        "FORMULA-SUFFIX",
+        "MATH-LINK",
+        "END-mathml-semantics"
+      ],
+      "requiredLinks": [
+        "https://example.test/math-link"
+      ],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Formula vector geometry, Formula structure/description, exact original MathML associated-file mapping."
+      ],
+      "oracle": "Browser appearance plus independent PDF object inspection; veraPDF policy validators for requested archival/accessibility profiles",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    },
+    {
+      "id": "pdf-conformance",
+      "group": "pdf-conformance",
+      "path": "pdf-conformance.html",
+      "length": 141544,
+      "sha256": "202a80932c000db9de0e110472ca34c01d3a255286acaf07cf0bfb988c301567",
+      "encoding": "utf-8",
+      "textMarkers": [
+        "pdf-conformance",
+        "FORMULA-PREFIX",
+        "FORMULA-SUFFIX",
+        "MATH-LINK",
+        "END-pdf-conformance"
+      ],
+      "requiredLinks": [
+        "https://example.test/math-link"
+      ],
+      "minimumImageOccurrences": 0,
+      "criteria": [
+        "Formula vector fraction/superscript geometry retained.",
+        "Tagged Formula has accessible description and exact original MathML associated-file mapping.",
+        "Conformance case requests PDF/A-3b and PDF/UA-1 separately through each engine supported public policy API; validate exact bytes with pinned independent rule sets."
+      ],
+      "oracle": "Browser appearance plus independent PDF object inspection; veraPDF policy validators for requested archival/accessibility profiles",
+      "sourceLicense": "MIT",
+      "timeoutSeconds": 30
+    }
+  ]
+}

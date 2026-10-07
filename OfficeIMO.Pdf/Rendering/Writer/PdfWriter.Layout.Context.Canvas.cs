@@ -307,7 +307,10 @@ internal static partial class PdfWriter {
                     options.ColumnSpan,
                     options.RowSpan,
                     options.AlternativeText);
-                if (structureElement != null) structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
+                if (structureElement != null) {
+                    structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
+                    structureElement.LogicalOrder = options.LogicalOrder;
+                }
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
                 }
@@ -390,7 +393,7 @@ internal static partial class PdfWriter {
             double leading = item.LineHeight ?? size * 1.2D;
             var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
             var wrap = item.PreservePositionedText
-                ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts)
+                ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts, item.PositionedFontMetricScale)
                 : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count == 0) {
                 return;
@@ -429,7 +432,7 @@ internal static partial class PdfWriter {
                 item.X,
                 bottomY,
                 width,
-                item.Height,
+                item.Height + item.PositionedClipTopOverflow,
                 item.X,
                 width,
                 structureType: structureType,
@@ -751,6 +754,9 @@ internal static partial class PdfWriter {
         }
 
         private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
+            if (transform.M11 > 0D && transform.M11 == transform.M22 && transform.M12 == 0D && transform.M21 == 0D) {
+                annotation.AppearanceScale *= transform.M11;
+            }
             (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
             for (int index = 0; index < annotation.RadioWidgets.Count; index++) {
                 RadioButtonWidgetAnnotation widget = annotation.RadioWidgets[index];

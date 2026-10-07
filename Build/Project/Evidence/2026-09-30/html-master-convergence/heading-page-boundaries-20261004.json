@@ -1,0 +1,742 @@
+{
+  "recordedUtc": "2026-10-05T00:23:56.766742+00:00",
+  "sourceCommit": "b14164286b06eb28191e97ce11712903be0338f6",
+  "scope": "Owned static pagination margin/first-content contract; not full H10, platform or browser parity acceptance",
+  "behavior": [
+    "Truncate consecutive unpainted adjoining margins after an unforced boundary",
+    "Retain following top margin across direct, nested and named-page forced boundaries",
+    "Keep heading through actual first text or atomic image/drawing content of a nested forward column",
+    "Retain border, navigation, running-string and resume-target safeguards"
+  ],
+  "normalValidation": {
+    "htmlTests": {
+      "atomic-final-net10.trx": {
+        "total": "4302",
+        "passed": "4302",
+        "failed": "0",
+        "notExecuted": "0"
+      },
+      "atomic-final-net8.trx": {
+        "total": "4302",
+        "passed": "4302",
+        "failed": "0",
+        "notExecuted": "0"
+      },
+      "image-keep-before.trx": {
+        "total": "4",
+        "passed": "2",
+        "failed": "2",
+        "notExecuted": "0"
+      },
+      "image-keep-atomic-after.trx": {
+        "total": "22",
+        "passed": "22",
+        "failed": "0",
+        "notExecuted": "0"
+      }
+    },
+    "netstandardBuild": "0 warnings/errors",
+    "apiToolAndFixtureBuilds": "normal clean source, 0 warnings/errors",
+    "net472": "Extra local attempt failed MSB3644: Windows-only target/reference assemblies unavailable on this Mac. No pass or runtime claim; Windows current-source qualification remains open",
+    "heldOutCases": "All8 advanced-held-out cases in each full HTML suite",
+    "sourceCoreCopyHashes": {
+      "OfficeIMO.Core/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969",
+      "OfficeIMO.Tool/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969",
+      "Ignore/MasterConvergenceQualification/api-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969",
+      "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/office-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969"
+    },
+    "sourceCommit": "77b588942adef799bb1b32ab925558b0d3e9358f"
+  },
+  "independentReview": {
+    "reviewer": "heading_break_margin_owner_review",
+    "fullPassUsed": true,
+    "targetedConfirmationUsed": true,
+    "findings": [
+      {
+        "contract": "Forward direct, descendant and named-page forced boundaries",
+        "reproducedFailingCases": 4,
+        "closedBy": "review-findings-logical-after plus final full suites"
+      },
+      {
+        "contract": "Keep heading through nested first substantive content",
+        "reproducedTextFailingCases": 2,
+        "reproducedAtomicFailingCases": 2,
+        "closedBy": "image-keep-atomic-after plus final full suites and independent PDF controls"
+      }
+    ],
+    "remainingIndependentObservation": "Targeted confirmation left atomic-content sibling pending; primary reproduced and resolved through existing shared atomic visual-range owner. No new full review loop.",
+    "sourceCommit": "77b588942adef799bb1b32ab925558b0d3e9358f"
+  },
+  "artifactValidation": {
+    "regularFixtureCount": 12,
+    "regularFixtureReceipts": "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/clean-fixture-receipts.json",
+    "visualClassification": {
+      "marginFixture": "Both producers place heading and complete drawing on page2",
+      "paddingFixture": "OfficeIMO keeps heading with first substantive drawing on page2; Chromium places heading at page1 bottom and drawing on page2",
+      "scope": "Own keep-through-first-content contract, with a recorded browser fragmentation difference. No browser-parity claim."
+    },
+    "atomicDrawingPaint": "20 CSS px complete on page2, absent on page1 in both independently produced controls",
+    "bodyBackgroundAndAdjoiningMarginHypotheses": "Three simple controls did not reproduce the issue. Subsequent html-canvas/body layering fixture reproduced the continuous body fill contract; see bodyBackdropMarginRemediation.",
+    "sourceCommit": "77b588942adef799bb1b32ab925558b0d3e9358f"
+  },
+  "planetaryAndChesapeakeReplay": {
+    "routes": 6,
+    "pages": 67,
+    "allRawPerPageTextEqual": true,
+    "allImageAndUriRectanglesEqual": true,
+    "allPagesPixelIdentical72dpi": true,
+    "counts": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "pages": 19
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "pages": 22
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "pages": 14
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "pages": 3
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "pages": 5
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "pages": 4
+      }
+    ],
+    "comparisonControl": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
+    "reportsUnchanged": true,
+    "hasLossRetained": true,
+    "classification": "PDF bytes differ from older control while all content, image/annotation geometry and page pixels remain exact; invisible serialization differences are not a visual regression"
+  },
+  "retainedEvidence": {
+    "heading": "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/",
+    "reference": "Ignore/MasterConvergenceQualification/reference-heading-clean-77b588942/",
+    "routes": "Ignore/MasterConvergenceQualification/{api,tool}-{planets,chesapeake}-77b588942/",
+    "compactPaint": "Ignore/MasterConvergenceQualification/heading-route-paint-77b588942.json",
+    "currentReference": "Ignore/MasterConvergenceQualification/reference-body-background-clean-b14164286/",
+    "currentRoutes": "Ignore/MasterConvergenceQualification/{api,tool}-{planets,chesapeake}-b14164286/",
+    "currentCompactObservations": "Ignore/MasterConvergenceQualification/body-background-observations-b14164286.json",
+    "currentChangedPageContacts": "Ignore/MasterConvergenceQualification/body-background-visuals-b14164286/"
+  },
+  "cleanup": {
+    "targets": 303,
+    "bytes": 3818767854,
+    "allAbsent": true,
+    "mainTargets": 185,
+    "pdfTargets": 118,
+    "executedNativeErrorsRecoveredThroughFreshGuardedDotNet": 156,
+    "retained": "Final PDFs/native source, final TRX and failure logs, compact manifests, package receipts/platform controls; shared caches and unrelated worktrees untouched",
+    "supersededSuccessfulReportsRemoved": 4,
+    "supersededSuccessfulReportBytes": 25678586,
+    "totalRemovedBytesIncludingReports": 3844446440
+  },
+  "previousGenericHeadingSourceCommit": "77b588942adef799bb1b32ab925558b0d3e9358f",
+  "bodyBackdropMarginRemediation": {
+    "trigger": "Equivalent zero-margin Reference Systems page5 retained40CSSpx of adjoining paragraph/heading margins because a continuous body fill was treated as substantive spacing content",
+    "trace": "Root body start4442.867, heading4482.867, first discard16CSSpx then heading margin24CSSpx; blocking leaf was full-body rectangle height8620.018CSSpx",
+    "contract": "Ignore only the full-size unlinked non-atomic rectangular body backdrop when checking otherwise discardable spacing; retain borders, foreground paint, navigation/running/forced metadata",
+    "sourceCommit": "b14164286b06eb28191e97ce11712903be0338f6",
+    "testSourceReceipts": {
+      "sourceCommit": "b14164286b06eb28191e97ce11712903be0338f6",
+      "stableSourceBytesTested": true,
+      "source": [
+        {
+          "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Pagination.Breaks.cs",
+          "commitBlob": "6f65456c81d1a8ec8168c8c29c5313d1dde2c341",
+          "sha256": "83b6ae6fa2a77344f3fbe3397f37fcb04534aa412eaa3c8bcf358ca522ff5674"
+        },
+        {
+          "path": "OfficeIMO.Html.Tests/Html.Rendering.HeadingBreakMargins.cs",
+          "commitBlob": "d2816f540601cddf23b7ad44dee24dce8d325c78",
+          "sha256": "62b74bb7a7a1670b3aad7ce82112f8f944fa80c574a9b1ed49d7dfbe82b08979"
+        }
+      ],
+      "counts": {
+        "layered-body-before": {
+          "total": "6",
+          "passed": "5",
+          "failed": "1",
+          "notExecuted": "0"
+        },
+        "layered-body-after": {
+          "total": "24",
+          "passed": "24",
+          "failed": "0",
+          "notExecuted": "0"
+        },
+        "layered-final-net10": {
+          "total": "4304",
+          "passed": "4304",
+          "failed": "0",
+          "notExecuted": "0"
+        },
+        "layered-final-net8": {
+          "total": "4304",
+          "passed": "4304",
+          "failed": "0",
+          "notExecuted": "0"
+        }
+      }
+    },
+    "normalBuilds": "Html netstandard and normal clean API/Tool/zero-margin/fixture builds0warnings/errors",
+    "review": {
+      "base": "4d395f21d30ac43346889c13d012e4bbabdeb508",
+      "diffFingerprint": "b11f7e3b448f2646f508f40e96e6f05d72cc5cfa",
+      "reviewer": "body_backdrop_margin_review",
+      "scope": "Continuous full-body background versus otherwise unpainted page-start spacing; distinct from prior heading/column owner review",
+      "fullPassUsed": true,
+      "targetedConfirmationUsed": false,
+      "boundary": "current",
+      "findings": [],
+      "disposition": "accept as shaped",
+      "visuals": [
+        "layered-visuals/contact.png",
+        "../reference-body-backdrop-candidate/page5-pair.png"
+      ],
+      "validationAtReview": "24 focused pass; 6-case before5pass1fail; broader/clean-source gates pending",
+      "manualHostedRequest": false,
+      "candidateWholeDocumentProof": {
+        "referenceZeroMarginPages": 9,
+        "pixelIdenticalPages": [
+          1,
+          2,
+          3,
+          4,
+          6,
+          7,
+          8,
+          9
+        ],
+        "changedPages": [
+          5
+        ],
+        "allTextCharactersImagesUriTargetsPreserved": true
+      },
+      "finalValidation": "Full4304/framework, clean-source API/Tool3cases3profiles plus9-page zero-margin, all106pages classified, source characters/images/URIs/reports retained"
+    },
+    "independentLayeredBackgroundFixtures": [
+      {
+        "fixture": "layered-body-background",
+        "producer": "Chromium",
+        "pages": 2,
+        "all20LabelsExactlyOnce": true,
+        "backgroundWhiteRows": [
+          0,
+          79
+        ],
+        "backgroundDarkRows": [
+          80,
+          399
+        ]
+      },
+      {
+        "fixture": "layered-body-background",
+        "producer": "OfficeIMO",
+        "pages": 2,
+        "all20LabelsExactlyOnce": true,
+        "backgroundWhiteRows": [
+          0,
+          79
+        ],
+        "backgroundDarkRows": [
+          80,
+          399
+        ],
+        "headingAnchorY": 0
+      },
+      {
+        "fixture": "layered-body-forced",
+        "producer": "Chromium",
+        "pages": 2,
+        "all20LabelsExactlyOnce": true,
+        "backgroundWhiteRows": [
+          0,
+          111
+        ],
+        "backgroundDarkRows": [
+          112,
+          399
+        ]
+      },
+      {
+        "fixture": "layered-body-forced",
+        "producer": "OfficeIMO",
+        "pages": 2,
+        "all20LabelsExactlyOnce": true,
+        "backgroundWhiteRows": [
+          0,
+          111
+        ],
+        "backgroundDarkRows": [
+          112,
+          399
+        ],
+        "headingAnchorY": 32
+      }
+    ],
+    "cleanSourceRoutes": [
+      {
+        "case": "reference",
+        "profile": "print-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 10,
+        "beforePages": 10,
+        "imageOccurrences": 11,
+        "beforeImages": 11,
+        "uriLinks": 58,
+        "beforeUriLinks": 58,
+        "sha256": "43d0b0009dbef837f15c9e6c19806a09f59086da154537cfe85a7f8e7c00f545",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "reference",
+        "profile": "screen-media-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 12,
+        "beforePages": 12,
+        "imageOccurrences": 11,
+        "beforeImages": 11,
+        "uriLinks": 58,
+        "beforeUriLinks": 58,
+        "sha256": "70c0ca563d1ebefdef4886bd144295145a38060abc3494bb0194708731ced8d0",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "reference",
+        "profile": "screen-snapshot-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 8,
+        "beforePages": 8,
+        "imageOccurrences": 17,
+        "beforeImages": 17,
+        "uriLinks": 62,
+        "beforeUriLinks": 62,
+        "sha256": "59ab4fd41027399213e44d4d43e3319e7fd167019c70580c2c5f46a9e49073f7",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 19,
+        "beforePages": 19,
+        "imageOccurrences": 16,
+        "beforeImages": 16,
+        "uriLinks": 72,
+        "beforeUriLinks": 72,
+        "sha256": "d8fbe047881576ac3f84d21bd6fd68f6669d21551558336861c6b5392e7fbdc1",
+        "baselineByteEqual": false,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": false,
+        "changedPaintPages": [
+          5,
+          15,
+          16
+        ]
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 22,
+        "beforePages": 22,
+        "imageOccurrences": 18,
+        "beforeImages": 18,
+        "uriLinks": 73,
+        "beforeUriLinks": 73,
+        "sha256": "3f57b5348321bb0228f4c5b6e550b2c902863b995918bf4c1b857841c2bbec91",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 14,
+        "beforePages": 14,
+        "imageOccurrences": 23,
+        "beforeImages": 23,
+        "uriLinks": 83,
+        "beforeUriLinks": 83,
+        "sha256": "c143bdca3393e51061f19d7b3ca583533d17166bbd26528c48e4391e637923fa",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 3,
+        "beforePages": 3,
+        "imageOccurrences": 16,
+        "beforeImages": 16,
+        "uriLinks": 44,
+        "beforeUriLinks": 44,
+        "sha256": "1e2a67ac5abc34be79f9a22aa1ee98758756aa609d1436b4668a6cb20409ac38",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 5,
+        "beforePages": 5,
+        "imageOccurrences": 19,
+        "beforeImages": 19,
+        "uriLinks": 55,
+        "beforeUriLinks": 55,
+        "sha256": "39b4358704ea84afd1352653a17a20cf13fa8612a23fe3ebe053b0d5b493317e",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "apiToolBytesEqual": true,
+        "apiToolRawPerPageTextEqual": true,
+        "pages": 4,
+        "beforePages": 4,
+        "imageOccurrences": 22,
+        "beforeImages": 22,
+        "uriLinks": 56,
+        "beforeUriLinks": 56,
+        "sha256": "48c4017bd48edd9cda22f22db4e63a110b08210923f9e91ce78894184e8689e1",
+        "baselineByteEqual": true,
+        "fullCharacterMultisetEqual": true,
+        "rawTokenMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "reportUnchanged": true,
+        "reportHasLoss": true,
+        "linkGeometryEqual": true,
+        "changedPaintPages": []
+      },
+      {
+        "case": "reference",
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "beforePages": 9,
+        "imageOccurrences": 11,
+        "uriLinks": 58,
+        "fullCharacterMultisetEqual": true,
+        "decodedRasterMultisetEqual": true,
+        "uriMultisetEqual": true,
+        "sha256": "f9d50349cff8128a6e67f624ba7f70c094277994bb1315c15cbb04a636409092",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [
+          5
+        ]
+      }
+    ],
+    "sourceOrder": "All36 Reference article blocks ordered in each of3default profiles",
+    "paint": {
+      "totalPages": 106,
+      "identicalPages": 102,
+      "changedPages": [
+        {
+          "case": "planets",
+          "profile": "print-paged",
+          "changedPaintPages": [
+            5,
+            15,
+            16
+          ]
+        },
+        {
+          "case": "reference",
+          "profile": "print-zero-margin",
+          "changedPaintPages": [
+            5
+          ]
+        }
+      ],
+      "classification": "Reference zero-margin page5 moves up40CSSpx. Planetary default-print pages5,15,16 move up16CSSpx; all8 moved links track12PDFpt text translation. No text/photo/URL/report loss. All changed-page pairs inspected."
+    },
+    "independentGeometry": {
+      "words": [
+        {
+          "page": 5,
+          "wordCount": 60,
+          "perWordVerticalDeltasPt": {
+            "-12.0": 60
+          }
+        },
+        {
+          "page": 15,
+          "wordCount": 37,
+          "perWordVerticalDeltasPt": {
+            "-12.0": 37
+          }
+        },
+        {
+          "page": 16,
+          "wordCount": 18,
+          "perWordVerticalDeltasPt": {
+            "-12.0": 18
+          }
+        }
+      ],
+      "movedLinks": [
+        {
+          "page": 5,
+          "uri": "http://nssdc.gsfc.nasa.gov/planetary/factsheet/mercuryfact.html",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 5,
+          "uri": "http://nssdc.gsfc.nasa.gov/planetary/factsheet/venusfact.html",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 5,
+          "uri": "http://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 5,
+          "uri": "http://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 5,
+          "uri": "http://nssdc.gsfc.nasa.gov/planetary/factsheet/index.html",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 15,
+          "uri": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/bosf/images/1-2-crescent-moon-400s.jpg?w=400&h=355&fit=clip&crop=faces%2Cfocalpoint",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 16,
+          "uri": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/bosf/images/1-2-SaturnConjunction-709x283-1.png?w=709&h=283&fit=clip&crop=faces%2Cfocalpoint",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        },
+        {
+          "page": 16,
+          "uri": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-3/",
+          "rectDeltasPt": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ]
+        }
+      ]
+    },
+    "coreCopyHashes": {
+      "OfficeIMO.Core/bin/Release/net10.0/OfficeIMO.Core.dll": "876cd4433c870e452590d9954b44a54ef3bbf3882847fab5b2ea998d4c7e9a98",
+      "OfficeIMO.Tool/bin/Release/net10.0/OfficeIMO.Core.dll": "876cd4433c870e452590d9954b44a54ef3bbf3882847fab5b2ea998d4c7e9a98",
+      "Ignore/MasterConvergenceQualification/api-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "876cd4433c870e452590d9954b44a54ef3bbf3882847fab5b2ea998d4c7e9a98",
+      "Ignore/MasterConvergenceQualification/reference-font-diagnosis-5a9de77f6/margin-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "876cd4433c870e452590d9954b44a54ef3bbf3882847fab5b2ea998d4c7e9a98",
+      "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/office-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "876cd4433c870e452590d9954b44a54ef3bbf3882847fab5b2ea998d4c7e9a98"
+    },
+    "temporaryInstrumentation": "Removed byte-for-byte before implementation; no trace hooks retained",
+    "evidenceRoot": "Ignore/MasterConvergenceQualification/reference-body-background-clean-b14164286",
+    "failureScope": "Original before failure and diagnostic mis-targeted build/observer setup results retained; no product qualification inferred from them",
+    "remaining": "Default profile geometry/width/footer/native/manual accessibility/all-intent and hosted timing/package acceptance remain separate; no browser parity claim",
+    "cleanup": {
+      "targets": 414,
+      "bytes": 2284922839,
+      "allAbsent": true,
+      "executedNativeErrorsRecoveredThroughFreshGuardedDotNet": 94,
+      "retained": "Exact final PDFs, source archives, final4304TRX and original failures, contacts, package/hash/origin receipts and hosted controls; shared caches and unrelated worktrees untouched"
+    }
+  },
+  "preRemediationReferenceReplay": {
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "imageOccurrences": 11,
+        "links": 58,
+        "apiToolBytesEqual": true,
+        "independentRawPerPageTextEqual": true,
+        "reportHasLoss": true
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "imageOccurrences": 11,
+        "links": 58,
+        "apiToolBytesEqual": true,
+        "independentRawPerPageTextEqual": true,
+        "reportHasLoss": true
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "imageOccurrences": 17,
+        "links": 62,
+        "apiToolBytesEqual": true,
+        "independentRawPerPageTextEqual": true,
+        "reportHasLoss": true
+      }
+    ],
+    "all36ArticleBlocksInStructureOrder": true,
+    "comparison": [
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "images": 11,
+        "uriLinks": 58,
+        "sha256": "43d0b0009dbef837f15c9e6c19806a09f59086da154537cfe85a7f8e7c00f545",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "images": 11,
+        "uriLinks": 58,
+        "sha256": "70c0ca563d1ebefdef4886bd144295145a38060abc3494bb0194708731ced8d0",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "images": 17,
+        "uriLinks": 62,
+        "sha256": "59ab4fd41027399213e44d4d43e3319e7fd167019c70580c2c5f46a9e49073f7",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      },
+      {
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "images": 11,
+        "uriLinks": 58,
+        "sha256": "89bad8cb9a5c096150ad0837646cfd5a0b80f155ca0961f31ad1fbb133fb9f47",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      }
+    ],
+    "appearanceCriterion": "Before body-backdrop remediation: all4 PDFs were byte-identical and the zero-margin page5 gap remained open. Current closure is recorded in bodyBackdropMarginRemediation.",
+    "sourceCommit": "77b588942adef799bb1b32ab925558b0d3e9358f"
+  },
+  "openWorkOwner": "Docs/ROADMAP.md#h10-unfamiliar-page-acceptance"
+}

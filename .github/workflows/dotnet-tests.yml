@@ -1166,6 +1166,12 @@ jobs:
           test "${version}" = "pdftoppm version 26.05.0"
           echo "OFFICEIMO_PDF_RASTERIZER=${rasterizer}" >> "${GITHUB_ENV}"
 
+      - name: Install multilingual HTML fixture fonts
+        if: matrix.partition == 'word-rtf-html'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
+
       - name: Restore NuGet packages
         uses: actions/cache/restore@v6
         with:

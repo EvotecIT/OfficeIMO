@@ -10,6 +10,134 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlRender_HiddenInlineStyleImageDoesNotReportVisibleLoss() {
+        const string html = "<div style='display:none;background-image:url(https://assets.example.test/hidden.png)'>Hidden</div>"
+            + "<p>Visible text</p>";
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+
+        Assert.False(rendered.HasLoss);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Source == "https://assets.example.test/hidden.png"
+            && diagnostic.Severity == HtmlDiagnosticSeverity.Info
+            && diagnostic.LossKind == OfficeConversionLossKind.None);
+    }
+
+    [Fact]
+    public async Task HtmlRender_UnusedMissingCssImageDoesNotFailNoLossPolicy() {
+        const string html = "<link rel='stylesheet' href='https://assets.example.test/site.css'>"
+            + "<p>Visible text</p>";
+        const string stylesheet = ".unused { background-image: url('unused.png'); }";
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsolutePath.EndsWith("site.css", StringComparison.Ordinal)
+                    ? new HtmlResolvedResource(Encoding.UTF8.GetBytes(stylesheet), "text/css")
+                    : null),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+
+        Assert.False(rendered.HasLoss);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Source == "unused.png"
+            && diagnostic.Severity == HtmlDiagnosticSeverity.Info
+            && diagnostic.LossKind == OfficeConversionLossKind.None);
+    }
+
+    [Fact]
+    public async Task HtmlRender_MissingCssImageOnlyReportsLossWhenPaintRequestsIt() {
+        const string stylesheet = ".unused { background-image: url('unused.png'); }"
+            + ".used { background-image: url('used.png'); width: 20px; height: 20px; }";
+        const string html = "<link rel='stylesheet' href='https://assets.example.test/site.css'>"
+            + "<div class='used'>Visible</div>";
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsolutePath.EndsWith("site.css", StringComparison.Ordinal)
+                    ? new HtmlResolvedResource(Encoding.UTF8.GetBytes(stylesheet), "text/css")
+                    : null),
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+
+        HtmlDiagnostic unused = Assert.Single(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Source == "unused.png");
+        Assert.Equal(HtmlDiagnosticSeverity.Info, unused.Severity);
+        Assert.Equal(OfficeConversionLossKind.None, unused.LossKind);
+
+        HtmlDiagnostic used = Assert.Single(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Source == "used.png");
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, used.Severity);
+        Assert.Equal(OfficeConversionLossKind.Omission, used.LossKind);
+    }
+
+    [Fact]
+    public async Task HtmlRender_MissingCssImageUsesResolvedStylesheetUrlForLossAttribution() {
+        const string html = "<link rel='stylesheet' href='https://assets.example.test/a/site.css'>"
+            + "<link rel='stylesheet' href='https://assets.example.test/b/site.css'>"
+            + "<div class='used'>Visible</div>";
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsolutePath switch {
+                    "/a/site.css" => new HtmlResolvedResource(
+                        Encoding.UTF8.GetBytes(".used { background-image: url('logo.png'); width: 20px; height: 20px; }"), "text/css"),
+                    "/b/site.css" => new HtmlResolvedResource(
+                        Encoding.UTF8.GetBytes(".unused { background-image: url('logo.png'); }"), "text/css"),
+                    "/a/logo.png" => new HtmlResolvedResource(png, "image/png"),
+                    _ => null
+                }),
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+
+        HtmlDiagnostic missing = Assert.Single(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Detail == "https://assets.example.test/b/logo.png");
+        Assert.Equal(HtmlDiagnosticSeverity.Info, missing.Severity);
+        Assert.Equal(OfficeConversionLossKind.None, missing.LossKind);
+    }
+
+    [Fact]
+    public async Task HtmlRender_DoesNotTreatDocumentIconsAsVisibleImageLoss() {
+        const string html = "<link rel='icon' href='https://assets.example.test/icon.png'>"
+            + "<link rel='preload' as='image' href='https://assets.example.test/preload.png'>"
+            + "<img src='https://assets.example.test/visible.png' width='2' height='2'>";
+        HtmlResourceManifest generalManifest = HtmlResourcePipeline.BuildManifest(html);
+        Assert.Contains(generalManifest.Resources, resource =>
+            resource.ElementName == "link" && resource.Source.EndsWith("/icon.png", StringComparison.Ordinal));
+
+        var requested = new List<string>();
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                requested.Add(request.Uri.AbsolutePath);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(png, "image/png"));
+            },
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+
+        Assert.DoesNotContain("/icon.png", requested);
+        Assert.Contains("/preload.png", requested);
+        Assert.Contains("/visible.png", requested);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Source.EndsWith("/icon.png", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task HtmlResourceSession_AcceptsEmptyStylesheetAsResolvedResource() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<link rel='stylesheet' href='https://assets.example.test/empty.css'>");

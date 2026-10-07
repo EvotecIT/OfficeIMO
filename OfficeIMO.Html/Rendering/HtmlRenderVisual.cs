@@ -3,13 +3,14 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Immutable positioned visual emitted by the shared HTML layout engine.
 /// </summary>
-public abstract class HtmlRenderVisual {
-    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null) {
+public abstract partial class HtmlRenderVisual {
+    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null, double? layoutHeight = null) {
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
         ValidateFinite(layoutY ?? y, nameof(layoutY));
         ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
+        ValidatePositive(layoutHeight ?? height, nameof(layoutHeight));
         Kind = kind;
         X = x;
         Y = y;
@@ -19,6 +20,7 @@ public abstract class HtmlRenderVisual {
         LinkUri = linkUri;
         Source = source;
         LayoutY = layoutY ?? y;
+        LayoutHeight = layoutHeight ?? height;
     }
 
     /// <summary>Visual operation kind.</summary>
@@ -51,9 +53,44 @@ public abstract class HtmlRenderVisual {
     /// </summary>
     internal double LayoutY { get; }
 
-    internal abstract HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder);
+    /// <summary>Normal-flow height used for fragmentation, independent of paint overhang.</summary>
+    internal double LayoutHeight { get; }
 
-    internal abstract HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder);
+    internal HtmlRenderStackingContext? StackingContext { get; private set; }
+
+    // Split paint envelopes still describe the same layout box. Identity, rather
+    // than equal coordinates, keeps distinct overlapping source elements apart.
+    internal object? PaintProjectionIdentity { get; private set; }
+
+    // Called only for a freshly reconstructed paint envelope.
+    internal HtmlRenderVisual IdentifyPaintProjection(object identity) {
+        PaintProjectionIdentity = identity;
+        return this;
+    }
+
+    internal HtmlRenderVisual WithStackingContext(HtmlRenderStackingContext context) {
+        HtmlRenderVisual result = Translate(0D, 0D, PaintOrder);
+        result.StackingContext = context;
+        return result;
+    }
+
+    internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
+        result.StackingContext = StackingContext;
+        result.PaintProjectionIdentity = PaintProjectionIdentity;
+        result.RelativePaintOffsetY = RelativePaintOffsetY;
+        result.IsOutOfFlowPaint = IsOutOfFlowPaint;
+        return result;
+    }
+
+    internal HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+        CopyStackingContextTo(TranslateCore(offsetX, offsetY, paintOrder));
+
+    internal HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+        CopyStackingContextTo(TranslatePaintCore(offsetX, offsetY, paintOrder));
+
+    internal abstract HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder);
+
+    internal abstract HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder);
 
     private static void ValidateFinite(double value, string parameterName) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {

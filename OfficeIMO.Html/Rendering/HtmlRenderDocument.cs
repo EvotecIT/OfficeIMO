@@ -11,6 +11,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     private readonly OfficeFontFaceCollection _fonts;
     private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
     private readonly HtmlDiagnosticReport _diagnosticReport;
+    private readonly IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? _bookmarks;
 
     internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null) {
         Mode = mode;
@@ -35,6 +36,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
             }
         }
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
+        _bookmarks = bookmarks;
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
         _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
     }
@@ -80,14 +82,24 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     /// <summary>Concatenated logical searchable text retained by the shared render model.</summary>
     public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateLogicalText(page.Scene)));
 
+    internal HtmlRenderDocument Project(IEnumerable<HtmlRenderPage> pages, HtmlRenderMode mode) =>
+        new(mode, pages, _diagnosticReport, _fonts, Metadata, _bookmarks);
+
+    internal HtmlRenderDocument WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
+        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        HtmlDiagnosticReport report = _diagnosticReport.Clone();
+        report.AddRange(diagnostics);
+        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks);
+    }
+
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in OrderForLogicalText(visuals)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                if (!ContainsArtifactVisual(logicalTextGroup.Visuals)) {
-                    yield return logicalTextGroup.Text;
+                if (logicalTextGroup.LogicalScope?.PreserveBlockSeparators == true || !ContainsArtifactVisual(logicalTextGroup.Visuals)) {
+                    if (logicalTextGroup.Text.Length > 0) yield return logicalTextGroup.Text;
                 } else {
                     string visibleText = string.Concat(EnumerateLogicalText(logicalTextGroup.Visuals));
                     if (visibleText.Length > 0) yield return visibleText;
@@ -132,6 +144,10 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
             return text.LogicalTextOrder;
         }
         if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+            if (logicalTextGroup.IsFlowAnchor) {
+                containsText = false;
+                return null;
+            }
             int? logicalOrder = null;
             foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) {
                 int? childOrder = ResolveLogicalTextOrder(child, out _);

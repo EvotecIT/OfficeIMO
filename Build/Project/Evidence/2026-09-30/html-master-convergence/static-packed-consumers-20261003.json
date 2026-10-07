@@ -1,0 +1,304 @@
+{
+  "sourceBase": "95993a01482ae2b4a366e8f3db274665324686e6",
+  "scope": "Local pack and actual package-reference consumers; no release, net472 native execution, AOT or trimming claim",
+  "frameworkSelection": "netstandard2.0;net8.0;net10.0;net472 for restore/pack on all hosts; consumer execution follows host runtime support",
+  "results": {
+    "documentConsumer": [
+      "net8.0 passed",
+      "net10.0 passed"
+    ],
+    "staticConsumer": [
+      "net8.0 passed",
+      "net10.0 passed"
+    ],
+    "addedContracts": [
+      "HTML edited DOM serialization",
+      "SVG output",
+      "MHTML MIME root selection",
+      "CID embedded image to PDF",
+      "PDF text and image extraction through public API"
+    ]
+  },
+  "packages": [
+    {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "sha256": "a6fe80037b5ea48d76fdeff3dc2fcfc3631e1f45a45f5a7399a99a310b3af41d",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": []
+    },
+    {
+      "package": "OfficeIMO.Email.3.4.4.nupkg",
+      "sha256": "aa2d658f1fc12c5a0345eb742a51d1609a4078aa13b3266f3d386a2d5c3b415e",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Rtf",
+        "System.Text.Encoding.CodePages"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Excel.3.4.4.nupkg",
+      "sha256": "16d11c86749defcee6c26f8f4b402bff281610290264e58ba9cad07e78cd55d9",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "OfficeIMO.Core",
+        "System.Text.Encoding.CodePages",
+        "System.Text.Json"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Excel.Html.3.4.4.nupkg",
+      "sha256": "ce6c7f491743de1ca49624b4ae9858cbf74664caa5d1ee6c4aedd5f433e230fe",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Excel",
+        "OfficeIMO.Html"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Html.3.4.4.nupkg",
+      "sha256": "3b8245bff281cec3960f04dc4de0e8442c4d3b5c23b989d6426de197edbc981d",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "AngleSharp",
+        "AngleSharp.Css",
+        "OfficeIMO.Core",
+        "OfficeIMO.Html.AngleSharp",
+        "OfficeIMO.Html.Core"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Html.AngleSharp.3.4.4.nupkg",
+      "sha256": "2a35c55102fac76465463be91c09dae62a01508a8cd5b3dc10dd189cc2b205fd",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "AngleSharp",
+        "OfficeIMO.Html.Core",
+        "System.Text.Encoding.CodePages"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Html.Core.3.4.4.nupkg",
+      "sha256": "9c80906e88768682ddd710e88b4704de5d1049b5c6d8bcd09b9a9bf49232e04e",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": []
+    },
+    {
+      "package": "OfficeIMO.Html.Pdf.3.4.4.nupkg",
+      "sha256": "f5d7e0c81cb1d0664e0afcd2b0b2cc09ab5691446553ed2eda5cb3cb92f73dd0",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Html",
+        "OfficeIMO.Pdf"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Html.Rtf.3.4.4.nupkg",
+      "sha256": "836cc8dc07881258b6b36dc16c28f130cc813b25ef6e48595678d96995963f93",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Html",
+        "OfficeIMO.Rtf"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Markdown.3.4.4.nupkg",
+      "sha256": "1e918cb0a13a1d43b08e31d0aa2be147218cc52e6972f5b5603a52823896ec15",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Markdown.Html.3.4.4.nupkg",
+      "sha256": "79fee93eed0d2b453fd8e3667c3ed5437b1266f335c957106273318c8af6e121",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Html",
+        "OfficeIMO.Markdown"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Mhtml.3.4.4.nupkg",
+      "sha256": "f219b240f5e1f6b2942243ff600db93f2182f03eebc6fb55f61686388b02eaa6",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Email",
+        "OfficeIMO.Html"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Mhtml.Pdf.3.4.4.nupkg",
+      "sha256": "5d7de293d20df4d293084d9efbf51dad18584e44246b3e00fbf42bba3eb6419a",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Html.Pdf",
+        "OfficeIMO.Mhtml",
+        "OfficeIMO.Pdf"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Pdf.3.4.4.nupkg",
+      "sha256": "5ecf66a07c4cbd1b90a376785ec34d57fce01bae69c0ebe1572eb69b9144e647",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core"
+      ]
+    },
+    {
+      "package": "OfficeIMO.PowerPoint.3.4.4.nupkg",
+      "sha256": "7059a976298f1c15afc6acfe0541cfa5944bf39afbe65635cba552da5803bbc2",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "OfficeIMO.Core",
+        "System.Text.Encoding.CodePages"
+      ]
+    },
+    {
+      "package": "OfficeIMO.PowerPoint.Html.3.4.4.nupkg",
+      "sha256": "f1c2c0a3a94f73ec54cadd47df854842b1f0ce12ee5bfc3364a3078a296e9839",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Html",
+        "OfficeIMO.PowerPoint"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Rtf.3.4.4.nupkg",
+      "sha256": "6ac8c82cb62a557017a8d190cdb1d9489c9055e4f3c7b5d73691506f584b3a54",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "OfficeIMO.Core",
+        "System.Text.Encoding.CodePages"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Word.3.4.4.nupkg",
+      "sha256": "e976a3dc596b4d8cccdf0f25b7ef9ae934b8a4d3bdc72510d9f7ab3b56843ad3",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "DocumentFormat.OpenXml",
+        "Microsoft.Bcl.AsyncInterfaces",
+        "OfficeIMO.Core"
+      ]
+    },
+    {
+      "package": "OfficeIMO.Word.Html.3.4.4.nupkg",
+      "sha256": "936238f51e1fc7cc542f1ea688ceff29a0d36a335c0f14ebaf597e051dcc15a5",
+      "frameworks": [
+        "net10.0",
+        "net472",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "DocumentFormat.OpenXml",
+        "OfficeIMO.Core",
+        "OfficeIMO.Html",
+        "OfficeIMO.Word"
+      ]
+    }
+  ],
+  "dependencyBoundary": "No direct runtime/worker, HtmlTinkerX or Playwright package dependency in packed owners; effective AngleSharp providers retained",
+  "retainedFeed": "Ignore/MathAutoQualification/static-package-mhtml/feed"
+}
