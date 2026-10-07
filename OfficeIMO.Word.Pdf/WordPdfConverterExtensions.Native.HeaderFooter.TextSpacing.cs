@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph, NativeFontMap? fontMap) {
             var replacements = new List<NativeHeaderFooterStyledReplacement>();
             bool hasSpacing = false;
+            bool hasLiteralPageTokens = false;
             var serializedRuns = new List<(W.Run Run, string Text, bool IsField)>();
             bool hasFields = TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out _, serializedRuns);
             IEnumerable<(WordParagraph Run, string Text, bool IsField)> visibleRuns = hasFields
@@ -22,10 +23,15 @@ namespace OfficeIMO.Word.Pdf {
                 hasSpacing |= HasNativeTextSpacing(style.TextSpacing);
                 bool fieldToken = item.IsField;
                 string text = fieldToken ? item.Text : ApplyNativeTextTransform(item.Text, run, paragraph, nativeFontMap: fontMap);
+                hasLiteralPageTokens |= !fieldToken &&
+                    (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     text.IndexOf("{documentpages}", StringComparison.OrdinalIgnoreCase) >= 0);
                 replacements.Add(new NativeHeaderFooterStyledReplacement(text,
                     CreateNativeHeaderFooterStyledTextRun(text, style, 0D), fieldToken));
             }
-            return hasSpacing ? replacements : null;
+            // Keep authored braces distinct from fields even when another paragraph enables styled output.
+            return hasSpacing || hasLiteralPageTokens ? replacements : null;
         }
     }
 }
