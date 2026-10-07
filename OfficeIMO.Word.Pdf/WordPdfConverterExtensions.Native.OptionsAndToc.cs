@@ -149,11 +149,11 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (string? family in new[] {
+                defaults.FontFamily,
                 document.Settings.FontFamily,
                 document.Settings.FontFamilyHighAnsi,
                 document.Settings.FontFamilyEastAsia,
-                document.Settings.FontFamilyComplexScript,
-                defaults.FontFamily
+                document.Settings.FontFamilyComplexScript
             }) {
                 if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: allowDocumentFontEmbedding)) {
                     RegisterAppliedNativeDefaultFont(family!, pdfOptions, nativeFontMap, allowDocumentFontEmbedding);
@@ -448,10 +448,7 @@ namespace OfficeIMO.Word.Pdf {
                 GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph));
             NativeParagraphStyleDefaults paragraphStyleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             string? effectiveFamily = FirstNonWhiteSpace(
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
-                paragraph.FontFamilyEastAsia,
-                paragraph.FontFamilyComplexScript,
+                EnumerateNativeParagraphOwnFontFamilies(paragraph).FirstOrDefault(),
                 characterStyleDefaults.FontFamily,
                 paragraphStyleDefaults.FontFamily,
                 tableRunStyleDefaults.FontFamily);

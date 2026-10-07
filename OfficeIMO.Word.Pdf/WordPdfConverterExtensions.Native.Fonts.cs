@@ -236,16 +236,13 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            string? directFamily = FirstNonWhiteSpace(runFonts.Ascii?.Value, runFonts.HighAnsi?.Value);
-            if (!string.IsNullOrWhiteSpace(directFamily)) {
-                return directFamily;
-            }
-
-            string? themeFamily = ResolveNativeThemeFontFamily(
-                document,
-                GetNativeThemeFontValue(runFonts.AsciiTheme),
-                GetNativeThemeFontValue(runFonts.HighAnsiTheme));
-            return string.IsNullOrWhiteSpace(themeFamily) ? null : themeFamily;
+            // Theme selectors override literals in the same slot. Retain the
+            // existing ASCII-before-High-ANSI choice for the Latin run family.
+            return FirstNonWhiteSpace(
+                ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.AsciiTheme)),
+                runFonts.Ascii?.Value,
+                ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.HighAnsiTheme)),
+                runFonts.HighAnsi?.Value);
         }
 
         private static string? GetNativeThemeFontValue(DocumentFormat.OpenXml.EnumValue<W.ThemeFontValues>? value) {

@@ -1192,11 +1192,13 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static bool TryResolveNativeDirectRunFont(WordParagraph paragraph, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
-            TryResolveNativeMappedFont(paragraph.FontFamily, nativeFontMap, out font) ||
-            TryResolveNativeMappedFont(paragraph.FontFamilyHighAnsi, nativeFontMap, out font) ||
-            TryResolveNativeMappedFont(paragraph.FontFamilyEastAsia, nativeFontMap, out font) ||
-            TryResolveNativeMappedFont(paragraph.FontFamilyComplexScript, nativeFontMap, out font);
+        private static bool TryResolveNativeDirectRunFont(WordParagraph paragraph, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) {
+            foreach (string family in EnumerateNativeParagraphOwnFontFamilies(paragraph)) {
+                if (TryResolveNativeMappedFont(family, nativeFontMap, out font)) return true;
+            }
+            font = default;
+            return false;
+        }
 
         private static bool TryResolveNativeMappedFont(string? familyName, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
             (nativeFontMap != null && nativeFontMap.TryGetFontSlot(familyName, out font)) ||
@@ -1214,20 +1216,14 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            foreach (string? familyName in new[] {
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
-                paragraph.FontFamilyEastAsia,
-                paragraph.FontFamilyComplexScript,
-                fallback?.FontFamily,
-                fallback?.FontFamilyHighAnsi,
-                fallback?.FontFamilyEastAsia,
-                fallback?.FontFamilyComplexScript,
+            foreach (string? familyName in EnumerateNativeParagraphOwnFontFamilies(paragraph)
+                .Concat(fallback == null ? Enumerable.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
+                .Concat(new[] {
                 characterStyleDefaults.FontFamily,
                 styleDefaults.FontFamily,
                 tableRunStyleDefaults.FontFamily,
                 nativeFontMap.UsePdfDefaultForDocumentDefaultFont ? null : nativeDefaults.FontFamily
-            }) {
+            })) {
                 if (string.IsNullOrWhiteSpace(familyName)) {
                     continue;
                 }

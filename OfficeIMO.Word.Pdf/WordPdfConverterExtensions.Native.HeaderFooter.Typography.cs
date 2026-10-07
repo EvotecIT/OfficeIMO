@@ -103,11 +103,11 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (string? familyName in new[] {
                 options?.FontFamily,
+                GetNativeDocumentDefaults(document).FontFamily,
                 document.Settings.FontFamily,
                 document.Settings.FontFamilyHighAnsi,
                 document.Settings.FontFamilyEastAsia,
-                document.Settings.FontFamilyComplexScript,
-                GetNativeDocumentDefaults(document).FontFamily
+                document.Settings.FontFamilyComplexScript
             }) {
                 if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
                     return PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
@@ -393,8 +393,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static IEnumerable<string> EnumerateNativeParagraphOwnFontFamilies(WordParagraph paragraph) {
             foreach (string? familyName in new[] {
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
+                ResolveNativeRunFontsFamily(paragraph._document, GetNativeRunProperties(paragraph)?.GetFirstChild<W.RunFonts>()),
                 paragraph.FontFamilyEastAsia,
                 paragraph.FontFamilyComplexScript
             }) {

@@ -214,8 +214,7 @@ namespace OfficeIMO.Word.Pdf {
                     lineHeight ?? 0D,
                     ResolveNativeWordSingleLineHeight(
                         nativeFontMap,
-                        run.FontFamily,
-                        run.FontFamilyHighAnsi,
+                        ResolveNativeRunFontsFamily(run._document, GetNativeRunProperties(run)?.GetFirstChild<W.RunFonts>()),
                         run.FontFamilyEastAsia,
                         run.FontFamilyComplexScript,
                         characterStyle.FontFamily,
