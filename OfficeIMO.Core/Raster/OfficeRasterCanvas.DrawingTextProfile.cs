@@ -14,6 +14,7 @@ public sealed partial class OfficeRasterCanvas {
             ? new OfficeRasterCanvas(_image, _font, _fonts, provider, language, _diagnosticSink, _diagnosticSource, _cancellationToken)
             : new OfficeRasterCanvas(_target!, _font, _fonts, provider, language, _diagnosticSink, _diagnosticSource, _cancellationToken);
         child.FontMetricScale = FontMetricScale;
+        child.SetCoordinateScale(CoordinateScaleX, CoordinateScaleY);
         child.ShareTransformedTextBudget(_transformedTextBudget);
         child._clipRegion = _clipRegion;
         child.PreservePaintedGlyphOrder = PreservePaintedGlyphOrder;

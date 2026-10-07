@@ -25,6 +25,13 @@ public sealed partial class OfficeRasterCanvas {
     internal void FillContourPaint(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, Func<double, double, OfficeColor> paint,
         IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours = null) {
         if (contours == null || contours.Count == 0) return;
+        if (HasCoordinateScale) {
+            contours = ScaleCoordinates(contours);
+            if (unionContours != null) unionContours = ScaleCoordinates(unionContours);
+            Func<double, double, OfficeColor> localPaint = paint;
+            double scaleX = CoordinateScaleX, scaleY = CoordinateScaleY;
+            paint = (x, y) => localPaint(x / scaleX, y / scaleY);
+        }
         ContourCoverageWorkspace workspace = TakeContourCoverageWorkspace();
         try {
             FillContourPaint(contours, fillRule, paint, unionContours, workspace);

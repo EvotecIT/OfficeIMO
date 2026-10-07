@@ -509,7 +509,7 @@ public sealed partial class OfficeRasterCanvas {
             rotationCenterY,
             flipHorizontal,
             flipVertical);
-        OfficeTransform imageTransform = projection.CreateUnitSquareTransform();
+        OfficeTransform imageTransform = ScaleCoordinates(projection.CreateUnitSquareTransform());
         if (!imageTransform.TryInvert(out OfficeTransform inverseTransform)) {
             return;
         }
@@ -518,7 +518,7 @@ public sealed partial class OfficeRasterCanvas {
             SamplingAxisLength(inverseTransform.M11, inverseTransform.M21) * image.Width * sourceWidth,
             SamplingAxisLength(inverseTransform.M12, inverseTransform.M22) * image.Height * sourceHeight);
 
-        (double minX, double minY, double maxX, double maxY) = projection.GetDestinationBounds();
+        (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -552,6 +552,7 @@ public sealed partial class OfficeRasterCanvas {
         DrawAffineImage(image, transform, opacity, interpolate: true);
 
     internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
+        transform = ScaleCoordinates(transform);
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
