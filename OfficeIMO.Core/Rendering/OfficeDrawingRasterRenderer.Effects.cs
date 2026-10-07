@@ -30,6 +30,14 @@ public static partial class OfficeDrawingRasterRenderer {
         if (scaleX <= 0D || scaleY <= 0D) return;
         double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * scaleX);
         double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * scaleY);
+        OfficeTransform pixelTransform = new OfficeTransform(
+            transform.M11 * scale / scaleX, transform.M12 * scale / scaleX,
+            transform.M21 * scale / scaleY, transform.M22 * scale / scaleY,
+            transform.OffsetX * scale, transform.OffsetY * scale);
+        // The complete, rounded layer contains all paint, including shadow/blur
+        // fringes. Its destination bounds are safe to cull before charging storage.
+        if (!double.IsInfinity(width) && !double.IsInfinity(height) &&
+            !canvas.IntersectsVisibleSurface(pixelTransform, width, height)) return;
         if (width > long.MaxValue || height > long.MaxValue || width * height > long.MaxValue) {
             throw new OfficeImageExportLimitException(layerScale, long.MaxValue, maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
@@ -51,10 +59,6 @@ public static partial class OfficeDrawingRasterRenderer {
                 maximumRasterPixels,
                 cancellationToken);
         }
-        OfficeTransform pixelTransform = new OfficeTransform(
-            transform.M11 * scale / scaleX, transform.M12 * scale / scaleX,
-            transform.M21 * scale / scaleY, transform.M22 * scale / scaleY,
-            transform.OffsetX * scale, transform.OffsetY * scale);
         canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, interpolate);
     }
 
