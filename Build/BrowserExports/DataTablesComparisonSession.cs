@@ -69,8 +69,10 @@ internal static class DataTablesComparisonSession {
                         var profiler = profile ? await session.Page.Context.NewCDPSessionAsync(session.Page) : null;
                         try {
                             if (profiler is not null) { await profiler.SendAsync("Profiler.enable"); await profiler.SendAsync("Profiler.start"); }
-                            measurement = await session.Page.EvaluateAsync<JsonElement>("args => runDataTablesMeasurement(args.lane, args.format)",
-                                new { lane = command.GetProperty("lane").GetString(), format = spec.GetProperty("format").GetString() }).WaitAsync(TimeSpan.FromMinutes(10));
+                            measurement = await session.Page.EvaluateAsync<JsonElement>("args => runDataTablesMeasurement(args.lane, args.format, args.diagnosticYields, args.yieldTransport)",
+                                new { lane = command.GetProperty("lane").GetString(), format = spec.GetProperty("format").GetString(),
+                                    diagnosticYields = command.TryGetProperty("diagnosticYields", out var yields) && yields.GetBoolean(),
+                                    yieldTransport = command.TryGetProperty("yieldTransport", out var transport) ? transport.GetString() : "native" }).WaitAsync(TimeSpan.FromMinutes(10));
                         } finally {
                             if (profiler is not null) {
                                 try {

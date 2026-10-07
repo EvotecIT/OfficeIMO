@@ -145,7 +145,7 @@ async function consumeRows(input, signal, accept) {
     }
 }
 let taskDeadline;
-const taskBudgetMs = 16;
+const taskBudgetMs = 32;
 /** @internal Start a new write phase without carrying an idle operation's expired deadline. */
 function beginTask() { taskDeadline = performance.now() + taskBudgetMs; }
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
@@ -156,6 +156,11 @@ function taskYieldDue() {
 }
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
+    const scheduler = globalThis.scheduler;
+    if (typeof scheduler?.yield === "function")
+        return scheduler.yield().then(() => {
+            taskDeadline = performance.now() + taskBudgetMs;
+        });
     return new Promise(resolve => {
         let done = false, channel;
         const finish = () => {

@@ -97,7 +97,7 @@ export async function consumeRows<T>(input: Iterable<T> | AsyncIterable<T>, sign
 }
 
 let taskDeadline: number | undefined;
-const taskBudgetMs = 16;
+const taskBudgetMs = 32;
 
 /** @internal Start a new write phase without carrying an idle operation's expired deadline. */
 export function beginTask(): void { taskDeadline = performance.now() + taskBudgetMs; }
@@ -111,6 +111,10 @@ export function taskYieldDue(): boolean {
 
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 export function pause(): Promise<void> {
+  const scheduler = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (typeof scheduler?.yield === "function") return scheduler.yield().then(() => {
+    taskDeadline = performance.now() + taskBudgetMs;
+  });
   return new Promise(resolve => {
     let done = false, channel: MessageChannel | undefined;
     const finish = () => {
