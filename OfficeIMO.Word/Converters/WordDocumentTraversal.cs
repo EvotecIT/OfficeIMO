@@ -211,8 +211,7 @@ namespace OfficeIMO.Word {
             ListNumberingDefinition? definition = null;
             definitions.TryGetValue(numbering.NumberId, out definition);
             if (definition != null &&
-                definition.StartOverrides.TryGetValue(level, out int overrideValue) &&
-                (!definition.OverridesAreDefault || overrideValue != 1)) {
+                definition.StartOverrides.TryGetValue(level, out int overrideValue)) {
                 overrideStart = overrideValue;
                 start = overrideValue;
             }
@@ -462,11 +461,6 @@ namespace OfficeIMO.Word {
                     : null;
 
                 var overrides = instance.Elements<LevelOverride>().ToList();
-                bool overridesAreDefault = overrides.Count >= 9 &&
-                    overrides.All(levelOverride => {
-                        var startOverrideValue = levelOverride.GetFirstChild<StartOverrideNumberingValue>();
-                        return startOverrideValue?.Val?.HasValue == true && startOverrideValue.Val.Value == 1;
-                    });
 
                 var startOverrides = new Dictionary<int, int>();
                 var levelOverrides = new Dictionary<int, Level>();
@@ -502,7 +496,6 @@ namespace OfficeIMO.Word {
                 result[numberId] = new ListNumberingDefinition(
                     numberId,
                     abstractNum != null ? WordListStyles.MatchStyle(abstractNum) : WordListStyle.Custom,
-                    overridesAreDefault,
                     startOverrides,
                     levels);
             }
@@ -644,19 +637,16 @@ namespace OfficeIMO.Word {
             internal ListNumberingDefinition(
                 int numberId,
                 WordListStyle style,
-                bool overridesAreDefault,
                 IReadOnlyDictionary<int, int> startOverrides,
                 IReadOnlyDictionary<int, ListLevelDefinition> levels) {
                 NumberId = numberId;
                 Style = style;
-                OverridesAreDefault = overridesAreDefault;
                 StartOverrides = startOverrides;
                 Levels = levels;
             }
 
             internal int NumberId { get; }
             internal WordListStyle Style { get; }
-            internal bool OverridesAreDefault { get; }
             internal IReadOnlyDictionary<int, int> StartOverrides { get; }
             internal IReadOnlyDictionary<int, ListLevelDefinition> Levels { get; }
         }

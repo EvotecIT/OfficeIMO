@@ -326,7 +326,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
         NumberingInstance instance = numbering.Elements<NumberingInstance>()
             .Single(candidate => candidate.NumberID?.Value == list.NumberId);
-        instance.Elements<LevelOverride>().Single(level => level.LevelIndex?.Value == 0).Remove();
+        instance.Elements<LevelOverride>().FirstOrDefault(level => level.LevelIndex?.Value == 0)?.Remove();
         instance.Append(new LevelOverride(new Level(
             new StartNumberingValue { Val = 7 },
             new NumberingFormat { Val = NumberFormatValues.Bullet },
@@ -540,7 +540,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
         NumberingInstance instance = numbering.Elements<NumberingInstance>()
             .Single(candidate => candidate.NumberID?.Value == list.NumberId);
-        instance.Elements<LevelOverride>().Single(level => level.LevelIndex?.Value == 2).Remove();
+        instance.Elements<LevelOverride>().FirstOrDefault(level => level.LevelIndex?.Value == 2)?.Remove();
         instance.Append(new LevelOverride(new Level(
             new NumberingFormat { Val = NumberFormatValues.Decimal },
             new LevelText { Val = "%3." }) { LevelIndex = 2 }) { LevelIndex = 2 });
