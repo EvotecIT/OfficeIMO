@@ -61,6 +61,8 @@ styles and document defaults, including explicit normal-width overrides.
 windows through DOCX and supported native DOC conversions. External links and
 internal bookmark links preserve these settings in body text, tables, headers,
 footers and notes. Adjacent links can retain different descriptions or targets.
+Native DOC saving rejects line breaks in tooltip or target-window metadata;
+these values remain supported in DOCX.
 
 When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
 

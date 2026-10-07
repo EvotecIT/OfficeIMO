@@ -6,6 +6,28 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, "\n")]
+    [InlineData(false, "\r")]
+    [InlineData(false, "\r\n")]
+    [InlineData(true, "\n")]
+    [InlineData(true, "\r")]
+    [InlineData(true, "\r\n")]
+    public void NativeDocHyperlinkMetadataRejectsFieldBoundariesWithoutChangingDocx(bool targetFrame, string boundary) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide"));
+        if (targetFrame) {
+            paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Single().TargetFrame = "Window" + boundary + "Name";
+        } else {
+            paragraph.Hyperlink!.Tooltip = "Line1" + boundary + "Line2";
+        }
+        byte[] docx = source.ToBytes();
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Contains("line breaks", error.Message, StringComparison.Ordinal);
+        Assert.Equal(docx, source.ToBytes());
+        Assert.Empty(source.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(false, WordHyperlinkTargetFrame._blank)]
     [InlineData(false, WordHyperlinkTargetFrame._self)]
     [InlineData(false, WordHyperlinkTargetFrame._parent)]

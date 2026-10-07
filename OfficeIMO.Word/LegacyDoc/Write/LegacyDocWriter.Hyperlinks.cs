@@ -106,6 +106,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static string AppendHyperlinkMetadata(string instruction, Hyperlink hyperlink) {
+            EnsureSupportedHyperlinkMetadata(hyperlink.Tooltip?.Value);
+            EnsureSupportedHyperlinkMetadata(hyperlink.TargetFrame?.Value);
             if (hyperlink.Tooltip?.Value is string tooltip) {
                 instruction += "\\o \"" + EscapeFieldString(tooltip) + "\" ";
             }
@@ -113,6 +115,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 instruction += "\\t \"" + EscapeFieldString(hyperlink.TargetFrame!.Value!) + "\" ";
             }
             return instruction;
+        }
+
+        private static void EnsureSupportedHyperlinkMetadata(string? value) {
+            if (value != null && (value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0)) {
+                throw new NotSupportedException("Native DOC saving cannot preserve line breaks in hyperlink tooltip or target-frame metadata.");
+            }
         }
 
         private static void EnsureSupportedHyperlinkRun(Run run) {
