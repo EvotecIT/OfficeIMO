@@ -11,7 +11,8 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
-        string? diagnosticSource = null) {
+        string? diagnosticSource = null,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null) {
         if (TryDecodeImage(
                 drawingImage.EncodedBytes,
                 drawingImage.ContentType,
@@ -20,7 +21,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 imageCodec,
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
-                canvas.DiagnosticSink,
+                diagnosticSink ?? canvas.DiagnosticSink,
                 diagnosticSource ?? canvas.DiagnosticSource,
                 canvas.TransformedTextBudget,
                 maximumRasterPixels,

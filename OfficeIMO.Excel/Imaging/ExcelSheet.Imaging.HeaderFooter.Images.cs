@@ -43,11 +43,14 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             OfficeTextZoneLayout zones,
             double scale,
-            IOfficeRasterImageCodec imageCodec,
+            ExcelWorksheetImageExportOptions options,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            string diagnosticSource,
             CancellationToken cancellationToken) {
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, imageCodec, cancellationToken);
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, imageCodec, cancellationToken);
-            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, imageCodec, cancellationToken);
+            string section = diagnosticSource + (isHeader ? ":header-" : ":footer-");
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderLeftImage : chrome.FooterLeftImage, zones.Left, bandTop, bandHeight, scale, OfficeTextAlignment.Left, options, diagnostics, section + "left-image", cancellationToken);
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderCenterImage : chrome.FooterCenterImage, zones.Center, bandTop, bandHeight, scale, OfficeTextAlignment.Center, options, diagnostics, section + "center-image", cancellationToken);
+            DrawHeaderFooterRasterImage(canvas, isHeader ? chrome.HeaderRightImage : chrome.FooterRightImage, zones.Right, bandTop, bandHeight, scale, OfficeTextAlignment.Right, options, diagnostics, section + "right-image", cancellationToken);
         }
 
         private static void DrawHeaderFooterRasterImage(
@@ -58,25 +61,22 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment,
-            IOfficeRasterImageCodec imageCodec,
+            ExcelWorksheetImageExportOptions options,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            string diagnosticSource,
             CancellationToken cancellationToken) {
             if (image == null) {
                 return;
             }
-            if (!OfficeRasterImageDecoder.TryDecode(
-                    image.Bytes,
-                    new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
-                    out OfficeRasterImage? raster,
-                    out _) || raster == null) {
-                cancellationToken.ThrowIfCancellationRequested();
-                imageCodec.TryDecode(image.Bytes, image.ContentType, out raster);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            if (raster == null) return;
-
             (double x, double y, double width, double height) = ResolveHeaderFooterImageBox(image, zone, bandTop, bandHeight, scale, alignment);
             using (canvas.PushClipRectangle(zone.X, bandTop, zone.Width, bandHeight)) {
-                canvas.DrawImage(raster, x, y, width, height);
+                var drawingImage = new OfficeDrawingImage(image.Bytes, image.ContentType,
+                    new OfficeImageProjection(new OfficeImagePlacement(x, y, width, height)));
+                OfficeDrawingRasterRenderer.RenderImage(
+                    canvas, drawingImage, 1D,
+                    new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, diagnosticSource),
+                    options.MaximumRasterPixels, cancellationToken,
+                    diagnosticSource: diagnosticSource, diagnosticSink: diagnostics);
             }
         }
 
