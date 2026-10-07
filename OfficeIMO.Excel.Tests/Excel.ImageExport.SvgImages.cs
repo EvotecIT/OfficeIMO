@@ -148,4 +148,3 @@ public sealed class ExcelSvgImageExportTests {
         }
     }
 }
-
