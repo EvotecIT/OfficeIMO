@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Workbook } from "../dist/xlsx/index.js";
+import { StyleRegistry } from "../dist/xlsx/styles.js";
 import { readZip } from "./zip-reader.mjs";
 
 const columns = [{ header: "Name", key: "name", groups: ["Report"] }, { header: "Amount", key: "amount", type: "number", format: "0.00", groups: ["Report"] }];
@@ -81,14 +82,47 @@ test("empty data-only rules do not color report headings or totals; literal rang
   }
 });
 
+test("rejected worksheets release names, conditional capacity and hyperlink reservations", async () => {
+  const failures = [
+    { table: { name: "bad table" } }, { table: { name: "Existing" } }, { table: { style: "unknown" } },
+    { hyperlinks: [{ cell: "A2", target: "https://example.com" }, { cell: "B2", target: "https://example.com" }] },
+    { columns: [{ header: "Name" }, { header: "Amount", format: "\u0001" }] }
+  ];
+  for (const failure of failures) {
+    const book = new Workbook({ invalidCharacterPolicy: "reject", limits: { maxDifferentialStyles: 1, maxConditionalFormats: 1, maxHyperlinks: 1 } });
+    book.addSheet("Existing", { columns, table: { name: "Existing" } });
+    assert.throws(() => book.addSheet("Recover", { columns, conditionalFormats: [highlight], ...failure }));
+    assert.throws(() => book.addSheet(17, { columns, conditionalFormats: [highlight] }));
+    const sheet = book.addSheet("Recover", { columns, conditionalFormats: [{ ...highlight, style: { fill: { color: "123456" } } }], hyperlinks: [{ cell: "A2", target: "https://example.com" }] });
+    assert.equal(sheet.name, "Recover"); await sheet.addRows([["ok", 1]]);
+    const zip = await readZip(await book.toBlob()), styles = zip.get("xl/styles.xml").content;
+    assert.match(styles, /<dxfs count="1">/); assert.doesNotMatch(styles, /FFFFC7CE/);
+    assert.match(zip.get("xl/worksheets/sheet2.xml").content, /priority="1" dxfId="0"/);
+  }
+  const book = new Workbook({ limits: { maxDifferentialStyles: 0, maxHyperlinks: 1 } });
+  assert.throws(() => book.addSheet("Recover", { columns, conditionalFormats: [highlight], hyperlinks: [{ cell: "A2", target: "https://example.com" }] }), { code: "RESOURCE_LIMIT" });
+  assert.equal(book.addSheet("Recover", { columns, hyperlinks: [{ cell: "A2", target: "https://example.com" }] }).name, "Recover");
+  const bounded = new Workbook({ limits: { maxDifferentialStyles: 0, maxStyles: 3 } });
+  assert.throws(() => bounded.addSheet("Recover", { title: { text: "Rejected" }, columns: [{ header: "Value", format: "0.00" }], conditionalFormats: [{ ...highlight, range: "A2" }] }), { code: "RESOURCE_LIMIT" });
+  assert.equal(bounded.addSheet("Recover", { columns: [{ header: "Value", format: "0.000" }] }).name, "Recover");
+  const styles = new StyleRegistry();
+  for (let i = 0; i < 65371; i++) styles.addNumberFormat('"' + i + '"0');
+  assert.throws(() => styles.addDifferentials([{ numberFormat: '"first"0' }, { numberFormat: '"second"0' }]), /Too many number formats/);
+  assert.doesNotMatch(styles.toXml(), /<dxfs/);
+  assert.equal(styles.addDifferentials([{ numberFormat: '"remaining"0' }])[0], 0);
+});
+
 test("literal formulas and thresholds escape XML while preserving formula semantics", async () => {
   const book = new Workbook(), formula = 'AND(A2="_x0041_ Łódź 🧪",B2<5)';
   await book.addSheet("Formula", { columns, conditionalFormats: [
     { type: "expression", range: "A2:B2", formula, style: highlight.style },
-    { type: "dataBar", range: "B2", color: "638EC6", minimum: { type: "number", value: 0 }, maximum: { type: "formula", value: "=MAX($B$2:$B$2)" } },
+    { type: "dataBar", range: "B2", color: "638EC6", minimum: { type: "number", value: 0 }, maximum: { type: "formula", value: '=IF(A2="_x0041_ Łódź 🧪\t\r\n",100,200)' } },
+    { type: "colorScale", range: "B2", stops: [{ threshold: { type: "min" }, color: "FF0000" }, { threshold: { type: "formula", value: "='Rate_x0041_'!B2" }, color: "00FF00" }] },
     { type: "cellIs", range: "B2", operator: "between", values: [-1, 1], style: highlight.style }
   ] }).addRows([["_x0041_ Łódź 🧪", 0.5]]);
   const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
   assert.match(xml, /AND\(A2=&quot;_x0041_ Łódź 🧪&quot;,B2&lt;5\)/);
-  assert.match(xml, /type="formula" val="MAX\(\$B\$2:\$B\$2\)"/); assert.match(xml, /<formula>-1<\/formula><formula>1<\/formula>/);
+  assert.match(xml, /type="formula" val="IF\(A2=&quot;_x005F_x0041_ Łódź 🧪_x0009__x000D__x000A_&quot;,100,200\)"/);
+  assert.match(xml, /type="formula" val="&apos;Rate_x005F_x0041_&apos;!B2"/);
+  assert.match(xml, /<formula>-1<\/formula><formula>1<\/formula>/);
 });

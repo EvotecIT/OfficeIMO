@@ -73,7 +73,15 @@ export class StyleRegistry {
     cleanXml("", policy); this.add();
   }
   /** @internal */
-  addDifferentials(styles: readonly ConditionalStyle[]): readonly number[] { return this.differential.add(styles); }
+  checkDifferentials(styles: readonly ConditionalStyle[]): void {
+    // A batch must not register some dxfs before its shared number-format capacity fails.
+    const formats = new Set(styles.flatMap(style => style.numberFormat === undefined ? [] : [cleanXml(style.numberFormat, this.policy)])
+      .filter(format => format !== "General" && !this.formats.has(format)));
+    if (this.formats.size + formats.size > 65372) throw new RangeError("Too many number formats.");
+    this.differential.check(styles);
+  }
+  /** @internal */
+  addDifferentials(styles: readonly ConditionalStyle[]): readonly number[] { this.checkDifferentials(styles); return this.differential.add(styles); }
   addFont(font: Font): number {
     if (font.name !== undefined && typeof font.name !== "string") throw new TypeError("Font name must be a string.");
     const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;

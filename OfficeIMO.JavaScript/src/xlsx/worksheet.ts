@@ -22,6 +22,7 @@ import type { ExportValue } from "../core/presentation.js";
 import { ReportLayout, ComputedTotal, printXml } from "./layout.js";
 import { cleanXml } from "../xml/index.js";
 import { ConditionalFormats, prepareConditionalFormats } from "./conditional-formatting.js";
+import type { PreparedRule } from "./conditional-formatting.js";
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 export class Worksheet {
@@ -48,7 +49,7 @@ export class Worksheet {
   private readonly links: Hyperlink[] = [];
   private readonly pictures: WorksheetImage[] = [];
   private readonly conditional: ConditionalFormats;
-  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional?: ConditionalFormats) {
+  private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = []) {
     this.columns = copyColumns(options.columns ?? []).map(c => Object.freeze(c));
     const alternate = options.alternatingRowStyle;
     this.options = { ...options, ...(options.autoSize ? { autoSize: { ...options.autoSize } } : {}),
@@ -60,23 +61,27 @@ export class Worksheet {
     this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
     this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
-    this.conditional = conditional ?? new ConditionalFormats([], book.styles);
-    for (const link of options.hyperlinks ?? []) { book.retainLink(); this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy)); }
+    for (const link of options.hyperlinks ?? []) this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
+    book.checkLinks(this.links.length);
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
       style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
       headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
         ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
     }));
+    // Register conditional styles only after worksheet construction can no longer reject its options.
+    this.conditional = new ConditionalFormats(conditional, book.styles);
+    book.retainLink(this.links.length);
   }
   /** @internal */
-  static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false, conditional?: ConditionalFormats): Worksheet { return new Worksheet(book, name, options, table, preserved, conditional); }
+  static create(book: Workbook, name: string, options: SheetOptions, table?: TableDefinition, preserved = false, conditional?: readonly PreparedRule[]): Worksheet { return new Worksheet(book, name, options, table, preserved, conditional); }
   /** @internal Validate before allocating native compressor resources or registering the sheet name. */
-  static validate(book: Workbook, options: SheetOptions): ConditionalFormats {
+  static validate(book: Workbook, options: SheetOptions): readonly PreparedRule[] {
     for (const feature of ["dataValidation"] as const)
       if (options[feature] !== undefined) throw new NotSupportedError(feature);
     const columns = copyColumns(options.columns ?? []);
     book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
     const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
+    book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
     const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
     book.checkMerges(layout.merges.length);
     if (options.title?.style) validateStylePatch(options.title.style);
@@ -112,7 +117,7 @@ export class Worksheet {
       if (c.style !== undefined) book.styles.validateStyle(c.style);
       if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255)) throw new TypeError("Column format must be a string of at most 255 characters.");
     }
-    return new ConditionalFormats(conditional, book.styles);
+    return conditional;
   }
   private cell(value: unknown, i: number, row: number, header = false, rowStyle?: CellStyle, context?: RowStyleContext, rowStyles?: Map<number, number>, footer = false, title = false): string {
     const col = this.declared[i]!;

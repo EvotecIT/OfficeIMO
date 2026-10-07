@@ -20,11 +20,16 @@ export function optionalBoolean(value: unknown, name: string): void {
 export class DifferentialStyles {
   private readonly definitions = new Map<string, { id: number; xml: string }>();
   constructor(private readonly policy: InvalidCharacterPolicy, private readonly maximum: number, private readonly numberFormat: (format: string) => number) {}
-  add(styles: readonly ConditionalStyle[]): readonly number[] {
+  private keys(styles: readonly ConditionalStyle[]): readonly string[] {
     // Validation and canonical XML precede registration, so equivalent property order shares a dxf.
     const keys = styles.map(style => differentialXml(style, this.policy, () => 164));
     const pending = new Set(keys.filter(definition => !this.definitions.has(definition)));
     if (this.definitions.size + pending.size > this.maximum) throw new OfficeIMOError("RESOURCE_LIMIT", "maxDifferentialStyles exceeded.");
+    return keys;
+  }
+  check(styles: readonly ConditionalStyle[]): void { this.keys(styles); }
+  add(styles: readonly ConditionalStyle[]): readonly number[] {
+    const keys = this.keys(styles);
     for (let i = 0; i < styles.length; i++) if (!this.definitions.has(keys[i]!))
       this.definitions.set(keys[i]!, { id: this.definitions.size, xml: differentialXml(styles[i]!, this.policy, this.numberFormat) });
     return keys.map(key => this.definitions.get(key)!.id);

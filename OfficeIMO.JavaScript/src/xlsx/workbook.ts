@@ -99,10 +99,11 @@ export class Workbook {
     if (this.settings.limits?.maxSheets !== undefined && count > this.settings.limits.maxSheets) throw new OfficeIMOError("RESOURCE_LIMIT", "maxSheets exceeded.");
   }
   /** @internal */
-  retainLink(): void {
-    if (this.settings.limits?.maxHyperlinks !== undefined && this.links + 1 > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
-    this.links++;
+  checkLinks(count: number): void {
+    if (this.settings.limits?.maxHyperlinks !== undefined && this.links + count > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
   }
+  /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
+  retainLink(count = 1): void { this.checkLinks(count); this.links += count; }
   /** @internal */
   retainImage(bytes: number): void {
     if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
@@ -143,7 +144,8 @@ export class Workbook {
     }
     const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
     if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
-    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options, table, false, conditional);
+    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+    this.names.add(sheet.name.toLowerCase());
     this.mergedRanges += sheet.mergeCount;
     this.conditionalFormats += sheet.conditionalFormatCount;
     if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }

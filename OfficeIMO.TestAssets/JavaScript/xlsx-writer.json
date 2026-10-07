@@ -40,8 +40,8 @@
           "font": { "bold": false, "italic": false, "underline": false }, "numberFormat": "\"_x0041_\"0.0",
           "border": { "bottom": { "style": "thin", "color": "123456" } }
         } },
-          { "type": "dataBar", "range": "A2", "color": "638EC6", "minimum": { "type": "number", "value": 0 }, "maximum": { "type": "formula", "value": "=MAX($A$2:$A$2)" } },
-          { "type": "colorScale", "range": "A2", "stops": [{ "threshold": { "type": "min" }, "color": "F8696B" }, { "threshold": { "type": "max" }, "color": "63BE7B" }] }
+          { "type": "dataBar", "range": "A2", "color": "638EC6", "minimum": { "type": "number", "value": 0 }, "maximum": { "type": "formula", "value": "=IF(\"_x0041_\"=\"_x0041_\",MAX($A$2:$A$2),100)" } },
+          { "type": "colorScale", "range": "A2", "stops": [{ "threshold": { "type": "min" }, "color": "F8696B" }, { "threshold": { "type": "formula", "value": "=IF(\"_x0041_\"=\"_x0041_\",MAX($A$2:$A$2),100)" }, "color": "63BE7B" }] }
         ], "rows": [[12.5]], "expected": { "A2": 12.5 }
       }
     ] },

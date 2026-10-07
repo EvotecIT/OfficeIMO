@@ -1,5 +1,5 @@
 import type { Column } from "../core/index.js";
-import { cleanXml, escapeXml } from "../xml/index.js";
+import { cleanXml, escapeXml, escapeOoxmlAttribute } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { cellPosition } from "./attachments.js";
 import { columnName } from "./values.js";
@@ -9,7 +9,8 @@ import type { ConditionalFormat, ConditionalRange, ConditionalStyle, Conditional
 import type { StyleRegistry } from "./styles.js";
 
 interface Target { readonly first: number; readonly last: number; readonly reference?: string; readonly bottom?: number; }
-interface PreparedRule { readonly target: Target; readonly type: string; readonly attributes: string; readonly body: string; readonly style?: ConditionalStyle; }
+/** @internal Validated metadata, without workbook registrations. */
+export interface PreparedRule { readonly target: Target; readonly type: string; readonly attributes: string; readonly body: string; readonly style?: ConditionalStyle; }
 function target(range: ConditionalRange, columns: readonly Column[]): Target {
   if (typeof range === "string") {
     const parts = range.split(":");
@@ -41,7 +42,7 @@ function formula(value: string): string {
   const text = value.trim().replace(/^=/, "");
   if (!text.trim() || text.length > 8192) throw new RangeError("Conditional formulas require 1 through 8,192 characters.");
   // Stripping invalid characters could change a calculation; reject them even under the text-strip policy.
-  cleanXml(text, "reject"); return escapeXml(text, "reject");
+  cleanXml(text, "reject"); return text;
 }
 function threshold(value: ConditionalThreshold, position: "first" | "middle" | "last"): string {
   fields(value, value.type === "min" || value.type === "max" ? ["type"] : ["type", "value"], "conditional threshold");
@@ -49,7 +50,7 @@ function threshold(value: ConditionalThreshold, position: "first" | "middle" | "
     if (value.type !== (position === "first" ? "min" : position === "last" ? "max" : "")) throw new TypeError("Use min only at the start and max only at the end of a scale.");
     return '<cfvo type="' + value.type + '"/>';
   }
-  if (value.type === "formula") return '<cfvo type="formula" val="' + formula(value.value) + '"/>';
+  if (value.type === "formula") return '<cfvo type="formula" val="' + escapeOoxmlAttribute(formula(value.value), "reject") + '"/>';
   if (!["number", "percent", "percentile"].includes(value.type)) throw new TypeError("Unsupported conditional threshold type.");
   if (!("value" in value)) throw new TypeError("A numeric threshold requires a value.");
   const number = finite(value.value);
@@ -78,7 +79,7 @@ export function prepareConditionalFormats(rules: readonly ConditionalFormat[] | 
       style = { ...rule.style, ...(rule.style.font ? { font: { ...rule.style.font } } : {}), ...(rule.style.fill ? { fill: { ...rule.style.fill } } : {}),
         ...(rule.style.border ? { border: Object.fromEntries(Object.entries(rule.style.border).filter(([, edge]) => edge !== undefined).map(([side, edge]) => [side, { ...edge }])) } : {}) };
       if (rule.stopIfTrue !== undefined) attributes += ' stopIfTrue="' + (rule.stopIfTrue ? 1 : 0) + '"';
-      if (rule.type === "expression") body = '<formula>' + formula(rule.formula) + '</formula>';
+      if (rule.type === "expression") body = '<formula>' + escapeXml(formula(rule.formula), "reject") + '</formula>';
       else {
         const pair = rule.operator === "between" || rule.operator === "notBetween";
         if (!["equal", "notEqual", "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual", "between", "notBetween"].includes(rule.operator)) throw new TypeError("Unsupported conditional comparison operator.");

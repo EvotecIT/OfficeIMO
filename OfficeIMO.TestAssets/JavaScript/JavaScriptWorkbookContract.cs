@@ -123,7 +123,9 @@ internal static class JavaScriptWorkbookContract {
         Require(empty.Length == 1 && empty[0].SequenceOfReferences!.InnerText == "A1" && empty[0].Elements<ConditionalFormattingRule>().Single().Priority!.Value == 2,
             "Empty data-only rule colors the header or changes explicit rule priority.");
         var overrides = ((WorksheetPart)workbook.GetPartById(workbook.Workbook!.Sheets!.Elements<Sheet>().Last().Id!.Value!)).Worksheet!.Descendants<ConditionalFormattingRule>().ToArray();
-        Require(overrides.Length == 3 && overrides[1].GetFirstChild<DataBar>()!.Elements<ConditionalFormatValueObject>().Last().Val!.Value == "MAX($A$2:$A$2)" &&
+        const string threshold = "IF(\"_x0041_\"=\"_x0041_\",MAX($A$2:$A$2),100)";
+        Require(overrides.Length == 3 && XmlConvert.DecodeName(overrides[1].GetFirstChild<DataBar>()!.Elements<ConditionalFormatValueObject>().Last().Val!.Value!) == threshold &&
+            XmlConvert.DecodeName(overrides[2].GetFirstChild<ColorScale>()!.Elements<ConditionalFormatValueObject>().Last().Val!.Value!) == threshold &&
             overrides[2].GetFirstChild<ColorScale>()!.Elements<Color>().Count() == 2, "Formula threshold or two-color scale differs.");
     }
     private static void VerifyReport(WorkbookPart workbook, JsonElement fixture) {

@@ -1102,12 +1102,17 @@ class DifferentialStyles {
         this.maximum = maximum;
         this.numberFormat = numberFormat;
     }
-    add(styles) {
+    keys(styles) {
         // Validation and canonical XML precede registration, so equivalent property order shares a dxf.
         const keys = styles.map(style => differentialXml(style, this.policy, () => 164));
         const pending = new Set(keys.filter(definition => !this.definitions.has(definition)));
         if (this.definitions.size + pending.size > this.maximum)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxDifferentialStyles exceeded.");
+        return keys;
+    }
+    check(styles) { this.keys(styles); }
+    add(styles) {
+        const keys = this.keys(styles);
         for (let i = 0; i < styles.length; i++)
             if (!this.definitions.has(keys[i]))
                 this.definitions.set(keys[i], { id: this.definitions.size, xml: differentialXml(styles[i], this.policy, this.numberFormat) });
@@ -1245,7 +1250,16 @@ class StyleRegistry {
         this.add();
     }
     /** @internal */
-    addDifferentials(styles) { return this.differential.add(styles); }
+    checkDifferentials(styles) {
+        // A batch must not register some dxfs before its shared number-format capacity fails.
+        const formats = new Set(styles.flatMap(style => style.numberFormat === undefined ? [] : [cleanXml(style.numberFormat, this.policy)])
+            .filter(format => format !== "General" && !this.formats.has(format)));
+        if (this.formats.size + formats.size > 65372)
+            throw new RangeError("Too many number formats.");
+        this.differential.check(styles);
+    }
+    /** @internal */
+    addDifferentials(styles) { this.checkDifferentials(styles); return this.differential.add(styles); }
     addFont(font) {
         if (font.name !== undefined && typeof font.name !== "string")
             throw new TypeError("Font name must be a string.");
@@ -1420,7 +1434,7 @@ function columnName(index) {
     return name;
 }
 function clipName(text, length) { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
-function sheetName(requested, names, policy) {
+function sheetName(requested, names, policy, register = true) {
     if (typeof requested !== "string")
         throw new TypeError("Sheet name must be a string.");
     // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
@@ -1436,7 +1450,8 @@ function sheetName(requested, names, policy) {
         const tail = " (" + suffix++ + ")";
         name = clipName(base, 31 - tail.length) + tail;
     }
-    names.add(name.toLowerCase());
+    if (register)
+        names.add(name.toLowerCase());
     return name;
 }
 function excelDate(date, mode) {
@@ -1843,7 +1858,7 @@ return _exports;
 })();
 
 const _m24 = (() => {
-const { cleanXml, escapeXml } = _m8;
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m8;
 
 const { cellPosition } = _m21;
 
@@ -1893,7 +1908,7 @@ function formula(value) {
         throw new RangeError("Conditional formulas require 1 through 8,192 characters.");
     // Stripping invalid characters could change a calculation; reject them even under the text-strip policy.
     cleanXml(text, "reject");
-    return escapeXml(text, "reject");
+    return text;
 }
 function threshold(value, position) {
     fields(value, value.type === "min" || value.type === "max" ? ["type"] : ["type", "value"], "conditional threshold");
@@ -1903,7 +1918,7 @@ function threshold(value, position) {
         return '<cfvo type="' + value.type + '"/>';
     }
     if (value.type === "formula")
-        return '<cfvo type="formula" val="' + formula(value.value) + '"/>';
+        return '<cfvo type="formula" val="' + escapeOoxmlAttribute(formula(value.value), "reject") + '"/>';
     if (!["number", "percent", "percentile"].includes(value.type))
         throw new TypeError("Unsupported conditional threshold type.");
     if (!("value" in value))
@@ -1939,7 +1954,7 @@ function prepareConditionalFormats(rules, columns, policy) {
             if (rule.stopIfTrue !== undefined)
                 attributes += ' stopIfTrue="' + (rule.stopIfTrue ? 1 : 0) + '"';
             if (rule.type === "expression")
-                body = '<formula>' + formula(rule.formula) + '</formula>';
+                body = '<formula>' + escapeXml(formula(rule.formula), "reject") + '</formula>';
             else {
                 const pair = rule.operator === "between" || rule.operator === "notBetween";
                 if (!["equal", "notEqual", "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual", "between", "notBetween"].includes(rule.operator))
@@ -2065,7 +2080,7 @@ class Worksheet {
     links = [];
     pictures = [];
     conditional;
-    constructor(book, name, options, table, preserved = false, conditional) {
+    constructor(book, name, options, table, preserved = false, conditional = []) {
         this.book = book;
         this.name = name;
         this.table = table;
@@ -2081,16 +2096,17 @@ class Worksheet {
         this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
-        this.conditional = conditional ?? new ConditionalFormats([], book.styles);
-        for (const link of options.hyperlinks ?? []) {
-            book.retainLink();
+        for (const link of options.hyperlinks ?? [])
             this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
-        }
+        book.checkLinks(this.links.length);
         this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
             style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
             headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
                 ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
         }));
+        // Register conditional styles only after worksheet construction can no longer reject its options.
+        this.conditional = new ConditionalFormats(conditional, book.styles);
+        book.retainLink(this.links.length);
     }
     /** @internal */
     static create(book, name, options, table, preserved = false, conditional) { return new Worksheet(book, name, options, table, preserved, conditional); }
@@ -2102,6 +2118,7 @@ class Worksheet {
         const columns = copyColumns(options.columns ?? []);
         book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
+        book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
         const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
         book.checkMerges(layout.merges.length);
         if (options.title?.style)
@@ -2159,7 +2176,7 @@ class Worksheet {
             if (c.format !== undefined && (typeof c.format !== "string" || c.format.length > 255))
                 throw new TypeError("Column format must be a string of at most 255 characters.");
         }
-        return new ConditionalFormats(conditional, book.styles);
+        return conditional;
     }
     cell(value, i, row, header = false, rowStyle, context, rowStyles, footer = false, title = false) {
         const col = this.declared[i];
@@ -2767,11 +2784,12 @@ class Workbook {
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxSheets exceeded.");
     }
     /** @internal */
-    retainLink() {
-        if (this.settings.limits?.maxHyperlinks !== undefined && this.links + 1 > this.settings.limits.maxHyperlinks)
+    checkLinks(count) {
+        if (this.settings.limits?.maxHyperlinks !== undefined && this.links + count > this.settings.limits.maxHyperlinks)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
-        this.links++;
     }
+    /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
+    retainLink(count = 1) { this.checkLinks(count); this.links += count; }
     /** @internal */
     retainImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
@@ -2819,7 +2837,8 @@ class Workbook {
         const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
         if (table && this.tableNames.has(table.name.toLowerCase()))
             throw new TypeError("Duplicate Excel table name: " + table.name);
-        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options, table, false, conditional);
+        const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+        this.names.add(sheet.name.toLowerCase());
         this.mergedRanges += sheet.mergeCount;
         this.conditionalFormats += sheet.conditionalFormatCount;
         if (table) {
