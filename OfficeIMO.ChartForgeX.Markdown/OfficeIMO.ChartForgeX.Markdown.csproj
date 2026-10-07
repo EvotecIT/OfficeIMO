@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Optional static Mermaid rendering for OfficeIMO Markdown document and HTML pipelines.</Description>
+    <PackageId>OfficeIMO.ChartForgeX.Markdown</PackageId>
+    <VersionPrefix>3.4.4</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>officeimo;chartforgex;markdown;mermaid;svg;png</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <ProjectReference Include="..\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ChartForgeXMarkupMermaidProjectPath)' != ''">
+    <ProjectReference Include="$(ChartForgeXMarkupMermaidProjectPath)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ChartForgeXMarkupMermaidProjectPath)' == ''">
+    <PackageReference Include="ChartForgeX.Markup.Mermaid" Version="[1.8.2,2.0.0)" />
+  </ItemGroup>
+</Project>

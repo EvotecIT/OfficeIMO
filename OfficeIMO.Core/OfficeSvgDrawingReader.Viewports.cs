@@ -28,10 +28,12 @@ public static partial class OfficeSvgDrawingReader {
         return new OfficeDrawing(width, height).AddEffectDrawing(scene, transform);
     }
 
-    // Only newly retained, out-of-canvas geometry needs an additional root wrapper. Keep the
-    // existing flat scene contract for ordinary primitives, including their stroke metadata.
+    // Positioned SVG text retains ink beyond its measured layout frame. The authored
+    // viewport must therefore be explicit even when that frame appears to fit. Keep
+    // the existing flat scene for ordinary primitives, including stroke metadata.
     private static bool HasNewlyRetainedSvgGeometry(OfficeDrawing drawing) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingText text && !text.ClipToFrame) return true;
             if (element is OfficeDrawingShape shape &&
                 (shape.X < 0D || shape.Y < 0D || shape.X + shape.Shape.Width > drawing.Width ||
                  shape.Y + shape.Shape.Height > drawing.Height)) return true;

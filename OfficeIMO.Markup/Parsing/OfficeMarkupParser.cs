@@ -38,10 +38,10 @@ public static partial class OfficeMarkupParser {
         var document = new OfficeMarkupDocument(profile);
         CopyAttributes(metadata, document.Metadata);
 
-        if (!TryMapOfficeSyntax(source, document, profile, diagnostics)) {
-            var markdownOptions = CreateMarkdownOptions(options);
-            var markdownDocument = MarkdownReader.ParseSemanticProjection(source, markdownOptions);
-            MapMarkdownBlocks(markdownDocument.Blocks, document.Blocks, profile, diagnostics);
+        var markdownOptions = CreateMarkdownOptions(options);
+        if (!TryMapOfficeSyntax(source, document, profile, diagnostics, markdownOptions)) {
+            var markdownDocument = MarkdownReader.ParseProjectionWithBlockSpans(source, markdownOptions);
+            MapMarkdownBlocks(markdownDocument.Blocks, document.Blocks, profile, diagnostics, markdownOptions);
         }
 
         if (options.Validate) {

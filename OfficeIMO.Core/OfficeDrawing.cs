@@ -313,11 +313,13 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
-    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor, OfficeTextFeatureSettings? featureSettings, string? fontPalette, bool allowOverflow, OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor, OfficeTextFeatureSettings? featureSettings, string? fontPalette, bool allowOverflow, OfficeTextDirection textDirection = OfficeTextDirection.Auto, bool clipToFrame = true) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment,
             rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical,
             padding, paragraphIndent, overflowBehavior, textAdvanceWidth, underlineStyle, strikethroughStyle, baseline,
-            baselineLevel, baselineScale, baselineOffset, decorationColor, featureSettings, fontPalette, textDirection);
+            baselineLevel, baselineScale, baselineOffset, decorationColor, featureSettings, fontPalette, textDirection) {
+            ClipToFrame = clipToFrame
+        };
         if (!allowOverflow && (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
@@ -788,7 +790,7 @@ public sealed partial class OfficeDrawing {
             text.DecorationColor,
             text.FeatureSettings,
             text.FontPalette,
-            text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs, FontMetricScale = text.FontMetricScale };
+            text.TextDirection) { PreservesPaintedGlyphs = text.PreservesPaintedGlyphs, FontMetricScale = text.FontMetricScale, ClipToFrame = text.ClipToFrame };
         item.SetPaintedText(text.Text, text.RasterText);
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");

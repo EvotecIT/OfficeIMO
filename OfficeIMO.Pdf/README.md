@@ -198,6 +198,12 @@ before and after an affine transform.
 Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
 gradient clipping, affine transforms, and header and footer shapes.
 
+HTML and SVG adapters preserve positioned text without turning its line or
+advance measurements into an extra paint clip. Glyphs can extend beyond those
+layout boxes; authored CSS overflow and SVG clipping still constrain them.
+Explicit drawing text frames and public canvas text boxes retain their clipping
+behavior, including clipping link annotations to the visible frame.
+
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
 the selected shaping provider supplies vertical advances and complete logical
 text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns
@@ -961,6 +967,14 @@ work-budget context. `PdfUnderstandingPipelineOptions.MaxWorkUnitsPerPage` and
 `MaxDocumentWorkUnits` bound geometry comparisons, recursive partitioning, and
 document-wide evidence; over-complex input fails with
 `PdfReadLimitKind.UnderstandingWork` instead of continuing unbounded work.
+
+Structured reads associate tagged list bodies with their nearest `LI`, including
+text inside paragraph and link descendants. A `Lbl` supplies the marker; item
+text excludes it. Nested items keep separate bodies and nesting levels, and an
+item spanning pages has one fragment per page. Paragraph, heading, and table
+classifications remain available. Text exports preserve headings, tables, and
+unrelated content on shared lines instead of repeating them inside a flattened
+list item.
 
 Each page result exposes `ImagePlacements` and one `ImageRegion` per placement
 invocation. Regions retain placement geometry and paint order, associate nearby
