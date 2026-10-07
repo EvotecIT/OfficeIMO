@@ -78,6 +78,8 @@ export class ChunkedTextSink {
 export async function writeBytes(source: ByteSource, sink: ByteSink, signal?: AbortSignal): Promise<void> {
   await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
     if (!(bytes instanceof Uint8Array)) throw new TypeError("Byte sources must yield Uint8Array chunks.");
-    return sink.write(bytes);
+    const pending = sink.write(bytes);
+    if (taskYieldDue()) return Promise.resolve(pending).then(() => { checkAbort(signal); return pause(); });
+    return pending;
   });
 }

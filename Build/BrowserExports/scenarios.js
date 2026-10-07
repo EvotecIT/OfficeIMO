@@ -72,12 +72,13 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
   try {
     for (const scheduling of ["native", "timer"]) {
       Object.defineProperty(globalThis, "scheduler", { configurable: true, value: scheduling === "native" ? nativeScheduler : undefined });
-      for (const kind of ["xlsx", "csv"]) {
+      for (const kind of ["xlsx", "csv", "bytes"]) {
         const controller = new AbortController(); let returned = false;
-        function* rows() { try { for (let i = 0; i < 1000000; i++) yield ["row" + i]; } finally { returned = true; } }
+        function* rows() { try { for (let i = 0; i < 1000000; i++) yield kind === "bytes" ? Uint8Array.of(1) : ["row" + i]; } finally { returned = true; } }
         const options = { columns: [{ header: "V" }], signal: controller.signal };
         const book = new Workbook(options);
-        const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows()) : writeCsv(rows(), options);
+        const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows())
+          : kind === "csv" ? writeCsv(rows(), options) : OfficeIMO.writeBytes(rows(), { write() {} }, controller.signal);
         setTimeout(() => controller.abort(), 15);
         await rejects(() => writing, "AbortError"); require(returned, scheduling + " cancelled iterator was returned");
       }
