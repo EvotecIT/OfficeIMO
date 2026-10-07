@@ -56,14 +56,20 @@ internal static partial class PdfWriter {
 
         PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection, fontMetricScale);
         double naturalWidth = command.AdvanceWidth1000.GetValueOrDefault() * effectiveFontSize / 1000D;
-        double trackingAdvance = (command.Tracking?.GetAdjustment(effectiveFontSize / command.FontMetricScale) ?? 0D)
-            * effectiveFontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
-        naturalWidth += command.NegativeTracking ? -trackingAdvance : trackingAdvance;
+        naturalWidth += GetIntrinsicGlyphTrackingAdvance(command, effectiveFontSize)
+            * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
         double advance = naturalWidth * horizontalTextScaling / 100D + command.GlyphCount * characterSpacing;
         if (double.IsNaN(advance) || double.IsInfinity(advance)) {
             throw new InvalidOperationException("The requested glyph width and character spacing produce an invalid text advance.");
         }
         return advance;
+    }
+
+    // One signed boundary adjustment in page points, evaluated at the painted size.
+    private static double GetIntrinsicGlyphTrackingAdvance(PdfTextShowCommand command, double fontSize) {
+        double advance = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
+            * fontSize / command.UnitsPerEm;
+        return command.NegativeTracking ? -advance : advance;
     }
 
     private static double MeasureRichLineWidth(System.Collections.Generic.IReadOnlyList<RichSeg> line, PdfOptions? options = null) {
