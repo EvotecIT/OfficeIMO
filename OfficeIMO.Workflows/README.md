@@ -1918,7 +1918,21 @@ OfficeWorkflowResult result = await OfficeWorkflow.ExtractPages("report.pdf", 5,
 
 The equivalent typed request uses `Operation = OfficeWorkflowOperation.ExtractPages` and `PageNumbers = [5, 1, 2, 5]`. Page numbers are one-based; order and intentional repeats are preserved, up to 100,000 selected pages. Extraction uses the PDF engine's page-preservation policy and supports only the `Faithful` profile. It creates a separate PDF and does not permit replacing the source.
 
+For document-relative pages, set `PageSelector = PdfPageSelector.Parse("last,1-2")`
+instead of `PageNumbers`. `MaximumExtractedPages` limits the resolved selection,
+including repeated pages, before extraction. The selector is resolved against
+the captured source, so the host does not need a separate pre-read.
+`PdfSearchableWorkflowRequest.PageSelector` and `OfficeScanCleanupOptions.PageSelector`
+provide the same captured-source selection for OCR and raster copies; they cannot
+be combined with an absolute `ReadOptions.PageSelection`.
+
 The runner snapshots local and provider inputs, checks for source changes before publication, bounds output serialization, and reopens the generated PDF before publishing. `InputStream`, `OutputStream`, `PublicationGuard`, and the result's publication and recovery states follow the same contracts as other single-output workflows. Cancellation is observed before and after synchronous page extraction and during serialization; it cannot interrupt the PDF engine while that synchronous step is running.
+
+Hosts that restrict writable roots can implement `IOfficeWorkflowStagingGuard`
+alongside `IOfficeWorkflowPublicationGuard`. The runner checks local destination
+directories before and after creation, then checks the final publication path.
+These are point-in-time checks; they do not lock filesystem identities against
+concurrent changes.
 
 ## Save a certificate-signed PDF copy
 

@@ -34,6 +34,46 @@ dotnet tool uninstall --global OfficeIMO.Tool
 
 `server.json` describes the local STDIO server as `io.github.evotecit/officeimo`, backed by the `OfficeIMO.Tool` NuGet package. Clients supply `OFFICEIMO_MCP_ALLOWED_ROOTS` and launch `dotnet dnx OfficeIMO.Tool@<package-version> mcp serve --stdio` with .NET SDK 10.0.100 or later. The registry entry exposes the same bounded operations as the [agent plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools).
 
+## PDF copies and searchable scans
+
+Create a separate PDF, split folder, or searchable scan with an explicit destination:
+
+```text
+officeimo pdf extract report.pdf --pages last,1-3 --output selected.pdf
+officeimo pdf split report.pdf --pages-per-document 10 --output report-parts
+officeimo pdf decrypt protected.pdf --password-env PDF_OWNER_PASSWORD --output clear.pdf
+officeimo pdf flatten report.pdf --output raster.pdf --acknowledge-raster-output --dpi 150
+officeimo pdf optimize report.pdf --output optimized.pdf
+officeimo pdf sanitize report.pdf --output sanitized.pdf
+officeimo pdf providers --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll
+officeimo pdf ocr scan.pdf --output searchable.pdf --ocr-provider tesseract-cli --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll --ocr-language eng
+```
+
+Page selections retain order and repeated pages and support expressions such as
+`last,1-3`, `odd`, and `all,!2`. The selected pages are resolved against the captured
+input. Existing files or folders require `--force`; a source or folder containing
+it cannot be the destination. Decryption requires the owner password in the named
+environment variable. Other protected-document operations retain the PDF engine's
+permission and signature policy.
+
+Flattening copies rendered appearances. Native text, forms, links, signatures,
+and attachments are omitted, so `--acknowledge-raster-output` is required.
+The managed renderer's fidelity limits still apply. Searchable OCR adds a text
+layer to the source pages; confidence does not certify recognition accuracy.
+
+The tool includes no OCR executable or model. Supply a trusted optional provider
+deployment with its managed dependencies. `OfficeIMO.Ocr.Tesseract` registers
+`tesseract-cli` and uses a separately installed Tesseract executable. Repeated
+`--ocr-option key=value` entries configure the provider; executable/model paths
+are chosen by the invoking host. See the [Tesseract provider options](../OfficeIMO.Ocr.Tesseract/README.md#optional-provider-catalog).
+
+These commands emit bounded JSON containing status, artifact paths/counts/bytes,
+and diagnostic codes. Document text, recognized words, passwords and provider
+messages are excluded. Defaults limit selection to 100 pages or split parts,
+input to 256 MiB, output to 512 MiB, and raster work to 25 million pixels per page.
+Use the `--maximum-pages`, `--maximum-input-bytes`, `--maximum-output-bytes`, and
+`--maximum-pixels-per-page` options within the ranges listed by `officeimo pdf --help`.
+
 ## Invoice workflows
 
 Invoice commands return versioned JSON with separate model, mapping and standards
@@ -360,8 +400,34 @@ The server exposes:
 - `officeimo_fetch`
 - `officeimo_convert`
 - `officeimo_capabilities`
+- `officeimo_pdf` — extract, decrypt, raster flatten, optimize, or sanitize into a separate PDF
+- `officeimo_pdf_split` — validated consecutive parts in an explicit destination folder
+- `officeimo_pdf_assemble` — ordered explicit PDF and raster-image files
+- `officeimo_pdf_export_pages` — selected page images in an explicit destination folder
+- `officeimo_pdf_ocr_providers` — provider ids registered by the server host
+- `officeimo_pdf_ocr` — searchable copy through a registered provider
+- `officeimo_pdf_print_plan` — bounded sheet geometry without printer submission
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
+
+PDF tools require explicit output paths within the same allowed-roots policy.
+Overwriting requires `overwrite=true`; flattening additionally requires
+`acknowledgeRasterOutput=true`. Reports honor `maxOutputCharacters`, sample at
+most 25 artifacts, and retain the total `artifactCount` when the sample is truncated.
+MCP assembly accepts PDF and raster image files; the CLI's `workflow assemble`
+owns heterogeneous Office, folder, and archive intake. Printer queue delivery
+is available through the explicit CLI print command, while MCP print planning
+has no device or queue side effect.
+
+The server accepts trusted startup OCR configuration:
+
+```text
+officeimo mcp serve --stdio --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll --ocr-option executable=/path/to/tesseract --ocr-option tessdata=/path/to/tessdata
+```
+
+Tool calls can select a registered provider, language, confidence and page selection.
+They cannot supply provider assemblies, executable/model paths or provider options.
+Configure only providers whose runtime and data-access behavior you authorize.
 
 Use `officeimo agent inspect-email ./message.eml --max-output-characters 6000` or `officeimo_inspect_email`
 for the bounded mail-data and HTML safety report. EML/MSG/OFT/TNEF reports include body alternatives, charsets,

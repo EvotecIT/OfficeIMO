@@ -6,6 +6,8 @@ namespace OfficeIMO.Workflows;
 public sealed class OfficeScanCleanupOptions {
     /// <summary>Page selection, sampling density, region cropping, perspective, and tonal settings.</summary>
     public PdfOcrMergeOptions Preparation { get; set; } = new();
+    /// <summary>Optional document-relative pages, resolved against the captured source. Cannot be combined with Preparation.ReadOptions.PageSelection.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? PageSelector { get; set; }
     /// <summary>Must be true to acknowledge that only rendered appearances are copied; native text, forms, links, signatures, and attachments are omitted.</summary>
     public bool AcknowledgeRasterOutput { get; set; }
     /// <summary>Optional SHA-256 hex digest from a reviewed source snapshot; a mismatch blocks output.</summary>
@@ -17,13 +19,15 @@ public sealed class OfficeScanCleanupOptions {
     internal OfficeScanCleanupOptions Snapshot() {
         if (!AcknowledgeRasterOutput) throw new ArgumentException("Acknowledge the raster-only scan output before saving.");
         if (Preparation == null) throw new ArgumentNullException(nameof(Preparation));
+        if (PageSelector is not null && Preparation.ReadOptions.PageSelection is not null)
+            throw new ArgumentException("Choose a page selector or an absolute preparation selection, not both.");
         if (ExpectedSourceSha256 != null && (ExpectedSourceSha256.Length != 64 || ExpectedSourceSha256.Any(character => !Uri.IsHexDigit(character))))
             throw new ArgumentException("The reviewed source digest must be SHA-256 hex.", nameof(ExpectedSourceSha256));
         if (Preparation.DetectOrientation) throw new ArgumentException("Scan-copy preparation requires explicit rotation; provider orientation detection is available during OCR.");
         if (MaximumDiagnostics <= 0 || MaximumDiagnosticCharacters <= 0)
             throw new ArgumentOutOfRangeException(nameof(MaximumDiagnostics), "Scan diagnostic budgets must be positive.");
         return new() {
-            Preparation = Preparation.Clone(), AcknowledgeRasterOutput = true,
+            Preparation = Preparation.Clone(), PageSelector = PageSelector, AcknowledgeRasterOutput = true,
             ExpectedSourceSha256 = ExpectedSourceSha256,
             MaximumDiagnostics = MaximumDiagnostics,
             MaximumDiagnosticCharacters = MaximumDiagnosticCharacters

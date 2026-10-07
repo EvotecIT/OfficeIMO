@@ -1191,6 +1191,12 @@ selectedRanges[0].Save("packet-front.pdf");
 selectedRanges[1].Save("packet-evidence.pdf");
 ```
 
+For document-relative expressions such as `last,1,last`, resolve the immutable
+`PdfPageSelector` against the inspected source page count. The overload
+`selector.Resolve(pageCount, maximumPages: 100)` rejects a selection before
+retaining more than 100 output pages, including repeats. Host workflows use this
+bound before extraction or OCR and keep the source separate from the output.
+
 To place source pages on printable sheets, use the same page import engine for
 N-up or duplex booklet output:
 

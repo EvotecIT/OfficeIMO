@@ -25,7 +25,7 @@ internal static class PdfOcrProviderLoader {
         foreach (string suppliedPath in paths) {
             string path = Path.GetFullPath(suppliedPath);
             if (!File.Exists(path)) throw new FileNotFoundException("OCR provider assembly was not found.", path);
-            Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
+            Assembly assembly = new ProviderAssemblyLoadContext(path).LoadFromAssemblyPath(path);
             Type[] providerTypes;
             try {
                 providerTypes = assembly.GetTypes();
@@ -40,6 +40,31 @@ internal static class PdfOcrProviderLoader {
                     ?? throw new InvalidOperationException("Could not create OCR provider type '" + type.FullName + "'.");
                 catalog.Register(provider);
             }
+        }
+    }
+
+    /// <summary>Keeps optional provider dependencies beside their explicit assembly while sharing the host OCR contract.</summary>
+    private sealed class ProviderAssemblyLoadContext : AssemblyLoadContext {
+        private readonly AssemblyDependencyResolver _resolver;
+        private readonly string _directory;
+        internal ProviderAssemblyLoadContext(string path) : base(isCollectible: false) {
+            _resolver = new AssemblyDependencyResolver(path);
+            _directory = Path.GetDirectoryName(path)!;
+        }
+        protected override Assembly? Load(AssemblyName assemblyName) {
+            if (assemblyName.Name == typeof(IOcrEngine).Assembly.GetName().Name) return typeof(IOcrEngine).Assembly;
+            Assembly? shared = Default.Assemblies.FirstOrDefault(assembly => assembly.FullName == assemblyName.FullName);
+            if (shared is not null) return shared;
+            string? dependency = _resolver.ResolveAssemblyToPath(assemblyName);
+            if (dependency is null && assemblyName.Name is { } name && name.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) < 0) {
+                string adjacent = Path.Combine(_directory, name + ".dll");
+                if (File.Exists(adjacent)) dependency = adjacent;
+            }
+            return dependency is null ? null : LoadFromAssemblyPath(dependency);
+        }
+        protected override IntPtr LoadUnmanagedDll(string unmanagedDllName) {
+            string? path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+            return path is null ? IntPtr.Zero : LoadUnmanagedDllFromPath(path);
         }
     }
 }

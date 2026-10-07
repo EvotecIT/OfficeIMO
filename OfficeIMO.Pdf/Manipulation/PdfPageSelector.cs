@@ -73,10 +73,14 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
     }
 
     /// <summary>Resolves the selector to caller-ordered, one-based page numbers.</summary>
-    public IReadOnlyList<int> Resolve(int pageCount) {
+    public IReadOnlyList<int> Resolve(int pageCount) => Resolve(pageCount, int.MaxValue);
+
+    /// <summary>Resolves the ordered selection, rejecting it before retaining more than the supplied page budget.</summary>
+    public IReadOnlyList<int> Resolve(int pageCount, int maximumPages) {
         if (pageCount < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageCount), "Document page count must be 1 or greater.");
         }
+        Guard.PositiveInteger(maximumPages, nameof(maximumPages));
 
         var excluded = new HashSet<int>();
         bool hasIncludes = false;
@@ -96,6 +100,7 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         if (!hasIncludes) {
             for (int page = 1; page <= pageCount; page++) {
                 if (!excluded.Contains(page)) {
+                    if (pages.Count >= maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
                     pages.Add(page);
                 }
             }
@@ -108,6 +113,7 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
 
                 foreach (int page in term.Resolve(pageCount)) {
                     if (!excluded.Contains(page)) {
+                        if (pages.Count >= maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
                         pages.Add(page);
                     }
                 }

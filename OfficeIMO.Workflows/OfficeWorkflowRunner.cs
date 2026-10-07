@@ -777,5 +777,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowConversionRegistration? Registration = null,
         IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null,
         WordImageOptimizationOptions? WordImageOptimization = null,
-        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null);
+        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null,
+        PdfPageSelector? PageSelector = null,
+        int MaximumExtractedPages = 100_000);
 }

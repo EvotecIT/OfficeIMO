@@ -26,12 +26,18 @@ internal sealed partial class OfficeImoAgentService {
 
     private readonly AgentPathPolicy _pathPolicy;
     private readonly AgentSourceRegistry _registry;
+    private readonly OfficeIMO.Ocr.OcrEngineCatalog _pdfOcrCatalog;
+    private readonly IReadOnlyDictionary<string, string> _pdfOcrProviderOptions;
 
     internal OfficeImoAgentService(
         AgentPathPolicy? pathPolicy = null,
-        AgentSourceRegistry? registry = null) {
+        AgentSourceRegistry? registry = null,
+        OfficeIMO.Ocr.OcrEngineCatalog? pdfOcrCatalog = null,
+        IReadOnlyDictionary<string, string>? pdfOcrProviderOptions = null) {
         _pathPolicy = pathPolicy ?? AgentPathPolicy.FromEnvironment();
         _registry = registry ?? new AgentSourceRegistry();
+        _pdfOcrCatalog = pdfOcrCatalog ?? new OfficeIMO.Ocr.OcrEngineCatalog();
+        _pdfOcrProviderOptions = new Dictionary<string, string>(pdfOcrProviderOptions ?? new Dictionary<string, string>(), StringComparer.Ordinal);
     }
 
     internal async Task<AgentInspectResult> InspectAsync(

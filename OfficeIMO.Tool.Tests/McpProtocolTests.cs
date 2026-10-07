@@ -121,6 +121,13 @@ public sealed class McpProtocolTests {
                 "officeimo_fetch",
                 "officeimo_inspect",
                 "officeimo_inspect_email",
+                "officeimo_pdf",
+                "officeimo_pdf_assemble",
+                "officeimo_pdf_export_pages",
+                "officeimo_pdf_ocr",
+                "officeimo_pdf_ocr_providers",
+                "officeimo_pdf_print_plan",
+                "officeimo_pdf_split",
                 "officeimo_search",
                 "officeimo_search_email"
             },
