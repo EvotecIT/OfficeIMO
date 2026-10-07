@@ -2793,4 +2793,29 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Health.Prepare.Ready.RepairPlan" xml:space="preserve"><value>Review the selected PDF and {0} options.</value></data>
   <data name="Health.Prepare.Ready.Repair" xml:space="preserve"><value>Review the selected PDF and {0} options.</value></data>
   <data name="Health.Prepare.Ready.Sanitize" xml:space="preserve"><value>Review the selected PDF and {0} options.</value></data>
+  <data name="PrintPreview.Paper.Letter" xml:space="preserve"><value>Letter</value></data>
+  <data name="PrintPreview.Paper.Legal" xml:space="preserve"><value>Legal</value></data>
+  <data name="PrintPreview.Orientation.Automatic" xml:space="preserve"><value>Automatic</value></data>
+  <data name="PrintPreview.Orientation.Portrait" xml:space="preserve"><value>Portrait</value></data>
+  <data name="PrintPreview.Orientation.Landscape" xml:space="preserve"><value>Landscape</value></data>
+  <data name="PrintPreview.Scale.Fit.Label" xml:space="preserve"><value>Fit</value></data>
+  <data name="PrintPreview.Scale.Fit.Description" xml:space="preserve"><value>Show the whole page.</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Label" xml:space="preserve"><value>Actual size</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Description" xml:space="preserve"><value>Keep physical page size where it fits.</value></data>
+  <data name="PrintPreview.Scale.Fill.Label" xml:space="preserve"><value>Fill</value></data>
+  <data name="PrintPreview.Scale.Fill.Description" xml:space="preserve"><value>Fill each slot and crop overflow.</value></data>
+  <data name="PrintPreview.PagesPerSheet.One" xml:space="preserve"><value>1 page</value></data>
+  <data name="PrintPreview.PagesPerSheet.Two" xml:space="preserve"><value>2 pages</value></data>
+  <data name="PrintPreview.PagesPerSheet.Four" xml:space="preserve"><value>4 pages</value></data>
+  <data name="PrintPreview.Status.Ready" xml:space="preserve"><value>Choose a PDF and preview its print sheets.</value></data>
+  <data name="PrintPreview.Summary.Empty" xml:space="preserve"><value>No preview yet</value></data>
+  <data name="PrintPreview.Status.Planning" xml:space="preserve"><value>Planning print sheets</value></data>
+  <data name="PrintPreview.Status.Rendering" xml:space="preserve"><value>Rendering page previews</value></data>
+  <data name="PrintPreview.Status.Completed" xml:space="preserve"><value>Print preview ready</value></data>
+  <data name="PrintPreview.Status.Cancelled" xml:space="preserve"><value>Print preview cancelled</value></data>
+  <data name="PrintPreview.Summary.None" xml:space="preserve"><value>No preview</value></data>
+  <data name="PrintPreview.Summary.Unavailable" xml:space="preserve"><value>Preview unavailable</value></data>
+  <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>A substitute font was used. Review the sheet preview before printing.</value></data>
+  <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>The renderer reported a limitation. Review the sheet preview before printing.</value></data>
+  <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Technical rendering details</value></data>
 </root>

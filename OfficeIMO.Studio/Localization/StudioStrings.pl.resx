@@ -5459,4 +5459,29 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Health.Prepare.Ready.RepairPlan" xml:space="preserve"><value>Sprawdź wybrany PDF i opcje operacji „{0}”.</value></data>
   <data name="Health.Prepare.Ready.Repair" xml:space="preserve"><value>Sprawdź wybrany PDF i opcje operacji „{0}”.</value></data>
   <data name="Health.Prepare.Ready.Sanitize" xml:space="preserve"><value>Sprawdź wybrany PDF i opcje operacji „{0}”.</value></data>
+  <data name="PrintPreview.Paper.Letter" xml:space="preserve"><value>Letter</value></data>
+  <data name="PrintPreview.Paper.Legal" xml:space="preserve"><value>Legal</value></data>
+  <data name="PrintPreview.Orientation.Automatic" xml:space="preserve"><value>Automatyczna</value></data>
+  <data name="PrintPreview.Orientation.Portrait" xml:space="preserve"><value>Pionowa</value></data>
+  <data name="PrintPreview.Orientation.Landscape" xml:space="preserve"><value>Pozioma</value></data>
+  <data name="PrintPreview.Scale.Fit.Label" xml:space="preserve"><value>Dopasuj</value></data>
+  <data name="PrintPreview.Scale.Fit.Description" xml:space="preserve"><value>Pokaż całą stronę.</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Label" xml:space="preserve"><value>Rozmiar rzeczywisty</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Description" xml:space="preserve"><value>Zachowaj fizyczny rozmiar strony, jeśli się mieści.</value></data>
+  <data name="PrintPreview.Scale.Fill.Label" xml:space="preserve"><value>Wypełnij</value></data>
+  <data name="PrintPreview.Scale.Fill.Description" xml:space="preserve"><value>Wypełnij każdy obszar strony i przytnij wystającą treść.</value></data>
+  <data name="PrintPreview.PagesPerSheet.One" xml:space="preserve"><value>1 strona</value></data>
+  <data name="PrintPreview.PagesPerSheet.Two" xml:space="preserve"><value>2 strony</value></data>
+  <data name="PrintPreview.PagesPerSheet.Four" xml:space="preserve"><value>4 strony</value></data>
+  <data name="PrintPreview.Status.Ready" xml:space="preserve"><value>Wybierz PDF i przygotuj podgląd arkuszy wydruku.</value></data>
+  <data name="PrintPreview.Summary.Empty" xml:space="preserve"><value>Jeszcze brak podglądu</value></data>
+  <data name="PrintPreview.Status.Planning" xml:space="preserve"><value>Planowanie arkuszy wydruku</value></data>
+  <data name="PrintPreview.Status.Rendering" xml:space="preserve"><value>Tworzenie podglądów stron</value></data>
+  <data name="PrintPreview.Status.Completed" xml:space="preserve"><value>Podgląd wydruku gotowy</value></data>
+  <data name="PrintPreview.Status.Cancelled" xml:space="preserve"><value>Anulowano podgląd wydruku</value></data>
+  <data name="PrintPreview.Summary.None" xml:space="preserve"><value>Brak podglądu</value></data>
+  <data name="PrintPreview.Summary.Unavailable" xml:space="preserve"><value>Podgląd niedostępny</value></data>
+  <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Użyto czcionki zastępczej. Sprawdź podgląd arkusza przed drukowaniem.</value></data>
+  <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Silnik renderowania zgłosił ograniczenie. Sprawdź podgląd arkusza przed drukowaniem.</value></data>
+  <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Techniczne szczegóły renderowania</value></data>
 </root>

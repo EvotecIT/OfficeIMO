@@ -47,7 +47,7 @@
                       SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPageSubset}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.PageSubset}" />
 
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="9" Margin="0,5,0,0">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9" Margin="0,5,0,0">
               <StackPanel Spacing="5">
                 <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Paper}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PaperChoices}"
@@ -58,6 +58,7 @@
               <StackPanel Grid.Column="1" Spacing="5">
                 <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Orientation}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.OrientationChoices}"
+                          HorizontalAlignment="Stretch"
                           SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedOrientation, Mode=TwoWay}">
                   <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:PrintOrientationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                 </ComboBox>
@@ -136,6 +137,24 @@
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.SheetPreview}" Classes="sectionTitle" />
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.Summary}" Classes="muted" FontSize="12" />
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.Status}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <StackPanel Spacing="4" IsVisible="{Binding OutputWorkbench.PrintPreview.HasRenderingNotices}">
+              <TextBlock Text="{loc:Loc PdfPage.RenderingNotes}" FontWeight="SemiBold" FontSize="12" />
+              <ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding OutputWorkbench.PrintPreview.RenderingNotices}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="workflow:PrintRenderingNotice">
+                      <StackPanel Spacing="3" Margin="0,0,0,6">
+                        <TextBlock Text="{Binding Message}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Code}" Classes="muted" FontSize="10" TextWrapping="Wrap" />
+                        <Expander Header="{loc:Loc PrintPreview.Rendering.TechnicalDetails}" HorizontalAlignment="Stretch">
+                          <TextBox Text="{Binding Details, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" />
+                        </Expander>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </StackPanel>
           </StackPanel>
         </Grid>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">

@@ -5459,4 +5459,29 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Health.Prepare.Ready.RepairPlan" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
   <data name="Health.Prepare.Ready.Repair" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
   <data name="Health.Prepare.Ready.Sanitize" xml:space="preserve"><value>Prüfen Sie die ausgewählte PDF und die Optionen für den Vorgang „{0}“.</value></data>
+  <data name="PrintPreview.Paper.Letter" xml:space="preserve"><value>Letter</value></data>
+  <data name="PrintPreview.Paper.Legal" xml:space="preserve"><value>Legal</value></data>
+  <data name="PrintPreview.Orientation.Automatic" xml:space="preserve"><value>Automatisch</value></data>
+  <data name="PrintPreview.Orientation.Portrait" xml:space="preserve"><value>Hochformat</value></data>
+  <data name="PrintPreview.Orientation.Landscape" xml:space="preserve"><value>Querformat</value></data>
+  <data name="PrintPreview.Scale.Fit.Label" xml:space="preserve"><value>Einpassen</value></data>
+  <data name="PrintPreview.Scale.Fit.Description" xml:space="preserve"><value>Die gesamte Seite anzeigen.</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Label" xml:space="preserve"><value>Tatsächliche Größe</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Description" xml:space="preserve"><value>Die physische Seitengröße beibehalten, sofern sie hineinpasst.</value></data>
+  <data name="PrintPreview.Scale.Fill.Label" xml:space="preserve"><value>Ausfüllen</value></data>
+  <data name="PrintPreview.Scale.Fill.Description" xml:space="preserve"><value>Jeden Seitenbereich ausfüllen und überstehende Inhalte abschneiden.</value></data>
+  <data name="PrintPreview.PagesPerSheet.One" xml:space="preserve"><value>1 Seite</value></data>
+  <data name="PrintPreview.PagesPerSheet.Two" xml:space="preserve"><value>2 Seiten</value></data>
+  <data name="PrintPreview.PagesPerSheet.Four" xml:space="preserve"><value>4 Seiten</value></data>
+  <data name="PrintPreview.Status.Ready" xml:space="preserve"><value>Eine PDF auswählen und ihre Druckblätter in der Vorschau prüfen.</value></data>
+  <data name="PrintPreview.Summary.Empty" xml:space="preserve"><value>Noch keine Vorschau</value></data>
+  <data name="PrintPreview.Status.Planning" xml:space="preserve"><value>Druckblätter werden geplant</value></data>
+  <data name="PrintPreview.Status.Rendering" xml:space="preserve"><value>Seitenvorschauen werden gerendert</value></data>
+  <data name="PrintPreview.Status.Completed" xml:space="preserve"><value>Druckvorschau bereit</value></data>
+  <data name="PrintPreview.Status.Cancelled" xml:space="preserve"><value>Druckvorschau abgebrochen</value></data>
+  <data name="PrintPreview.Summary.None" xml:space="preserve"><value>Keine Vorschau</value></data>
+  <data name="PrintPreview.Summary.Unavailable" xml:space="preserve"><value>Vorschau nicht verfügbar</value></data>
+  <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Eine Ersatzschrift wurde verwendet. Prüfen Sie die Blattvorschau vor dem Drucken.</value></data>
+  <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Der Renderer hat eine Einschränkung gemeldet. Prüfen Sie die Blattvorschau vor dem Drucken.</value></data>
+  <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Technische Darstellungsdetails</value></data>
 </root>

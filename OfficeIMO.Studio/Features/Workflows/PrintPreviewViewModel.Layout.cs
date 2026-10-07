@@ -29,24 +29,24 @@ public sealed partial class PrintPreviewViewModel {
 
     private void InitializeLayoutChoices() {
         AlignmentChoices = [
-            new(PdfPrintAlignment.TopLeft, T("Alignment.TopLeft", "Top left")),
-            new(PdfPrintAlignment.Top, T("Alignment.Top", "Top center")),
-            new(PdfPrintAlignment.TopRight, T("Alignment.TopRight", "Top right")),
-            new(PdfPrintAlignment.Left, T("Alignment.Left", "Middle left")),
-            new(PdfPrintAlignment.Center, T("Alignment.Center", "Center")),
-            new(PdfPrintAlignment.Right, T("Alignment.Right", "Middle right")),
-            new(PdfPrintAlignment.BottomLeft, T("Alignment.BottomLeft", "Bottom left")),
-            new(PdfPrintAlignment.Bottom, T("Alignment.Bottom", "Bottom center")),
-            new(PdfPrintAlignment.BottomRight, T("Alignment.BottomRight", "Bottom right"))
+            new(PdfPrintAlignment.TopLeft, T("Alignment.TopLeft")),
+            new(PdfPrintAlignment.Top, T("Alignment.Top")),
+            new(PdfPrintAlignment.TopRight, T("Alignment.TopRight")),
+            new(PdfPrintAlignment.Left, T("Alignment.Left")),
+            new(PdfPrintAlignment.Center, T("Alignment.Center")),
+            new(PdfPrintAlignment.Right, T("Alignment.Right")),
+            new(PdfPrintAlignment.BottomLeft, T("Alignment.BottomLeft")),
+            new(PdfPrintAlignment.Bottom, T("Alignment.Bottom")),
+            new(PdfPrintAlignment.BottomRight, T("Alignment.BottomRight"))
         ];
         PageSubsetChoices = [
-            new(PdfPrintPageSubset.All, T("PageSubset.All", "All selected pages")),
-            new(PdfPrintPageSubset.Odd, T("PageSubset.Odd", "Odd source pages")),
-            new(PdfPrintPageSubset.Even, T("PageSubset.Even", "Even source pages"))
+            new(PdfPrintPageSubset.All, T("PageSubset.All")),
+            new(PdfPrintPageSubset.Odd, T("PageSubset.Odd")),
+            new(PdfPrintPageSubset.Even, T("PageSubset.Even"))
         ];
         ColorChoices = [
-            new(PdfPrintColorMode.Color, T("Color.Color", "Color")),
-            new(PdfPrintColorMode.Grayscale, T("Color.Grayscale", "Grayscale"))
+            new(PdfPrintColorMode.Color, T("Color.Color")),
+            new(PdfPrintColorMode.Grayscale, T("Color.Grayscale"))
         ];
         SelectedAlignment = AlignmentChoices.Single(choice => choice.Value == PdfPrintAlignment.Center);
         SelectedPageSubset = PageSubsetChoices[0];

@@ -1971,4 +1971,29 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Health.Prepare.Ready.RepairPlan" xml:space="preserve"><value>Examinez le PDF sélectionné et les options de l’opération « {0} ».</value></data>
   <data name="Health.Prepare.Ready.Repair" xml:space="preserve"><value>Examinez le PDF sélectionné et les options de l’opération « {0} ».</value></data>
   <data name="Health.Prepare.Ready.Sanitize" xml:space="preserve"><value>Examinez le PDF sélectionné et les options de l’opération « {0} ».</value></data>
+  <data name="PrintPreview.Paper.Letter" xml:space="preserve"><value>Letter</value></data>
+  <data name="PrintPreview.Paper.Legal" xml:space="preserve"><value>Legal</value></data>
+  <data name="PrintPreview.Orientation.Automatic" xml:space="preserve"><value>Automatique</value></data>
+  <data name="PrintPreview.Orientation.Portrait" xml:space="preserve"><value>Portrait</value></data>
+  <data name="PrintPreview.Orientation.Landscape" xml:space="preserve"><value>Paysage</value></data>
+  <data name="PrintPreview.Scale.Fit.Label" xml:space="preserve"><value>Ajuster</value></data>
+  <data name="PrintPreview.Scale.Fit.Description" xml:space="preserve"><value>Afficher la page entière.</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Label" xml:space="preserve"><value>Taille réelle</value></data>
+  <data name="PrintPreview.Scale.ActualSize.Description" xml:space="preserve"><value>Conserver la taille physique de la page si elle tient.</value></data>
+  <data name="PrintPreview.Scale.Fill.Label" xml:space="preserve"><value>Remplir</value></data>
+  <data name="PrintPreview.Scale.Fill.Description" xml:space="preserve"><value>Remplir chaque emplacement et rogner les débordements.</value></data>
+  <data name="PrintPreview.PagesPerSheet.One" xml:space="preserve"><value>1 page</value></data>
+  <data name="PrintPreview.PagesPerSheet.Two" xml:space="preserve"><value>2 pages</value></data>
+  <data name="PrintPreview.PagesPerSheet.Four" xml:space="preserve"><value>4 pages</value></data>
+  <data name="PrintPreview.Status.Ready" xml:space="preserve"><value>Choisissez un PDF et prévisualisez ses feuilles à imprimer.</value></data>
+  <data name="PrintPreview.Summary.Empty" xml:space="preserve"><value>Aucun aperçu pour le moment</value></data>
+  <data name="PrintPreview.Status.Planning" xml:space="preserve"><value>Planification des feuilles à imprimer</value></data>
+  <data name="PrintPreview.Status.Rendering" xml:space="preserve"><value>Rendu des aperçus de pages</value></data>
+  <data name="PrintPreview.Status.Completed" xml:space="preserve"><value>Aperçu avant impression prêt</value></data>
+  <data name="PrintPreview.Status.Cancelled" xml:space="preserve"><value>Aperçu avant impression annulé</value></data>
+  <data name="PrintPreview.Summary.None" xml:space="preserve"><value>Aucun aperçu</value></data>
+  <data name="PrintPreview.Summary.Unavailable" xml:space="preserve"><value>Aperçu indisponible</value></data>
+  <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Une police de substitution a été utilisée. Vérifiez l’aperçu de la feuille avant d’imprimer.</value></data>
+  <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Le moteur de rendu a signalé une limite. Vérifiez l’aperçu de la feuille avant d’imprimer.</value></data>
+  <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Détails techniques du rendu</value></data>
 </root>
