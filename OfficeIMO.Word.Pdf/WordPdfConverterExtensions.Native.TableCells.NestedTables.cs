@@ -37,6 +37,7 @@ namespace OfficeIMO.Word.Pdf {
             Func<WordParagraph, (int Level, string Marker)?>? getMarker,
             int tableNestingDepth,
             bool ignoreFallbackTableStyle,
+            WordToPdfOptions? options,
             IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages,
             List<PdfCore.PdfTextRun> runs,
             List<PdfCore.PdfTableCellParagraph> paragraphs) {
@@ -86,7 +87,9 @@ namespace OfficeIMO.Word.Pdf {
                         nativeFontMap,
                         getMarker,
                         nestedDepth,
-                        ignoreFallbackTableStyle, inlineImages);
+                        ignoreFallbackTableStyle,
+                        options,
+                        inlineImages);
                     logicalColumnIndex += columnSpan;
                     if (nestedText.Runs.Count == 0) {
                         continue;

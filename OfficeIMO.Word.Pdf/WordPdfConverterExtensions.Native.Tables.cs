@@ -70,6 +70,7 @@ namespace OfficeIMO.Word.Pdf {
                         nativeFontMap,
                         getMarker,
                         ignoreFallbackTableStyle: hasExplicitDefaultTableStyle,
+                        options: options,
                         inlineImages: embeddedContent.InlineImages);
                     (string? LinkUri, string? LinkContents) link = GetNativeCellLink(cell);
                     int rowSpan = GetNativeCellRowSpan(cell);
@@ -851,7 +852,8 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldApplyNativeTableStyleCellPadding(WordTable table) {
             string? styleId = GetNativeTableStyleId(table);
             if (string.IsNullOrWhiteSpace(styleId)) {
-                return false;
+                // An unnamed table still inherits the document's default table style.
+                return true;
             }
 
             if (!PdfCore.TableStyles.TryGetCanonicalWordStyleName(styleId!, out string? canonicalStyleName)) {

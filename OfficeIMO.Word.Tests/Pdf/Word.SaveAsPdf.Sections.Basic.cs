@@ -696,8 +696,8 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-            footer.AddParagraph("NativeFooterBandLineOne");
-            footer.AddParagraph("NativeFooterBandLineTwo");
+            footer.AddParagraph("NativeFooterBandLineOne").FontSize = 9;
+            footer.AddParagraph("NativeFooterBandLineTwo").FontSize = 9;
 
             document.AddParagraph("Native footer placement body");
             document.Save();
@@ -763,8 +763,8 @@ public partial class Word {
         document.Sections[0].Margins.Right = 600;
         document.AddHeadersAndFooters();
         WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-        footer.AddParagraph("ClearanceFooterOne");
-        footer.AddParagraph("ClearanceFooterTwo");
+        footer.AddParagraph("ClearanceFooterOne").FontSize = 9;
+        footer.AddParagraph("ClearanceFooterTwo").FontSize = 9;
 
         var method = typeof(WordPdfConverterExtensions).GetMethod(
             "GetNativeMargins",
