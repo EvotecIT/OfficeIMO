@@ -517,7 +517,10 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);
-        Assert.Equal(16, drawing!.Elements.Count);
+        // The stroke extends beyond the authored viewport and retains an explicit
+        // root clip. Count its paint layers inside that clip when checking budget.
+        OfficeDrawing content = paint == "stroke" ? SvgTestScene.Content(drawing!) : drawing!;
+        Assert.Equal(16, content.Elements.Count);
     }
 
     [Theory]

@@ -852,7 +852,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
@@ -1546,7 +1546,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
@@ -1819,7 +1819,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
