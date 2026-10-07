@@ -22,6 +22,7 @@ namespace OfficeIMO.Word.Pdf {
             var builder = new StringBuilder();
             WordComplexFieldRunVisibility prefix = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
             var state = new NativeHeaderFooterFieldState {
+                Paragraph = paragraph,
                 SerializedRuns = serializedRuns,
                 CollectingFieldCode = prefix.HasOpenField && !prefix.IsVisible,
                 SkippingFieldResult = prefix.HasOpenField && prefix.IsVisible
@@ -131,7 +132,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (child is W.Text text) {
-                    string visibleText = ApplyNativeHeaderFooterRunTextTransform(text.Text, run);
+                    string visibleText = ApplyNativeTextTransform(text.Text,
+                        new WordParagraph(state.Paragraph._document, state.Paragraph._paragraph!, run), state.Paragraph);
                     builder.Append(visibleText);
                     state.SerializedRuns?.Add((run, visibleText, false, child));
                 } else if (child is W.TabChar) {
@@ -150,15 +152,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeHiddenRun(W.Run run) =>
             ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.Vanish>()) == true;
-
-        private static string ApplyNativeHeaderFooterRunTextTransform(string text, W.Run run) =>
-            IsNativeAllCapsRun(run)
-                ? text.ToUpperInvariant()
-                : text;
-
-        private static bool IsNativeAllCapsRun(W.Run run) =>
-            ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.Caps>()) == true ||
-            ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.SmallCaps>()) == true;
 
         private static bool TryGetNativeHeaderFooterFieldToken(WordParagraph paragraph, out string? token, out PdfCore.PdfPageNumberStyle? style) {
             token = null;
@@ -283,6 +276,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativeHeaderFooterFieldState {
+            public WordParagraph Paragraph { get; set; } = null!;
             public bool CollectingFieldCode { get; set; }
             public bool SkippingFieldResult { get; set; }
             public List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild)>? SerializedRuns { get; set; }
