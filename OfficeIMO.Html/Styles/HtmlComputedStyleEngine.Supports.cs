@@ -653,14 +653,14 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
         ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations, enforceResolutionLimits);
-        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, enforceResolutionLimits);
-        ResolveDeferredLayoutLonghands(raw, deferredLayout, parentProperties, inherited, reset, enforceResolutionLimits);
+        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, specified, enforceResolutionLimits);
+        ResolveDeferredLayoutLonghands(raw, deferredLayout, parentProperties, inherited, reset, specified, enforceResolutionLimits);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
         var invalidAtComputedValue = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         Dictionary<string, string> resolved = requiresCustomPropertyResolution
-            ? ResolveCustomPropertyValues(raw, parentProperties, inherited, specified, invalidAtComputedValue, enforceResolutionLimits)
+            ? ResolveCustomPropertyValues(raw, parentProperties, inherited, reset, specified, invalidAtComputedValue, enforceResolutionLimits)
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
@@ -742,6 +742,7 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string> raw,
         IReadOnlyDictionary<string, string>? parentProperties,
         ISet<string> inheritedProperties,
+        ISet<string> resetProperties,
         ISet<string> specifiedProperties,
         ISet<string> invalidAtComputedValueProperties,
         bool enforceResolutionLimits) {
@@ -759,7 +760,28 @@ public static partial class HtmlComputedStyleEngine {
                     : parentProperties != null && parentProperties.TryGetValue(name, out string? inherited) ? inherited : null,
                 out string value, enforceResolutionLimits);
             if (success && IsSupportedDeclarationValue(pair.Key, value)) {
-                resolved[pair.Key] = value;
+                // Value keywords obtained through var() need the same parent and
+                // initial-value resolution as directly authored declarations.
+                if (IsKnownKeyword(value.Trim().ToLowerInvariant(), "inherit", "initial", "unset")) {
+                    CssKeywordResolution keyword = ResolveCssWideKeyword(pair.Key, value, parentProperties);
+                    if (keyword.HasValue) {
+                        resolved[pair.Key] = keyword.Value;
+                        resetProperties.Remove(pair.Key);
+                        if (keyword.InheritsComputedValue) {
+                            inheritedProperties.Add(pair.Key);
+                            specifiedProperties.Remove(pair.Key);
+                        } else {
+                            inheritedProperties.Remove(pair.Key);
+                            specifiedProperties.Add(pair.Key);
+                        }
+                    } else {
+                        inheritedProperties.Remove(pair.Key);
+                        specifiedProperties.Remove(pair.Key);
+                        resetProperties.Add(pair.Key);
+                    }
+                } else {
+                    resolved[pair.Key] = value;
+                }
                 continue;
             }
             if (!OfficeIMO.Html.Css.HtmlCssPropertyCatalog.TryGet(pair.Key,

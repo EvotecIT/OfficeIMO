@@ -150,4 +150,86 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(scene.HasLoss);
     }
 
+    [Theory]
+    [InlineData("inherit")]
+    [InlineData("initial")]
+    [InlineData("unset")]
+    public void VariableFallbackDecorationKeywordsKeepResolvedLonghands(string keyword) {
+        string html = "<div style='text-decoration:underline 2px dashed red;text-decoration-thickness:4px'>"
+            + "<p id='direct' style='text-decoration:" + keyword + "'>Direct</p>"
+            + "<p id='variable' style='text-decoration:var(--missing," + keyword + ")'>Variable</p></div>";
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+        var styles = HtmlComputedStyleEngine.Compute(source);
+        HtmlComputedStyle direct = styles[source.Document.QuerySelector("#direct")!];
+        HtmlComputedStyle variable = styles[source.Document.QuerySelector("#variable")!];
+        foreach (string property in new[] { "text-decoration-line", "text-decoration-thickness", "text-decoration-style", "text-decoration-color" }) {
+            Assert.Equal(direct.GetValue(property), variable.GetValue(property));
+            Assert.Equal(direct.IsInheritedValue(property), variable.IsInheritedValue(property));
+            Assert.Equal(direct.IsResetValue(property), variable.IsResetValue(property));
+            Assert.Equal(direct.IsSpecifiedValue(property), variable.IsSpecifiedValue(property));
+        }
+        HtmlRenderDocument scene = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderText text = Assert.Single(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Variable");
+        Assert.Equal(keyword == "inherit" ? OfficeTextDecorationStyle.Dashed : OfficeTextDecorationStyle.None, text.UnderlineStyle);
+    }
+
+    [Theory]
+    [InlineData("inherit")]
+    [InlineData("initial")]
+    [InlineData("unset")]
+    public void VariableFallbackDecorationLonghandsUseCssWideResolution(string keyword) {
+        const string parentCss = "text-decoration:underline 2px dashed red;text-decoration-thickness:4px";
+        const string properties = "text-decoration-line,text-decoration-thickness,text-decoration-style,text-decoration-color";
+        string directCss = string.Join(";", properties.Split(',').Select(p => p + ":" + keyword));
+        string variableCss = string.Join(";", properties.Split(',').Select(p => p + ":var(--missing," + keyword + ")"));
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<div style='" + parentCss + "'><p id='direct' style='" + directCss + "'>Direct</p><p id='variable' style='" + variableCss + "'>Variable</p></div>");
+        var styles = HtmlComputedStyleEngine.Compute(source);
+        HtmlComputedStyle direct = styles[source.Document.QuerySelector("#direct")!];
+        HtmlComputedStyle variable = styles[source.Document.QuerySelector("#variable")!];
+        foreach (string property in properties.Split(',')) {
+            Assert.Equal(direct.GetValue(property), variable.GetValue(property));
+            Assert.Equal(direct.IsInheritedValue(property), variable.IsInheritedValue(property));
+            Assert.Equal(direct.IsResetValue(property), variable.IsResetValue(property));
+            Assert.Equal(direct.IsSpecifiedValue(property), variable.IsSpecifiedValue(property));
+        }
+    }
+
+    [Theory]
+    [InlineData("display", "initial")]
+    [InlineData("display", "unset")]
+    [InlineData("visibility", "initial")]
+    public void VariableFallbackConcreteDefaultsKeepAuthoredState(string property, string keyword) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<div style='display:block;visibility:hidden'>"
+            + "<p id='direct' style='" + property + ":" + keyword + "'>Direct</p>"
+            + "<p id='variable' style='" + property + ":var(--missing," + keyword + ")'>Variable</p></div>");
+        var styles = HtmlComputedStyleEngine.Compute(source);
+        HtmlComputedStyle direct = styles[source.Document.QuerySelector("#direct")!];
+        HtmlComputedStyle variable = styles[source.Document.QuerySelector("#variable")!];
+        Assert.True(direct.IsSpecifiedValue(property));
+        Assert.Equal(direct.GetValue(property), variable.GetValue(property));
+        Assert.Equal(direct.IsInheritedValue(property), variable.IsInheritedValue(property));
+        Assert.Equal(direct.IsResetValue(property), variable.IsResetValue(property));
+        Assert.Equal(direct.IsSpecifiedValue(property), variable.IsSpecifiedValue(property));
+    }
+
+    [Theory]
+    [InlineData("margin", "margin-top", "margin:8px")]
+    [InlineData("padding", "padding-left", "padding:8px;padding-left:12px")]
+    [InlineData("border", "border-left-width", "border:2px solid red;border-left-width:4px")]
+    [InlineData("font", "font-size", "font:italic 18px serif")]
+    public void VariableFallbackDeferredShorthandInheritanceKeepsComputedState(string shorthand, string longhand, string parentCss) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<div style='" + parentCss + "'>"
+            + "<p id='direct' style='" + shorthand + ":inherit'>Direct</p>"
+            + "<p id='variable' style='" + shorthand + ":var(--missing,inherit)'>Variable</p></div>");
+        var styles = HtmlComputedStyleEngine.Compute(source);
+        HtmlComputedStyle direct = styles[source.Document.QuerySelector("#direct")!];
+        HtmlComputedStyle variable = styles[source.Document.QuerySelector("#variable")!];
+        Assert.True(direct.IsInheritedValue(longhand));
+        Assert.False(direct.IsSpecifiedValue(longhand));
+        Assert.Equal(direct.GetValue(longhand), variable.GetValue(longhand));
+        Assert.Equal(direct.IsInheritedValue(longhand), variable.IsInheritedValue(longhand));
+        Assert.Equal(direct.IsResetValue(longhand), variable.IsResetValue(longhand));
+        Assert.Equal(direct.IsSpecifiedValue(longhand), variable.IsSpecifiedValue(longhand));
+    }
+
 }

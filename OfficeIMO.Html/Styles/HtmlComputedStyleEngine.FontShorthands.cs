@@ -44,7 +44,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static void ResolveDeferredFontLonghands(Dictionary<string, string> properties, ISet<string> deferred,
-        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset,
+        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset, ISet<string> specified,
         bool enforceResolutionLimits) {
         foreach (string name in deferred) {
             string value = "unset";
@@ -61,10 +61,17 @@ public static partial class HtmlComputedStyleEngine {
             if (resolved.HasValue) {
                 properties[name] = resolved.Value;
                 reset.Remove(name);
-                if (resolved.InheritsComputedValue) inherited.Add(name); else inherited.Remove(name);
+                if (resolved.InheritsComputedValue) {
+                    inherited.Add(name);
+                    specified.Remove(name);
+                } else {
+                    inherited.Remove(name);
+                    specified.Add(name);
+                }
             } else {
                 properties.Remove(name);
                 inherited.Remove(name);
+                specified.Remove(name);
                 reset.Add(name);
             }
         }
