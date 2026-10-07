@@ -835,5 +835,1431 @@
         "Broader H10/math/runtime completion"
       ]
     }
+  },
+  "acceptedReportOwnerConvergence20261007": {
+    "acceptedMaster": "ae4ae4e445ed094dbd1a91d7d6768de79e2bc3f7",
+    "qualifiedSource": "209c7e7edf5e5de29626c9842d6ed685380027df",
+    "behaviorSource": "7d9182c5c0f15bb0f09d75812f05a2fe9fcaac97",
+    "resolvedOwners": [
+      "table minimum intrinsic floor plus insets",
+      "per-family installed font fallback",
+      "shared selected-face short-line baseline, descent paint extent, actual image and following-flow ownership",
+      "range/progress bounded radii",
+      "SVG display cascade"
+    ],
+    "fullFrameworkProof": {
+      "combined-full-html-net10.0": {
+        "total": "4827",
+        "executed": "4827",
+        "passed": "4827",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-html-net8.0": {
+        "total": "4827",
+        "executed": "4827",
+        "passed": "4827",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-pdf-net10.0": {
+        "total": "9345",
+        "executed": "9345",
+        "passed": "9345",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-pdf-net8.0": {
+        "total": "9345",
+        "executed": "9345",
+        "passed": "9345",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-drawing-net10.0": {
+        "total": "3697",
+        "executed": "3693",
+        "passed": "3693",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-drawing-net8.0": {
+        "total": "3697",
+        "executed": "3693",
+        "passed": "3693",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-tool-net10.0": {
+        "total": "287",
+        "executed": "287",
+        "passed": "287",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-tool-net8.0": {
+        "total": "287",
+        "executed": "287",
+        "passed": "287",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "normalStandardAndApiToolBuilds": true,
+    "net472CrossCompile": "Normal Mac cross-compile passes with three existing analyzer warnings; hosted native Windows remains required",
+    "riskReview": {
+      "reportIntegration": "one full and targeted pass used; findings reproduced and fixed",
+      "shortLineOwner": "coverage-incomplete boundary prompted one bounded nonoverlapping closure pass plus targeted confirmation; valid low-ascent/strut/image and following-flow findings fixed; final focused53 each framework pass",
+      "newApiRuntimeDependency": false,
+      "knownUnresolvedP0P2": []
+    },
+    "rendered": {
+      "validatedSource": "209c7e7edf5e5de29626c9842d6ed685380027df",
+      "productBehaviorSource": "7d9182c5c0f15bb0f09d75812f05a2fe9fcaac97",
+      "frozenRoutes": {
+        "routes": 9,
+        "pages": 97,
+        "apiToolBytesEqual": true,
+        "apiToolIndependentRawTextEqual": true,
+        "wholeDocumentCharacterMultisetsPreserved": true,
+        "uniqueDecodedRgbaImagesRetained": true,
+        "uniqueUriTargetsRetained": true,
+        "allNineHasLossRetained": true,
+        "pixelIdenticalPages": 3,
+        "changedPages": 94,
+        "visualSheetsInspected": 24,
+        "observedChanges": [
+          "native font rendering/baseline and heading placement",
+          "table min-width wrapping",
+          "footer wrapping and duplicate clipped annotation/image fragments",
+          "Reference first article paragraph carries wholly to page2; no source content loss"
+        ],
+        "priorStrictEqualityFailureRetained": true,
+        "reportChanges": "Static embeddable fonts use native PDF shaper; unsupported GSUB substitutions remain reported. Old outline warnings are not expected on that route. No identical-report/full-font-shaping claim."
+      },
+      "static": {
+        "cases": 18,
+        "pdfs": 36,
+        "pageCountsTokensFormulaRolesAttachmentsUriTargetsPreserved": true,
+        "changedPaintPairs": 38,
+        "visualSheetsInspected": 10,
+        "screenMarkers": [
+          {
+            "case": "webp-raw-filters",
+            "markers": [
+              {
+                "marker": "webp-raw-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-0",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-1",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-2",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-3",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-webp-raw-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "webp-compressed-filters",
+            "markers": [
+              {
+                "marker": "webp-compressed-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-0",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-1",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-2",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-3",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-webp-compressed-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "avif-opaque",
+            "markers": [
+              {
+                "marker": "avif-opaque",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-avif-opaque",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "avif-alpha",
+            "markers": [
+              {
+                "marker": "avif-alpha",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-avif-alpha",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "page-float-top",
+            "markers": [
+              {
+                "marker": "page-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FLOAT-TOP",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-15",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-16",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-17",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-18",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-19",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-20",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-21",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-22",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-23",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-24",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-25",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-26",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-28",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-29",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-30",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-31",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-32",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-33",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-page-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "page-float-bottom",
+            "markers": [
+              {
+                "marker": "page-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FLOAT-BOTTOM",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-15",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-16",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-17",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-18",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-19",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-20",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-21",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-22",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-23",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-24",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-25",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-26",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-28",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-29",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-30",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-31",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-32",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-33",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-page-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "page-float-snap",
+            "markers": [
+              {
+                "marker": "page-float-snap",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FLOAT-SNAP",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-15",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-16",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-17",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-18",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-19",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-20",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-21",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-22",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-23",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-24",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-25",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-26",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-28",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-29",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-30",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-31",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-32",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-33",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-page-float-snap",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-float-left",
+            "markers": [
+              {
+                "marker": "column-float-left",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LEFT",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLBEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLAFTER-37",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-float-left",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-float-top",
+            "markers": [
+              {
+                "marker": "column-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-TOP",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLBEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLAFTER-37",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-float-bottom",
+            "markers": [
+              {
+                "marker": "column-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-BOTTOM",
+                "phrasePresent": false,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLBEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLAFTER-37",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-notes",
+            "markers": [
+              {
+                "marker": "column-notes",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "CALL-A",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "NOTE-A",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "CALL-B",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "LONG-NOTE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "LONG-NOTE-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "NOTE-TAIL-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-notes",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "language-hyphenation",
+            "markers": [
+              {
+                "marker": "language-hyphenation",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-language-hyphenation",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-patterns",
+            "markers": [
+              {
+                "marker": "svg-patterns",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-patterns",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-filter-graph",
+            "markers": [
+              {
+                "marker": "svg-filter-graph",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-filter-graph",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-resources",
+            "markers": [
+              {
+                "marker": "svg-resources",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-resources",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-resource-denied",
+            "markers": [
+              {
+                "marker": "svg-resource-denied",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "DENIED-RESOURCE-SAFE-TEXT",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-resource-denied",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "mathml-semantics",
+            "markers": [
+              {
+                "marker": "mathml-semantics",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-PREFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-SUFFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "MATH-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-mathml-semantics",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "pdf-conformance",
+            "markers": [
+              {
+                "marker": "pdf-conformance",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-PREFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-SUFFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "MATH-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-pdf-conformance",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          }
+        ],
+        "priorScreenHashEquality": false,
+        "notClaim": "No pixel/byte/global screen-text hash equivalence. Rendered font metrics and line breaks change, including COLUMN-/BOTTOM wrapping; marker characters remain."
+      },
+      "publicNamedFace": {
+        "controls": 11,
+        "independentRasterPagesInspected": 15,
+        "normalFollowingBlockBelowInlineImage": true,
+        "lowAscentLowerPageFragmentPaintPreserved": true,
+        "rawExtractorLimit": "Poppler includes decorative Artifact shadow text and omits some synthetic-font continuation text. Managed logical text remains once; raw extraction and manual accessibility are not universal claims. Original strict raw observer failure retained."
+      },
+      "machineProfiles": {
+        "checks": 5,
+        "allPass": true,
+        "standaloneUa1FormulaProfileRejected": true,
+        "scope": "normal project-reference current graph; current packed/native hosted graph pending"
+      },
+      "net472": "Normal Mac cross-compile passes with three existing analyzer warnings; hosted native Windows remains required",
+      "noNewApiRuntimeDependency": true,
+      "remaining": [
+        "current-head CI and complete delayed feedback",
+        "current-head 3OS nineteen-package installed-origin/hash/native Windows artifacts",
+        "merge, qualified engine synchronization and proof-preserving temporary worktree removal"
+      ]
+    },
+    "priorFailuresRetained": true,
+    "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007/second-master-overlap",
+    "canonicalReceiptSha256": "a40d21c41253c3e7e3b6403bd678efb78d49958083569081d2a3b71818e74daa",
+    "freshHostedGate": "Pending final-head CI/packages and delayed complete feedback; older hosted graphs are not current proof."
   }
 }
