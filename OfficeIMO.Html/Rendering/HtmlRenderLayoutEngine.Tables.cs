@@ -159,7 +159,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var cellLayouts = new List<TableCellLayout>();
             int column = 0;
             double rowHeight = 0D;
-            foreach (IElement cell in row.Children.Where(IsTableCell)) {
+            foreach (IElement cell in EnumerateVisibleTableCells(row)) {
                 int requestedColumnSpan = ReadSpan(cell.GetAttribute("colspan"), 1000);
                 column = FindAvailableColumn(occupiedColumns, column, requestedColumnSpan);
                 if (column >= columnCount) break;
@@ -482,7 +482,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int maximum = 0;
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
-            foreach (IElement cell in rows[rowIndex].Children.Where(IsTableCell)) {
+            foreach (IElement cell in EnumerateVisibleTableCells(rows[rowIndex])) {
                 int columnSpan = ReadSpan(cell.GetAttribute("colspan"), 1000);
                 column = FindAvailableColumn(occupancy, column, columnSpan);
                 long columnEnd = (long)column + columnSpan;
@@ -511,6 +511,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             nameof(HtmlRenderOptions.MaxTableColumns),
             count,
             _options.MaxTableColumns);
+    }
+
+    private IEnumerable<IElement> EnumerateVisibleTableCells(IElement row) {
+        foreach (IElement cell in row.Children) {
+            if (!IsTableCell(cell)) continue;
+            string display = _computedStyles.Elements.TryGetValue(cell, out HtmlComputedStyle? computed)
+                ? computed.GetValue("display")
+                : string.Empty;
+            if (HtmlRenderStyleResolver.ResolveDisplay(cell, display) != "none") yield return cell;
+        }
     }
 
     private static int FindAvailableColumn(IReadOnlyList<int> occupancy, int start, int span) {

@@ -354,7 +354,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
         double? top = ResolveOutOfFlowInset(style.Top, containingHeight, style, source, "top");
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
-        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right);
+        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right, request.Depth);
         if (!style.ExplicitWidth.HasValue) SetPositionedExplicitWidth(style, outerWidth);
         if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue
             && !IsReplacedImageElement(request.Element)) {
@@ -372,6 +372,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // box, so search those groups without marking descendant boxes.
             MarkAbsolutePrintOverflow(block.Visuals, source);
         }
+        double translatedX = 0D;
+        double translatedY = 0D;
+        bool localPagedBox = _options.Mode == HtmlRenderMode.Paged && !request.IsFixed
+            && !ReferenceEquals(request.ContainingBlock, _document.Body ?? _document.DocumentElement);
+        bool tookTranslation = localPagedBox && TryTakePositionedTranslation(
+            ref block, style, Math.Max(1D, outerWidth), out translatedX, out translatedY);
         block = WrapEditableLayoutRegion(block, request.Element, request.Style, HtmlRenderLayoutRegionKind.Positioned);
         int artifactIndex = 0;
         foreach (FlattenedSemanticBoundary boundary in request.FlattenedSemanticBoundaries) {
@@ -395,7 +401,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             top.HasValue || bottom.HasValue);
         double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
-        return new PositionedLayer(block, x, y);
+        return new PositionedLayer(block, x + translatedX, y + translatedY,
+            supportsBoundaryBreaks: localPagedBox && (request.Style.Transform == "none" || tookTranslation));
     }
 
     private static bool MarkAbsolutePrintOverflow(IReadOnlyList<HtmlRenderVisual> visuals, string source) {
@@ -442,7 +449,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return parentStyle ?? request.ParentStyle;
     }
 
-    private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
+    private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right, int depth) {
         // Replaced elements resolve auto dimensions from their intrinsic size/ratio;
         // opposing insets position the box rather than stretching its content.
         if (IsReplacedImageElement(element)) return ResolveFloatingImageOuterWidth(element, style);
@@ -457,10 +464,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag == "table") return containingWidth;
         // Shrink-to-fit uses the same styled in-flow content as flex/grid sizing.
         // TextContent omits generated content and replaced descendants and loses child font styles.
-        IReadOnlyList<GridIntrinsicTextRun> content = ResolveGridInFlowTextRuns(
+        IReadOnlyList<IntrinsicTextRun> content = ResolveInFlowIntrinsicTextRuns(
             new FlexItem(element, style, 0), containingWidth, includeDescendantInsets: true);
-        double preferredContentWidth = content.Count == 0 ? 1D : MeasureGridMaxContentRuns(content);
-        double minimumContentWidth = content.Count == 0 ? 1D : MeasureGridMinContentRuns(content);
+        double preferredContentWidth = content.Count == 0 ? 1D : MeasureMaxContentRuns(content);
+        double minimumContentWidth = content.Count == 0 ? 1D : MeasureMinContentRuns(content);
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
         double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
         double resolvedBoxWidth = contentWidth + style.HorizontalInsets;
@@ -552,14 +559,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class PositionedLayer {
-        internal PositionedLayer(HtmlRenderFlowBlock block, double x, double y) {
+        internal PositionedLayer(HtmlRenderFlowBlock block, double x, double y, bool supportsBoundaryBreaks) {
             Block = block;
             X = x;
             Y = y;
+            SupportsBoundaryBreaks = supportsBoundaryBreaks;
         }
         internal HtmlRenderFlowBlock Block { get; }
         internal double X { get; }
         internal double Y { get; }
+        internal bool SupportsBoundaryBreaks { get; }
     }
 
     private sealed class PositionedRequestPlacement {

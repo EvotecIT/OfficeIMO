@@ -71,6 +71,7 @@ public sealed partial class PdfOptions {
                     ?? new Dictionary<string, PdfEmbeddedFontFamily>())
                 .OrderBy(entry => entry.Key, StringComparer.Ordinal)) {
                 AddString(entry.Key);
+                AddByte(_automaticFallbackOwnedNamedFamilyKeys?.Contains(entry.Key) == true ? (byte)1 : (byte)0);
                 AddString(entry.Value.FamilyName);
                 AddBytes(entry.Value.RegularSnapshot);
                 AddBytes(entry.Value.BoldSnapshot);

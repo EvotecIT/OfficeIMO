@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int legacyBorderWidth = ReadLegacyTableBorderWidth(table);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
-            foreach (IElement cell in rows[rowIndex].Children.Where(IsTableCell)) {
+            foreach (IElement cell in EnumerateVisibleTableCells(rows[rowIndex])) {
                 int requestedSpan = ReadSpan(cell.GetAttribute("colspan"), columnCount);
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
@@ -55,8 +55,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (caption == null) return 0D;
         HtmlRenderBoxStyle captionStyle = _styleResolver.Resolve(caption, containingWidth, tableStyle);
         if (captionStyle.Display == "none") return 0D;
-        IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(new FlexItem(caption, captionStyle, 0), containingWidth);
-        double minimum = MeasureGridMinContentRuns(runs) + captionStyle.HorizontalInsets;
+        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(new FlexItem(caption, captionStyle, 0), containingWidth);
+        double minimum = MeasureMinContentRuns(runs) + captionStyle.HorizontalInsets;
         if (captionStyle.ExplicitWidth.HasValue && !captionStyle.ExplicitWidthUsesPercentage) {
             minimum = Math.Max(minimum, captionStyle.ExplicitWidth.Value
                 + (captionStyle.BorderBox ? 0D : captionStyle.HorizontalInsets));
@@ -67,7 +67,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ApplyFirstRowAuthoredWidths(IReadOnlyList<IElement> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
         if (rows.Count == 0) return;
         int column = 0;
-        foreach (IElement cell in rows[0].Children.Where(IsTableCell)) {
+        foreach (IElement cell in EnumerateVisibleTableCells(rows[0])) {
             int span = Math.Min(ReadSpan(cell.GetAttribute("colspan"), widths.Length), widths.Length - column);
             if (span <= 0) break;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(cell, contentWidth, tableStyle);
@@ -113,10 +113,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (hasLineBreak || hasSizedNestedTable) {
             // TextContent drops line boundaries between blocks and <br> nodes.
             // Sized nested tables contribute separately as descendants.
-            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(
+            IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(
                 new FlexItem(cell, style, 0), containingWidth, skipSizedNestedTables: hasSizedNestedTable);
-            minimum = Math.Max(1D, MeasureGridMinContentRuns(runs) + insets);
-            preferred = Math.Max(minimum, MeasureGridMaxContentRuns(runs) + insets);
+            minimum = Math.Max(1D, MeasureMinContentRuns(runs) + insets);
+            preferred = Math.Max(minimum, MeasureMaxContentRuns(runs) + insets);
         }
         if (!hasLineBreak && !hasSizedNestedTable && text.IndexOf('\t') >= 0) {
             preferred = Math.Max(preferred, MeasureTabExpandedText(text, style, 0D) + insets);
@@ -136,6 +136,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
+        if (style.MinWidth.HasValue) {
+            double authoredMinimum = style.MinWidth.Value + (style.BorderBox ? 0D : insets);
+            minimum = Math.Max(minimum, authoredMinimum);
+            preferred = Math.Max(preferred, authoredMinimum);
+        }
         ResolveTableDescendantIntrinsicWidths(cell, style, containingWidth, depth, insets, ref minimum, ref preferred);
     }
 
@@ -148,6 +153,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void AppendTableCellSizingText(IElement parent, HtmlRenderBoxStyle parentStyle, double containingWidth, int depth, StringBuilder text, ref bool hasSizedNestedTable) {
         foreach (INode node in parent.ChildNodes) {
+            if (IsClosedDisclosureChild(node)) continue;
             if (node is IText literal) {
                 text.Append(literal.Data);
                 continue;
@@ -170,12 +176,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static bool ContainsTableCellLineBreak(IElement cell) {
+    private bool ContainsTableCellLineBreak(IElement cell) {
         if (cell.Children.Length == 0) return false;
         var pending = new Stack<IElement>();
         foreach (IElement child in cell.Children) pending.Push(child);
         while (pending.Count > 0) {
             IElement element = pending.Pop();
+            if (IsClosedDisclosureChild(element)) continue;
             if (string.Equals(element.LocalName, "br", StringComparison.OrdinalIgnoreCase)) return true;
             if (string.Equals(element.LocalName, "table", StringComparison.OrdinalIgnoreCase)) continue;
             foreach (IElement child in element.Children) pending.Push(child);
@@ -209,6 +216,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ref double minimum,
         ref double preferred) {
         foreach (IElement element in parent.Children) {
+            if (IsClosedDisclosureChild(element)) continue;
             CheckCancellation();
             EnsureDepth(depth + 1, element);
             ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));

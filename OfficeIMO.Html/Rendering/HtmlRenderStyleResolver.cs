@@ -225,7 +225,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
             Display = display,
-            DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
+            DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
             FontDescriptor = fontDescriptor,
@@ -633,7 +633,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (display == "none" || display == "contents") return false;
         if (display == "block" || display == "table" || display == "list-item" || display == "flex" || display == "grid" || display == "flow-root") return true;
         if (display == "inline" || display == "inline-block" || display == "inline-flex" || display == "inline-grid") return false;
-        return IsDefaultBlockTag(element.TagName);
+        return HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
     }
 
     internal static string DescribeSource(IElement element) {
@@ -763,7 +763,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (tag == "tfoot") return "table-footer-group";
         if (tag == "tr") return "table-row";
         if (tag == "td" || tag == "th") return "table-cell";
-        return IsDefaultBlockTag(tag) ? "block" : "inline";
+        return HtmlElementDisplay.GetDefaultValue(element);
     }
 
     private static string ResolvePseudoDisplay(string value) =>
@@ -801,17 +801,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return "none";
     }
 
-    private static bool IsDefaultBlockTag(string tagName) {
-        string tag = tagName.ToLowerInvariant();
-        return tag == "html" || tag == "body" || tag == "address" || tag == "article" || tag == "aside" || tag == "blockquote"
-            || tag == "details" || tag == "dialog" || tag == "div" || tag == "dl" || tag == "dt" || tag == "dd" || tag == "fieldset"
-            || tag == "figcaption" || tag == "figure" || tag == "footer" || tag == "form" || tag == "h1" || tag == "h2" || tag == "h3"
-            || tag == "h4" || tag == "h5" || tag == "h6" || tag == "header" || tag == "hr" || tag == "li" || tag == "main" || tag == "marquee"
-            || tag == "nav" || tag == "ol" || tag == "p" || tag == "pre" || tag == "section" || tag == "summary" || tag == "table"
-            || tag == "ul";
-    }
-
-    internal static bool IsDefaultBlockElement(IElement element) => IsDefaultBlockTag(element.TagName);
+    internal static bool IsDefaultBlockElement(IElement element) => HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
 
     private OfficeColor ResolveColor(IElement element, string value, OfficeColor fallback, bool pseudoElement, string property) {
         string normalized = value.Trim();
@@ -1409,64 +1399,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.GridAutoFlow = NormalizeCssValue(computed.GetValue("grid-auto-flow"), "row");
         style.JustifyItems = NormalizeCssValue(computed.GetValue("justify-items"), "normal");
         style.JustifySelf = NormalizeCssValue(computed.GetValue("justify-self"), "auto");
-        if (computed.IsSpecifiedValue("grid-column")) {
-            ApplyGridPair(computed.GetValue("grid-column"), ref style.GridColumnStart, ref style.GridColumnEnd);
-        }
-        if (computed.IsSpecifiedValue("grid-row")) {
-            ApplyGridPair(computed.GetValue("grid-row"), ref style.GridRowStart, ref style.GridRowEnd);
-        }
-        string gridArea = computed.GetValue("grid-area");
-        bool synthesizedAxisArea = computed.IsSpecifiedValue("grid-area")
-            && ((computed.IsSpecifiedValue("grid-row")
-                    && string.Equals(gridArea, computed.GetValue("grid-row"), StringComparison.OrdinalIgnoreCase))
-                || (computed.IsSpecifiedValue("grid-column")
-                    && string.Equals(gridArea, computed.GetValue("grid-column"), StringComparison.OrdinalIgnoreCase)));
-        style.GridArea = synthesizedAxisArea ? "auto" : NormalizeCssValue(gridArea, "auto");
-        if (computed.IsSpecifiedValue("grid-area") && !synthesizedAxisArea) ApplyGridArea(gridArea, style);
-        if (computed.IsSpecifiedValue("grid-column-start")) OverrideGridValue(computed.GetValue("grid-column-start"), ref style.GridColumnStart);
-        if (computed.IsSpecifiedValue("grid-column-end")) OverrideGridValue(computed.GetValue("grid-column-end"), ref style.GridColumnEnd);
-        if (computed.IsSpecifiedValue("grid-row-start")) OverrideGridValue(computed.GetValue("grid-row-start"), ref style.GridRowStart);
-        if (computed.IsSpecifiedValue("grid-row-end")) OverrideGridValue(computed.GetValue("grid-row-end"), ref style.GridRowEnd);
-        ApplyPlacePair(computed.GetValue("place-items"), ref style.AlignItems, ref style.JustifyItems);
-        ApplyPlacePair(computed.GetValue("place-self"), ref style.AlignSelf, ref style.JustifySelf);
-        ApplyPlacePair(computed.GetValue("place-content"), ref style.AlignContent, ref style.JustifyContent);
-    }
-
-    private static void ApplyGridPair(string value, ref string start, ref string end) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitTopLevel(value, '/');
-        if (parts.Count > 0 && !string.IsNullOrWhiteSpace(parts[0])) start = parts[0].Trim().ToLowerInvariant();
-        if (parts.Count > 1 && !string.IsNullOrWhiteSpace(parts[1])) end = parts[1].Trim().ToLowerInvariant();
-    }
-
-    private static void ApplyGridArea(string value, HtmlRenderBoxStyle style) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitTopLevel(value, '/');
-        if (parts.Count > 0 && !string.IsNullOrWhiteSpace(parts[0])) style.GridRowStart = parts[0].Trim().ToLowerInvariant();
-        if (parts.Count > 1 && !string.IsNullOrWhiteSpace(parts[1])) style.GridColumnStart = parts[1].Trim().ToLowerInvariant();
-        if (parts.Count > 2 && !string.IsNullOrWhiteSpace(parts[2])) style.GridRowEnd = parts[2].Trim().ToLowerInvariant();
-        if (parts.Count > 3 && !string.IsNullOrWhiteSpace(parts[3])) style.GridColumnEnd = parts[3].Trim().ToLowerInvariant();
-    }
-
-    private static void ApplyPlacePair(string value, ref string first, ref string second) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
-        if (parts.Count == 0) return;
-        int index = 0;
-        first = ReadPlaceComponent(parts, ref index);
-        second = index < parts.Count ? ReadPlaceComponent(parts, ref index) : first;
-    }
-
-    private static string ReadPlaceComponent(IReadOnlyList<string> parts, ref int index) {
-        string value = parts[index++].Trim().ToLowerInvariant();
-        if ((value == "first" || value == "last")
-            && index < parts.Count
-            && string.Equals(parts[index], "baseline", StringComparison.OrdinalIgnoreCase)) {
-            value += " baseline";
-            index++;
-        }
-        return value;
-    }
-
-    private static void OverrideGridValue(string value, ref string target) {
-        if (!string.IsNullOrWhiteSpace(value)) target = value.Trim().ToLowerInvariant();
+        style.GridColumnStart = NormalizeCssValue(computed.GetValue("grid-column-start"), "auto");
+        style.GridColumnEnd = NormalizeCssValue(computed.GetValue("grid-column-end"), "auto");
+        style.GridRowStart = NormalizeCssValue(computed.GetValue("grid-row-start"), "auto");
+        style.GridRowEnd = NormalizeCssValue(computed.GetValue("grid-row-end"), "auto");
     }
 
     private static void ApplyFlexFlow(string value, HtmlRenderBoxStyle style) {
@@ -1509,22 +1445,10 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private void ApplyGap(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
-        bool gapWasSpecified = computed.IsSpecifiedValue("gap");
-        IReadOnlyList<string> gap = gapWasSpecified
-            ? HtmlRenderCssValues.SplitWhitespace(computed.GetValue("gap"))
-            : Array.Empty<string>();
-        string row = gap.Count > 0 ? gap[0] : string.Empty;
-        string column = gap.Count > 1 ? gap[1] : row;
-        bool rowGapWasSpecified = computed.IsSpecifiedValue("row-gap");
-        bool columnGapWasSpecified = computed.IsSpecifiedValue("column-gap");
-        if (rowGapWasSpecified) row = computed.GetValue("row-gap");
-        if (columnGapWasSpecified) column = computed.GetValue("column-gap");
-        style.ColumnGapWasSpecified = (gapWasSpecified || columnGapWasSpecified)
-            && !string.IsNullOrWhiteSpace(column)
-            && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
-        style.RowGapWasSpecified = (gapWasSpecified || rowGapWasSpecified)
-            && !string.IsNullOrWhiteSpace(row)
-            && !string.Equals(row.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
+        string row = computed.GetValue("row-gap");
+        string column = computed.GetValue("column-gap");
+        style.ColumnGapWasSpecified = !string.IsNullOrWhiteSpace(column) && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
+        style.RowGapWasSpecified = !string.IsNullOrWhiteSpace(row) && !string.Equals(row.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
         style.RowGap = ResolveGap(row, reference, fontSize, out bool rowUnsupported);
         style.ColumnGap = ResolveGap(column, reference, fontSize, out bool columnUnsupported);
         if (rowUnsupported) style.UnsupportedRowGap = row.Trim();

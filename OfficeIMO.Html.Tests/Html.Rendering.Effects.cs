@@ -570,9 +570,9 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_NonRectangularClipSuppressesOnlyLinksOutsideTheVisibleRegion() {
-        const string html = "<div style='width:100px;height:20px;margin:0;clip-path:polygon(0 0,100% 0,0 100%)'>"
+        const string html = "<div style='width:100px;height:20px;margin:0;font-size:8px;line-height:10px;clip-path:polygon(0 0,100% 0,0 100%)'>"
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/inside'>Inside</a></div>"
-            + "<div style='width:100px;height:20px;margin:0;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
+            + "<div style='width:100px;height:20px;margin:0;font-size:8px;line-height:10px;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/outside'>Outside</a></div>";
         var options = new HtmlToPdfOptions {
             Margins = HtmlRenderMargins.All(0D),

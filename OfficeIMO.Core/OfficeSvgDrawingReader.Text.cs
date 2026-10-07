@@ -543,6 +543,14 @@ public static partial class OfficeSvgDrawingReader {
         double y = run.Baseline - run.FontSize;
         double width = run.Width;
         double height = run.FontSize * 1.25D;
+        OfficeTransform textTransform = Math.Abs(run.RotationDegrees) <= 0.0000001D
+            ? run.Transform
+            : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
+        if (textTransform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D) {
+            AddTransformedTextRun(drawing, run, textTransform, references,
+                maximumViewportDimension, maximumViewportPixels, ref unsupported);
+            return;
+        }
         if (x + width <= 0D || y + height <= 0D || x >= drawing.Width || y >= drawing.Height) {
             unsupported++;
             return;
@@ -558,16 +566,7 @@ public static partial class OfficeSvgDrawingReader {
         double opacity = Math.Max(0D, Math.Min(1D, run.Style.FillOpacity * run.Style.Opacity));
         OfficeColor color = OfficeColor.FromRgba(baseColor.R, baseColor.G, baseColor.B, (byte)Math.Round(baseColor.A * opacity));
         var font = new OfficeFontInfo(run.Style.FontFamily, run.FontSize, run.Style.FontFace, run.Style.FontStyle);
-        OfficeTransform textTransform = Math.Abs(run.RotationDegrees) <= 0.0000001D
-            ? run.Transform
-            : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
-        bool usesEffect = textTransform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
-        if (usesEffect && !references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
-            unsupported++;
-            return;
-        }
-        OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
-        if (usesEffect) target.Fonts.AddRange(drawing.Fonts);
+        OfficeDrawing target = drawing;
         try {
             double naturalWidth = width / run.GlyphScale;
             if (requiresViewportClip) {
@@ -590,15 +589,6 @@ public static partial class OfficeSvgDrawingReader {
                     target.AddPositionedTextWithNaturalAdvance(
                         run.Text, x, y, naturalWidth, height, font, color, height, run.TextDirection);
                 }
-            }
-            if (!ReferenceEquals(target, drawing)) {
-                OfficeTransform effect = run.GlyphScale.Equals(1D)
-                    ? textTransform
-                    : OfficeTransform.Translate(-x, 0D)
-                        .Then(OfficeTransform.Scale(run.GlyphScale, 1D))
-                        .Then(OfficeTransform.Translate(x, 0D))
-                        .Then(textTransform);
-                drawing.AddEffectDrawing(target, effect);
             }
         } catch (ArgumentOutOfRangeException) {
             unsupported++;

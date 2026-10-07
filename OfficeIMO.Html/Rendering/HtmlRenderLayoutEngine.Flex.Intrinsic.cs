@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private double ResolveFlexBasis(FlexItem item, double availableWidth, int intrinsicDepth = 0) {
+    private double ResolveFlexBasis(FlexItem item, double availableWidth, int intrinsicDepth = 0, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         double boxBasis;
         if (style.FlexBasis != "auto") {
@@ -11,16 +11,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
             } else {
                 ReportUnsupportedFlexValue(item, "flex-basis=" + style.FlexBasis);
-                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth);
+                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth, resolvedRuns);
             }
         } else {
-            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth);
+            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth, resolvedRuns);
         }
 
         return Math.Max(0D, boxBasis + style.MarginLeft + style.MarginRight);
     }
 
-    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth, int intrinsicDepth) {
+    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth, int intrinsicDepth, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
@@ -40,16 +40,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && (style.FlexDirection == "row" || style.FlexDirection == "row-reverse")) {
             EnsureDepth(intrinsicDepth + 1, item.Element);
             if (TryCollectFlexItems(item.Element, availableWidth, style, intrinsicDepth + 1,
-                    captureRunningElements: false, out List<FlexItem> nestedItems, out _, registerPositionedChildren: false)) {
+                    captureRunningElements: false, out List<FlexItem> nestedItems, out _, registerOutOfFlowElements: false)) {
                 double nestedWidth = nestedItems.Sum(child => ResolveFlexIntrinsicItemWidth(child, availableWidth, intrinsicDepth + 1))
                     + style.ColumnGap * Math.Max(0, nestedItems.Count - 1);
                 return Math.Min(availableWidth, nestedWidth + style.HorizontalInsets);
             }
         }
-        IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth, includeDescendantInsets: true);
-        double measured = runs.Count == 0 ? 0D : MeasureGridMaxContentRuns(runs);
+        IReadOnlyList<IntrinsicTextRun> runs = resolvedRuns ?? ResolveInFlowIntrinsicTextRuns(item, availableWidth, includeDescendantInsets: true);
+        double measured = runs.Count == 0 ? 0D : MeasureMaxContentRuns(runs);
         if (item.Element != null) {
             foreach (IElement child in item.Element.Children) {
+                if (IsClosedDisclosureChild(child)) continue;
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableWidth, style);
                 if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed"
                     || !HtmlRenderStyleResolver.IsBlockElement(child, childStyle)) continue;
@@ -71,6 +72,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double ResolveFlexIntrinsicItemWidth(FlexItem item, double availableWidth, int intrinsicDepth) {
+        NormalizeFlexIntrinsicConstraints(item);
+        double basis = ResolveFlexBasis(item, availableWidth, intrinsicDepth);
+        double maxContent = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth)
+            + item.Style.MarginLeft + item.Style.MarginRight;
+        item.AutomaticMinimumMainSize = ResolveFlexAutomaticMinimumWidth(item, availableWidth);
+        return ClampFlexMainSize(item, Math.Max(basis, maxContent), vertical: false);
+    }
+
+    private static void NormalizeFlexIntrinsicConstraints(FlexItem item) {
         HtmlRenderBoxStyle style = item.Style;
         if (style.ExplicitWidthUsesPercentage || style.MaxWidthUsesPercentage
             || style.MinWidthWithIndefiniteReference.HasValue) {
@@ -89,11 +99,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 item.Style.MinWidth = style.MinWidthWithIndefiniteReference;
             }
         }
-        double basis = ResolveFlexBasis(item, availableWidth, intrinsicDepth);
-        double maxContent = ResolveFlexAutoBoxBasis(item, availableWidth, intrinsicDepth)
-            + item.Style.MarginLeft + item.Style.MarginRight;
-        item.AutomaticMinimumMainSize = ResolveFlexAutomaticMinimumWidth(item, availableWidth);
-        return ClampFlexMainSize(item, Math.Max(basis, maxContent), vertical: false);
     }
 
     private double ResolveFlexAutomaticMinimumWidth(FlexItem item, double availableWidth) {
@@ -104,8 +109,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (IsReplacedImageElementTag(item.TagName) && item.Element != null) {
             minimum = ResolveReplacedImageBoxWidth(item.Element, style);
         } else {
-            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth);
-            double content = runs.Count == 0 ? 0D : MeasureGridMinContentRuns(runs);
+            IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, availableWidth);
+            double content = runs.Count == 0 ? 0D : MeasureMinContentRuns(runs);
             content = Math.Max(content, ResolveDescendantReplacedGridContribution(item, availableWidth, minimum: true));
             content = Math.Max(content, ResolveDescendantDefiniteFlexWidth(item, availableWidth));
             minimum = content + style.HorizontalInsets;
@@ -124,7 +129,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double maximum = 0D;
         foreach (IElement child in parent.Children) {
             EnsureDepth(depth, child);
-            if (ShouldSkipElement(child)) continue;
+            if (IsClosedDisclosureChild(child) || ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableWidth, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             if (IsReplacedImageElement(child)) continue;

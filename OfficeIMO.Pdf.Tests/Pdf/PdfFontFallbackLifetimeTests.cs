@@ -1,10 +1,38 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfFontFallbackLifetimeTests {
+    [Fact]
+    public void ResettingAutomaticNamedFallbackReleasesFontBytesAndParsedProgram() {
+        (PdfOptions Options, WeakReference[] ReleasedOwners) references = RegisterAndResetAutomaticFallback();
+        for (int attempt = 0; attempt < 10 && references.ReleasedOwners.Any(reference => reference.IsAlive); attempt++) {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+        }
+        Assert.All(references.ReleasedOwners, reference => Assert.False(reference.IsAlive));
+        GC.KeepAlive(references.Options);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (PdfOptions Options, WeakReference[] ReleasedOwners) RegisterAndResetAutomaticFallback() {
+        var options = new PdfOptions();
+        options.RegisterAutomaticFontFallbackCandidates(new[] {
+            new PdfEmbeddedFontFallbackCandidate("Automatic lifetime", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A'))
+        }, new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier });
+        string name = Assert.Single(options.EmbeddedFontFallbacks!.FontFamilyNames);
+        PdfEmbeddedFontFamily registered = options.NamedFontFamilies[name];
+        Assert.True(options.TryResolveNamedFontFace(name, false, false, out PdfNamedFontFace face));
+        Assert.True(options.TryGetNamedFontProgramForGeneration(face, out PdfTrueTypeFontProgram? program));
+        var references = new[] { new WeakReference(registered!), new WeakReference(registered!.RegularSnapshot),
+            new WeakReference(program!), new WeakReference(program!.FontDataForInspection) };
+        options.EmbeddedFontFallbacks = null;
+        return (options, references);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

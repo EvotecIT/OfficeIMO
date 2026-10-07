@@ -272,7 +272,7 @@ result.Save("report.pdf").RequireNoLoss();
 
 ## Fonts and text shaping
 
-The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding; variable instances and shaped results that cannot use the scalar PDF text path are rendered as vector outlines plus logical `ActualText`, preserving extraction and accessibility.
+The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding, including supported OpenType features. Color glyphs and feature-bearing color fonts retain palette-aware outlines. Variable instances and text that requires vector paint use outlines plus logical `ActualText`, preserving extraction and accessibility.
 
 PDF outline expansion remains bounded. The selected program must implement
 `IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion
@@ -286,6 +286,8 @@ may differ. Raise the outline budget only for trusted inputs.
 Outline-only private-use symbols encountered after exhaustion are omitted with
 `HtmlPdfUnavailablePrivateUseGlyphOmitted`, rather than passed to an incompatible
 PDF text font.
+
+HTML body text and SVG text share font discovery, including nested SVG viewports, effect groups and tiling patterns. Fonts registered through `options.Fonts` are available to layout and PDF encoding in those groups. Automatic installed-font fallback follows `ResourcePolicy` for both HTML and SVG text; `CreatePortableDeterministic()` requires explicit in-memory or allowed document fonts. Uncovered characters retain strict encoding diagnostics.
 
 No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
 

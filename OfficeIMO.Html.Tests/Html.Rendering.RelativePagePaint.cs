@@ -193,6 +193,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("A", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RelativePagePaint_ProjectsNamedFontAndShadowBelowThePage(bool precedingNormalText) {
+        byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 800, -100, 700);
+        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
+        string html = "<style>@page{size:400px 400px;margin:0}body{margin:0}</style>"
+            + "<div style='position:relative;top:365px;font:20px/20px Arial'>"
+            + (precedingNormalText ? "A" : string.Empty)
+            + "<span style='font-size:100px;text-shadow:0 0 red'>A</span></div>";
+
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, result.RenderResult!.Document.Pages.Count);
+        Assert.Contains(RelativeTextPlacements(result.RenderResult.Document, "A"),
+            placement => placement.Page.PageNumber == 2 && placement.Text.Font.Size == 100D);
+        string extracted = PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
+        Assert.Equal(precedingNormalText ? "AA" : "A", string.Concat(extracted.Where(c => !char.IsWhiteSpace(c))));
+    }
+
     [Fact]
     public void RelativePagePaint_KeepsOverflowGlyphPaintTranslatedIntoThePage() {
         string html = "<style>@page{size:400px 400px;margin:0}body{margin:0;font:16px Arial}</style>"

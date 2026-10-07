@@ -74,8 +74,7 @@ public static partial class HtmlComputedStyleEngine {
         "marker-mid",
         "marker-end",
         "text-anchor",
-        "dominant-baseline",
-        "baseline-shift"
+        "dominant-baseline"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "all",
@@ -526,6 +525,8 @@ public static partial class HtmlComputedStyleEngine {
                 source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.PresentationalHint);
         }
 
+        ApplySvgTextAndPaintPresentationAttributes(element, parent?.Properties, properties, budget);
+
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
         foreach (StyleRule rule in candidateRules) {
             if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment,
@@ -559,6 +560,9 @@ public static partial class HtmlComputedStyleEngine {
             includeCascadeTraces,
             rules.CustomPropertyRegistrations,
             enforceResolutionLimits: budget.HasDeclarationLimit);
+        // Store the HTML default in the computed snapshot so an explicit
+        // display:inherit can copy a parent's tag default or hidden state.
+        if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);

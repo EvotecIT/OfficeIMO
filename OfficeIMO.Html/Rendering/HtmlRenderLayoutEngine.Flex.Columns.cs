@@ -207,7 +207,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth) {
+    private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth, int intrinsicDepth = 1, IReadOnlyList<IntrinsicTextRun>? resolvedRuns = null) {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) {
@@ -216,15 +216,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.ExplicitWidth.HasValue) return ResolveColumnFlexOuterWidth(style, contentWidth);
         if (tag == "table") return contentWidth;
-        double measured;
-        if (style.Font.Size <= 0D) {
-            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, contentWidth);
-            measured = runs.Count == 0 ? 1D : MeasureGridMaxContentRuns(runs);
-        } else {
-            string content = CollapseFlexText(item.TextContent);
-            measured = content.Length == 0 ? 1D : MeasureInlineText(ApplyTextTransform(content, style), style);
-        }
-        double boxBasis = measured + style.HorizontalInsets;
+        double boxBasis;
+        IReadOnlyList<IntrinsicTextRun> runs = resolvedRuns ?? ResolveInFlowIntrinsicTextRuns(item, contentWidth, intrinsicDepth);
+        double measured = runs.Count == 0 ? 1D : MeasureMaxContentRuns(runs);
+        boxBasis = measured + style.HorizontalInsets;
 
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));

@@ -70,43 +70,4 @@ public static partial class HtmlComputedStyleEngine {
         }
     }
 
-    private static string RestoreFontShorthandName(string name) {
-        if (!name.StartsWith(FontDeclarationSentinelPrefix, StringComparison.OrdinalIgnoreCase)) return name;
-        string suffix = name.Substring(FontDeclarationSentinelPrefix.Length);
-        int separator = suffix.IndexOf('-');
-        return separator >= 0 ? suffix.Substring(separator + 1) : name;
-    }
-
-    private static string PreserveFontShorthandDeclarations(string css) {
-        var result = new System.Text.StringBuilder(css.Length);
-        int copied = 0;
-        int declarationId = 0;
-        for (int index = 0; index < css.Length; index++) {
-            char current = css[index];
-            if (current is '\'' or '"') {
-                char quote = current;
-                while (++index < css.Length && (css[index] != quote || IsEscaped(css, index))) { }
-                continue;
-            }
-            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
-                int end = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
-                index = end < 0 ? css.Length : end + 1;
-                continue;
-            }
-            int before = SkipCssWhitespaceAndCommentsBackward(css, index - 1);
-            if (before < 0 || css[before] is not ('{' or ';')) continue;
-            int endName = index;
-            if (!HtmlCssIdentifierParser.TryRead(css, ref endName, out string name)) continue;
-            name = name.ToLowerInvariant();
-            if (name != "font" && !FontShorthandLonghands.Contains(name)) continue;
-            int colon = SkipCssWhitespaceAndCommentsForward(css, endName);
-            if (colon >= css.Length || css[colon] != ':') continue;
-            result.Append(css, copied, index - copied).Append(FontDeclarationSentinelPrefix).Append(declarationId++).Append('-').Append(name);
-            copied = endName;
-            index = FindDeclarationValueEnd(css, colon + 1) - 1;
-        }
-        if (copied == 0) return css;
-        result.Append(css, copied, css.Length - copied);
-        return result.ToString();
-    }
 }

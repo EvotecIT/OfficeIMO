@@ -122,6 +122,12 @@ public sealed partial class HtmlRenderPage {
         if (visual is HtmlRenderShape shape) {
             AddShape(drawing, shape, surfaceWidth, surfaceHeight, fonts);
         } else if (visual is HtmlRenderText text && text.Text.Length > 0) {
+            if (text.WrappedLines != null) {
+                foreach (HtmlRenderText fragment in text.GetWrappedPaintFragments()) {
+                    AddVisual(drawing, fragment, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+                }
+                return;
+            }
             // Positioned overlays can sit outside the page while normal flow
             // stays unchanged. Drawing's public text API requires containment;
             // retain partial paint through a viewport clip and omit paint that

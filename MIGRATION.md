@@ -14,6 +14,9 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
+## Native HTML disclosure rendering
+
+Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.
 
 ## PNG scan sample layout
 

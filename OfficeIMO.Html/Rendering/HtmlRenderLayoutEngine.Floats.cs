@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> runs) {
         double measuredOuterWidth = IsReplacedImageElement(element)
             ? ResolveFloatingImageOuterWidth(element, style)
-            : ResolvePositionedOuterWidth(element, style, containingWidth, null, null);
+            : ResolvePositionedOuterWidth(element, style, containingWidth, null, null, depth);
         double outerWidth = Math.Min(Math.Max(1D, containingWidth), measuredOuterWidth);
         HtmlRenderBoxStyle floatStyle = style.Clone();
         if (!floatStyle.ExplicitWidth.HasValue) SetPositionedExplicitWidth(floatStyle, outerWidth);
@@ -488,7 +488,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
-            double baseline = current.ResolveBaseline(paragraphStyle.LineHeight);
+            bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
+            double baseline = alignTextBaseline || current.HasReplacedImage
+                ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
+                : current.ResolveBaseline(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
             double lineX = current.HasExplicitPlacement ? current.X : 0D;
@@ -577,8 +580,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                     }
                 } else if (segment.Text.Length > 0) {
-                    double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
-                    ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage, lineY,
+                    double textLineHeight = current.HasReplacedImage || alignTextBaseline ? segment.Run.Style.LineHeight : lineHeight;
+                    if (current.HasReplacedImage || alignTextBaseline) {
+                        // A smaller run shares the line baseline without extending
+                        // its inherited leading below the containing line box.
+                        double baselineOffset = Math.Max(0D, baseline - segment.Run.Style.Font.Size);
+                        textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
+                    }
+                    ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline, lineY,
                         textLineHeight, baseline, out double textY, out double paintHeight,
                         out double paintTopOverflow);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,

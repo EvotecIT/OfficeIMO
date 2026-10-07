@@ -36,14 +36,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool captureRunningElements,
         out List<FlexItem> items,
         out List<HtmlCssRunningStringAssignment> runningElementAssignments,
-        bool registerPositionedChildren = true) {
+        bool registerOutOfFlowElements = true) {
         items = new List<FlexItem>();
         runningElementAssignments = new List<HtmlCssRunningStringAssignment>();
         int sourceIndex = 0;
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
         foreach (INode node in element.ChildNodes) {
             if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items,
-                    captureRunningElements ? runningElementAssignments : null, registerPositionedChildren)) return false;
+                captureRunningElements ? runningElementAssignments : null, registerOutOfFlowElements)) return false;
         }
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
 
