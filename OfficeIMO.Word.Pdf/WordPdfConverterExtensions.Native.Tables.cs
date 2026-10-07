@@ -20,6 +20,8 @@ namespace OfficeIMO.Word.Pdf {
                 table,
                 nativeDefaults,
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
+            bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
+                table, table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
             var cellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
@@ -84,7 +86,9 @@ namespace OfficeIMO.Word.Pdf {
                         embeddedContent.CheckBoxes.Count == 0 ? null : embeddedContent.CheckBoxes,
                         embeddedContent.FormFields.Count == 0 ? null : embeddedContent.FormFields,
                         embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
-                        noWrap: !cell.WrapText));
+                        // Word no-wrap changes automatic sizing. Fixed-layout tables and
+                        // cells with absolute preferred widths still wrap their content.
+                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText));
 
                     PdfCore.PdfColor? fill =
                         ParseNativeColor(cell.ShadingFillColorHex) ??
