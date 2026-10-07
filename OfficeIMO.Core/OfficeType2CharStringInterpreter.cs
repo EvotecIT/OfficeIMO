@@ -12,10 +12,11 @@ internal interface IOfficeCffPathSink {
     void CloseContour();
 }
 
-/// <summary>Shared operation budget for one externally requested CFF text render.</summary>
+/// <summary>Shared CFF operation allowance with deterministic per-render execution state.</summary>
 internal sealed class OfficeCffOperationBudget {
     private const int DefaultMaximumOperations = 1_000_000;
     private int _remaining;
+    private readonly OfficeCffOperationBudget _operationOwner;
     private uint _randomState = 0x9E3779B9U;
 
     internal OfficeCffOperationBudget() : this(DefaultMaximumOperations) {
@@ -24,12 +25,22 @@ internal sealed class OfficeCffOperationBudget {
     internal OfficeCffOperationBudget(int maximumOperations) {
         if (maximumOperations <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOperations));
         _remaining = maximumOperations;
+        _operationOwner = this;
     }
 
-    internal int RemainingOperations => _remaining;
+    private OfficeCffOperationBudget(OfficeCffOperationBudget sharedBudget) {
+        _operationOwner = sharedBudget._operationOwner;
+    }
+
+    // Separate retained text runs are painted by separate canvases. Their glyph
+    // execution must start with the same random sequence used for bounds, while
+    // every scope consumes the original document's cumulative work allowance.
+    internal OfficeCffOperationBudget CreateExecutionScope() => new OfficeCffOperationBudget(this);
+
+    internal int RemainingOperations => _operationOwner._remaining;
 
     internal void Consume() {
-        if (_remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
+        if (_operationOwner._remaining-- <= 0) throw new InvalidDataException("The CFF CharString operation budget was exceeded.");
     }
 
     internal double NextRandom() {

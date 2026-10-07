@@ -15,7 +15,7 @@ public sealed partial class OfficeRasterCanvas {
     internal bool PreservePaintedGlyphOrder { get; set; }
     private Dictionary<ShapedTextKey, OfficeTextShapingResult?>? _shapedTextCache;
     private Dictionary<ShapedTextKey, OfficeManagedTextFallback>? _managedTextCache;
-    private readonly OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
+    private OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
 
     private bool TryGetShapedTextRun(
         string text,

@@ -147,11 +147,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         var list = slideBlock.Blocks.OfType<OfficeMarkupListBlock>().FirstOrDefault();
-        if (list == null || list.Items.Count < 2 || list.Items.Count > 4) {
+        if (list == null || !OfficeMarkupListTraversal.IsTextOnly(list) || list.Items.Count < 2 || list.Items.Count > 4) {
             return false;
         }
 
-        var supported = slideBlock.Blocks.All(block => block is OfficeMarkupListBlock || block is OfficeMarkupParagraphBlock);
+        var supported = slideBlock.Blocks.All(block => block is OfficeMarkupListBlock candidate
+            ? OfficeMarkupListTraversal.IsTextOnly(candidate) : block is OfficeMarkupParagraphBlock);
         if (!supported) {
             return false;
         }
@@ -228,10 +229,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         var list = slideBlock.Blocks.OfType<OfficeMarkupListBlock>().FirstOrDefault();
-        if (list == null || list.Items.Count < 2 || list.Items.Count > 8) {
+        if (list == null || !OfficeMarkupListTraversal.IsTextOnly(list) || list.Items.Count < 2 || list.Items.Count > 8) {
             return false;
         }
 
+        if (!slideBlock.Blocks.All(block => block is OfficeMarkupListBlock candidate
+            ? OfficeMarkupListTraversal.IsTextOnly(candidate) : block is OfficeMarkupParagraphBlock)) return false;
         var subtitle = slideBlock.Blocks.OfType<OfficeMarkupParagraphBlock>().FirstOrDefault()?.Text;
         var steps = list.Items.Select((item, index) => CreateProcessStep(item.Text, index + 1)).ToList();
         slide = deck.AddProcessSlide(slideBlock.Title ?? "Process", subtitle, steps, seed: slideBlock.Title);
@@ -316,10 +319,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             }
 
             var columnBlocks = new List<OfficeMarkupBlock>();
-            var body = GetColumnBody(current);
-            if (!string.IsNullOrWhiteSpace(body)) {
-                columnBlocks.AddRange(ParseLightweightMarkdown(body));
-            }
+            columnBlocks.AddRange(GetColumnBlocks(current));
 
             index++;
             while (index < blocks.Count && !IsColumn(blocks[index])) {

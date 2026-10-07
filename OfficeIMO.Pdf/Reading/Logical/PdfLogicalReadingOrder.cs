@@ -107,7 +107,7 @@ public sealed class PdfLogicalReadingOrderItem {
 }
 
 /// <summary>Shared logical reading-order analysis for reverse-conversion adapters.</summary>
-public static class PdfLogicalReadingOrderAnalysis {
+public static partial class PdfLogicalReadingOrderAnalysis {
     private const double SpanningWidthRatio = 0.62D;
 
     /// <summary>
@@ -477,18 +477,26 @@ public static class PdfLogicalReadingOrderAnalysis {
         Action? cancellationCheck) {
         var result = new List<Candidate>();
         var representedTextBlocks = new HashSet<PdfLogicalTextBlock>();
+        var listOwnedTextBlocks = new HashSet<PdfLogicalTextBlock>();
+        for (int index = 0; index < page.ListItems.Count; index++) {
+            if (!page.ListItems[index].CanProjectAsList) continue;
+            foreach (PdfLogicalTextBlock line in page.ListItems[index].Lines) listOwnedTextBlocks.Add(line);
+        }
         var tableBounds = new PdfVisualBounds?[page.Tables.Count];
+        var tableTexts = new string[page.Tables.Count];
         for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
             cancellationCheck?.Invoke();
             PdfLogicalTable table = page.Tables[tableIndex];
             consumeWork?.Invoke(Math.Max(1, table.Columns.Count));
             if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
+            tableTexts[tableIndex] = NormalizeTableProjectionText(string.Join(" ", table.Rows.SelectMany(static row => row)), consumeWork);
         }
         for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
             foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) representedTextBlocks.Add(line);
         }
         for (int index = 0; index < page.ListItems.Count; index++) {
+            if (!page.ListItems[index].CanProjectAsList) continue;
             foreach (PdfLogicalTextBlock line in page.ListItems[index].Lines) representedTextBlocks.Add(line);
         }
         for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
@@ -504,8 +512,16 @@ public static class PdfLogicalReadingOrderAnalysis {
             if (!representedTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
         for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
-        for (int index = 0; index < page.Paragraphs.Count; index++) AddText(PdfLogicalReadingOrderKind.Paragraph, index, page.Paragraphs[index].Lines);
-        for (int index = 0; index < page.ListItems.Count; index++) AddText(PdfLogicalReadingOrderKind.ListItem, index, page.ListItems[index].Lines);
+        for (int index = 0; index < page.Paragraphs.Count; index++) {
+            IReadOnlyList<PdfLogicalTextBlock> lines = page.Paragraphs[index].Lines;
+            if (!lines.All(listOwnedTextBlocks.Contains) &&
+                !IsParagraphRepresentedByTable(page, lines, tableBounds, tableTexts, consumeWork)) {
+                AddText(PdfLogicalReadingOrderKind.Paragraph, index, lines);
+            }
+        }
+        for (int index = 0; index < page.ListItems.Count; index++) {
+            if (page.ListItems[index].CanProjectAsList) AddText(PdfLogicalReadingOrderKind.ListItem, index, page.ListItems[index].Lines);
+        }
         for (int index = 0; index < page.Tables.Count; index++) {
             cancellationCheck?.Invoke();
             if (tableBounds[index] is PdfVisualBounds bounds) {

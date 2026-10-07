@@ -12,8 +12,8 @@ internal static class OfficeFontFaceCssParser {
             case "": case "inherit": return true;
             case "normal": weight = 400; return true;
             case "bold": weight = 700; return true;
-            case "bolder": weight = inherited < 350 ? 400 : inherited < 550 ? 700 : 900; return true;
-            case "lighter": weight = inherited < 550 ? 100 : inherited < 750 ? 400 : 700; return true;
+            case "bolder": weight = inherited < 350 ? 400 : inherited < 550 ? 700 : Math.Max(900, inherited); return true;
+            case "lighter": weight = inherited < 550 ? Math.Min(100, inherited) : inherited < 750 ? 400 : 700; return true;
         }
         return int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight) && weight >= 1 && weight <= 1000;
     }
