@@ -43,6 +43,9 @@
 
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Pages}" FontWeight="SemiBold" Margin="0,5,0,0" />
             <TextBox Text="{Binding OutputWorkbench.PrintPreview.Pages, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.AllPagesOr13Last}" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PageSubsetChoices}"
+                      SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPageSubset}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.PageSubset}" />
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="9" Margin="0,5,0,0">
               <StackPanel Spacing="5">
@@ -73,6 +76,26 @@
               <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:PrintScaleChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.SelectedScale.Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <StackPanel IsVisible="{Binding OutputWorkbench.PrintPreview.UsesCustomScale}" Spacing="5">
+              <TextBlock Text="{loc:Loc PrintPreview.CustomScale}" />
+              <NumericUpDown Minimum="1" Maximum="1000" Increment="5" Value="{Binding OutputWorkbench.PrintPreview.CustomScalePercent}"
+                             AutomationProperties.Name="{loc:Loc PrintPreview.CustomScale}" />
+            </StackPanel>
+            <TextBlock Text="{loc:Loc PrintPreview.Alignment}" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.AlignmentChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedAlignment}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.Alignment}" />
+            <Expander Header="{loc:Loc PrintPreview.Margins}" HorizontalAlignment="Stretch">
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="9" RowSpacing="8">
+                <StackPanel Spacing="4"><TextBlock Text="{loc:Loc PrintPreview.Margin.Left}" /><NumericUpDown Minimum="0" Maximum="1000" Value="{Binding OutputWorkbench.PrintPreview.MarginLeft}" AutomationProperties.Name="{loc:Loc PrintPreview.Margin.Left}" /></StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{loc:Loc PrintPreview.Margin.Top}" /><NumericUpDown Minimum="0" Maximum="1000" Value="{Binding OutputWorkbench.PrintPreview.MarginTop}" AutomationProperties.Name="{loc:Loc PrintPreview.Margin.Top}" /></StackPanel>
+                <StackPanel Grid.Row="1" Spacing="4"><TextBlock Text="{loc:Loc PrintPreview.Margin.Right}" /><NumericUpDown Minimum="0" Maximum="1000" Value="{Binding OutputWorkbench.PrintPreview.MarginRight}" AutomationProperties.Name="{loc:Loc PrintPreview.Margin.Right}" /></StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4"><TextBlock Text="{loc:Loc PrintPreview.Margin.Bottom}" /><NumericUpDown Minimum="0" Maximum="1000" Value="{Binding OutputWorkbench.PrintPreview.MarginBottom}" AutomationProperties.Name="{loc:Loc PrintPreview.Margin.Bottom}" /></StackPanel>
+              </Grid>
+            </Expander>
+            <TextBlock Text="{loc:Loc PrintPreview.Color}" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.ColorChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedColor}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.Color}" />
+            <TextBlock Text="{loc:Loc PrintPreview.ColorHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
 
             <TextBlock Text="{loc:Loc PrintPreview.Resolution}" FontWeight="SemiBold" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PrintDpiChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.PrintDpi}" />

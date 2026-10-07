@@ -80,17 +80,21 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
         ScaleChoices = [
             Scale(PdfPrintScaleMode.Fit, "Fit", "Show the whole page."),
             Scale(PdfPrintScaleMode.ActualSize, "Actual size", "Keep physical page size where it fits."),
-            Scale(PdfPrintScaleMode.Fill, "Fill", "Fill each slot and crop overflow.")
+            Scale(PdfPrintScaleMode.Fill, "Fill", "Fill each slot and crop overflow."),
+            Scale(PdfPrintScaleMode.Custom, "Custom", "Set a percentage of the original page size. Overflow is cropped.")
         ];
         PagesPerSheetChoices = [
             new(1, T("PagesPerSheet.One", "1 page")),
             new(2, T("PagesPerSheet.Two", "2 pages")),
-            new(4, T("PagesPerSheet.Four", "4 pages"))
+            new(4, T("PagesPerSheet.Four", "4 pages")),
+            new(6, T("PagesPerSheet.Six", "6 pages")),
+            new(9, T("PagesPerSheet.Nine", "9 pages"))
         ];
         SelectedPaper = PaperChoices[0];
         SelectedOrientation = OrientationChoices[0];
         SelectedScale = ScaleChoices[0];
         SelectedPagesPerSheet = PagesPerSheetChoices[0];
+        InitializeLayoutChoices();
         SelectedDuplex = DuplexChoices[0];
         Status = T("Status.Ready", "Choose a PDF and preview its print sheets.");
         Summary = T("Summary.Empty", "No preview yet");
@@ -121,6 +125,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     private PrintOrientationChoice _selectedOrientation = null!;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UsesCustomScale))]
     private PrintScaleChoice _selectedScale = null!;
 
     [ObservableProperty]
@@ -178,7 +183,12 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
                 PaperSize = SelectedPaper.Size,
                 Orientation = SelectedOrientation.Value,
                 PagesPerSheet = SelectedPagesPerSheet.Value,
-                ScaleMode = SelectedScale.Value
+                ScaleMode = SelectedScale.Value,
+                CustomScalePercent = CustomScalePercent,
+                Alignment = SelectedAlignment.Value,
+                PageSubset = SelectedPageSubset.Value,
+                ColorMode = SelectedColor.Value,
+                MarginLeft = MarginLeft, MarginTop = MarginTop, MarginRight = MarginRight, MarginBottom = MarginBottom
             };
             PdfDocument document = await _readSnapshot(request.InputPath, operation.Token).ConfigureAwait(true);
             ProgressFraction = 0.2D;

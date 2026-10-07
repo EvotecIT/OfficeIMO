@@ -38,7 +38,9 @@ public sealed partial class PrintPreviewViewModel {
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(InputPath) or nameof(Pages) or nameof(SelectedPaper) or nameof(SelectedOrientation)
-            or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)) InvalidatePreparedSheets();
+            or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)
+            or nameof(CustomScalePercent) or nameof(SelectedAlignment) or nameof(SelectedPageSubset) or nameof(SelectedColor)
+            or nameof(MarginLeft) or nameof(MarginTop) or nameof(MarginRight) or nameof(MarginBottom)) InvalidatePreparedSheets();
         if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources) or nameof(IsDiscoveringPrinters)) {
             OnPropertyChanged(nameof(CanChangePrintSettings));
             OnPropertyChanged(nameof(CanPrint));

@@ -15,8 +15,11 @@ Usage:
              [--format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
   officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force]
   officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3]
-             [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4]
-             [--scale fit|actual|fill] [--margin <points>]
+             [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4|6|9]
+             [--scale fit|actual|fill|custom] [--custom-scale <percent>] [--margin <points>]
+             [--margin-left <points>] [--margin-top <points>] [--margin-right <points>] [--margin-bottom <points>]
+             [--alignment center|top-left|top|top-right|left|right|bottom-left|bottom|bottom-right]
+             [--page-subset all|odd|even] [--color color|grayscale]
   officeimo workflow batch [<source>...] --output <folder> [--input-directory <folder>]
              [--target pdf|docx|xlsx|pptx|html] [--checkpoint <folder>] [--route <id>]
              [--source-extension <extension>] [--no-recursive] [--concurrency 1..32]
@@ -143,18 +146,11 @@ Existing output is refused unless --force is supplied.
         TextWriter output,
         Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>> printPlanner,
         CancellationToken cancellationToken) {
-        PdfPrintPlan plan = await printPlanner(new PdfPrintPlanRequest {
-            InputPath = Path.GetFullPath(parsed.Inputs[0]),
-            Pages = parsed.Pages,
-            PaperSize = parsed.PaperSize,
-            Orientation = parsed.Orientation,
-            PagesPerSheet = parsed.PagesPerSheet,
-            ScaleMode = parsed.ScaleMode,
-            Margin = parsed.Margin
-        }, cancellationToken).ConfigureAwait(false);
+        PdfPrintPlan plan = await printPlanner(parsed.CreatePrintRequest(), cancellationToken).ConfigureAwait(false);
         await output.WriteLineAsync("Source pages: " + plan.SourcePageCount.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
         await output.WriteLineAsync("Selected pages: " + string.Join(',', plan.SelectedPages)).ConfigureAwait(false);
         await output.WriteLineAsync("Sheets: " + plan.Sheets.Count.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+        await output.WriteLineAsync("Color: " + plan.ColorMode).ConfigureAwait(false);
         foreach (PdfPrintSheet sheet in plan.Sheets) {
             await output.WriteLineAsync(
                 "Sheet " + sheet.SheetNumber.ToString(CultureInfo.InvariantCulture) + ": " +

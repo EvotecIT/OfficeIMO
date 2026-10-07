@@ -111,11 +111,16 @@ officeimo workflow printers
 officeimo workflow printers --paper-sources "Office printer"
 officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 `
   --pages-per-sheet 2 --copies 1 --duplex long
+officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
+  --scale custom --custom-scale 40 --alignment bottom-right --margin 18 `
+  --margin-left 24 --margin-right 24 --color grayscale
 ```
 
 Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](../OfficeIMO.Workflows/README.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
 
 Printer submission uses prepared raster sheets. The returned job identifier proves queue acceptance; physical delivery is unconfirmed. After an interrupted submission, check the queue before retrying. Windows file printers require `--output-file` naming a new local file. macOS/Linux delivery uses the existing CUPS service boundary and requires its command-line tools.
+
+Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` changes the prepared pixels; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
 
 ## Common workflows
 

@@ -2537,4 +2537,32 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="OcrSetup.InstallCommand" xml:space="preserve"><value>Tesseract installation instructions</value></data>
   <data name="OcrSetup.LanguageHelp" xml:space="preserve"><value>Recognition languages are chosen in each OCR workflow. Missing supported models can be downloaded with checksum verification when language downloads are enabled.</value></data>
   <data name="OcrSetup.OpenSettings" xml:space="preserve"><value>Set up text recognition…</value></data>
+  <data name="PrintPreview.PageSubset" xml:space="preserve"><value>Page subset</value></data>
+  <data name="PrintPreview.CustomScale" xml:space="preserve"><value>Custom scale (%)</value></data>
+  <data name="PrintPreview.Alignment" xml:space="preserve"><value>Alignment</value></data>
+  <data name="PrintPreview.Margins" xml:space="preserve"><value>Margins (points)</value></data>
+  <data name="PrintPreview.Margin.Left" xml:space="preserve"><value>Left</value></data>
+  <data name="PrintPreview.Margin.Top" xml:space="preserve"><value>Top</value></data>
+  <data name="PrintPreview.Margin.Right" xml:space="preserve"><value>Right</value></data>
+  <data name="PrintPreview.Margin.Bottom" xml:space="preserve"><value>Bottom</value></data>
+  <data name="PrintPreview.Color" xml:space="preserve"><value>Color treatment</value></data>
+  <data name="PrintPreview.ColorHint" xml:space="preserve"><value>Grayscale changes the preview and delivered sheet pixels. Color output depends on the printer. Margins are the requested layout; the printer may have its own unprintable area.</value></data>
+  <data name="PrintPreview.PagesPerSheet.Six" xml:space="preserve"><value>6 pages</value></data>
+  <data name="PrintPreview.PagesPerSheet.Nine" xml:space="preserve"><value>9 pages</value></data>
+  <data name="PrintPreview.Scale.Custom.Label" xml:space="preserve"><value>Custom</value></data>
+  <data name="PrintPreview.Scale.Custom.Description" xml:space="preserve"><value>Set a percentage of the original page size. Overflow is cropped.</value></data>
+  <data name="PrintPreview.PageSubset.All" xml:space="preserve"><value>All selected pages</value></data>
+  <data name="PrintPreview.PageSubset.Odd" xml:space="preserve"><value>Odd source pages</value></data>
+  <data name="PrintPreview.PageSubset.Even" xml:space="preserve"><value>Even source pages</value></data>
+  <data name="PrintPreview.Color.Color" xml:space="preserve"><value>Color</value></data>
+  <data name="PrintPreview.Color.Grayscale" xml:space="preserve"><value>Grayscale</value></data>
+  <data name="PrintPreview.Alignment.TopLeft" xml:space="preserve"><value>Top left</value></data>
+  <data name="PrintPreview.Alignment.Top" xml:space="preserve"><value>Top center</value></data>
+  <data name="PrintPreview.Alignment.TopRight" xml:space="preserve"><value>Top right</value></data>
+  <data name="PrintPreview.Alignment.Left" xml:space="preserve"><value>Middle left</value></data>
+  <data name="PrintPreview.Alignment.Center" xml:space="preserve"><value>Center</value></data>
+  <data name="PrintPreview.Alignment.Right" xml:space="preserve"><value>Middle right</value></data>
+  <data name="PrintPreview.Alignment.BottomLeft" xml:space="preserve"><value>Bottom left</value></data>
+  <data name="PrintPreview.Alignment.Bottom" xml:space="preserve"><value>Bottom center</value></data>
+  <data name="PrintPreview.Alignment.BottomRight" xml:space="preserve"><value>Bottom right</value></data>
 </root>
