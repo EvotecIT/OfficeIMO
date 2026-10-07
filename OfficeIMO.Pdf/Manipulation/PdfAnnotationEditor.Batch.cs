@@ -5,7 +5,7 @@ internal static partial class PdfAnnotationEditor {
 
     internal static PdfAnnotationEditResult EditBatch(byte[] pdf, IReadOnlyList<int> objectNumbers,
         BatchOperation operation, PdfLoadOptions? readOptions, double deltaX = 0D, double deltaY = 0D,
-        PdfAnnotationOrderChange orderChange = PdfAnnotationOrderChange.Raise, bool allowResidualDataInAppendOnly = false) {
+        PdfAnnotationOrderChange orderChange = PdfAnnotationOrderChange.Raise, bool allowResidualDataInAppendOnly = false, bool visualOffset = false) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objectNumbers, nameof(objectNumbers));
         if (objectNumbers.Count == 0) throw new ArgumentException("Select at least one annotation.", nameof(objectNumbers));
@@ -17,6 +17,7 @@ internal static partial class PdfAnnotationEditor {
         if (operation == BatchOperation.Remove && plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly && !allowResidualDataInAppendOnly)
             throw new NotSupportedException("Append-only annotation removal retains original data in older revisions. Explicitly permit residual data or use a permitted full rewrite.");
         PdfAnnotation[] selected = ResolveBatchAnnotations(GetAnnotationMutationDocumentInfo(plan).Annotations, objectNumbers);
+        var offsets = GetBatchPageOffsets(pdf, readOptions, selected, deltaX, deltaY, visualOffset);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalog = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalog == 0) throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
@@ -27,13 +28,14 @@ internal static partial class PdfAnnotationEditor {
             case BatchOperation.Move:
                 foreach (PdfAnnotation annotation in selected) {
                     int number = annotation.ObjectNumber!.Value;
-                    PdfAnnotationUpdateOptions options = CreateBatchMoveOptions(objects, annotation, deltaX, deltaY);
+                    var offset = offsets[annotation.PageNumber!.Value];
+                    PdfAnnotationUpdateOptions options = CreateBatchMoveOptions(objects, annotation, offset.X, offset.Y);
                     foreach (int generated in ApplyUpdates(objects, (PdfDictionary)objects[number].Value, options)) changed.Add(generated);
                     changed.Add(number);
                 }
                 break;
             case BatchOperation.Copy:
-                additionalAnnotations = CopyBatchAnnotations(objects, selected, deltaX, deltaY, changed);
+                additionalAnnotations = CopyBatchAnnotations(objects, selected, offsets, changed);
                 break;
             case BatchOperation.Group:
                 GroupBatchAnnotations(objects, selected, changed);
@@ -70,6 +72,19 @@ internal static partial class PdfAnnotationEditor {
         byte[] rewritten = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out var map);
         return CreateFullRewriteResult(pdf, rewritten, selected.Length, plan, annotationsChanged: true, readOptions: readOptions,
             generatedGrowth: growth, objectNumberMap: map);
+    }
+
+    private static Dictionary<int, PdfPagePoint> GetBatchPageOffsets(byte[] pdf, PdfLoadOptions? readOptions,
+        PdfAnnotation[] selected, double deltaX, double deltaY, bool visualOffset) {
+        int[] pageNumbers = selected.Select(annotation => annotation.PageNumber!.Value).Distinct().ToArray();
+        if (!visualOffset) return pageNumbers.ToDictionary(number => number, _ => new PdfPagePoint(deltaX, deltaY));
+        var pages = PdfDocument.Load(pdf, readOptions).GetPageLayouts();
+        return pageNumbers.ToDictionary(number => number, number => {
+            var page = pages[number - 1];
+            var origin = page.MapVisualPointToUserSpace(0, 0);
+            var target = page.MapVisualPointToUserSpace(deltaX, deltaY);
+            return new PdfPagePoint(target.X - origin.X, target.Y - origin.Y);
+        });
     }
 
     private static void EnsureGroupingVersion(byte[] pdf, Dictionary<int, PdfIndirectObject> objects, int catalogNumber, HashSet<int> changed,

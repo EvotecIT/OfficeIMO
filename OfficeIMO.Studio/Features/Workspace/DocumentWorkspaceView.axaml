@@ -978,6 +978,7 @@
 
                 <StackPanel IsVisible="{Binding HasSelectedAnnotations}" Spacing="7">
                   <TextBlock Text="{loc:Loc AnnotationSelection.Help}" Classes="muted" TextWrapping="Wrap" />
+                  <TextBlock IsVisible="{Binding HasCrossPageAnnotationSelection}" Text="{loc:Loc AnnotationSelection.SamePageGroups}" Classes="muted" TextWrapping="Wrap" />
                   <WrapPanel ItemSpacing="6" LineSpacing="6">
                     <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Group}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Group}" Command="{Binding GroupAnnotationsCommand}" IsEnabled="{Binding CanGroupAnnotations}" />
                     <Button Classes="tool" Content="{loc:Loc AnnotationSelection.Ungroup}" AutomationProperties.Name="{loc:Loc AnnotationSelection.Ungroup}" Command="{Binding UngroupAnnotationsCommand}" IsEnabled="{Binding CanUngroupAnnotations}" />

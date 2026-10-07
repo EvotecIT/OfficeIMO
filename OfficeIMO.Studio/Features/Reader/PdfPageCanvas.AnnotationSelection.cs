@@ -10,7 +10,7 @@ public sealed partial class PdfPageCanvas {
     public static readonly StyledProperty<IReadOnlyList<PdfEditorSelection>> SelectedAnnotationsProperty =
         AvaloniaProperty.Register<PdfPageCanvas, IReadOnlyList<PdfEditorSelection>>(nameof(SelectedAnnotations), Array.Empty<PdfEditorSelection>());
 
-    /// <summary>Selected annotations on this page; page-organizer selection is independent.</summary>
+    /// <summary>Document annotation selection; drawing uses only this page's members. Page-organizer selection is independent.</summary>
     public IReadOnlyList<PdfEditorSelection> SelectedAnnotations {
         get => GetValue(SelectedAnnotationsProperty);
         set => SetValue(SelectedAnnotationsProperty, value);
@@ -27,13 +27,10 @@ public sealed partial class PdfPageCanvas {
     }
 
     private void SelectAnnotationsInRectangle() {
-        if (Scene?.Interactions is not { } interactions || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
-        Point start = ToPagePoint(_selectionStart.Value), end = ToPagePoint(_selectionEnd.Value);
-        var rectangle = new Rect(start, end).Normalize();
-        var selected = interactions.Regions.Where(region => region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue &&
-            rectangle.Intersects(new Rect(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height)))
-            .Select(region => CreateSelection(Scene.PageNumber, region)).ToArray();
-        AnnotationSelectionRequested?.Invoke(new(selected, _additiveAnnotationSelection, Toggle: false));
+        if (Scene is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
+        var request = RaiseAnnotationMarquee(completed: true);
+        if (!request.Handled) AnnotationSelectionRequested?.Invoke(new(
+            GetAnnotationsInControlRectangle(new Rect(_selectionStart.Value, _selectionEnd.Value).Normalize()), _additiveAnnotationSelection, Toggle: false));
         _selectionStart = null; _selectionEnd = null;
     }
 
@@ -65,7 +62,7 @@ public sealed partial class PdfPageCanvas {
     private void DrawAnnotationSelections(DrawingContext context) {
         if (SelectedAnnotations.Count <= 1) return;
         var pen = new Pen(new SolidColorBrush(PageAccent), 1D);
-        foreach (var selection in SelectedAnnotations) {
+        foreach (var selection in SelectedAnnotations.Where(item => item.PageNumber == Scene?.PageNumber)) {
             var bounds = selection.Bounds;
             context.DrawRectangle(null, pen, new Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height));
         }

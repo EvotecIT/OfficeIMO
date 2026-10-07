@@ -1745,7 +1745,7 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="PrintPreview.Alignment.BottomRight" xml:space="preserve"><value>En bas à droite</value></data>
   <data name="Conversion.Package.Picker" xml:space="preserve"><value>Choisir un paquet de document Apple</value></data>
   <data name="AnnotationSelection.Count" xml:space="preserve"><value>Annotations sélectionnées sur la page {1} : {0}</value></data>
-  <data name="AnnotationSelection.Help" xml:space="preserve"><value>Shift-click pour ajouter ou retirer des annotations. Tracez une sélection dans une zone vide pour en sélectionner plusieurs. Les groupes sont enregistrés dans le PDF. Utilisez les flèches pour parcourir, Space pour sélectionner, Shift+Space pour ajouter et Ctrl+arrows pour déplacer. Redimensionnez les annotations individuellement.</value></data>
+  <data name="AnnotationSelection.Help" xml:space="preserve"><value>Shift-click pour ajouter ou retirer des annotations sur plusieurs pages. Tracez une sélection depuis une zone vide sur les pages visibles pour en sélectionner plusieurs. Les groupes sur une même page sont enregistrés dans le PDF. Utilisez les flèches pour parcourir, Space pour sélectionner, Shift+Space pour ajouter et Ctrl+arrows pour déplacer. Redimensionnez les annotations individuellement.</value></data>
   <data name="AnnotationSelection.Group" xml:space="preserve"><value>Grouper</value></data>
   <data name="AnnotationSelection.Ungroup" xml:space="preserve"><value>Dégrouper</value></data>
   <data name="AnnotationSelection.Duplicate" xml:space="preserve"><value>Dupliquer</value></data>
@@ -1996,4 +1996,7 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Une police de substitution a été utilisée. Vérifiez l’aperçu de la feuille avant d’imprimer.</value></data>
   <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Le moteur de rendu a signalé une limite. Vérifiez l’aperçu de la feuille avant d’imprimer.</value></data>
   <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Détails techniques du rendu</value></data>
+  <data name="AnnotationSelection.CrossPageCount" xml:space="preserve"><value>Annotations sélectionnées : {0} sur {1} pages</value></data>
+  <data name="AnnotationSelection.SamePageGroups" xml:space="preserve"><value>Les groupes enregistrés dans le PDF exigent des annotations sur une même page. Le déplacement, la duplication, la suppression et le changement d'ordre restent disponibles sur plusieurs pages.</value></data>
+  <data name="AnnotationSelection.Instruction" xml:space="preserve"><value>Sélectionnez les annotations. Shift-click pour en ajouter sur plusieurs pages ; tracez une sélection dans une zone vide de la page pour en choisir plusieurs.</value></data>
 </root>

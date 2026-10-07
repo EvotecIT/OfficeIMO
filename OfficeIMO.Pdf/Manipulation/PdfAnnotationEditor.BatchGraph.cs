@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
     private static int CopyBatchAnnotations(Dictionary<int, PdfIndirectObject> objects, PdfAnnotation[] selected,
-        double deltaX, double deltaY, HashSet<int> changed) {
+        Dictionary<int, PdfPagePoint> offsets, HashSet<int> changed) {
         var copies = new Dictionary<int, int>();
         foreach (PdfAnnotation annotation in selected) {
             int original = annotation.ObjectNumber!.Value;
@@ -14,12 +14,14 @@ internal static partial class PdfAnnotationEditor {
             clone.Items.Remove("StructParent"); clone.Items.Remove("Popup");
             objects[number] = new PdfIndirectObject(number, 0, clone);
             copies[original] = number;
-            foreach (int generated in ApplyUpdates(objects, clone, CreateBatchMoveOptions(objects, annotation, deltaX, deltaY))) changed.Add(generated);
+            var offset = offsets[annotation.PageNumber!.Value];
+            foreach (int generated in ApplyUpdates(objects, clone, CreateBatchMoveOptions(objects, annotation, offset.X, offset.Y))) changed.Add(generated);
             changed.Add(number);
         }
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
         int addedCount = 0;
         foreach (PdfAnnotation annotation in selected) {
+            var offset = offsets[annotation.PageNumber!.Value];
             int original = annotation.ObjectNumber!.Value, number = copies[original];
             var clone = (PdfDictionary)objects[number].Value;
             if (annotation.Review is { IsGroup: true, InReplyToObjectNumber: int primary } && copies.TryGetValue(primary, out int copiedPrimary)) {
@@ -40,7 +42,7 @@ internal static partial class PdfAnnotationEditor {
                 if (popup.Items.TryGetValue("Rect", out PdfObject? rectangle) && PdfObjectLookup.Resolve(objects, rectangle) is PdfArray array && array.Items.Count == 4 &&
                     array.Items.All(item => PdfObjectLookup.Resolve(objects, item) is PdfNumber)) {
                     var coordinates = array.Items.Select(item => ((PdfNumber)PdfObjectLookup.Resolve(objects, item)!).Value).ToArray();
-                    popupClone.Items["Rect"] = CreateNumberArray(new[] { coordinates[0] + deltaX, coordinates[1] + deltaY, coordinates[2] + deltaX, coordinates[3] + deltaY });
+                    popupClone.Items["Rect"] = CreateNumberArray(new[] { coordinates[0] + offset.X, coordinates[1] + offset.Y, coordinates[2] + offset.X, coordinates[3] + offset.Y });
                 }
                 objects[popupNumber] = new PdfIndirectObject(popupNumber, 0, popupClone);
                 clone.Items["Popup"] = new PdfReference(popupNumber, 0);

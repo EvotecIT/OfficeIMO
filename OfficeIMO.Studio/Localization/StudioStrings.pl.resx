@@ -5208,7 +5208,7 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
     <value>Liczba wybranych adnotacji: {0}; strona: {1}</value>
   </data>
   <data name="AnnotationSelection.Help" xml:space="preserve">
-    <value>Shift+kliknięcie dodaje lub usuwa adnotacje z zaznaczenia. Przeciągnij pusty obszar, aby zaznaczyć kilka. Grupy są zapisywane w PDF. Użyj strzałek do przeglądania, Spacji do zaznaczania, Shift+Spacji do dodawania i Ctrl+strzałek do przesuwania. Rozmiar zmieniaj dla pojedynczych adnotacji.</value>
+    <value>Shift-click dodaje lub usuwa adnotacje na różnych stronach. Przeciągnij po pustym obszarze przez widoczne strony, aby wybrać kilka adnotacji. Grupy na jednej stronie są zapisywane w PDF. Użyj strzałek do przeglądania, Space do wyboru, Shift+Space do dodawania i Ctrl+arrows do przenoszenia. Zmieniaj rozmiar pojedynczych adnotacji.</value>
   </data>
   <data name="AnnotationSelection.Group" xml:space="preserve">
     <value>Grupuj</value>
@@ -5484,4 +5484,7 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Użyto czcionki zastępczej. Sprawdź podgląd arkusza przed drukowaniem.</value></data>
   <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Silnik renderowania zgłosił ograniczenie. Sprawdź podgląd arkusza przed drukowaniem.</value></data>
   <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Techniczne szczegóły renderowania</value></data>
+  <data name="AnnotationSelection.CrossPageCount" xml:space="preserve"><value>Wybrane adnotacje: {0} na {1} stronach</value></data>
+  <data name="AnnotationSelection.SamePageGroups" xml:space="preserve"><value>Grupy zapisywane w PDF wymagają adnotacji na jednej stronie. Przenoszenie, duplikowanie, usuwanie i zmiana kolejności działają także na wielu stronach.</value></data>
+  <data name="AnnotationSelection.Instruction" xml:space="preserve"><value>Wybierz adnotacje. Shift-click dodaje je na różnych stronach; przeciągnij po pustym obszarze strony, aby wybrać kilka.</value></data>
 </root>

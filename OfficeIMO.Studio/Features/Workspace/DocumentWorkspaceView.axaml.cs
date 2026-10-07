@@ -22,6 +22,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     public DocumentWorkspaceView() {
         InitializeComponent();
         InitializeOrganizerInput();
+        InitializeAnnotationSelectionInput();
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => {
             if (_document is not null) {

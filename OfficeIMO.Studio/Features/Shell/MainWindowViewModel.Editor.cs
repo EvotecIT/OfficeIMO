@@ -146,7 +146,8 @@ public sealed partial class MainWindowViewModel {
 
     public PdfEditorTool ActiveEditorTool => SelectedEditorToolChoice.Tool;
 
-    public string EditorInstruction => SelectedEditorToolChoice.Hint;
+    public string EditorInstruction => DocumentMode == StudioDocumentMode.Annotate && ActiveEditorTool == PdfEditorTool.Select
+        ? UiText("AnnotationSelection.Instruction") : SelectedEditorToolChoice.Hint;
 
     public bool HasPendingRedaction => !string.IsNullOrWhiteSpace(PendingRedactionSummary);
 
@@ -407,7 +408,7 @@ public sealed partial class MainWindowViewModel {
         }
 
         if (selection.Kind == PdfEditorSelectionKind.Annotation) {
-            PdfAnnotation? annotation = _workspace.DocumentInfo?.Annotations.FirstOrDefault(candidate =>
+            PdfAnnotation? annotation = _workspace.AnnotationMetadata.FirstOrDefault(candidate =>
                 candidate.ObjectNumber == selection.ObjectNumber && candidate.PageNumber == selection.PageNumber);
             if (annotation is null) {
                 ClearObjectSelection();

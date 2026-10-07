@@ -5208,7 +5208,7 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Ausgewählte Anmerkungen auf Seite {1}: {0}</value>
   </data>
   <data name="AnnotationSelection.Help" xml:space="preserve">
-    <value>Mit Shift-Klick fügen Sie Anmerkungen hinzu oder entfernen sie aus der Auswahl. Ziehen Sie in einem leeren Bereich, um mehrere auszuwählen. Gruppen werden in der PDF gespeichert. Mit den Pfeiltasten wechseln Sie zwischen Anmerkungen, mit Space wählen Sie aus, mit Shift+Space erweitern Sie die Auswahl und mit Ctrl+Pfeiltasten verschieben Sie sie. Die Größe ändern Sie für einzelne Anmerkungen.</value>
+    <value>Mit Shift-click Anmerkungen über mehrere Seiten hinzufügen oder entfernen. Einen leeren Bereich über sichtbare Seiten ziehen, um mehrere auszuwählen. Gruppen auf einer Seite werden im PDF gespeichert. Pfeiltasten zum Navigieren, Space zum Auswählen, Shift+Space zum Hinzufügen und Ctrl+arrows zum Verschieben verwenden. Einzelne Anmerkungen in der Größe ändern.</value>
   </data>
   <data name="AnnotationSelection.Group" xml:space="preserve">
     <value>Gruppieren</value>
@@ -5484,4 +5484,7 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="PrintPreview.Rendering.FontSubstitution" xml:space="preserve"><value>Eine Ersatzschrift wurde verwendet. Prüfen Sie die Blattvorschau vor dem Drucken.</value></data>
   <data name="PrintPreview.Rendering.Limitation" xml:space="preserve"><value>Der Renderer hat eine Einschränkung gemeldet. Prüfen Sie die Blattvorschau vor dem Drucken.</value></data>
   <data name="PrintPreview.Rendering.TechnicalDetails" xml:space="preserve"><value>Technische Darstellungsdetails</value></data>
+  <data name="AnnotationSelection.CrossPageCount" xml:space="preserve"><value>Ausgewählte Anmerkungen: {0} auf {1} Seiten</value></data>
+  <data name="AnnotationSelection.SamePageGroups" xml:space="preserve"><value>Gespeicherte PDF-Gruppen erfordern Anmerkungen auf derselben Seite. Verschieben, Duplizieren, Löschen und Anordnen funktionieren weiterhin über mehrere Seiten.</value></data>
+  <data name="AnnotationSelection.Instruction" xml:space="preserve"><value>Anmerkungen auswählen. Mit Shift-click über mehrere Seiten hinzufügen; einen leeren Seitenbereich ziehen, um mehrere auszuwählen.</value></data>
 </root>

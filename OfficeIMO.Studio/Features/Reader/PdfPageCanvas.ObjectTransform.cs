@@ -89,6 +89,11 @@ public sealed partial class PdfPageCanvas {
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) {
         base.OnPointerCaptureLost(e);
+        if (SelectionMode == PdfEditorSelectionMode.Annotations) RaiseAnnotationMarquee(cancelled: true);
+        _annotationMarqueePointer = null;
+        if (_selecting && SelectionMode == PdfEditorSelectionMode.Annotations) {
+            _selecting = false; _selectionStart = null; _selectionEnd = null;
+        }
         ResetObjectTransform();
         InvalidateVisual();
     }

@@ -52,7 +52,7 @@ public sealed partial class MainWindowViewModel {
         double deltaX = ObjectMoveX;
         double deltaY = ObjectMoveY;
         if (SelectedAnnotations.Count > 0) {
-            await RunSelectedAnnotationEditAsync((editor, numbers) => editor.MoveMany(numbers, deltaX, deltaY),
+            await RunSelectedAnnotationEditAsync((editor, numbers) => editor.MoveManyVisual(numbers, deltaX, deltaY),
                 UiText("AnnotationSelection.Moved"), cancellationToken).ConfigureAwait(true);
             return;
         }

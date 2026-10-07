@@ -4,6 +4,43 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfAnnotationBatchTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VisualBatchOffsetsUseEachPagesCropRotationAndUserUnit(bool copy) {
+        string[] objects = {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 400] /CropBox [20 30 380 390] /Resources << >> /Annots [6 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 400] /CropBox [30 40 370 380] /Rotate 90 /Resources << >> /Annots [7 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 400] /CropBox [40 50 360 370] /Rotate 270 /UserUnit 2 /Resources << >> /Annots [8 0 R] >>",
+            "<< /Type /Annot /Subtype /Line /NM (one) /Rect [60 260 120 320] /L [60 260 120 320] >>",
+            "<< /Type /Annot /Subtype /Line /NM (two) /Rect [60 260 120 320] /L [60 260 120 320] >>",
+            "<< /Type /Annot /Subtype /Line /NM (three) /Rect [60 260 120 320] /L [60 260 120 320] >>",
+            "<< /Title (Visual batch geometry) >>"
+        };
+        byte[] bytes = PdfPageExtractor.Assemble(objects.Select((value, index) => PdfPageExtractor.WrapObject(index + 1,
+            System.Text.Encoding.ASCII.GetBytes(value))).ToList(), 1, 9, PdfFileVersion.Pdf17);
+        var source = PdfDocument.Load(bytes);
+        var before = source.Inspect().Annotations;
+        var pages = source.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages;
+        int[] numbers = before.Select(annotation => annotation.ObjectNumber!.Value).ToArray();
+        var edited = (copy ? source.Annotations.CopyManyVisual(numbers, 13, 7) : source.Annotations.MoveManyVisual(numbers, 13, 7)).ToDocument();
+        var after = edited.Inspect().Annotations;
+        Assert.Equal(copy ? 6 : 3, after.Count);
+        foreach (var original in before) {
+            var changed = after.Single(annotation => annotation.PageNumber == original.PageNumber && (!copy || annotation.Name != original.Name));
+            var page = pages[original.PageNumber!.Value - 1];
+            var a = page.MapUserSpaceRectangleToVisual(original.X1, original.Y1, original.X2, original.Y2);
+            var b = page.MapUserSpaceRectangleToVisual(changed.X1, changed.Y1, changed.X2, changed.Y2);
+            Assert.Equal(a.Left + 13, b.Left, 7); Assert.Equal(a.Top + 7, b.Top, 7);
+            Assert.Equal(a.Width, b.Width, 7); Assert.Equal(a.Height, b.Height, 7);
+            Assert.Equal(changed.X1, changed.LineCoordinates[0], 7);
+            Assert.Equal(changed.Y1, changed.LineCoordinates[1], 7);
+        }
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
     [Fact]
     public void GroupMoveCopyAndUngroupKeepGeometryAppearancesAndReplies() {
         var source = CreateAnnotatedDocument();
@@ -115,8 +152,11 @@ public sealed class PdfAnnotationBatchTests {
         Assert.Contains(objects.Values.Select(value => value.Value).OfType<PdfDictionary>(), dictionary => dictionary.Get<PdfName>("Type")?.Name == "StructElem");
     }
 
-    [Fact]
-    public void EncryptedBatchMoveUsesOneAppendOnlyRevisionAndEnforcesRemovalResidualPolicy() {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void EncryptedBatchMoveUsesOneAppendOnlyRevisionAndEnforcesRemovalResidualPolicy(bool visual, bool copy) {
         var source = CreateAnnotatedDocument();
         byte[] encrypted = source.Security.Encrypt(new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
@@ -125,13 +165,40 @@ public sealed class PdfAnnotationBatchTests {
         var userOptions = new PdfLoadOptions { Password = "open" };
         int[] numbers = PdfInspector.Inspect(encrypted, ownerOptions).Annotations.Select(annotation => annotation.ObjectNumber!.Value).ToArray();
 
-        var result = PdfDocument.Load(encrypted, userOptions).Annotations.MoveMany(numbers, 15, 20);
+        var annotations = PdfDocument.Load(encrypted, userOptions).Annotations;
+        Assert.Equal(numbers.Order(), annotations.GetForEditing().Select(annotation => annotation.ObjectNumber!.Value).Order());
+        var interactions = annotations.GetEditingInteractions(1);
+        Assert.NotEmpty(interactions.Regions);
+        Assert.Empty(interactions.TextRegions);
+        Assert.All(interactions.Regions, region => {
+            Assert.Equal(PdfInteractionKind.Annotation, region.Kind);
+            Assert.Null(region.Text); Assert.Null(region.Target); Assert.Null(region.FieldName); Assert.Null(region.ImagePlacement);
+        });
+        Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(encrypted, userOptions).Inspect());
+        var result = copy ? annotations.CopyManyVisual(numbers, 15, 20) : visual ? annotations.MoveManyVisual(numbers, 15, 20) : annotations.MoveMany(numbers, 15, 20);
 
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
         Assert.True(result.SignatureMutationReport!.IsPreservedAppendOnlyMutation);
         Assert.Equal(encrypted, result.Bytes.Take(encrypted.Length));
         Assert.Equal(PdfInspector.Probe(encrypted, ownerOptions).Security.RevisionCount + 1, PdfInspector.Probe(result.Bytes, ownerOptions).Security.RevisionCount);
+        Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Load(result.Bytes, userOptions).Read());
         Assert.Throws<NotSupportedException>(() => PdfDocument.Load(encrypted, userOptions).Annotations.RemoveMany(numbers));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EncryptedVisualBatchRequiresAnnotationPermission(bool copy) {
+        byte[] encrypted = CreateAnnotatedDocument().Security.Encrypt(new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents
+        }).Pdf;
+        var options = new PdfLoadOptions { Password = "open" };
+        var source = PdfDocument.Load(encrypted, options);
+        int[] numbers = source.Inspect().Annotations.Select(annotation => annotation.ObjectNumber!.Value).ToArray();
+        Assert.Throws<PdfMutationBlockedException>(() => source.Annotations.GetForEditing());
+        Assert.Throws<PdfMutationBlockedException>(() => source.Annotations.GetEditingInteractions(1));
+        Assert.Throws<PdfMutationBlockedException>(() => copy ? source.Annotations.CopyManyVisual(numbers) : source.Annotations.MoveManyVisual(numbers, 10, 10));
+        Assert.Equal(encrypted, source.ToBytes());
     }
 
     [Theory]
@@ -148,6 +215,14 @@ public sealed class PdfAnnotationBatchTests {
         byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
         int[] numbers = PdfInspector.Inspect(signed).Annotations.Where(annotation => annotation.Subtype != "Widget")
             .Select(annotation => annotation.ObjectNumber!.Value).ToArray();
+        var editing = PdfDocument.Load(signed).Annotations;
+        if (permission == PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures) {
+            Assert.NotEmpty(editing.GetForEditing());
+            Assert.NotEmpty(editing.GetEditingInteractions(1).Regions);
+        } else {
+            Assert.Throws<PdfMutationBlockedException>(() => editing.GetForEditing());
+            Assert.Throws<PdfMutationBlockedException>(() => editing.GetEditingInteractions(1));
+        }
         if (!allowed) {
             if (versionMinor < 6) Assert.Throws<NotSupportedException>(() => PdfDocument.Load(signed).Annotations.Group(numbers));
             else Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(signed).Annotations.Group(numbers));

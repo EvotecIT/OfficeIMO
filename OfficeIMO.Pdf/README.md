@@ -1437,11 +1437,22 @@ repair workflow.
 ### Annotation review threads
 
 Batch annotation edits use `document.Annotations.MoveMany`, `CopyMany`, `RemoveMany`,
-and `Arrange`. Pass the indirect object numbers from the current inspection snapshot.
+and `Arrange`. Pass the indirect object numbers from the current
+`document.Annotations.GetForEditing()` metadata or an authorized inspection snapshot.
 Each operation expands standard group members and returns one mutation result, with
 the same encryption, signature, and object-number mapping rules as individual edits.
+Selections can span pages. `MoveMany` and `CopyMany` use PDF default user-space offsets;
+`MoveManyVisual` and `CopyManyVisual` use top-left visual offsets and map each page's
+crop origin, rotation, and user-unit scale independently in the same mutation.
 `Arrange` accepts `Raise`, `Lower`, `BringToFront`, or `SendToBack` from
 `PdfAnnotationOrderChange` and preserves the selected annotations' relative order.
+
+`Annotations.GetForEditing()` returns annotation metadata, excluding form widgets,
+when annotation mutation is permitted by encryption and certification policy.
+`GetEditingInteractions(pageNumber)` supplies annotation-only visual hit regions
+without extracted text, link targets, images, or form fields. Both support annotation
+editing when copying page content is restricted; `Inspect()` and `Read()` retain
+their content-extraction permission checks.
 
 `document.Annotations.Group(objectNumbers)` groups at least two editable markup
 annotations on one page using standard `/IRT` and `/RT /Group` relationships.

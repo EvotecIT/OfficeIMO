@@ -14,35 +14,37 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(CanGroupAnnotations))]
     [NotifyPropertyChangedFor(nameof(CanUngroupAnnotations))]
     [NotifyPropertyChangedFor(nameof(CanResizeSelectedAnnotation))]
+    [NotifyPropertyChangedFor(nameof(HasCrossPageAnnotationSelection))]
     private IReadOnlyList<PdfEditorSelection> _selectedAnnotations = Array.Empty<PdfEditorSelection>();
 
     public bool HasSelectedAnnotations => SelectedAnnotations.Count > 0;
+    public bool HasCrossPageAnnotationSelection => SelectedAnnotations.Select(selection => selection.PageNumber).Distinct().Skip(1).Any();
     public bool CanEditSelectedAnnotations => HasSelectedAnnotations && CanEditAnnotations && !IsWorkspaceBusy;
-    public bool CanGroupAnnotations => CanEditSelectedAnnotations && SelectedAnnotations.Count > 1 &&
+    public bool CanGroupAnnotations => CanEditSelectedAnnotations && SelectedAnnotations.Count > 1 && !HasCrossPageAnnotationSelection &&
         SelectedAnnotations.All(selection => selection.Subtype is not ("Link" or "Redact")) &&
-        SelectedAnnotations.All(selection => _workspace?.DocumentInfo?.Annotations.FirstOrDefault(annotation =>
+        SelectedAnnotations.All(selection => _workspace?.AnnotationMetadata.FirstOrDefault(annotation =>
             annotation.ObjectNumber == selection.ObjectNumber)?.Review is not { IsReply: true });
     public bool CanUngroupAnnotations => CanEditSelectedAnnotations && SelectedAnnotations.Any(selection =>
-        _workspace?.DocumentInfo?.Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == selection.ObjectNumber)?.Review?.IsGroup == true);
+        _workspace?.AnnotationMetadata.FirstOrDefault(annotation => annotation.ObjectNumber == selection.ObjectNumber)?.Review?.IsGroup == true);
 
     partial void OnSelectedAnnotationsChanged(IReadOnlyList<PdfEditorSelection> value) {
-        foreach (var page in Pages) page.SelectedAnnotations = value.Where(selection => selection.PageNumber == page.PageNumber).ToArray();
+        foreach (var page in Pages) page.SelectedAnnotations = value;
     }
 
-    private void OnPageAnnotationsSelected(PdfAnnotationSelectionRequest request) {
-        if (_workspace?.DocumentInfo is not { } info || IsWorkspaceBusy) return;
+    internal void OnPageAnnotationsSelected(PdfAnnotationSelectionRequest request) {
+        if (_workspace is not { } workspace || IsWorkspaceBusy) return;
         if (request.Selections.Count == 0) { if (!request.Additive) ClearObjectSelection(); return; }
-        int pageNumber = request.Selections[0].PageNumber;
-        if (request.Selections.Any(selection => selection.PageNumber != pageNumber || selection.ObjectNumber is null)) return;
+        if (request.Selections.Any(selection => selection.ObjectNumber is null || selection.PageNumber < 1 || selection.PageNumber > Pages.Count)) return;
         try {
-            var logicalPage = _workspace.CreateDocumentSnapshot().Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages[pageNumber - 1];
-            var requested = request.Selections.SelectMany(selection => PdfAnnotationGrouping.GetMembers(info.Annotations, selection.ObjectNumber!.Value))
+            var layouts = _workspace.CreateDocumentSnapshot().GetPageLayouts();
+            var requested = request.Selections.SelectMany(selection => PdfAnnotationGrouping.GetMembers(workspace.AnnotationMetadata, selection.ObjectNumber!.Value))
                 .Distinct().Select(annotation => {
-                    var quad = logicalPage.MapUserSpaceRectangleToVisual(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2);
+                    int pageNumber = annotation.PageNumber!.Value;
+                    var quad = layouts[pageNumber - 1].MapUserSpaceRectangleToVisual(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2);
                     return new PdfEditorSelection(PdfEditorSelectionKind.Annotation, pageNumber,
                         new(quad.Left, quad.Top, quad.Right, quad.Bottom), ObjectNumber: annotation.ObjectNumber, Subtype: annotation.Subtype);
                 }).ToArray();
-            var current = request.Additive ? SelectedAnnotations.Where(selection => selection.PageNumber == pageNumber).ToList() : [];
+            var current = request.Additive ? SelectedAnnotations.ToList() : [];
             bool remove = request.Additive && request.Toggle && requested.All(selection => current.Any(item => item.ObjectNumber == selection.ObjectNumber));
             foreach (var selection in requested) {
                 current.RemoveAll(item => item.ObjectNumber == selection.ObjectNumber);
@@ -50,12 +52,22 @@ public sealed partial class MainWindowViewModel {
             }
             SelectedAnnotations = current.ToArray();
             if (current.Count == 0) { ClearObjectSelection(); return; }
-            var bounds = new PdfEditorVisualBounds(current.Min(item => item.Bounds.Left), current.Min(item => item.Bounds.Top),
-                current.Max(item => item.Bounds.Right), current.Max(item => item.Bounds.Bottom));
-            ApplyObjectSelection(current[0] with { Bounds = bounds });
-            if (current.Count > 1) SelectedObjectSummary = UiFormat("AnnotationSelection.Count", current.Count, pageNumber);
+            ApplyObjectSelection(BoundPageSelection(current.Where(item => item.PageNumber == current[0].PageNumber).ToArray()));
+            // Bounds are page-local. Never merge rectangles from different coordinate systems.
+            foreach (var page in Pages) {
+                var members = current.Where(item => item.PageNumber == page.PageNumber).ToArray();
+                page.SelectedObject = members.Length == 0 ? null : BoundPageSelection(members);
+            }
+            if (current.Count > 1) SelectedObjectSummary = HasCrossPageAnnotationSelection
+                ? UiFormat("AnnotationSelection.CrossPageCount", current.Count, current.Select(item => item.PageNumber).Distinct().Count())
+                : UiFormat("AnnotationSelection.Count", current.Count, current[0].PageNumber);
         } catch (Exception error) { ErrorMessage = error.Message; }
     }
+
+    private static PdfEditorSelection BoundPageSelection(IReadOnlyList<PdfEditorSelection> members) => members[0] with {
+        Bounds = new(members.Min(item => item.Bounds.Left), members.Min(item => item.Bounds.Top),
+            members.Max(item => item.Bounds.Right), members.Max(item => item.Bounds.Bottom))
+    };
 
     private async Task RunSelectedAnnotationEditAsync(Func<PdfDocumentAnnotations, IReadOnlyList<int>, PdfAnnotationEditResult> edit,
         string description, CancellationToken token) {
@@ -86,7 +98,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand] private Task UngroupAnnotationsAsync(CancellationToken token) => !CanUngroupAnnotations ? Task.CompletedTask :
         RunSelectedAnnotationEditAsync((editor, numbers) => editor.Ungroup(numbers), UiText("AnnotationSelection.Ungrouped"), token);
     [RelayCommand] private Task CopyAnnotationsAsync(CancellationToken token) =>
-        RunSelectedAnnotationEditAsync((editor, numbers) => editor.CopyMany(numbers), UiText("AnnotationSelection.Copied"), token);
+        RunSelectedAnnotationEditAsync((editor, numbers) => editor.CopyManyVisual(numbers), UiText("AnnotationSelection.Copied"), token);
     [RelayCommand] private Task RaiseAnnotationsAsync(CancellationToken token) =>
         RunSelectedAnnotationEditAsync((editor, numbers) => editor.Arrange(numbers, PdfAnnotationOrderChange.Raise), UiText("AnnotationSelection.Raised"), token);
     [RelayCommand] private Task LowerAnnotationsAsync(CancellationToken token) =>
