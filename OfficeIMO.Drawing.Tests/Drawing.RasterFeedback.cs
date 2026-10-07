@@ -145,6 +145,108 @@ namespace OfficeIMO.Tests {
             Assert.All(destination.GetPixels(), value => Assert.Equal((byte)0, value));
         }
 
+        [Theory]
+        [InlineData(false, 0)]
+        [InlineData(true, 0)]
+        [InlineData(false, 1)]
+        [InlineData(true, 1)]
+        [InlineData(false, 2)]
+        [InlineData(true, 2)]
+        public void ReflectedImageRetainsPixelCentreOnIncludedPolygonBoundary(bool vertical, int route) {
+            OfficeRasterImage image = new OfficeRasterImage(8, 8);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            OfficeRasterImage source = new OfficeRasterImage(1, 1, OfficeColor.Black);
+            using (canvas.PushClipPolygon(BoundaryClipPoints(vertical))) {
+                if (route == 0) canvas.DrawImage(source, new OfficeImageProjection(
+                    new OfficeImagePlacement(vertical ? 0D : -.5D, vertical ? -.5D : 0D, 1D, 1D),
+                    flipHorizontal: !vertical, flipVertical: vertical));
+                else canvas.DrawAffineImage(source, BoundaryReflection(vertical), 1D,
+                    route == 1 ? OfficeBlendMode.Normal : OfficeBlendMode.Multiply);
+            }
+
+            Assert.Equal(OfficeColor.Black, image.GetPixel(0, 0));
+        }
+
+        [Theory]
+        [InlineData(false, OfficeBlendMode.Normal)]
+        [InlineData(true, OfficeBlendMode.Normal)]
+        [InlineData(false, OfficeBlendMode.Multiply)]
+        [InlineData(true, OfficeBlendMode.Multiply)]
+        public void ReflectedEffectRetainsPixelCentreOnIncludedPolygonBoundary(bool vertical, OfficeBlendMode blend) {
+            OfficeDrawing drawing = ClippedBoundaryEffect(vertical, blend, magnified: false);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.Equal(OfficeColor.Black, image.GetPixel(0, 0));
+        }
+
+        [Theory]
+        [InlineData(false, OfficeBlendMode.Normal)]
+        [InlineData(true, OfficeBlendMode.Normal)]
+        [InlineData(false, OfficeBlendMode.Multiply)]
+        [InlineData(true, OfficeBlendMode.Multiply)]
+        public void ReflectedEffectVisibleOnlyAtPolygonBoundaryStillEnforcesItsBudget(bool vertical, OfficeBlendMode blend) {
+            OfficeDrawing drawing = ClippedBoundaryEffect(vertical, blend, magnified: true);
+
+            Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 64L }));
+        }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(0, 1)]
+        [InlineData(0, 2)]
+        [InlineData(1, 0)]
+        [InlineData(1, 1)]
+        [InlineData(1, 2)]
+        [InlineData(2, 0)]
+        [InlineData(2, 1)]
+        [InlineData(2, 2)]
+        [InlineData(3, 0)]
+        [InlineData(3, 1)]
+        [InlineData(3, 2)]
+        [InlineData(4, 0)]
+        [InlineData(4, 1)]
+        [InlineData(4, 2)]
+        public void EmptyAndDisjointClipsDoNotChargeImagePrefilterSurfaces(int kind, int route) {
+            OfficeRasterImage image = new OfficeRasterImage(8, 8);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            OfficeRasterImage source = new OfficeRasterImage(16, 16, OfficeColor.Black);
+            canvas.ChargeIntermediateSurfacePixels(256L, 256L);
+            using IDisposable clip = kind switch {
+                0 => canvas.PushClipRectangle(2D, 2D, 0D, 0D),
+                1 => canvas.PushClipRectangleAtPixelCentres(2.5D, 0D, 2.5D, 8D),
+                2 => canvas.PushClipPolygon(Array.Empty<OfficePoint>()),
+                3 => canvas.PushClipPolygon(new[] { new OfficePoint(20D, 0D), new OfficePoint(24D, 0D),
+                    new OfficePoint(24D, 4D), new OfficePoint(20D, 4D) }),
+                _ => canvas.PushClipPolygon(new[] { new OfficePoint(.5D, 0D), new OfficePoint(.5D, 2D), new OfficePoint(.5D, 4D) })
+            };
+            if (route == 0) canvas.DrawImage(source, new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 8D, 8D)));
+            else canvas.DrawAffineImage(source, OfficeTransform.Scale(.5D, .5D), 1D,
+                route == 1 ? OfficeBlendMode.Normal : OfficeBlendMode.Multiply);
+
+            Assert.Equal(256L, canvas.TransformedTextBudget.IntermediatePixels);
+            Assert.All(image.GetPixels(), value => Assert.Equal((byte)0, value));
+        }
+
+        private static OfficePoint[] BoundaryClipPoints(bool vertical) => vertical
+            ? new[] { new OfficePoint(0D, .5D), new OfficePoint(4D, .5D), new OfficePoint(4D, 4D), new OfficePoint(0D, 4D) }
+            : new[] { new OfficePoint(.5D, 0D), new OfficePoint(4D, 0D), new OfficePoint(4D, 4D), new OfficePoint(.5D, 4D) };
+
+        private static OfficeTransform BoundaryReflection(bool vertical, bool magnified = false) =>
+            OfficeTransform.Scale(vertical ? (magnified ? 8D : 1D) : (magnified ? -9D : -1D),
+                vertical ? (magnified ? -9D : -1D) : (magnified ? 8D : 1D))
+                .Then(OfficeTransform.Translate(vertical ? 0D : .5D, vertical ? .5D : 0D));
+
+        private static OfficeDrawing ClippedBoundaryEffect(bool vertical, OfficeBlendMode blend, bool magnified) {
+            OfficeDrawing content = new OfficeDrawing(8D, 8D)
+                .AddEffectDrawing(Solid(1D, 1D), BoundaryReflection(vertical, magnified), blend);
+            OfficeClipPath clip = OfficeClipPath.Path(OfficePathCommand.MoveTo(0D, 0D), OfficePathCommand.LineTo(4D, 0D),
+                OfficePathCommand.LineTo(4D, 4D), OfficePathCommand.LineTo(0D, 4D), OfficePathCommand.Close());
+            double x = vertical ? 0D : .5D, y = vertical ? .5D : 0D;
+            return new OfficeDrawing(8D, 8D).AddClippedDrawing(content, x, y, clip, -x, -y);
+        }
+
         private static OfficeDrawing Solid(double width, double height) {
             OfficeShape rectangle = OfficeShape.Rectangle(width, height);
             rectangle.FillColor = OfficeColor.Black;

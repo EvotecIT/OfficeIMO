@@ -93,10 +93,12 @@ public sealed partial class OfficeRasterCanvas {
         // Overflowed corner arithmetic is inconclusive, never proof of invisibility.
         if (double.IsNaN(bounds.Left) || double.IsNaN(bounds.Top) ||
             double.IsNaN(bounds.Right) || double.IsNaN(bounds.Bottom)) return true;
-        double left = Math.Max(0D, bounds.Left), top = Math.Max(0D, bounds.Top);
-        double right = Math.Min(Width, bounds.Right), bottom = Math.Min(Height, bounds.Bottom);
+        // A reflected surface can include its maximum edge: the inverse maps that
+        // edge to source coordinate zero. Preserve boundary pixel centres.
+        double left = Math.Max(.5D, bounds.Left), top = Math.Max(.5D, bounds.Top);
+        double right = Math.Min(Width - .5D, bounds.Right), bottom = Math.Min(Height - .5D, bounds.Bottom);
         if (_clipRegion != null) _clipRegion.IntersectBounds(ref left, ref top, ref right, ref bottom, _cancellationToken);
-        return right > left && bottom > top;
+        return right >= left && bottom >= top;
     }
 
     private readonly struct OfficeRasterClipRectangle {
@@ -167,8 +169,10 @@ public sealed partial class OfficeRasterCanvas {
             _previous?.IntersectBounds(ref left, ref top, ref right, ref bottom, cancellationToken);
             if (_rectangle.HasValue) {
                 OfficeRasterClipRectangle rectangle = _rectangle.Value;
-                left = Math.Max(left, rectangle.Left); top = Math.Max(top, rectangle.Top);
-                right = Math.Min(right, rectangle.Right); bottom = Math.Min(bottom, rectangle.Bottom);
+                // Rectangles store half-open integer pixel ranges, so an empty
+                // range stays empty even when surface bounds meet at an edge.
+                left = Math.Max(left, rectangle.Left + .5D); top = Math.Max(top, rectangle.Top + .5D);
+                right = Math.Min(right, rectangle.Right - .5D); bottom = Math.Min(bottom, rectangle.Bottom - .5D);
             } else {
                 double clipLeft = double.PositiveInfinity, clipTop = double.PositiveInfinity;
                 double clipRight = double.NegativeInfinity, clipBottom = double.NegativeInfinity;
@@ -180,6 +184,11 @@ public sealed partial class OfficeRasterCanvas {
                         clipLeft = Math.Min(clipLeft, point.X); clipTop = Math.Min(clipTop, point.Y);
                         clipRight = Math.Max(clipRight, point.X); clipBottom = Math.Max(clipBottom, point.Y);
                     }
+                }
+                if (clipRight <= clipLeft || clipBottom <= clipTop) {
+                    left = top = double.PositiveInfinity;
+                    right = bottom = double.NegativeInfinity;
+                    return;
                 }
                 left = Math.Max(left, clipLeft); top = Math.Max(top, clipTop);
                 right = Math.Min(right, clipRight); bottom = Math.Min(bottom, clipBottom);
