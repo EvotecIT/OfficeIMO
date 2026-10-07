@@ -2208,7 +2208,17 @@ PdfMutationPortfolioReport mutations = pdf.AssessMutations();
 PdfRenderCompatibilityReport rendering = pdf.AssessRenderCompatibility();
 Console.WriteLine($"Executable mutation families: {mutations.ExecutablePlans.Count}");
 Console.WriteLine($"Render capability findings: {rendering.DiagnosticCount}");
+
+foreach (PdfMutationPlan blocked in mutations.BlockedPlans) {
+    Console.WriteLine($"{blocked.Operation}: {string.Join(", ", blocked.BlockerCodes)}");
+}
 ```
+
+Pass your job's cancellation token to `pdf.AssessMutations(cancellationToken)`
+when assessing large documents or a document collection. The assessment checks
+cancellation while collecting requests, during parsing and preflight, and between
+individual plans. Each plan retains its own blocker codes; a blocked page edit does
+not mean that metadata updates, form filling, or signing are also blocked.
 
 ### Convert PDFs through adapter packages
 
