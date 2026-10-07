@@ -855,6 +855,9 @@ internal static partial class CsvParser
 
     private static QuotedRecordParseResult TryReadStandardQuotedField(string text, ref int index, bool trim, char delimiter, out string value)
     {
+#if NET8_0_OR_GREATER
+        return TryReadStandardQuotedFieldDirect(text, ref index, trim, delimiter, out value);
+#else
         index++;
         var start = index;
         StringBuilder? builder = null;
@@ -902,6 +905,7 @@ internal static partial class CsvParser
 
         value = string.Empty;
         return QuotedRecordParseResult.Incomplete;
+#endif
     }
 
     private static string AppendAndGetString(StringBuilder builder, string text, int start, int count)

@@ -3,6 +3,10 @@
 ###############################################################################
 * text=auto
 
+# Browser assets are generated and hashed from canonical UTF-8/LF bytes.
+OfficeIMO.Browser/** text eol=lf
+OfficeIMO.JavaScript/** text eol=lf
+
 # Raw decoded raster evidence contains arbitrary bytes, including LF without NUL.
 # Windows checkout must not expand those sample values to CRLF.
 *.rgba -text -diff
@@ -129,3 +133,8 @@ OfficeIMO.TestAssets/OcrQuality/*.json -text
 # Reviewed upstream license texts are hash-bound packaging inputs. Preserve their
 # bytes and original whitespace across checkout platforms.
 OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
+
+# Captured benchmark packets retain exact member bytes inside verified archives.
+Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
+Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
+Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff

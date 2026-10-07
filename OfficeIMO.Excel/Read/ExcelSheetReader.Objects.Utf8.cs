@@ -10,76 +10,94 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private IEnumerable<T> ReadObjectsStreamUtf8OrXmlAdaptive<
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            string a1Range,
-            int r1,
-            int c1,
-            int r2,
-            int c2,
-            int cols,
-            CancellationToken ct) where T : new() {
-            if (!ShouldAttemptUtf8Range(r1, r2)
-                || !RangeReachesDeclaredWorksheetEnd(r2)
-                || !ExcelUtf8RangeRowSource.TryCreate(this, r1, r2, c1, cols, ct, out var source)) {
-                foreach (T item in ReadObjectsStreamXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
-                    yield return item;
-                }
-
-                yield break;
-            }
-
-            bool useUtf8Source = false;
-            using (source) {
-                if (source!.SelectRow(r1)) {
-                    var headerValues = new object?[cols];
-                    for (int columnOffset = 0; columnOffset < cols; columnOffset++) {
-                        source.ReadValue(
-                            columnOffset,
-                            XmlDataReaderTargetKind.None,
-                            out _,
-                            out _,
-                            out _,
-                            out _,
-                            out _,
-                            out _,
-                            out headerValues[columnOffset]);
-                    }
-
-                    var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
-                        cols,
-                        columnOffset => headerValues[columnOffset]?.ToString(),
-                        _opt.NormalizeHeaders);
-                    TypedPropertyBinding<T>?[] bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
-                    useUtf8Source = CanUseUtf8TypedBindings(bindings);
-
-                    if (useUtf8Source) {
-                        bool canCancel = ct.CanBeCanceled;
-                        for (int rowIndex = r1 + 1; rowIndex <= r2; rowIndex++) {
-                            if (canCancel && ((rowIndex - r1) & 1023) == 0) {
-                                ct.ThrowIfCancellationRequested();
-                            }
-
-                            var target = new T();
-                            if (source.SelectRow(rowIndex)) {
-                                for (int columnOffset = 0; columnOffset < bindings.Length; columnOffset++) {
-                                    TypedPropertyBinding<T>? binding = bindings[columnOffset];
-                                    if (binding != null) {
-                                        ReadUtf8ValueIntoTypedObject(source, columnOffset, binding, target);
-                                    }
-                                }
-                            }
-
-                            yield return target;
-                        }
+            string a1Range, int r1, int c1, int r2, int c2, int cols, CancellationToken ct) where T : new() {
+            if (TryCreateTypedObjectsUtf8Source<T>(a1Range, r1, c1, r2, c2, cols, ct, out var source, out var bindings)) {
+                using (source) {
+                    foreach (T item in ReadTypedObjectsUtf8(source!, bindings!, r1, r2, ct)) {
+                        yield return item;
                     }
                 }
-            }
-
-            if (useUtf8Source) {
                 yield break;
             }
 
             foreach (T item in ReadObjectsStreamXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
                 yield return item;
+            }
+        }
+
+        private bool TryReadObjectsFromUtf8Materialized<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range, int r1, int c1, int r2, int c2, int cols, CancellationToken ct, out List<T> results) where T : new() {
+            results = [];
+            if (!TryCreateTypedObjectsUtf8Source<T>(a1Range, r1, c1, r2, c2, cols, ct, out var source, out var bindings, allowSmallRange: true)) {
+                return false;
+            }
+            using (source) {
+                results = ReadTypedObjectsUtf8(source!, bindings!, r1, r2, ct).ToList();
+            }
+            return true;
+        }
+
+        // Successful creation proves the complete worksheet's row order. Declined sources
+        // are disposed here so materializers can select their own bounded XML fallback.
+        private bool TryCreateTypedObjectsUtf8Source<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range, int r1, int c1, int r2, int c2, int cols, CancellationToken ct,
+            out ExcelUtf8RangeRowSource? source, out TypedPropertyBinding<T>?[]? bindings,
+            bool allowSmallRange = false) where T : new() {
+            source = null;
+            bindings = null;
+            if ((!allowSmallRange && !ShouldAttemptUtf8Range(r1, r2))
+                || !RangeReachesDeclaredWorksheetEnd(r2)) {
+                return false;
+            }
+
+            try {
+                if (!ExcelUtf8RangeRowSource.TryCreate(this, r1, r2, c1, cols, ct, out source)) return false;
+            } catch (NotSupportedException) {
+                // Indexing checks every cell, including shared formulas outside the
+                // requested columns. Decline before invoking any user mapping code;
+                // the typed XML reader can handle this narrower projection.
+                return false;
+            }
+
+            try {
+                if (source!.SelectRow(r1)) {
+                    var headerValues = new object?[cols];
+                    for (int columnOffset = 0; columnOffset < cols; columnOffset++) {
+                        source.ReadValue(columnOffset, XmlDataReaderTargetKind.None,
+                            out _, out _, out _, out _, out _, out _, out headerValues[columnOffset]);
+                    }
+                    var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
+                        cols, columnOffset => headerValues[columnOffset]?.ToString(), _opt.NormalizeHeaders);
+                    bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
+                    if (CanUseUtf8TypedBindings(bindings)) return true;
+                }
+                source.Dispose();
+                source = null;
+                return false;
+            } catch {
+                source?.Dispose();
+                source = null;
+                throw;
+            }
+        }
+
+        private IEnumerable<T> ReadTypedObjectsUtf8<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            ExcelUtf8RangeRowSource source, TypedPropertyBinding<T>?[] bindings,
+            int r1, int r2, CancellationToken ct) where T : new() {
+            bool canCancel = ct.CanBeCanceled;
+            for (int rowIndex = r1 + 1; rowIndex <= r2; rowIndex++) {
+                if (canCancel && ((rowIndex - r1) & 1023) == 0) ct.ThrowIfCancellationRequested();
+                var target = new T();
+                if (source.SelectRow(rowIndex)) {
+                    for (int columnOffset = 0; columnOffset < bindings.Length; columnOffset++) {
+                        TypedPropertyBinding<T>? binding = bindings[columnOffset];
+                        if (binding != null) ReadUtf8ValueIntoTypedObject(source, columnOffset, binding, target);
+                    }
+                }
+                yield return target;
             }
         }
 
@@ -157,6 +175,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (objectValue == null) {
+                if (binding.IsNullable && source.IsCellPresent(columnOffset)) binding.SetValue(target, null);
                 return;
             }
 

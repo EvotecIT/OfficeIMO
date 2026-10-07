@@ -167,6 +167,14 @@ Explicit body margins, padding, and borders participate in layout and painting. 
 
 Block elements inside inline wrappers, including maps and links, retain their block boxes. Surrounding inline text continues before and after the block, while borders, padding, adjoining margins, ancestor opacity, and explicit page breaks remain in the shared scene used by HTML and EPUB image exports.
 
+Visibility follows the active CSS media and computed `display`. The `hidden` attribute supplies a `display:none` default that author CSS can override, including print rules that reveal report sections. Hidden inline breaks and table cells do not participate in layout. CSS `initial`, `unset`, `inherit`, and cascade reversion retain their distinct display behavior.
+
+Supported inline SVG font and paint presentation attributes participate in the CSS cascade before layout. A label's `font-family`, `font-size` and `font-weight` attributes can override inherited HTML fonts, while author CSS and inline declarations retain their cascade priority. Relative font weights resolve once before inheritance, and nested text adds a baseline shift only when that element declares one.
+
+An authored `<details>` disclosure without `open` renders its first `<summary>` and hides its remaining content. Hidden disclosure content does not size table columns, flex/grid tracks or shrink-to-fit boxes, consume image resources, advance generated counters or footnote numbering, or contribute PDF bookmarks. Adding `open` includes the body; a closed outer disclosure also hides nested disclosures. For a complete report export, prepare script-free HTML with the intended disclosures explicitly open and all required sections and dataset rows materialized. The static renderer does not execute `beforeprint` handlers.
+
+CSS corner radii scale proportionally to fit the used box before creating rounded shapes and clips. Fractional dimensions and narrow form-control tracks retain rounded geometry within the shared drawing bounds.
+
 The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
 including nested scripts. Logical replacement text owns its painted content once, so independent
 PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image

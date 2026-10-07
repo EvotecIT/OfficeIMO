@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
             ref int index,
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             Dictionary<WordParagraph, (int Level, int Index)> listIndices,
-            Dictionary<long, int> footnoteNumbersById,
+            NativeNoteNumbering footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap) {
             if (elements[index] is not WordParagraph firstParagraph ||
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph,
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             Dictionary<WordParagraph, (int Level, int Index)> listIndices,
-            Dictionary<long, int> footnoteNumbersById,
+            NativeNoteNumbering footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
             out bool ordered,

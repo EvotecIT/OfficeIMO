@@ -44,6 +44,79 @@ Measure worksheet copy fast paths:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter *ExcelWorksheetCopyBenchmarks*
 ```
 
+## Large typed reads
+
+`ExcelLargeTypedReadBenchmarks` reads generated workbooks with 25,000, 250,000,
+and 1,000,000 rows. Each row contains an integer, decimal, date/time, and boolean.
+Setup validates every header and typed value with the selected reader. The timed
+operation opens the file, reads all four fields from every row, checks the resulting
+count and checksum, and disposes the reader. `ExcelLargeTypedFirstRowBenchmarks`
+measures OfficeIMO's first-row operation separately. Workbook
+generation and full preflight validation are outside the timed operation.
+
+```powershell
+$env:OFFICEIMO_BENCHMARK_DATA = './Ignore/Benchmarks/large-typed-read-fixtures'
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelLargeTypedReadBenchmarks*' '*ExcelLargeTypedFirstRowBenchmarks*' --priority Normal --warmupCount 8 --iterationCount 8 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/large-typed-read
+```
+
+The fixtures use `ExcelDocument.WriteRows` with explicit cell references and
+without shared strings. Cleanup removes the generated files. These cases exercise
+the indexed reader and its larger-sheet fallback, including opening costs.
+Readers perform different amounts of whole-worksheet validation before returning
+a row, so the first-row lane contains only OfficeIMO. Use full scans for the
+completed-row comparison, and keep cold versus warmed
+allocation and sampled process memory separate.
+
+## Numeric XML result shapes
+
+`ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader
+object values, DataReader typed getters, rectangular arrays and chunks, DataTable,
+and materialized or streamed typed objects. It uses 2,500 and 25,000 rows with both
+`NumericAsDecimal` settings. The worksheet uses UTF-16 so the streaming XML
+fallback can be measured independently of the indexed reader's size boundary.
+The `Coordinates` parameter covers explicit references, omitted row indices,
+and omitted row and cell indices using the same numeric values.
+Setup checks every header, value, row count, and numeric result type. Each timed
+operation opens, consumes, and disposes its result, checking the row count and
+aggregate value. Generated fixtures are deleted during cleanup.
+Typed-object lanes validate every integer ID and decimal amount after mapping;
+range chunks also validate their starting coordinates and width. Compare builds
+within one lane because these APIs construct different result objects.
+
+`ReadRowCount` selects a prefix for arrays, chunks, tables, and typed-object
+projections; zero selects every data row. This distinguishes full-sheet reads
+from small selections that must scan later physical rows for replacements.
+`ExcelReadBenchmarks` also returns checked DataTable row counts for its mixed
+sales fixture through the `DataTableCount` category. Setup validates every field
+and header before these measurements, and each operation materializes and
+disposes the complete table.
+
+`ExcelDataTableRowShapeBenchmarks` reads 1,000-row object-column tables at widths
+8 and 65. It covers mixed numeric, Boolean and text cells, missing rows and
+cells, reversed physical row order, and a later row that replaces an earlier row. Setup checks every
+value, scalar type and column name; timed reads check the complete table shape.
+
+The `TypedDataReader` lane consumes integer IDs and decimal amounts without
+boxing them in the timed loop. Setup also checks object values after typed access
+so allocation improvements preserve the canonical numeric result types.
+`UsedRange` includes range discovery and reads its headers and data; `Range`
+reads an explicit rectangle. Keep those operations separate when interpreting
+scan costs.
+
+`ExcelUsedRangeDiscoveryBenchmarks` measures only `GetUsedRangeA1`, without
+materializing cells afterward. Dense and sparse 2,500/25,000-row worksheets use
+explicit or omitted row indices. Setup checks the generated coordinate counts;
+every operation validates the exact discovered bounds. This lane exposes
+allocation costs that a subsequent full read can otherwise hide.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelNumericXmlReadBenchmarks*' --priority Normal --warmupCount 24 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/numeric-xml-read
+```
+
+This OfficeIMO-only lane supports before/after comparisons within each API and
+number mode. The result shapes have different allocation contracts, so they do
+not form a ranking against one another.
+
 ## Snapshot and profile artifacts
 
 ```powershell

@@ -21,6 +21,9 @@ internal static partial class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
+    internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
+        CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
+
     internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
         ushort windowsDescent, params int[] scalars) {
         int[] ordered = new SortedSet<int>(scalars).ToArray();
@@ -61,10 +64,10 @@ internal static partial class ManagedTextShapingTestAssets {
             gsub: CreateLigatureGsub(featureTag, 1, 2, 3, scriptTag, lookupFlags));
     }
 
-    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar) {
+    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar, bool includeSpace = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 2),
             glyphCount: 3,
             gsub: CreateLigatureGsub("liga", 1, 2, 1));
     }
@@ -148,6 +151,20 @@ internal static partial class ManagedTextShapingTestAssets {
             colr: CreateColrV0(),
             cpal: CreateCpalV1(),
             baseGlyphHeight: baseGlyphHeight);
+    }
+
+    internal static byte[] CreateColorLigatureFont(int firstScalar, int secondScalar, string featureTag = "liga") {
+        byte[] colr = CreateColrV0();
+        WriteUInt16(colr, 14, 3);
+        WriteUInt16(colr, 20, 1);
+        WriteUInt16(colr, 24, 2);
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, 32, 4),
+            glyphCount: 5,
+            distinctSecondGlyph: true,
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3),
+            colr: colr,
+            cpal: CreateCpalV1());
     }
 
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
@@ -243,6 +260,7 @@ internal static partial class ManagedTextShapingTestAssets {
         int ascender = 800,
         int descender = -200,
         bool inkedNotdef = false,
+        bool emptyGlyphs = false,
         byte[]? tracking = null,
         byte[]? math = null,
         byte[]? os2 = null,
@@ -250,7 +268,7 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphBottoms = null,
         IReadOnlyDictionary<int, int>? glyphWidths = null,
         IReadOnlyDictionary<int, int>? glyphLefts = null) {
-        byte[] glyph = CreateVisibleGlyph(400);
+        byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
         var hmtx = new byte[4 + (glyphCount - 1) * 2];
@@ -267,7 +285,8 @@ internal static partial class ManagedTextShapingTestAssets {
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)((byteOffset + glyph.Length) / 2)));
         }
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
-        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, checked((byte)glyphCount) };
+        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
+        WriteUInt16(maxp, 4, checked((ushort)glyphCount));
         if (math != null) {
             // The independent MATH oracle also reads maxp while naming covered glyphs.
             // Supply the complete TrueType 1.0 record for these rectangular fixtures.

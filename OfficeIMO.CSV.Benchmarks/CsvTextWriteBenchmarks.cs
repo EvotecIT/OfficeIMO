@@ -5,7 +5,7 @@ using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
-/// <summary>Exports short labels and long notes with embedded quotes through public CSV writers.</summary>
+/// <summary>Exports short labels and plain, delimited or quoted text through public CSV writers.</summary>
 [MemoryDiagnoser]
 public class CsvTextWriteBenchmarks {
     private static readonly string[] Headers = ["Id", "Notes"];
@@ -17,7 +17,10 @@ public class CsvTextWriteBenchmarks {
     [Params(CsvQuoteMode.AsNeeded, CsvQuoteMode.Always)]
     public CsvQuoteMode QuoteMode { get; set; }
 
-    [Params("Notes", "Json", "Quotes")]
+    [Params(",", ";", "\t", "||")]
+    public string Delimiter { get; set; } = ",";
+
+    [Params("Plain", "Delimited", "Notes", "Json", "Quotes")]
     public string TextShape { get; set; } = "Notes";
 
     [GlobalSetup]
@@ -25,6 +28,8 @@ public class CsvTextWriteBenchmarks {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         string payload = TextShape switch {
+            "Plain" => new string('n', TextLength),
+            "Delimited" => new string('n', TextLength / 2) + Delimiter + new string('x', TextLength / 2),
             "Notes" => ",\"" + new string('n', TextLength / 2) + "\" Łódź\n" + new string('x', TextLength / 2),
             "Json" => "{" + string.Concat(Enumerable.Repeat("\"key\":\"value\",", Math.Max(1, TextLength / 14))) + "\"last\":null}",
             "Quotes" => new string('"', TextLength),
@@ -38,8 +43,8 @@ public class CsvTextWriteBenchmarks {
         using var peerWriter = new StringWriter(CultureInfo.InvariantCulture);
         WriteOfficeIMO(officeWriter);
         WriteCsvHelper(peerWriter);
-        CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), officeWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows);
-        CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), peerWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows);
+        CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), officeWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
+        CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), peerWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
         if (officeWriter.ToString() != peerWriter.ToString()) throw new InvalidOperationException("CSV writers produced different text or quoting.");
     }
 
@@ -59,11 +64,11 @@ public class CsvTextWriteBenchmarks {
 
     private void WriteOfficeIMO(TextWriter writer) {
         using var reader = new BenchmarkArrayDataReader(Headers, _rows, [typeof(string), typeof(string)]);
-        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", QuoteMode = QuoteMode });
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", QuoteMode = QuoteMode, DelimiterText = Delimiter });
     }
 
     private void WriteCsvHelper(TextWriter writer) {
-        var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) { NewLine = "\n" };
+        var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) { NewLine = "\n", Delimiter = Delimiter };
         if (QuoteMode == CsvQuoteMode.Always) configuration.ShouldQuote = _ => true;
         using var csv = new global::CsvHelper.CsvWriter(writer, configuration, leaveOpen: true);
         using var reader = new BenchmarkArrayDataReader(Headers, _rows, [typeof(string), typeof(string)]);

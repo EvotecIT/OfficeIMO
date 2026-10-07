@@ -15,8 +15,7 @@ namespace OfficeIMO.Excel {
             Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
             bool worksheetChanged = RewriteWorksheetSheetReferences(worksheet, sheetNameMap);
             if (tableNameMap?.Count > 0) {
-                RewriteStructuredTableReferences(worksheet, tableNameMap);
-                worksheetChanged = true;
+                worksheetChanged |= RewriteStructuredTableReferences(worksheet, tableNameMap);
             }
 
             foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
@@ -35,8 +34,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (tableNameMap?.Count > 0) {
-                    RewriteStructuredTableReferences(table, tableNameMap);
-                    tableChanged = true;
+                    tableChanged |= RewriteStructuredTableReferences(table, tableNameMap);
                 }
 
                 if (tableChanged) {
@@ -47,6 +45,46 @@ namespace OfficeIMO.Excel {
             if (worksheetChanged) {
                 worksheet.Save();
             }
+        }
+
+        private static bool RewriteStructuredTableReferences(Worksheet worksheet, IReadOnlyDictionary<string, string> tableNameMap) {
+            if (!HasRenamedTables(tableNameMap)) return false;
+            bool changed = false;
+            foreach (CellFormula formula in worksheet.Descendants<CellFormula>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (Formula formula in worksheet.Descendants<Formula>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (Formula1 formula in worksheet.Descendants<Formula1>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (Formula2 formula in worksheet.Descendants<Formula2>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            return changed;
+        }
+
+        private static bool RewriteStructuredTableReferences(Table table, IReadOnlyDictionary<string, string> tableNameMap) {
+            if (!HasRenamedTables(tableNameMap)) return false;
+            bool changed = false;
+            foreach (CalculatedColumnFormula formula in table.Descendants<CalculatedColumnFormula>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (TotalsRowFormula formula in table.Descendants<TotalsRowFormula>())
+                changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            return changed;
+        }
+
+        private static bool HasRenamedTables(IReadOnlyDictionary<string, string> tableNameMap) {
+            foreach (var pair in tableNameMap) {
+                if (!string.Equals(pair.Key, pair.Value, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        private static bool RewriteStructuredTableFormula(OpenXmlLeafTextElement formula, IReadOnlyDictionary<string, string> tableNameMap) {
+            string rewritten = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            if (string.Equals(formula.Text, rewritten, StringComparison.Ordinal)) return false;
+            formula.Text = rewritten;
+            return true;
         }
 
         private void CopyReferencedDefinedNamesFromSource(

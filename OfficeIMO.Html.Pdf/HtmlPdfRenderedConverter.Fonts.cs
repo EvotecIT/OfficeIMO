@@ -99,8 +99,7 @@ internal static partial class HtmlPdfRenderedConverter {
         ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots,
         CancellationToken cancellationToken) {
-        List<HtmlRenderText> textRuns = EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))
-            .OfType<HtmlRenderText>()
+        var textRuns = EnumerateUsedText(rendered.Pages.SelectMany(page => page.Visuals))
             .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
             .ToList();
         int loadedFamilyCount = 0;
@@ -110,7 +109,7 @@ internal static partial class HtmlPdfRenderedConverter {
                      .Distinct(StringComparer.OrdinalIgnoreCase)
                      .Take(MaximumSystemFontFamilyCandidates)) {
             cancellationToken.ThrowIfCancellationRequested();
-            List<HtmlRenderText> familyRuns = textRuns
+            var familyRuns = textRuns
                 .Where(text => EnumerateFamilies(text.Font.FamilyName).Contains(familyName, StringComparer.OrdinalIgnoreCase))
                 .ToList();
             if (familyRuns.Count == 0 || pdf.Options.HasNamedFontFamily(familyName)) continue;
@@ -135,9 +134,8 @@ internal static partial class HtmlPdfRenderedConverter {
             return;
         }
 
-        List<HtmlRenderText> textRuns = EnumerateVisuals(
+        var textRuns = EnumerateUsedText(
                 rendered.Pages.SelectMany(page => page.Visuals))
-            .OfType<HtmlRenderText>()
             .Where(text => !EnumerateFamilies(text.Font.FamilyName).Any(activeWebFontFamilies.Contains))
             .ToList();
         if (textRuns.Count == 0) {
@@ -165,8 +163,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static PdfCore.PdfEmbeddedFontFamily CreateCoverageSafeFontFamily(
         PdfCore.PdfEmbeddedFontFamily family,
-        IEnumerable<HtmlRenderText> textRuns) {
-        List<HtmlRenderText> runs = textRuns.ToList();
+        IEnumerable<(string Text, OfficeFontInfo Font)> textRuns) {
+        var runs = textRuns.ToList();
         byte[] regular = family.Regular;
         byte[]? bold = SelectCoverageSafeFace(
             family.Bold,
@@ -201,12 +199,16 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static IEnumerable<string> EnumerateUsedFontFamilyLists(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (var usage in EnumerateUsedText(visuals)) yield return usage.Font.FamilyName;
+    }
+
+    private static IEnumerable<(string Text, OfficeFontInfo Font)> EnumerateUsedText(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in EnumerateVisuals(visuals)) {
             if (visual is HtmlRenderText text) {
-                yield return text.Font.FamilyName;
+                yield return (text.Text, text.Font);
             } else if (visual is HtmlRenderDrawing drawing) {
-                foreach (string familyNames in EnumerateDrawingFontFamilyLists(drawing.Drawing.Elements)) {
-                    yield return familyNames;
+                foreach (OfficeDrawingText drawingText in EnumerateDrawingText(drawing.Drawing.Elements)) {
+                    yield return (drawingText.Text, drawingText.Font);
                 }
             }
         }
@@ -219,48 +221,26 @@ internal static partial class HtmlPdfRenderedConverter {
             if (visual is HtmlRenderText text) {
                 yield return text.Font.FamilyName;
             } else if (visual is HtmlRenderDrawing drawing) {
-                foreach (string familyName in EnumerateDrawingWebFontFamilies(drawing.Drawing.Elements, faces)) {
-                    yield return familyName;
+                foreach (OfficeDrawingText drawingText in EnumerateDrawingText(drawing.Drawing.Elements)) {
+                    foreach (OfficeFontFallbackRun run in faces.PlanFallbackRuns(
+                                 drawingText.Text, drawingText.Font.FamilyName, drawingText.Font.Style)) {
+                        yield return run.FamilyName;
+                    }
                 }
             }
         }
     }
 
-    private static IEnumerable<string> EnumerateDrawingWebFontFamilies(
-        IEnumerable<OfficeDrawingElement> elements,
-        OfficeFontFaceCollection faces) {
+    private static IEnumerable<OfficeDrawingText> EnumerateDrawingText(IEnumerable<OfficeDrawingElement> elements) {
         foreach (OfficeDrawingElement element in elements) {
             if (element is OfficeDrawingText text) {
-                foreach (OfficeFontFallbackRun run in faces.PlanFallbackRuns(
-                             text.Text,
-                             text.Font.FamilyName,
-                             text.Font.Style)) {
-                    yield return run.FamilyName;
-                }
+                yield return text;
+            } else if (element is OfficeDrawingGroup group) {
+                foreach (OfficeDrawingText child in EnumerateDrawingText(group.Drawing.Elements)) yield return child;
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                foreach (string familyName in EnumerateDrawingWebFontFamilies(effectGroup.Drawing.Elements, faces)) {
-                    yield return familyName;
-                }
+                foreach (OfficeDrawingText child in EnumerateDrawingText(effectGroup.Drawing.Elements)) yield return child;
             } else if (element is OfficeDrawingTilingPattern tilingPattern) {
-                foreach (string familyName in EnumerateDrawingWebFontFamilies(tilingPattern.Tile.Elements, faces)) {
-                    yield return familyName;
-                }
-            }
-        }
-    }
-
-    private static IEnumerable<string> EnumerateDrawingFontFamilyLists(IEnumerable<OfficeDrawingElement> elements) {
-        foreach (OfficeDrawingElement element in elements) {
-            if (element is OfficeDrawingText text) {
-                yield return text.Font.FamilyName;
-            } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                foreach (string familyNames in EnumerateDrawingFontFamilyLists(effectGroup.Drawing.Elements)) {
-                    yield return familyNames;
-                }
-            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
-                foreach (string familyNames in EnumerateDrawingFontFamilyLists(tilingPattern.Tile.Elements)) {
-                    yield return familyNames;
-                }
+                foreach (OfficeDrawingText child in EnumerateDrawingText(tilingPattern.Tile.Elements)) yield return child;
             }
         }
     }
@@ -291,26 +271,11 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfTextFallbackFeatures requested) {
         if (requested == PdfCore.PdfTextFallbackFeatures.None) return requested;
 
-        foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
-            if (visual is HtmlRenderText text && RequiresUnicodeFont(text.Text)) return requested;
-            if (visual is HtmlRenderDrawing drawing && DrawingRequiresUnicodeFont(drawing.Drawing.Elements)) {
-                return requested;
-            }
+        foreach (var usage in EnumerateUsedText(rendered.Pages.SelectMany(page => page.Visuals))) {
+            if (RequiresUnicodeFont(usage.Text)) return requested;
         }
 
         return PdfCore.PdfTextFallbackFeatures.None;
-    }
-
-    private static bool DrawingRequiresUnicodeFont(IEnumerable<OfficeDrawingElement> elements) {
-        foreach (OfficeDrawingElement element in elements) {
-            if (element is OfficeDrawingText text && RequiresUnicodeFont(text.Text)) return true;
-            if (element is OfficeDrawingEffectGroup effectGroup
-                && DrawingRequiresUnicodeFont(effectGroup.Drawing.Elements)) return true;
-            if (element is OfficeDrawingTilingPattern tilingPattern
-                && DrawingRequiresUnicodeFont(tilingPattern.Tile.Elements)) return true;
-        }
-
-        return false;
     }
 
     private static bool RequiresUnicodeFont(string text) =>

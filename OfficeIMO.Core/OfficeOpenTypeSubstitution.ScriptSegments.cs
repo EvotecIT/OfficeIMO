@@ -8,17 +8,31 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     // Resolve Common characters only where the adjacent strong scripts agree.
     // A mixed-script boundary remains scalar rather than selecting either script's features.
     private static bool[] GetLatinDefaultEligibility(IReadOnlyList<int> scalars, IReadOnlyList<bool>? breakBefore = null, bool breakAfterLast = false) {
+        if (!breakAfterLast && TryGetPrintableAsciiEligibility(scalars, breakBefore, out bool hasLatin)) {
+            var asciiEligible = new bool[scalars.Count];
+            if (hasLatin) for (int index = 0; index < asciiEligible.Length; index++) asciiEligible[index] = true;
+            return asciiEligible;
+        }
         var strong = new int[scalars.Count];
         var marks = new bool[scalars.Count];
         for (int index = 0; index < scalars.Count; index++) {
-            string text = char.ConvertFromUtf32(scalars[index]);
-            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(text, 0);
+            int scalar = scalars[index];
+            UnicodeCategory category;
+            bool letter;
+            if ((uint)scalar <= 0xFFFFU) {
+                category = CharUnicodeInfo.GetUnicodeCategory((char)scalar);
+                letter = char.IsLetter((char)scalar);
+            } else {
+                string text = char.ConvertFromUtf32(scalar);
+                category = CharUnicodeInfo.GetUnicodeCategory(text, 0);
+                letter = char.IsLetter(text, 0);
+            }
             marks[index] = category == UnicodeCategory.NonSpacingMark ||
                 category == UnicodeCategory.SpacingCombiningMark || category == UnicodeCategory.EnclosingMark;
             // Script membership also includes Latin modifier letters and letter numbers.
             // MICRO SIGN remains Common and does not establish a Latin base.
             strong[index] = IsLatinScriptScalar(scalars[index]) ? 1
-                : char.IsLetter(text, 0) && scalars[index] != 0x00B5 ? -1
+                : letter && scalars[index] != 0x00B5 ? -1
                 : category == UnicodeCategory.Control || category == UnicodeCategory.Format ? -1 : 0;
         }
         var nextStrong = new int[scalars.Count];
@@ -40,6 +54,16 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (strong[index] != 0) previous = strong[index];
         }
         return eligible;
+    }
+
+    private static bool TryGetPrintableAsciiEligibility(IReadOnlyList<int> scalars, IReadOnlyList<bool>? breakBefore, out bool hasLatin) {
+        hasLatin = false;
+        for (int index = 0; index < scalars.Count; index++) {
+            int scalar = scalars[index];
+            if ((uint)(scalar - 32) > 94U || breakBefore != null && breakBefore[index]) return false;
+            hasLatin |= scalar >= 'A' && scalar <= 'Z' || scalar >= 'a' && scalar <= 'z';
+        }
+        return true;
     }
 
     internal static int FindLatinDefaultInputIndex(string text) {

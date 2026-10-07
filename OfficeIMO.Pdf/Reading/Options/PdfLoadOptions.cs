@@ -105,7 +105,7 @@ public sealed class PdfLoadOptions {
             additionalRevisions: Math.Max(growth.AdditionalRevisions, addedStartXrefMarkers),
             additionalFormFields: growth.AdditionalFormFields,
             additionalAnnotationsPerPage: growth.AdditionalAnnotationsPerPage,
-            minimumRawStreamBytes: growth.MinimumRawStreamBytes,
+            minimumRawStreamBytes: Math.Max(growth.MinimumRawStreamBytes, outputMarkers.MaximumRawStreamBytes),
             minimumDecodedStreamBytes: growth.MinimumDecodedStreamBytes,
             additionalTotalDecodedStreamBytes: growth.AdditionalTotalDecodedStreamBytes,
             additionalPageContentBytes: growth.AdditionalPageContentBytes,

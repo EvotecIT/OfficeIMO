@@ -5,6 +5,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPanelContinuationTests {
     [Fact]
+    public void Panel_KeptTogetherAlsoMovesWithItsFollowingParagraph() {
+        var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 2 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0,
+            LineSpacing = PdfLineSpacing.Exactly(20), WidowControl = false };
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Lead"), style: paragraphStyle).Spacer(100)
+            .Panel(panel => panel.Paragraph(p => p.Text("Object"), style: paragraphStyle),
+                new PdfPanelStyle { PaddingX = 0, PaddingY = 0, BorderWidth = 0,
+                    SpacingBefore = 0, SpacingAfter = 0, KeepTogether = true, KeepWithNext = true })
+            .Paragraph(p => p.Text("Caption"), style: new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0,
+                LineSpacing = PdfLineSpacing.Exactly(30), WidowControl = false }).ToBytes();
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain("Object", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.Contains("Object", pdf.GetPage(2).Text, StringComparison.Ordinal);
+        Assert.Contains("Caption", pdf.GetPage(2).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Panel_SectionHeadingUsesIntermediateFragmentCapacity() {
         var options = new PdfOptions { PageWidth = 300, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
             MarginTop = 20, MarginBottom = 20, MaxGeneratedPages = 3 };

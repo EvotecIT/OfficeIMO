@@ -1,8 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static double MeasureImportedTableMinimumTextWidth(TableCellLayout cell,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D) {
+    private static double MeasureImportedTableTextWidth(TableCellLayout cell,
+        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
+        bool wholeLine = false) {
         // Resolve actual run fonts and sizes, then measure break opportunities
         // explicitly: a wide layout never needs to discover internal breaks.
         TableCellTextLayout layout = CreateTableCellTextLayout(cell, TableCellNoWrapWidth,
@@ -12,7 +13,7 @@ internal static partial class PdfWriter {
             var line = layout.Lines[lineIndex];
             double indents = layout.LineWidths != null
                 ? Math.Max(0D, TableCellNoWrapWidth - layout.LineWidths[lineIndex]) : 0D;
-            if (cell.NoWrap) {
+            if (wholeLine || cell.NoWrap) {
                 minimum = Math.Max(minimum, MeasureRichLineWidth(line, options) + indents);
                 continue;
             }
@@ -91,7 +92,7 @@ internal static partial class PdfWriter {
         // Word can enlarge an automatic grid for a no-wrap cell, but falls
         // back to wrapping when its text cannot fit inside the page frame.
         if (noWrap && wrapOversizedNoWrap &&
-            MeasureImportedTableMinimumTextWidth(cell, font, size, options, runFontSizeScale, minimumShrinkFontSize) > innerWidth + .001D)
+            MeasureImportedTableTextWidth(cell, font, size, options, runFontSizeScale, minimumShrinkFontSize) > innerWidth + .001D)
             noWrap = false;
         return GetTableCellWrapWidth(innerWidth, noWrap);
     }

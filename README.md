@@ -40,6 +40,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| JavaScript and browser assets | None | Strict TypeScript document layers, streaming XLSX/CSV and embedded portable scripts |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML document contracts (`OfficeIMO.Html.Core`) | None | Owned nodes, immutable snapshots, edits and parser/charset contracts |
@@ -286,6 +287,7 @@ _Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this 
 #### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
 
 - [x] Any `IOcrEngine` over bounded rendered PDF pages without a Reader or provider dependency
+- [x] Standalone raster image recognition at source resolution, with reusable text/table reconstruction and review snapshots for editable format adapters
 - [x] Pixel, point, and normalized geometry projection into cropped and rotated visual PDF coordinates
 - [x] Confidence and native-text overlap filtering followed by the canonical language-neutral PDF understanding pipeline
 - [x] Searchable invisible-text output with per-page provider, model, language, word, rejection, and diagnostic evidence
@@ -485,6 +487,18 @@ _Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified b
 - [x] Cross-library BenchmarkDotNet coverage with row-count and payload checks so lanes cannot win by under-reading
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
+
+#### [OfficeIMO.Browser](OfficeIMO.Browser/README.md)
+
+- [x] Value-only tabular XLSX and CSV exports from synchronous or asynchronous JavaScript row iterables
+- [x] Current-view projection, multiple sheets, column styles, date formats, frozen headers and autofilters
+- [x] Platform raw-deflate compression with stored ZIP fallback, cooperative yielding, progress and cancellation
+- [x] CSV formula protection with shared .NET/JavaScript byte vectors
+- [x] [Strict TypeScript library](OfficeIMO.JavaScript/README.md) under `@evotecit/officeimo`, compiled ES modules and generated declarations
+- [x] Public core, ZIP, XML, OPC, XLSX and CSV subpaths, reusable style registry, custom column writers and package parts
+- [x] Embedded .NET assets with content-hashed names and a [single-file/bundle example](OfficeIMO.Browser.Examples/README.md)
+
+_Dependency footprint:_ no JavaScript or third-party .NET runtime dependencies.
 
 #### [OfficeIMO.Email](OfficeIMO.Email/README.md)
 

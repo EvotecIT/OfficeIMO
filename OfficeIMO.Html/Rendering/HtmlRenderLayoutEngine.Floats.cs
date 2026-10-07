@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> runs) {
         double measuredOuterWidth = IsReplacedImageElement(element)
             ? ResolveFloatingImageOuterWidth(element, style)
-            : ResolvePositionedOuterWidth(element, style, containingWidth, null, null);
+            : ResolvePositionedOuterWidth(element, style, containingWidth, null, null, depth);
         double outerWidth = Math.Min(Math.Max(1D, containingWidth), measuredOuterWidth);
         HtmlRenderBoxStyle floatStyle = style.Clone();
         if (!floatStyle.ExplicitWidth.HasValue) SetPositionedExplicitWidth(floatStyle, outerWidth);
@@ -439,7 +439,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
-            double baseline = current.ResolveBaseline(paragraphStyle.LineHeight);
+            double baseline = current.ResolveBaseline(paragraphStyle);
+            bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.ResolveAvailableWidth(width);
             double lineX = (current.HasExplicitPlacement ? current.X : 0D) + current.IndentOffset;
@@ -522,10 +523,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                     }
                 } else if (segment.Text.Length > 0) {
-                    double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
-                    double textY = current.HasReplacedImage
-                        ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
-                        : lineY;
+                    double textLineHeight = current.HasReplacedImage || alignTextBaseline ? segment.Run.Style.LineHeight : lineHeight;
+                    double textY = lineY + (current.HasReplacedImage || alignTextBaseline
+                        ? Math.Max(0D, baseline - segment.Run.Style.Font.Size) : 0D);
+                    if (alignTextBaseline || current.HasReplacedImage) {
+                        textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - (textY - lineY)));
+                    }
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), textLineHeight, inlineBounds);
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;

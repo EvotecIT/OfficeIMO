@@ -96,7 +96,8 @@ public static partial class OfficeRasterImageDecoder {
         }
         if (!OfficeRasterContainerInspector.TryInspectForDecode(
                 bytes, effective, out OfficeRasterContainerInfo? container,
-                out OfficeImageFormat detectedFormat) || container == null) {
+                out OfficeImageFormat detectedFormat, out OfficeRasterImage? inspectedImage,
+                out OfficePngContainerValidation pngValidation) || container == null) {
             info = new OfficeRasterDecodeInfo(detectedFormat, 0, effective.FrameIndex, succeeded: false,
                 diagnostic: "The raster container is malformed, unsupported, or outside the configured limits.");
             return false;
@@ -169,18 +170,24 @@ public static partial class OfficeRasterImageDecoder {
 
         effective.CancellationToken.ThrowIfCancellationRequested();
         bool avifCallerCodecEligible = false;
-        bool success = format switch {
-            OfficeImageFormat.Png => OfficePngReader.TryDecode(
-                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
-            OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(
-                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
-            OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(
-                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
-            OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
-                bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
-            OfficeImageFormat.Avif => OfficeAvifCodec.TryDecode(bytes, effective, out image, out avifCallerCodecEligible),
-            _ => false
-        };
+        bool success;
+        if (inspectedImage != null) {
+            image = inspectedImage;
+            success = true;
+        } else {
+            success = format switch {
+                OfficeImageFormat.Png => OfficePngReader.TryDecode(
+                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image, pngValidation),
+                OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(
+                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+                OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(
+                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+                OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
+                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+                OfficeImageFormat.Avif => OfficeAvifCodec.TryDecode(bytes, effective, out image, out avifCallerCodecEligible),
+                _ => false
+            };
+        }
         success = success && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);
         // Static WebP belongs to the managed decoder. A failed VP8/ALPH stream
         // must not become valid merely because a caller codec was supplied.

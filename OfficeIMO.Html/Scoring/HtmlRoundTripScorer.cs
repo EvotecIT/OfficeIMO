@@ -1071,10 +1071,6 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static bool IsPrunableHiddenElement(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
-        if (element.HasAttribute("hidden")) {
-            return true;
-        }
-
         string? ariaHidden = element.GetAttribute("aria-hidden");
         if (string.Equals(ariaHidden, "true", StringComparison.OrdinalIgnoreCase)) {
             return true;
@@ -1094,7 +1090,7 @@ public static partial class HtmlRoundTripScorer {
             }
         }
 
-        return false;
+        return !styles.ContainsKey(element) && element.HasAttribute("hidden");
     }
 
     private static bool HasVisibleVisibilityDescendant(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {

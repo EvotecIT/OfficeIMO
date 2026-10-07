@@ -1,0 +1,131 @@
+{
+  "ExcelDataReaderWrite": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 25000
+    },
+    "Class": "ExcelDataReaderWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "SetupOfficeIMO"
+  },
+  "ExcelTextWriteBenchmarks-64-Plain": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 64,
+      "TextShape": "Plain"
+    },
+    "Class": "ExcelTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelTextWriteBenchmarks-64-Escaped": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 64,
+      "TextShape": "Escaped"
+    },
+    "Class": "ExcelTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelTextWriteBenchmarks-64-Markup": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 64,
+      "TextShape": "Markup"
+    },
+    "Class": "ExcelTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelTextWriteBenchmarks-4096-Plain": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 4096,
+      "TextShape": "Plain"
+    },
+    "Class": "ExcelTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelTextWriteBenchmarks-4096-Escaped": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 4096,
+      "TextShape": "Escaped"
+    },
+    "Class": "ExcelTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelTextWriteBenchmarks-4096-Markup": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 4096,
+      "TextShape": "Markup"
+    },
+    "Class": "ExcelTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelDefaultTextWriteBenchmarks-64-Plain": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 64,
+      "TextShape": "Plain"
+    },
+    "Class": "ExcelDefaultTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelDefaultTextWriteBenchmarks-64-Escaped": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 64,
+      "TextShape": "Escaped"
+    },
+    "Class": "ExcelDefaultTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelDefaultTextWriteBenchmarks-64-Markup": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 64,
+      "TextShape": "Markup"
+    },
+    "Class": "ExcelDefaultTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelDefaultTextWriteBenchmarks-4096-Plain": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 4096,
+      "TextShape": "Plain"
+    },
+    "Class": "ExcelDefaultTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelDefaultTextWriteBenchmarks-4096-Escaped": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 4096,
+      "TextShape": "Escaped"
+    },
+    "Class": "ExcelDefaultTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  },
+  "ExcelDefaultTextWriteBenchmarks-4096-Markup": {
+    "Method": "OfficeIMO",
+    "Properties": {
+      "TextLength": 4096,
+      "TextShape": "Markup"
+    },
+    "Class": "ExcelDefaultTextWriteBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  }
+}

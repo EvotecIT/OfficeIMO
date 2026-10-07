@@ -224,11 +224,12 @@ namespace OfficeIMO.Excel {
 
             var sharedItems = table.Elements<SharedStringItem>().ToList();
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
-                if (cell.DataType?.Value != CellValues.SharedString || cell.CellValue?.Text == null) {
+                CellValue? oldValue = cell.CellValue;
+                if (cell.DataType?.Value != CellValues.SharedString || oldValue?.Text == null) {
                     continue;
                 }
 
-                if (!int.TryParse(cell.CellValue.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) ||
+                if (!int.TryParse(oldValue.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) ||
                     index < 0 ||
                     index >= sharedItems.Count) {
                     continue;
@@ -240,8 +241,15 @@ namespace OfficeIMO.Excel {
                     inline.Append(child.CloneNode(true));
                 }
 
-                cell.CellValue = null;
-                cell.InlineString = inline;
+                if (cell.InlineString == null) {
+                    // Both value forms occupy the same position after a formula and
+                    // before extensions. Replacing the node avoids rebuilding SDK
+                    // schema metadata for two separate property assignments per cell.
+                    cell.ReplaceChild(inline, oldValue);
+                } else {
+                    oldValue.Remove();
+                    cell.InlineString = inline;
+                }
                 cell.DataType = CellValues.InlineString;
             }
         }

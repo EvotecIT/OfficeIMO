@@ -116,7 +116,8 @@ after retaining the compact reports and provenance needed to reproduce the run.
 
 ## Text export and quote density
 
-`CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
+`CsvTextWriteBenchmarks` writes 1,000 two-column rows with comma and `||`
+delimiters through the public
 DataReader API and CsvHelper. It covers short labels, long notes, JSON-shaped
 text, and an all-quotes stress case under `AsNeeded` and `Always`. Setup reads
 every output field and requires identical CSV text, including headers, quoting,
@@ -131,6 +132,38 @@ On Windows, add `--affinityMasks` with masks derived from the current machine's
 cache topology. Keep each domain separate and retain outliers when background
 work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
 records the long-note improvement and the limits of short-row timing on a busy PC.
+
+## Document saves and compression
+
+`CsvDocumentSaveBenchmarks` measures `CsvDocument.Save(Stream)`,
+`SaveAsync(Stream)`, `ToBytes()`, `ToString()`, `Save(path)`, and `SaveAsync(path)`. It covers 1,000 and
+25,000 rows, plain text, multiline quoted Unicode, mixed JSON and typed values,
+and uncompressed, GZip, Deflate, Brotli and ZLib output. Document preparation is
+outside timing; serialization, compression, destination growth and disposal are
+inside it. This lane compares OfficeIMO APIs, not equivalent cross-library APIs.
+
+The same fixtures also cover `CsvRowWriter.CreateFile`, sequential data-reader
+exports to streams, and parallel exports with four workers and 512-row batches.
+
+Setup decompresses all eight binary outputs, compares their complete text with an independent
+CsvHelper reference, checks every field, and verifies that the destination remains
+open. It also compares the complete `ToString()` result with that reference;
+`ToText` reports its UTF-16 character count and performs no compression.
+Snapshot comparisons also exercise one row, 100,000 rows and long Unicode
+fields. A one-row fixture retains its text payload; larger fixtures include
+null Notes fields.
+Compressed bytes may differ while decoded text remains identical. The lane
+uses empty streams and makes no claim about overwriting existing stream content.
+File saves include serialization, file creation or replacement, and disposal. Each
+benchmark instance owns a unique directory beneath `OFFICEIMO_BENCHMARK_OUTPUT`
+(or the system temporary directory), and cleanup removes its files. File timing
+depends on the filesystem and its caches; these operations do not request a durable
+disk flush. Managed allocation includes the destination; it does not measure
+retained or peak memory or the latency of a stream that suspends asynchronous writes.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvDocumentSaveBenchmarks*" --priority Normal --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 16 --outliers DontRemove --artifacts ./Ignore/Benchmarks/csv-document-save
+```
 
 ## UTF-8 file export
 

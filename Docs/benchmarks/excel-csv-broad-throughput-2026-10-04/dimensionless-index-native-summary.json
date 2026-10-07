@@ -1,0 +1,529 @@
+{
+  "Observations": 96,
+  "RetainedMeasurements": 1152,
+  "Comparisons": [
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-1000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 3.7494,
+      "AfterMedianMs": 1.97725,
+      "MedianRatio": 0.5273510428335201,
+      "BeforeAllocatedBytes": 188016,
+      "AfterAllocatedBytes": 171304
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 38.892,
+      "AfterMedianMs": 27.27505,
+      "MedianRatio": 0.7013023243854777,
+      "BeforeAllocatedBytes": 2340448,
+      "AfterAllocatedBytes": 2318280
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-True\")",
+      "BeforeMedianMs": 33.7474,
+      "AfterMedianMs": 24.1029,
+      "MedianRatio": 0.7142150210090259,
+      "BeforeAllocatedBytes": 1715488,
+      "AfterAllocatedBytes": 1693240
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-True-Prefetch-False\")",
+      "BeforeMedianMs": 21.8883,
+      "AfterMedianMs": 23.66245,
+      "MedianRatio": 1.0810547187310116,
+      "BeforeAllocatedBytes": 1693744,
+      "AfterAllocatedBytes": 1693744
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000\")",
+      "BeforeMedianMs": 7.6922,
+      "AfterMedianMs": 4.4305,
+      "MedianRatio": 0.5759730636228907,
+      "BeforeAllocatedBytes": 106104,
+      "AfterAllocatedBytes": 89016
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000000\")",
+      "BeforeMedianMs": 2308.8054,
+      "AfterMedianMs": 2115.3681,
+      "MedianRatio": 0.9162175816116854,
+      "BeforeAllocatedBytes": 1891704,
+      "AfterAllocatedBytes": 1891704
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-25000\")",
+      "BeforeMedianMs": 51.1471,
+      "AfterMedianMs": 35.17795,
+      "MedianRatio": 0.6877799523335634,
+      "BeforeAllocatedBytes": 130568,
+      "AfterAllocatedBytes": 99256
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-250000\")",
+      "BeforeMedianMs": 574.48065,
+      "AfterMedianMs": 513.6056,
+      "MedianRatio": 0.8940346380683144,
+      "BeforeAllocatedBytes": 498400,
+      "AfterAllocatedBytes": 498400
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadAutomatic\")",
+      "BeforeMedianMs": 14.8305,
+      "AfterMedianMs": 13.63785,
+      "MedianRatio": 0.9195812683321534,
+      "BeforeAllocatedBytes": 757984,
+      "AfterAllocatedBytes": 757760
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadSequential\")",
+      "BeforeMedianMs": 13.5579,
+      "AfterMedianMs": 62.0509,
+      "MedianRatio": 4.576733859963563,
+      "BeforeAllocatedBytes": 757760,
+      "AfterAllocatedBytes": 758240
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadAutomatic\")",
+      "BeforeMedianMs": 74.80855,
+      "AfterMedianMs": 94.0836,
+      "MedianRatio": 1.2576583826313972,
+      "BeforeAllocatedBytes": 901760,
+      "AfterAllocatedBytes": 901592
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadSequential\")",
+      "BeforeMedianMs": 84.66055,
+      "AfterMedianMs": 87.33915,
+      "MedianRatio": 1.031639293626134,
+      "BeforeAllocatedBytes": 901664,
+      "AfterAllocatedBytes": 901920
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-1000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 4.40465,
+      "AfterMedianMs": 2.48585,
+      "MedianRatio": 0.5643694731703994,
+      "BeforeAllocatedBytes": 156192,
+      "AfterAllocatedBytes": 139432
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 34.6323,
+      "AfterMedianMs": 27.9026,
+      "MedianRatio": 0.8056814014662612,
+      "BeforeAllocatedBytes": 1700792,
+      "AfterAllocatedBytes": 1678032
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-True\")",
+      "BeforeMedianMs": 41.15695,
+      "AfterMedianMs": 27.49955,
+      "MedianRatio": 0.668162971260018,
+      "BeforeAllocatedBytes": 1709232,
+      "AfterAllocatedBytes": 1686472
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-True-Prefetch-False\")",
+      "BeforeMedianMs": 27.6286,
+      "AfterMedianMs": 27.74855,
+      "MedianRatio": 1.0043415156757853,
+      "BeforeAllocatedBytes": 1691304,
+      "AfterAllocatedBytes": 1691304
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000\")",
+      "BeforeMedianMs": 8.17645,
+      "AfterMedianMs": 4.6517,
+      "MedianRatio": 0.5689143821585162,
+      "BeforeAllocatedBytes": 102856,
+      "AfterAllocatedBytes": 85760
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000000\")",
+      "BeforeMedianMs": 2316.8134,
+      "AfterMedianMs": 2699.4977,
+      "MedianRatio": 1.1651770056233273,
+      "BeforeAllocatedBytes": 1989160,
+      "AfterAllocatedBytes": 2001032
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-25000\")",
+      "BeforeMedianMs": 51.47055,
+      "AfterMedianMs": 26.7254,
+      "MedianRatio": 0.5192367285758556,
+      "BeforeAllocatedBytes": 1418552,
+      "AfterAllocatedBytes": 1386184
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-250000\")",
+      "BeforeMedianMs": 1396.59225,
+      "AfterMedianMs": 640.9895,
+      "MedianRatio": 0.4589668172653829,
+      "BeforeAllocatedBytes": 515200,
+      "AfterAllocatedBytes": 515200
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadAutomatic\")",
+      "BeforeMedianMs": 21.31775,
+      "AfterMedianMs": 20.8597,
+      "MedianRatio": 0.9785132108219676,
+      "BeforeAllocatedBytes": 891720,
+      "AfterAllocatedBytes": 891160
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadSequential\")",
+      "BeforeMedianMs": 32.74395,
+      "AfterMedianMs": 20.9787,
+      "MedianRatio": 0.6406893487193818,
+      "BeforeAllocatedBytes": 891368,
+      "AfterAllocatedBytes": 891368
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadAutomatic\")",
+      "BeforeMedianMs": 104.57875,
+      "AfterMedianMs": 96.7308,
+      "MedianRatio": 0.9249565518807598,
+      "BeforeAllocatedBytes": 907376,
+      "AfterAllocatedBytes": 907296
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadSequential\")",
+      "BeforeMedianMs": 147.6715,
+      "AfterMedianMs": 108.66805,
+      "MedianRatio": 0.7358769295361665,
+      "BeforeAllocatedBytes": 907528,
+      "AfterAllocatedBytes": 907160
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-1000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 4.2738745,
+      "AfterMedianMs": 3.3419165,
+      "MedianRatio": 0.7819407191296797,
+      "BeforeAllocatedBytes": 159400,
+      "AfterAllocatedBytes": 142688
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 34.8333545,
+      "AfterMedianMs": 54.0226455,
+      "MedianRatio": 1.5508884020917366,
+      "BeforeAllocatedBytes": 1703136,
+      "AfterAllocatedBytes": 1681288
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-True\")",
+      "BeforeMedianMs": 36.0347915,
+      "AfterMedianMs": 37.379604,
+      "MedianRatio": 1.0373198357481823,
+      "BeforeAllocatedBytes": 1715080,
+      "AfterAllocatedBytes": 1693168
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-True-Prefetch-False\")",
+      "BeforeMedianMs": 36.3697915,
+      "AfterMedianMs": 34.9375425,
+      "MedianRatio": 0.9606198182356915,
+      "BeforeAllocatedBytes": 1693416,
+      "AfterAllocatedBytes": 1693416
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000\")",
+      "BeforeMedianMs": 11.322209,
+      "AfterMedianMs": 8.22075,
+      "MedianRatio": 0.7260729774551945,
+      "BeforeAllocatedBytes": 106096,
+      "AfterAllocatedBytes": 89008
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000000\")",
+      "BeforeMedianMs": 2755.2536665,
+      "AfterMedianMs": 3016.0640835,
+      "MedianRatio": 1.0946593121973076,
+      "BeforeAllocatedBytes": 1891696,
+      "AfterAllocatedBytes": 1891696
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-25000\")",
+      "BeforeMedianMs": 80.429813,
+      "AfterMedianMs": 40.018979,
+      "MedianRatio": 0.49756399408761526,
+      "BeforeAllocatedBytes": 130032,
+      "AfterAllocatedBytes": 98928
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-250000\")",
+      "BeforeMedianMs": 847.9523335,
+      "AfterMedianMs": 823.087771,
+      "MedianRatio": 0.9706769336934669,
+      "BeforeAllocatedBytes": 498232,
+      "AfterAllocatedBytes": 498232
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadAutomatic\")",
+      "BeforeMedianMs": 37.352355,
+      "AfterMedianMs": 25.9725205,
+      "MedianRatio": 0.6953382323550952,
+      "BeforeAllocatedBytes": 757608,
+      "AfterAllocatedBytes": 757464
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadSequential\")",
+      "BeforeMedianMs": 83.850979,
+      "AfterMedianMs": 22.6549585,
+      "MedianRatio": 0.2701812044436595,
+      "BeforeAllocatedBytes": 757608,
+      "AfterAllocatedBytes": 757384
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadAutomatic\")",
+      "BeforeMedianMs": 121.4376455,
+      "AfterMedianMs": 141.5293745,
+      "MedianRatio": 1.1654489340375098,
+      "BeforeAllocatedBytes": 900976,
+      "AfterAllocatedBytes": 900752
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadSequential\")",
+      "BeforeMedianMs": 149.4293335,
+      "AfterMedianMs": 144.0524995,
+      "MedianRatio": 0.9640175467957902,
+      "BeforeAllocatedBytes": 900824,
+      "AfterAllocatedBytes": 900824
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-1000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 5.5483125,
+      "AfterMedianMs": 3.9543125,
+      "MedianRatio": 0.712705439717031,
+      "BeforeAllocatedBytes": 180704,
+      "AfterAllocatedBytes": 163912
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-False\")",
+      "BeforeMedianMs": 37.8755835,
+      "AfterMedianMs": 58.4216875,
+      "MedianRatio": 1.5424630355859732,
+      "BeforeAllocatedBytes": 2334280,
+      "AfterAllocatedBytes": 2310888
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-False-Prefetch-True\")",
+      "BeforeMedianMs": 45.391938,
+      "AfterMedianMs": 38.2474375,
+      "MedianRatio": 0.8426041976881445,
+      "BeforeAllocatedBytes": 2351232,
+      "AfterAllocatedBytes": 2327480
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Numeric-Public-25000-Utf16-True-Prefetch-False\")",
+      "BeforeMedianMs": 45.3579165,
+      "AfterMedianMs": 40.447688,
+      "MedianRatio": 0.8917448401758048,
+      "BeforeAllocatedBytes": 1702032,
+      "AfterAllocatedBytes": 1701952
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000\")",
+      "BeforeMedianMs": 13.2269585,
+      "AfterMedianMs": 6.521229,
+      "MedianRatio": 0.49302558861131984,
+      "BeforeAllocatedBytes": 139832,
+      "AfterAllocatedBytes": 122552
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-1000000\")",
+      "BeforeMedianMs": 3232.4643755,
+      "AfterMedianMs": 3497.940854,
+      "MedianRatio": 1.0821281993119989,
+      "BeforeAllocatedBytes": 1693456,
+      "AfterAllocatedBytes": 1693456
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-25000\")",
+      "BeforeMedianMs": 78.746875,
+      "AfterMedianMs": 42.811438,
+      "MedianRatio": 0.5436588817016548,
+      "BeforeAllocatedBytes": 1421040,
+      "AfterAllocatedBytes": 1386016
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Public-250000\")",
+      "BeforeMedianMs": 798.487333,
+      "AfterMedianMs": 881.078584,
+      "MedianRatio": 1.1034346414609937,
+      "BeforeAllocatedBytes": 482712,
+      "AfterAllocatedBytes": 482712
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadAutomatic\")",
+      "BeforeMedianMs": 40.4821875,
+      "AfterMedianMs": 26.8084995,
+      "MedianRatio": 0.6622295176119126,
+      "BeforeAllocatedBytes": 890992,
+      "AfterAllocatedBytes": 890784
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-False-ReadSequential\")",
+      "BeforeMedianMs": 31.345417,
+      "AfterMedianMs": 126.0330835,
+      "MedianRatio": 4.020781841887763,
+      "BeforeAllocatedBytes": 890992,
+      "AfterAllocatedBytes": 890992
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadAutomatic\")",
+      "BeforeMedianMs": 135.187792,
+      "AfterMedianMs": 142.894375,
+      "MedianRatio": 1.0570065010012146,
+      "BeforeAllocatedBytes": 903896,
+      "AfterAllocatedBytes": 903816
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "Case": "SnapshotComparison.Pair(Scenario: \"Rows-5000-Width-65-Reverse-False-Utf16-True-ReadSequential\")",
+      "BeforeMedianMs": 144.594292,
+      "AfterMedianMs": 148.86475,
+      "MedianRatio": 1.0295340704043836,
+      "BeforeAllocatedBytes": 903680,
+      "AfterAllocatedBytes": 903888
+    }
+  ],
+  "Sources": [
+    {
+      "Host": "Windows",
+      "Runtime": "net10.0",
+      "RawFile": "retained-native-dimensionless-v2.json",
+      "RawSha256": "A29AF802ED8A3DC57A887527287B4970453A44A1A211B5973D2BB145B0287567",
+      "BeforeHead": "3d73d54f6bb1b1438135162de7425bf128cab0b6",
+      "AfterHead": "1b0c3b146ba6799a68be681248b2366b9fbbf57a",
+      "BeforeSourceCount": 1894,
+      "AfterSourceCount": 1895
+    },
+    {
+      "Host": "Windows",
+      "Runtime": "net8.0",
+      "RawFile": "retained-native-dimensionless-v2.json",
+      "RawSha256": "A29AF802ED8A3DC57A887527287B4970453A44A1A211B5973D2BB145B0287567",
+      "BeforeHead": "3d73d54f6bb1b1438135162de7425bf128cab0b6",
+      "AfterHead": "1b0c3b146ba6799a68be681248b2366b9fbbf57a",
+      "BeforeSourceCount": 1894,
+      "AfterSourceCount": 1895
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net10.0",
+      "RawFile": "retained-native-dimensionless-v2-macos.json",
+      "RawSha256": "E993C7190BFB262BCCCE0887F57DB629B62C033CD4C02E60FC76D45E0310EC38",
+      "BeforeHead": "7ea6a06f8eb11db5ba464825b50ca218e9bb7b07",
+      "AfterHead": "a8a265af66a7f47b78a8a25f3415fd1f1aca44a7",
+      "BeforeSourceCount": 1894,
+      "AfterSourceCount": 1895
+    },
+    {
+      "Host": "macOS",
+      "Runtime": "net8.0",
+      "RawFile": "retained-native-dimensionless-v2-macos.json",
+      "RawSha256": "E993C7190BFB262BCCCE0887F57DB629B62C033CD4C02E60FC76D45E0310EC38",
+      "BeforeHead": "7ea6a06f8eb11db5ba464825b50ca218e9bb7b07",
+      "AfterHead": "a8a265af66a7f47b78a8a25f3415fd1f1aca44a7",
+      "BeforeSourceCount": 1894,
+      "AfterSourceCount": 1895
+    }
+  ],
+  "Policy": "Actual native .NET8/.NET10 on Windows/macOS; complete validated reads;16 warmups;N12;one invocation;no outlier removal;full frozen source inventories in referenced raw packets;normalized candidate source matches all four runs"
+}

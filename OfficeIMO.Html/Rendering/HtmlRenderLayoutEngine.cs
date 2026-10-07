@@ -109,7 +109,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             RegisterFragmentTarget(element.Id, element);
             RegisterFragmentTarget(element.GetAttribute("name"), element);
             if (computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? elementStyle)
-                && string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)) {
+                && string.Equals(elementStyle.GetValue("float").Trim(), "footnote", StringComparison.OrdinalIgnoreCase)
+                && !IsInsideClosedDisclosure(element)) {
                 _footnoteNumbers[element] = _footnoteNumbers.Count + 1;
             }
         }
@@ -117,7 +118,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, MeasureCharacterAdvance);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
-        _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
+        _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles, _disclosures);
         foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);
         foreach (IElement linkElement in document.QuerySelectorAll("[href]")) {
             string? href = linkElement.GetAttribute("href")?.Trim();

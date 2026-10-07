@@ -205,7 +205,7 @@ public sealed class PdfFontProgramCacheTests {
         PdfTrueTypeFontProgram program = PdfFontProgramCache.GetTrueType(input, "OfficeIMO weak subset cache test");
         Assert.True(program.TryGetGlyphId('A', out int glyphId));
         program.RecordGlyphUsage(glyphId, 'A');
-        _ = program.BuildSubsetFontFile();
+        _ = program.BuildSubsetFontFile(true, out _);
         return (new WeakReference(program), new WeakReference(program.FontDataForInspection));
     }
 }

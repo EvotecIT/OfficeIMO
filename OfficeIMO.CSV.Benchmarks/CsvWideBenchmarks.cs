@@ -17,9 +17,6 @@ using SepWriterOptions = nietras.SeparatedValues.SepWriterOptions;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
 using SylvanCsvDataWriter = Sylvan.Data.Csv.CsvDataWriter;
 using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
-using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
-using ExcelReaderNetCsvRowWriter = ExcelReader.Core.Writer.CsvRowWriter;
-using ExcelReaderNetCsvWriter = ExcelReader.Core.Writer.CsvWriter;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.CSV.Benchmarks;
@@ -437,7 +434,12 @@ public class CsvWideBenchmarks
     public int ExcelReaderNet_WriteProjectedRowsUtf8Stream()
     {
         using var stream = new MemoryStream();
+#if NET10_0_OR_GREATER
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        using (var csv = workbook.AddSheet("Data"))
+#else
         using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+#endif
         {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
             {
@@ -820,7 +822,7 @@ public class CsvWideBenchmarks
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
         var observation = CsvWideReadObservation.Empty;
         bool header = true;
-        foreach (ExcelReader.Core.ValueObjects.Row row in reader)
+        foreach (var row in reader)
         {
             if (header)
             {

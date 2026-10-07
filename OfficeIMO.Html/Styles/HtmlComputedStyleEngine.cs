@@ -74,8 +74,7 @@ public static partial class HtmlComputedStyleEngine {
         "marker-mid",
         "marker-end",
         "text-anchor",
-        "dominant-baseline",
-        "baseline-shift"
+        "dominant-baseline"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "background",
@@ -535,12 +534,13 @@ public static partial class HtmlComputedStyleEngine {
             properties["unicode-bidi"] = new CascadedProperty("bidi-override", false, Specificity.PresentationalHint, -1);
         }
 
+        ApplySvgTextAndPaintPresentationAttributes(element, parent?.Properties, properties, budget);
+
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
         foreach (StyleRule rule in candidateRules) {
             budget.RecordSelectorEvaluation();
             if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment, budget.HasDeclarationLimit)
-                && !TryParsePseudoElementSelector(rule.Selector, out _, out _)
-                && MatchesSelector(element, rule.Selector)) {
+                && MatchesSelector(element, rule.MatchingSelector)) {
                 foreach (var declaration in rule.Declarations) {
                     if (declaration.Value.IsSupported) {
                         ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder, valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder, customPropertyRegistrations: rules.CustomPropertyRegistrations, enforceResolutionLimits: budget.HasDeclarationLimit);
@@ -556,6 +556,9 @@ public static partial class HtmlComputedStyleEngine {
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
             rules.CustomPropertyRegistrations,
             enforceResolutionLimits: budget.HasDeclarationLimit);
+        // Store the HTML default in the computed snapshot so an explicit
+        // display:inherit can copy a parent's tag default or hidden state.
+        if (!resolvedProperties.ContainsKey("display")) resolvedProperties["display"] = HtmlElementDisplay.GetDefaultValue(element);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, specifiedProperties, cascadePriorities);
         computed[element] = style;
@@ -569,7 +572,7 @@ public static partial class HtmlComputedStyleEngine {
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, candidateRules, pseudoElements, budget, childContainerContexts, environment, rules.CustomPropertyRegistrations);
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, childContainerContexts, environment, rules.CustomPropertyRegistrations);
 
         foreach (IElement child in element.Children) {
             ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);
@@ -579,19 +582,19 @@ public static partial class HtmlComputedStyleEngine {
     private static void ComputePseudoElementStyles(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        IReadOnlyList<StyleRule> candidateRules,
+        StyleRuleIndex rules,
         IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
         MediaEnvironment environment,
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations) {
-        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Before, budget, containerContexts, environment, customPropertyRegistrations);
-        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.After, budget, containerContexts, environment, customPropertyRegistrations);
-        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment, customPropertyRegistrations);
-        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment, customPropertyRegistrations);
-        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment, customPropertyRegistrations);
-        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment, customPropertyRegistrations);
-        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, candidateRules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? marker = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Marker, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? footnoteCall = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.FootnoteCall, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? footnoteMarker = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.FootnoteMarker, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? firstLetter = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.FirstLetter, budget, containerContexts, environment, customPropertyRegistrations);
+        HtmlComputedStyle? firstLine = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.FirstLine, budget, containerContexts, environment, customPropertyRegistrations);
         if (before == null && after == null && marker == null && footnoteCall == null && footnoteMarker == null
             && firstLetter == null && firstLine == null) return;
         pseudoElements[element] = new HtmlPseudoElementStylePair {
@@ -608,19 +611,17 @@ public static partial class HtmlComputedStyleEngine {
     private static HtmlComputedStyle? ComputePseudoElementStyle(
         IElement element,
         HtmlComputedStyle originatingStyle,
-        IReadOnlyList<StyleRule> candidateRules,
+        StyleRuleIndex rules,
         HtmlPseudoElementKind kind,
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
         MediaEnvironment environment,
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations) {
         List<StyleRule>? matchedRules = null;
-        foreach (StyleRule rule in candidateRules) {
+        foreach (StyleRule rule in rules.GetPseudoCandidates(element, kind)) {
             budget.RecordSelectorEvaluation();
             if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment, budget.HasDeclarationLimit)
-                || !TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
-                || ruleKind != kind
-                || !MatchesSelector(element, hostSelector)) {
+                || !MatchesSelector(element, rule.MatchingSelector)) {
                 continue;
             }
 

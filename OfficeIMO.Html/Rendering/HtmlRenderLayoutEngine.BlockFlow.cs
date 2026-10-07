@@ -45,6 +45,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             CheckCancellation();
+            if (IsClosedDisclosureChild(node)) continue;
             if (seekingContinuation) {
                 if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
                 seekingContinuation = false;

@@ -187,6 +187,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
+        if (IsClosedDisclosureChild(node)) return;
         if (depth > _options.MaxLayoutDepth) {
             if (node is IElement limitedElement) EnsureDepth(depth, limitedElement);
             throw new InvalidOperationException("HTML inline layout exceeded the configured maximum depth.");
@@ -211,11 +212,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
-        if (tag == "br") {
-            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
-            return;
-        }
-
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
             // CSS footnote extraction is a paged-media behavior. Continuous output
@@ -225,6 +221,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (tag == "br") {
+            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
+            return;
+        }
         if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
@@ -1583,14 +1583,4 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void SetWidth(double width) => Width = Math.Max(0D, width);
     }
 
-    private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
-        double effectiveSize = GetEffectiveTextFont(style).Size;
-        double leading = Math.Max(0D, style.LineHeight - effectiveSize);
-        return Math.Min(style.LineHeight, leading / 2D + effectiveSize * 0.8D);
-    }
-
-    private static OfficeFontInfo GetEffectiveTextFont(HtmlRenderBoxStyle style) =>
-        Math.Abs(style.BaselineScale - 1D) < 0.000001D
-            ? style.Font
-            : style.Font.WithSize(style.Font.Size * style.BaselineScale);
 }

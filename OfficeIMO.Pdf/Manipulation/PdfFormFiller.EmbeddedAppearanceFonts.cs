@@ -302,12 +302,12 @@ internal static partial class PdfFormFiller {
 
     private static PdfStream CreateToUnicodeStream(PdfTrueTypeFontProgram fontProgram) {
         var dictionary = new PdfDictionary();
-        return new PdfStream(dictionary, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(fontProgram));
+        return new PdfStream(dictionary, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
     }
 
     private static PdfStream CreateToUnicodeStream(PdfOpenTypeCffFontProgram fontProgram) {
         var dictionary = new PdfDictionary();
-        return new PdfStream(dictionary, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(fontProgram));
+        return new PdfStream(dictionary, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
     }
 
     private static PdfDictionary CreateType0Font(PdfTrueTypeFontProgram fontProgram, int descendantFontObjectNumber, int toUnicodeObjectNumber) {

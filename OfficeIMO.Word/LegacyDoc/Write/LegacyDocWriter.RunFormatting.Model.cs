@@ -199,6 +199,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return (Specified & property) != 0;
             }
 
+            // Adjacent native records must retain explicit overrides even when
+            // their values match. Field uniformity compares effective values instead.
+            internal bool HasSameEncoding(LegacyDocWritableFormatting other) =>
+                Specified == other.Specified && Equals(other);
+
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold
                     && Italic == other.Italic

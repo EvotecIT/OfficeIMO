@@ -1,0 +1,17 @@
+{
+  "ActualWorksheetLength": 42024113,
+  "DeclaredWorksheetLength": 16384,
+  "InputSha256": "423C0D4EA303240D87D5F29797EC0F5E7F1B4B13BA16505AD525BC8A57A86034",
+  "Runs": [
+    {
+      "Engine": "Before",
+      "ExitCode": 1,
+      "Log": "\u001b[31;1mcold-worker.ps1: \u001b[31;1mException calling \"Invoke\" with \"2\" argument(s): \"Unexpected end of file has occurred. The following elements are not closed: c, row, sheetData, worksheet. Line 1, position 16385.\"\u001b[0m\n"
+    },
+    {
+      "Engine": "After",
+      "ExitCode": 1,
+      "Log": "\u001b[31;1mcold-worker.ps1: \u001b[31;1mException calling \"Invoke\" with \"2\" argument(s): \"Unexpected end of file has occurred. The following elements are not closed: c, row, sheetData, worksheet. Line 1, position 16385.\"\u001b[0m\n"
+    }
+  ]
+}

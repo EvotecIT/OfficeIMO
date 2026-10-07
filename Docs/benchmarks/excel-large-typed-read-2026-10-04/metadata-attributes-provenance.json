@@ -1,0 +1,123 @@
+{
+  "BaselineSource": "15b5f2848d571932ed1607511b588ff6cdb99ac6",
+  "CandidateSource": "33d26b66d19cf27bee00cae5280e45f41299d579",
+  "ReviewAndBinaryProvenance": {
+    "Base": "1cbc3dfe188b8a4aeb7d354b26cc825d321a688c",
+    "Fingerprint": "675D70D1EFDF89BC89CD6C2EE308B06267707221B10C2C950B9C0AB0C0742B4B",
+    "Reviewer": "/root/xml_metadata_review",
+    "Scope": "Shared XML type/style attribute parsing, changed consumers, date-system consistency and metadata tests",
+    "Boundary": "current",
+    "Outcome": "No actionable findings; accept as shaped subject to runtime and performance qualification",
+    "ConfirmationUsed": false,
+    "ProductHash": "C6515408CB0F494DF85AC7FE610A57AC45E4572F83DF3A152F93344293119367",
+    "BaselineHash": "85D9A613D5504C988D9A3D01C126ED9D921368943A621BAAF87B5B8351E91F65",
+    "HarnessHash": "5BF5549A31659C9EC5E96CDD55EC56149DC0D93FC04257D5026F6A0E4A2BFD12"
+  },
+  "BinaryBuildState": "Candidate binary built from the reviewed working diff on base 1cbc3dfe1, before the source commit. Source fingerprint and binary hashes are retained.",
+  "Native": {
+    "Runtime": "10.0.12",
+    "SDK": "10.0.112",
+    "BenchmarkDotNet": "0.15.8",
+    "Affinity": "0xFFFF",
+    "Priority": "Normal",
+    "Large": {
+      "Iterations": 5,
+      "Operations": 1,
+      "Warmups": 5
+    },
+    "Small": {
+      "Iterations": 12,
+      "Operations": 4,
+      "Warmups": 24
+    },
+    "Outliers": "Retained",
+    "Cases": 54
+  },
+  "Rotated": {
+    "Owner": "PowerForge Invoke-BenchmarkSuite",
+    "Masks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "Priority": "Normal",
+    "Large": {
+      "Iterations": 12,
+      "Operations": 1,
+      "Warmups": 3
+    },
+    "Small": {
+      "Iterations": 24,
+      "Operations": 4,
+      "Warmups": 12
+    },
+    "Outliers": "Retained",
+    "Samples": 2400
+  },
+  "Tests": [
+    {
+      "File": "metadata-baseline-net10.trx",
+      "Total": 10,
+      "Passed": 10,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "DA2714AFE261B99BC8EE9CA49D737E8C83CB8141CD67C7C4A4949A710238EF57"
+    },
+    {
+      "File": "metadata-calendar-baseline-net10.trx",
+      "Total": 15,
+      "Passed": 14,
+      "Failed": 1,
+      "Skipped": 0,
+      "Sha256": "622B76A9C9D1800DD735254B31B8428C8A4A1488FBF68D39CB4101968F6EEBA3"
+    },
+    {
+      "File": "metadata-reader-final-net10.trx",
+      "Total": 760,
+      "Passed": 760,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "ED5050A73A860F84752221747B4B7977E2AF669119B35ECF673FE0EEB3A2CF29"
+    },
+    {
+      "File": "metadata-contracts-net10.0.trx",
+      "Total": 5381,
+      "Passed": 5376,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "1351FF6D3E8A63FB123F2733C1B3B507AB52143027C7BBF0B0E659F81B491F76"
+    },
+    {
+      "File": "metadata-contracts-net8.0.trx",
+      "Total": 760,
+      "Passed": 760,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "8D1638942B9D0D3A95482D6240CAE509687D7470DE4BE34B8CC2C672F8D510B1"
+    },
+    {
+      "File": "metadata-contracts-net472.trx",
+      "Total": 755,
+      "Passed": 755,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "D435CCBBA594F660D5A0D8448B6EEFD4E802A0EA97062AA341A14797B2BC40DD"
+    },
+    {
+      "File": "linux/metadata-contracts-linux-net10.trx",
+      "Total": 760,
+      "Passed": 760,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "FCAF435E19BF857C4FBE4ABD07871E2D3B875FBDC3F742E7BF4BA9C0EFBC21C7"
+    }
+  ],
+  "Regression": "Saved baseline reproduces one 1904-calendar failure: style=\" +1 \" returned 2024-02-29 instead of 2028-03-01. The candidate uses one parsed index for date detection and calendar classification.",
+  "Builds": [
+    "Product netstandard2.0: zero warnings or errors"
+  ],
+  "Limits": [
+    "No general speed or competitor leadership claim.",
+    "Managed allocation is not retained or peak memory.",
+    "Windows .NET10 timing and WSL correctness do not qualify native Linux/macOS timing."
+  ]
+}

@@ -154,10 +154,14 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
     private static int WriteExcelReaderRows(Stream stream, IEnumerable<GeneratedRow> rows) {
         using XlsxWorkbookWriter workbook = XlsxWorkbookWriter.Create(stream, leaveOpen: true);
+#if !NET10_0_OR_GREATER
         workbook.Start();
+#endif
         int count = 0;
         using (XlsxSheetWriter sheet = workbook.AddSheet("Data")) {
+#if !NET10_0_OR_GREATER
             sheet.Start();
+#endif
             using (XlsxRowWriter header = sheet.StartRow()) {
                 WriteHeaders(header);
             }
@@ -176,13 +180,19 @@ public class ExcelGeneratedRowStreamingBenchmarks {
     private static async Task<int> WriteExcelReaderRowsAsync(
         Stream stream,
         IAsyncEnumerable<GeneratedRow> rows) {
+#if NET10_0_OR_GREATER
+        await using XlsxWorkbookWriter workbook = XlsxWorkbookWriter.Create(stream, leaveOpen: true);
+#else
         await using XlsxWorkbookWriter workbook = await XlsxWorkbookWriter.CreateAsync(
             stream,
             leaveOpen: true);
         await workbook.StartAsync();
+#endif
         int count = 0;
         await using (XlsxSheetWriter sheet = workbook.AddSheet("Data")) {
+#if !NET10_0_OR_GREATER
             await sheet.StartAsync();
+#endif
             await using (XlsxRowWriter header = await sheet.StartRowAsync()) {
                 WriteHeaders(header);
             }
@@ -252,7 +262,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         }
     }
 
-    private static IEnumerable<GeneratedRow> GenerateRows(int count) {
+    internal static IEnumerable<GeneratedRow> GenerateRows(int count) {
         for (int index = 0; index < count; index++) {
             yield return CreateRow(index);
         }
@@ -265,7 +275,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         }
     }
 
-    private static GeneratedRow CreateRow(int index) => new(
+    internal static GeneratedRow CreateRow(int index) => new(
         index + 1,
         index * 1.25m,
         new DateTime(2026, 1, 1).AddMinutes(index),
@@ -275,7 +285,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         Path.GetTempPath(),
         $"OfficeIMO.Excel.Benchmarks.{implementation}.{Guid.NewGuid():N}.xlsx");
 
-    private readonly record struct GeneratedRow(
+    internal readonly record struct GeneratedRow(
         int Id,
         decimal Amount,
         DateTime CreatedOn,
