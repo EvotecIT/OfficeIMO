@@ -130,9 +130,9 @@
           ],
           "textPositions": [
             { "text": "Service delivery review", "x": 24, "baseline": 48 },
-            { "text": "ACT-001", "x": 28, "baseline": 199 },
-            { "text": "ACT-020", "x": 28, "baseline": 598 },
-            { "text": "REGISTER PAGE 1", "x": 24, "baseline": 627 }
+            { "text": "ACT-001", "x": 28, "baseline": 203.4 },
+            { "text": "ACT-020", "x": 28, "baseline": 602.4 },
+            { "text": "REGISTER PAGE 1", "x": 24, "baseline": 631.4 }
           ],
           "browserTextPositions": [
             { "text": "Service delivery review", "x": 24, "baseline": 48 },
@@ -142,7 +142,7 @@
           ],
           "regions": [
             { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
-            { "id": "table-header", "x": 24, "y": 164, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 13000 }
+            { "id": "table-header", "x": 24, "y": 168, "width": 744, "height": 21, "color": "#17324d", "minimumPixels": 13000 }
           ],
           "browserRegions": [
             { "id": "completion", "x": 24, "y": 126, "width": 280, "height": 12, "color": "#087f5b", "minimumPixels": 3000 },
