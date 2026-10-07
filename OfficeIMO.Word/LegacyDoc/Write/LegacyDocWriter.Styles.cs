@@ -10,13 +10,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
 
         private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(MainDocumentPart mainPart, Body body) {
-            // Header/footer and note stories share the document's style sheet.
+            // Header/footer, note and comment stories share the document's style sheet.
             // Built-in indexes emitted by those writers need their definitions too.
             IEnumerable<ParagraphStyleId> storyStyleIds = mainPart.HeaderParts
                 .SelectMany(part => part.Header?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(mainPart.FooterParts.SelectMany(part => part.Footer?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>()))
                 .Concat(mainPart.FootnotesPart?.Footnotes?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(mainPart.EndnotesPart?.Endnotes?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
+                .Concat(mainPart.WordprocessingCommentsPart?.Comments?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Where(style => TryMapBuiltInParagraphStyleIndex(style.Val?.Value ?? string.Empty, out _));
             string[] usedStyleIds = body.Descendants<ParagraphStyleId>().Concat(storyStyleIds)
                 .Select(style => style.Val?.Value)

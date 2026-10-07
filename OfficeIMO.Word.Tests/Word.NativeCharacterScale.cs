@@ -11,6 +11,7 @@ public partial class Word {
     [InlineData("footer")]
     [InlineData("footnote")]
     [InlineData("endnote")]
+    [InlineData("comment")]
     public void NativeDocCharacterScalePreservesBuiltInStyleUsedOnlyOutsideTheBody(string story) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body without heading style");
@@ -18,6 +19,7 @@ public partial class Word {
             "header" => source.HeaderDefaultOrCreate.AddParagraph("Story heading"),
             "footer" => source.FooterDefaultOrCreate.AddParagraph("Story heading"),
             "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
+            "comment" => AddCharacterScaleComment(source),
             _ => source.AddParagraph("Reference").AddEndNote("Story heading").EndNote!.Paragraphs!.Single(item => item.Text == "Story heading")
         };
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
@@ -34,6 +36,13 @@ public partial class Word {
         Assert.Equal(20, imported.StyleRunProperties?.Spacing?.Val?.Value);
         Assert.Empty(source.ValidateDocument());
         Assert.Empty(loaded.ValidateDocument());
+    }
+
+    private static WordParagraph AddCharacterScaleComment(WordDocument source) {
+        source.AddParagraph("Anchor").AddComment("Reviewer", "R", "Story heading");
+        Paragraph paragraph = source._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsPart!.Comments!
+            .Descendants<Paragraph>().Single(item => item.InnerText == "Story heading");
+        return new WordParagraph(source, paragraph);
     }
 
     [Theory]
