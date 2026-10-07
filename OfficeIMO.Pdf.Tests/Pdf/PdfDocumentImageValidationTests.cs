@@ -823,7 +823,7 @@ public class PdfDocumentImageValidationTests {
         Assert.Contains("/Width 2 /Height 1", pdfContent);
         Assert.Contains("/Filter /FlateDecode", pdfContent);
         Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
-        Assert.Contains("/BitsPerComponent 8", pdfContent);
+        Assert.Contains("/BitsPerComponent " + bitDepth, pdfContent);
         Assert.Contains("/Colors 1", pdfContent);
         Assert.DoesNotContain("/SMask", pdfContent);
         Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);

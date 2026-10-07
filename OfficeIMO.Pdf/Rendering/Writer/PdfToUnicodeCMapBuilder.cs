@@ -38,19 +38,19 @@ internal static class PdfToUnicodeCMapBuilder {
         return Encoding.ASCII.GetBytes(sb.ToString());
     }
 
-    internal static byte[] BuildIdentityGlyphToUnicodeCMap(PdfTrueTypeFontProgram font) {
+    internal static byte[] BuildToUnicodeCMap(PdfTrueTypeFontProgram font) {
         Guard.NotNull(font, nameof(font));
 
-        return BuildIdentityGlyphToUnicodeCMap(font.GetGlyphToUnicodeMappings());
+        return BuildCompositeToUnicodeCMap(font.GetCharacterCodeToUnicodeMappings());
     }
 
-    internal static byte[] BuildIdentityGlyphToUnicodeCMap(PdfOpenTypeCffFontProgram font) {
+    internal static byte[] BuildToUnicodeCMap(PdfOpenTypeCffFontProgram font) {
         Guard.NotNull(font, nameof(font));
 
-        return BuildIdentityGlyphToUnicodeCMap(font.GetGlyphToUnicodeMappings());
+        return BuildCompositeToUnicodeCMap(font.GetGlyphToUnicodeMappings());
     }
 
-    private static byte[] BuildIdentityGlyphToUnicodeCMap(IReadOnlyList<(int GlyphId, string UnicodeText)> mappings) {
+    private static byte[] BuildCompositeToUnicodeCMap(IReadOnlyList<(int CharacterCode, string UnicodeText)> mappings) {
         var sb = new StringBuilder();
         sb.Append("/CIDInit /ProcSet findresource begin\n");
         sb.Append("12 dict begin\n");
@@ -68,7 +68,7 @@ internal static class PdfToUnicodeCMapBuilder {
             for (int offset = 0; offset < count; offset++) {
                 var mapping = mappings[index + offset];
                 sb.Append('<')
-                    .Append(mapping.GlyphId.ToString("X4", CultureInfo.InvariantCulture))
+                    .Append(mapping.CharacterCode.ToString("X4", CultureInfo.InvariantCulture))
                     .Append("> <");
                 AppendUtf16Hex(sb, mapping.UnicodeText);
                 sb.Append(">\n");

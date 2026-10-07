@@ -221,18 +221,23 @@ public sealed class DrawingRasterStreamingEncodingTests {
         Assert.True(destination.WriteCount > 0);
     }
 
-    [Fact]
-    public void JpegCancellationCanStopCoefficientWorkBeforeTheFirstWrite() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void JpegCancellationCanStopCoefficientWorkBeforeTheFirstWrite(bool retainCoefficients) {
         OfficeRasterImage image = new OfficeRasterImage(64, 64, OfficeColor.CornflowerBlue);
         using var cancellation = new CancellationTokenSource();
         using var destination = new CountingWriteStream();
+        OfficeRasterEncodingOptions options = CreateOptions();
+        options.Jpeg.Progressive = retainCoefficients;
+        options.Jpeg.OptimizeHuffman = retainCoefficients;
 
         Assert.Throws<OperationCanceledException>(() =>
             OfficeRasterImageEncoder.EncodeTo(
                 image,
                 OfficeImageExportFormat.Jpeg,
                 destination,
-                CreateOptions(),
+                options,
                 maximumEncodedBytes: long.MaxValue,
                 cancellationToken: cancellation.Token,
                 checkpointObserver: checkpoint => {
@@ -330,6 +335,34 @@ public sealed class DrawingRasterStreamingEncodingTests {
                 }));
 
         Assert.True(checkpointCount >= 2);
+    }
+
+    [Fact]
+    public void CancellationCanStopPngDuringPaethFilteringAfterAnUpPass() {
+        const int width = 8193;
+        OfficeRasterImage image = new OfficeRasterImage(width, 2, OfficeColor.CornflowerBlue);
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CountingWriteStream();
+        int rowCount = 0;
+        int filteringCount = 0;
+        int upBlockCount = ((width * 4) + 4095) / 4096;
+
+        OperationCanceledException exception = Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageEncoder.EncodeTo(
+                image,
+                OfficeImageExportFormat.Png,
+                destination,
+                CreateOptions(),
+                maximumEncodedBytes: long.MaxValue,
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint == OfficeRasterEncodingCheckpoint.PngCompressionRow) rowCount++;
+                    if (rowCount == 2 && checkpoint == OfficeRasterEncodingCheckpoint.PngFilteringBlock
+                        && ++filteringCount == upBlockCount + 2) cancellation.Cancel();
+                }));
+
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
+        Assert.Equal(upBlockCount + 2, filteringCount);
     }
 
     [Theory]

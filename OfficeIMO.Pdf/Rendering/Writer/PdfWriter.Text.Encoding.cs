@@ -53,6 +53,8 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
+                fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand)) return asciiCommand;
             return glyphRun.ToTextShowCommand();
         }
 
@@ -90,7 +92,7 @@ internal static partial class PdfWriter {
     private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
         PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
         return new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs,
-            advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount);
+            advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount, glyphCount: command.GlyphCount);
     }
 
     private static PdfTextShowCommand EncodeTextShowCommand(
@@ -132,6 +134,8 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault &&
+                fontProgram.TryCreateAsciiTextShowCommand(glyphRun, out PdfTextShowCommand asciiCommand)) return asciiCommand;
             return glyphRun.ToTextShowCommand();
         }
 

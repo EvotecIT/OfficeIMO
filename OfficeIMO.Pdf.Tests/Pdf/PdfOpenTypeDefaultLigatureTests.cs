@@ -72,9 +72,10 @@ public class PdfOpenTypeDefaultLigatureTests {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'a', 'h', 'l', 'p');
         byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
             .Canvas(c => c.Text("Alpha", 40, 40, 200, 30, fontSize: 12)).ToBytes();
-        var target = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().Single(s => s.Text == "p");
+        using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var target = reader.GetPage(1).Letters.Single(letter => letter.Value == "p").BoundingBox;
         byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
-            target.X + 0.1, target.Y - target.FontSize, target.Advance - 0.2, target.FontSize * 1.5, "character") });
+            target.Left + 0.1, target.Bottom - 0.1, target.Width - 0.2, target.Height + 0.2, "character") });
         Assert.Equal("Alha", string.Concat(PdfReadDocument.Open(redacted).Pages[0].GetTextSpans().Select(span => span.Text)));
         Assert.Equal("Al ha", PdfTextExtractor.ExtractAllText(redacted).Trim());
     }

@@ -126,7 +126,6 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Subtype /Type0", embeddedRaw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", embeddedRaw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", embeddedRaw, StringComparison.Ordinal);
-        Assert.Contains("/CIDToGIDMap /Identity", embeddedRaw, StringComparison.Ordinal);
     }
 
     [Fact]
