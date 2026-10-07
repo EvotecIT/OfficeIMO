@@ -128,8 +128,8 @@ internal static partial class PdfWriter {
 
     private const int MaxTabLeaderGlyphCount = 4_096;
 
-    private static string BuildTabLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfTabLeaderStyle leaderStyle, PdfOptions? options) {
-        string leaderGlyph = leaderStyle switch {
+    private static string BuildTabLeaderText(double gap, RichSeg segment, PdfOptions options) {
+        string leaderGlyph = segment.LeadingTabLeader switch {
             PdfTabLeaderStyle.Dots => ".",
             PdfTabLeaderStyle.Hyphens => "-",
             PdfTabLeaderStyle.Underscores => "_",
@@ -140,15 +140,24 @@ internal static partial class PdfWriter {
             return string.Empty;
         }
 
-        double glyphWidth = MeasureRichText(leaderGlyph, font, fontSize, baseline, options);
+        double Measure(string text) => MeasureRichText(text, segment.Font, segment.NamedFont,
+            segment.FontSize, segment.Baseline, options, segment.FeatureSettings,
+            segment.HorizontalTextScaling, segment.CharacterSpacing, segment.TextDirection, segment.FontMetricScale);
+        double glyphWidth = Measure(leaderGlyph);
         if (glyphWidth <= 0 || gap <= glyphWidth * 3D) {
             return string.Empty;
         }
 
-        double requestedCount = Math.Floor(gap / glyphWidth);
-        int count = requestedCount >= MaxTabLeaderGlyphCount
-            ? MaxTabLeaderGlyphCount
-            : Math.Max(3, (int)requestedCount);
+        // Measure the repeated text as it will be painted, including intrinsic
+        // font tracking and shaping. Keep synthesis bounded even for a tiny advance.
+        int low = 3, high = MaxTabLeaderGlyphCount, count = 0;
+        while (low <= high) {
+            int candidate = low + (high - low) / 2;
+            if (Measure(new string(leaderGlyph[0], candidate)) <= gap) {
+                count = candidate;
+                low = candidate + 1;
+            } else high = candidate - 1;
+        }
         return new string(leaderGlyph[0], count);
     }
 }
