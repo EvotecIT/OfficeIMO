@@ -48,6 +48,7 @@ test("text pipeline stages share a completed yield and yield again after further
   Object.defineProperty(performance, "now", { configurable: true, value: () => clock });
   try {
     const first = new ChunkedTextSink({ write() {} }), second = new ChunkedTextSink({ write() {} });
+    await pause();
     clock += 1000;
     assert.equal(first.append("first stage"), true);
     await first.flush();
