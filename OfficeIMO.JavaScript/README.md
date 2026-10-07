@@ -1,6 +1,6 @@
 # OfficeIMO JavaScript
 
-`@evotecit/officeimo` provides strict TypeScript document libraries for evergreen browsers, Web Workers and Node 18 or newer. It writes streaming XLSX workbooks and UTF-8 CSV with no runtime dependencies. One package owns six public layers: `core`, `zip`, `xml`, `opc`, `xlsx` and `csv`.
+`@evotecit/officeimo` provides strict TypeScript document libraries for evergreen browsers, Web Workers and Node 18 or newer. It writes streaming XLSX workbooks, UTF-8 CSV and paginated PDF tables with no runtime dependencies. One package owns seven public layers: `core`, `zip`, `xml`, `opc`, `xlsx`, `csv` and `pdf`.
 
 ## Install
 
@@ -22,7 +22,7 @@ npm pack --pack-destination /path/to/local-packages
 
 ## Export a table
 
-Use the same columns for XLSX and CSV. Object columns select a typed key or compute a synchronous value; array rows use positional columns. A getter can return `ExportCell` to keep a typed value together with display text and presentation.
+Use the same columns for XLSX, CSV and PDF. Object columns select a typed key or compute a synchronous value; array rows use positional columns. A getter can return `ExportCell` to keep a typed value together with display text and presentation.
 
 ```ts
 import { writeXlsx, writeCsv, ExportCell, saveBlob } from "@evotecit/officeimo";
@@ -53,7 +53,8 @@ saveBlob(await writeCsv(rows, { columns }), "sales.csv");
 | --- | --- | --- |
 | One Excel table | `writeXlsx(rows, options)` | `Blob` |
 | One CSV table | `writeCsv(rows, options)` | `Blob` |
-| Write a table to a destination | `writeXlsxTo(rows, destination, options)` / `writeCsvTo(...)` | `{ rows, columns, bytes }` |
+| One paginated PDF table | `writePdf(rows, options)` | `Blob` |
+| Write a table to a destination | `writeXlsxTo(rows, destination, options)` / `writeCsvTo(...)` / `writePdfTo(...)` | `{ rows, columns, bytes }` |
 | Multiple worksheets, registered styles, images or extra parts | `new Workbook(options)`, `addWorksheet`, `addRows` | `toBlob()` or streamed `finish()` |
 | Export an installed DataTables grid | Optional integration below | Same writers and destination ownership |
 
@@ -72,9 +73,9 @@ const csv = await writeCsv(loadSales(), { columns, valueMode: "display" });
 
 Data callbacks use zero-based `rowIndex` and `columnIndex`, excluding titles, headings and totals. XLSX additionally supplies one-based `worksheetRow` and `sheetName`. A getter runs once per selected cell per export, before formatting, preservation and resource checks on the resolved value. Getters are synchronous; perform asynchronous loading in the row source. Missing object values produce empty cells. Invalid nested objects, asynchronous getter results and extra unprojected array values fail visibly.
 
-## DataTables Excel and CSV exports
+## DataTables Excel, CSV and PDF exports
 
-The optional `@evotecit/officeimo/integrations/datatables` entry connects an installed DataTables/Buttons instance to the XLSX and CSV writers. It imports neither DataTables nor jQuery and does not use JSZip. Importing the main OfficeIMO package does not load the integration.
+The optional `@evotecit/officeimo/integrations/datatables` entry connects an installed DataTables/Buttons instance to the XLSX, CSV and PDF writers. It imports neither DataTables nor jQuery and uses no third-party document writer. Importing the main OfficeIMO package does not load the integration.
 
 ```js
 import DataTable from "datatables.net";
@@ -90,7 +91,8 @@ registerDataTablesButtons(DataTable, {
 const table = new DataTable("#report", {
   layout: { topStart: { buttons: [
     { extend: "officeimoExcel", filename: "Report" },
-    { extend: "officeimoCsv", filename: "Report" }
+    { extend: "officeimoCsv", filename: "Report" },
+    { extend: "officeimoPdf", filename: "Report", orientation: "landscape" }
   ] } }
 });
 ```
@@ -124,17 +126,63 @@ CSS classes and computed DOM styles are not copied automatically. CSV retains va
 | Whole-matrix `customizeData` | Rejected | Supported; cannot combine with source-index `project` |
 | Body memory | Selected row indexes and bounded cell batches | Complete Buttons matrix, then batched writing |
 | Horizontal grouped headers | Preserved through shared column group paths | Same |
-| Vertical spans, blank spanning groups, adjacent separate equal group paths | Rejected; `headings: "leaf"` explicitly selects one heading row | Same |
-| Footers | One unmerged row; `includeFooter: false` explicitly omits unsupported shapes | Same |
+| Vertical spans, blank spanning groups, adjacent separate equal group paths | PDF preserves structured headings by default. XLSX/CSV reject these shapes; `headings: "leaf"` selects one heading row | Same |
+| Footers | PDF preserves up to 16 structured rows. XLSX/CSV support one unmerged row; `includeFooter: false` omits footers | Same |
 | Server-side processing | Rejected unless `serverSide: "loaded"` acknowledges loaded rows only | Same |
 
 Qualified pairs are DataTables 2.3.7/Buttons 3.2.6 and DataTables 3.1.3/Buttons 4.1.2, including Select and ColReorder. TypeScript 5.9.3 consumer checks use bundler resolution. The newer pair has duplicate upstream declaration index signatures and requires `skipLibCheck`; OfficeIMO's declarations remain strictly checked. This declaration limit is separate from browser interoperability.
 
-`createDataTablesExport(DataTable, table, options)` exposes readonly `columns`, heading rows, optional footer, `rowCount` and a single-use async `rows` source. Selection/headings are captured immediately; batched body values are read during iteration. Each batch replaces bounded cell indexes through public API result-set operations, without rescanning the table's rows. Batched exports require one table per API instance. Keep table data and column layout stable until export finishes. `batchRows` defaults to 256, at most 4,096; `maxBatchCells` defaults to 65,536 and one row must fit. Cancellation is checked between cells and yielding occurs between batches. A synchronous DataTables renderer cannot be interrupted while it runs.
+`createDataTablesExport(DataTable, table, options)` exposes readonly `columns`, heading rows, optional footer, `rowCount` and a single-use async `rows` source. `headings: "structured"` additionally exposes `headerStructure`/`footerStructure` for PDF's span matrices. Selection/headings are captured immediately; batched body values are read during iteration. Each batch replaces bounded cell indexes through public API result-set operations, without rescanning the table's rows. Batched exports require one table per API instance. Keep table data and column layout stable until export finishes. `batchRows` defaults to 256, at most 4,096; `maxBatchCells` defaults to 65,536 and one row must fit. Cancellation is checked between cells and yielding occurs between batches. A synchronous DataTables renderer cannot be interrupted while it runs.
+
+The PDF button accepts native `title`, `messageTop`, `messageBottom`, `pageSize`, `orientation`, `header: false` and `footer: false` settings. Text and filename resolution use the installed Buttons API. Supply writer options through `pdf` in registration defaults, or `officeimo: { pdf: ... }` on one button. Native document-definition `customize` callbacks are rejected; use typed PDF options and portable `ExportCell` presentation. `pdf.footer` replaces the grid's footer when supplied. Unicode PDF exports require `pdf.fonts`, as described below.
 
 Direct sink output avoids retaining the finished file. Blob exports and registered download buttons retain it; caller-owned sinks own partial bytes after failure. The grid still holds its input. Server-side full-data export needs an application-owned paged source passed directly to the writers with the server's filter/order contract.
 
 DataTables and its DOM stay on the page. A host-owned worker can consume portable columns and bounded row batches from the source: request/acknowledge batches and output chunks rather than cloning the full matrix. Reconstruct `ExportCell` in the worker because structured cloning loses its brand. The [verification guide](../Build/BrowserExports/README.md#datatables-integration-and-comparisons) covers workers, cancellation, fallback and reproducible comparisons. Measurements describe the tested workload/browser, without a universal speed claim.
+
+## PDF tables
+
+`writePdf` and `writePdfTo` use the same `Column<T>` projection and `ExportCell` values as Excel and CSV. The PDF owner lays out and writes one page at a time, repeats grouped headings, splits oversized data rows across pages and appends a table footer. `writePdfTo` awaits the destination and retains page references, font mappings and the current page rather than the complete report body. Blob mode also retains the finished file.
+
+```ts
+import { writePdf, PdfFont, ExportCell, saveBlob } from "@evotecit/officeimo";
+
+// Host-owned, embedding-permitted static TrueType font.
+const response = await fetch("/fonts/report-regular.ttf");
+if (!response.ok) throw new Error("Report font could not be loaded");
+const regular = new PdfFont(new Uint8Array(await response.arrayBuffer()));
+const report = await writePdf([
+  { city: "Łódź", amount: 12.5 }, { city: "Gdańsk", amount: -2 }
+], {
+  title: "Sales report", fonts: { regular },
+  columns: [
+    { header: "City", key: "city", groups: ["Sales"] },
+    { header: "Amount", key: "amount", groups: ["Sales"], alignment: "right",
+      value: row => new ExportCell(row.amount, {
+        text: row.amount.toFixed(2) + " USD",
+        presentation: row.amount < 0 ? { color: "9C0006", background: "FFC7CE" } : {}
+      }) }
+  ],
+  footer: { values: ["Total"], totals: { amount: "sum" } },
+  pageFooter: "Confidential", pageSize: "A4", orientation: "portrait",
+  limits: { maxRows: 100_000, maxPages: 5_000, maxOutputBytes: 128_000_000 }
+});
+saveBlob(report, "sales.pdf");
+```
+
+PDF uses `ExportCell.text` first, then a synchronous `formatValue(value, context)` callback, then scalar text. Dates default to UTC ISO strings; null and nonfinite numbers are blank. Excel number-format strings and live conditional rules are not evaluated by the PDF writer. Resolve display text and highlights in the shared getter or DataTables `project` callback when they must appear in both formats. Footer totals operate on typed numeric values and support `sum`, `count`, `average`, `min` and `max`.
+
+Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point margins, 9-point text, 4-point cell padding and page numbers. Named sizes are A3, A4, A5, LETTER, LEGAL and TABLOID; custom `{ width, height }` sizes are accepted. `columnWidths` supplies point widths; otherwise `Column.width` uses the width of the font's zero character. `wideTable: "fit"` fits column widths within the printable width while retaining font size and wrapping text. `"reject"` rejects widths that exceed the page. A column that cannot fit one glyph fails explicitly. Use a wider page, fewer columns or a smaller font for very wide reports.
+
+`Column.groups` provides simple grouped headings. `headerRows` replaces them with a rectangular `TableSpanRows` matrix: each anchor declares `{ value, columnSpan?, rowSpan? }`, and every covered position is `null`. `footer.rows` uses the same model instead of `footer.values`/`totals`. Matrices support up to 16 rows and must cover the declared columns without overlap. Repeated headings must leave space for data; a structured footer must fit below the headings on one page. Titles/messages, page headers/footers and final `Page N of M` labels are separate from the table. Page decoration callbacks receive `pageNumber` and return a synchronous string.
+
+Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
+
+This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. It rejects missing glyphs, malformed surrogates, combining sequences, bidirectional text and other scripts requiring a shaping-capable writer. It does not provide general HTML/SVG rendering, images, links, tagged PDF or PDF/A. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
+
+`PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts) and `maxPageBytes` (8 MiB of drawing commands). PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
+
+Workers can call the same writers without a DOM. For a portable worker-to-page handoff, use `writePdfTo` and transfer byte chunks with acknowledgements; this also avoids WebKit worker Blob-read restrictions. Keep the row source and destination bridge bounded, and pass an `AbortSignal` to stop pending input or output. The caller owns disposal of partial bytes after failure, and the library releases borrowed stream locks without closing or aborting the destination.
 
 ## XLSX: workbook, worksheets and cells
 
@@ -282,7 +330,7 @@ The table helpers and DataTables adapter own their workbook. Use portable `Expor
 
 ## Resolved values, grouped headings, totals and print layout
 
-`ExportCell` captures a typed value, optional display text and portable presentation before an export begins. A report producer can resolve highlighting once and reuse the same cells for XLSX and CSV. XLSX uses the typed value; CSV uses it by default and uses supplied display text with `valueMode: "display"`. Formula protection and quoting still run after display-text selection and CSV formatting.
+`ExportCell` captures a typed value, optional display text and portable presentation before an export begins. A report producer can resolve highlighting once and reuse the same cells for XLSX, CSV and PDF. XLSX uses the typed value; CSV uses it by default and uses supplied display text with `valueMode: "display"`. PDF prefers supplied display text and applies portable presentation. Formula protection and quoting still run after display-text selection and CSV formatting.
 
 ```ts
 import { Workbook, ExportCell } from "@evotecit/officeimo/xlsx";
@@ -537,11 +585,11 @@ const blob = await workbook.toBlob();
 
 Column writers synchronously convert a domain column type to a supported scalar or styled `Cell`. They receive the column, zero-based `rowIndex`/`columnIndex`, one-based `worksheetRow` and `sheetName`. They cannot inject raw cell XML. Extra parts can carry custom XML, a valid theme or other schema-owned content. An optional internal relationship defaults to `/xl/workbook.xml`; supply `source` for another existing part. Part/relationship definitions are copied when registered; producer iterables remain caller-owned until consumed.
 
-`dataValidation` is a reserved worksheet option. Supplying it, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PDF, PPTX, reader or formula engine in this package's current writer contract. Grid-specific selection and rendering belong to optional integrations such as the DataTables entry. Row/cell callbacks resolve highlighting during export; `conditionalFormats` separately writes the supported native rules for Excel to evaluate. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
+`dataValidation` is a reserved worksheet option. Supplying it, including an empty array, throws `NotSupportedError` instead of silently ignoring it. There is no DOCX, PPTX, reader or formula engine in this package's current writer contract. Grid-specific selection and rendering belong to optional integrations such as the DataTables entry. Row/cell callbacks resolve highlighting during export; `conditionalFormats` separately writes the supported native rules for Excel to evaluate. The [roadmap](../Docs/ROADMAP.md#officeimo-javascript) records the remaining work.
 
 ## Portable classic scripts and the .NET asset package
 
-The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js` and `/csv.js` for copying into a portable report. Load the chosen asset with a plain script tag:
+The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js`, `/csv.js` and `/pdf.js` for copying into a portable report. Load the chosen asset with a plain script tag:
 
 ```html
 <script src="officeimo.js"></script>
@@ -551,7 +599,7 @@ The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js` and `/csv.js` f
 </script>
 ```
 
-The combined bundle exposes all six namespaces on global `OfficeIMO` plus the established root helpers. The XLSX bundle exposes `core`, `zip`, `xml`, `opc`, `xlsx`; CSV exposes `core`, `csv`. The standalone bundles compose in either order. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
+The combined bundle exposes all seven namespaces on global `OfficeIMO` plus the established root helpers. The XLSX bundle exposes `core`, `zip`, `xml`, `opc`, `xlsx`; CSV exposes `core`, `csv`; PDF exposes `core`, `pdf`. The standalone bundles compose in either order. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
 
 [OfficeIMO.Browser](../OfficeIMO.Browser/README.md) embeds the same committed TypeScript-built bundles in .NET. Its `BrowserAsset` API returns exact content and content-hashed filenames; consuming .NET applications require no Node tooling. Standalone `.mjs` assemblies preserve the asset package's module API. The npm subpaths remain genuine separate `tsc` modules with generated declarations.
 

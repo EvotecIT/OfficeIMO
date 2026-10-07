@@ -12,7 +12,7 @@ export interface CellPresentation {
   readonly numberFormat?: string;
 }
 export interface ExportCellOptions {
-  /** Display text for CSV's display mode and bounded width sampling; the typed value remains authoritative. */
+  /** Display text for PDF, CSV's display mode and bounded width sampling; typed values remain authoritative. */
   readonly text?: string;
   readonly presentation?: CellPresentation;
 }

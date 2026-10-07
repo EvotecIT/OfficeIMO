@@ -1709,6 +1709,53 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
+const _m22 = (() => {
+class NumericAggregate {
+    operation;
+    count = 0;
+    sum = 0;
+    mean = 0;
+    min = Infinity;
+    max = -Infinity;
+    constructor(operation) {
+        this.operation = operation;
+    }
+    accept(value) {
+        if (!this.operation || typeof value !== "number" || !Number.isFinite(value))
+            return;
+        this.count++;
+        if (this.operation === "sum") {
+            this.sum += value;
+            if (!Number.isFinite(this.sum))
+                throw new RangeError("Numeric total exceeds finite number range.");
+        }
+        else if (this.operation === "average") {
+            const delta = value - this.mean;
+            this.mean = this.count === 1 ? value : Number.isFinite(delta) ? this.mean + delta / this.count : this.mean * ((this.count - 1) / this.count) + value / this.count;
+        }
+        else if (this.operation === "min")
+            this.min = Math.min(this.min, value);
+        else if (this.operation === "max")
+            this.max = Math.max(this.max, value);
+    }
+    value() {
+        return this.operation === "count" ? this.count : this.operation === "sum" ? this.sum : !this.count ? null : this.operation === "average" ? this.mean : this.operation === "min" ? this.min : this.max;
+    }
+}
+function createTotals(columns, totals = {}) {
+    const keys = columns.map(c => c.key ?? c.header);
+    for (const [key, operation] of Object.entries(totals)) {
+        if (keys.filter(k => k === key).length !== 1)
+            throw new TypeError("Totals need an unambiguous declared column key: " + key);
+        if (!["sum", "count", "average", "min", "max"].includes(operation))
+            throw new TypeError("Invalid total operation.");
+    }
+    return keys.map(key => new NumericAggregate(Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined));
+}
+const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotals: createTotals });
+return _exports;
+})();
+
 const _m20 = (() => {
 const { ExportCell } = _m16;
 
@@ -1719,6 +1766,8 @@ const { escapeOoxmlAttribute } = _m9;
 const { MergeRegions } = _m21;
 
 const { OfficeIMOError } = _m3;
+
+const { createTotals } = _m22;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -1805,15 +1854,7 @@ class ReportLayout {
         this.widths = columns.map(c => c.width ?? (sizing ? Math.max(min, Math.min(max, c.header.length + 2)) : undefined));
         if (options.footer?.values && options.footer.values.length > columns.length)
             throw new RangeError("Footer has more values than declared columns.");
-        const totals = options.footer?.totals ?? {};
-        const keys = columns.map(c => c.key ?? c.header);
-        for (const [key, operation] of Object.entries(totals)) {
-            if (keys.filter(k => k === key).length !== 1)
-                throw new TypeError("Totals need an unambiguous declared column key: " + key);
-            if (!["sum", "count", "average", "min", "max"].includes(operation))
-                throw new TypeError("Invalid total operation.");
-        }
-        this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, mean: 0, min: Infinity, max: -Infinity }));
+        this.aggregates = createTotals(columns, options.footer?.totals);
         if (options.print)
             validatePrint(options.print, policy);
     }
@@ -1830,30 +1871,14 @@ class ReportLayout {
         });
     }
     accept(index, value) {
-        const total = this.aggregates[index];
-        if (!total.operation || typeof value !== "number" || !Number.isFinite(value))
-            return;
-        total.count++;
-        if (total.operation === "sum") {
-            total.sum += value;
-            if (!Number.isFinite(total.sum))
-                throw new RangeError("Numeric total exceeds finite number range.");
-        }
-        else if (total.operation === "average") {
-            const delta = value - total.mean;
-            total.mean = total.count === 1 ? value : Number.isFinite(delta) ? total.mean + delta / total.count : total.mean * ((total.count - 1) / total.count) + value / total.count;
-        }
-        else if (total.operation === "min")
-            total.min = Math.min(total.min, value);
-        else if (total.operation === "max")
-            total.max = Math.max(total.max, value);
+        this.aggregates[index].accept(value);
     }
     footer(rows) {
         return this.columns.map((_, i) => {
             const total = this.aggregates[i], operation = total.operation;
             if (!operation)
                 return this.options.footer?.values?.[i];
-            const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.mean : operation === "min" ? total.min : total.max;
+            const value = total.value();
             return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows), operation);
         });
     }
@@ -1900,7 +1925,7 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m22 = (() => {
+const _m23 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
 
 const { cellPosition } = _m19;
@@ -2092,7 +2117,7 @@ const { ReportLayout, ComputedTotal, printXml } = _m20;
 
 const { cleanXml } = _m9;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m22;
+const { ConditionalFormats, prepareConditionalFormats } = _m23;
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
@@ -2609,7 +2634,7 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m23 = (() => {
+const _m24 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
 
 const { cellText, columnName } = _m15;
@@ -2655,7 +2680,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m24 = (() => {
+const _m25 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m9;
@@ -2743,11 +2768,11 @@ const { assertExportValue } = _m16;
 
 const { Worksheet } = _m17;
 
-const { defineTable, tableXml } = _m23;
+const { defineTable, tableXml } = _m24;
 
 const { drawingXml, drawingContentType } = _m19;
 
-const { TextOverflow } = _m24;
+const { TextOverflow } = _m25;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3032,7 +3057,7 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m27 = (() => {
 const { ExportCell, assertScalar } = _m16;
 
 function style(patch) {
@@ -3078,14 +3103,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m25 = (() => {
+const _m26 = (() => {
 const { withDestination } = _m4;
 
 const { copyColumns } = _m18;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m26;
+const { portableSheet, portableWorkbook } = _m27;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3131,7 +3156,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m28 = (() => {
 
 
 
@@ -3179,7 +3204,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m25.writeXlsx, writeXlsxTo: _m25.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m27.saveBlob, ExportCell: _m16.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m26.writeXlsx, writeXlsxTo: _m26.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m28.saveBlob, ExportCell: _m16.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

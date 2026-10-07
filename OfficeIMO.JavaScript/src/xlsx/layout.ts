@@ -7,6 +7,8 @@ import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { SheetOptions, TotalOperation, PrintOptions } from "./types.js";
 import { MergeRegions } from "./regions.js";
 import { OfficeIMOError } from "../core/errors.js";
+import { createTotals } from "../internal/totals.js";
+import type { NumericAggregate } from "../internal/totals.js";
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 export class ComputedTotal { constructor(readonly value: number | null, readonly formula: string, readonly operation: TotalOperation) {} }
@@ -19,7 +21,7 @@ export class ReportLayout {
   readonly regions: MergeRegions;
   readonly widths: (number | undefined)[];
   readonly sampleRows: number;
-  private readonly aggregates: { operation: TotalOperation | undefined; count: number; sum: number; mean: number; min: number; max: number }[];
+  private readonly aggregates: readonly NumericAggregate[];
   constructor(readonly columns: readonly ProjectionColumn[], readonly options: SheetOptions, policy: InvalidCharacterPolicy, maximumMerges = 10000, maximumSampleCells = 100000) {
     const titleRows = options.title === undefined ? 0 : 1;
     if (options.title !== undefined) {
@@ -59,13 +61,7 @@ export class ReportLayout {
     if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || min > max || max > 255) throw new RangeError("Width bounds must satisfy 0 <= minWidth <= maxWidth <= 255.");
     this.widths = columns.map(c => c.width ?? (sizing ? Math.max(min, Math.min(max, c.header.length + 2)) : undefined));
     if (options.footer?.values && options.footer.values.length > columns.length) throw new RangeError("Footer has more values than declared columns.");
-    const totals = options.footer?.totals ?? {};
-    const keys = columns.map(c => c.key ?? c.header);
-    for (const [key, operation] of Object.entries(totals)) {
-      if (keys.filter(k => k === key).length !== 1) throw new TypeError("Totals need an unambiguous declared column key: " + key);
-      if (!["sum", "count", "average", "min", "max"].includes(operation)) throw new TypeError("Invalid total operation.");
-    }
-    this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, mean: 0, min: Infinity, max: -Infinity }));
+    this.aggregates = createTotals(columns, options.footer?.totals);
     if (options.print) validatePrint(options.print, policy);
   }
   sample(values: readonly unknown[]): void {
@@ -80,23 +76,13 @@ export class ReportLayout {
     });
   }
   accept(index: number, value: CellValue): void {
-    const total = this.aggregates[index]!;
-    if (!total.operation || typeof value !== "number" || !Number.isFinite(value)) return;
-    total.count++;
-    if (total.operation === "sum") {
-      total.sum += value;
-      if (!Number.isFinite(total.sum)) throw new RangeError("Numeric total exceeds finite number range.");
-    } else if (total.operation === "average") {
-      const delta = value - total.mean;
-      total.mean = total.count === 1 ? value : Number.isFinite(delta) ? total.mean + delta / total.count : total.mean * ((total.count - 1) / total.count) + value / total.count;
-    } else if (total.operation === "min") total.min = Math.min(total.min, value);
-    else if (total.operation === "max") total.max = Math.max(total.max, value);
+    this.aggregates[index]!.accept(value);
   }
   footer(rows: number): readonly unknown[] {
     return this.columns.map((_, i) => {
       const total = this.aggregates[i]!, operation = total.operation;
       if (!operation) return this.options.footer?.values?.[i];
-      const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.mean : operation === "min" ? total.min : total.max;
+      const value = total.value();
       return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows), operation);
     });
   }

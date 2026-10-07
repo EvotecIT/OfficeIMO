@@ -5,6 +5,7 @@ export type { ByteSink, ByteSource, ByteWriter, OutputDestination } from "./sink
 export type { ExportLimits } from "./limits.js";
 export { ExportCell } from "./presentation.js";
 export type { CellPresentation, ExportCellOptions, ExportValue } from "./presentation.js";
+export type { TableSpanCell, TableSpanRows } from "./table.js";
 export { checkAbort, withAbort, inputRows, pause } from "./iteration.js";
 import { OfficeIMOError } from "./errors.js";
 

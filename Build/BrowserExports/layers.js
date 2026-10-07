@@ -5,7 +5,7 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
   const require = (condition, message) => { assertions++; if (!condition) throw new Error(message); };
   if (moduleBase) {
     const library = await import(moduleBase + "/index.js");
-    for (const layer of ["core", "zip", "xml", "opc", "xlsx", "csv"]) {
+    for (const layer of ["core", "zip", "xml", "opc", "xlsx", "csv", "pdf"]) {
       const module = await import(moduleBase + "/" + layer + "/index.js");
       for (const [key, value] of Object.entries(module)) require(library[layer][key] === value, "ESM namespace differs: " + layer + "/" + key);
     }

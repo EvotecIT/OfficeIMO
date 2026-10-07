@@ -82,6 +82,8 @@ jobs:
           $assets = Join-Path $evidence 'comparison-assets'
           node Build/BrowserExports/fetch-comparison.mjs $assets
           dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'datatables') --datatables "--comparison-assets=$assets"
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-current') --pdf "--comparison-assets=$assets"
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-bundled') --pdf --stack=bundled "--comparison-assets=$assets"
       - name: Upload browser contract evidence
         if: always()
         uses: actions/upload-artifact@v7

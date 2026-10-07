@@ -1,5 +1,6 @@
-import type { ExportValue } from "../../core/index.js";
+import type { ExportValue, TableSpanRows } from "../../core/index.js";
 import { ExportCell, assertScalar } from "../../core/presentation.js";
+import { tableSpans } from "../../internal/table-spans.js";
 import { member } from "./api.js";
 
 /** @internal */
@@ -13,9 +14,18 @@ export function text(input: unknown): string {
   return String(scalar instanceof ExportCell ? scalar.text ?? scalar.value ?? "" : scalar ?? "");
 }
 /** @internal Horizontal hierarchy maps to the existing shared Column.groups contract. */
-export function headings(structure: unknown, leaf: readonly unknown[], mode: "grouped" | "leaf"): { rows: ExportValue[][]; groups: string[][] } {
+export function headings(structure: unknown, leaf: readonly unknown[], mode: "grouped" | "leaf" | "structured"): { rows: ExportValue[][]; groups: string[][]; structure?: TableSpanRows } {
   const groups = leaf.map(() => [] as string[]);
   if (mode === "leaf" || !Array.isArray(structure) || !structure.length) return { rows: [leaf.map(value)], groups };
+  if (mode === "structured") {
+    const cells = structure.map((row: unknown) => {
+      if (!Array.isArray(row)) throw new TypeError("Invalid DataTables heading structure.");
+      return row.map((cell: unknown) => cell == null ? null : Object.freeze({ value: value(member(cell, "title")),
+        columnSpan: member(cell, "colspan") as number, rowSpan: member(cell, "rowspan") as number }));
+    });
+    tableSpans(cells, leaf.length);
+    return { rows: cells.map(row => row.map(cell => cell?.value ?? "")), groups, structure: Object.freeze(cells.map(row => Object.freeze(row))) };
+  }
   const rows = structure.map((source: unknown, level: number) => {
     if (!Array.isArray(source) || source.length !== leaf.length) throw new TypeError("Invalid DataTables heading structure.");
     const row = leaf.map(() => "" as ExportValue);

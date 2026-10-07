@@ -1,20 +1,25 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
-import { Workbook, writeXlsx, writeXlsxTo, core, zip, xml, opc, xlsx, csv } from "@evotecit/officeimo";
+import { Workbook, writeXlsx, writeXlsxTo, writePdf, core, zip, xml, opc, xlsx, csv, pdf } from "@evotecit/officeimo";
 import * as coreModule from "@evotecit/officeimo/core";
 import * as zipModule from "@evotecit/officeimo/zip";
 import * as xmlModule from "@evotecit/officeimo/xml";
 import * as opcModule from "@evotecit/officeimo/opc";
 import * as xlsxModule from "@evotecit/officeimo/xlsx";
 import * as csvModule from "@evotecit/officeimo/csv";
+import * as pdfModule from "@evotecit/officeimo/pdf";
 import * as dataTablesModule from "@evotecit/officeimo/integrations/datatables";
 
-for (const [namespace, module] of [[core, coreModule], [zip, zipModule], [xml, xmlModule], [opc, opcModule], [xlsx, xlsxModule], [csv, csvModule]])
+for (const [namespace, module] of [[core, coreModule], [zip, zipModule], [xml, xmlModule], [opc, opcModule], [xlsx, xlsxModule], [csv, csvModule], [pdf, pdfModule]])
   for (const [key, value] of Object.entries(module)) assert.equal(namespace[key], value);
 assert.equal(globalThis.document, undefined);
 assert.equal(typeof dataTablesModule.createDataTablesExport, 'function');
 assert.equal(dataTablesModule.ExportCell, coreModule.ExportCell);
 assert.equal(writeXlsx, xlsx.writeXlsx); assert.equal(writeXlsxTo, xlsx.writeXlsxTo);
+assert.equal(writePdf, pdf.writePdf);
+const packedPdf = await writePdf([{name:'Packed PDF'}],{columns:[{header:'Name',key:'name'}]});
+assert.equal(packedPdf.type,'application/pdf');
+await writeFile('packed-consumer.pdf',new Uint8Array(await packedPdf.arrayBuffer()));
 const domainRows = [{ person: { name: "Łódź 🧪" }, ignored: { nested: true } }], columns = [{ header: "Name", value: row => row.person.name }];
 const packed = await writeXlsx(domainRows, { columns, compression: "store", sheet: { name: "Packed" } });
 await writeFile("packed-consumer.xlsx", new Uint8Array(await packed.arrayBuffer()));

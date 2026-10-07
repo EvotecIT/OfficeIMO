@@ -1,5 +1,16 @@
 # Browser export verification
 
+PDF table qualification uses the same HtmlTinkerX browser owner and a separate managed PDF reader:
+
+```powershell
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/pdf" --pdf "--comparison-assets=$assets"
+# Use --stack=bundled for the older installed DataTables/Buttons pair.
+# Opt-in scale adds 10,000/100,000-row plain/styled tables, four/twenty columns.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/pdf-scale" --pdf --scale
+```
+
+The PDF lane checks Chromium, Firefox and WebKit, native/uncompressed/fallback streams, Polish text, Japanese text, supplementary symbols, repeated and spanned headings, multirow footers, totals, oversized text, paged input, slow sinks, cancellation and resource ceilings. Worker output transfers byte chunks to avoid WebKit worker Blob-read restrictions. Every document must open without repair in `OfficeIMO.Pdf`; ordered row IDs, complete long text, headings and expected values are independently checked. DataTables button scenarios run when verified comparison assets are provided. The ordinary workflow runs both installed pairs without host-timing gates. `--scale` records diagnostic durations and validates every cell in plain/styled tables at 10,000 and 100,000 rows with four/twenty columns; large PDFs are deleted immediately after readback. Rendered-page inspection with an independent PDF application remains separate visual proof.
+
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.
 
 Build and run the TypeScript package before the C# tests:
@@ -19,7 +30,7 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run sizes -- "$evidence/sizes.json"
 ```
 
-`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all eight byte/hash contracts on .NET 8 and .NET 10.
+`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all ten byte/hash contracts on .NET 8 and .NET 10.
 
 The shared XLSX manifest is `OfficeIMO.TestAssets/JavaScript/xlsx-writer.json`; CSV vectors are in `OfficeIMO.TestAssets/CSV/browser-exports.json`. A C# test invokes the Node fixture producer and validates every generated file using the shared `JavaScriptWorkbookContract`. Both OfficeIMO.Excel and OfficeIMO.Reader.Excel open the workbooks, expected cells/styles/parts are checked, and the Open XML SDK validates each document. The CSV contract compares TypeScript bytes with independently generated OfficeIMO.CSV bytes.
 

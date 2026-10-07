@@ -17,7 +17,7 @@ function run(args, cwd) {
 const packed = run([npmCli, "pack", "--pack-destination", output, "--json"], root);
 const manifest = JSON.parse(packed.slice(packed.indexOf("[")));
 for (const file of manifest[0].files) {
-  if (!/^(?:package\.json|README\.md|LICENSE|dist\/.+\.(?:js|d\.ts)|bundles\/officeimo(?:-xlsx|-csv|-datatables)?\.(?:js|mjs))$/.test(file.path))
+  if (!/^(?:package\.json|README\.md|LICENSE|dist\/.+\.(?:js|d\.ts)|bundles\/officeimo(?:-xlsx|-csv|-pdf|-datatables)?\.(?:js|mjs))$/.test(file.path))
     throw new Error("Unexpected shipped file: " + file.path);
 }
 await writeFile(join(output, "archive.json"), JSON.stringify(manifest, null, 2) + "\n");
@@ -35,6 +35,7 @@ if (Object.keys(installed.packages).length !== 2) throw new Error("Packed consum
 await copyFile(join(consumer, "packed-consumer.xlsx"), join(output, "packed-consumer.xlsx"));
 await copyFile(join(consumer, "packed-streamed.xlsx"), join(output, "packed-streamed.xlsx"));
 await copyFile(join(consumer, "packed-worker.xlsx"), join(output, "packed-worker.xlsx"));
-await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 6, strictTypeScript: "5.9.3", archive: manifest[0].filename,
+await copyFile(join(consumer, "packed-consumer.pdf"), join(output, "packed-consumer.pdf"));
+await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 7, strictTypeScript: "5.9.3", archive: manifest[0].filename,
   integrations: ["datatables"], shippedFiles: manifest[0].files.length, runtimeDependencies: 0 }, null, 2) + "\n");
 console.log("Strict types, archive contents, isolated npm install and all runtime subpaths passed.");

@@ -1733,7 +1733,55 @@ _modules.set("67e385cbb2aefcfe73ac2930c588fc6102624c4f48d6800bf9e39c26313b0339",
 return _exports;
 })();
 
-const _m20 = _modules.get("13b4316170c00463b5bc4f776db114580872b453c1ef31e4644a70c6a93a97ca") ?? (() => {
+const _m22 = _modules.get("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b") ?? (() => {
+class NumericAggregate {
+    operation;
+    count = 0;
+    sum = 0;
+    mean = 0;
+    min = Infinity;
+    max = -Infinity;
+    constructor(operation) {
+        this.operation = operation;
+    }
+    accept(value) {
+        if (!this.operation || typeof value !== "number" || !Number.isFinite(value))
+            return;
+        this.count++;
+        if (this.operation === "sum") {
+            this.sum += value;
+            if (!Number.isFinite(this.sum))
+                throw new RangeError("Numeric total exceeds finite number range.");
+        }
+        else if (this.operation === "average") {
+            const delta = value - this.mean;
+            this.mean = this.count === 1 ? value : Number.isFinite(delta) ? this.mean + delta / this.count : this.mean * ((this.count - 1) / this.count) + value / this.count;
+        }
+        else if (this.operation === "min")
+            this.min = Math.min(this.min, value);
+        else if (this.operation === "max")
+            this.max = Math.max(this.max, value);
+    }
+    value() {
+        return this.operation === "count" ? this.count : this.operation === "sum" ? this.sum : !this.count ? null : this.operation === "average" ? this.mean : this.operation === "min" ? this.min : this.max;
+    }
+}
+function createTotals(columns, totals = {}) {
+    const keys = columns.map(c => c.key ?? c.header);
+    for (const [key, operation] of Object.entries(totals)) {
+        if (keys.filter(k => k === key).length !== 1)
+            throw new TypeError("Totals need an unambiguous declared column key: " + key);
+        if (!["sum", "count", "average", "min", "max"].includes(operation))
+            throw new TypeError("Invalid total operation.");
+    }
+    return keys.map(key => new NumericAggregate(Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined));
+}
+const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotals: createTotals });
+_modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b", _exports);
+return _exports;
+})();
+
+const _m20 = _modules.get("c4d58b25e0aa61cc39dd29cce00815285c928de301b7af47be3913feb6bc8691") ?? (() => {
 const { ExportCell } = _m16;
 
 const { Cell, cellText, columnName } = _m15;
@@ -1743,6 +1791,8 @@ const { escapeOoxmlAttribute } = _m9;
 const { MergeRegions } = _m21;
 
 const { OfficeIMOError } = _m3;
+
+const { createTotals } = _m22;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -1829,15 +1879,7 @@ class ReportLayout {
         this.widths = columns.map(c => c.width ?? (sizing ? Math.max(min, Math.min(max, c.header.length + 2)) : undefined));
         if (options.footer?.values && options.footer.values.length > columns.length)
             throw new RangeError("Footer has more values than declared columns.");
-        const totals = options.footer?.totals ?? {};
-        const keys = columns.map(c => c.key ?? c.header);
-        for (const [key, operation] of Object.entries(totals)) {
-            if (keys.filter(k => k === key).length !== 1)
-                throw new TypeError("Totals need an unambiguous declared column key: " + key);
-            if (!["sum", "count", "average", "min", "max"].includes(operation))
-                throw new TypeError("Invalid total operation.");
-        }
-        this.aggregates = keys.map(key => ({ operation: Object.prototype.hasOwnProperty.call(totals, key) ? totals[key] : undefined, count: 0, sum: 0, mean: 0, min: Infinity, max: -Infinity }));
+        this.aggregates = createTotals(columns, options.footer?.totals);
         if (options.print)
             validatePrint(options.print, policy);
     }
@@ -1854,30 +1896,14 @@ class ReportLayout {
         });
     }
     accept(index, value) {
-        const total = this.aggregates[index];
-        if (!total.operation || typeof value !== "number" || !Number.isFinite(value))
-            return;
-        total.count++;
-        if (total.operation === "sum") {
-            total.sum += value;
-            if (!Number.isFinite(total.sum))
-                throw new RangeError("Numeric total exceeds finite number range.");
-        }
-        else if (total.operation === "average") {
-            const delta = value - total.mean;
-            total.mean = total.count === 1 ? value : Number.isFinite(delta) ? total.mean + delta / total.count : total.mean * ((total.count - 1) / total.count) + value / total.count;
-        }
-        else if (total.operation === "min")
-            total.min = Math.min(total.min, value);
-        else if (total.operation === "max")
-            total.max = Math.max(total.max, value);
+        this.aggregates[index].accept(value);
     }
     footer(rows) {
         return this.columns.map((_, i) => {
             const total = this.aggregates[i], operation = total.operation;
             if (!operation)
                 return this.options.footer?.values?.[i];
-            const value = operation === "count" ? total.count : operation === "sum" ? total.sum : !total.count ? null : operation === "average" ? total.mean : operation === "min" ? total.min : total.max;
+            const value = total.value();
             return new ComputedTotal(value, totalFormula(operation, columnName(i + 1), this.headerRows, rows), operation);
         });
     }
@@ -1921,11 +1947,11 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("13b4316170c00463b5bc4f776db114580872b453c1ef31e4644a70c6a93a97ca", _exports);
+_modules.set("c4d58b25e0aa61cc39dd29cce00815285c928de301b7af47be3913feb6bc8691", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("7eb16c5c7979167763515be76eb73eb8e21be3a97536cb018901fae4a7fb65ed") ?? (() => {
+const _m23 = _modules.get("7eb16c5c7979167763515be76eb73eb8e21be3a97536cb018901fae4a7fb65ed") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
 
 const { cellPosition } = _m19;
@@ -2091,7 +2117,7 @@ _modules.set("7eb16c5c7979167763515be76eb73eb8e21be3a97536cb018901fae4a7fb65ed",
 return _exports;
 })();
 
-const _m17 = _modules.get("0159c6372a9b16f6d3b9a5ddcfc921c656d2a3f250d8ee0c8748dfb06058867a") ?? (() => {
+const _m17 = _modules.get("9b30fb03ecbc437b9f88e536f54790f39ee48305bed74018c1f72ed37e6cd25b") ?? (() => {
 const { checkAbort, inputRows } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
@@ -2118,7 +2144,7 @@ const { ReportLayout, ComputedTotal, printXml } = _m20;
 
 const { cleanXml } = _m9;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m22;
+const { ConditionalFormats, prepareConditionalFormats } = _m23;
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
@@ -2632,11 +2658,11 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("0159c6372a9b16f6d3b9a5ddcfc921c656d2a3f250d8ee0c8748dfb06058867a", _exports);
+_modules.set("9b30fb03ecbc437b9f88e536f54790f39ee48305bed74018c1f72ed37e6cd25b", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("373c326568256a02db7cc5cc7fe96c5e3abfcfe45ff332c57ca049752ef8e5d9") ?? (() => {
+const _m24 = _modules.get("7573ca9055231e7457d754be8473db41c47379550d1a40ce455b21cad5207727") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
 
 const { cellText, columnName } = _m15;
@@ -2679,11 +2705,11 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("373c326568256a02db7cc5cc7fe96c5e3abfcfe45ff332c57ca049752ef8e5d9", _exports);
+_modules.set("7573ca9055231e7457d754be8473db41c47379550d1a40ce455b21cad5207727", _exports);
 return _exports;
 })();
 
-const _m24 = _modules.get("25fca7029eacb22e186a9f1bedb19f0274f4dc5de07e7236b6fe439c0e1d1bb0") ?? (() => {
+const _m25 = _modules.get("25fca7029eacb22e186a9f1bedb19f0274f4dc5de07e7236b6fe439c0e1d1bb0") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m9;
@@ -2751,7 +2777,7 @@ _modules.set("25fca7029eacb22e186a9f1bedb19f0274f4dc5de07e7236b6fe439c0e1d1bb0",
 return _exports;
 })();
 
-const _m1 = _modules.get("3419d068ecbe7206637f0a9e713a3abe434b419e6043f6f841859bbab4ae3dbb") ?? (() => {
+const _m1 = _modules.get("f97df8d0fc10bea4a8ebd1032df345dcee488a8f30f2b1f5ed84cc75f894021f") ?? (() => {
 const { checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
@@ -2772,11 +2798,11 @@ const { assertExportValue } = _m16;
 
 const { Worksheet } = _m17;
 
-const { defineTable, tableXml } = _m23;
+const { defineTable, tableXml } = _m24;
 
 const { drawingXml, drawingContentType } = _m19;
 
-const { TextOverflow } = _m24;
+const { TextOverflow } = _m25;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3058,11 +3084,11 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("3419d068ecbe7206637f0a9e713a3abe434b419e6043f6f841859bbab4ae3dbb", _exports);
+_modules.set("f97df8d0fc10bea4a8ebd1032df345dcee488a8f30f2b1f5ed84cc75f894021f", _exports);
 return _exports;
 })();
 
-const _m26 = _modules.get("15edf6c5da6273cb97456c231840fb6f30c5fd859a8838a47a63c4e87652b434") ?? (() => {
+const _m27 = _modules.get("15edf6c5da6273cb97456c231840fb6f30c5fd859a8838a47a63c4e87652b434") ?? (() => {
 const { ExportCell, assertScalar } = _m16;
 
 function style(patch) {
@@ -3109,14 +3135,14 @@ _modules.set("15edf6c5da6273cb97456c231840fb6f30c5fd859a8838a47a63c4e87652b434",
 return _exports;
 })();
 
-const _m25 = _modules.get("e9452860342cded121de0487f5fddda96240b7b5e8903fce4c638308cfb6c85a") ?? (() => {
+const _m26 = _modules.get("b03f36139fcfa1b4b7fc6552f762e10a8011d718169c903712a557b7722b62ff") ?? (() => {
 const { withDestination } = _m4;
 
 const { copyColumns } = _m18;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m26;
+const { portableSheet, portableWorkbook } = _m27;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3159,11 +3185,11 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("e9452860342cded121de0487f5fddda96240b7b5e8903fce4c638308cfb6c85a", _exports);
+_modules.set("b03f36139fcfa1b4b7fc6552f762e10a8011d718169c903712a557b7722b62ff", _exports);
 return _exports;
 })();
 
-const _m27 = _modules.get("3a2e1f99c98d394a8b194537c92295ae3cd04da2803a98a7b53fd13f46822525") ?? (() => {
+const _m28 = _modules.get("3a2e1f99c98d394a8b194537c92295ae3cd04da2803a98a7b53fd13f46822525") ?? (() => {
 
 
 
@@ -3210,11 +3236,11 @@ _modules.set("3a2e1f99c98d394a8b194537c92295ae3cd04da2803a98a7b53fd13f46822525",
 return _exports;
 })();
 
-const _m0 = _modules.get("6b769d55b9e64e17750b0447d9397af719300775757d0277cd01dd6faa771b80") ?? (() => {
+const _m0 = _modules.get("4c60ac6365bfef42e361244d38ecdaac989f5da02fe208eb40c216b5bf855491") ?? (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m25.writeXlsx, writeXlsxTo: _m25.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m27.saveBlob, ExportCell: _m16.ExportCell });
-_modules.set("6b769d55b9e64e17750b0447d9397af719300775757d0277cd01dd6faa771b80", _exports);
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m26.writeXlsx, writeXlsxTo: _m26.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m28.saveBlob, ExportCell: _m16.ExportCell });
+_modules.set("4c60ac6365bfef42e361244d38ecdaac989f5da02fe208eb40c216b5bf855491", _exports);
 return _exports;
 })();
-Object.assign(officeimo, _m0, { core: _m27, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });
+Object.assign(officeimo, _m0, { core: _m28, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });
 })(globalThis);

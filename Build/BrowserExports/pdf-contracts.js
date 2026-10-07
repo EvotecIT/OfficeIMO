@@ -1,0 +1,105 @@
+/* Product-specific assertions; browser lifetime and installation belong to HtmlTinkerX. */
+globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese, workerScript, scale }) {
+  const { writePdf, writePdfTo, PdfFont, ExportCell } = OfficeIMO;
+  const bytes = base64 => Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const fonts = { regular: new PdfFont(bytes(regular)), bold: new PdfFont(bytes(bold)) };
+  const columns = [{ header: 'Name', key: 'name', groups: ['Report'] }, { header: 'Amount', key: 'amount', alignment: 'right', groups: ['Report'] }, { header: 'State', key: 'state', groups: ['Report'] }];
+  const rows = Array.from({length: 120}, (_, i) => ({ name: 'Row' + String(i).padStart(6, '0'), amount: i + .5,
+    state: new ExportCell('Ready', {text: i === 0 ? 'Łódź — Zażółć gęślą jaźń' : 'Ready', presentation: { background: i === 0 ? 'C6EFCE' : 'ffffff' }}) }));
+  const reports = [];
+  async function save(name, blob, required, extra = {}) {
+    const data = new Uint8Array(await blob.arrayBuffer()); let encoded = '';
+    for (let offset = 0; offset < data.length; offset += 32768) encoded += String.fromCharCode(...data.subarray(offset, offset + 32768));
+    await writePdfFixture(name + '.pdf', btoa(encoded), JSON.stringify({required, ...extra}));
+  }
+  await save('empty',await writePdf([],{columns:columns.map(({groups,...column})=>column),fonts,includeHeader:false,pageNumbers:false}),[]);
+  await save('symbols',await writePdf([['🂡♟']],{columns:[{header:''}],fonts:{regular:new PdfFont(bytes(symbols))},pageNumbers:false}),['🂡♟']);
+  await save('japanese',await writePdf([['東京 大阪 日本語']],{columns:[{header:''}],fonts:{regular:new PdfFont(bytes(japanese))},pageNumbers:false}),['東京 大阪 日本語']);
+  for (const compression of [true, false]) {
+    const start = performance.now();
+    await save('report-' + compression, await writePdf(rows, { columns, fonts, compression, title: 'Raport Łódź',
+      footer: {values: ['Totals'], totals: {amount:'sum'}}, alternateRowColor: 'F3F4F6', pageHeader: 'OfficeIMO', pageFooter: 'Confidential' }),
+      ['Raport Łódź', 'Łódź — Zażółć gęślą jaźń', 'Totals', '7200'], {rows:120, repeated:['Report','Name','Amount','State']});
+    reports.push({name:'report-' + compression, milliseconds:performance.now()-start});
+  }
+  const compressor = globalThis.CompressionStream;
+  try {
+    globalThis.CompressionStream = undefined;
+    await save('fallback', await writePdf([['Fallback €']], {columns:[{header:'Heading'}]}), ['Fallback €','Heading']);
+  } finally { globalThis.CompressionStream = compressor; }
+  await save('spans', await writePdf(rows, {columns, fonts,
+    headerRows: [[{value:'Name',rowSpan:2},{value:'Metrics',columnSpan:2},null], [null,{value:'Amount'},{value:'State'}]],
+    footer: { rows: [[{value:'Totals',rowSpan:2},{value:'7200'},{value:'Approved'}], [null,{value:'Finance',columnSpan:2},null]] },
+    pageSize:'LETTER',orientation:'landscape' }), ['Totals','7200','Approved','Finance'], {rows:120,repeated:['Name','Metrics','Amount','State']});
+  const long = 'ŁódźABCDEFGHIJKLMNOPQRSTUVWXYZ'.repeat(500);
+  await save('long', await writePdf([[long]], {fonts,columns:[{header:'Long text'}],columnWidths:[200],pageSize:'A5',pageNumbers:false}), [], {repeated:['Long text'],bodyText:long});
+  let writes = 0, sourceRows = 0, firstByteRows, returned = false;
+  const chunks = [];
+  async function* paged() {
+    try { for (let first=0;first<rows.length;first+=16) { await new Promise(resolve=>setTimeout(resolve,1)); for (const row of rows.slice(first,first+16)) {sourceRows++;yield row;} } }
+    finally {returned=true;}
+  }
+  await writePdfTo(paged(), {async write(chunk) { if (!writes) firstByteRows=sourceRows; writes++;chunks.push(chunk.slice());await new Promise(resolve=>setTimeout(resolve,1)); }}, {columns,fonts});
+  if (!returned || firstByteRows >= rows.length) throw Error('PDF must stream pages before source exhaustion.');
+  await save('slow-paged',new Blob(chunks),['Łódź — Zażółć gęślą jaźń'],{rows:120,repeated:['Name','Amount','State']});
+  reports.push({name:'slow-paged',writes,firstByteRows});
+  const controller = new AbortController(); let stopped=false;
+  async function* cancellable() {try {for (let i=0;i<10000;i++) yield rows[i%rows.length];}finally {stopped=true;}}
+  try {await writePdfTo(cancellable(),{write(){controller.abort('pdf cancelled');}},{columns,fonts,signal:controller.signal});throw Error('Cancellation ignored');}
+  catch(error) {if(error !== 'pdf cancelled') throw error;}
+  if(!stopped) throw Error('Cancellation did not return source.');
+  for(const limits of [{maxRows:1},{maxPages:0},{maxCellCharacters:2},{maxOutputBytes:100}]) {
+    try {await writePdf(rows,{columns,fonts,limits});throw Error('Resource limit ignored');}
+    catch(error) {if(!String(error).includes('exceeded')) throw error;}
+  }
+  for(const scenario of ['native','fallback','cancel']) {
+    const bootstrap = `let controller,ack;
+    onmessage=async({data})=>{
+      if(data.ack){const done=ack;ack=undefined;done?.();return;}
+      if(data.cancel){controller.abort('worker cancelled');return;}
+      controller=new AbortController();try{
+      if(data.fallback)globalThis.CompressionStream=undefined;
+      const fonts={regular:new OfficeIMO.PdfFont(Uint8Array.from(atob(data.regular),c=>c.charCodeAt(0)))};
+      async function* rows(){for(let first=0;first<300;first+=32){await new Promise(r=>setTimeout(r,0));for(let i=first;i<Math.min(300,first+32);i++)yield ['Row'+String(i).padStart(6,'0'),'Łódź'];}}
+      await OfficeIMO.writePdfTo(rows(),{write(bytes){const chunk=bytes.slice();return new Promise(resolve=>{ack=resolve;postMessage({chunk},[chunk.buffer]);});}},
+        {columns:[{header:'Name'},{header:'City'}],fonts,signal:controller.signal});
+      postMessage({done:true});
+    }catch(error){postMessage({error:String(error)})}};`;
+    const url=URL.createObjectURL(new Blob([workerScript,'\n',bootstrap],{type:'text/javascript'})),worker=new Worker(url);
+    let timeout;
+    try {
+      const chunks=[];
+      const result=await new Promise((resolve,reject)=>{
+        timeout=setTimeout(()=>reject(Error('PDF worker timed out')),30000);
+        worker.onerror=e=>reject(Error(e.message));worker.onmessage=async({data})=>{
+          if(data.chunk){chunks.push(data.chunk);if(scenario==='cancel')worker.postMessage({cancel:true});await new Promise(r=>setTimeout(r,1));worker.postMessage({ack:true});}
+          else if(data.error){if(scenario==='cancel'&&data.error==='worker cancelled')resolve({cancelled:true});else reject(Error(data.error));}
+          else if(data.done)resolve({blob:new Blob(chunks)});
+        };
+        worker.postMessage({regular,fallback:scenario==='fallback'});
+      });
+      if(scenario==='cancel'){if(!result.cancelled)throw Error('Worker cancellation ignored');}
+      else await save('worker-'+scenario,result.blob,['Łódź'],{rows:300,repeated:['Name','City']});
+    } finally {clearTimeout(timeout);worker.terminate();URL.revokeObjectURL(url);}
+  }
+  if(globalThis.DataTable) {
+    document.body.innerHTML='<table id="pdf-table"><thead><tr><th rowspan="2">Name</th><th colspan="2">Metrics</th></tr><tr><th>Amount</th><th>State</th></tr></thead><tfoot><tr><th rowspan="2">Totals</th><th>7200</th><th>Approved</th></tr><tr><th colspan="2">Finance</th></tr></tfoot></table>';
+    const table=new DataTable('#pdf-table',{data:rows.map(r=>[r.name,r.amount,'Łódź']),paging:true,columns:[{title:'Name'},{title:'Amount'},{title:'State'}]});
+    try {
+      await save('datatables',await OfficeIMO.exportDataTable(DataTable,table,'pdf',{pdf:{fonts,title:'Table PDF'},exportOptions:{modifier:{order:'index',search:'none'}}}),
+        ['Table PDF','Łódź','Metrics','Totals','7200','Approved','Finance'],{rows:120,repeated:['Name','Amount','State']});
+      let delivered;
+      OfficeIMO.registerDataTablesButtons(DataTable,{pdf:{fonts},save:async blob=>{delivered=blob;},onError:error=>{throw error;}});
+      await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,{title:'Button report',pageSize:'LETTER',orientation:'landscape',exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
+      if(!delivered) throw Error('PDF button failed to deliver its file.');
+      await save('datatables-button',delivered,['Button report','Łódź','Metrics','Totals','Approved','Finance'],{rows:120});
+    } finally {table.destroy(true);}
+  }
+  if(scale) for(const count of [10000,100000]) for(const width of [4,20]) for(const styled of [false,true]) {
+    async function* source(){for(let i=0;i<count;i++)yield Array.from({length:width},(_,c)=>c===0?'Row'+String(i).padStart(6,'0'):styled?new ExportCell(i+c,{text:String(i+c),presentation:{background:i%2?'F3F4F6':'ffffff'}}):i+c);}
+    const start=performance.now(),blob=await writePdf(source(),{columns:Array.from({length:width},(_,c)=>({header:'Column'+c})),pageSize:'A3',orientation:'landscape',fontSize:7,pageNumbers:false,limits:{maxPages:10000}});
+    reports.push({name:'scale',rows:count,columns:width,styled,milliseconds:performance.now()-start,bytes:blob.size});
+    await save('scale-'+count+'-'+width+'-'+styled,blob,[],{rows:count,columns:width,repeated:['Column0']});
+  }
+  return {reports,cancellation:true,limits:true,workers:2,workerCancellation:true,compressionFallback:true};
+};

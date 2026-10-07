@@ -24,7 +24,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     if ((column as { style?: unknown }).style !== undefined) throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
   const mode = options.mode ?? "batched", headingMode = options.headings ?? "grouped";
   if (!["batched", "compatibility"].includes(mode)) throw new TypeError("Unknown DataTables export mode.");
-  if (!["grouped", "leaf"].includes(headingMode)) throw new TypeError("Unknown DataTables heading mode.");
+  if (!["grouped", "leaf", "structured"].includes(headingMode)) throw new TypeError("Unknown DataTables heading mode.");
   if (options.serverSide !== undefined && !["reject", "loaded"].includes(options.serverSide)) throw new TypeError("Unknown server-side export policy.");
   const batchRows = options.batchRows ?? 256, maxBatchCells = options.maxBatchCells ?? 65536;
   if (!Number.isInteger(batchRows) || batchRows < 1 || batchRows > 4096) throw new RangeError("batchRows must be between 1 and 4,096.");
@@ -57,14 +57,21 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     ...(heading.groups[index]!.length ? { groups: Object.freeze(heading.groups[index]!) } : {})
   })));
   // Explicit heading overrides also apply to CSV's leaf heading.
-  heading.rows[heading.rows.length - 1] = columns.map(column => column.header);
+  if (!heading.structure) heading.rows[heading.rows.length - 1] = columns.map(column => column.header);
+  const headerStructure = heading.structure?.map((row, level) => Object.freeze(row.map((cell, index) => {
+    if (!cell || level + (cell.rowSpan ?? 1) !== heading.structure!.length) return cell;
+    const override = options.columnOptions?.[columnIndexes[index]!] ?.header;
+    if ((cell.columnSpan ?? 1) > 1 && columnIndexes.slice(index, index + (cell.columnSpan ?? 1)).some(c => options.columnOptions?.[c]?.header !== undefined))
+      throw new TypeError("A spanning leaf heading cannot have per-column header overrides.");
+    return override === undefined ? cell : Object.freeze({ ...cell, value: override });
+  })));
   const footerStructure = member(data, "footerStructure");
-  if (options.includeFooter !== false && Array.isArray(footerStructure) && footerStructure.length > 1)
+  if (headingMode !== "structured" && options.includeFooter !== false && Array.isArray(footerStructure) && footerStructure.length > 1)
     throw new TypeError("Only a single footer row is supported; select includeFooter: false to omit it explicitly.");
   const rawFooter = options.includeFooter === false ? undefined : member(data, "footer");
   const footer = rawFooter == null ? undefined : array(rawFooter).map(value);
   if (footer && footer.length !== columns.length) throw new TypeError("Export footer must match the selected columns.");
-  if (footer && Array.isArray(footerStructure) && footerStructure.length) headings(footerStructure, footer, "grouped");
+  const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length ? headings(footerStructure, footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
   const body = mode === "compatibility" ? array(member(data, "body")) : undefined;
   const count = columns.length ? body?.length ?? rowIndexes.length : 0;
   budget.check("maxRows", count);
@@ -138,5 +145,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     return projectValue ? value(projectValue(scalar, { sourceRowIndex: rowIndex, sourceColumnIndex: columnIndexes[column]!, rowIndex: rowOrdinal, columnIndex: column })) : scalar;
   }
   return Object.freeze({ columns, headers: Object.freeze(heading.rows.map(row => Object.freeze(row))),
-    footer: footer ? Object.freeze(footer) : undefined, rowCount: count, rows });
+    footer: footer ? Object.freeze(footer) : undefined,
+    ...(headerStructure ? { headerStructure: Object.freeze(headerStructure) } : {}),
+    ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }

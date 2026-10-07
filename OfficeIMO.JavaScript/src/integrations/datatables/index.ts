@@ -2,6 +2,7 @@ import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportValue } from "../../core/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
+import { writePdfTo } from "../../pdf/index.js";
 import { portableSheet, portableWorkbook } from "../../xlsx/portable.js";
 import { call, member } from "./api.js";
 import { value } from "./headings.js";
@@ -13,17 +14,24 @@ export type { DataTablesApi, DataTablesHost, DataTablesOptions, DataTablesExport
   DataTablesCellContext, DataTablesExport, DataTablesWriteOptions, DataTablesButtonOptions } from "./types.js";
 
 /** Write directly to a caller-owned destination. Failed destinations own disposal of their partial bytes. */
-export async function writeDataTableTo(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv", destination: OutputDestination,
+export async function writeDataTableTo(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv" | "pdf", destination: OutputDestination,
   options: DataTablesWriteOptions = {}): Promise<ExportResult> {
-  if (format !== "xlsx" && format !== "csv") throw new TypeError("DataTables export format must be xlsx or csv.");
+  if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("DataTables export format must be xlsx, csv or pdf.");
+  if (format !== "pdf" && options.headings === "structured") throw new TypeError("Structured headings require PDF output; use grouped or leaf for Excel/CSV.");
   portableSheet(options.sheet); portableWorkbook(options.workbook);
-  const source = createDataTablesExport(host, table, options), signal = options.signal;
+  const source = createDataTablesExport(host, table, format === "pdf" ? { ...options, headings: options.headings ?? "structured" } : options), signal = options.signal;
   let result: ExportResult;
   const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
   if (format === "xlsx") {
     const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
     result = await writeXlsxTo(source.rows, destination, { ...options.workbook, ...stream, columns: source.columns,
       sheet: { ...options.sheet, name: options.sheetName ?? "Data", ...(footer ? { footer } : {}) },
+      ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
+  } else if (format === "pdf") {
+    const footer = options.pdf?.footer ?? (source.footerStructure ? { rows: source.footerStructure } : source.footer ? { values: source.footer } : undefined);
+    result = await writePdfTo(source.rows, destination, { ...options.pdf, ...stream, columns: source.columns,
+      ...(source.headerStructure && options.pdf?.includeHeader !== false && !options.pdf?.headerRows ? { headerRows: source.headerStructure } : {}),
+      ...(footer ? { footer } : {}),
       ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
   } else {
     const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
@@ -44,12 +52,12 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
 }
 
 /** Return a browser/worker/Node Blob. Use writeDataTableTo to avoid retaining the completed file in memory. */
-export async function exportDataTable(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv", options: DataTablesWriteOptions = {}): Promise<Blob> {
+export async function exportDataTable(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv" | "pdf", options: DataTablesWriteOptions = {}): Promise<Blob> {
   const sink = new BlobByteSink();
   try {
     await writeDataTableTo(host, table, format, sink, options);
     checkAbort(options.signal);
-    return sink.toBlob(format === "csv" ? "text/csv;charset=utf-8" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    return sink.toBlob(format === "pdf" ? "application/pdf" : format === "csv" ? "text/csv;charset=utf-8" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   } catch (error) { sink.discard(); throw error; }
 }
 
@@ -57,8 +65,8 @@ export async function exportDataTable(host: DataTablesHost, table: DataTablesApi
 export function registerDataTablesButtons(host: DataTablesHost, options: DataTablesButtonOptions = {}): void {
   const buttons = host.ext?.buttons;
   if (!buttons || typeof member(host.Buttons, "stripData") !== "function") throw new TypeError("Install DataTables Buttons before registering OfficeIMO exports.");
-  if (buttons.officeimoExcel || buttons.officeimoCsv) throw new TypeError("OfficeIMO DataTables buttons are already registered.");
-  for (const [name, format, label] of [["officeimoExcel", "xlsx", "Excel"], ["officeimoCsv", "csv", "CSV"]] as const) {
+  if (buttons.officeimoExcel || buttons.officeimoCsv || buttons.officeimoPdf) throw new TypeError("OfficeIMO DataTables buttons are already registered.");
+  for (const [name, format, label] of [["officeimoExcel", "xlsx", "Excel"], ["officeimoCsv", "csv", "CSV"], ["officeimoPdf", "pdf", "PDF"]] as const) {
     buttons[name] = { text: label, async: 1,
       action: function (_event: unknown, table: DataTablesApi, _node: unknown, configuration: unknown, complete?: () => void): void {
         let current = options;
@@ -70,8 +78,20 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
               ...(filename !== undefined ? { filename: filename as NonNullable<DataTablesButtonOptions["filename"]> } : {}),
               ...(member(configuration, "footer") === false ? { includeFooter: false } : {}),
               ...(member(configuration, "exportOptions") ? { exportOptions: member(configuration, "exportOptions") as NonNullable<DataTablesButtonOptions["exportOptions"]> } : {}) };
-            if (member(configuration, "customize") !== undefined) throw new TypeError("XML customize callbacks are unsupported; use OfficeIMO sheet/workbook options.");
-            if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
+            if (member(configuration, "customize") !== undefined) throw new TypeError("Native customize callbacks are unsupported; use OfficeIMO sheet/workbook/pdf options.");
+            if (format === "pdf") {
+              const info = call(table.buttons, "exportInfo", configuration);
+              const pdf = { ...current.pdf };
+              for (const key of ["title", "messageTop", "messageBottom"] as const) if (member(configuration, key) != null) {
+                const text = member(info, key);
+                if (typeof text !== "string") throw new TypeError("PDF " + key + " must resolve to text.");
+                pdf[key] = text;
+              }
+              for (const key of ["orientation", "pageSize"] as const) if (member(configuration, key) !== undefined)
+                Object.assign(pdf, { [key]: member(configuration, key) });
+              if (member(configuration, "header") === false) pdf.includeHeader = false;
+              current = { ...current, pdf };
+            } else if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
               throw new TypeError("Use OfficeIMO sheet title/footer options; native Buttons report layout options are unsupported.");
             const pattern = value(typeof current.filename === "function" ? current.filename(configuration, table) : current.filename ?? "Export");
             if (typeof pattern !== "string" || !pattern.trim()) throw new TypeError("Export filename must be a non-empty string.");

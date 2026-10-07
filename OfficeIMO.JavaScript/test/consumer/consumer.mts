@@ -5,6 +5,7 @@ import { XmlWriter, escapeXml } from "@evotecit/officeimo/xml";
 import { OpcPackage, relationshipTypes, partUri, ContentTypes } from "@evotecit/officeimo/opc";
 import { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob } from "@evotecit/officeimo/xlsx";
 import { writeCsv, writeCsvTo } from "@evotecit/officeimo/csv";
+import { writePdf, writePdfTo, PdfFont } from "@evotecit/officeimo/pdf";
 import type { Column, Rows } from "@evotecit/officeimo/core";
 import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
@@ -26,10 +27,17 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
   await exportDataTable(host, table, 'xlsx', { workbook: { cellValueWriters: { custom: v => new Cell(v, 0) } } });
   await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
   registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
-  // @ts-expect-error PDF is a separate format milestone
-  exportDataTable(host, table, 'pdf');
+  await exportDataTable(host, table, 'pdf', { pdf: { orientation: 'landscape', title: 'Report' } });
 }
 void exportGrid;
+async function exportPdf() {
+  const columns: readonly Column<{name:string; amount:number}>[] = [{header:'Name',key:'name'},{header:'Amount',value:r=>new ExportCell(r.amount,{text:r.amount.toFixed(2)})}];
+  await writePdf([{name:'Report',amount:1}],{columns,footer:{totals:{Amount:'sum'}}});
+  await writePdfTo([{name:'Report',amount:1}],new WritableStream<Uint8Array>(),{columns,fonts:{regular:new PdfFont(new Uint8Array())}});
+  // @ts-expect-error PDF getters must resolve scalar/portable values
+  await writePdf([{nested:{x:1}}],{columns:[{header:'Nested',key:'nested'}]});
+}
+void exportPdf;
 
 interface RecordRow { readonly name: string; readonly seen: Date; }
 const columns = [{ header: "Name", key: "name" }, { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }] as const satisfies readonly Column<RecordRow>[];
@@ -162,5 +170,9 @@ typedSheet.addRows(records);
 writeCsv(domainRows, { columns: [{ header: "Person", value: row => row.person }] });
 // @ts-expect-error getters are synchronous
 writeXlsx(domainRows, { columns: [{ header: "Name", value: async row => row.person.name }] });
+// @ts-expect-error PDF shares the portable getter contract
+writePdf(domainRows, { columns: [{ header: "Name", value: async row => row.person.name }] });
+// @ts-expect-error PDF does not accept workbook-local advanced Cells
+writePdf([[new Cell(1)]], { columns: [{ header: "Amount" }] });
 // @ts-expect-error final names are readonly
 sheet.name = "new name";

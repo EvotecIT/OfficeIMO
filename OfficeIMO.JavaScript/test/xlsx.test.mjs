@@ -119,7 +119,7 @@ test("XLSX cancels mid-stream and never finalizes a partial workbook", async () 
 });
 
 test("classic scripts compose in either order without a module loader", async () => {
-  for (const order of [["datatables", "xlsx", "csv"], ["csv", "xlsx", "datatables"]]) {
+  for (const order of [["datatables", "xlsx", "csv", "pdf"], ["pdf", "csv", "xlsx", "datatables"]]) {
     const context = vm.createContext({ TextEncoder, Blob, Date, performance, setTimeout, DOMException });
     let core;
     for (const kind of order) {
@@ -129,6 +129,7 @@ test("classic scripts compose in either order without a module loader", async ()
     }
     assert.equal(typeof context.OfficeIMO.Workbook, "function");
     assert.equal(typeof context.OfficeIMO.writeCsv, "function");
+    assert.equal(typeof context.OfficeIMO.writePdf, "function");
     assert.equal(typeof context.OfficeIMO.saveBlob, "function");
     assert.equal(typeof context.OfficeIMO.registerDataTablesButtons, "function");
     assert.throws(() => new context.OfficeIMO.Workbook().addWorksheet("Pending", { dataValidation: [] }), error =>
@@ -140,7 +141,7 @@ test("classic scripts compose in either order without a module loader", async ()
 });
 
 test("standalone ES module assets execute the same writer contracts", async () => {
-  for (const name of ["officeimo", "officeimo-xlsx", "officeimo-csv"]) {
+  for (const name of ["officeimo", "officeimo-xlsx", "officeimo-csv", "officeimo-pdf"]) {
     const module = await import("../bundles/" + name + ".mjs");
     if (module.Workbook) {
       const book = new module.Workbook({ compression: "store" });

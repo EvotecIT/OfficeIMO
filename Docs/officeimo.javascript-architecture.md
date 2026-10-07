@@ -12,6 +12,7 @@ flowchart BT
     Opc["opc: parts, URIs, relationships, properties"]
     Xlsx["xlsx: Workbook, Worksheet, Cell, styles"]
     Csv["csv: UTF-8 tabular writer"]
+    Pdf["pdf: paginated tables, TrueType fonts, PDF objects"]
     Zip --> Core
     Xml --> Core
     Opc --> Zip
@@ -19,17 +20,23 @@ flowchart BT
     Xlsx --> Opc
     Xlsx --> Core
     Csv --> Core
+    Pdf --> Core
     Adapter["OfficeIMO.Browser: embedded assets and SHA-256 names"] --> Xlsx
     Adapter --> Csv
+    Adapter --> Pdf
 ```
 
-Each layer is a supported npm subpath with a deliberately selected `index.ts`, tests and a [package README quick start](../OfficeIMO.JavaScript/README.md). Root namespaces provide the same API identities. `package.json` exports the root, six layers, optional `integrations/datatables` and four classic-script assets. The integration maps grid scope and rendered values to shared column/presentation contracts; it imports no third-party runtime. Implementation modules, row projection and prepared ZIP-entry plumbing are internal. They are excluded from supported subpath exports; declarations marked `@internal` are removed by `tsc`.
+Each layer is a supported npm subpath with a deliberately selected `index.ts`, tests and a [package README quick start](../OfficeIMO.JavaScript/README.md). Root namespaces provide the same API identities. `package.json` exports the root, seven layers, optional `integrations/datatables` and five classic-script assets. The integration maps grid scope and rendered values to shared column/presentation contracts; it imports no third-party runtime. Implementation modules, row projection, PDF objects/font parsing and prepared ZIP-entry plumbing are internal. They are excluded from supported subpath exports; declarations marked `@internal` are removed by `tsc`.
 
-The shared layers have current production callers. CSV uses core sinks and iteration; XLSX uses XML, ZIP, OPC and styles. A future reader can join `zip` beside `ZipWriter` and `Crc32`, using the same byte-source/sink and cancellation contracts. No reader API or unimplemented format namespace is shipped as a placeholder.
+The shared layers have current production callers. CSV and PDF use core sinks and iteration; XLSX uses XML, ZIP, OPC and styles. A future reader can join `zip` beside `ZipWriter` and `Crc32`, using the same byte-source/sink and cancellation contracts. No reader API or unimplemented format namespace is shipped as a placeholder.
 
 `Column<T>` is the common table projection: typed literal object keys or synchronous value getters resolve scalar values and portable `ExportCell` presentation. Each writer snapshots and compiles that projection once. CSV formatting follows projection; XLSX applies its existing value/style/layout engine. `writeXlsx` and `writeXlsxTo` own the one-table defaults and delegate to `Workbook`/`Worksheet`; the DataTables integration produces ordered arrays and columns for those same writers. Native streams are adapted by the shared sink owner, which borrows and releases a writer lock without closing or aborting the caller's destination. Completed table writes return rows, columns and accepted bytes; advanced workbook completion additionally reports sheet count. Data callback indexes are zero-based, with explicit one-based worksheet coordinates where applicable.
 
 Core task yielding races a short-lived `MessageChannel` against a timer, closing both ports and clearing the timer before resuming the export. Hosts without message channels use the timer alone. Text buffering and batched grid projection share the last completed yield, avoiding consecutive pauses between pipeline stages; ZIP finalization uses the same task-yield mechanism. This allows page events and cancellation to run without depending on one host's timer or message-channel latency. An async iterator or resolved promise alone does not yield the event loop. Formatters remain synchronous application callbacks, so one slow callback can still block its current batch.
+
+PDF's typed table options reuse columns, portable cell presentation, the numeric-total accumulator and bounded span validation. The PDF owner handles page layout, drawing commands, classic cross-reference tables and static TrueType parsing/subsetting. The glyph-preserving composite subset design follows `OfficeIMO.Pdf`; generated Helvetica metrics come from that owner's Adobe AFM tables through `scripts/pdf-widths.mjs`. Format code neither fetches fonts nor depends on a browser renderer. Supplied font bytes remain private and reusable; the output embeds only the required glyphs unless font permissions require full embedding. The supported scalar text profile and shaping limits are documented in the [PDF table contract](../OfficeIMO.JavaScript/README.md#pdf-tables).
+
+`writePdfTo` writes completed pages as the source advances. Only the current page, its wrapped row, font mappings and object/page references survive; output and layout limits bound those resources. Final page totals use a shared form object written at completion. Compression consumes byte streams directly, including in workers, and falls back to uncompressed PDF streams when native deflate is unavailable. Worker bridges transfer bounded bytes with acknowledgement; they do not rely on WebKit worker Blob reads.
 
 ## Object model and C# vocabulary
 
@@ -52,7 +59,7 @@ Only `tsc` compiles library source. It emits ES2022 modules and declarations to 
 
 `scripts/bundles.mjs` assembles the compiled local module graph into isolated lexical scopes. It resolves named imports/exports and namespace re-exports, rejects unknown syntax, dependencies outside `dist`, unresolved exports and cycles, and performs no transpilation or minification. Keeping this small assembler requires keeping the compiled graph inside that documented syntax subset. It preserves each module's namespace and shared identities within a bundle. Adding different module syntax requires extending and qualifying the assembler deliberately.
 
-The build produces `officeimo.js`, `officeimo-xlsx.js`, `officeimo-csv.js`, optional `officeimo-datatables.js` and corresponding standalone `.mjs` assets. Classic scripts extend global `OfficeIMO`; the combined script exposes all public layers and the established root helpers. Standalone format scripts include the layers their public surface needs and compose in either load order. A private symbol-keyed cache reuses identical compiled modules across classic scripts, preserving model and error class identities. Its keys hash normalized module source, relative paths and dependency identities, so changed modules cannot reuse an older implementation. These assets have canonical UTF-8/LF bytes and are committed. `--check` compares every generated byte, and `prepack` runs that check against a fresh TypeScript compilation.
+The build produces `officeimo.js`, `officeimo-xlsx.js`, `officeimo-csv.js`, `officeimo-pdf.js`, optional `officeimo-datatables.js` and corresponding standalone `.mjs` assets. Classic scripts extend global `OfficeIMO`; the combined script exposes all public layers and the established root helpers. Standalone format scripts include the layers their public surface needs and compose in either load order. A private symbol-keyed cache reuses identical compiled modules across classic scripts, preserving model and error class identities. Its keys hash normalized module source, relative paths and dependency identities, so changed modules cannot reuse an older implementation. These assets have canonical UTF-8/LF bytes and are committed. `--check` compares every generated byte, and `prepack` runs that check against a fresh TypeScript compilation.
 
 The .NET project embeds these files directly from `OfficeIMO.JavaScript/bundles`; it keeps no second JavaScript source or copied asset tree. `BrowserAssets.Script`, `XlsxScript`, `CsvScript`, `Module`, `XlsxModule` and `CsvModule` retain their contracts. `DataTablesScript` and `DataTablesModule` add the optional grid bridge. `ContentHash` is the first 16 lowercase hex digits of SHA-256 over exact UTF-8 bytes without BOM; `HashedFileName` binds that identity to the asset. .NET builds and consumers need no Node compiler because the bundles are committed. Contributors changing TypeScript regenerate/check the bundles before building that adapter.
 

@@ -15,7 +15,7 @@
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>xlsx;csv;browser;javascript;offline;reports</PackageTags>
+    <PackageTags>xlsx;csv;pdf;browser;javascript;offline;reports</PackageTags>
     <IsPublishable>true</IsPublishable>
   </PropertyGroup>
   <ItemGroup>

@@ -1,6 +1,7 @@
-import type { Column, ExportValue, StreamOptions } from "../../core/index.js";
+import type { Column, ExportValue, StreamOptions, TableSpanRows } from "../../core/index.js";
 import type { CsvOptions } from "../../csv/index.js";
 import type { PortableSheetOptions, PortableWorkbookOptions, WorkbookLimits } from "../../xlsx/index.js";
+import type { PdfOptions, PdfLimits } from "../../pdf/index.js";
 
 /** Structural interoperability boundary; importing this adapter never imports DataTables. */
 export type DataTablesMethod = (...args: never[]) => unknown;
@@ -52,8 +53,8 @@ export interface DataTablesOptions extends StreamOptions {
   readonly batchRows?: number;
   /** Maximum cells per projection batch, default 65,536. One row must fit. */
   readonly maxBatchCells?: number;
-  /** Grouped accepts horizontal header spans. Leaf explicitly selects a single heading row. */
-  readonly headings?: "grouped" | "leaf";
+  /** Grouped accepts horizontal spans; leaf selects one row; structured preserves rectangles for PDF. */
+  readonly headings?: "grouped" | "leaf" | "structured";
   readonly includeFooter?: boolean;
   /** Server-side tables require explicit acknowledgement that only loaded rows are available. */
   readonly serverSide?: "reject" | "loaded";
@@ -67,16 +68,19 @@ export interface DataTablesExport {
   readonly columns: readonly Column<readonly ExportValue[]>[];
   readonly headers: readonly (readonly ExportValue[])[];
   readonly footer: readonly ExportValue[] | undefined;
+  readonly headerStructure?: TableSpanRows;
+  readonly footerStructure?: TableSpanRows;
   readonly rowCount: number;
   /** Single-use source. Keep the table's data stable until iteration finishes. */
   readonly rows: AsyncIterable<readonly ExportValue[]>;
 }
 export interface DataTablesWriteOptions extends DataTablesOptions {
-  readonly limits?: WorkbookLimits;
+  readonly limits?: WorkbookLimits & PdfLimits;
   readonly sheetName?: string;
   readonly workbook?: Omit<PortableWorkbookOptions, "signal" | "onProgress" | "limits">;
   readonly sheet?: Omit<PortableSheetOptions, "includeHeader">;
   readonly csv?: Omit<CsvOptions, "columns" | "includeHeader" | "signal" | "onProgress" | "limits">;
+  readonly pdf?: Omit<PdfOptions, "columns" | "signal" | "onProgress" | "limits">;
 }
 export interface DataTablesButtonOptions extends DataTablesWriteOptions {
   readonly filename?: string | ((configuration: unknown, table: DataTablesApi) => string);

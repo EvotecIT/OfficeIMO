@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { ExportCell } from "../dist/core/index.js";
 import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "../dist/integrations/datatables/index.js";
 import { readZip } from "./zip-reader.mjs";
+import { inspectPdf } from "./pdf-reader.mjs";
 async function collect(source) { const rows = []; for await (const row of source) rows.push(row); return rows; }
 
 test("DataTables rejects workbook-local style IDs before reading the source or destination", async () => {
@@ -42,7 +43,8 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
         render: () => apiArray(positions.map(p => data[p.row][p.column])),
         indexes: () => apiArray(positions), nodes: () => apiArray(nodeRows ? positions.filter(p => nodeRows.includes(p.row)) : positions.map(() => null)) };
     },
-    buttons: { exportInfo: options => ({filename:options.filename.replaceAll('*','Fixture title')}), exportData(options) {
+    buttons: { exportInfo: options => ({filename:(options.filename ?? "Export").replaceAll('*','Fixture title'),
+      title: (options.title ?? "").replaceAll('*','Fixture title'), messageTop: options.messageTop ?? "", messageBottom: options.messageBottom ?? ""}), exportData(options) {
       const result = { header: ["Name", "Amount"], body: options.rows?.length === 0 ? [] : selected.map(row => [...data[row]]),
         footer: ["Totals", 20], footerStructure: [[{ title: "Totals", colspan: 1, rowspan: 1 }, { title: "20", colspan: 1, rowspan: 1 }]],
         headerStructure: grouped ? [[{ title: "Metrics", colspan: 2, rowspan: 1 }, null],
@@ -164,7 +166,7 @@ test("buttons complete once after saving and before asynchronous error reporting
   await action({filename:'Report.csv'}); assert.deepEqual(events,['Report.csv','done']); events.length=0;
   await action({filename:(config,api)=> { assert.equal(api,table);assert.equal(typeof config.filename,'function');return 'Report-*'; }});
   assert.deepEqual(events,['Report-Fixture title.csv','done']); events.length=0;
-  await action({ customize() {} }); assert.equal(events[0], "done"); assert.match(events[1], /XML customize/);
+  await action({ customize() {} }); assert.equal(events[0], "done"); assert.match(events[1], /customize/);
   events.length = 0;
   await action({ get officeimo() { throw new Error('configuration getter'); } });
   assert.deepEqual(events, ['done','configuration getter']);
@@ -172,4 +174,35 @@ test("buttons complete once after saving and before asynchronous error reporting
   await action({officeimo:{filename:async () => { throw new Error('async filename'); }}});
   assert.equal(events[0],'done'); assert.match(events[1],/synchronous/);
   assert.throws(() => registerDataTablesButtons(host), /already registered/);
+});
+
+test("DataTables PDF uses the shared projection, grouped headings, footer and button delivery", async () => {
+  const { host, table } = fixture();
+  const blob = await exportDataTable(host, table, "pdf", { pdf: { title: "Report", compression: false } });
+  const pdf = await inspectPdf(blob);
+  for (const value of ["Report", "Metrics", "Name", "Amount", "first", "second", "7.5", "12.5", "Totals", "20"]) assert.ok(pdf.text.includes(value), value);
+  const events = []; let delivered;
+  registerDataTablesButtons(host, { filename: "Report", save: async (file, name) => { delivered = file; events.push(name); }, onError: e => { throw e; } });
+  await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null,
+    { title: "*", messageTop: "Above", messageBottom: "Below", orientation: "landscape", pageSize: "LETTER", header: false, footer: false }, () => { events.push("done"); resolve(); }));
+  assert.deepEqual(events, ["Report.pdf", "done"]);
+  const buttonPdf = await inspectPdf(delivered);
+  for (const value of ["Fixture title", "Above", "Below", "first", "second"]) assert.ok(buttonPdf.text.includes(value), value);
+  assert.ok(!buttonPdf.text.includes("Metrics")); assert.ok(!buttonPdf.text.includes("Totals"));
+  assert.match(buttonPdf.pages[0].body, /MediaBox \[0 0 792 612\]/);
+});
+
+test("PDF preserves DataTables vertical headers, blank spans and multiple footer rows", async () => {
+  const { host, table } = fixture(); const native = table.buttons.exportData;
+  table.buttons.exportData = options => {
+    const data = native(options);
+    data.headerStructure = [[{ title: "Name", colspan: 1, rowspan: 2 }, { title: "", colspan: 1, rowspan: 1 }], [null, { title: "Amount", colspan: 1, rowspan: 1 }]];
+    data.footerStructure = [[{ title: "Totals", colspan: 1, rowspan: 2 }, { title: "20", colspan: 1, rowspan: 1 }], [null, { title: "Approved", colspan: 1, rowspan: 1 }]];
+    return data;
+  };
+  const pdf = await inspectPdf(await exportDataTable(host, table, "pdf", { columnOptions: { 0: { header: "Customer" } }, pdf: { compression: false } }));
+  for (const text of ["Customer", "Amount", "first", "second", "Totals", "20", "Approved"]) assert.ok(pdf.text.includes(text), text);
+  await assert.rejects(exportDataTable(host, table, "csv", { headings: "structured" }), /require PDF/);
+  table.buttons.exportData = options => { const data = native(options); data.headerStructure = [[{ title: "Both", colspan: 2, rowspan: 1 }, null]]; return data; };
+  await assert.rejects(exportDataTable(host, table, "pdf", { columnOptions: { 1: { header: "Override" } } }), /spanning leaf/);
 });
