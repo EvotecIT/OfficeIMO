@@ -69,4 +69,35 @@ public sealed class WordPdfThemeFontPrecedenceTests {
         }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains(expected, letter.FontName, StringComparison.OrdinalIgnoreCase));
     }
+
+    [Theory]
+    [InlineData("body", false)]
+    [InlineData("header", false)]
+    [InlineData("footer", false)]
+    [InlineData("body", true)]
+    [InlineData("header", true)]
+    [InlineData("footer", true)]
+    public void UnavailableAsciiFamilyRetainsUsableHighAnsiFallback(string story, bool themed) {
+        using WordDocument document = WordDocument.Create();
+        document.Settings.FontFamily = "Courier New";
+        var main = document._wordprocessingDocument.MainDocumentPart!;
+        main.ThemePart!.Theme!.ThemeElements!.FontScheme!.MajorFont!.LatinFont!.Typeface = "OfficeIMO Unavailable Font";
+        main.ThemePart.Theme.ThemeElements.FontScheme.MinorFont!.LatinFont!.Typeface = "Times New Roman";
+        WordParagraph paragraph;
+        if (story == "body") paragraph = document.AddParagraph("Fallback");
+        else {
+            document.AddParagraph("Body"); document.AddHeadersAndFooters();
+            paragraph = (story == "footer" ? (WordHeaderFooter)document.Footer.Default : document.Header.Default).AddParagraph("Fallback");
+        }
+        paragraph._run!.RunProperties = new RunProperties(new RunFonts {
+            Ascii = "OfficeIMO Unavailable Font", HighAnsi = "Times New Roman",
+            AsciiTheme = themed ? ThemeFontValues.MajorAscii : null,
+            HighAnsiTheme = themed ? ThemeFontValues.MinorHighAnsi : null
+        });
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Fallback");
+        Assert.All(word.Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
+    }
 }

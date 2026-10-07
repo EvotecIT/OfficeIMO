@@ -231,18 +231,22 @@ namespace OfficeIMO.Word.Pdf {
             return familyName;
         }
 
-        private static string? ResolveNativeRunFontsFamily(WordDocument? document, W.RunFonts? runFonts) {
+        private static string? ResolveNativeRunFontsFamily(WordDocument? document, W.RunFonts? runFonts) =>
+            EnumerateNativeLatinFontFamilies(document, runFonts).FirstOrDefault();
+
+        private static IEnumerable<string> EnumerateNativeLatinFontFamilies(WordDocument? document, W.RunFonts? runFonts) {
             if (runFonts == null) {
-                return null;
+                yield break;
             }
 
-            // Theme selectors override literals in the same slot. Retain the
-            // existing ASCII-before-High-ANSI choice for the Latin run family.
-            return FirstNonWhiteSpace(
-                ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.AsciiTheme)),
-                runFonts.Ascii?.Value,
-                ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.HighAnsiTheme)),
-                runFonts.HighAnsi?.Value);
+            // Theme selectors override literals within each slot. Keep both
+            // slots available so mapping can continue when ASCII is unavailable.
+            foreach (string? family in new[] {
+                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.AsciiTheme)), runFonts.Ascii?.Value),
+                FirstNonWhiteSpace(ResolveNativeThemeFontFamily(document, GetNativeThemeFontValue(runFonts.HighAnsiTheme)), runFonts.HighAnsi?.Value)
+            }) {
+                if (!string.IsNullOrWhiteSpace(family)) yield return family!;
+            }
         }
 
         private static string? GetNativeThemeFontValue(DocumentFormat.OpenXml.EnumValue<W.ThemeFontValues>? value) {

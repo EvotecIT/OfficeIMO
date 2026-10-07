@@ -392,11 +392,11 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<string> EnumerateNativeParagraphOwnFontFamilies(WordParagraph paragraph) {
-            foreach (string? familyName in new[] {
-                ResolveNativeRunFontsFamily(paragraph._document, GetNativeRunProperties(paragraph)?.GetFirstChild<W.RunFonts>()),
+            foreach (string? familyName in EnumerateNativeLatinFontFamilies(
+                paragraph._document, GetNativeRunProperties(paragraph)?.GetFirstChild<W.RunFonts>()).Concat(new[] {
                 paragraph.FontFamilyEastAsia,
                 paragraph.FontFamilyComplexScript
-            }) {
+            })) {
                 if (!string.IsNullOrWhiteSpace(familyName)) {
                     yield return familyName!;
                 }

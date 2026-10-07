@@ -214,13 +214,12 @@ namespace OfficeIMO.Word.Pdf {
                     lineHeight ?? 0D,
                     ResolveNativeWordSingleLineHeight(
                         nativeFontMap,
-                        ResolveNativeRunFontsFamily(run._document, GetNativeRunProperties(run)?.GetFirstChild<W.RunFonts>()),
-                        run.FontFamilyEastAsia,
-                        run.FontFamilyComplexScript,
-                        characterStyle.FontFamily,
-                        styleDefaults.FontFamily,
-                        tableRunStyleDefaults.FontFamily,
-                        nativeDefaults.FontFamily));
+                        EnumerateNativeParagraphOwnFontFamilies(run).Concat(new[] {
+                            characterStyle.FontFamily,
+                            styleDefaults.FontFamily,
+                            tableRunStyleDefaults.FontFamily,
+                            nativeDefaults.FontFamily
+                        }).ToArray()));
             }
 
             if (lineHeight.HasValue) return lineHeight.Value;
