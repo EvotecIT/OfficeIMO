@@ -284,7 +284,18 @@
       "Qualified engine fast-forward, unique-proof preservation and removal of two temporary worktrees"
     ],
     "availableWork": "Preserve newly generated proof, clean completed outputs and push reconciled development/evidence backups.",
-    "broaderGoalsComplete": false
+    "broaderGoalsComplete": false,
+    "currentPlatformPackageRun": 37555784425,
+    "currentPlatformPackageRunSource": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+    "currentPlatformPackageScope": "Nineteen normal four-target packages and packed public consumers on three platforms, including native Windows net472; excludes full suites and timing.",
+    "immediateNewHeadFeedback": {
+      "head": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+      "unresolvedThreads": 0,
+      "allPaginationComplete": true,
+      "newActionableFeedback": false,
+      "checksPending": true,
+      "delayedLatestHeadCheckStillRequired": true
+    }
   },
   "assessmentSource": "0931b2649cd5e01e39980574046bbb0ebe2b5ce0",
   "reconciledOptionalRuntime": {
