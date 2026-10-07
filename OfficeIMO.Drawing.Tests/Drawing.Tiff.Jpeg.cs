@@ -51,6 +51,26 @@ public sealed class TiffJpegTests {
         }
     }
 
+    [Fact]
+    public void ExtendedSequentialWideCoefficientClipsAfterInverseTransform() {
+        // Eight-bit SOF1, sixteen-bit quantization table (65535), and one AC
+        // coefficient of 2 at natural index 4. Its IDCT has alternating signs;
+        // clip the final samples rather than overflowing the integer workspace.
+        byte[] bytes = Convert.FromBase64String(
+            "/9j/2wCDEP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8EACwgACAAIAQERAP/EACcAAQAAAAAAAAAAAAAAAAAAAAAQAAIAAAAAAAAAAAAAAAAAANIA/9oACAEBAAA/ABP/2Q==");
+        Assert.True(OfficeJpegCodec.TryDecode(bytes, out var image));
+        Assert.Equal(8, image!.Width);
+        Assert.Equal(8, image.Height);
+        byte[] expected = { 255, 0, 0, 255, 255, 0, 0, 255 };
+        for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) {
+            var pixel = image.GetPixel(x, y);
+            Assert.Equal(expected[x], pixel.R);
+            Assert.Equal(expected[x], pixel.G);
+            Assert.Equal(expected[x], pixel.B);
+            Assert.Equal(255, pixel.A);
+        }
+    }
+
     [Theory]
     [InlineData(0)] // Segment dimensions disagree with the TIFF strip.
     [InlineData(1)] // Progressive frames are outside TIFF Technical Note 2.
