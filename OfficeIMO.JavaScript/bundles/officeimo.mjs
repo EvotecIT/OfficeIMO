@@ -289,8 +289,9 @@ function assertScalar(value) {
 }
 /** @internal Validate selected values before a destination interprets presentation. */
 function assertExportValue(value) {
-    if (!(value instanceof ExportCell))
-        assertScalar(value);
+    if (value !== null && typeof value === "object" && value instanceof ExportCell)
+        return;
+    assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
@@ -3253,7 +3254,7 @@ return _exports;
 })();
 
 const _m30 = (() => {
-const { beginTask, checkAbort, consumeRows, withAbort } = _m4;
+const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
@@ -3322,21 +3323,28 @@ async function write(rows, sink, options) {
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
-    const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+    const resolved = (value) => value !== null && typeof value === "object" && value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
     function record(values, header = false, first = 0, snapshot) {
         if (!header && hasFormatters && first === 0)
             snapshot = Object.freeze(columns.map((_, i) => resolved(values[i])));
+        let text = "";
         for (let i = first; i < columns.length; i++) {
+            checkAbort(signal);
             const column = columns[i];
             const raw = resolved(values[i]);
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
-            if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
-                return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+            checkAbort(signal);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+            if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
+                if (buffer.append(text))
+                    return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+                text = "";
+            }
         }
-        if (buffer.append(lineEnding))
+        if (buffer.append(text + lineEnding))
             return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
     }
     if (options.includeHeader !== false && columns.length)

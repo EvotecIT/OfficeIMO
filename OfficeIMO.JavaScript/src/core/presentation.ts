@@ -40,5 +40,6 @@ export function assertScalar(value: unknown): asserts value is CellValue {
 export type ExportValue = CellValue | ExportCell;
 /** @internal Validate selected values before a destination interprets presentation. */
 export function assertExportValue(value: unknown): asserts value is ExportValue {
-  if (!(value instanceof ExportCell)) assertScalar(value);
+  if (value !== null && typeof value === "object" && value instanceof ExportCell) return;
+  assertScalar(value);
 }

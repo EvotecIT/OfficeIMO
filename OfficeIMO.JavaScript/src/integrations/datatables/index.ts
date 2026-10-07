@@ -35,15 +35,20 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
       ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
   } else {
     const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
+    // A plain leaf heading already matches the shared CSV header contract. Avoid a
+    // second async-generator delegation around every data row in this common case.
+    const directHeader = !source.footer && headingCount === 1 && source.headers[0]!.every((cell, i) =>
+      typeof cell === "string" && cell === source.columns[i]!.header);
+    const extraRows = directHeader ? 0 : headingCount + footerCount;
     async function* rows(): AsyncGenerator<readonly ExportValue[]> {
       for (const header of source.headers) yield header;
       yield* source.rows;
       if (source.footer) yield source.footer;
     }
-    result = await writeCsvTo(rows(), destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: false,
-      ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
+    result = await writeCsvTo(directHeader ? source.rows : rows(), destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: directHeader,
+      ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + extraRows) } } : {}),
       onProgress: event => {
-        const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));
+        const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - (directHeader ? 0 : headingCount)));
         options.onProgress?.({ ...event, rows: rowCount, totalRows: source.rowCount });
       } });
   }

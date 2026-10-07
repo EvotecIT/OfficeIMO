@@ -1,4 +1,4 @@
-import { beginTask, checkAbort, consumeRows, withAbort } from "../core/iteration.js";
+import { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } from "../core/iteration.js";
 import { BlobByteSink, ChunkedTextSink, withDestination } from "../core/sinks.js";
 import { ExportBudget, boundedSink } from "../core/limits.js";
 import { ExportCell } from "../core/presentation.js";
@@ -75,20 +75,26 @@ async function write(rows: Iterable<unknown> | AsyncIterable<unknown>, sink: Byt
   checkAbort(signal);
   if (options.bom) await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
   let count = 0;
-  const resolved = (value: unknown) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+  const resolved = (value: unknown) => value !== null && typeof value === "object" && value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
   function record(values: readonly unknown[], header = false, first = 0, snapshot?: readonly CellValue[]): void | Promise<void> {
     if (!header && hasFormatters && first === 0) snapshot = Object.freeze(columns.map((_, i) => resolved(values[i]))) as readonly CellValue[];
+    let text = "";
     for (let i = first; i < columns.length; i++) {
+      checkAbort(signal);
       const column = columns[i]!;
       const raw = resolved(values[i]);
       let value = !header && column.valueFormatter ? column.valueFormatter(raw as CellValue,
         { rowIndex: count, columnIndex: i, column, values: snapshot! }) : raw;
       if (value == null && options.nullValue !== undefined) value = options.nullValue;
       budget.cell(value);
-      if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
-        return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+      checkAbort(signal);
+      text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+      if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
+        if (buffer.append(text)) return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+        text = "";
+      }
     }
-    if (buffer.append(lineEnding)) return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
+    if (buffer.append(text + lineEnding)) return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
   }
   if (options.includeHeader !== false && columns.length) await record(columns.map(c => c.header), true);
   await consumeRows(rows, signal, row => {

@@ -289,8 +289,9 @@ function assertScalar(value) {
 }
 /** @internal Validate selected values before a destination interprets presentation. */
 function assertExportValue(value) {
-    if (!(value instanceof ExportCell))
-        assertScalar(value);
+    if (value !== null && typeof value === "object" && value instanceof ExportCell)
+        return;
+    assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
@@ -455,7 +456,7 @@ return _exports;
 })();
 
 const _m6 = (() => {
-const { beginTask, checkAbort, consumeRows, withAbort } = _m4;
+const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
@@ -524,21 +525,28 @@ async function write(rows, sink, options) {
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
-    const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+    const resolved = (value) => value !== null && typeof value === "object" && value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
     function record(values, header = false, first = 0, snapshot) {
         if (!header && hasFormatters && first === 0)
             snapshot = Object.freeze(columns.map((_, i) => resolved(values[i])));
+        let text = "";
         for (let i = first; i < columns.length; i++) {
+            checkAbort(signal);
             const column = columns[i];
             const raw = resolved(values[i]);
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
-            if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
-                return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+            checkAbort(signal);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+            if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
+                if (buffer.append(text))
+                    return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+                text = "";
+            }
         }
-        if (buffer.append(lineEnding))
+        if (buffer.append(text + lineEnding))
             return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
     }
     if (options.includeHeader !== false && columns.length)
@@ -5063,7 +5071,7 @@ return _exports;
 })();
 
 const _m46 = (() => {
-const { ExportCell, assertScalar } = _m5;
+const { ExportCell, assertExportValue } = _m5;
 
 const { tableSpans } = _m34;
 
@@ -5071,9 +5079,7 @@ const { member } = _m45;
 
 /** @internal */
 function value(input) {
-    if (input instanceof ExportCell)
-        return input;
-    assertScalar(input);
+    assertExportValue(input);
     return input;
 }
 /** @internal */
@@ -5183,6 +5189,7 @@ function createDataTablesExport(host, table, options = {}) {
     const config = safeOptions(options.exportOptions ?? {});
     const stripOptions = { stripHtml: true, stripNewlines: true, decodeEntities: true, trim: true, ...config };
     const stripOwner = host.Buttons, strip = member(stripOwner, "stripData");
+    const stripData = typeof strip === "function" ? strip.bind(stripOwner) : undefined;
     if (mode === "batched" && !config.format?.body && typeof strip !== "function")
         throw new TypeError("DataTables API requires stripData().");
     if (mode === "batched" && config.customizeData)
@@ -5304,7 +5311,7 @@ function createDataTablesExport(host, table, options = {}) {
                         node = exact[0];
                     }
                     const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, node)
-                        : Reflect.apply(strip, stripOwner, [rendered[cell], stripOptions]);
+                        : stripData(rendered[cell], stripOptions);
                     batch[row][column] = project(formatted, rowIndex, column, first + row);
                     if ((cell & 127) === 127 && taskYieldDue()) {
                         await pause();
@@ -5383,6 +5390,10 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
     }
     else {
         const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
+        // A plain leaf heading already matches the shared CSV header contract. Avoid a
+        // second async-generator delegation around every data row in this common case.
+        const directHeader = !source.footer && headingCount === 1 && source.headers[0].every((cell, i) => typeof cell === "string" && cell === source.columns[i].header);
+        const extraRows = directHeader ? 0 : headingCount + footerCount;
         async function* rows() {
             for (const header of source.headers)
                 yield header;
@@ -5390,10 +5401,10 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
             if (source.footer)
                 yield source.footer;
         }
-        result = await writeCsvTo(rows(), destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: false,
-            ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
+        result = await writeCsvTo(directHeader ? source.rows : rows(), destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: directHeader,
+            ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + extraRows) } } : {}),
             onProgress: event => {
-                const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));
+                const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - (directHeader ? 0 : headingCount)));
                 options.onProgress?.({ ...event, rows: rowCount, totalRows: source.rowCount });
             } });
     }

@@ -36,6 +36,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   const config = safeOptions(options.exportOptions ?? {});
   const stripOptions = { stripHtml: true, stripNewlines: true, decodeEntities: true, trim: true, ...config };
   const stripOwner = host.Buttons, strip = member(stripOwner, "stripData");
+  const stripData = typeof strip === "function" ? (strip as (input: unknown, options: unknown) => unknown).bind(stripOwner) : undefined;
   if (mode === "batched" && !config.format?.body && typeof strip !== "function")
     throw new TypeError("DataTables API requires stripData().");
   if (mode === "batched" && config.customizeData) throw new TypeError("customizeData requires compatibility mode.");
@@ -141,7 +142,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
             node = exact[0];
           }
           const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex as number, columnIndex as number, node)
-            : Reflect.apply(strip as (...args: unknown[]) => unknown, stripOwner, [rendered[cell], stripOptions]);
+            : stripData!(rendered[cell], stripOptions);
           batch[row]![column] = project(formatted, rowIndex as number, column, first + row);
           if ((cell & 127) === 127 && taskYieldDue()) { await pause(); checkAbort(signal); }
         }

@@ -120,6 +120,17 @@ test("CSV row limits count data rows and progress excludes grouped headings and 
   await assert.rejects(writeDataTableTo(host, table, "csv", { write() {} }, { limits: { maxOutputBytes: 1 } }), /maxOutputBytes/);
 });
 
+test("plain CSV headings preserve quoting, data-row limits and completion through a borrowed sink", async () => {
+  const { host, table } = fixture({ grouped: false }); const events = [], chunks = [];
+  const options = { headings: "leaf", includeFooter: false, csv: { quote: "strings" },
+    limits: { maxRows: 2, maxCells: 6 }, onProgress: event => events.push(event) };
+  const result = await writeDataTableTo(host, table, "csv", { write: bytes => chunks.push(bytes.slice()) }, options);
+  assert.equal(Buffer.concat(chunks).toString(), '"Name","Amount"\r\n"first",7.5\r\n"second",12.5\r\n');
+  assert.deepEqual(result, { rows: 2, columns: 2, bytes: Buffer.concat(chunks).length });
+  assert.equal(events.at(-1).rows, 2); assert.equal(events.at(-1).totalRows, 2);
+  await assert.rejects(writeDataTableTo(host, table, "csv", { write() {} }, { ...options, limits: { maxCells: 5 } }), /maxCells/);
+});
+
 test("cancellation stops the next projection batch and preserves the caller's reason", async () => {
   const { host, table, calls } = fixture(); const controller = new AbortController(), reason = new Error("cancel export");
   const source = createDataTablesExport(host, table, { batchRows: 1, signal: controller.signal });

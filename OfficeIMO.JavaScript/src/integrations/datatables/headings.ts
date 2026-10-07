@@ -1,12 +1,11 @@
 import type { ExportValue, TableSpanRows } from "../../core/index.js";
-import { ExportCell, assertScalar } from "../../core/presentation.js";
+import { ExportCell, assertExportValue } from "../../core/presentation.js";
 import { tableSpans } from "../../internal/table-spans.js";
 import { member } from "./api.js";
 
 /** @internal */
 export function value(input: unknown): ExportValue {
-  if (input instanceof ExportCell) return input;
-  assertScalar(input); return input;
+  assertExportValue(input); return input;
 }
 /** @internal */
 export function text(input: unknown): string {
