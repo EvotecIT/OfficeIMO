@@ -40,6 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
             paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
             MaterializeDocumentDefaultSpacing(paragraphStyles, styles);
+            MaterializeDocumentDefaultCharacterScale(paragraphStyles, styles);
 
             var orderedStyleIds = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

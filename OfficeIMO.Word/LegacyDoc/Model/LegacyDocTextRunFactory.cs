@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 styleRelative: format.StyleRelative,
                 styleInverted: format.StyleInverted,
                 characterSpacingTwips: format.CharacterSpacingTwips,
+                characterScalePercentage: format.CharacterScalePercentage,
                 kerningMinimumFontSizeHalfPoints: format.KerningMinimumFontSizeHalfPoints,
                 language: format.Language,
                 eastAsiaLanguage: format.EastAsiaLanguage,

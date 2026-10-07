@@ -931,6 +931,7 @@ namespace OfficeIMO.Word {
                 styleRelative: source.StyleRelative,
                 styleInverted: source.StyleInverted,
                 characterSpacingTwips: source.CharacterSpacingTwips,
+                characterScalePercentage: source.CharacterScalePercentage,
                 kerningMinimumFontSizeHalfPoints: source.KerningMinimumFontSizeHalfPoints,
                 language: source.Language,
                 eastAsiaLanguage: source.EastAsiaLanguage,
@@ -1946,6 +1947,11 @@ namespace OfficeIMO.Word {
                 string fontSize = characterFormat.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 properties.AddChild(new FontSize { Val = fontSize }, true);
                 properties.AddChild(new FontSizeComplexScript { Val = fontSize }, true);
+                hasProperties = true;
+            }
+
+            if (characterFormat.CharacterScalePercentage.HasValue) {
+                properties.AddChild(new CharacterScale { Val = characterFormat.CharacterScalePercentage.Value }, true);
                 hasProperties = true;
             }
 

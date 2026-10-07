@@ -210,6 +210,10 @@ namespace OfficeIMO.Word {
 
             StyleRunProperties properties = style.StyleRunProperties ?? style.AppendChild(new StyleRunProperties());
 
+            if (characterFormat.CharacterScalePercentage.HasValue) {
+                ReplaceStyleProperty(properties, new CharacterScale { Val = characterFormat.CharacterScalePercentage.Value });
+            }
+
             if (characterFormat.KerningMinimumFontSizeHalfPoints.HasValue) {
                 ReplaceStyleProperty(properties, new Kern { Val = (uint)characterFormat.KerningMinimumFontSizeHalfPoints.Value });
             }

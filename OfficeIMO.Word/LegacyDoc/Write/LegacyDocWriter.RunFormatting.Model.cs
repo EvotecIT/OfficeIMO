@@ -25,14 +25,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             FontFamily = 1 << 17,
             CharacterSpacing = 1 << 18,
             Language = 1 << 19,
-            Kerning = 1 << 20
+            Kerning = 1 << 20,
+            CharacterScale = 1 << 21
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
             internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
             internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null, ushort? languageId = null, ushort? eastAsiaLanguageId = null, LegacyDocRevision revision = default, int? kerningMinimumFontSizeHalfPoints = null) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null, ushort? languageId = null, ushort? eastAsiaLanguageId = null, LegacyDocRevision revision = default, int? kerningMinimumFontSizeHalfPoints = null, int? characterScalePercentage = null) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -52,6 +53,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ColorHex = colorHex;
                 FontFamily = fontFamily;
                 CharacterSpacingTwips = characterSpacingTwips;
+                CharacterScalePercentage = characterScalePercentage;
                 KerningMinimumFontSizeHalfPoints = kerningMinimumFontSizeHalfPoints;
                 LanguageId = languageId;
                 EastAsiaLanguageId = eastAsiaLanguageId;
@@ -97,6 +99,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal int? CharacterSpacingTwips { get; }
 
+            internal int? CharacterScalePercentage { get; }
+
             internal int? KerningMinimumFontSizeHalfPoints { get; }
 
             internal ushort? LanguageId { get; }
@@ -105,7 +109,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal LegacyDocRevision Revision { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || KerningMinimumFontSizeHalfPoints != null || CharacterSpacingTwips != null || LanguageId != null || EastAsiaLanguageId != null || Revision.HasValue || HasExplicitOffFormatting;
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || KerningMinimumFontSizeHalfPoints != null || CharacterSpacingTwips != null || CharacterScalePercentage != null || LanguageId != null || EastAsiaLanguageId != null || Revision.HasValue || HasExplicitOffFormatting;
 
             private LegacyDocWritableFormattingProperties Specified { get; }
 
@@ -138,7 +142,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     languageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? LanguageId : inherited.LanguageId,
                     eastAsiaLanguageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? EastAsiaLanguageId : inherited.EastAsiaLanguageId,
                     revision: Revision.HasValue ? Revision : inherited.Revision,
-                    kerningMinimumFontSizeHalfPoints: IsSpecified(LegacyDocWritableFormattingProperties.Kerning) ? KerningMinimumFontSizeHalfPoints : inherited.KerningMinimumFontSizeHalfPoints);
+                    kerningMinimumFontSizeHalfPoints: IsSpecified(LegacyDocWritableFormattingProperties.Kerning) ? KerningMinimumFontSizeHalfPoints : inherited.KerningMinimumFontSizeHalfPoints,
+                    characterScalePercentage: IsSpecified(LegacyDocWritableFormattingProperties.CharacterScale) ? CharacterScalePercentage : inherited.CharacterScalePercentage);
             }
 
             // Note reference characters retain source typography as well as the
@@ -147,7 +152,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Bold, Italic, Strike, DoubleStrike, Outline, Shadow, Emboss, Imprint, Hidden, NoProof,
                 true, Caps, VerticalPosition, Underline, Highlight, FontSizeHalfPoints, ColorHex, FontFamily,
                 Specified | LegacyDocWritableFormattingProperties.Special, CharacterSpacingTwips,
-                LanguageId, EastAsiaLanguageId, Revision, KerningMinimumFontSizeHalfPoints);
+                LanguageId, EastAsiaLanguageId, Revision, KerningMinimumFontSizeHalfPoints, CharacterScalePercentage);
 
             internal LegacyDocWritableFormatting WithRevision(LegacyDocRevision revision) {
                 return new LegacyDocWritableFormatting(
@@ -174,7 +179,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     LanguageId,
                     EastAsiaLanguageId,
                     revision,
-                    KerningMinimumFontSizeHalfPoints);
+                    KerningMinimumFontSizeHalfPoints,
+                    CharacterScalePercentage);
             }
 
             private bool HasExplicitOffFormatting =>
@@ -224,6 +230,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
                     && CharacterSpacingTwips == other.CharacterSpacingTwips
+                    && CharacterScalePercentage == other.CharacterScalePercentage
                     && KerningMinimumFontSizeHalfPoints == other.KerningMinimumFontSizeHalfPoints
                     && LanguageId == other.LanguageId
                     && EastAsiaLanguageId == other.EastAsiaLanguageId
@@ -255,6 +262,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
                 hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
+                hash = (hash * 31) + CharacterScalePercentage.GetHashCode();
                 hash = (hash * 31) + KerningMinimumFontSizeHalfPoints.GetHashCode();
                 hash = (hash * 31) + LanguageId.GetHashCode();
                 hash = (hash * 31) + EastAsiaLanguageId.GetHashCode();

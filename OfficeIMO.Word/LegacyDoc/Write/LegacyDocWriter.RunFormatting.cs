@@ -153,6 +153,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string? colorHex = null;
             string? fontFamily = null;
             int? characterSpacingTwips = null;
+            int? characterScalePercentage = null;
             int? kerningMinimumFontSizeHalfPoints = null;
             ushort? languageId = null;
             ushort? eastAsiaLanguageId = null;
@@ -247,6 +248,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         specified |= LegacyDocWritableFormattingProperties.Kerning;
                         kerningMinimumFontSizeHalfPoints = ReadSupportedKerning(kern);
                         break;
+                    case CharacterScale characterScale:
+                        specified |= LegacyDocWritableFormattingProperties.CharacterScale;
+                        characterScalePercentage = ReadSupportedCharacterScale(characterScale);
+                        break;
                     case Spacing spacing:
                         specified |= LegacyDocWritableFormattingProperties.CharacterSpacing;
                         characterSpacingTwips = ReadSupportedCharacterSpacing(spacing);
@@ -267,11 +272,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, character spacing, kerning, and language run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, character spacing, character scale, kerning, and language run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified, characterSpacingTwips: characterSpacingTwips, kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints, languageId: languageId, eastAsiaLanguageId: eastAsiaLanguageId);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified, characterSpacingTwips: characterSpacingTwips, characterScalePercentage: characterScalePercentage, kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints, languageId: languageId, eastAsiaLanguageId: eastAsiaLanguageId);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -658,6 +663,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.KerningMinimumFontSizeHalfPoints.HasValue) {
                 AddInt16CharacterSprm(grpprl, SprmCHpsKern, formatting.KerningMinimumFontSizeHalfPoints.Value);
+            }
+
+            if (formatting.CharacterScalePercentage.HasValue) {
+                AddUInt16Sprm(grpprl, SprmCCharScale, (ushort)formatting.CharacterScalePercentage.Value);
             }
 
             if (formatting.CharacterSpacingTwips != null || formatting.IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing)) {

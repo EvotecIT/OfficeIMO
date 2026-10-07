@@ -30,7 +30,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocRevision revision = default,
             int? kerningMinimumFontSizeHalfPoints = null,
             LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
-            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None)
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
+            int? characterScalePercentage = null)
             : this(
                 text,
                 bold,
@@ -63,7 +64,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 revision: revision,
                 kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints,
                 styleRelative: styleRelative,
-                styleInverted: styleInverted) {
+                styleInverted: styleInverted,
+                characterScalePercentage: characterScalePercentage) {
         }
 
         internal LegacyDocTextRun(
@@ -98,7 +100,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocRevision revision = default,
             int? kerningMinimumFontSizeHalfPoints = null,
             LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
-            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None) {
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
+            int? characterScalePercentage = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -120,6 +123,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            CharacterScalePercentage = characterScalePercentage;
             KerningMinimumFontSizeHalfPoints = kerningMinimumFontSizeHalfPoints;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
@@ -174,6 +178,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FontFamily { get; }
 
         internal int? CharacterSpacingTwips { get; }
+
+        internal int? CharacterScalePercentage { get; }
 
         internal int? KerningMinimumFontSizeHalfPoints { get; }
 

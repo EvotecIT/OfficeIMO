@@ -52,9 +52,10 @@ text.Spacing = 10;        // Twips: 10 adds half a point per glyph.
 ```
 
 Set `CharacterScale` to 100 for an explicit normal-width override, or to `null`
-to remove the direct setting and restore style inheritance. DOCX round trips
-retain both values. Native DOC writing supports tracking; character width scaling
-remains an explicitly rejected unsupported setting.
+to remove the direct setting and restore style inheritance. DOCX and supported
+native DOC round trips retain run width and tracking in body text, tables, links,
+headers, footers and notes. Native DOC also preserves character width in paragraph
+styles and document defaults, including explicit normal-width overrides.
 
 When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
 
