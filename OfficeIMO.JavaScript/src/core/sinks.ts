@@ -1,4 +1,4 @@
-import { checkAbort, withAbort, inputRows, pause, taskYieldDue } from "./iteration.js";
+import { checkAbort, consumeRows, withAbort, pause, taskYieldDue } from "./iteration.js";
 import { OfficeIMOError } from "./errors.js";
 
 /** Writes must resolve only after the sink accepts bytes. Ownership stays with the caller. */
@@ -76,8 +76,8 @@ export class ChunkedTextSink {
 
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 export async function writeBytes(source: ByteSource, sink: ByteSink, signal?: AbortSignal): Promise<void> {
-  for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+  await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
     if (!(bytes instanceof Uint8Array)) throw new TypeError("Byte sources must yield Uint8Array chunks.");
-    await withAbort(Promise.resolve(sink.write(bytes)), signal);
-  }
+    return sink.write(bytes);
+  });
 }

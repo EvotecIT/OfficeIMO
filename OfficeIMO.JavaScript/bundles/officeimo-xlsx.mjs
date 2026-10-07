@@ -175,7 +175,7 @@ return _exports;
 })();
 
 const _m4 = (() => {
-const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m2;
+const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
@@ -269,11 +269,11 @@ class ChunkedTextSink {
 }
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 async function writeBytes(source, sink, signal) {
-    for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+    await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
         if (!(bytes instanceof Uint8Array))
             throw new TypeError("Byte sources must yield Uint8Array chunks.");
-        await withAbort(Promise.resolve(sink.write(bytes)), signal);
-    }
+        return sink.write(bytes);
+    });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
 return _exports;
@@ -635,7 +635,7 @@ const _m10 = (() => {
 
 const { EntryWriter, zipSize } = _m11;
 
-const { checkAbort, withAbort, pause } = _m2;
+const { checkAbort, withAbort, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
@@ -835,7 +835,7 @@ class ZipWriter {
         try {
             for (let i = 0; i < this.central.length; i++) {
                 await this.emit(this.central[i]);
-                if (i % 256 === 255)
+                if (i % 256 === 255 && taskYieldDue())
                     await pause();
             }
             const end = header(0x06054b50, 22);
@@ -2160,7 +2160,7 @@ return _exports;
 })();
 
 const _m17 = (() => {
-const { checkAbort, inputRows } = _m2;
+const { beginTask, checkAbort, consumeRows, inputRows } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
 
@@ -2429,10 +2429,48 @@ class Worksheet {
             yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
         yield '</row>';
     }
-    async writeRow(values, number, header, footer = false, title = false) {
-        for (const chunk of this.rowXml(values, number, header, footer, title))
-            if (this.buffer.append(chunk))
-                await this.buffer.flush();
+    writeRow(values, number, header, footer = false, title = false) {
+        const chunks = this.rowXml(values, number, header, footer, title);
+        const append = () => {
+            while (true) {
+                const next = chunks.next();
+                if (next.done)
+                    return;
+                if (this.buffer.append(next.value))
+                    return this.buffer.flush().then(append);
+            }
+        };
+        return append();
+    }
+    async sampleRow(values) {
+        if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
+        const encoded = [];
+        for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
+            if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
+                if (this.options.autoSize?.sampleRows !== undefined)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                // Resume this serialized row so callbacks, totals and links run only once.
+                this.layout.sample(values);
+                await this.start();
+                for (const retained of encoded)
+                    if (this.buffer.append(retained))
+                        await this.buffer.flush();
+                encoded.length = 0;
+            }
+            if (this.started) {
+                if (this.buffer.append(chunk))
+                    await this.buffer.flush();
+            }
+            else {
+                this.pendingCharacters += chunk.length;
+                encoded.push(chunk);
+            }
+        }
+        if (!this.started) {
+            this.layout.sample(values);
+            this.pending.push(encoded);
+        }
     }
     reserveLayout() {
         if (this.reservedLayout)
@@ -2507,60 +2545,31 @@ class Worksheet {
             throw this.error;
         this.busy = true;
         try {
+            beginTask();
             this.reserveLayout();
             if (!this.layout.sampleRows)
                 await this.start();
             let checkpoint = performance.now();
-            for await (const row of inputRows(rows, this.book.settings.signal)) {
+            const progress = () => { if (performance.now() - checkpoint >= 50) {
+                this.progress();
+                checkpoint = performance.now();
+            } };
+            const completed = () => {
+                this.count++;
+                if (!this.started && this.pending.length >= this.layout.sampleRows)
+                    return this.start().then(progress);
+                progress();
+            };
+            await consumeRows(rows, this.book.settings.signal, row => {
                 if (this.count + this.headerRows + (this.options.footer ? 1 : 0) >= 1048576)
                     throw new RangeError("Excel supports at most 1,048,576 rows including headers and footers; split the sheet.");
                 this.book.budget.row(this.count + 1);
                 if (!this.columns.length)
                     throw new RangeError("Declare columns before adding rows.");
                 const values = this.project(row, this.count);
-                if (!this.started) {
-                    if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
-                        throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
-                    const encoded = [];
-                    for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
-                        if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
-                            if (this.options.autoSize?.sampleRows !== undefined)
-                                throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
-                            // Automatic sizing can finish early. Continue this same serialized row so
-                            // custom writers, presentation callbacks, totals and links run only once.
-                            this.layout.sample(values);
-                            await this.start();
-                            for (const retained of encoded)
-                                if (this.buffer.append(retained))
-                                    await this.buffer.flush();
-                            encoded.length = 0;
-                        }
-                        if (this.started) {
-                            if (this.buffer.append(chunk))
-                                await this.buffer.flush();
-                        }
-                        else {
-                            this.pendingCharacters += chunk.length;
-                            encoded.push(chunk);
-                        }
-                    }
-                    if (!this.started) {
-                        this.layout.sample(values);
-                        this.pending.push(encoded);
-                    }
-                    this.count++;
-                    if (!this.started && this.pending.length >= this.layout.sampleRows)
-                        await this.start();
-                }
-                else {
-                    await this.writeRow(values, this.count + this.headerRows + 1, false);
-                    this.count++;
-                }
-                if (performance.now() - checkpoint >= 50) {
-                    this.progress();
-                    checkpoint = performance.now();
-                }
-            }
+                const pending = !this.started ? this.sampleRow(values) : this.writeRow(values, this.count + this.headerRows + 1, false);
+                return pending ? pending.then(completed) : completed();
+            });
             if (this.buffer)
                 await this.buffer.flush();
             this.progress();

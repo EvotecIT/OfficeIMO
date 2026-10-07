@@ -20,7 +20,7 @@ globalThis.prepareDataTablesMeasurement = function (spec) {
   return { rows: comparisonTable.rows().count(), dataTables: DataTable.version, buttons: DataTable.Buttons.version, nativeExporters };
 };
 
-globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYields = false, yieldTransport = 'native') {
+globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYields = false) {
   comparisonBlob = undefined;
   let gatherMs = 0, compressionMs = null, maxTimerGapMs = 0, heap = performance.memory?.usedJSHeapSize ?? null;
   let tick = performance.now();
@@ -28,11 +28,10 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
     if (performance.memory) heap = Math.max(heap ?? 0, performance.memory.usedJSHeapSize); };
   const timer = setInterval(sample, 16), originalGather = comparisonTable.buttons.exportData;
   const originalUrl = URL.createObjectURL, originalZip = JSZip.prototype.generateAsync;
-  const originalChannel = globalThis.MessageChannel;
   const originalTimeout = globalThis.setTimeout;
   const originalStrip = DataTable.Buttons.stripData, originalCells = comparisonTable.cells;
   let stripMs = 0, stripCalls = 0, renderMs = 0, indexesMs = 0;
-  const yieldDelays = [], timeoutDelays = []; let yieldPosts = 0;
+  const timeoutDelays = [];
   if (diagnosticYields) {
     DataTable.Buttons.stripData = function (...args) {
       const start = performance.now(); try { return originalStrip.apply(this, args); }
@@ -48,22 +47,7 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
   if (diagnosticYields) globalThis.setTimeout = function (callback, delay, ...args) {
     if (typeof callback !== 'function' || delay !== 0 || callback.name !== 'finish') return originalTimeout.call(this, callback, delay, ...args);
     const started = performance.now();
-    return originalTimeout.call(this, function (...values) { timeoutDelays.push(performance.now() - started); return callback.apply(this, values); }, yieldTransport === 'message' ? 64 : delay, ...args);
-  };
-  if (diagnosticYields && yieldTransport === 'timer') globalThis.MessageChannel = undefined;
-  else if (diagnosticYields && yieldTransport === 'window') globalThis.MessageChannel = function () {
-    const key = 'OfficeIMO-yield-profile-' + Math.random(); let posted;
-    const channel = { port1: { onmessage: undefined, close() { window.removeEventListener('message', listener); } },
-      port2: { postMessage() { posted = performance.now(); yieldPosts++; window.postMessage(key, '*'); }, close() {} } };
-    const listener = event => { if (event.source === window && event.data === key) { yieldDelays.push(performance.now() - posted); channel.port1.onmessage?.(event); } };
-    window.addEventListener('message', listener); return channel;
-  };
-  else if (diagnosticYields) globalThis.MessageChannel = function () {
-    const channel = new originalChannel(); let posted;
-    const post = channel.port2.postMessage;
-    channel.port2.postMessage = function (...args) { posted = performance.now(); yieldPosts++; return post.apply(this, args); };
-    channel.port1.addEventListener('message', () => yieldDelays.push(performance.now() - posted));
-    return channel;
+    return originalTimeout.call(this, function (...values) { timeoutDelays.push(performance.now() - started); return callback.apply(this, values); }, delay, ...args);
   };
   comparisonTable.buttons.exportData = function (...args) {
     const start = performance.now(); try { return originalGather.apply(this, args); } finally { gatherMs += performance.now() - start; }
@@ -110,16 +94,14 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
     sample(); await new Promise(resolve => setTimeout(resolve, 0)); sample();
     return { exportMs, gatherMs, compressionMs, outputBytes: comparisonBlob.size, maxTimerGapMs, peakSampledJsHeapBytes: heap,
       rows: comparisonSpec.rows, columns: comparisonSpec.columns, lane, format,
-      ...(diagnosticYields ? { diagnosticYields: { posts: yieldPosts, messages: yieldDelays.length,
-        totalDelayMs: yieldDelays.reduce((a, b) => a + b, 0), maxDelayMs: Math.max(0, ...yieldDelays),
-        timeouts: timeoutDelays.length, totalTimeoutMs: timeoutDelays.reduce((a, b) => a + b, 0),
-        schedulerPostTask: typeof globalThis.scheduler?.postTask === 'function', yieldTransport,
+      ...(diagnosticYields ? { diagnosticYields: {
+        timeouts: timeoutDelays.length, totalTimeoutMs: timeoutDelays.reduce((a, b) => a + b, 0), maxTimeoutMs: Math.max(0, ...timeoutDelays),
+        schedulerPostTask: typeof globalThis.scheduler?.postTask === 'function',
         stripMs, stripCalls, renderMs, indexesMs } } : {}) };
   } finally {
     clearInterval(timer); comparisonTable.buttons.exportData = originalGather;
     URL.createObjectURL = originalUrl; JSZip.prototype.generateAsync = originalZip;
     window.removeEventListener('unhandledrejection', failedGeneration);
-    globalThis.MessageChannel = originalChannel;
     globalThis.setTimeout = originalTimeout;
     DataTable.Buttons.stripData = originalStrip; comparisonTable.cells = originalCells;
   }

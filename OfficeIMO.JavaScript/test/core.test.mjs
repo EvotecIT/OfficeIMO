@@ -51,6 +51,16 @@ test("pending sink cancellation propagates the original reason", async () => {
   controller.abort(error); await assert.rejects(writing, e => e === error);
 });
 
+test("byte writes preserve sink failure while producer cleanup waits", { timeout: 2000 }, async () => {
+  const failure = new Error("sink failed"); let returned = 0, produced = 0;
+  const source = { [Symbol.iterator]() { return {
+    next() { produced++; return { done: false, value: Uint8Array.of(1) }; },
+    return() { returned++; return new Promise(() => {}); }
+  }; } };
+  await assert.rejects(writeBytes(source, { write() { throw failure; } }), error => error === failure);
+  assert.equal(returned, 1); assert.equal(produced, 1);
+});
+
 test("feature detection and typed errors work without a DOM", () => {
   assert.equal(detectFeatures().download, false);
   assert.equal(detectFeatures().blob, true);

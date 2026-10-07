@@ -175,7 +175,7 @@ return _exports;
 })();
 
 const _m2 = (() => {
-const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m3;
+const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
 
@@ -269,11 +269,11 @@ class ChunkedTextSink {
 }
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 async function writeBytes(source, sink, signal) {
-    for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+    await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
         if (!(bytes instanceof Uint8Array))
             throw new TypeError("Byte sources must yield Uint8Array chunks.");
-        await withAbort(Promise.resolve(sink.write(bytes)), signal);
-    }
+        return sink.write(bytes);
+    });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
 return _exports;
@@ -2052,7 +2052,7 @@ return _exports;
 const _m1 = (() => {
 const { BlobByteSink, withDestination } = _m2;
 
-const { checkAbort, inputRows, pause, taskYieldDue } = _m3;
+const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
 
 const { createRowProjector } = _m5;
 
@@ -2079,6 +2079,7 @@ async function writePdf(rows, configuration) {
 }
 async function writePdfTo(rows, destination, configuration) {
     const prepared = settings(configuration), { options, budget } = prepared;
+    beginTask();
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
         const objects = new PdfObjects(sink, options.signal, options.limits?.maxOutputBytes), root = objects.reserve(), parent = objects.reserve(), resources = objects.reserve(), info = objects.reserve();
@@ -2088,18 +2089,20 @@ async function writePdfTo(rows, destination, configuration) {
         await objects.text("%PDF-1.7\n");
         await objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
         await pages.start();
-        for await (const row of inputRows(rows, options.signal)) {
-            budget.row(count + 1);
-            const values = project(row, count);
-            await pages.row(layout.data(values, count));
+        const completed = () => {
             count++;
             if (count % 256 === 0) {
                 options.onProgress?.({ phase: "rows", rows: count, bytes: objects.bytes });
                 if (taskYieldDue())
-                    await pause();
+                    return pause().then(() => { checkAbort(options.signal); });
             }
             checkAbort(options.signal);
-        }
+        };
+        await consumeRows(rows, options.signal, row => {
+            budget.row(count + 1);
+            const values = project(row, count);
+            return pages.row(layout.data(values, count)).then(completed);
+        });
         const footer = layout.footer(count);
         if (footer) {
             if (options.footer?.rows)

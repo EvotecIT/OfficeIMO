@@ -93,7 +93,7 @@ The runner retains each operation's measurement, content hash and validation res
 
 For bottleneck investigation, the JSON-line `--datatables-session` protocol accepts `"profile": true` on a `run` request after `prepare`. Chromium writes the native DevTools CPU profile to `export.cpuprofile` in the session's evidence directory and detaches the profiling session before returning. Deliver and validate that export through the usual `validate` request. Profiling perturbs timing; keep these captures separate from controlled comparison runs and copy a profile before another capture replaces it.
 
-`"diagnosticYields": true` instruments message and timer scheduling in the same isolated browser session. The optional `"yieldTransport"` selects the `native`, `timer`, `message` or `window` fallback for this diagnostic only; browsers with a native task scheduler continue using that scheduler. The profile reports scheduler availability and callback delays. Message and timer races can record a late callback after the other path has already resumed work; their totals must not be added together as export waiting time. Transport overrides and instrumentation perturb timing and are excluded from controlled rankings. Browser globals are restored after the operation, and output follows the same independent validation route.
+`"diagnosticYields": true` instruments fallback timer delays and public cell-render/index/text-stripping calls in the same isolated browser session. The profile reports native task-scheduler availability. Instrumentation perturbs timing and is excluded from controlled rankings. Browser globals and API methods are restored after the operation, and output follows the same independent validation route.
 
 ## Representative export qualification
 

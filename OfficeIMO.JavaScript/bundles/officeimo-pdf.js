@@ -182,8 +182,8 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("390ca72bd9d19c431f76b77bc254a5bb47d2de8186121d6e29dc67cf42f9e20d") ?? (() => {
-const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m3;
+const _m2 = _modules.get("ea13376ef9f25647261e5c8c64b544a30ec7ec93c1af2f7e2c5e724569403e92") ?? (() => {
+const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
 
@@ -277,14 +277,14 @@ class ChunkedTextSink {
 }
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 async function writeBytes(source, sink, signal) {
-    for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+    await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
         if (!(bytes instanceof Uint8Array))
             throw new TypeError("Byte sources must yield Uint8Array chunks.");
-        await withAbort(Promise.resolve(sink.write(bytes)), signal);
-    }
+        return sink.write(bytes);
+    });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("390ca72bd9d19c431f76b77bc254a5bb47d2de8186121d6e29dc67cf42f9e20d", _exports);
+_modules.set("ea13376ef9f25647261e5c8c64b544a30ec7ec93c1af2f7e2c5e724569403e92", _exports);
 return _exports;
 })();
 
@@ -2074,10 +2074,10 @@ _modules.set("8bc35ead288b0bf4ce8a6544a3901090d957f44de3001cd8683241798c6644b0",
 return _exports;
 })();
 
-const _m1 = _modules.get("1d2bb7bddf48656995c10e7d1e9f3fe37d5f2e79c24f68b8a0e83ae56c620609") ?? (() => {
+const _m1 = _modules.get("cd32d010b50d2833cbe72a7aef83e4840b890009f45891104992d1a05cde7dbe") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
-const { checkAbort, inputRows, pause, taskYieldDue } = _m3;
+const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
 
 const { createRowProjector } = _m5;
 
@@ -2104,6 +2104,7 @@ async function writePdf(rows, configuration) {
 }
 async function writePdfTo(rows, destination, configuration) {
     const prepared = settings(configuration), { options, budget } = prepared;
+    beginTask();
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
         const objects = new PdfObjects(sink, options.signal, options.limits?.maxOutputBytes), root = objects.reserve(), parent = objects.reserve(), resources = objects.reserve(), info = objects.reserve();
@@ -2113,18 +2114,20 @@ async function writePdfTo(rows, destination, configuration) {
         await objects.text("%PDF-1.7\n");
         await objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
         await pages.start();
-        for await (const row of inputRows(rows, options.signal)) {
-            budget.row(count + 1);
-            const values = project(row, count);
-            await pages.row(layout.data(values, count));
+        const completed = () => {
             count++;
             if (count % 256 === 0) {
                 options.onProgress?.({ phase: "rows", rows: count, bytes: objects.bytes });
                 if (taskYieldDue())
-                    await pause();
+                    return pause().then(() => { checkAbort(options.signal); });
             }
             checkAbort(options.signal);
-        }
+        };
+        await consumeRows(rows, options.signal, row => {
+            budget.row(count + 1);
+            const values = project(row, count);
+            return pages.row(layout.data(values, count)).then(completed);
+        });
         const footer = layout.footer(count);
         if (footer) {
             if (options.footer?.rows)
@@ -2148,11 +2151,11 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("1d2bb7bddf48656995c10e7d1e9f3fe37d5f2e79c24f68b8a0e83ae56c620609", _exports);
+_modules.set("cd32d010b50d2833cbe72a7aef83e4840b890009f45891104992d1a05cde7dbe", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("656864d52678719f1c491fc1d41aa5d1460a2889720a4d90ce5ac8b328f829aa") ?? (() => {
+const _m21 = _modules.get("8213e25702bf1e663b9c980883bc6ce6e2aae916b89100533781d41afefc4e99") ?? (() => {
 
 
 
@@ -2195,14 +2198,14 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m6.ExportCell, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("656864d52678719f1c491fc1d41aa5d1460a2889720a4d90ce5ac8b328f829aa", _exports);
+_modules.set("8213e25702bf1e663b9c980883bc6ce6e2aae916b89100533781d41afefc4e99", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("27b754c252ef342fe27b3020a3b32b062e120f8858964b28af63d8b4d4f8a13c") ?? (() => {
+const _m0 = _modules.get("9f004dbf2cbd4b38ca19058eb91744da4c73a00d56c4cbccbcb536062ab628dd") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, PdfFont: _m12.PdfFont, ExportCell: _m6.ExportCell, saveBlob: _m21.saveBlob });
-_modules.set("27b754c252ef342fe27b3020a3b32b062e120f8858964b28af63d8b4d4f8a13c", _exports);
+_modules.set("9f004dbf2cbd4b38ca19058eb91744da4c73a00d56c4cbccbcb536062ab628dd", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m21, pdf: _m0 });
