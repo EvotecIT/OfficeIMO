@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Pdf {
             WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out _);
             string? text = GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride);
             IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = textBox == null
-                ? null
+                ? CreateNativeHeaderFooterSpacingReplacements(paragraph, nativeFontMap)
                 : CreateNativeHeaderFooterTextBoxListReplacements(textBox, listMarkers, nativeFontMap);
             AddNativeHeaderFooterResolvedParagraphText(parts, paragraph, text, pageNumberStyle, forcedZone ?? zoneOverride, listMarkers, nativeFontMap, replacements);
         }
@@ -64,6 +64,11 @@ namespace OfficeIMO.Word.Pdf {
                     parts.Append(resolvedZone.Value, string.Empty, pageNumberStyle, markerRun: null, contentStyleRun: null);
                 }
                 return;
+            }
+
+            NativeResolvedTextStyle paragraphTextStyle = ResolveNativeTextRunStyle(paragraph, nativeFontMap: nativeFontMap);
+            if (contentStyleRun == null && HasNativeTextSpacing(paragraphTextStyle.TextSpacing)) {
+                contentStyleRun = CreateNativeHeaderFooterStyledTextRun(resolvedText, paragraphTextStyle, 0D);
             }
 
             if (resolvedZone.HasValue) {
@@ -204,18 +209,24 @@ namespace OfficeIMO.Word.Pdf {
             string text,
             NativeResolvedTextStyle style,
             double horizontalOffset) =>
-            new PdfCore.PdfTextRun(
+            style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
                 text.Replace('\t', ' '),
                 bold: style.Bold,
+                underline: style.Underline,
                 color: style.Color,
                 italic: style.Italic,
+                strike: style.Strike,
                 fontSize: style.FontSize,
                 font: style.Font,
-                fontFamily: style.FontFamily)
-            .WithHorizontalOffset(horizontalOffset);
+                baseline: style.Baseline,
+                backgroundColor: style.BackgroundColor,
+                fontFamily: style.FontFamily,
+                underlineStyle: style.UnderlineStyle,
+                strikeStyle: style.StrikeStyle)
+            .WithHorizontalOffset(horizontalOffset));
 
         private static PdfCore.PdfTextRun CloneNativeHeaderFooterTextRun(PdfCore.PdfTextRun source, string text) =>
-            new PdfCore.PdfTextRun(
+            CopyNativeTextSpacing(source, new PdfCore.PdfTextRun(
                 text.Replace('\t', ' '),
                 source.Bold,
                 source.Underline,
@@ -231,7 +242,7 @@ namespace OfficeIMO.Word.Pdf {
                 strikeStyle: source.StrikeStyle,
                 decorationColor: source.DecorationColor)
             .WithFeatureSettings(source.FeatureSettings)
-            .WithHorizontalOffset(source.HorizontalOffset);
+            .WithHorizontalOffset(source.HorizontalOffset));
 
         private static string? GetNativeHeaderFooterParagraphText(
             WordParagraph paragraph,

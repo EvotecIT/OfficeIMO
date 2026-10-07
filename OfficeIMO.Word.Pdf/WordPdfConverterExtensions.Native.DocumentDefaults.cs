@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeDocumentDefaults(string? FontFamily, string? Language, double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
+            public NativeTextSpacing TextSpacing { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
             // A missing docDefaults element follows Word's 12pt application fallback.
             public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
@@ -58,6 +59,7 @@ namespace OfficeIMO.Word.Pdf {
             W.RunPropertiesBaseStyle? defaultRuns = defaults.GetFirstChild<W.RunPropertiesDefault>()?.GetFirstChild<W.RunPropertiesBaseStyle>();
             return new NativeDocumentDefaults(fontFamily, language, fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth) {
                 ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns),
+                TextSpacing = default(NativeTextSpacing).Merge(defaultRuns),
                 LineSpacing = ReadNativeLineSpacing(spacing)
             };
         }

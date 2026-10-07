@@ -16,12 +16,14 @@ namespace OfficeIMO.Word.Pdf {
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
+            public NativeTextSpacing TextSpacing { get; init; }
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
+            public NativeTextSpacing TextSpacing { get; init; }
             public NativeParagraphPaginationDefaults ParagraphPagination { get; init; }
             public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
@@ -61,6 +63,7 @@ namespace OfficeIMO.Word.Pdf {
             double? paragraphRightIndent = null;
             double? paragraphFirstLineIndent = null;
             NativeComplexScriptDefaults complexScript = default;
+            NativeTextSpacing textSpacing = default;
             double? fontSize = null;
             string? fontFamily = null;
             bool? bold = null;
@@ -81,6 +84,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
                 complexScript = complexScript.Merge(runProperties);
+                textSpacing = textSpacing.Merge(runProperties);
                 fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
                 fontFamily = ResolveNativeRunFontsFamily(table.Document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
                 bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
@@ -225,7 +229,7 @@ namespace OfficeIMO.Word.Pdf {
                     baseline,
                     colorHex,
                     highlight,
-                    null) { ComplexScript = complexScript },
+                    null) { ComplexScript = complexScript, TextSpacing = textSpacing },
                 firstRowStyle,
                 lastRowStyle,
                 firstColumnStyle,
@@ -344,6 +348,7 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphRightIndent ?? result.ParagraphRightIndent,
                     paragraphFirstLineIndent ?? result.ParagraphFirstLineIndent) {
                     ComplexScript = result.ComplexScript.Merge(runProperties),
+                    TextSpacing = result.TextSpacing.Merge(runProperties),
                     LineSpacing = ReadNativeLineSpacing(spacing).Inherit(result.LineSpacing),
                     ParagraphPagination = result.ParagraphPagination.Merge(paragraphProperties)
                 };

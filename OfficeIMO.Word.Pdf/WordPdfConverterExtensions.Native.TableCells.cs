@@ -663,7 +663,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfTextRun previous = target[target.Count - 1];
-            target[target.Count - 1] = new PdfCore.PdfTextRun(
+            target[target.Count - 1] = CopyNativeTextSpacing(previous, new PdfCore.PdfTextRun(
                 previous.Text + run.Text,
                 bold: previous.Bold,
                 underline: previous.Underline,
@@ -676,7 +676,7 @@ namespace OfficeIMO.Word.Pdf {
                 backgroundColor: previous.BackgroundColor,
                 fontFamily: previous.FontFamily,
                 underlineStyle: previous.UnderlineStyle,
-                strikeStyle: previous.StrikeStyle);
+                strikeStyle: previous.StrikeStyle));
         }
 
         private static bool CanMergeNativeCellTextRuns(PdfCore.PdfTextRun left, PdfCore.PdfTextRun right) =>
@@ -700,12 +700,14 @@ namespace OfficeIMO.Word.Pdf {
             left.Font == right.Font &&
             string.Equals(left.FontFamily, right.FontFamily, StringComparison.OrdinalIgnoreCase) &&
             left.Baseline == right.Baseline &&
+            left.HorizontalTextScaling == right.HorizontalTextScaling &&
+            left.CharacterSpacing == right.CharacterSpacing &&
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
 
         private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return new PdfCore.PdfTextRun(
+            return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
                 underline: style.Underline,
@@ -719,7 +721,7 @@ namespace OfficeIMO.Word.Pdf {
                 backgroundColor: style.BackgroundColor,
                 fontFamily: style.FontFamily,
                 underlineStyle: style.UnderlineStyle,
-                strikeStyle: style.StrikeStyle);
+                strikeStyle: style.StrikeStyle));
         }
 
         private static IReadOnlyList<PdfCore.PdfTextRun> CreateNativeCellListMarkerRuns(string marker, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, double firstLineIndent, NativeFontMap? nativeFontMap) {
@@ -775,7 +777,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return new PdfCore.PdfTextRun(
+            return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || destinationName != null,
@@ -796,7 +798,7 @@ namespace OfficeIMO.Word.Pdf {
                         ? OfficeTextDecorationStyle.Single
                         : style.UnderlineStyle
                     : OfficeTextDecorationStyle.None,
-                strikeStyle: style.StrikeStyle);
+                strikeStyle: style.StrikeStyle));
         }
 
         private static PdfCore.PdfTextRun CreateNativeCellTabRun(IReadOnlyList<WordTabStop> tabStops, int tabIndex) {
