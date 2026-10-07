@@ -40,7 +40,8 @@ internal readonly struct PdfPageVisualPrimitive {
         int sourceOperatorIndex = 0,
         PdfContentOrderKey? contentOrderKey = null,
         bool isSelfColoredShading = false,
-        PdfStrokeDashPattern? strokeDashPattern = null) {
+        PdfStrokeDashPattern? strokeDashPattern = null, PdfPageFunctionPaint? functionPaint = null) {
+        FunctionPaint = functionPaint;
         Kind = kind;
         X = x;
         Y = y;
@@ -146,6 +147,14 @@ internal readonly struct PdfPageVisualPrimitive {
         return true;
     }
 
+    internal PdfPageFunctionPaint? FunctionPaint { get; }
+
+    internal static PdfPageVisualPrimitive FunctionRectangle(double x, double y, double width, double height,
+        PdfPageFunctionPaint paint, double? opacity, PdfPageClipPath? clip, double order) =>
+        new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Rectangle, x, y, width, height, x, y, x + width, y + height,
+            Array.Empty<OfficePathCommand>(), null, null, null, null, null, null, 0D, OfficeStrokeDashStyle.Solid,
+            null, null, opacity, null, OfficeFillRule.EvenOdd, clip, order, isSelfColoredShading: true, functionPaint: paint);
+
     public PdfPageVisualPrimitiveKind Kind { get; }
 
     public double X { get; }
@@ -203,7 +212,7 @@ internal readonly struct PdfPageVisualPrimitive {
     public PdfPageTilingPatternPaint? StrokeTilingPattern { get; }
 
     internal bool HasFillPaint =>
-        FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null;
+        FillColor.HasValue || FillGradient != null || FillRadialGradient != null || FillTilingPattern != null || FunctionPaint != null;
 
     internal bool HasStrokePaint =>
         StrokeColor.HasValue || StrokeGradient != null || StrokeRadialGradient != null || StrokeTilingPattern != null;
@@ -233,7 +242,7 @@ internal readonly struct PdfPageVisualPrimitive {
         PdfPageTilingPatternPaint? strokeTilingPattern,
         OfficeLinearGradient? strokeGradient,
         OfficeRadialGradient? strokeRadialGradient) =>
-        new PdfPageVisualPrimitive(
+        FunctionPaint != null ? this : new PdfPageVisualPrimitive(
             Kind,
             X,
             Y,
@@ -268,7 +277,7 @@ internal readonly struct PdfPageVisualPrimitive {
             SourceOperatorIndex,
             ContentOrderKey,
             IsSelfColoredShading,
-            StrokeDashPattern);
+            StrokeDashPattern, FunctionPaint);
 
     internal PdfPageVisualPrimitive WithPaintOrder(double paintOrder) =>
         new PdfPageVisualPrimitive(
@@ -302,7 +311,7 @@ internal readonly struct PdfPageVisualPrimitive {
             SourceOperatorIndex,
             ContentOrderKey,
             IsSelfColoredShading,
-            StrokeDashPattern);
+            StrokeDashPattern, FunctionPaint);
 
     internal PdfPageVisualPrimitive WithSourceOperatorIndex(int sourceOperatorIndex) =>
         new PdfPageVisualPrimitive(
@@ -311,7 +320,7 @@ internal readonly struct PdfPageVisualPrimitive {
             StrokeColor, StrokeGradient, StrokeRadialGradient,
             StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
             FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
-            FillTilingPattern, StrokeTilingPattern, sourceOperatorIndex, ContentOrderKey, IsSelfColoredShading, StrokeDashPattern);
+            FillTilingPattern, StrokeTilingPattern, sourceOperatorIndex, ContentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint);
 
     internal PdfPageVisualPrimitive WithContentOrderKey(PdfContentOrderKey contentOrderKey) =>
         new PdfPageVisualPrimitive(
@@ -320,7 +329,7 @@ internal readonly struct PdfPageVisualPrimitive {
             StrokeColor, StrokeGradient, StrokeRadialGradient,
             StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
             FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
-            FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, contentOrderKey, IsSelfColoredShading, StrokeDashPattern);
+            FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, contentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint);
 
     private static void Include(OfficePoint point, ref bool hasPoint, ref double left, ref double top, ref double right, ref double bottom) {
         if (!hasPoint) {

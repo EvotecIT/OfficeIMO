@@ -42,6 +42,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.word",
         "officeimo.reader.word.legacy",
         "officeimo.reader.xml",
+        "officeimo.reader.xps",
         "officeimo.reader.yaml",
         "officeimo.reader.zip"
     };
@@ -65,6 +66,23 @@ public sealed class ReaderAllPresetTests {
             oneNote.Extensions.OrderBy(extension => extension, StringComparer.Ordinal).ToArray());
         Assert.DoesNotContain(modular, capability => capability.Id.Contains("ocr", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(modular, capability => capability.Id.Contains("provider", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void PresetReadsBothXpsDialectsThroughTheirNativeAdapter() {
+        var reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        foreach (var format in new[] { OfficeIMO.Xps.XpsFormat.Xps, OfficeIMO.Xps.XpsFormat.OpenXps }) {
+            var document = OfficeIMO.Xps.XpsDocument.Create(format);
+            var page = document.AddPage(200, 100);
+            var markup = page.GetMarkup();
+            markup.Add(new System.Xml.Linq.XElement(markup.Name.Namespace + "Glyphs",
+                new System.Xml.Linq.XAttribute("UnicodeString", "Native preset text")));
+            page.ReplaceMarkup(markup);
+            var result = reader.ReadDocument(document.Save(), "input" + (format == OfficeIMO.Xps.XpsFormat.Xps ? ".xps" : ".oxps"));
+            Assert.Equal(ReaderInputKind.Xps, result.Kind);
+            Assert.Equal("Native preset text", Assert.Single(result.Chunks).Text);
+            Assert.Equal(OfficeDocumentPageProvenance.Native, result.GetPageProvenance());
+        }
     }
 
     [Fact]

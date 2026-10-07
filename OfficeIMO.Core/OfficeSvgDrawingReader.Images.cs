@@ -36,21 +36,15 @@ public static partial class OfficeSvgDrawingReader {
         string? alternativeText = element.Attributes()
             .FirstOrDefault(attribute => attribute.Name.LocalName.Equals("aria-label", StringComparison.OrdinalIgnoreCase))?.Value;
 
-        if (!references.TryChargeEmbeddedImage(drawing.Width, drawing.Height,
+        if (!references.TryChargeEmbeddedImage(Math.Ceiling(width), Math.Ceiling(height),
                 info.Width, info.Height, style.Opacity)) return false;
 
-        var imageLayer = new OfficeDrawing(drawing.Width, drawing.Height);
-        imageLayer.AddClippedImageSharedWithInterpolation(
-            bytes,
-            contentType,
-            projection,
-            true,
-            0D,
-            0D,
-            OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
-            alternativeText,
-            style.Opacity);
-        drawing.AddEffectDrawing(imageLayer, transform);
+        // Rasterize the image in its own local rectangle, then place/transform it.
+        // An intermediate destination-sized surface would clip negative source
+        // coordinates before a group or pattern transform brings them into view.
+        var imageLayer = new OfficeDrawing(width, height);
+        imageLayer.AddImageSharedWithInterpolation(bytes, contentType, projection.Translate(-x, -y), true, alternativeText, style.Opacity);
+        drawing.AddEffectDrawing(imageLayer, OfficeTransform.Translate(x, y).Then(transform));
         return true;
     }
 

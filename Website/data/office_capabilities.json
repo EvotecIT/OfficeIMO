@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 67,
-    "operationCount": 1382
+    "packageCount": 68,
+    "operationCount": 1384
   },
   "fidelityStates": [
     {
@@ -5460,8 +5460,9 @@
     {
       "id": "OfficeIMO.Workflows",
       "slug": "workflows",
-      "capabilityCount": 8,
+      "capabilityCount": 9,
       "formats": [
+        "Book project",
         "Book.Project",
         "DOCX",
         "EPUB",
@@ -5479,7 +5480,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -5540,6 +5541,31 @@
         },
         {
           "id": "Validate",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Xps.Pdf",
+      "slug": "xps-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "PDF",
+        "XPS/OpenXPS"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
           "states": [
             {
               "id": "Partial",

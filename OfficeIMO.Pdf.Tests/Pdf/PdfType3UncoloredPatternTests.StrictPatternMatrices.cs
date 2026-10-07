@@ -243,7 +243,7 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void VisualParser_RejectsApproximatelyAxisAlignedRadialShadingTransform() {
+    public void VisualParser_AcceptsApproximatelyAxisAlignedRadialShadingTransform() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0D,
             10D, 10D, 5D,
@@ -255,6 +255,6 @@ public partial class PdfType3UncoloredPatternTests {
             pattern,
             new Matrix2D(1D, 0.0000000001D, 0D, 2D, 0D, 0D));
 
-        Assert.False(supported);
+        Assert.True(supported);
     }
 }

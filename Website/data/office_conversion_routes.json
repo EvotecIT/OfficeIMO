@@ -42,6 +42,26 @@
       "agentDiscoverable":true
     },
     {
+      "id":"xps-pdf",
+      "source":"XPS/OpenXPS",
+      "target":"PDF",
+      "inputKind":"File",
+      "sourceExtensions":[ ".xps", ".oxps" ],
+      "targetExtension":".pdf",
+      "packageId":"OfficeIMO.Xps.Pdf",
+      "api":"XpsDocument.Load(stream).SavePdf(output, options)",
+      "description":"Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.",
+      "fidelity":"FixedLayout",
+      "textFormatting":"FixedLayoutAppearance",
+      "textFormattingContract":"Preserves supported font styling as fixed-layout PDF text and graphics; conversion diagnostics identify source semantics the managed renderer approximates or omits.",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
+      "knownLimitations":"Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts.",
+      "resultContract":"PdfSaveResult",
+      "browserAvailable":false,
+      "agentDiscoverable":true
+    },
+    {
       "id":"docx-pdf",
       "source":"DOCX",
       "target":"PDF",

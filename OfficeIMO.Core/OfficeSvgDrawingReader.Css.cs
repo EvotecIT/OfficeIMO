@@ -343,7 +343,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool IsSvgPresentationPropertyName(string propertyName) => propertyName.ToLowerInvariant() switch {
-        "baseline-shift" or "clip-path" or "clip-rule" or "color" or "display" or "dominant-baseline" or "fill" or "fill-opacity" or "fill-rule" or
+        "baseline-shift" or "clip-path" or "clip-rule" or "color" or "color-interpolation" or "display" or "dominant-baseline" or "fill" or "fill-opacity" or "fill-rule" or
         "filter" or "flood-color" or "flood-opacity" or "font-family" or "font-size" or "font-style" or "font-stretch" or "font-weight" or "line-height" or "marker-end" or
         "marker-mid" or "marker-start" or "mask" or "mask-type" or "mix-blend-mode" or "opacity" or "stop-color" or "stop-opacity" or
         "stroke" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap" or "stroke-linejoin" or
@@ -370,6 +370,11 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0) return true;
         switch (name) {
+            case "color-interpolation":
+                if (!value.Equals("sRGB", StringComparison.OrdinalIgnoreCase) &&
+                    !value.Equals("linearRGB", StringComparison.OrdinalIgnoreCase) &&
+                    !value.Equals("auto", StringComparison.OrdinalIgnoreCase)) unsupported++;
+                break;
             case "transform":
                 if (!value.Equals("none", StringComparison.OrdinalIgnoreCase) &&
                     !OfficeSvgTransformParser.TryParse(value, out _)) unsupported++;
@@ -522,7 +527,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool IsInheritedSvgCssPropertyName(string propertyName) => propertyName.ToLowerInvariant() switch {
-        "color" or "fill" or "fill-opacity" or "fill-rule" or "font-family" or "font-size" or
+        "color" or "color-interpolation" or "fill" or "fill-opacity" or "fill-rule" or "font-family" or "font-size" or
         "font-style" or "font-stretch" or "font-weight" or "line-height" or "marker-end" or "marker-mid" or "marker-start" or
         "stroke" or "stroke-dasharray" or "stroke-dashoffset" or "stroke-linecap" or "stroke-linejoin" or
         "stroke-miterlimit" or "stroke-opacity" or "stroke-width" or "text-anchor" or "text-orientation" or
@@ -536,6 +541,7 @@ public static partial class OfficeSvgDrawingReader {
             "clip-path" => "none",
             "clip-rule" => "nonzero",
             "color" => "black",
+            "color-interpolation" => "sRGB",
             "display" => "inline",
             "dominant-baseline" => "auto",
             "fill" => "black",

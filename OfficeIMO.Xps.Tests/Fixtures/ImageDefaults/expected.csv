@@ -1,0 +1,17 @@
+file,x,y,r,g,b,a
+rgb-calibrated.tif,4,4,128,64,32,255
+rgb-calibrated.tif,12,4,32,128,192,255
+rgba-calibrated.tif,4,4,128,64,32,128
+rgba-calibrated.tif,12,4,32,128,192,128
+gray-calibrated.tif,4,4,128,128,128,255
+gray-calibrated.tif,12,4,128,128,128,255
+rgb-oriented.tif,4,4,128,64,32,255
+rgb-oriented.tif,12,4,32,128,192,255
+rgb-oriented-profile.tif,4,4,128,64,32,255
+rgb-oriented-profile.tif,12,4,32,128,192,255
+rgba-unspecified.tif,4,4,128,64,32,255
+rgba-unspecified.tif,12,4,32,128,192,255
+rgb-calibrated.jpg,4,4,128,63,31,255
+rgb-calibrated.jpg,12,4,33,128,192,255
+gray-calibrated.jpg,4,4,128,128,128,255
+gray-calibrated.jpg,12,4,128,128,128,255

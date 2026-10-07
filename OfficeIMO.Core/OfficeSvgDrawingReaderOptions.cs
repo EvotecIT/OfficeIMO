@@ -4,6 +4,10 @@ namespace OfficeIMO.Drawing;
 /// Controls bounded SVG import limits for trusted inputs that legitimately contain many elements.
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
+    /// <summary>Retains source identifiers as paint-neutral metadata for owned format adapters.</summary>
+    internal bool RetainSourceElementIds { get; set; }
+    /// <summary>Uses the first containing ellipse for native point-focus radial Pad fields.</summary>
+    internal bool UseFirstRadialIntersection { get; set; }
     /// <summary>Cancellation observed during SVG import and managed filter processing.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
@@ -75,6 +79,9 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// Maximum number of descendant and expanded reference elements. Increase this only for trusted SVG input.
     /// </summary>
     public int MaximumElements { get; set; } = DefaultMaximumElements;
+
+    /// <summary>Maximum geometric path/polygon commands, including expanded references. Defaults to 20000; explicitly bounded fixed-page imports can request up to 1000000. Text, effects, and raster safety retain their separate limits.</summary>
+    public int MaximumGeometryCommands { get; set; } = 20000;
 
     /// <summary>Maximum SVG viewport width or height. Increase this only for trusted SVG input.</summary>
     public double MaximumViewportDimension { get; set; } = DefaultMaximumViewportDimension;

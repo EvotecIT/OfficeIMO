@@ -5,6 +5,7 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.Xps;
 using System.Text.Json.Serialization;
 
 namespace OfficeIMO.Workflows;
@@ -26,6 +27,8 @@ public sealed class OfficeWorkflowConversionOptions {
     public MarkdownToPdfOptions? Markdown { get; set; }
     /// <summary>Existing RTF renderer settings.</summary>
     public RtfToPdfOptions? Rtf { get; set; }
+    /// <summary>Native XPS/OpenXPS semantic preservation and PDF output settings.</summary>
+    public XpsToPdfOptions? Xps { get; set; }
     /// <summary>Literal-text settings, valid only for the TXT-to-PDF route.</summary>
     public PdfPlainTextOptions? PlainText { get; set; }
     /// <summary>Known legacy DOC import loss blocks output unless explicitly accepted.</summary>
@@ -55,6 +58,7 @@ public sealed class OfficeWorkflowConversionOptions {
         copy.Html = Html?.ClonePdf();
         copy.Markdown = Markdown?.Clone();
         copy.Rtf = Rtf?.Clone();
+        copy.Xps = Xps?.Clone();
         return copy;
     }
 
@@ -76,6 +80,7 @@ public sealed class OfficeWorkflowConversionOptions {
         if (routeId != "html-pdf") copy.Html = null;
         if (routeId != "markdown-pdf") copy.Markdown = null;
         if (routeId != "rtf-pdf") copy.Rtf = null;
+        if (routeId != "xps-pdf") copy.Xps = null;
         if (routeId != "txt-pdf") copy.PlainText = null;
         if (routeId != "doc-pdf") copy.LegacyDocLossPolicy = OfficeConversionLossPolicy.Block;
         if (!route.SupportsPageSelection) copy.PageRanges = null;
@@ -95,7 +100,7 @@ public sealed class OfficeWorkflowConversionOptions {
         if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
             (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
             (copy.Html != null && route.Id != "html-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
-            (copy.Rtf != null && route.Id != "rtf-pdf"))
+            (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Xps != null && route.Id != "xps-pdf"))
             throw new ArgumentException("Renderer settings must match the selected conversion route.");
         if (copy.Html?.ResourceResolver != null)
             throw new ArgumentException("Workflow HTML resources use the scoped source resolver. Use the native HTML adapter for runtime custom resolvers.");
@@ -126,7 +131,7 @@ public sealed class OfficeWorkflowConversionOptions {
     }
 
     internal PdfOptions? GetOutputPdfOptions() => Word?.PdfOptions ?? Excel?.PdfOptions ?? PowerPoint?.PdfOptions
-        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? Rtf?.PdfOptions ?? PlainText?.PdfOptions;
+        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? Rtf?.PdfOptions ?? PlainText?.PdfOptions ?? Xps?.PdfOptions;
 
     internal PdfReadOptions? CreateReadOptions() => string.IsNullOrWhiteSpace(PageRanges) ? null
         : new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) };

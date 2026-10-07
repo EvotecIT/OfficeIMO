@@ -348,28 +348,6 @@ public static partial class OfficeDrawingRasterRenderer {
         return hasPoint && right > left && bottom > top;
     }
 
-    private static OfficeLinearGradient TransformShapeFillGradient(
-        OfficeDrawingShape drawingShape,
-        double scale,
-        IReadOnlyList<IReadOnlyList<OfficePoint>> transformedContours,
-        OfficeLinearGradient gradient) {
-        if (!TryGetContourBounds(transformedContours, out double left, out double top,
-                out double right, out double bottom)) {
-            return gradient;
-        }
-
-        OfficeShape shape = drawingShape.Shape;
-        double width = right - left;
-        double height = bottom - top;
-        OfficeTransform coordinates = OfficeTransform.Scale(shape.Width, shape.Height)
-            .Then(shape.Transform ?? OfficeTransform.Identity)
-            .Then(OfficeTransform.Translate(drawingShape.X, drawingShape.Y))
-            .Then(OfficeTransform.Scale(scale, scale))
-            .Then(OfficeTransform.Translate(-left, -top))
-            .Then(OfficeTransform.Scale(1D / width, 1D / height));
-        return gradient.TransformCoordinates(coordinates);
-    }
-
     private static IDisposable PushClipPolygons(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>
         fillRule == OfficeFillRule.NonZero
             ? canvas.PushClipPolygonsNonZero(contours)
@@ -478,7 +456,7 @@ public static partial class OfficeDrawingRasterRenderer {
             gradient.StartY,
             gradient.EndX,
             gradient.EndY,
-            stops);
+            stops).WithColorInterpolation(gradient.ColorInterpolation);
     }
 
     private static OfficeRadialGradient ApplyOpacity(OfficeRadialGradient gradient, double? opacity) {
@@ -494,16 +472,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 ApplyOpacity(stop.Color, opacity) ?? stop.Color));
         }
 
-        return new OfficeRadialGradient(
-            gradient.StartX,
-            gradient.StartY,
-            gradient.StartRadiusX,
-            gradient.StartRadiusY,
-            gradient.EndX,
-            gradient.EndY,
-            gradient.EndRadiusX,
-            gradient.EndRadiusY,
-            stops);
+        return gradient.WithStops(stops);
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {

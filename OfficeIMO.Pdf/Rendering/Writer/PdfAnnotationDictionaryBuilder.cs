@@ -27,7 +27,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /A << /S /URI /URI " +
-            PdfSyntaxEscaper.LiteralString(uri) +
+            PdfSyntaxEscaper.UriString(uri) +
             " >>" +
             BuildStructParentEntry(structParentIndex) +
             " >>\n";

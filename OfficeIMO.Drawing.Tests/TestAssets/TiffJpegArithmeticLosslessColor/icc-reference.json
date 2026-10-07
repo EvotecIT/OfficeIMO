@@ -1,0 +1,32 @@
+{
+  "littleCmsVersion": 2190,
+  "profileSHA256": "1a996ebe6b5d1e7a21620993ce1903df16e4e8fa6cca312bedfb5ae133e62b4d",
+  "intent": "relative colorimetric",
+  "input": "native TIFF CMYK; associated colorants divided by native alpha before ICC; no Adobe inversion",
+  "sha256": {
+    "p5-b12-be0-t0-pl1-e-1.tif.icc-rgba": "7acf3fe95c7fa7663396a3930c9772ae79d1318ab1cd29b64dfff139434d8a32",
+    "p5-b12-be0-t1-pl2-e-1.tif.icc-rgba": "7acf3fe95c7fa7663396a3930c9772ae79d1318ab1cd29b64dfff139434d8a32",
+    "p5-b12-be0-t1-pl2-e1.tif.icc-rgba": "380b6e871f692fb278a2c6d81e9a0ce716b010e80a5ac7a3132c28abe18433e3",
+    "p5-b12-be0-t1-pl2-e2.tif.icc-rgba": "2fda77901644ce849357d240a976e959a8abb665e0f1d336d0f9a5e222a95ead",
+    "p5-b12-be1-t0-pl2-e-1.tif.icc-rgba": "fea7c0e6d4a7ed00b80e1d790129143e27377ce7f7e8a221a911bb23485a1387",
+    "p5-b12-be1-t0-pl2-e1.tif.icc-rgba": "dedaf1bf98dd5323f5a48bdf640e292b876e71be89a2bb537de70a3fd224f876",
+    "p5-b12-be1-t0-pl2-e2.tif.icc-rgba": "2fda77901644ce849357d240a976e959a8abb665e0f1d336d0f9a5e222a95ead",
+    "p5-b12-be1-t1-pl1-e-1.tif.icc-rgba": "7acf3fe95c7fa7663396a3930c9772ae79d1318ab1cd29b64dfff139434d8a32",
+    "p5-b16-be0-t0-pl1-e-1.tif.icc-rgba": "ba404f7dcb680d41816eb375b4d1de1b28c40b6c096a61e79163daa867a0e82e",
+    "p5-b16-be0-t1-pl2-e-1.tif.icc-rgba": "ba404f7dcb680d41816eb375b4d1de1b28c40b6c096a61e79163daa867a0e82e",
+    "p5-b16-be0-t1-pl2-e1.tif.icc-rgba": "878dfea9f449679e001f3321300a59fbf5b2ec502060220cf6c27d8160f99113",
+    "p5-b16-be0-t1-pl2-e2.tif.icc-rgba": "5282d4c88e1a6ed6a8f188a9c20ec45e77464551c097328b6d786ad285160140",
+    "p5-b16-be1-t0-pl2-e-1.tif.icc-rgba": "8c1ff36bb9bdcc16ebc20e623d7bf533f392dfc2a4bda1fbdbc47539d807b2ad",
+    "p5-b16-be1-t0-pl2-e1.tif.icc-rgba": "878dfea9f449679e001f3321300a59fbf5b2ec502060220cf6c27d8160f99113",
+    "p5-b16-be1-t0-pl2-e2.tif.icc-rgba": "9c21788bd5c6055aae9e7d1cd17a5860c450a85e7225af129b401ef8120b4836",
+    "p5-b16-be1-t1-pl1-e-1.tif.icc-rgba": "8c1ff36bb9bdcc16ebc20e623d7bf533f392dfc2a4bda1fbdbc47539d807b2ad",
+    "p5-b8-be0-t0-pl1-e-1.tif.icc-rgba": "74702b08e15ce5e06d7d72230b3ffbe84e9d0e32c34aea78aa248cb20624ce5e",
+    "p5-b8-be0-t1-pl2-e-1.tif.icc-rgba": "74702b08e15ce5e06d7d72230b3ffbe84e9d0e32c34aea78aa248cb20624ce5e",
+    "p5-b8-be0-t1-pl2-e1.tif.icc-rgba": "f7ace6e943b4f1f96b923d8f5e93254e464ef71b3885a578bfa1c27aebeaa9e5",
+    "p5-b8-be0-t1-pl2-e2.tif.icc-rgba": "65aea018eed788512fe6332953184579604ce4b62c2dcb68138fad25e6d19388",
+    "p5-b8-be1-t0-pl2-e-1.tif.icc-rgba": "74702b08e15ce5e06d7d72230b3ffbe84e9d0e32c34aea78aa248cb20624ce5e",
+    "p5-b8-be1-t0-pl2-e1.tif.icc-rgba": "f872a83217065288dc9b74f3a9d20b99e586bcc8cd51116f126db25cdb5f958d",
+    "p5-b8-be1-t0-pl2-e2.tif.icc-rgba": "a38773fcca890a5a7a7e3af9835f36aecdaa0df7d4ece00dfa45d22e531f09de",
+    "p5-b8-be1-t1-pl1-e-1.tif.icc-rgba": "006325c5b0b58df02ea3dcaf05aad48e932d8df28261b9d9391777822966a337"
+  }
+}

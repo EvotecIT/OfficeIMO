@@ -45,10 +45,12 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
     public int MaxDiagnosticCharactersPerPage { get; set; } = 1 * 1024 * 1024;
     /// <summary>Continues a batch and returns a failed per-page report when rendering fails.</summary>
     public bool ContinueOnError { get; set; } = true;
-    internal double GetScale(OfficeDrawing drawing) {
+    internal double GetScale(OfficeDrawing drawing) => GetScale(drawing.Width, drawing.Height);
+
+    internal double GetScale(double width, double height) {
         double scale = Dpi.HasValue ? Dpi.Value / 72D : Scale;
         if (ThumbnailMaxDimension.HasValue) {
-            double thumbnailScale = ThumbnailMaxDimension.Value / Math.Max(drawing.Width, drawing.Height);
+            double thumbnailScale = ThumbnailMaxDimension.Value / Math.Max(width, height);
             scale = Math.Min(scale, thumbnailScale);
         }
 

@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="PdfPig" Version="0.1.14" />
@@ -113,4 +114,12 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/p1-d1-l4-t1-s1-r0-a1.tif.jpg" Link="TestAssets/Lossless16.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/edges/h2-v2-w5-h3-s0.jpg" Link="TestAssets/Lossless8.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/b8-*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/b8-*.pdf-*.srgb" Link="TestAssets/JpegArithmeticColor/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/IccColorCorpus/littlecms-cmyk-lut.icc" Link="TestAssets/JpegArithmeticColor/profile.icc" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -355,12 +355,6 @@ public sealed class PdfReverseConversionScorecardTests {
         }
     }
 
-    private static string FindRepositoryRoot() {
-        string? current = AppContext.BaseDirectory;
-        while (current is not null && !string.IsNullOrWhiteSpace(current)) {
-            if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
-            current = Directory.GetParent(current)?.FullName;
-        }
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
+    private static string FindRepositoryRoot() =>
+        RepositoryTestPaths.Find();
 }

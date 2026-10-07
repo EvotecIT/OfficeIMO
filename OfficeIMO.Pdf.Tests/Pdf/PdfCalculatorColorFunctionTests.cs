@@ -251,6 +251,12 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type4_RejectsExcessiveExecutionPathsEvenWithLargerSyntaxBudget() {
+        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 2048)) + "dup dup }";
+        Assert.False(PdfCalculatorProgram.TryParse(System.Text.Encoding.ASCII.GetBytes(program), out _));
+    }
+
+    [Fact]
     public void Type4_RejectsProgramsThatOverflowTheBoundedOperandStack() {
         string program = "{ " + string.Join(" ", Enumerable.Repeat("dup", 256)) + " }";
 
@@ -296,8 +302,10 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Theory]
-    [InlineData("{ 1 copy pop dup dup }", 256)]
-    [InlineData("{ dup dup 3 1 roll }", 768)]
+    [InlineData("{ 1 copy pop dup dup }", 1)]
+    [InlineData("{ 1 0 add copy pop dup dup }", 256)]
+    [InlineData("{ dup dup 3 1 roll }", 9)]
+    [InlineData("{ dup dup 3 0 add 1 roll }", 768)]
     public void Type4_WeightsVariableCostStackOperatorsForImageWorkBudgets(string program, int minimumVariableWork) {
         Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
             CalculatorFunction(1, 3, program),
@@ -307,7 +315,7 @@ public sealed partial class PdfColorFunctionTests {
             PdfReadLimits.DefaultMaxDecodedStreamBytes,
             out PdfColorFunction function));
 
-        Assert.True(function.EvaluationCost >= minimumVariableWork);
+        Assert.InRange(function.EvaluationCost, minimumVariableWork, minimumVariableWork + 20);
         int maximumPixels = (int)((PdfReadLimits.DefaultMaxDecodedStreamBytes / sizeof(double)) / function.EvaluationCost);
         PdfDictionary image = Dictionary(
             ("Width", Number(maximumPixels + 1)),
@@ -362,7 +370,7 @@ public sealed partial class PdfColorFunctionTests {
 
     [Fact]
     public void Type4_RejectsIndexedPalettesThatExceedNestedTransformWorkBudgets() {
-        string program = "{ dup dup " + string.Concat(Enumerable.Repeat("3 1 roll ", 171)) + "}";
+        string program = "{ dup dup " + string.Concat(Enumerable.Repeat("3 0 add 1 roll ", 171)) + "}";
         PdfArray indexed = Array(
             new PdfName("Indexed"),
             Array(

@@ -1018,7 +1018,7 @@ public sealed class SvgContentSafetyAdversarialTests {
             OfficeSvgDrawingReader.InspectContentSafety(svg).Findings,
             item => item.TextPreview == "group opacity payload");
 
-        Assert.Equal(OfficeContentConcealmentKind.NonPrimaryContent, finding.Kind);
+        Assert.Equal(OfficeContentConcealmentKind.Other, finding.Kind);
         Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability);
         Assert.Contains("group compositing", finding.Evidence, StringComparison.Ordinal);
     }

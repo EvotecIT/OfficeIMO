@@ -226,6 +226,7 @@ internal static partial class OfficeDocumentModelTraversal {
         return new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
+            LogicalOrder = source.LogicalOrder,
             SourceBlockIndex = source.SourceBlockIndex,
             StartLine = source.StartLine,
             EndLine = source.EndLine,
@@ -377,6 +378,7 @@ internal static partial class OfficeDocumentModelTraversal {
         var fallback = new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
+            LogicalOrder = source.LogicalOrder,
             SourceBlockIndex = source.SourceBlockIndex,
             StartLine = source.StartLine,
             EndLine = source.EndLine,
@@ -421,6 +423,7 @@ internal static partial class OfficeDocumentModelTraversal {
         return new ReaderLocation {
             Path = Prefer(location?.Path, fallback.Path),
             BlockIndex = location?.BlockIndex ?? fallback.BlockIndex,
+            LogicalOrder = location?.LogicalOrder ?? fallback.LogicalOrder,
             SourceBlockIndex = location?.SourceBlockIndex ?? fallback.SourceBlockIndex,
             StartLine = location?.StartLine ?? fallback.StartLine,
             EndLine = location?.EndLine ?? fallback.EndLine,

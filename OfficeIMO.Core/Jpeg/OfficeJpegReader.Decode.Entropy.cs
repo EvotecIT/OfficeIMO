@@ -6,22 +6,20 @@ namespace OfficeIMO.Drawing;
 internal static partial class OfficeJpegReader {
     private const int HuffmanFastBits = 9;
 
-    private static void DecodeBlock(
+    private static void DecodeBlockCoefficients(
         ref JpegBitReader reader,
         HuffmanTable dcTable,
         HuffmanTable acTable,
         int[] quant,
         ref int prevDc,
-        int[] coeffs,
-        byte[] pixels,
-        int[] workspace) {
+        int[] coeffs) {
         Array.Clear(coeffs, 0, 64);
 
         var t = DecodeHuffman(ref reader, dcTable, useFast: true);
         var diff = t == 0 ? 0 : Extend(reader.ReadBits(t), t);
-        var dc = prevDc + diff;
+        var dc = checked(prevDc + diff);
         prevDc = dc;
-        coeffs[0] = dc * quant[0];
+        coeffs[0] = checked(dc * quant[0]);
 
         var k = 1;
         while (k < 64) {
@@ -44,7 +42,7 @@ internal static partial class OfficeJpegReader {
                         reader.SkipBits(entry & 15);
                         k += run;
                         int index = ZigZag[k++];
-                        coeffs[index] = coefficient * quant[index];
+                        coeffs[index] = checked(coefficient * quant[index]);
                         continue;
                     }
                 }
@@ -65,11 +63,10 @@ internal static partial class OfficeJpegReader {
             if (k >= 64) break;
             var ac = Extend(reader.ReadBits(s), s);
             var zig = ZigZag[k];
-            coeffs[zig] = ac * quant[zig];
+            coeffs[zig] = checked(ac * quant[zig]);
             k++;
         }
 
-        InverseDct(coeffs, pixels, workspace);
     }
 
     private static int DecodeHuffman(ref JpegBitReader reader, HuffmanTable table, bool useFast) {
@@ -281,20 +278,24 @@ internal static partial class OfficeJpegReader {
         }
 
 
-        public void ExpectRestartMarker() {
+        public void ExpectRestartMarker(int expectedMarker = -1) {
             _bitBuffer = 0;
             _bitCount = 0;
             while (_pos < _data.Length) {
                 var b = _data[_pos++];
-                if (b != 0xFF) continue;
+                if (b != 0xFF) {
+                    if (expectedMarker >= 0) throw new FormatException("Unexpected JPEG restart data.");
+                    continue;
+                }
                 SkipFillBytes(_data, ref _pos, _cancellationToken);
                 if (_pos >= _data.Length) throw new FormatException("Unexpected JPEG end.");
                 var marker = _data[_pos++];
                 if (marker >= 0xD0 && marker <= 0xD7) {
+                    if (expectedMarker >= 0 && marker != expectedMarker) throw new FormatException("Unexpected JPEG restart sequence.");
                     RestartMarkerSeen = false;
                     return;
                 }
-                if (marker == 0x00) continue;
+                if (marker == 0x00 && expectedMarker < 0) continue;
                 throw new FormatException("Unexpected JPEG marker in scan.");
             }
             throw new FormatException("Missing JPEG restart marker.");

@@ -529,6 +529,13 @@ public sealed class PdfRedactionPlan {
             AppendIdentityGradient(identity, primitive.StrokeGradient);
             AppendIdentityGradient(identity, primitive.FillRadialGradient);
             AppendIdentityGradient(identity, primitive.StrokeRadialGradient);
+            if (primitive.FunctionPaint is PdfPageFunctionPaint functionPaint) {
+                identity.Append(":function:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, functionPaint.Resource.SourceDictionary, document.Objects);
+                var transform = functionPaint.InverseTransform;
+                AppendIdentityNumbers(identity, new[] { transform.M11, transform.M12, transform.M21,
+                    transform.M22, transform.OffsetX, transform.OffsetY });
+            }
             PdfRedactionImageIdentity.AppendClip(identity, primitive.ClipPath);
             AppendIdentityTilingPattern(identity, primitive.FillTilingPattern);
             AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern);
@@ -660,6 +667,7 @@ public sealed class PdfRedactionPlan {
         }
         identity.Append(":L,").Append(FormatIdentityNumber(gradient.StartX)).Append(',').Append(FormatIdentityNumber(gradient.StartY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY));
+        identity.Append(',').Append((int)gradient.ColorInterpolation);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 
@@ -672,6 +680,13 @@ public sealed class PdfRedactionPlan {
             .Append(',').Append(FormatIdentityNumber(gradient.StartRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.StartRadiusY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.EndRadiusY));
+        var transform = gradient.CoordinateTransform;
+        identity.Append(',').Append(FormatIdentityNumber(transform.M11)).Append(',').Append(FormatIdentityNumber(transform.M12))
+            .Append(',').Append(FormatIdentityNumber(transform.M21)).Append(',').Append(FormatIdentityNumber(transform.M22))
+            .Append(',').Append(FormatIdentityNumber(transform.OffsetX)).Append(',').Append(FormatIdentityNumber(transform.OffsetY));
+        identity.Append(',').Append((int)gradient.ColorInterpolation);
+        identity.Append(',').Append((int)gradient.SpreadMode);
+        AppendIdentityColor(identity, gradient.OutsideColor);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 

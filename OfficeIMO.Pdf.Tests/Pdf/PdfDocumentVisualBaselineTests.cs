@@ -324,23 +324,8 @@ public class PdfDocumentVisualBaselineTests {
     private static string GetExpectedPath(string fixtureName) =>
         Path.Combine(GetTestsProjectRoot(), "Pdf", "VisualBaselines", fixtureName + ".snapshot.txt");
 
-    private static string GetTestsProjectRoot() {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests.csproj"))) {
-                return directory.FullName;
-            }
-
-            string pdfProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests");
-            if (File.Exists(Path.Combine(pdfProjectRoot, "OfficeIMO.Pdf.Tests.csproj"))) {
-                return pdfProjectRoot;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate OfficeIMO PDF test project root from test runtime base directory.");
-    }
+    private static string GetTestsProjectRoot() =>
+        Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Pdf.Tests");
 
     private static string Format(double value) =>
         Math.Round(value, 1, MidpointRounding.AwayFromZero).ToString("0.0", CultureInfo.InvariantCulture);

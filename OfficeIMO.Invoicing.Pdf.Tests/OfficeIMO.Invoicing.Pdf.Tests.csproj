@@ -15,6 +15,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
+    <Compile Include="../OfficeIMO.TestAssets/RepositoryTestPaths.cs" Link="Shared/RepositoryTestPaths.cs" />
     <Compile Include="../OfficeIMO.Pdf.Tests/Pdf/PdfComplianceTestFonts.cs" Link="Shared/PdfComplianceTestFonts.cs" />
     <Compile Include="../OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs" Link="Shared/PdfExternalValidator.cs" />
   </ItemGroup>

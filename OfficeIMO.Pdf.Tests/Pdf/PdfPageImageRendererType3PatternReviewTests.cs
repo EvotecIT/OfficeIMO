@@ -850,13 +850,13 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForRotatedEllipticalRadialType3Pattern() {
+    public void RenderPage_RetainsRotatedEllipticalRadialType3Pattern() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
         string pattern = "7 0 obj\n<< /Type /Pattern /PatternType 2 /Matrix [1.414 1.414 -0.707 0.707 0 0] /Shading << /ShadingType 3 /ColorSpace /DeviceRGB /Coords [250 350 0 250 350 350] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern);
 
-        AssertType3FallsBackWithoutNativeShapes(pdf);
+        PdfAffineRadialAssertions.RetainsVectorRadialPaint(pdf);
     }
 
     [Fact]

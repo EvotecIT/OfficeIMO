@@ -92,6 +92,8 @@ public sealed class OfficeRasterDecodeOptions {
 
     internal long RetainedManagedBytes { get; set; }
     internal long MaximumInspectionWorkPixels { get; set; } = OfficeRasterGuards.MaximumPixels;
+    /// <summary>Owned fixed-page adapters use TIFF sample order instead of its optional display orientation.</summary>
+    internal bool IgnoreTiffOrientation { get; set; }
 
     internal OfficeRasterDecodeOptions WithAdditionalRetainedManagedBytes(long bytes) {
         if (bytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(bytes));
@@ -102,6 +104,7 @@ public sealed class OfficeRasterDecodeOptions {
             MaximumEncodedBytes = MaximumEncodedBytes,
             MaximumDecodedPixels = MaximumDecodedPixels,
             MaximumInspectionWorkPixels = MaximumInspectionWorkPixels,
+            IgnoreTiffOrientation = IgnoreTiffOrientation,
             CancellationToken = CancellationToken,
             RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
         };

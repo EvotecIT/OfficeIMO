@@ -386,10 +386,11 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.5 0.5 0 0.5 0.5 0.5]", content);
+        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB", content);
+        Assert.DoesNotContain("/Subtype /Image", content);
         Assert.Contains("/FunctionType 3 /Domain [0 1]", content);
         Assert.Contains("/Bounds [0.5] /Encode [0 1 0 1]", content);
-        Assert.Contains("q\n30 90 90 40 re W n\n90 0 0 40 30 90 cm\n/SH1 sh\nQ", content);
+        AssertRadialPaintMatchesSource(bytes, shape);
     }
 
     [Fact]
@@ -486,9 +487,19 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.5 0.5 0 0.5 0.5 0.5]", content);
+        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB", content);
+        Assert.DoesNotContain("/Subtype /Image", content);
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
-        Assert.Contains("q\n0 0 40 20 re W n\n40 0 0 -20 0 20 cm\n/SH1 sh\nQ", content);
+        AssertRadialPaintMatchesSource(bytes, shape);
+    }
+
+    private static void AssertRadialPaintMatchesSource(byte[] pdf, OfficeShape shape) {
+        var expected = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(220, 160).AddShape(shape, 30, 30), background: OfficeColor.White);
+        var actual = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
+        foreach (int y in new[] { 29, 35, 45, 50, 65, 71 }) foreach (int x in new[] { 29, 35, 45, 55, 60, 75, 95, 115, 121 }) {
+            OfficeColor e = expected.GetPixel(x, y), a = actual.GetPixel(x, y);
+            Assert.InRange(Math.Abs(e.R-a.R), 0, 3); Assert.InRange(Math.Abs(e.G-a.G), 0, 3); Assert.InRange(Math.Abs(e.B-a.B), 0, 3);
+        }
     }
 
     [Fact]
