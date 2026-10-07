@@ -35,6 +35,7 @@ internal static partial class PdfWriter {
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
+        bool pendingLeadingSeparator = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         PdfColor? pendingLeadingDecorationColor = null;
         double pendingLeadingDecorationFontSize = 0;
@@ -189,6 +190,7 @@ internal static partial class PdfWriter {
 
         void ResetPendingLeading() {
             pendingLeadingAdvance = 0;
+            pendingLeadingSeparator = false;
             pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingDecorationColor = null;
             pendingLeadingDecorationFontSize = 0;
@@ -210,6 +212,7 @@ internal static partial class PdfWriter {
         }
 
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
+            pendingLeadingSeparator = true;
             if (!hadTab) {
                 pendingLeadingAdvance = preserveWhitespace ? pendingLeadingAdvance + spaceW : spaceW;
                 pendingLeadingUnderlineStyle = currentRunUnderlineStyle;
@@ -328,7 +331,7 @@ internal static partial class PdfWriter {
                     runFontSize,
                     baseline,
                     inlineElement.Width,
-                    leadingSpace: leadingAdvance > 0D,
+                    leadingSpace: leadingAdvance != 0D,
                     leadingAdvance: leadingAdvance,
                     leadingSpaceIsExpandable: pendingLeadingIsExpandable,
                     leadingTabLeader: pendingLeadingTabLeader,
@@ -513,7 +516,7 @@ internal static partial class PdfWriter {
                     }
                 }
                 if (token.Length > 0) {
-                    bool needsLeadingSpace = pendingLeadingAdvance > 0 && (lineWidth > 0 || pendingLeadingIsTab || preserveWhitespace);
+                    bool needsLeadingSpace = pendingLeadingSeparator && (lineWidth != 0D || pendingLeadingIsTab || preserveWhitespace);
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;

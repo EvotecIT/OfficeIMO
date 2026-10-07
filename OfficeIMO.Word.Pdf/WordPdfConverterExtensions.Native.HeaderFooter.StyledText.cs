@@ -19,13 +19,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativeHeaderFooterStyledReplacement {
-            public NativeHeaderFooterStyledReplacement(string serializedText, PdfCore.PdfTextRun styledRun) {
+            public NativeHeaderFooterStyledReplacement(string serializedText, PdfCore.PdfTextRun styledRun, bool isFieldToken = false) {
                 SerializedText = serializedText;
                 StyledRun = styledRun;
+                IsFieldToken = isFieldToken;
             }
 
             public string SerializedText { get; }
             public PdfCore.PdfTextRun StyledRun { get; }
+            public bool IsFieldToken { get; }
         }
 
         private sealed class NativeHeaderFooterText {
@@ -141,7 +143,8 @@ namespace OfficeIMO.Word.Pdf {
                 string plainText = (markerRun?.Text ?? string.Empty) + text;
                 bool currentHasText = !string.IsNullOrWhiteSpace(plainText);
                 if (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    text.IndexOf("{documentpages}", StringComparison.OrdinalIgnoreCase) >= 0) {
                     HasPageTokens = true;
                 }
 
@@ -180,7 +183,13 @@ namespace OfficeIMO.Word.Pdf {
                         PdfCore.PdfTextRun styledRun = beginsVisualLine
                             ? replacement.StyledRun
                             : replacement.StyledRun.WithHorizontalOffset(0D);
-                        segments.Add(PdfCore.FooterSegment.RichText(styledRun));
+                        if (replacement.IsFieldToken && replacement.SerializedText == "{page}")
+                            segments.Add(PdfCore.FooterSegment.PageNumber(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
+                        else if (replacement.IsFieldToken && replacement.SerializedText == "{pages}")
+                            segments.Add(PdfCore.FooterSegment.TotalPages(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
+                        else if (replacement.IsFieldToken && replacement.SerializedText == "{documentpages}")
+                            segments.Add(PdfCore.FooterSegment.DocumentPages(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
+                        else segments.Add(PdfCore.FooterSegment.RichText(styledRun));
                         index = replacementIndex + replacement.SerializedText.Length;
                     }
                 }
@@ -191,20 +200,23 @@ namespace OfficeIMO.Word.Pdf {
                     while (tokenCursor < value.Length) {
                         int pageIndex = value.IndexOf("{page}", tokenCursor, StringComparison.OrdinalIgnoreCase);
                         int pagesIndex = value.IndexOf("{pages}", tokenCursor, StringComparison.OrdinalIgnoreCase);
+                        int documentPagesIndex = value.IndexOf("{documentpages}", tokenCursor, StringComparison.OrdinalIgnoreCase);
                         int tokenIndex = pageIndex < 0 ? pagesIndex : pagesIndex < 0 ? pageIndex : Math.Min(pageIndex, pagesIndex);
+                        if (documentPagesIndex >= 0) tokenIndex = tokenIndex < 0 ? documentPagesIndex : Math.Min(tokenIndex, documentPagesIndex);
                         if (tokenIndex < 0) {
                             if (tokenCursor < value.Length) AddText(value.Substring(tokenCursor));
                             break;
                         }
                         if (tokenIndex > tokenCursor) AddText(value.Substring(tokenCursor, tokenIndex - tokenCursor));
+                        bool documentTotal = tokenIndex == documentPagesIndex;
                         bool totalPages = tokenIndex == pagesIndex;
                         if (styleRun != null) {
                             PdfCore.PdfTextRun tokenStyle = CloneNativeHeaderFooterTextRun(styleRun, string.Empty);
-                            segments.Add(totalPages ? PdfCore.FooterSegment.TotalPages(tokenStyle) : PdfCore.FooterSegment.PageNumber(tokenStyle));
+                            segments.Add(documentTotal ? PdfCore.FooterSegment.DocumentPages(tokenStyle) : totalPages ? PdfCore.FooterSegment.TotalPages(tokenStyle) : PdfCore.FooterSegment.PageNumber(tokenStyle));
                         } else {
-                            segments.Add(new PdfCore.FooterSegment(totalPages ? PdfCore.FooterSegmentKind.TotalPages : PdfCore.FooterSegmentKind.PageNumber));
+                            segments.Add(new PdfCore.FooterSegment(documentTotal ? PdfCore.FooterSegmentKind.DocumentPages : totalPages ? PdfCore.FooterSegmentKind.TotalPages : PdfCore.FooterSegmentKind.PageNumber));
                         }
-                        tokenCursor = tokenIndex + (totalPages ? 7 : 6);
+                        tokenCursor = tokenIndex + (documentTotal ? 15 : totalPages ? 7 : 6);
                     }
                 }
 
@@ -229,6 +241,8 @@ namespace OfficeIMO.Word.Pdf {
                         if (segment.StyledRun != null) builder.CurrentPage(segment.StyledRun); else builder.CurrentPage();
                     } else if (segment.Kind == PdfCore.FooterSegmentKind.TotalPages) {
                         if (segment.StyledRun != null) builder.TotalPages(segment.StyledRun); else builder.TotalPages();
+                    } else if (segment.Kind == PdfCore.FooterSegmentKind.DocumentPages) {
+                        if (segment.StyledRun != null) builder.DocumentPages(segment.StyledRun); else builder.DocumentPages();
                     } else if (segment.StyledRun != null) builder.Run(segment.StyledRun); else builder.Text(segment.Text ?? string.Empty);
                 }
             }
@@ -239,6 +253,8 @@ namespace OfficeIMO.Word.Pdf {
                         if (segment.StyledRun != null) builder.CurrentPage(segment.StyledRun); else builder.CurrentPage();
                     } else if (segment.Kind == PdfCore.FooterSegmentKind.TotalPages) {
                         if (segment.StyledRun != null) builder.TotalPages(segment.StyledRun); else builder.TotalPages();
+                    } else if (segment.Kind == PdfCore.FooterSegmentKind.DocumentPages) {
+                        if (segment.StyledRun != null) builder.DocumentPages(segment.StyledRun); else builder.DocumentPages();
                     } else if (segment.StyledRun != null) builder.Run(segment.StyledRun); else builder.Text(segment.Text ?? string.Empty);
                 }
             }

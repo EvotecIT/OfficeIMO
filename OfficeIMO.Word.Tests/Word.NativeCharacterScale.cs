@@ -7,6 +7,36 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("header")]
+    [InlineData("footer")]
+    [InlineData("footnote")]
+    [InlineData("endnote")]
+    public void NativeDocCharacterScalePreservesBuiltInStyleUsedOnlyOutsideTheBody(string story) {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Body without heading style");
+        WordParagraph paragraph = story switch {
+            "header" => source.HeaderDefaultOrCreate.AddParagraph("Story heading"),
+            "footer" => source.FooterDefaultOrCreate.AddParagraph("Story heading"),
+            "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
+            _ => source.AddParagraph("Reference").AddEndNote("Story heading").EndNote!.Paragraphs!.Single(item => item.Text == "Story heading")
+        };
+        paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId { Val = "Heading1" };
+        Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        Style heading = styles.Elements<Style>().Single(style => style.StyleId == "Heading1");
+        heading.StyleRunProperties ??= new StyleRunProperties();
+        heading.StyleRunProperties.CharacterScale = new CharacterScale { Val = 200L };
+        heading.StyleRunProperties.Spacing = new Spacing { Val = 20 };
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        Style imported = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<Style>().Single(style => style.StyleId == "Heading1");
+        Assert.Equal(200L, imported.StyleRunProperties?.CharacterScale?.Val?.Value);
+        Assert.Equal(20, imported.StyleRunProperties?.Spacing?.Val?.Value);
+        Assert.Empty(source.ValidateDocument());
+        Assert.Empty(loaded.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(50)]
     [InlineData(100)]

@@ -256,7 +256,8 @@ public sealed partial class PdfOptions {
 
                 if (segment.Kind != FooterSegmentKind.Text &&
                     segment.Kind != FooterSegmentKind.PageNumber &&
-                    segment.Kind != FooterSegmentKind.TotalPages) {
+                    segment.Kind != FooterSegmentKind.TotalPages &&
+                    segment.Kind != FooterSegmentKind.DocumentPages) {
                     throw new System.ArgumentException("PDF " + scope + " segments must use a supported segment kind.");
                 }
             }
@@ -277,7 +278,8 @@ public sealed partial class PdfOptions {
 
                 if (segment.Kind != FooterSegmentKind.Text &&
                     segment.Kind != FooterSegmentKind.PageNumber &&
-                    segment.Kind != FooterSegmentKind.TotalPages) {
+                    segment.Kind != FooterSegmentKind.TotalPages &&
+                    segment.Kind != FooterSegmentKind.DocumentPages) {
                     throw new System.ArgumentException("PDF footer segments must use a supported segment kind.");
                 }
             }

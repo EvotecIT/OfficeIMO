@@ -706,6 +706,10 @@ PdfDocument.Create(pdf => pdf.Page(page => page
 
 Styled header/footer runs support fonts, size, color, highlighting, underline, strike, and baseline changes. Use the existing header/footer image and shape methods for visuals; interactive links and inline elements are intentionally kept out of text runs. Authored header/footer content that enters margins or overlaps another zone is preserved instead of rejected; attach a `PdfConversionReport` with `ReportDiagnosticsTo(...)` when the host needs structured overflow or clipping warnings.
 
+Use `DocumentPages()` or `DocumentPages(style)` for a page count across all document
+sections. `TotalPages()` retains the count for the current numbering section.
+Literal text segments keep braces and page-token-like text unchanged.
+
 ### Rich report layout
 
 ```csharp
