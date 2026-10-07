@@ -16,7 +16,7 @@ public sealed class HtmlSvgFontSizeProjectionTests {
         var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
         Assert.DoesNotContain(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        var text = Assert.Single(OfficeIMO.Tests.DrawingTestTraversal.Elements(drawing.Drawing).OfType<OfficeDrawingText>());
         Assert.Equal(expectedSize, text.Font.Size, 3);
     }
 
@@ -39,7 +39,7 @@ public sealed class HtmlSvgFontSizeProjectionTests {
         var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
         Assert.DoesNotContain(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        var text = Assert.Single(OfficeIMO.Tests.DrawingTestTraversal.Elements(drawing.Drawing).OfType<OfficeDrawingText>());
         Assert.Equal(expectedSize, text.Font.Size, 3);
     }
 
@@ -49,7 +49,7 @@ public sealed class HtmlSvgFontSizeProjectionTests {
             + "<svg width='400' height='100'><text x='10' y='70'>Visible SVG</text></svg>");
         var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions { DefaultFontSize = 24D });
         var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        var text = Assert.Single(OfficeIMO.Tests.DrawingTestTraversal.Elements(drawing.Drawing).OfType<OfficeDrawingText>());
         Assert.Equal(24D, text.Font.Size, 3);
     }
 
@@ -64,7 +64,7 @@ public sealed class HtmlSvgFontSizeProjectionTests {
         var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
         Assert.DoesNotContain(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        var text = Assert.Single(OfficeIMO.Tests.DrawingTestTraversal.Elements(drawing.Drawing).OfType<OfficeDrawingText>());
         Assert.Equal(expectedSize, text.Font.Size, 3);
     }
 
@@ -74,7 +74,7 @@ public sealed class HtmlSvgFontSizeProjectionTests {
             + "<svg width='400' height='100'><text x='10' y='70'>Visible SVG</text></svg>");
         var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
         var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        var text = Assert.Single(OfficeIMO.Tests.DrawingTestTraversal.Elements(drawing.Drawing).OfType<OfficeDrawingText>());
         Assert.Equal(16D, text.Font.Size, 3);
     }
 

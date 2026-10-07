@@ -6,6 +6,35 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlRendering_FlexButtonZeroPaddingLonghandsKeepItsAllocatedFrame() {
+        string html = "<div style='display:flex;width:200px'><button id='rich' style='box-sizing:content-box;"
+            + "padding-left:0;padding-right:0;border:1px solid'><span style='display:inline-block;width:48px;height:24px;background:red'></span>"
+            + "</button><span>After</span></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+        var shapes = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>().ToArray();
+        HtmlRenderShape button = Assert.Single(shapes, shape => shape.Source == "button#rich" && shape.Shape.FillColor.HasValue);
+        HtmlRenderShape child = Assert.Single(shapes, shape => shape.Source == "span" && shape.Shape.FillColor.HasValue);
+        Assert.Equal(50D, button.Width, 2);
+        Assert.True(child.X >= button.X && child.X + child.Width <= button.X + button.Width);
+    }
+
+    [Theory]
+    [InlineData("button", "<span>Visible</span>")]
+    [InlineData("input", "")]
+    public void HtmlRendering_ControlPaddingLonghandsOverrideDefaultChrome(string tag, string content) {
+        string html = "<" + tag + " id='control' value='Visible' style='box-sizing:content-box;width:80px;height:24px;border:1px solid;"
+            + "padding-left:0;padding-right:0;padding-top:0;padding-bottom:0'>" + content
+            + (tag == "button" ? "</button>" : "");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape shape = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(),
+            item => item.Source == tag + "#control" && item.Shape.FillColor.HasValue);
+        Assert.Equal(82D, shape.Width, 2);
+        Assert.Equal(26D, shape.Height, 2);
+    }
+
     [Theory]
     [InlineData("block")]
     [InlineData("flex")]
