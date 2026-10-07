@@ -26,11 +26,14 @@ internal static partial class PdfWriter {
     }
 
     private readonly struct TableTextLineWidthMeasurement {
-        internal TableTextLineWidthMeasurement(TableRunWidthMeasurement[] runs) {
+        internal TableTextLineWidthMeasurement(TableRunWidthMeasurement[] runs, Func<double, double, double, double>? layoutWidth = null) {
             Runs = runs;
+            LayoutWidth = layoutWidth;
         }
 
         internal TableRunWidthMeasurement[] Runs { get; }
+
+        internal Func<double, double, double, double>? LayoutWidth { get; }
     }
 
     private readonly struct TableRunWidthMeasurement {
@@ -93,7 +96,8 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            double candidate = Math.Max(minimumFontSize, rowFontSize * innerWidth / textWidth);
+            // Leave a small layout margin so equivalent floating-point width sums do not wrap at the exact boundary.
+            double candidate = Math.Max(minimumFontSize, rowFontSize * Math.Max(0D, innerWidth - 0.001D) / textWidth);
             if (explicitMeasurements?[cellIndex] is { } explicitMeasurement &&
                 HasNonlinearTableTextWidth(explicitMeasurement)) {
                 // Authored spacing stays in page points; intrinsic tracking can vary
@@ -177,6 +181,17 @@ internal static partial class PdfWriter {
         var preparedLines = new TableTextLineWidthMeasurement[sourceLines.Count];
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> sourceRuns = sourceLines[lineIndex];
+            if (sourceRuns.Any(run => run.Text?.IndexOf('\t') >= 0)) {
+                // Tabs are layout controls. Reuse wrapping's tab stops rather than
+                // passing them to a font encoder or scaling their point offsets.
+                preparedLines[lineIndex] = new TableTextLineWidthMeasurement(Array.Empty<TableRunWidthMeasurement>(),
+                    (fontSize, scale, minimumSize) => {
+                        var layout = WrapRichRunsCore(ScaleTableRunsForShrink(sourceRuns, scale, minimumSize),
+                            double.MaxValue, fontSize, baseFont, fontSize * 1.2D, null, DefaultParagraphTabStopWidth, options);
+                        return layout.Lines.Count == 0 ? 0D : layout.Lines.Max(line => MeasureRichLineWidth(line, options));
+                    });
+                continue;
+            }
             var preparedRuns = new TableRunWidthMeasurement[sourceRuns.Count];
             for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
                 PdfTextRun run = sourceRuns[runIndex];
@@ -217,9 +232,11 @@ internal static partial class PdfWriter {
 
     private static bool HasNonlinearTableTextWidth(TableCellTextWidthMeasurement measurement) {
         foreach (TableTextLineWidthMeasurement[] paragraph in measurement.Lines)
-            foreach (TableTextLineWidthMeasurement line in paragraph)
+            foreach (TableTextLineWidthMeasurement line in paragraph) {
+                if (line.LayoutWidth != null) return true;
                 foreach (TableRunWidthMeasurement run in line.Runs)
                     if (!run.Inline && (run.FixedWidth != 0D || run.Command?.Tracking != null)) return true;
+            }
         return false;
     }
 
@@ -236,6 +253,7 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasurePreparedTableTextLineWidth(TableTextLineWidthMeasurement line, double fontSize, double runFontSizeScale, double minimumShrinkFontSize) {
+        if (line.LayoutWidth != null) return line.LayoutWidth(fontSize, runFontSizeScale, minimumShrinkFontSize);
         double width = 0D;
         double minimumExplicitFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 0.001D;
         for (int runIndex = 0; runIndex < line.Runs.Length; runIndex++) {
