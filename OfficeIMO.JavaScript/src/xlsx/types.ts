@@ -8,6 +8,7 @@ import type { Cell } from "./values.js";
 import type { CellStyle } from "./styles.js";
 import type { Hyperlink } from "./attachments.js";
 import type { ExportValue } from "../core/presentation.js";
+import type { ConditionalFormat } from "./conditional-types.js";
 
 export type XlsxRow = readonly (ExportValue | Cell)[] | Readonly<Record<string, ExportValue | Cell>>;
 export type XlsxRows = Iterable<XlsxRow> | AsyncIterable<XlsxRow>;
@@ -51,6 +52,10 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxBufferedCharacters?: number;
   /** Includes generated title/group merges across the workbook; defaults to 10,000. */
   readonly maxMergedRanges?: number;
+  /** Workbook-wide rule count, including data-only rules on empty sheets; defaults to 1,000. */
+  readonly maxConditionalFormats?: number;
+  /** Unique conditional differential styles across the workbook; defaults to 1,000. */
+  readonly maxDifferentialStyles?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }
 export interface SheetOptions {
@@ -78,7 +83,7 @@ export interface SheetOptions {
   /** Uppercase A1 ranges within exported rows/columns. Covered cells must be empty; ranges cannot intersect a native table or another merge. */
   readonly mergedCells?: readonly string[];
   readonly hyperlinks?: readonly Hyperlink[];
-  readonly conditionalFormats?: readonly unknown[];
+  readonly conditionalFormats?: readonly ConditionalFormat[];
   readonly dataValidation?: readonly unknown[];
 }
 /** A single merged report title above grouped/leaf headings. Print repetition includes headings only. */

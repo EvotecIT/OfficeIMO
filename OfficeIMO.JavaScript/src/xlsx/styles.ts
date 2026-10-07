@@ -2,6 +2,10 @@ import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js"
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { Alignment, Column } from "../core/index.js";
 import { OfficeIMOError } from "../core/errors.js";
+import { colorArgb } from "./style-xml.js";
+import { DifferentialStyles } from "./differential-styles.js";
+import type { ConditionalStyle } from "./conditional-types.js";
+export { colorArgb } from "./style-xml.js";
 export const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
 export interface Font { readonly name?: string; readonly size?: number; readonly bold?: boolean; readonly italic?: boolean; readonly underline?: boolean; readonly strike?: boolean; readonly color?: string; }
@@ -20,10 +24,6 @@ export interface CellStyle {
 }
 export const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" } as const;
 
-export function colorArgb(value: string): string {
-  if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)) throw new TypeError("Color must be RGB or ARGB hex.");
-  const color = value.replace(/^#/, "").toUpperCase(); return color.length === 6 ? "FF" + color : color;
-}
 function index(value: number, count: number, kind: string): number {
   if (!Number.isInteger(value) || value < 0 || value >= count) throw new RangeError("Unknown " + kind + " index.");
   return value;
@@ -56,6 +56,7 @@ export function copyStylePatch(patch: CellStyle): CellStyle {
 
 /** Workbook-owned indexes. Definition inputs are normalized and copied, never retained by reference. */
 export class StyleRegistry {
+  private readonly differential: DifferentialStyles;
   private readonly fonts: Font[] = [{ name: "Calibri", size: 11, bold: false, italic: false, underline: false, strike: false, color: "" }];
   private readonly fills: Fill[] = [{ pattern: "none", color: "" }, { pattern: "gray125", color: "" }];
   private readonly borders: Border[] = [{}];
@@ -65,10 +66,14 @@ export class StyleRegistry {
   private readonly fontIndexes = new Map(this.fonts.map((v, i) => [JSON.stringify(v), i]));
   private readonly fillIndexes = new Map(this.fills.map((v, i) => [JSON.stringify(v), i]));
   private readonly borderIndexes = new Map(this.borders.map((v, i) => [JSON.stringify(v), i]));
-  constructor(private readonly policy: InvalidCharacterPolicy = "strip", private readonly maximum = 64000) {
+  constructor(private readonly policy: InvalidCharacterPolicy = "strip", private readonly maximum = 64000, maximumDifferential = 1000) {
     if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 64000) throw new RangeError("maxStyles must be from 1 through 64,000.");
+    if (!Number.isSafeInteger(maximumDifferential) || maximumDifferential < 0) throw new RangeError("maxDifferentialStyles must be a nonnegative safe integer.");
+    this.differential = new DifferentialStyles(policy, maximumDifferential, format => this.addNumberFormat(format));
     cleanXml("", policy); this.add();
   }
+  /** @internal */
+  addDifferentials(styles: readonly ConditionalStyle[]): readonly number[] { return this.differential.add(styles); }
   addFont(font: Font): number {
     if (font.name !== undefined && typeof font.name !== "string") throw new TypeError("Font name must be a string.");
     const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
@@ -171,6 +176,6 @@ export class StyleRegistry {
         return '<xf numFmtId="' + s.numberFormat + '" fontId="' + s.font + '" fillId="' + s.fill + '" borderId="' + s.border + '" xfId="0"' +
           (s.numberFormat ? ' applyNumberFormat="1"' : "") + (s.font ? ' applyFont="1"' : "") + (s.fill ? ' applyFill="1"' : "") +
           (s.border ? ' applyBorder="1"' : "") + (alignment ? ' applyAlignment="1"' : "") + '>' + alignment + '</xf>';
-      }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+      }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
   }
 }

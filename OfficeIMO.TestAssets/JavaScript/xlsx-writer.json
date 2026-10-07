@@ -1,6 +1,50 @@
 {
   "schemaVersion": 1,
   "cases": [
+    { "name": "conditional-report", "options": { "limits": { "maxConditionalFormats": 10, "maxDifferentialStyles": 4 } },
+      "styles": [{ "font": { "bold": true, "italic": true, "underline": true }, "border": { "left": { "style": "thin", "color": "0000FF" } } }], "sheets": [
+      { "name": "Live report", "title": { "text": "Live report highlights", "height": 30 },
+        "columns": [
+          { "header": "Name", "key": "name", "groups": ["Metrics"], "width": 22 },
+          { "header": "Amount", "key": "amount", "groups": ["Metrics"], "type": "number", "format": "0.00", "width": 18 },
+          { "header": "Score", "key": "score", "groups": ["Metrics"], "type": "number", "format": "0", "width": 18 },
+          { "header": "Status", "key": "status", "groups": ["State"], "width": 18 },
+          { "header": "Seen", "key": "seen", "groups": ["State"], "type": "date", "format": "yyyy-mm-dd", "width": 18 }
+        ], "table": { "name": "LiveReport", "style": "TableStyleMedium2" }, "freezeHeader": true,
+        "footer": { "values": ["Total"], "totals": { "amount": "sum" } }, "print": { "orientation": "landscape", "repeatHeaders": true },
+        "conditionalFormats": [
+          { "type": "cellIs", "range": { "column": "amount" }, "operator": "lessThan", "value": 0, "stopIfTrue": true, "style": { "fill": { "color": "FFC7CE" }, "font": { "color": "9C0006" } } },
+          { "type": "cellIs", "range": { "column": "amount" }, "operator": "greaterThanOrEqual", "value": 100, "style": { "fill": { "color": "C6EFCE" } } },
+          { "type": "expression", "range": { "column": "name", "through": "seen" }, "formula": "$D4=\"FAIL\"", "style": { "font": { "bold": true, "color": "C00000" } } },
+          { "type": "colorScale", "range": { "column": "score" }, "stops": [
+            { "threshold": { "type": "min" }, "color": "F8696B" },
+            { "threshold": { "type": "percentile", "value": 50 }, "color": "FFEB84" },
+            { "threshold": { "type": "max" }, "color": "63BE7B" }
+          ] },
+          { "type": "dataBar", "range": { "column": "score" }, "color": "638EC6", "minimum": { "type": "number", "value": 0 }, "maximum": { "type": "number", "value": 100 } }
+        ],
+        "rows": [
+          ["Łódź 🧪", -12.5, 10, "PASS", { "kind": "date", "value": "2026-10-07T00:00:00Z" }],
+          ["Warsaw", 125.75, 90, "FAIL", { "kind": "date", "value": "2026-10-08T00:00:00Z" }],
+          ["Paris", 50, 50, "PASS", { "kind": "date", "value": "2026-10-09T00:00:00Z" }]
+        ], "expected": { "A4": "Łódź 🧪", "B4": -12.5, "B5": 125.75, "C6": 50, "D5": "FAIL", "E4": { "kind": "date", "value": "2026-10-07T00:00:00Z" } }
+      },
+      { "name": "Empty report", "columns": [{ "header": "Amount", "key": "amount", "type": "number", "format": "0.00" }],
+        "conditionalFormats": [
+          { "type": "cellIs", "range": { "column": "amount" }, "operator": "lessThan", "value": 0, "style": { "fill": { "color": "FFC7CE" }, "font": { "color": "9C0006" } } },
+          { "type": "expression", "range": "A1", "formula": "1=1", "style": { "fill": { "color": "C6EFCE" } } }
+        ], "rows": [], "expected": { "A1": "Amount" }
+      },
+      { "name": "Overrides", "columns": [{ "header": "Value", "type": "number", "style": 0, "format": "0.00", "width": 25 }],
+        "conditionalFormats": [{ "type": "expression", "range": "A2", "formula": "A2>0", "style": {
+          "font": { "bold": false, "italic": false, "underline": false }, "numberFormat": "\"_x0041_\"0.0",
+          "border": { "bottom": { "style": "thin", "color": "123456" } }
+        } },
+          { "type": "dataBar", "range": "A2", "color": "638EC6", "minimum": { "type": "number", "value": 0 }, "maximum": { "type": "formula", "value": "=MAX($A$2:$A$2)" } },
+          { "type": "colorScale", "range": "A2", "stops": [{ "threshold": { "type": "min" }, "color": "F8696B" }, { "threshold": { "type": "max" }, "color": "63BE7B" }] }
+        ], "rows": [[12.5]], "expected": { "A2": 12.5 }
+      }
+    ] },
     { "name": "empty", "sheets": [] },
     { "name": "typed-values", "sheets": [
       { "name": "Data", "columns": [
