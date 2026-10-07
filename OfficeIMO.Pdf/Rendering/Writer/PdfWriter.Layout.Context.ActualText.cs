@@ -80,7 +80,7 @@ internal static partial class PdfWriter {
                 ? anchor.AdvanceWidth1000
                 : anchor.PositionedGlyphs.Sum(glyph => (double)glyph.NominalWidth1000);
             return new PdfTextShowCommand(anchor.GlyphHex,
-                advanceWidth1000: nominalAdvance, wordSpaceCount: anchor.WordSpaceCount);
+                advanceWidth1000: nominalAdvance, wordSpaceCount: anchor.WordSpaceCount, glyphCount: anchor.GlyphCount);
         }
 
         private static double ResolveLogicalAnchorScaling(PdfTextShowCommand anchor, double width, double height) {

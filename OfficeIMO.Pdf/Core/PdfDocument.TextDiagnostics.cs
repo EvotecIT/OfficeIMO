@@ -373,7 +373,7 @@ public sealed partial class PdfDocument {
             underlineStyle: run.UnderlineStyle,
             strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor)
-            .WithFeatureSettings(run.FeatureSettings)
+            .WithSpacingFrom(run).WithFeatureSettings(run.FeatureSettings)
             .WithTextDirection(run.TextDirection);
         AddRuns(diagnostics, new[] { effectiveRun }, options, font, source, location, pageNumber: pageNumber);
     }

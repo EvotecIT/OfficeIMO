@@ -292,7 +292,7 @@ internal static partial class PdfWriter {
                             var segment = lines[index][segmentIndex];
                             var adjusted = segment;
                             if (segment.LeadingTabStop != null) {
-                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, currentOpts, segment.FeatureSettings);
+                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
                                 adjusted = segment.WithLeadingAdvance(CalculateTabAdvance(lineWidth, segment.MeasuredWidth, spaceWidth,
                                     segment.LeadingTabStop.Alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
                                     segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, segment.LeadingTabStop,

@@ -39,7 +39,9 @@ internal static partial class PdfWriter {
             double leadingDecorationFontSize = 0,
             double leadingDecorationTextRise = 0,
             bool leadingIsTab = false,
-            PdfTabAlignment leadingTabAlignment = PdfTabAlignment.Left) {
+            PdfTabAlignment leadingTabAlignment = PdfTabAlignment.Left,
+            double horizontalTextScaling = 100D,
+            double characterSpacing = 0D) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -78,6 +80,8 @@ internal static partial class PdfWriter {
             DecorationColor = decorationColor;
             FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
             TextDirection = textDirection;
+            HorizontalTextScaling = horizontalTextScaling;
+            CharacterSpacing = characterSpacing;
         }
 
         public string Text { get; }
@@ -141,17 +145,21 @@ internal static partial class PdfWriter {
 
         public OfficeTextDirection TextDirection { get; }
 
+        public double HorizontalTextScaling { get; }
+
+        public double CharacterSpacing { get; }
+
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing);
 
         public RichSeg WithLeadingAdvance(double advance) =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing);
     }
 
 }

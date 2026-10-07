@@ -94,10 +94,11 @@ internal sealed class PdfGlyphRun {
 }
 
 internal sealed class PdfTextShowCommand {
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null, int? glyphCount = null) {
         LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
         VisualGlyphs = visualGlyphs;
         GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
+        GlyphCount = glyphCount ?? visualGlyphs?.Count ?? positionedGlyphs?.Count ?? logicalGlyphs?.Count ?? glyphHex.Length / 2;
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
     }
@@ -106,6 +107,7 @@ internal sealed class PdfTextShowCommand {
     internal IReadOnlyList<PdfGlyphInfo>? VisualGlyphs { get; }
     internal double? AdvanceWidth1000 { get; }
     internal int WordSpaceCount { get; }
+    internal int GlyphCount { get; }
     internal string GlyphHex { get; }
     internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
     internal string? ActualText { get; }

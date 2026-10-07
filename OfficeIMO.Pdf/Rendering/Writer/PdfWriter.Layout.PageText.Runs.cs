@@ -94,7 +94,7 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? namedFont = opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
-            width += run.InlineElement?.Width ?? MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), namedFont, run.FontSize ?? fontSize, run.Baseline, opts, run.FeatureSettings);
+            width += run.InlineElement?.Width ?? MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), namedFont, run.FontSize ?? fontSize, run.Baseline, opts, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
         }
 
         return width;
@@ -208,11 +208,13 @@ internal static partial class PdfWriter {
                     content.TextRise(textRise);
                     currentTextRise = textRise;
                 }
+                ApplyRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
                 content
                     .TextMatrix(cursorX, baselines[lineIndex])
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
                     .ShowText(EncodeTextShowCommand(text, runFont, namedFont, opts, run.FeatureSettings, run.TextDirection), runFontSize);
-                cursorX += MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, opts, run.FeatureSettings);
+                ResetRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
+                cursorX += MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, opts, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
             }
         }
 

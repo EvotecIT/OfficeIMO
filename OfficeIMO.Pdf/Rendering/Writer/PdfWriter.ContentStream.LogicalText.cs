@@ -2,11 +2,11 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class ContentStreamBuilder {
     private double _textA = 1, _textB, _textC, _textD = 1, _textE, _textF, _lineE, _lineF;
-    private double _textScale = 1, _textLeading, _textWordSpacing;
+    private double _textScale = 1, _textLeading, _textWordSpacing, _textCharacterSpacing;
     private const double SyntheticObliqueShear = 1D / 3D;
     private bool _syntheticOblique, _hasTextMatrix;
     private bool _isolatedText;
-    private readonly Stack<(double Scale, double Leading, double WordSpacing, bool SyntheticOblique)> _textStates = new();
+    private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique)> _textStates = new();
 
     private void ResetTrackedTextMatrix() {
         _textA = _textD = 1; _textB = _textC = _textE = _textF = _lineE = _lineF = 0;
@@ -50,7 +50,7 @@ internal sealed partial class ContentStreamBuilder {
             if (cluster.Any(glyph => glyph.HasPositioning)) AppendPositionedGlyphs(cluster, fontSize, textRise);
             else ShowHexText(string.Concat(cluster.Select(glyph => glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture))));
             if (marked) _sb.Append("EMC\n");
-            AdvanceTrackedText(cluster.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D);
+            AdvanceTrackedText(cluster.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D + cluster.Count * _textCharacterSpacing);
         }
         _sb.Append("ET\nBT\n");
         TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);

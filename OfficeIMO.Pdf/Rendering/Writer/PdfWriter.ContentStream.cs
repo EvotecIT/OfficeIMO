@@ -12,7 +12,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
-        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _syntheticOblique));
+        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique));
         _sb.Append("q\n");
         return this;
     }
@@ -21,6 +21,7 @@ internal sealed partial class ContentStreamBuilder {
         if (_textStates.Count != 0) {
             var state = _textStates.Pop();
             _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
+            _textCharacterSpacing = state.CharacterSpacing;
             _syntheticOblique = state.SyntheticOblique;
         }
         _sb.Append("Q\n");
@@ -270,6 +271,15 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder CharacterSpacing(double spacing) {
+        if (double.IsNaN(spacing) || double.IsInfinity(spacing)) {
+            throw new ArgumentOutOfRangeException(nameof(spacing), "PDF character spacing must be finite.");
+        }
+        _textCharacterSpacing = spacing;
+        _sb.Append(F(spacing)).Append(" Tc\n");
+        return this;
+    }
+
     public ContentStreamBuilder HorizontalTextScaling(double percentage) {
         if (percentage <= 0D || double.IsNaN(percentage) || double.IsInfinity(percentage)) {
             throw new ArgumentOutOfRangeException(nameof(percentage), "PDF horizontal text scaling must be positive and finite.");
@@ -328,7 +338,7 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         if (command.AdvanceWidth1000.HasValue)
-            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D + command.WordSpaceCount * _textWordSpacing);
+            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing);
         return this;
     }
 

@@ -69,7 +69,7 @@ internal static partial class PdfWriter {
                     width += left == segmentStart && right == segmentStart + segment.Text.Length
                         ? segment.MeasuredWidth
                         : MeasureRichText(segment.Text.Substring(left - segmentStart, right - left),
-                            segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, options, segment.FeatureSettings);
+                            segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, options, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
                     lastSegment = segment;
                 } else if (segment.Text.Length == 0 && segmentStart >= start && segmentStart < end) {
                     width += GetRichSegmentWidth(segment);
@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
             }
             if (end < text.Length && Array.IndexOf(hyphens, end) >= 0 && lastSegment != null)
                 width += MeasureRichText("-", lastSegment.Font, lastSegment.NamedFont,
-                    lastSegment.FontSize, lastSegment.Baseline, options, lastSegment.FeatureSettings);
+                    lastSegment.FontSize, lastSegment.Baseline, options, lastSegment.FeatureSettings, lastSegment.HorizontalTextScaling, lastSegment.CharacterSpacing);
             minimum = Math.Max(minimum, width);
             start = end;
         }

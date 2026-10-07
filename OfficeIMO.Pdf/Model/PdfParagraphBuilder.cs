@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Fluent builder for rich paragraphs made of styled text runs.
 /// </summary>
-public sealed class PdfParagraphBuilder {
+public sealed partial class PdfParagraphBuilder {
     private readonly System.Collections.Generic.List<PdfTextRun> _runs = new();
     private PdfColor? _currentColor;
     private bool _currentBold;
@@ -135,7 +135,7 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null) { AddRun(PdfTextRun.LinkToBookmark(text, bookmarkName, color ?? _currentColor, underline, contents, _currentBaseline, _currentFontSize, _currentBackgroundColor, _currentFont, _currentFontFamily, underline ? _currentUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, _currentStrikeStyle)); return this; }
 
     private PdfTextRun CreateCurrentStyleTemplate() =>
-        new PdfTextRun(
+        ApplyCurrentTextSpacing(new PdfTextRun(
             "template",
             _currentBold,
             _currentUnderline,
@@ -148,10 +148,12 @@ public sealed class PdfParagraphBuilder {
             backgroundColor: _currentBackgroundColor,
             fontFamily: _currentFontFamily,
             underlineStyle: _currentUnderlineStyle,
-            strikeStyle: _currentStrikeStyle).WithFeatureSettings(_currentFeatureSettings);
+            strikeStyle: _currentStrikeStyle).WithFeatureSettings(_currentFeatureSettings));
 
-    private void AddRun(PdfTextRun run) => _runs.Add(_currentFeatureSettings.Equals(run.FeatureSettings)
-        ? run : run.WithFeatureSettings(_currentFeatureSettings));
+    private void AddRun(PdfTextRun run) {
+        if (!_currentFeatureSettings.Equals(run.FeatureSettings)) run = run.WithFeatureSettings(_currentFeatureSettings);
+        _runs.Add(ApplyCurrentTextSpacing(run));
+    }
 
     private static void ValidateDecorationStyle(OfficeIMO.Drawing.OfficeTextDecorationStyle style, string parameterName, bool allowWords = false) {
         if (style < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || style > (allowWords ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Words : OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy)) {

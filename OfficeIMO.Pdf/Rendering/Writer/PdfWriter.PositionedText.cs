@@ -14,15 +14,17 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolved)
             ? resolved : null;
         double effectiveFontSize = run.FontSize ?? fontSize;
-        double measuredWidth = MeasurePositionedTextWidth(
-            run.Text, font, namedFont, effectiveFontSize, run.Baseline, options,
-            run.FeatureSettings, run.TextDirection);
+        double measuredWidth = HasRichTextSpacing(run.HorizontalTextScaling, run.CharacterSpacing)
+            ? MeasureRichText(run.Text, font, namedFont, effectiveFontSize, run.Baseline, options,
+                run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing, run.TextDirection)
+            : MeasurePositionedTextWidth(run.Text, font, namedFont, effectiveFontSize, run.Baseline, options,
+                run.FeatureSettings, run.TextDirection);
         return new RichSeg(run.Text, run.Bold, run.Italic, run.Underline, run.Strike,
             run.Color, run.BackgroundColor, run.LinkUri, run.LinkDestinationName, run.LinkContents,
             font, effectiveFontSize, run.Baseline, measuredWidth, namedFont: namedFont,
             underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings,
-            textDirection: run.TextDirection);
+            textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing);
     }
 
     private static double MeasurePositionedTextWidth(
