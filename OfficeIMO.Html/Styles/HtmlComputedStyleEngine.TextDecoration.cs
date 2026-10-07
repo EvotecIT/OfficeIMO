@@ -49,7 +49,13 @@ public static partial class HtmlComputedStyleEngine {
                     return false;
                 }
             }
-            if (lines.Count > 0) line = string.Join(" ", lines);
+            if (lines.Count > 0) {
+                if (!IsTextDecorationLineSyntax(lines)) {
+                    longhands = Array.Empty<KeyValuePair<string, string>>();
+                    return false;
+                }
+                line = string.Join(" ", lines);
+            }
         }
 
         longhands = new[] {
@@ -61,8 +67,17 @@ public static partial class HtmlComputedStyleEngine {
         return true;
     }
 
-    private static bool IsTextDecorationThicknessSyntax(string value) =>
-        IsKnownKeyword(value.ToLowerInvariant(), "auto", "from-font")
-        || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
+    private static bool IsTextDecorationLineSyntax(IReadOnlyList<string> lines) =>
+        lines.Count > 0 && lines.Count <= 4
+        && lines.All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"))
+        && lines.Distinct(StringComparer.OrdinalIgnoreCase).Count() == lines.Count
+        && (lines.Count == 1 || !lines.Contains("none", StringComparer.OrdinalIgnoreCase));
+
+    private static bool IsTextDecorationThicknessSyntax(string value) {
+        if (IsKnownKeyword(value.ToLowerInvariant(), "auto", "from-font")) return true;
+        bool unitlessZero = double.TryParse(value, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out double numeric) && numeric == 0D;
+        return (unitlessZero || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true))
             && TryValidateCssLength(value, out _);
+    }
 }

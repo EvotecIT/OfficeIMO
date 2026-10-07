@@ -457,8 +457,7 @@ public static partial class HtmlComputedStyleEngine {
             case "text-transform":
                 return IsKnownKeyword(normalized, "none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana", "math-auto");
             case "text-decoration-line":
-                return normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
-                    .All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"));
+                return IsTextDecorationLineSyntax(HtmlRenderCssValues.SplitWhitespace(normalized));
             case "text-decoration-color":
                 return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(value.Trim(), out _);
             case "text-decoration-style":
