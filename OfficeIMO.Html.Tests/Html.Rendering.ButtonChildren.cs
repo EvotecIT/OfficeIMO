@@ -7,6 +7,22 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData("block")]
+    [InlineData("flex")]
+    public void HtmlRendering_AutoWidthRichButtonKeepsStyledChildIntrinsicSize(string display) {
+        string html = "<div style='display:flex'><button id='rich' style='display:" + display
+            + ";padding:0 6px;border:1px solid #000'><span style='display:inline-block;width:48px;height:24px;background:red'></span>"
+            + "<span hidden>hidden label</span></button><span>After</span></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#rich" && shape.Shape.FillColor.HasValue);
+        Assert.Equal(62D, button.Width, 2);
+        Assert.DoesNotContain("hidden label", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("inline-block")]
     [InlineData("inline-flex")]

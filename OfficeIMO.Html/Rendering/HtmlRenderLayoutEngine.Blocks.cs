@@ -351,6 +351,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
         style = PrepareButtonChildStyle(element, style);
+        if (UsesButtonChildLayout(element) && !style.ExplicitWidth.HasValue) {
+            // A native button remains intrinsically sized with display:block.
+            // Its descendants still use normal layout, including styled boxes.
+            SetPositionedExplicitWidth(style,
+                ResolvePositionedOuterWidth(element, style, containingWidth, null, null, depth));
+        }
         if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
         _inlineFloatOverhangs.Remove(element);
         ReportUnsupportedFloatValues(element, style);

@@ -24,7 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         string tag = item.TagName;
         if (IsReplacedImageElementTag(tag) && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
-        if (IsFormControlElement(tag) && item.Element != null) {
+        if (IsFormControlElement(tag) && item.Element != null && !UsesButtonChildLayout(item.Element)) {
             double outerWidth = intrinsicDepth > 0
                 ? ResolveFormControlIntrinsicOuterWidth(item.Element, style, availableWidth)
                 : ResolveFormControlOuterWidth(item.Element, style, availableWidth);
