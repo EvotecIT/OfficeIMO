@@ -16,6 +16,14 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private int[]? GetLatinDefaultFeatureIndexes(out int requiredFeature) {
+        // The selected default Script/LangSys belongs to immutable font data.
+        // Resolve it once per cached font, including malformed-table failures.
+        var features = _latinDefaultFeatures.Value;
+        requiredFeature = features.Required;
+        return features.Indexes;
+    }
+
+    private int[]? ReadLatinDefaultFeatureIndexes(out int requiredFeature) {
         requiredFeature = -1;
         try {
             int scriptList = Relative(_table, _reader.ReadUInt16(_table + 4), 2);
@@ -62,6 +70,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private bool ApplyLatinDefaultsCore(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken, string? sourceText) {
+        bool? asciiResult = TryApplyAsciiLatinDefaults(glyphs, settings, cancellationToken, sourceText);
+        if (asciiResult.HasValue) return asciiResult.Value;
         var scalars = new int[glyphs.Count];
         var breakBefore = new bool[glyphs.Count];
         for (int index = 0; index < glyphs.Count; index++) {
@@ -75,27 +85,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         bool[] eligible = GetLatinDefaultEligibility(scalars, breakBefore, trailingBoundary);
         // Empty input is also used to preflight the font's selected lookups.
         if (glyphs.Count > 0 && !Array.Exists(eligible, value => value)) return true;
-        int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
-        if (features == null) return false;
-        var lookups = new SortedDictionary<int, int>();
-        int inspections = 0;
-        foreach (int index in features) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int record = _featureList + 2 + index * 6;
-            string tag = ReadTag(record);
-            int setting = index == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
-                : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
-            if (setting <= 0) continue;
-            int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);
-            int count = _reader.ReadUInt16(feature + 2);
-            if (count > MaximumLookupRecords) return false;
-            Ensure(feature + 4, checked(count * 2));
-            for (int lookup = 0; lookup < count; lookup++) {
-                int lookupIndex = _reader.ReadUInt16(feature + 4 + lookup * 2);
-                if (!CanApplyLookup(lookupIndex, 0, ref inspections)) return false;
-                lookups[lookupIndex] = setting;
-            }
-        }
+        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? GetLatinDefaultLookups(cancellationToken) : BuildLatinDefaultLookups(settings, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (lookups == null) return false;
+        if (lookups.Length == 0) return true;
         int operations = 0;
         // Script-specific lookups must not consume neighboring non-Latin or presentation glyphs.
         var shaped = new List<GlyphToken>(glyphs.Count);
@@ -109,5 +102,83 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         }
         glyphs.Clear(); glyphs.AddRange(shaped);
         return true;
+    }
+
+    private bool? TryApplyAsciiLatinDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings,
+        CancellationToken cancellationToken, string? sourceText) {
+        if (glyphs.Count == 0 || sourceText == null || sourceText.Length != glyphs.Count) return null;
+        bool hasLatin = false;
+        for (int index = 0; index < glyphs.Count; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            GlyphToken glyph = glyphs[index];
+            if ((uint)(glyph.Scalar - 32) > 94U || glyph.TextIndex != index || glyph.UnicodeText.Length != 1) return null;
+            hasLatin |= glyph.Scalar >= 'A' && glyph.Scalar <= 'Z' || glyph.Scalar >= 'a' && glyph.Scalar <= 'z';
+        }
+        if (!hasLatin) return true;
+        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? GetLatinDefaultLookups(cancellationToken) : BuildLatinDefaultLookups(settings, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (lookups == null) return false;
+        if (lookups.Length == 0) return true;
+        // A single uninterrupted ASCII segment has the same eligibility as the general
+        // script resolver. Keep its working copy so a rejected operation leaves input intact.
+        var segment = new List<GlyphToken>(glyphs);
+        int operations = 0;
+        foreach (var lookup in lookups) ApplyLookup(segment, lookup.Key, lookup.Value, cancellationToken, ref operations);
+        glyphs.Clear(); glyphs.AddRange(segment);
+        return true;
+    }
+
+    internal bool CanApplyLatinDefaults(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try {
+            bool supported = (settings.IsDefault ? GetLatinDefaultLookups(cancellationToken) : BuildLatinDefaultLookups(settings, cancellationToken)) != null;
+            cancellationToken.ThrowIfCancellationRequested();
+            return supported;
+        } catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
+            exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return false; }
+    }
+
+    private KeyValuePair<int, int>[]? GetLatinDefaultLookups(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        LatinDefaultLookupCache? cached = Volatile.Read(ref _latinDefaultLookups);
+        if (cached != null) return cached.Lookups;
+        KeyValuePair<int, int>[]? lookups;
+        try { lookups = BuildLatinDefaultLookups(OfficeTextFeatureSettings.Default, cancellationToken); }
+        catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
+            exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { lookups = null; }
+        cancellationToken.ThrowIfCancellationRequested();
+        var completed = new LatinDefaultLookupCache(lookups);
+        // Publish completed immutable results only. A cancelled caller does not
+        // poison initialization or make another caller wait for its work.
+        return (Interlocked.CompareExchange(ref _latinDefaultLookups, completed, null) ?? completed).Lookups;
+    }
+
+    private KeyValuePair<int, int>[]? BuildLatinDefaultLookups(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
+        int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
+        if (features == null) return null;
+        var lookups = new SortedDictionary<int, int>();
+        int inspections = 0;
+        foreach (int index in features) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int record = _featureList + 2 + index * 6;
+            string tag = ReadTag(record);
+            int setting = index == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
+                : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
+            if (setting <= 0) continue;
+            int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);
+            int count = _reader.ReadUInt16(feature + 2);
+            if (count > MaximumLookupRecords) return null;
+            Ensure(feature + 4, checked(count * 2));
+            for (int lookup = 0; lookup < count; lookup++) {
+                if ((lookup & 63) == 0) cancellationToken.ThrowIfCancellationRequested();
+                int lookupIndex = _reader.ReadUInt16(feature + 4 + lookup * 2);
+                if (!CanApplyLookup(lookupIndex, 0, ref inspections, cancellationToken)) return null;
+                lookups[lookupIndex] = setting;
+            }
+        }
+        var result = new KeyValuePair<int, int>[lookups.Count];
+        int destination = 0;
+        foreach (var lookup in lookups) result[destination++] = lookup;
+        return result;
     }
 }

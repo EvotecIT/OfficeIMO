@@ -11,10 +11,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     private const int MaximumLookupRecursion = 8;
     private const int MaximumPreflightInspections = 100_000;
 
-    internal bool CanApply(OfficeTextFeatureSettings settings) {
+    internal bool CanApply(OfficeTextFeatureSettings settings, CancellationToken cancellationToken = default) {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            return CanApplyCore(settings);
+            return CanApplyCore(settings, cancellationToken);
         } catch (Exception exception) when (exception is InvalidDataException
                                             || exception is OverflowException
                                             || exception is ArgumentOutOfRangeException
@@ -23,13 +24,14 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         }
     }
 
-    private bool CanApplyCore(OfficeTextFeatureSettings settings) {
+    private bool CanApplyCore(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
         Ensure(_featureList, 2);
         int featureCount = _reader.ReadUInt16(_featureList);
         if (featureCount > MaximumFeatureRecords) return false;
         Ensure(_featureList + 2, checked(featureCount * 6));
         int inspections = 0;
         for (int featureIndex = 0; featureIndex < featureCount; featureIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int record = _featureList + 2 + featureIndex * 6;
             string tag = ReadTag(record);
             if (!settings.TryGetValue(tag, out int setting) || setting <= 0) continue;
@@ -38,13 +40,14 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (lookupCount > MaximumLookupRecords) return false;
             Ensure(feature + 4, checked(lookupCount * 2));
             for (int index = 0; index < lookupCount; index++) {
-                if (!CanApplyLookup(_reader.ReadUInt16(feature + 4 + index * 2), 0, ref inspections)) return false;
+                if (!CanApplyLookup(_reader.ReadUInt16(feature + 4 + index * 2), 0, ref inspections, cancellationToken)) return false;
             }
         }
         return true;
     }
 
-    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections, bool allowGlyphCountChanges = true) {
+    private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections, CancellationToken cancellationToken, bool allowGlyphCountChanges = true) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth >= MaximumLookupRecursion || ++inspections > MaximumPreflightInspections) return false;
         Ensure(_lookupList, 2);
         int lookupCount = _reader.ReadUInt16(_lookupList);
@@ -58,6 +61,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (subtableCount > MaximumSubtablesPerLookup) return false;
         Ensure(lookup + 6, checked(subtableCount * 2));
         for (int index = 0; index < subtableCount; index++) {
+            if ((index & 63) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (++inspections > MaximumPreflightInspections) return false;
             int subtable = Relative(lookup, _reader.ReadUInt16(lookup + 6 + index * 2), 2);
             int effectiveType = lookupType;
@@ -75,12 +79,12 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if ((effectiveType == 5 || effectiveType == 6) && _reader.ReadUInt16(subtable) != 3) return false;
             if (effectiveType == 8 && _reader.ReadUInt16(subtable) != 1) return false;
             if ((effectiveType == 5 || effectiveType == 6)
-                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections, allowGlyphCountChanges)) return false;
+                && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections, cancellationToken, allowGlyphCountChanges)) return false;
         }
         return true;
     }
 
-    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections, bool allowGlyphCountChanges) {
+    private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections, CancellationToken cancellationToken, bool allowGlyphCountChanges) {
         int records;
         int recordCount;
         int inputGlyphCount;
@@ -117,7 +121,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             int nestedLookup = _reader.ReadUInt16(records + record * 4 + 2);
             // Later records address original input slots. Until slot tracking is supported,
             // decline any earlier record (including nested contexts) that can change their positions.
-            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections,
+            if (sequenceIndex >= inputGlyphCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections, cancellationToken,
                 allowGlyphCountChanges && record == recordCount - 1)) return false;
         }
         return true;

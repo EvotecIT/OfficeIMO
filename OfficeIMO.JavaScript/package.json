@@ -1,0 +1,35 @@
+{
+  "name": "@evotecit/officeimo",
+  "version": "0.1.0",
+  "description": "Dependency-free OfficeIMO document libraries for browsers, workers and Node.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": ["./bundles/*.js"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./core": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },
+    "./zip": { "types": "./dist/zip/index.d.ts", "import": "./dist/zip/index.js" },
+    "./xml": { "types": "./dist/xml/index.d.ts", "import": "./dist/xml/index.js" },
+    "./opc": { "types": "./dist/opc/index.d.ts", "import": "./dist/opc/index.js" },
+    "./xlsx": { "types": "./dist/xlsx/index.d.ts", "import": "./dist/xlsx/index.js" },
+    "./csv": { "types": "./dist/csv/index.d.ts", "import": "./dist/csv/index.js" },
+    "./classic.js": "./bundles/officeimo.js",
+    "./xlsx.js": "./bundles/officeimo-xlsx.js",
+    "./csv.js": "./bundles/officeimo-csv.js"
+  },
+  "files": ["dist", "bundles", "LICENSE", "README.md"],
+  "scripts": {
+    "build": "node node_modules/typescript/bin/tsc && node scripts/bundles.mjs",
+    "check": "node node_modules/typescript/bin/tsc && node scripts/bundles.mjs --check",
+    "test": "npm run check && node scripts/test.mjs",
+    "test:consumer": "node node_modules/typescript/bin/tsc -p test/consumer/tsconfig.json",
+    "test:pack": "node scripts/pack-test.mjs",
+    "test:browser": "node scripts/browser-test.mjs",
+    "sizes": "node scripts/sizes.mjs",
+    "prepack": "npm run check"
+  },
+  "devDependencies": { "typescript": "5.9.3" },
+  "engines": { "node": ">=18" },
+  "repository": { "type": "git", "url": "https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
+  "keywords": ["officeimo", "xlsx", "csv", "excel", "browser", "streaming", "typescript"]
+}

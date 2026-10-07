@@ -4,9 +4,10 @@ namespace OfficeIMO.Drawing.Benchmarks;
 internal static class ImageResamplingExpectations {
     private static readonly IReadOnlyDictionary<(string ScenarioId, OfficeRasterResamplingMode Mode), string>
         ExpectedFingerprints = new Dictionary<(string, OfficeRasterResamplingMode), string> {
-            [(ImageBenchmarkScenarios.Photo.Id, OfficeRasterResamplingMode.Bilinear)] = "F05809D5A8AF43D1",
-            [(ImageBenchmarkScenarios.Photo.Id, OfficeRasterResamplingMode.Area)] = "D049D3FD688B903D",
-            [(ImageBenchmarkScenarios.Photo.Id, OfficeRasterResamplingMode.Lanczos3)] = "66A91BFA01A3EFF9",
+            // Photo uses the qualified JPEG decoder's combined green rounding.
+            [(ImageBenchmarkScenarios.Photo.Id, OfficeRasterResamplingMode.Bilinear)] = "AC957B343C6BCC7F",
+            [(ImageBenchmarkScenarios.Photo.Id, OfficeRasterResamplingMode.Area)] = "ACF073D59C89EFCA",
+            [(ImageBenchmarkScenarios.Photo.Id, OfficeRasterResamplingMode.Lanczos3)] = "58AC0410839A81FE",
             [(ImageBenchmarkScenarios.Text.Id, OfficeRasterResamplingMode.Bilinear)] = "460790F6491118FB",
             [(ImageBenchmarkScenarios.Text.Id, OfficeRasterResamplingMode.Area)] = "7AD4E0A128104701",
             [(ImageBenchmarkScenarios.Text.Id, OfficeRasterResamplingMode.Lanczos3)] = "1455E1C99033CF42",
