@@ -12,11 +12,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(MainDocumentPart mainPart, Body body) {
             // Header/footer, note and comment stories share the document's style sheet.
             // Built-in indexes emitted by those writers need their definitions too.
-            IEnumerable<ParagraphStyleId> storyStyleIds = mainPart.HeaderParts
+            SectionProperties[] sections = body.Descendants<SectionProperties>().ToArray();
+            IEnumerable<ParagraphStyleId> storyStyleIds = sections.SelectMany(section => section.Elements<HeaderReference>())
+                .Select(reference => GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, "header"))
                 .SelectMany(part => part.Header?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
-                .Concat(mainPart.FooterParts.SelectMany(part => part.Footer?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>()))
-                .Concat(mainPart.FootnotesPart?.Footnotes?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
-                .Concat(mainPart.EndnotesPart?.Endnotes?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
+                .Concat(sections.SelectMany(section => section.Elements<FooterReference>())
+                    .Select(reference => GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, "footer"))
+                    .SelectMany(part => part.Footer?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>()))
+                .Concat(mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+                    .Where(IsUserFootnote)
+                    .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
+                .Concat(mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                    .Where(IsUserEndnote)
+                    .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(mainPart.WordprocessingCommentsPart?.Comments?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Where(style => TryMapBuiltInParagraphStyleIndex(style.Val?.Value ?? string.Empty, out _)
                     || string.Equals(style.Val?.Value, "ListParagraph", StringComparison.OrdinalIgnoreCase));
