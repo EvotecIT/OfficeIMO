@@ -78,7 +78,7 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
         const options = { columns: [{ header: "V" }], signal: controller.signal };
         const book = new Workbook(options);
         const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows())
-          : kind === "csv" ? writeCsv(rows(), options) : OfficeIMO.writeBytes(rows(), { write() {} }, controller.signal);
+          : kind === "csv" ? writeCsv(rows(), options) : OfficeIMO.core.writeBytes(rows(), { write() {} }, controller.signal);
         setTimeout(() => controller.abort(), 15);
         await rejects(() => writing, "AbortError"); require(returned, scheduling + " cancelled iterator was returned");
       }
