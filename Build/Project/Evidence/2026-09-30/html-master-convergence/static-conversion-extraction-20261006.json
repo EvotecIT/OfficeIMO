@@ -669,6 +669,171 @@
         "Actual next-head Linux font/native Windows execution",
         "Actual merge/base overlap inspection then qualified engine sync and two temporary worktree removals"
       ]
+    },
+    "requiredAcceptedMasterIntegration": {
+      "productSource": "5984d9738a2e4b8bf4f02de08dfcc1210ad305c4",
+      "acceptedMaster": "c32f3ed00b32ead9f32f38176fdc145681435114",
+      "trigger": "PR became conflicting after accepted shared PDF/Core/Word owner changes; deliberate required convergence replaces reliance on older shipping source329.",
+      "resolvedContracts": [
+        "Both migration contracts retained",
+        "Tracking-aware text bypasses ASCII CID shortcuts",
+        "Lazy logical commands retain glyph bytes and default metric scale",
+        "Isolated scalar fast path preserves tracking advance and cluster/redaction boundaries",
+        "Even-odd and nonzero fill rules remain explicit",
+        "Thin image adapter uses canonical inspector inspection/PNG-validation outputs"
+      ],
+      "regressionProof": {
+        "asciiTrackingUnsafe": "4 of6 independently measured glyph-advance cases fail; stable candidate passes all6 through broad suite",
+        "isolatedTrackingUnsafe": "2 of3 continuation-coordinate cases fail; stable focused PDF137 pass",
+        "htmlTrackingAndApng": "8pass before clean-head broad replay",
+        "originalObserverFailuresRetained": true
+      },
+      "localReview": {
+        "reviewer": "/root/static_master_pdf_raster_closure",
+        "head": "5984d9738a2e4b8bf4f02de08dfcc1210ad305c4",
+        "parents": [
+          "62c78107ae45ede0f5a6d9b42bbfe65455e05763",
+          "c32f3ed00b32ead9f32f38176fdc145681435114"
+        ],
+        "reason": "Materially new interactions between accepted PDF/Core optimizations and static tracking/metric-scale/logical-text/clip/resource contracts",
+        "boundary": "current",
+        "freshReadOnlyFullPass": true,
+        "technicalFindings": [],
+        "confirmationUsed": false,
+        "productApiDisposition": "accept as shaped",
+        "dependencyStatus": "No new public API or production dependency; retained approved AngleSharp/Css boundary; optional runtime remains separate",
+        "validationLimits": [
+          "reviewer ran no tests/builds/mutations",
+          "combined suites/corpus/package/platform evidence remain primary-owned",
+          "not merge or publication readiness"
+        ]
+      },
+      "fullFrameworkProof": {
+        "frameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "html": {
+          "passedEach": 4517,
+          "skippedEach": 0
+        },
+        "pdf": {
+          "passedEach": 9336,
+          "skippedEach": 0
+        },
+        "drawing": {
+          "passedEach": 3668,
+          "existingSkippedEach": 4
+        },
+        "tool": {
+          "passedEach": 287,
+          "skippedEach": 0
+        },
+        "performanceMeasurementsExcluded": true,
+        "normalStandardOwners": [
+          "OfficeIMO.Core",
+          "OfficeIMO.Html",
+          "OfficeIMO.Html.Pdf",
+          "OfficeIMO.Pdf"
+        ],
+        "normalApiAndToolBuilds": true
+      },
+      "frozenCorpus": {
+        "sourceHead": "5984d9738a2e4b8bf4f02de08dfcc1210ad305c4",
+        "nineRoutes": 9,
+        "pages": 97,
+        "samePageCountsAndRawTextAndLinkTargetsAndReports": true,
+        "threeChesapeakePdfsByteIdentical": true,
+        "allFifteenDifferentlyEncodedImageOccurrencesHaveExactDecodedRgbaPixelsAndDimensions": true,
+        "originalEncodedImageObserverFailureRetained": true,
+        "observerCorrection": "Prior comparison hashes pypdf-extracted PNG bytes despite naming that field decodedImagesPerPageEqual. This separate observation compares actual RGBA pixel bytes; it does not alter old reports or tolerance limits.",
+        "paintAcceptancePending": false,
+        "pixelIdenticalPages72Dpi": 95,
+        "changedPages72Dpi": 2,
+        "changedPageRegions": [
+          {
+            "case": "reference-print-paged",
+            "page": 8,
+            "bbox": [
+              54,
+              269,
+              292,
+              692
+            ],
+            "changedPixels": 8450,
+            "maxChannelDelta": 1,
+            "size": [
+              596,
+              842
+            ]
+          },
+          {
+            "case": "reference-screen-media-paged",
+            "page": 10,
+            "bbox": [
+              54,
+              149,
+              292,
+              572
+            ],
+            "changedPixels": 8450,
+            "maxChannelDelta": 1,
+            "size": [
+              596,
+              842
+            ]
+          }
+        ],
+        "classification": "Accepted opaque PNG preparation omits redundant fully opaque soft masks. RGB decoded image streams remain identical; nonopaque image soft mask remains identical. Poppler changes one channel level inside the same Sun photo rectangle only. Both changed page pairs were visually inspected; text/layout/link/resource contracts remain unchanged.",
+        "opaqueMaskProof": [
+          {
+            "image": "/Im1",
+            "opaqueMaskLength": 784800,
+            "pixelCount": 784800,
+            "allAlpha255": true
+          },
+          {
+            "image": "/Im3",
+            "opaqueMaskLength": 90000,
+            "pixelCount": 90000,
+            "allAlpha255": true
+          }
+        ],
+        "notClaims": [
+          "All97 pages pixel-identical",
+          "browser parity",
+          "manual accessibility",
+          "timing pass"
+        ]
+      },
+      "machineProfiles": {
+        "fiveChecksPass": true,
+        "failedChecksEach": 0,
+        "publicProducerUnchanged": true,
+        "loadedNormalOwners": 6,
+        "sourceAndDllHashesVerified": true,
+        "standaloneUaWithAttachmentRejected": true,
+        "notFreshPackedConsumerProof": true
+      },
+      "hygieneToolRestoration": {
+        "validatorCliSha256": "889075253fb9df4db5482efb8f8208fb3b4f2e00f5f7e1b1e31edf6fb4b69bb6",
+        "exactArchivedBytesRestored": true,
+        "cleanupMustOnlyTargetRegenerableCsprojOwnerOutputs": true
+      },
+      "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007",
+      "remaining": [
+        "Exact published-head CI and complete delayed feedback",
+        "Fresh current-source all-three-platform nineteen-package artifact gate",
+        "Inspect actual merge/base overlap before prepared-engine adoption",
+        "Preserve new proof and remove temporary static/convergence worktrees"
+      ],
+      "notClaims": [
+        "Hosted current-source packages passed",
+        "PR merge-ready",
+        "Browser or native application/manual accessibility parity",
+        "Historical timing budgets passed",
+        "Broader H10/math/runtime completion"
+      ]
     }
   }
 }
