@@ -90,8 +90,10 @@ namespace OfficeIMO.Word.Pdf {
 
             // The inline paragraph path carries marker run typography. List blocks
             // expose a uniform marker font but do not carry width or tracking.
-            if (HasNativeTextSpacing(ResolveNativeTextRunStyle(paragraph,
-                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap).TextSpacing)) return false;
+            NativeTextSpacing paragraphSpacing = ResolveNativeTextRunStyle(paragraph,
+                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap).TextSpacing;
+            if (HasNativeTextSpacing(paragraphSpacing) ||
+                HasNativeTextSpacing(ResolveNativeListMarkerTextSpacing(info.Value, paragraphSpacing))) return false;
 
             if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
@@ -288,7 +290,7 @@ namespace OfficeIMO.Word.Pdf {
                     fontFamily: textStyle.FontFamily));
             }
 
-            return textStyle.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            return ResolveNativeListMarkerTextSpacing(info.Value, textStyle.TextSpacing).ApplyTo(new PdfCore.PdfTextRun(
                 marker + (includeSuffix ? ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix) : string.Empty),
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,

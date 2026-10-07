@@ -34,5 +34,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfTextRun CopyNativeTextSpacing(PdfCore.PdfTextRun source, PdfCore.PdfTextRun target) =>
             new NativeTextSpacing(source.HorizontalTextScaling, source.CharacterSpacing).ApplyTo(target);
+
+        private static NativeTextSpacing ResolveNativeListMarkerTextSpacing(WordDocumentTraversal.ListInfo info, NativeTextSpacing inherited) {
+            if (info.MarkerCharacterScale is < 1 or > 600)
+                throw new InvalidOperationException("Word character width must be between 1 and 600 percent.");
+            return inherited.Merge(new NativeTextSpacing(info.MarkerCharacterScale, info.MarkerCharacterSpacingTwips / 20D)).Resolve();
+        }
     }
 }

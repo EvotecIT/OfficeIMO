@@ -50,7 +50,14 @@ public static partial class WordPdfConverterExtensions {
         var text = new StringBuilder();
         for (int current = index; current <= end; current++)
             text.Append(GetNativeHeaderFooterParagraphText((WordParagraph)elements[current], listMarkers, out _));
-        AddNativeHeaderFooterResolvedParagraphText(parts, first, text.ToString(), null, forcedZone, listMarkers, fontMap);
+        string joinedText = text.ToString();
+        IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = null;
+        if (visibleStyle.HasValue && (HasNativeTextSpacing(visibleStyle.Value.TextSpacing) ||
+            HasNativeTextSpacing(ResolveNativeTextRunStyle(first, nativeFontMap: fontMap).TextSpacing))) {
+            replacements = new[] { new NativeHeaderFooterStyledReplacement(joinedText,
+                CreateNativeHeaderFooterStyledTextRun(joinedText, visibleStyle.Value, 0D)) };
+        }
+        AddNativeHeaderFooterResolvedParagraphText(parts, first, joinedText, null, forcedZone, listMarkers, fontMap, replacements);
         index = end;
         return true;
     }

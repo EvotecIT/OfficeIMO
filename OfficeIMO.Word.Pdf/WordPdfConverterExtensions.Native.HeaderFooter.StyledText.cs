@@ -173,7 +173,10 @@ namespace OfficeIMO.Word.Pdf {
                 int index = 0;
                 if (replacements != null) {
                     foreach (NativeHeaderFooterStyledReplacement replacement in replacements) {
-                        int replacementIndex = text.IndexOf(replacement.SerializedText, index, StringComparison.Ordinal);
+                        // Match the same newline/tab representation as the zone text.
+                        string serializedText = NormalizeNativeHeaderFooterText(replacement.SerializedText);
+                        if (serializedText.Length == 0) continue;
+                        int replacementIndex = text.IndexOf(serializedText, index, StringComparison.Ordinal);
                         if (replacementIndex < 0) {
                             continue;
                         }
@@ -190,7 +193,7 @@ namespace OfficeIMO.Word.Pdf {
                         else if (replacement.IsFieldToken && replacement.SerializedText == "{documentpages}")
                             segments.Add(PdfCore.FooterSegment.DocumentPages(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
                         else segments.Add(PdfCore.FooterSegment.RichText(styledRun));
-                        index = replacementIndex + replacement.SerializedText.Length;
+                        index = replacementIndex + serializedText.Length;
                     }
                 }
                 AppendTokenizedText(text.Substring(index));
