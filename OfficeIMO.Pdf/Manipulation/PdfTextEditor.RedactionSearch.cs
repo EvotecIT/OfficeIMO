@@ -19,7 +19,7 @@ internal static partial class PdfTextEditor {
         var areas = new List<PdfRedactionArea>();
         var areaKeys = new HashSet<(int Page, double Left, double Bottom, double Right, double Top)>();
         var diagnostics = new List<PdfDiagnosticFinding>();
-        var selected = new HashSet<(int Page, PdfContentOrderKey Owner, double X, double Y, string Code)>();
+        var selected = new HashSet<(int Page, PdfContentOrderKey Owner, int Run, int TextStart)>();
         var diagnosticKeys = new HashSet<(int Page, string Code)>();
         var options = new PdfTextSearchOptions {
             MatchCase = search.MatchCase, IncludeTextRenderingMode3 = true,
@@ -40,7 +40,8 @@ internal static partial class PdfTextEditor {
         if (areas.Count > 0) {
             PdfReadDocument document = PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), search.CancellationToken);
             foreach (IGrouping<int, PdfRedactionArea> pageAreas in areas.GroupBy(static area => area.PageNumber)) {
-                foreach (PdfTextSpan span in document.Pages[pageAreas.Key - 1].GetGlyphTextSpans(cancellationToken: search.CancellationToken)) {
+                foreach (PdfTextSpan span in document.Pages[pageAreas.Key - 1].GetGlyphTextSpans(
+                    includeHiddenOptionalContent: true, cancellationToken: search.CancellationToken)) {
                     search.CancellationToken.ThrowIfCancellationRequested();
                     if (!CanSelectGlyphs(span, out IReadOnlyList<PdfTextGlyph> glyphs)) {
                         PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance);
@@ -128,6 +129,6 @@ internal static partial class PdfTextEditor {
                 !double.IsNaN(glyph.PaintedAdvance) && !double.IsInfinity(glyph.PaintedAdvance));
     }
 
-    private static (int Page, PdfContentOrderKey Owner, double X, double Y, string Code) GlyphKey(int page, PdfTextSpan span, PdfTextGlyph glyph) =>
-        (page, span.ContentOrderKey!, glyph.X, glyph.Y, Convert.ToBase64String(glyph.EncodedBytes.ToArray()));
+    private static (int Page, PdfContentOrderKey Owner, int Run, int TextStart) GlyphKey(int page, PdfTextSpan span, PdfTextGlyph glyph) =>
+        (page, span.ContentOrderKey!, span.GlyphSourceRunOrdinal, glyph.TextStart);
 }

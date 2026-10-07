@@ -1592,7 +1592,7 @@ result.ThrowIfUnverified();
 
 Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
 unsupported clipping or glyph evidence, and areas that intersect unselected text
-(including tightly spaced lines whose conservative glyph bounds overlap).
+(including hidden layers and tightly spaced lines whose conservative glyph bounds overlap).
 Inspect `IsReviewable` and `Findings`: a blocked selection cannot be applied, even
 when other criteria matched safely. Its reviewed areas never fall back to complete
 text-object removal. Ordinary `Apply(plan)` also verifies preservation for these

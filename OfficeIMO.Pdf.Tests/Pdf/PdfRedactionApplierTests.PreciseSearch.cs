@@ -6,6 +6,40 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfRedactionApplierTests {
+    [Fact]
+    public void PreciseSelectionBlocksIntersectingUnselectedHiddenLayerGlyphs() {
+        const string content = "BT /F1 20 Tf 72 720 Td (secret) Tj ET " +
+            "/OC /Layer BDC BT /F1 20 Tf 72 720 Td (private) Tj ET EMC";
+        byte[] bytes = BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON /OFF [6 0 R] >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /Properties << /Layer 6 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(content)),
+            "6 0 obj\n<< /Type /OCG /Name (Hidden layer) >>\nendobj"
+        }, rootObjectNumber: 1);
+        PdfDocument source = PdfDocument.Load(bytes);
+        Assert.DoesNotContain("private", source.Reader.Text(), StringComparison.Ordinal);
+        PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+        Assert.False(plan.IsReviewable);
+        Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+        Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
+    [Theory]
+    [InlineData("(WAAA) Tj")]
+    [InlineData("[(WA) 277 (WA)] TJ")]
+    public void PreciseSelectionBlocksCoincidentUnselectedGlyphOccurrences(string operation) {
+        byte[] bytes = BuildTextContentRedactionSource("BT /F1 20 Tf -13.34 Tc 72 720 Td " + operation + " ET");
+        PdfDocument source = PdfDocument.Load(bytes);
+        PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddRegex("^WA"));
+        Assert.False(plan.IsReviewable);
+        Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+        Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
+        Assert.Equal(bytes, source.ToBytes());
+    }
+
     [Theory]
     [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
     [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]

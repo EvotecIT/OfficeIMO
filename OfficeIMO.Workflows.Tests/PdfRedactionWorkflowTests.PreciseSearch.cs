@@ -5,6 +5,50 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed partial class PdfRedactionWorkflowTests {
+    [Theory]
+    [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+    [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+    public async Task TextOnlyApplyAndVerifyReportTheSameRemovalCount(PdfRedactionTextSelection selection) {
+        using var scope = new RedactionTestDirectory();
+        string input = scope.PathFor("source.pdf"), output = scope.PathFor("redacted.pdf");
+        var background = OfficeIMO.Drawing.OfficeShape.Rectangle(300D, 60D);
+        background.FillColor = OfficeIMO.Drawing.OfficeColor.Blue;
+        PdfDocument.Create(pdf => pdf.Page(page => page.Canvas(canvas => {
+            canvas.Shape(background, 60D, 50D);
+            canvas.Text("Alpha secret Omega", 72D, 65D, 260D, 25D, fontSize: 20D);
+        }))).Save(input);
+        PdfRedactionRecipe recipe = CreateRecipe("secret");
+        recipe.Rules[0].TextSelection = selection;
+        recipe.Rules[0].ContentScope = PdfRedactionContentScope.TextOnly;
+        PdfRedactionPlan nativePlan = PdfDocument.Load(input).Redactions.Search(new PdfRedactionSearchOptions {
+            TextSelection = selection, ContentScope = PdfRedactionContentScope.TextOnly
+        }.AddLiteral("secret"));
+        Assert.Contains(nativePlan.Matches, match => match.Kind == PdfRedactionMatchKind.VectorPath);
+        var runner = new OfficeWorkflowRunner();
+        PdfRedactionWorkflowResult planned = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly, InputPath = input, Recipe = recipe
+        });
+        Assert.True(planned.Succeeded, planned.Summary);
+        var decisions = new PdfRedactionDecisionManifest {
+            SourceSha256 = planned.SourceSha256, RecipeSha256 = planned.RecipeSha256,
+            ApprovedCandidateIds = { Assert.Single(planned.Candidates).Id }
+        };
+        PdfRedactionWorkflowResult applied = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.ApplyAndVerify, InputPath = input, OutputPath = output,
+            Recipe = recipe, Decisions = decisions
+        });
+        Assert.True(applied.Succeeded, applied.Summary);
+        PdfRedactionWorkflowResult verified = await runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+            Mode = PdfRedactionWorkflowMode.VerifyExistingOutput, InputPath = input, OutputPath = output,
+            Recipe = recipe, Decisions = decisions, ExpectedOutputSha256 = applied.Evidence!.OutputSha256
+        });
+        Assert.True(verified.Succeeded, verified.Summary);
+        Assert.Equal(1, applied.Evidence!.VerifiedAbsentCount);
+        Assert.Equal(applied.Evidence.VerifiedAbsentCount, verified.Evidence!.VerifiedAbsentCount);
+        Assert.Equal(applied.Evidence.ResidualCount, verified.Evidence.ResidualCount);
+        Assert.Equal(applied.Evidence.InconclusiveCount, verified.Evidence.InconclusiveCount);
+    }
+
     [Fact]
     public async Task PreciseRecipeRoundTripPreservesNeighboursAndBindsDecisionsToSelectionPolicy() {
         using var scope = new RedactionTestDirectory();

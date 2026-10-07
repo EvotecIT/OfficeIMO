@@ -193,8 +193,19 @@ public sealed partial class PdfReadPage {
 
     // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
     internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false,
-        System.Threading.CancellationToken cancellationToken = default) =>
-        GetTextSpans(_includeArtifactText, cancellationToken, includeHiddenOptionalContent, preserveGlyphText: true);
+        System.Threading.CancellationToken cancellationToken = default) {
+        IReadOnlyList<PdfTextSpan> spans = GetTextSpans(_includeArtifactText, cancellationToken,
+            includeHiddenOptionalContent, preserveGlyphText: true);
+        var runOrdinals = new Dictionary<PdfContentOrderKey, int>();
+        foreach (PdfTextSpan span in spans) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (span.ContentOrderKey is not PdfContentOrderKey key) continue;
+            runOrdinals.TryGetValue(key, out int ordinal);
+            span.GlyphSourceRunOrdinal = ordinal;
+            runOrdinals[key] = ordinal + 1;
+        }
+        return spans;
+    }
 
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
