@@ -18,13 +18,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .Concat(mainPart.FootnotesPart?.Footnotes?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(mainPart.EndnotesPart?.Endnotes?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
                 .Concat(mainPart.WordprocessingCommentsPart?.Comments?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
-                .Where(style => TryMapBuiltInParagraphStyleIndex(style.Val?.Value ?? string.Empty, out _));
+                .Where(style => TryMapBuiltInParagraphStyleIndex(style.Val?.Value ?? string.Empty, out _)
+                    || string.Equals(style.Val?.Value, "ListParagraph", StringComparison.OrdinalIgnoreCase));
             string[] usedStyleIds = body.Descendants<ParagraphStyleId>().Concat(storyStyleIds)
                 .Select(style => style.Val?.Value)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!)
                 .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase))
-                .Where(styleId => !string.Equals(styleId, "ListParagraph", StringComparison.OrdinalIgnoreCase))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             var builtInStyleIndexes = new SortedSet<ushort>(usedStyleIds

@@ -440,8 +440,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? styleId = paragraphStyleId.Val?.Value;
             if (string.IsNullOrWhiteSpace(styleId)
-                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(styleId, "ListParagraph", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 
