@@ -1467,7 +1467,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
-        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false) {
+        /// <summary>Marks nested cell and row endings while retaining ordinary paragraphs at the same table depth.</summary>
+        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false, bool isCellTerminator = true) {
             if (tableDepth <= 1) {
                 throw new ArgumentOutOfRangeException(nameof(tableDepth), "Nested DOC table markers require a table depth greater than 1.");
             }
@@ -1502,32 +1503,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 true,
                 null,
                 TabStops,
-                null,
-                null,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                TableCellWidthsTwips,
+                TableLeftIndentTwips,
+                TableRowHeightTwips,
+                TableRowHeightIsExact,
+                TableRowCantSplit,
+                TableRowIsHeader,
+                TableAlignment,
+                TablePreferredWidth,
+                TableAutofit,
+                TableCellHorizontalMerges,
+                TableCellVerticalMerges,
+                TableCellVerticalAlignments,
+                TableCellTextDirections,
+                TableCellFitTexts,
+                TableCellNoWraps,
+                TableCellHideMarks,
+                TableCellMargins,
+                TableCellShadings,
+                TableCellBorders,
                 ParagraphShading,
                 ParagraphBorders,
-                null,
-                null,
+                DefaultTableCellMargins,
+                DefaultTableCellSpacingTwips,
                 outlineLevel: OutlineLevel,
                 tableDepth: tableDepth,
-                hasInnerTableCellMarker: true,
+                hasInnerTableCellMarker: isCellTerminator && !isInnerTableTerminatingParagraph,
                 hasInnerTableTerminatingParagraphMarker: isInnerTableTerminatingParagraph,
                 lineSpacingIsMultiple: LineSpacingIsMultiple);
         }

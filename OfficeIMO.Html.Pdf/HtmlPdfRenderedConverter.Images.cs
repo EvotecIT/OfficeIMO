@@ -97,7 +97,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 format = identified.Format;
             if (format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg) {
                 if (format == OfficeImageFormat.Png && OfficeRasterContainerInspector.TryInspectForDecode(
-                    bytes, _decodeOptions, out var container, out _) && container != null &&
+                    bytes, _decodeOptions, out var container, out _, out _, out _) && container != null &&
                     (container.IsAnimated || container.Count > 1)) {
                     _conversionReport.Add(new PdfCore.PdfConversionWarning(
                         "OfficeIMO.Html.Pdf", HtmlPdfDiagnosticCodes.ImageStaticFrameSelected, "html-image-resource",

@@ -7,6 +7,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IsHeader = isHeader;
             Type = type;
             Paragraphs = paragraphs;
+            Blocks = paragraphs.Select(paragraph => (LegacyDocBodyBlock)new LegacyDocParagraphBlock(
+                paragraph.Runs, paragraph.Format, paragraph.StartCharacter, paragraph.EndCharacter, paragraph.Bookmarks)).ToArray();
+        }
+
+        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, HeaderFooterValues type, IReadOnlyList<LegacyDocBodyBlock> blocks) {
+            SectionIndex = sectionIndex;
+            IsHeader = isHeader;
+            Type = type;
+            Blocks = blocks;
+            Paragraphs = blocks.OfType<LegacyDocParagraphBlock>().Select(paragraph => new LegacyDocHeaderFooterParagraph(
+                paragraph.Runs, paragraph.Format, paragraph.StartCharacter, paragraph.EndCharacter, paragraph.Bookmarks)).ToArray();
         }
 
         internal int SectionIndex { get; }
@@ -16,6 +27,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal HeaderFooterValues Type { get; }
 
         internal IReadOnlyList<LegacyDocHeaderFooterParagraph> Paragraphs { get; }
+
+        internal IReadOnlyList<LegacyDocBodyBlock> Blocks { get; }
     }
 
     internal sealed class LegacyDocHeaderFooterParagraph {

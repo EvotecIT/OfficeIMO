@@ -3,6 +3,10 @@
 ###############################################################################
 * text=auto
 
+# Browser assets are generated and hashed from canonical UTF-8/LF bytes.
+OfficeIMO.Browser/** text eol=lf
+OfficeIMO.JavaScript/** text eol=lf
+
 # Raw decoded raster evidence contains arbitrary bytes, including LF without NUL.
 # Windows checkout must not expand those sample values to CRLF.
 *.rgba -text -diff

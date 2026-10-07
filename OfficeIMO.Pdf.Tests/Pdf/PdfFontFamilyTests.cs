@@ -966,7 +966,6 @@ public partial class PdfFontFamilyTests {
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
-        Assert.Contains("/CIDToGIDMap /Identity", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOObjectFont-Regular", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOObjectFont-Bold", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOObjectFont-Italic", raw, StringComparison.Ordinal);
@@ -1844,7 +1843,7 @@ public partial class PdfFontFamilyTests {
         string descriptor = PdfStandardFontDictionaryBuilder.BuildOpenTypeCffFontDescriptorObject(program, 10);
         string descendant = PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(program, 11);
         string type0 = PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(program, 12, 13);
-        string toUnicode = Encoding.ASCII.GetString(PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(program));
+        string toUnicode = Encoding.ASCII.GetString(PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(program));
 
         Assert.Contains("/FontFile3 10 0 R", descriptor, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", descriptor, StringComparison.Ordinal);

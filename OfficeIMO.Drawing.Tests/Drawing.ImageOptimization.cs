@@ -1127,7 +1127,7 @@ namespace OfficeIMO.Tests {
             Assert.True(decoded.Height > 100);
             using (SHA256 sha256 = SHA256.Create()) {
                 Assert.Equal(
-                    "EA87164A1FF1B2CE978E3C007382CD90AAAC5269078CBA79306FD35972231E0D",
+                    "687D6E32F5B3C19C8C2B75C7D52894E4BB6C6109D1F99BB0A299E38A9D3CD2DD",
                     BitConverter.ToString(sha256.ComputeHash(decoded.GetPixels())).Replace("-", string.Empty));
             }
         }

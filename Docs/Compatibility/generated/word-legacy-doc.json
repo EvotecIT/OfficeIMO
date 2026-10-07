@@ -76,7 +76,7 @@
       "modernToLegacy":"Approximated",
       "legacyToModern":"Native",
       "affectedFidelity":"Visual, Editability",
-      "note":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "note":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"Word.Text.CharacterFormatting",

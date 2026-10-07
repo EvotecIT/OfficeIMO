@@ -28,7 +28,7 @@ public sealed class WordPdfTextFormattingTests {
             "CreateNativeCellParagraphRuns",
             BindingFlags.NonPublic | BindingFlags.Static,
             binder: null,
-            new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) },
+            new[] { typeof(WordParagraph), typeof(WordPdfConverterExtensions).GetNestedType("NativeNoteNumbering", BindingFlags.NonPublic)! },
             modifiers: null)!;
         var runs = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(
             method.Invoke(null, new object?[] { authored, null }));
@@ -74,7 +74,7 @@ public sealed class WordPdfTextFormattingTests {
             "CreateNativeCellParagraphRuns",
             BindingFlags.NonPublic | BindingFlags.Static,
             binder: null,
-            new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) },
+            new[] { typeof(WordParagraph), typeof(WordPdfConverterExtensions).GetNestedType("NativeNoteNumbering", BindingFlags.NonPublic)! },
             modifiers: null)!;
         PdfTextRun characterPdfRun = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(
             createRuns.Invoke(null, new object?[] { characterRun, null })));

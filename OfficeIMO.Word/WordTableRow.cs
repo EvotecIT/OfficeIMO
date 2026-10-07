@@ -120,6 +120,8 @@ namespace OfficeIMO.Word {
                     var cantSplit = tableRowProperties.OfType<CantSplit>().FirstOrDefault();
                     if (cantSplit == null) {
                         tableRowProperties.InsertAt(new CantSplit(), 0);
+                    } else {
+                        cantSplit.Val = OnOffOnlyValues.On;
                     }
                 }
             }
@@ -146,6 +148,8 @@ namespace OfficeIMO.Word {
                 if (rowHeader != null) {
                     if (value == false) {
                         rowHeader.Remove();
+                    } else {
+                        rowHeader.Val = OnOffOnlyValues.On;
                     }
                 } else if (value) {
                     // Add table header

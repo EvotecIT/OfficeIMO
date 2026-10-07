@@ -42,6 +42,9 @@ internal static class PdfDocEncoding {
         return true;
     }
 
+    /// <summary>Maps one character for callers that have already validated the complete text string.</summary>
+    internal static bool TryGetByte(char value, out byte encoded) => ReverseMap.TryGetValue(value, out encoded);
+
     internal static byte[] Encode(string value, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var bytes = new byte[value.Length];

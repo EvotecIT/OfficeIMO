@@ -18,6 +18,7 @@ $validationProjects = @($allProjects | Where-Object {
     $_.BaseName -match '(?:^|\.)AotSmoke$' -or
     $_.BaseName -in @(
         'OfficeIMO.Examples',
+        'OfficeIMO.Browser.Examples',
         'OfficeIMO.MarkdownRenderer.SamplePlugin',
         'OfficeIMO.Project.Verification',
         'OfficeIMO.Project.IndependentVerification',

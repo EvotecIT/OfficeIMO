@@ -30,6 +30,14 @@ namespace OfficeIMO.Word.Pdf {
                 ResetSpacingCollapse();
             }
 
+            public void ParagraphSpacingBefore(double height) =>
+                _inner.ParagraphSpacingBefore(CollapseSpacingBefore(height));
+
+            public void ParagraphSpacingAfter(double height) {
+                _inner.ParagraphSpacingAfter(height);
+                _pendingSpacingAfter = height;
+            }
+
             public void Bookmark(string name) => _inner.Bookmark(name);
 
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) {

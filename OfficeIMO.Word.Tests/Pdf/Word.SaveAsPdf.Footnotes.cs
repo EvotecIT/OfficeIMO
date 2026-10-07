@@ -21,6 +21,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_PreservesFootnoteAndEndnoteWithTheSameDisplayNumber(string context, bool nativeDoc) {
             string path = Path.Combine(_directoryWithFiles, "SameNumberNotes" + context + ".pdf");
             using var document = WordDocument.Create();
+            document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
             WordParagraph paragraph = context == "table"
                 ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
                 : document.AddParagraph("SameNumberMarker");
@@ -116,9 +117,9 @@ namespace OfficeIMO.Tests {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Native footnote here1", allText);
-                Assert.Contains("Native endnote here1", allText);
+                Assert.Contains("Native endnote herei", allText);
                 Assert.Contains("1 Native footnote text", normalizedText);
-                Assert.Contains("1 Native endnote text", normalizedText);
+                Assert.Contains("i Native endnote text", normalizedText);
                 Assert.Contains("Native after notes", allText);
             }
         }

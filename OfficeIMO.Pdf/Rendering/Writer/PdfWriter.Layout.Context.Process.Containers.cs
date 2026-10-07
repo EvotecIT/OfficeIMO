@@ -59,7 +59,8 @@ internal static partial class PdfWriter {
                     if (!keepHeight.HasValue || keepHeight.Value > GetMaximumBlockContinuationHeight() + .001D)
                         throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }
-            } else if (style.KeepWithNext && nextBlock != null) {
+            }
+            if (style.KeepWithNext && nextBlock != null) {
                 double? elementHeight = MeasureWholeBlockHeight(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
                 if (!elementHeight.HasValue) {
                     throw new NotSupportedException("KeepWithNext requires element content whose height can be determined before rendering. Remove KeepWithNext or move dynamic, multi-column, deferred-table, table-of-contents, canvas, or explicit page-boundary content outside the element.");
@@ -77,10 +78,13 @@ internal static partial class PdfWriter {
                     nextHeight = MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, parentLeft, parentWidth, currentOpts.DefaultFontSize, elementHeight.Value);
                     keepHeight = elementHeight.Value + nextHeight;
                     fullPageHeight = GetMaximumBlockContinuationHeight();
+                    if (style.KeepTogether && elementHeight.Value > fullPageHeight + 0.001D)
+                        throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
                 }
             }
 
             y -= spacingBefore;
+            if (style.AnchoredCanvas is { } anchoredCanvas) RenderParagraphCanvas(anchoredCanvas, y);
             if (style.TopPadding > 0) RecordFlowPlacement(y);
             else ResolveFloatingBookmarks(y);
             PdfOptions parentOptions = currentOpts;
@@ -91,6 +95,8 @@ internal static partial class PdfWriter {
             outerX = frame.X;
             outerWidth = frame.Width;
             contentWidth = frame.ContentWidth;
+            IReadOnlyList<IPdfBlock> contentBlocks = ResolveContainerContentBlocks(container, style,
+                outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize);
             var nestedOptions = currentOpts.Clone();
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
@@ -103,7 +109,7 @@ internal static partial class PdfWriter {
             width = contentWidth;
             BeginContainerFragment(scope);
             try {
-                ProcessBlocks(container.Blocks, container);
+                ProcessBlocks(contentBlocks, container);
                 if (!style.RepeatFragmentDecoration && style.BottomPadding > y - scope.ParentOptions.MarginBottom + .001D)
                     throw new ArgumentException("Element closing padding cannot fit within the available page height.");
                 double bottomPadding = Math.Min(style.BottomPadding, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
