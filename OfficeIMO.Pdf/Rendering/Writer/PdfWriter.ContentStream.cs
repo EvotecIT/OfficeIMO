@@ -307,7 +307,7 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         if (!suppressActualText && command.LogicalGlyphs is { } logicalGlyphs) {
-            WriteIsolatedLogicalGlyphs(logicalGlyphs, fontSize, currentTextRise);
+            WriteIsolatedLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
             return this;
         }
 
@@ -320,19 +320,26 @@ internal sealed partial class ContentStreamBuilder {
         if (!command.HasPositioning) {
             ShowHexText(command.GlyphHex);
         } else {
-            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise);
+            double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D) * 1000D / command.UnitsPerEm;
+            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise,
+                command.NegativeTracking ? -tracking1000 : tracking1000, command.TrackingBoundaries);
         }
 
         if (!suppressActualText && command.ActualText != null) {
             _sb.Append("EMC\n");
         }
 
-        if (command.AdvanceWidth1000.HasValue)
-            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D + command.WordSpaceCount * _textWordSpacing);
+        if (command.AdvanceWidth1000.HasValue) {
+            double trackingAdvance = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
+                * fontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
+            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D
+                + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing);
+        }
         return this;
     }
 
-    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise) {
+    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise,
+        double tracking1000 = 0D, bool[]? trackingBoundaries = null) {
         int currentOffsetY1000 = 0;
         for (int index = 0; index < glyphs.Count; index++) {
             PdfGlyphInfo glyph = glyphs[index];
@@ -342,7 +349,8 @@ internal sealed partial class ContentStreamBuilder {
             }
 
             int preAdjustment = -glyph.OffsetX1000;
-            int postAdjustment = glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000;
+            double postAdjustment = glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000
+                - (trackingBoundaries?[index] == true ? tracking1000 : 0D);
             _sb.Append('[');
             if (preAdjustment != 0) {
                 _sb.Append(F(preAdjustment)).Append(' ');

@@ -9,6 +9,32 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlMargins_ParagraphAdjacentListNegativeTopMarginMovesItsFirstItem() {
+        const string before = "<style>body{margin:0}p{margin:16px 0}ul{margin:16px 0;padding-left:40px}p+ul{margin-top:-8px}</style><p>Intro</p><ul><li>Item</li></ul>";
+        const string withoutRule = "<style>body{margin:0}p{margin:16px 0}ul{margin:16px 0;padding-left:40px}</style><p>Intro</p><ul><li>Item</li></ul>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(before);
+        Assert.Equal("-8px", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("ul")!].GetValue("margin-top"));
+        HtmlRenderText withRule = Assert.Single(HtmlRenderTestDriver.Render(before, options).Pages[0].Visuals
+            .OfType<HtmlRenderText>(), text => text.Text == "Item");
+        HtmlRenderText unmodified = Assert.Single(HtmlRenderTestDriver.Render(withoutRule, options).Pages[0].Visuals
+            .OfType<HtmlRenderText>(), text => text.Text == "Item");
+        Assert.Equal(-8D, withRule.Y - unmodified.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlMargins_NegativeListMarginCollapsesThroughFirstItemsParagraph() {
+        const string common = "<style>body{margin:0}p{margin:16px 0}ul{margin:16px 0;padding-left:40px}li{margin-bottom:8px}";
+        const string content = "</style><div><p>Intro</p><ul><li><p>Item</p></li></ul></div>";
+        var options = new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) };
+        HtmlRenderText withRule = Assert.Single(HtmlRenderTestDriver.Render(common + "p+ul{margin-top:-8px}" + content, options)
+            .Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Item");
+        HtmlRenderText withoutRule = Assert.Single(HtmlRenderTestDriver.Render(common + content, options)
+            .Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Item");
+        Assert.Equal(-8D, withRule.Y - withoutRule.Y, 3);
+    }
+
+    [Fact]
     public void HtmlMargins_CollapseLongEmptyBlockRunsWithConstantState() {
         var html = new StringBuilder("<div style='margin:0'>");
         for (int index = 0; index < 2_000; index++) html.Append("<div style='margin:1px 0 2px'></div>");

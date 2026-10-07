@@ -1,0 +1,744 @@
+{
+  "sourceCommit": "60551c38608baaaa60b26a82ca6d6152f9bc6cb7",
+  "baseCommit": "e626d118ae718f3e015b58c5fb855808a4059d89",
+  "scope": "Internal Main-8 normative horizontal superresolution and upscaled deblocked stripe sources before restoration. Public AVIF and HTML/PDF preservation remain unqualified.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "ddf3b3b1854ca6b9ec2ebd26b8786f76afb9a9d6a42476d589eb6b869dc26e16",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Restorer.cs": "e798da4953bc633e1d04bc72ff766a0d561818c2d7b7de5aeb7e487d889b2ad0",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Upscaler.cs": "229a963ca4e223fb8138c3a046c5efef55f81af65d96f1bc4be52be176353da4",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.RestoredFrames.cs": "d874459667a9ef0148bc73eefdff32e1e93dd5d176e55c68d488f7835b4b1cdc",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Superresolution.cs": "91cc052daa0a2baf63fbbb77213ba4ff85a8375eb7ca2dc48856e5942f50a243",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/EncodeRestorationControls.c": "e14754483a83512c2f19e4bae9347a0d8d0ba859c0aa41351841cb2d215f0e93",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateRestoredFrames.py": "dfe5d593d1f00aebf9cb9b1f358bbc84a95052a2ee7450e83699f9acdc7081e9",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadUpscaleKernels.c": "2bf3cff0e76367517afed64cd87411513d2e597f1bb5b827f51792e915dae7c7",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TraceSuperres.patch": "7666b8f4873bc904e4f231b170b49290057a9fe6c6480eb19c00f509b650e181",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/restored-reference.json.gz": "a9275f01eb55e0213dfb6ab1e51f78681f8f33bfeb51bcb92b0e92c67af7d786"
+  },
+  "reference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "assetsSha256": {
+      "GenerateRestoredFrames.py": "dfe5d593d1f00aebf9cb9b1f358bbc84a95052a2ee7450e83699f9acdc7081e9",
+      "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+      "GenerateReconstructionFixtures.py": "a1e3c6fa9c46972f12f006e3f66b425b3d55d1387e0828fd471a9d61a69150f3",
+      "TraceSuperres.patch": "7666b8f4873bc904e4f231b170b49290057a9fe6c6480eb19c00f509b650e181",
+      "OfficeReconstructionProbe.inc": "315f4206a9ed85e4b9be71b8bd9767486ecad289f2fa1384fdaf0ac199addc4b",
+      "OfficeRestorationProbe.inc": "379446d2d767c7f4786eff6ec10b29cb54e6bf7bd35096af3bd06143ef810740",
+      "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+      "ReadRestorationKernels.c": "16899f6d10e99ba9ae71306b18a1d93d47fa06f794595d64788b7f5ef730323b",
+      "ReadUpscaleKernels.c": "2bf3cff0e76367517afed64cd87411513d2e597f1bb5b827f51792e915dae7c7",
+      "EncodeRestorationControls.c": "e14754483a83512c2f19e4bae9347a0d8d0ba859c0aa41351841cb2d215f0e93",
+      "cdef-reference.json.gz": "b789244cf8f076487f6120000627287234a3a26a381097d63e1778dc3885a243"
+    },
+    "fixtureSha256": "a9275f01eb55e0213dfb6ab1e51f78681f8f33bfeb51bcb92b0e92c67af7d786",
+    "canonicalJsonSha256": "9983fd37276cbb34f1c4b26fb66ff12935227ee1e7056d499eba6c3eff2c684b",
+    "cases": 25,
+    "nativeUnitTypes": [
+      0,
+      1,
+      2
+    ],
+    "upscaleKernels": 320,
+    "kernels": 160,
+    "changedKernelCases": 46
+  },
+  "sampleCoverage": {
+    "frames": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3",
+        "cdef": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 2467
+        },
+        "upscaled": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 2467
+        },
+        "restored": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 2467
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+        "cdef": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 2467
+        },
+        "upscaled": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 2467
+        },
+        "restored": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 2467
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "monochrome": true,
+        "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+        "cdef": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 1617
+        },
+        "upscaled": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 1617
+        },
+        "restored": {
+          "width": 49,
+          "height": 33,
+          "croppedSamples": 1617
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a",
+        "cdef": {
+          "width": 256,
+          "height": 128,
+          "croppedSamples": 49152
+        },
+        "upscaled": {
+          "width": 256,
+          "height": 128,
+          "croppedSamples": 49152
+        },
+        "restored": {
+          "width": 256,
+          "height": 128,
+          "croppedSamples": 49152
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "lossless-copy",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "9d7eca4b07732cab2bd1da6dd6567690607cf17cf80cf280c723b442d27a0cae",
+        "cdef": {
+          "width": 640,
+          "height": 128,
+          "croppedSamples": 122880
+        },
+        "upscaled": {
+          "width": 640,
+          "height": 128,
+          "croppedSamples": 122880
+        },
+        "restored": {
+          "width": 640,
+          "height": 128,
+          "croppedSamples": 122880
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "odd-color",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "2096d2012d270b7f092c119121880580f902d2ab9a7409b7e9f4b83a92ab98b2",
+        "cdef": {
+          "width": 97,
+          "height": 65,
+          "croppedSamples": 9539
+        },
+        "upscaled": {
+          "width": 97,
+          "height": 65,
+          "croppedSamples": 9539
+        },
+        "restored": {
+          "width": 97,
+          "height": 65,
+          "croppedSamples": 9539
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "odd-mono",
+        "alpha": false,
+        "monochrome": true,
+        "inputSha256": "80416f86027a6d390fcf83e79cf7268912609887b8929778770e1458c4b53f85",
+        "cdef": {
+          "width": 97,
+          "height": 65,
+          "croppedSamples": 6305
+        },
+        "upscaled": {
+          "width": 97,
+          "height": 65,
+          "croppedSamples": 6305
+        },
+        "restored": {
+          "width": 97,
+          "height": 65,
+          "croppedSamples": 6305
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "odd-tiled-color",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "fe5b5753ab60efc91d9eba9ba21926fab70a0da41c3522cc66e571e2870678d9",
+        "cdef": {
+          "width": 257,
+          "height": 137,
+          "croppedSamples": 53011
+        },
+        "upscaled": {
+          "width": 257,
+          "height": 137,
+          "croppedSamples": 53011
+        },
+        "restored": {
+          "width": 257,
+          "height": 137,
+          "croppedSamples": 53011
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "svt-tiled-mixed-skip",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f",
+        "cdef": {
+          "width": 256,
+          "height": 136,
+          "croppedSamples": 52224
+        },
+        "upscaled": {
+          "width": 256,
+          "height": 136,
+          "croppedSamples": 52224
+        },
+        "restored": {
+          "width": 256,
+          "height": 136,
+          "croppedSamples": 52224
+        },
+        "restorationChangedSamples": 0
+      },
+      {
+        "name": "restore-control-0",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "3d24359fed4d557efe9c0371e05141f94e5c5e420d1e7747520bc86dd1e060b9",
+        "cdef": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 39827
+        },
+        "upscaled": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 39827
+        },
+        "restored": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 39827
+        },
+        "restorationChangedSamples": 14857
+      },
+      {
+        "name": "restore-control-1",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "097d068969152190c04dac67cfaee4a9fe322a0d6941a2e7ce0a1b4b1622d073",
+        "cdef": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 39827
+        },
+        "upscaled": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 39827
+        },
+        "restored": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 39827
+        },
+        "restorationChangedSamples": 1522
+      },
+      {
+        "name": "restore-control-2",
+        "alpha": false,
+        "monochrome": true,
+        "inputSha256": "b49a6a1a9ed29fc35de6b155ad3cdd0c51a275e6283c841553f793b4a299a4ba",
+        "cdef": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 26441
+        },
+        "upscaled": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 26441
+        },
+        "restored": {
+          "width": 193,
+          "height": 137,
+          "croppedSamples": 26441
+        },
+        "restorationChangedSamples": 11173
+      },
+      {
+        "name": "restore-control-3",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "b991ffabbf1b6a19add65ba413887c07e9864637f05dc1b581155580daf59234",
+        "cdef": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 87228
+      },
+      {
+        "name": "restore-control-4",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "64f37b7448855e5160bc0de2c3ae0b5afd8b7c49d6cd4e45c1906713af436bdf",
+        "cdef": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 67868
+      },
+      {
+        "name": "restore-control-5",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "627988de772cd132fb1bc386cdb90efb163728cf5809b1935bc81698c3fc5a6d",
+        "cdef": {
+          "width": 513,
+          "height": 513,
+          "croppedSamples": 395267
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 513,
+          "croppedSamples": 395267
+        },
+        "restored": {
+          "width": 513,
+          "height": 513,
+          "croppedSamples": 395267
+        },
+        "restorationChangedSamples": 153965
+      },
+      {
+        "name": "restore-control-6",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "a59927b1eca52d5edf461b9c75de211adcbb1d3e1362846adc264e0490a42f98",
+        "cdef": {
+          "width": 456,
+          "height": 257,
+          "croppedSamples": 176016
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 158733
+      },
+      {
+        "name": "restore-control-7",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "aaf05bac6c8614c2f30ab70959118ae33c5a36e389eecb6bca29c35482749e53",
+        "cdef": {
+          "width": 410,
+          "height": 257,
+          "croppedSamples": 158260
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 131754
+      },
+      {
+        "name": "restore-control-8",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "fc8792b2f6d69cfa7e5bd441339b3566abb77869b0a1a2c0cc36dfa62ed5f04c",
+        "cdef": {
+          "width": 373,
+          "height": 257,
+          "croppedSamples": 144107
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 115745
+      },
+      {
+        "name": "restore-control-9",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "37edf9e6a145a4ad4163a3afa4e630d67d5bb4284b3d1af5688de9cc816806ca",
+        "cdef": {
+          "width": 342,
+          "height": 257,
+          "croppedSamples": 132012
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 115344
+      },
+      {
+        "name": "restore-control-10",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "d158758a5907b5cd7ce8a16155d58b9e96f2fcfc38809eb3e92d78c6cba43752",
+        "cdef": {
+          "width": 316,
+          "height": 257,
+          "croppedSamples": 121976
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 111146
+      },
+      {
+        "name": "restore-control-11",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "78cec40d4acb86c173e97c346aec775c0a3a5e9939c2dac4b57ed58da44ac848",
+        "cdef": {
+          "width": 293,
+          "height": 257,
+          "croppedSamples": 113227
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 102820
+      },
+      {
+        "name": "restore-control-12",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "a0b7a8f234d705b77835f2d895dba240266ba43a7d854a764f1650bd4bf7b53a",
+        "cdef": {
+          "width": 274,
+          "height": 257,
+          "croppedSamples": 105764
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 83612
+      },
+      {
+        "name": "restore-control-13",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "30c483cbb457284b2e05fc474a01077708e96ebe040c2ccafe2f5c9a12610ba3",
+        "cdef": {
+          "width": 257,
+          "height": 257,
+          "croppedSamples": 99331
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 103846
+      },
+      {
+        "name": "restore-control-14",
+        "alpha": false,
+        "monochrome": true,
+        "inputSha256": "859ac6d399dd3c15e3f4588c7e56a611b69b10ed364458e046ec6ce04fcb418a",
+        "cdef": {
+          "width": 316,
+          "height": 257,
+          "croppedSamples": 81212
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 131841
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 131841
+        },
+        "restorationChangedSamples": 76308
+      },
+      {
+        "name": "restore-control-15",
+        "alpha": false,
+        "monochrome": false,
+        "inputSha256": "fffe7446d849fdb90214b9890bbe295a8f8fb4416aa5294f9a1b386aff57a328",
+        "cdef": {
+          "width": 316,
+          "height": 257,
+          "croppedSamples": 121976
+        },
+        "upscaled": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restored": {
+          "width": 513,
+          "height": 257,
+          "croppedSamples": 198147
+        },
+        "restorationChangedSamples": 106836
+      }
+    ],
+    "croppedStageSamples": {
+      "cdef": 2451199,
+      "upscaled": 3112482,
+      "restored": 3112482
+    },
+    "restorationChangedSamples": 1442757,
+    "nativeUpscaleRowCases": 320,
+    "nativeUpscaleRowSamples": 64288,
+    "scaleDenominators": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "fullFrame128PixelSuperblockControls": [
+      "restore-control-14",
+      "restore-control-15"
+    ]
+  },
+  "validation": {
+    "sdk": "10.0.303",
+    "host": "macOS",
+    "tests": [
+      {
+        "file": "superres-focused-net10.trx",
+        "sha256": "14070c066c73faf87d1e2e6657d3abb725a640b9e49f32cae44ac548189ea47e",
+        "counts": {
+          "total": "30",
+          "executed": "30",
+          "passed": "30",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "superres-full-net10.trx",
+        "sha256": "308842e8de6325f3077ececb23ba2ce7593a4ef13c04dc8a4dfd84f6552a643c",
+        "counts": {
+          "total": "3013",
+          "executed": "3013",
+          "passed": "3013",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "superres-full-net8.trx",
+        "sha256": "f23c01ce294183ee9e416ef2d3504dddf939237560a31100c773178c1f29bd4d",
+        "counts": {
+          "total": "3013",
+          "executed": "3013",
+          "passed": "3013",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "corePackage": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "packageSha256": "62af4043bafd5bde7ae55183a7a08ffbf0c90336e494310b5e62e7068f61a1be",
+      "targets": [
+        {
+          "target": "net10.0",
+          "assemblySha256": "b996b0584d01c0090323b55865451f3a347ccf31a8ff93f5ce40823f77858c39",
+          "upscalerTypePresent": true
+        },
+        {
+          "target": "net8.0",
+          "assemblySha256": "b48a61c33e6c113120790d4952899dfc978bc2e11bbf0a933285acd53993cb87",
+          "upscalerTypePresent": true
+        },
+        {
+          "target": "netstandard2.0",
+          "assemblySha256": "50aa074aea924903800f470dc5161dcc7053037d69b44dabb9a92cb4f852d774",
+          "upscalerTypePresent": true
+        }
+      ],
+      "runtimeDependencies": 0,
+      "nativeReferenceAssets": [],
+      "warnings": 0
+    }
+  },
+  "review": {
+    "decision": "used",
+    "reason": "New codec arithmetic, upscaled geometry and immutable stripe-source ownership with resource/cancellation limits",
+    "task": "av1_superres_review",
+    "provisionalContentFingerprint": "05d8d876f3792f8c68b784ea7e6e125a4977b213203c8db953a0455fc3a5ecb5",
+    "scope": "Upscaler, reconstruction/restoration wiring and geometry, native fixture provenance and tests; unchanged filter arithmetic excluded",
+    "result": "No actionable P0-P3 findings",
+    "boundary": "candidate-reviewed",
+    "targetedConfirmation": "not needed",
+    "reviewerMutation": "none",
+    "hostedReview": "not requested"
+  },
+  "remaining": [
+    "Independent full-frame active restoration at smaller unit sizes",
+    "Mid-filter cancellation and exceptional restoration unit-grid/work-limit direct proof remains limited",
+    "Color/alpha composition and public default raster integration",
+    "Frozen HTML/PDF decoded/rendered acceptance, H4/NASA and unchanged applicable performance ceilings at completed decoder boundary",
+    "Windows/net472 execution and Windows/Linux H10 operation budgets",
+    "Other confirmed frozen static PDF/layout/text/SVG/MathML/conformance gaps remain in Docs/ROADMAP.md"
+  ],
+  "cleanup": {
+    "removedTargets": 71,
+    "removedBytes": 41734038,
+    "retainedSuperresolutionBytes": 85180239,
+    "purpose": "Compact results/receipts/notices and current native source/build retained for color/alpha work. Earlier restoration source and compact historical proof remain; its superseded build/executables are removed."
+  },
+  "retainedArtifactDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-superres-work-e626d118a"
+}

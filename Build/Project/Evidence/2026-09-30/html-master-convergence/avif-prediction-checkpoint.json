@@ -1,0 +1,192 @@
+{
+  "sourceCommit": "b97d8aea203800420cdde28481b2b6cfe9dcd35a",
+  "recordDate": "2026-10-01",
+  "previousCheckpoint": "e300d141b8c99b76e7ff3e8216eb6cd69192cb2d",
+  "scope": "Internal Main-8 intra, directional/filter-intra, palette and chroma-from-luma prediction pixels over caller-supplied available reconstructed edges; no full-image or public AVIF path.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.Chroma.cs": "5945ce093fd518b8cf4147c2509375783de47b21e0eae369d66082620be068b6",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.Directional.cs": "68d2a1622d362ade7db51bbf0a4e1ee3b475877920327d6d410fbbf1c581e578",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.Tables.Generated.cs": "15186ad7be9e2d3b57638e2b6f5dd49dc0869ea2aff5db7afda32da999d7cfaa",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraPredictor.cs": "94ef21b3daf07aa9dac5065a8358c49eac3cc534644cb884fa7cb85f98c52359",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Prediction.cs": "bc1fe154f2f9f1fdff225556a9112da3ccff0d31e9de5dfe8455c6016dff9922",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "019650d910bc8284756be5fc53503575f7eb7e9c9fb44b6f99d0c07eafdd5bf3",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePredictionFixtures.py": "4296ae1bef9d35d62fcb1d4a7796e64e8a5ae9c060cf3956c630afa3a9e6c16a",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePredictionTables.py": "7e949c7904722778e6167c53c8cae393e36052495ed1d8ce08694fd2bdf04063",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeCflProbe.inc": "3208261ae8f27ec62f46d10828a5e3656436c92f78a0ea1e5ad23a37f394b912",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficePredictionProbe.inc": "a1c48c04418c69e57883d43fa0cd11b84a559241a095f452647c8c95c2ef71a4",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadPredictionReference.c": "59067e089583073c3b4583f2320c05f03ec833bbfc83d6cbb60519bc036048ef",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TracePrediction.patch": "3463b7f3269d27a8dba0ba727f1beeae64aef053f9e178375661e70f892a5410",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/prediction-reference.json.gz": "be28def983090b2edc5354d78c28f64e221ff7676600e33383fccf9172726561"
+  },
+  "independentOracle": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "sourceSha256": {
+      "av1/common/reconintra.c": "710299b97e4bede074bd098ad2c0154d21c8734f0a0cb344de15d5d03dd62fe9",
+      "av1/common/cfl.c": "2e5abfe4d008a2dda0b1c7f7bf6664bf7ca497b53fe653333941910cd37f792a",
+      "aom_dsp/intrapred.c": "a10c6bc818c606962543c61aa6b293a485a22524cdac367cd4dc4b45ca0715f3"
+    },
+    "assetsSha256": {
+      "OfficePredictionProbe.inc": "a1c48c04418c69e57883d43fa0cd11b84a559241a095f452647c8c95c2ef71a4",
+      "OfficeCflProbe.inc": "3208261ae8f27ec62f46d10828a5e3656436c92f78a0ea1e5ad23a37f394b912",
+      "ReadPredictionReference.c": "59067e089583073c3b4583f2320c05f03ec833bbfc83d6cbb60519bc036048ef",
+      "TracePrediction.patch": "3463b7f3269d27a8dba0ba727f1beeae64aef053f9e178375661e70f892a5410",
+      "GeneratePredictionFixtures.py": "4296ae1bef9d35d62fcb1d4a7796e64e8a5ae9c060cf3956c630afa3a9e6c16a",
+      "GeneratePredictionTables.py": "7e949c7904722778e6167c53c8cae393e36052495ed1d8ce08694fd2bdf04063"
+    },
+    "specTextSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+    "fixtureSha256": "be28def983090b2edc5354d78c28f64e221ff7676600e33383fccf9172726561",
+    "canonicalJsonSha256": "d3318294372e71e0dc337f4811d9efd596bffa3bf20621804bde09a02d938d76",
+    "cases": 13262,
+    "predictionSamples": 7708672,
+    "byKind": {
+      "0": 9832,
+      "1": 2772,
+      "2": 658
+    }
+  },
+  "referenceBoundary": {
+    "actualNativePredictionKernels": true,
+    "nativeKernelAlgorithmsChanged": false,
+    "accessPatch": "EOF includes exposing actual native edge preparation/directional/filter-intra builders, non-directional kernels, palette path and CfL subsample/pad/average/predict routines.",
+    "freshSourceCheckoutAndBuild": true,
+    "freshFixtureByteIdenticalToCheckedIn": true,
+    "freshNumericFactsByteIdentical": true,
+    "scope": "13262 selected cases / 7708672 output samples, all nineteen transform sizes and thirteen ordinary modes, all five filters and thirty-three CfL alphas. Selected edge/continuation/filter states and luma/palette patterns; not every sample pattern or availability combination.",
+    "callerAvailability": "Inputs explicitly supply edge counts, corner and smooth-neighbor flags. Tile/decode-order derivation and complete frame reconstruction remain outside this component proof."
+  },
+  "validation": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prediction-work-e300d141b/prediction-focused-net10.trx",
+      "sha256": "e61be6c1715fd428eea2638a925078af17c560aa1c4fb54673b8b47f6d9af0ac",
+      "counters": {
+        "total": "3",
+        "executed": "3",
+        "passed": "3",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prediction-work-e300d141b/prediction-full-net8.trx",
+      "sha256": "8079ff36509222ef1287ec8d6cc404265bbf7ee6db12c1df9b5c463860fef98a",
+      "counters": {
+        "total": "2959",
+        "executed": "2959",
+        "passed": "2959",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prediction-work-e300d141b/prediction-full-net10.trx",
+      "sha256": "113cfcf9048f60771026ad04250167397106fd5ad64bbe864db4d223371d224d",
+      "counters": {
+        "total": "2959",
+        "executed": "2959",
+        "passed": "2959",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "corePackage": {
+    "packageSha256": "a80dabcb207592b98671b3c477e5253c4cb92f5cd8646e3b00257cfb217fedcc",
+    "runtimeDependencies": 0,
+    "libraries": {
+      "lib/net10.0/OfficeIMO.Core.dll": "4bcc50172078e4bcfd7c526849f98ea8dd4a93a21d738a0076ef74390f75c8cb",
+      "lib/net8.0/OfficeIMO.Core.dll": "33aabea6d2e2b2c71d27dcc4e2b47f82677124d6a1641dcb6498e2a49fca9ddc",
+      "lib/netstandard2.0/OfficeIMO.Core.dll": "261deda3909cbee37661defea71e638f87aed90a337519bae2d62d7747654ff7"
+    },
+    "noNativeOracleAssets": true,
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "disposition": "Inspected package removed; compact facts retained."
+  },
+  "coreBuild": {
+    "configuration": "Release",
+    "sdk": "10.0.303",
+    "targets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "warnings": 0,
+    "errors": 0
+  },
+  "localReview": {
+    "task": "av1_prediction_review",
+    "reason": "Directional edge math/filtering, fixed-point CfL, palette indexing, immutable results and retained-memory/cancellation boundaries.",
+    "base": "e300d141b8c99b76e7ff3e8216eb6cd69192cb2d",
+    "stagedBinaryDiffFingerprint": "c59d86553ada60c8b3ffa4ae04b6fbf4dac7b6cc",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "boundary": "current",
+    "reviewerRanTests": false
+  },
+  "limits": {
+    "aggregateManagedBytes": 268435456,
+    "contextReservationBytes": 12288,
+    "edgeStorageMaximumPerSide": 128,
+    "cflLumaStorageMaximumBytes": 4096,
+    "returnedPrediction": "Immutable; scratch never escapes. Reconstruction consumer must account for retained outputs separately.",
+    "cancellation": "Entry, each output row/chunk row and before result publication."
+  },
+  "defaultAvifDecodeQualified": false,
+  "supportCatalogChanged": false,
+  "externalRuntimeDependenciesAdded": false,
+  "fullMilestoneComplete": false,
+  "unchangedRendererEvidence": "No public/default decode/render caller changed. Prior H4/NASA/performance evidence keeps its earlier boundary and does not qualify AVIF output.",
+  "remainingAvif": [
+    "Derive real tile/decode-order edge availability, smooth neighbors and integrate prediction, copy, inverse residuals and clipping into full-frame samples",
+    "Positive complete-tile skip/copy/restoration integration beyond component proof",
+    "In-loop filters, color/alpha composition and independent full-image pixel comparison",
+    "Public raster integration, original frozen HTML/PDF acceptance and unchanged applicable ceilings"
+  ],
+  "unavailableProof": [
+    "Windows/net472 execution",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "cleanup": {
+    "removedBytes": 179048703,
+    "removed": "Two disposable native source/build copies, raw cases/results, duplicate numeric facts and inspected package.",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-prediction-work-e300d141b",
+    "retainedBytes": 9508486,
+    "purpose": "Final tests, compact native replay/package receipts, pinned license/patent notices and one small native prediction reference executable."
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "sourceBase": "ffb2d19f8ff9afb8fb146c90a2efcf30012ac1b6",
+  "candidateTrackedDiffGitHash": "df4a6148ea33c810a3f96d28a53bab4bfb232ac1",
+  "additionalTestGitHash": "4a20d8dad36639c45dd0d7fde40464c9b215d061",
+  "fixture": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/pdf-conformance.html",
+  "validator": {
+    "name": "veraPDF",
+    "version": "1.30.2",
+    "installerSha256": "6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838"
+  },
+  "results": [
+    {
+      "artifact": "PdfA3B.pdf",
+      "sha256": "1a1d4957873236cf29a7a1e11a9c1c832d2bb2a8ed4d35cd3e0b3a225e0f0296",
+      "profile": "PDF/A-3b validation profile",
+      "compliant": true,
+      "details": {
+        "passedRules": 146,
+        "failedRules": 0,
+        "passedChecks": 1528,
+        "failedChecks": 0,
+        "ruleSummaries": []
+      }
+    },
+    {
+      "artifact": "PdfUa1WithPdfA3B.pdf",
+      "sha256": "b3b04890511fa2665581ac3cee649ac540e7a0f29e28d2955944194785741057",
+      "profile": "PDF/UA-1 validation profile",
+      "compliant": true,
+      "details": {
+        "passedRules": 106,
+        "failedRules": 0,
+        "passedChecks": 524,
+        "failedChecks": 0,
+        "ruleSummaries": []
+      }
+    },
+    {
+      "artifact": "PdfUa1WithPdfA3B.pdf",
+      "sha256": "b3b04890511fa2665581ac3cee649ac540e7a0f29e28d2955944194785741057",
+      "profile": "PDF/A-3b validation profile",
+      "compliant": true,
+      "details": {
+        "passedRules": 146,
+        "failedRules": 0,
+        "passedChecks": 1542,
+        "failedChecks": 0,
+        "ruleSummaries": []
+      }
+    }
+  ],
+  "policy": {
+    "font": "embedded OfficeIMOBaselineSans-Regular.ttf as Helvetica",
+    "associatedFileModificationDate": "2026-10-02T00:00:00Z",
+    "standalonePdfUa1": "rejected: MathML associated file requires PDF 2.0 without the PDF/A-3 extension route",
+    "combinedProfile": "explicit PDF/A-3b plus PDF/UA-1"
+  },
+  "fixes": [
+    "Print flag on URI and named-destination annotations",
+    "Decorative zero-ink HTML link hit areas retain Link structure and annotation",
+    "Opaque inline effects preserve surrounding ActualText without nested Artifact marked content; separate Form XObjects retain their wrapper",
+    "Combined PDF/A and PDF/UA metadata declares pdfuaid extension alongside optional invoice schema"
+  ],
+  "validation": {
+    "pdfNet10": 8647,
+    "htmlNet10": 4183,
+    "focusedPdfNet8": 136,
+    "focusedHtmlNet8": 99,
+    "independentReadOnlyReview": "no actionable P0-P3",
+    "render": "96-dpi page PNG byte-identical before/after fixes; visually inspected"
+  },
+  "limitations": [
+    "Machine validation is fixture-specific; manual accessibility and wider profile corpus remain open",
+    "Packed consumer run stopped at existing RTF baseline net472 to netstandard2.0 comparison/suppression mismatch on macOS; not package-qualified"
+  ],
+  "retainedArtifacts": "Ignore/MathAutoQualification/conformance-complete-candidate",
+  "cleanSourceReplay": {
+    "head": "9aece6c81",
+    "h4Passed": 8,
+    "staticCasesCompleted": 18,
+    "executionFailures": 0,
+    "markerAndLinkChecks": "all eighteen cases pass; wrapped marker hyphens normalize whitespace only",
+    "artifactComparisonToMathCheckpoint": {
+      "total": 150,
+      "identical": 137,
+      "changedPdfs": [
+        "column-float-bottom/officeimo-print.pdf",
+        "column-float-left/officeimo-print.pdf",
+        "column-float-left/officeimo-screen-to-pdf.pdf",
+        "column-float-top/officeimo-print.pdf",
+        "column-notes/officeimo-print.pdf",
+        "language-hyphenation/officeimo-print.pdf",
+        "language-hyphenation/officeimo-screen-to-pdf.pdf",
+        "mathml-semantics/officeimo-print.pdf",
+        "mathml-semantics/officeimo-screen-to-pdf.pdf",
+        "pdf-conformance/officeimo-print.pdf",
+        "pdf-conformance/officeimo-screen-to-pdf.pdf",
+        "svg-resources/officeimo-print.pdf",
+        "svg-resources/officeimo-screen-to-pdf.pdf"
+      ],
+      "allPngAndSvgIdentical": true
+    }
+  },
+  "packageDiagnostic": {
+    "defaultScript": "fails when macOS omits net472 from RTF package but baseline/suppressions include it",
+    "fullFrameworkPack": "passes all existing API compatibility checks with netstandard2.0;net8.0;net10.0;net472 explicitly selected",
+    "packageSha256": "3a44e94e9d264a60d65d8b6959d087704854c32bb2d4226a42b1d267ed35cc8e",
+    "remaining": "Make representative package-consumer validation select the complete declared framework graph; run actual consumers. No API suppression or runtime workaround needed."
+  }
+}

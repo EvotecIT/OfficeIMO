@@ -111,6 +111,9 @@ public static partial class OfficeSvgDrawingReader {
         byte[] svgBytes,
         OfficeContentSafetyOptions options,
         OfficeSvgDrawingReaderOptions? readerOptions) {
+        if (!TryResolveDefaultFontFamily(readerOptions, out _)) {
+            throw new ArgumentException("The SVG default font family is invalid.", nameof(readerOptions));
+        }
         OfficeContentSafetyInputGuard.ValidateBytes(svgBytes, options);
         if (!TryReadBoundedDocument(
                 svgBytes,
@@ -131,7 +134,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         var settings = new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit,
+            DtdProcessing = DtdProcessing.Ignore,
             XmlResolver = null,
             MaxCharactersInDocument = Math.Min(options.MaxCharacters, Math.Min(options.MaxInputBytes, MaximumInputBytes)),
             MaxCharactersFromEntities = 0,

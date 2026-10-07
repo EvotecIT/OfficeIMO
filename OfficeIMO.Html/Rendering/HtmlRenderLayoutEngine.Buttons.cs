@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderBoxStyle style = CreateFormControlStyle(element, authoredStyle);
         if (!style.DisplayWasSpecified) style.Display = "inline-block";
-        if (_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) {
+        if (_styleResolver.GetBoxCascadeStyle(element, authoredStyle) is HtmlComputedStyle computed) {
             bool Declared(string property) => computed.IsSpecifiedValue(property) || computed.IsInheritedValue(property);
             if (Declared("background") || Declared("background-color")) style.BackgroundColor = authoredStyle.BackgroundColor;
             bool padding = Declared("padding");

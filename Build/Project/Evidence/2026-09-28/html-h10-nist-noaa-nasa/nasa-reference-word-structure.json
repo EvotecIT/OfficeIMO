@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "caseId": "nasa-reference-systems",
+  "sourceCommit": "6a9947168",
+  "sourceMhtmlSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+  "chromiumPrintSha256": "3d8274541127c9753d80beab8b96dd9c7cec19b0b40ce5f8f80c64cffb7dccbf",
+  "wordDocxSha256": "826d15952c91240f89051da5b307ed8a12f52681bea33da86962479fcd2620bb",
+  "declaredStructureChecks": {
+    "visibleHeadingSequenceMatches": true,
+    "allFiveFigureCaptionsAdjacentToImages": true,
+    "allSourceLinksVisibleInChromiumPrintPreserved": true,
+    "documentReopenedWithRequiredMarkers": true,
+    "threeStaticWebpIllustrationsEmbeddedAsPng": true
+  },
+  "declaredStructurePassed": true,
+  "sourceVisibleHeadings": [
+    [
+      "h1",
+      "Chapter 2: Reference Systems"
+    ],
+    [
+      "h2",
+      "Contents"
+    ],
+    [
+      "h3",
+      "Chapter Objectives"
+    ],
+    [
+      "h3",
+      "Terrestrial Coordinates"
+    ],
+    [
+      "h3",
+      "Terrestrial Coordinates Grid"
+    ],
+    [
+      "h3",
+      "Rotation and Revolution"
+    ],
+    [
+      "h3",
+      "Earth's Rotation"
+    ],
+    [
+      "h3",
+      "Precession of Earth's Axis Over 26,000 Years"
+    ],
+    [
+      "h3",
+      "Nutation"
+    ],
+    [
+      "h3",
+      "Revolution of Earth"
+    ],
+    [
+      "h3",
+      "Shorter-term Polar Motion"
+    ],
+    [
+      "h3",
+      "Epochs"
+    ],
+    [
+      "h3",
+      "Making Sense"
+    ],
+    [
+      "h2",
+      "Discover More Topics From NASA"
+    ],
+    [
+      "h3",
+      "National Aeronautics and Space Administration"
+    ],
+    [
+      "h3",
+      "Follow NASA"
+    ]
+  ],
+  "wordHeadings": [
+    [
+      "h1",
+      "Chapter 2: Reference Systems"
+    ],
+    [
+      "h2",
+      "Contents"
+    ],
+    [
+      "h3",
+      "Chapter Objectives"
+    ],
+    [
+      "h3",
+      "Terrestrial Coordinates"
+    ],
+    [
+      "h3",
+      "Terrestrial Coordinates Grid"
+    ],
+    [
+      "h3",
+      "Rotation and Revolution"
+    ],
+    [
+      "h3",
+      "Earth's Rotation"
+    ],
+    [
+      "h3",
+      "Precession of Earth's Axis Over 26,000 Years"
+    ],
+    [
+      "h3",
+      "Nutation"
+    ],
+    [
+      "h3",
+      "Revolution of Earth"
+    ],
+    [
+      "h3",
+      "Shorter-term Polar Motion"
+    ],
+    [
+      "h3",
+      "Epochs"
+    ],
+    [
+      "h3",
+      "Making Sense"
+    ],
+    [
+      "h2",
+      "Discover More Topics From NASA"
+    ],
+    [
+      "h3",
+      "National Aeronautics and Space Administration"
+    ],
+    [
+      "h3",
+      "Follow NASA"
+    ]
+  ],
+  "figureCaptions": [
+    {
+      "text": "Lines of longitude.",
+      "wordParagraphIndex": 28,
+      "immediatelyFollowsFigure": true
+    },
+    {
+      "text": "Lines of latitude.",
+      "wordParagraphIndex": 30,
+      "immediatelyFollowsFigure": true
+    },
+    {
+      "text": "Terrestrial coordinates grid.",
+      "wordParagraphIndex": 33,
+      "immediatelyFollowsFigure": true
+    },
+    {
+      "text": "Precession of Earth's axis over 26,000 years.",
+      "wordParagraphIndex": 44,
+      "immediatelyFollowsFigure": true
+    },
+    {
+      "text": "Movement of Earth’s rotational poles 2001 to 2006, and the mean pole location from the year 1900 to 2000.",
+      "wordParagraphIndex": 56,
+      "immediatelyFollowsFigure": true
+    }
+  ],
+  "sourceDistinctExternalLinkDestinations": 63,
+  "wordDistinctHyperlinkDestinations": 54,
+  "sourceOnlyDestinations": [
+    {
+      "url": "https://science.nasa.gov/?search=Artemis",
+      "sourceLabels": [
+        "Artemis"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/?search=Climate%20Change",
+      "sourceLabels": [
+        "Climate Change"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/?search=Expedition%2064",
+      "sourceLabels": [
+        "Expedition 64"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/?search=International%20Space%20Station",
+      "sourceLabels": [
+        "International Space Station"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/?search=Mars%20perseverance",
+      "sourceLabels": [
+        "Mars perseverance"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/?search=SpaceX%20Crew-2",
+      "sourceLabels": [
+        "SpaceX Crew-2"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/a-to-z-topics-listing/",
+      "sourceLabels": [
+        "View All Topics A-Z"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/learn/",
+      "sourceLabels": [
+        "…"
+      ],
+      "absentFromChromiumPrint": true
+    },
+    {
+      "url": "https://science.nasa.gov/learn/basics-of-space-flight/",
+      "sourceLabels": [
+        "Introduction"
+      ],
+      "absentFromChromiumPrint": true
+    }
+  ],
+  "sourceImageCount": 12,
+  "wordImageRuns": 23,
+  "wordPngMediaParts": [
+    "media/image.png",
+    "media/image2.png",
+    "media/image3.png"
+  ],
+  "wordHasLossReport": true,
+  "libreOfficeRenderedPages": 19,
+  "retainedVisualProof": "Ignore/HtmlUnknownPageQualification/h10-nasa-reference-word-webp-6a9947168/word/visual-proof-pages-11-15.jpg",
+  "layoutVerdict": "Open: illustrations and five figure captions are present, but the rendered Word document has large gaps and 19 Letter pages.",
+  "browserPrintVisibilityNotes": [
+    "Suggested Searches is absent from Chromium print.",
+    "Contents appears as uppercase CONTENTS in Chromium print.",
+    "The National Aeronautics and Space Administration footer heading is visible in Chromium print but interleaved with adjacent footer columns in text extraction."
+  ],
+  "reopenedMarkers": {
+    "Chapter 2: Reference Systems": true,
+    "Terrestrial Coordinates": true,
+    "Rotation and Revolution": true,
+    "Precession": true,
+    "Epochs": true
+  }
+}

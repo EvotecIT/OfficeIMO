@@ -1,0 +1,177 @@
+{
+  "sourceCommit": "b498a387c5e184d2f31647391681befbc198f2af",
+  "baseCommit": "e994a94d01f6a27f2472bd268432a111d90743c0",
+  "scope": "Internal reduced-still Main-8 deblocking; no public/default AVIF decoding or HTML/PDF integration.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1DeblockFilter.cs": "dde00582599e0048a71a939b7d5a9ba405a6e2178871ac332c52acf8498039fa",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Deblocker.cs": "9a596bdcd3525a95d133e9abd115936d05b59b5b2d06435dbda239dd869138a1",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "06814e4bd4cf652529df39827aefa03c4b329e27a44864ffe001429699efb51d",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Deblocking.cs": "df373ff20a04df4097f9bae0a262675c6a80d977941311fa463ae8256ee8ec14",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "b8466e5ea5b5d4ee8a70351b6a79dfba3444739a8c6c60db9739707a32441462",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateDeblockFixtures.py": "075c6f632c16f31d5cc0b75f50f9e8dcb1ddf599b531a10a56a198f51849c0de",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadDeblockKernels.c": "deb5b1016809d6e8e3fd31d986efe5745a19f13d3986af89f17e94fb4845f636",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TraceDeblocking.patch": "e8089ca09a532341dc53a8c0c91f79590ccf3432a893817f8bc3a724ba5af85e",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/deblock-reference.json.gz": "2997e41d842dd82f2679e25c5402048fea1c9087f69be3e7b99462626846a304"
+  },
+  "reference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "assetsSha256": {
+      "GenerateDeblockFixtures.py": "075c6f632c16f31d5cc0b75f50f9e8dcb1ddf599b531a10a56a198f51849c0de",
+      "GenerateTileFixtures.py": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+      "GenerateReconstructionFixtures.py": "9aaa826fde25d494e4d5f66c8c7f80b9e5d1fedb927644c3bcd98498b2e791e5",
+      "TraceDeblocking.patch": "e8089ca09a532341dc53a8c0c91f79590ccf3432a893817f8bc3a724ba5af85e",
+      "OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+      "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+      "ReadDeblockKernels.c": "deb5b1016809d6e8e3fd31d986efe5745a19f13d3986af89f17e94fb4845f636",
+      "reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d"
+    },
+    "fixtureSha256": "2997e41d842dd82f2679e25c5402048fea1c9087f69be3e7b99462626846a304",
+    "canonicalJsonSha256": "c5aa912e3b936469d430b890ae28de09ca9dbd767052a47bab302eb24531a4a1",
+    "cases": 5,
+    "kernels": 3024,
+    "changedKernelCases": 1280,
+    "changedFrameSamples": 11042
+  },
+  "frames": [
+    {
+      "name": "avif-opaque",
+      "alpha": false,
+      "samples": 3360,
+      "changedSamples": 0
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": false,
+      "samples": 3360,
+      "changedSamples": 0
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": true,
+      "samples": 2240,
+      "changedSamples": 0
+    },
+    {
+      "name": "multitile",
+      "alpha": false,
+      "samples": 49152,
+      "changedSamples": 11042
+    },
+    {
+      "name": "lossless-copy",
+      "alpha": false,
+      "samples": 122880,
+      "changedSamples": 0
+    }
+  ],
+  "samples": 180992,
+  "kernelSamples": 774144,
+  "reversedChangedKernelCases": 640,
+  "independence": {
+    "observationalPatch": "Actual native pre/post-deblock capture; loop-filter implementation and threshold initialization unmodified.",
+    "storage": "Pinned AOM v3.13.1 byte storage; high-bit-depth internal storage rejected.",
+    "freshSourceCheckoutAndBuild": true,
+    "freshComparison": {
+      "compressedFixtureByteIdentical": true,
+      "fixtureSha256": "2997e41d842dd82f2679e25c5402048fea1c9087f69be3e7b99462626846a304",
+      "freshReceipt": {
+        "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+        "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+        "assetsSha256": {
+          "GenerateDeblockFixtures.py": "075c6f632c16f31d5cc0b75f50f9e8dcb1ddf599b531a10a56a198f51849c0de",
+          "GenerateTileFixtures.py": "539d9265c2adee9c2d85efbc3ec3f4c07a82505f02d2af1752053018b5e86dae",
+          "GenerateReconstructionFixtures.py": "9aaa826fde25d494e4d5f66c8c7f80b9e5d1fedb927644c3bcd98498b2e791e5",
+          "TraceDeblocking.patch": "e8089ca09a532341dc53a8c0c91f79590ccf3432a893817f8bc3a724ba5af85e",
+          "OfficeReconstructionProbe.inc": "4051a7b897aea6d5fdfea13a041395c54daf14cf36e90bb4a622e30e078df04e",
+          "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+          "ReadDeblockKernels.c": "deb5b1016809d6e8e3fd31d986efe5745a19f13d3986af89f17e94fb4845f636",
+          "reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d"
+        },
+        "fixtureSha256": "2997e41d842dd82f2679e25c5402048fea1c9087f69be3e7b99462626846a304",
+        "canonicalJsonSha256": "c5aa912e3b936469d430b890ae28de09ca9dbd767052a47bab302eb24531a4a1",
+        "cases": 5,
+        "kernels": 3024,
+        "changedKernelCases": 1280,
+        "changedFrameSamples": 11042
+      }
+    },
+    "normalBuild": "Checked-in fixture only; no native download, link or runtime dependency."
+  },
+  "validation": {
+    "tests": {
+      "focused-reversed-net10.trx": {
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "sha256": "447c88d1c45d548531320d506f224be61a4a5694c43068d27a008f8cf7ba3de5"
+      },
+      "focused-reversed-net8.trx": {
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "sha256": "7d3ad31b9238f8dd697243f330712511fb97ccb36ab3fe1de840926bde7725aa"
+      },
+      "deblock-full-net10.trx": {
+        "total": 2972,
+        "passed": 2972,
+        "failed": 0,
+        "sha256": "b9c780d3f3c51763637a7b495b25bd03070de57704b8440570779ed463117ed3"
+      },
+      "deblock-full-net8.trx": {
+        "total": 2972,
+        "passed": 2972,
+        "failed": 0,
+        "sha256": "4312d510dc3c3001b8093a166c60b53f390adb52426ccadd3372f05b0a8c0a6b"
+      }
+    },
+    "fullSuiteBoundary": "Full suites precede fixture-only reversed-gradient expansion; runtime source unchanged. Final focused tests execute expanded native kernel corpus on both frameworks.",
+    "package": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "sha256": "053de976f0d01a5d3b4868caaebafbdabbd481ce6ce097b6d1c72624b8722553",
+      "frameworkDlls": [
+        "lib/net10.0/OfficeIMO.Core.dll",
+        "lib/net8.0/OfficeIMO.Core.dll",
+        "lib/netstandard2.0/OfficeIMO.Core.dll"
+      ],
+      "dependencies": [],
+      "nativeAssets": [],
+      "oracleAssets": []
+    },
+    "packExitCode": 0,
+    "packWarnings": 0,
+    "packLogSha256": "8ec60acf3d304a79bcb9c857acace243e7e1611706d64dd4119c940fc9e44b8f",
+    "availableFrameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ]
+  },
+  "localReview": {
+    "decision": "used",
+    "reviewer": "av1_deblocking_review",
+    "baseCommit": "e994a94d01f6a27f2472bd268432a111d90743c0",
+    "stagedBinaryDiffFingerprint": "8f8693a94e7f518499ace4d9f3181aa574fe80d8",
+    "scope": "Adaptive intra strength, transform boundaries, chroma geometry, masks/arithmetic, pass ordering, retained allocation, cancellation and native oracle independence.",
+    "result": "No actionable P0-P3 findings.",
+    "postReviewChange": "Only reversed-gradient native kernel inputs and corresponding coverage assertion; runtime code unchanged. Expanded corpus passes both frameworks.",
+    "targetedConfirmation": "Not needed; no validated code findings.",
+    "boundary": "current"
+  },
+  "explicitGaps": [
+    "Active frame filtering is proven on one color multitile frame; odd-sized and monochrome native outputs are unchanged.",
+    "Dedicated active-frame segmentation, deltaLF multi/single, nondefault reference delta and zero-current-level neighbor-fallback combinations are not established by these fixtures.",
+    "Mid-filter cancellation is checked per row but not independently exercised; aggregate retained-memory regression is direct.",
+    "CDEF, restoration, applicable superresolution, color/alpha composition and public AVIF/HTML/PDF acceptance remain unfinished.",
+    "Prior H4/NASA/operation ceilings retain their previous runtime boundary; this stage is not completed-decoder qualification.",
+    "Windows/net472 execution and Windows/Linux H10 operation budgets remain unavailable and unfinished."
+  ],
+  "cleanup": {
+    "removedBytes": 59508596,
+    "allTargetsAbsent": true,
+    "retainedBytes": 63230812,
+    "retainedPurpose": "Final tests/receipts, notices and one pinned native source/build for imminent CDEF filter qualification."
+  },
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/static-gap-av1-filter-work-e994a94d0",
+  "publication": "Branch checkpoint only; no HTML PR, master merge or release."
+}

@@ -32,12 +32,18 @@ try {
         'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
         'OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj',
         'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
-        'OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj'
+        'OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj',
+        'OfficeIMO.Email/OfficeIMO.Email.csproj',
+        'OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj',
+        'OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj'
     )
+    # Package the complete public framework graph on every host. Omitting net472
+    # makes API compatibility compare its baseline against netstandard2.0 instead.
+    $packFrameworks = '--property:TargetFrameworks="netstandard2.0;net8.0;net10.0;net472"'
     foreach ($project in $projects) {
-        dotnet restore $project --no-http-cache
+        dotnet restore $project $packFrameworks --no-http-cache
         if ($LASTEXITCODE -ne 0) { throw "Restore failed for $project." }
-        dotnet pack $project --configuration Release --no-restore --output $feedPath --property:PackageVersion=$Version
+        dotnet pack $project --configuration Release --no-restore --output $feedPath --property:PackageVersion=$Version $packFrameworks
         if ($LASTEXITCODE -ne 0) { throw "Pack failed for $project." }
     }
 
@@ -51,17 +57,23 @@ try {
         '--property:EnableOfficeIMOHtmlPackageSmoke=true',
         "--property:OfficeIMOHtmlPackageVersion=$Version"
     )
-    $projectPath = 'Build/PackageSmoke/OfficeIMO.Html/OfficeIMO.Html.PackageSmoke.csproj'
-    dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
-    if ($LASTEXITCODE -ne 0) { throw 'Packed HTML consumer restore failed.' }
-
+    $consumerProjects = @(
+        'Build/PackageSmoke/OfficeIMO.Html.Document/OfficeIMO.Html.Document.PackageSmoke.csproj',
+        'Build/PackageSmoke/OfficeIMO.Html/OfficeIMO.Html.PackageSmoke.csproj'
+    )
     $frameworks = if ($IsWindows) { @('net472', 'net8.0', 'net10.0') } else { @('net8.0', 'net10.0') }
-    foreach ($framework in $frameworks) {
-        dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
-        if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer failed on $framework." }
+    foreach ($projectPath in $consumerProjects) {
+        dotnet restore $projectPath @properties --configfile $configPath --packages $packagesPath --no-http-cache --force-evaluate
+        if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer restore failed for $projectPath." }
+        foreach ($framework in $frameworks) {
+            dotnet run --project $projectPath --configuration Release --framework $framework --no-restore @properties
+            if ($LASTEXITCODE -ne 0) { throw "Packed HTML consumer failed for $projectPath on $framework." }
+        }
     }
 } finally {
     if (-not $retainArtifacts -and (Test-Path -LiteralPath $workingPath)) {
-        Remove-Item -LiteralPath $workingPath -Recurse
+        # NuGet creates dot-prefixed metadata that PowerShell treats as hidden on Unix.
+        # This path is the fresh temporary tree created by this invocation.
+        [System.IO.Directory]::Delete($workingPath, $true)
     }
 }

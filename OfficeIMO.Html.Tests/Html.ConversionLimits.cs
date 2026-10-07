@@ -14,12 +14,18 @@ public sealed class HtmlConversionLimitTests {
         Assert.True(untrusted.UrlPolicy.DisallowFileUrls);
         Assert.False(untrusted.UrlPolicy.AllowDataUrls);
         Assert.NotNull(untrusted.Limits.MaxHtmlNodes);
+        Assert.NotNull(untrusted.Limits.MaxCssTokens);
+        Assert.NotNull(untrusted.Limits.MaxCssSyntaxNodes);
         Assert.Equal(64, untrusted.Limits.MaxResponsiveImageCandidates);
+        Assert.Equal(64 * 1024, untrusted.Limits.MaxResponsiveImageSizesCharacters);
 
         Assert.False(trusted.UrlPolicy.DisallowFileUrls);
         Assert.True(trusted.UrlPolicy.AllowDataUrls);
         Assert.Null(trusted.Limits.MaxHtmlNodes);
+        Assert.Null(trusted.Limits.MaxCssTokens);
+        Assert.Null(trusted.Limits.MaxCssSyntaxNodes);
         Assert.Null(trusted.Limits.MaxResponsiveImageCandidates);
+        Assert.Null(trusted.Limits.MaxResponsiveImageSizesCharacters);
     }
 
     [Fact]
@@ -185,13 +191,26 @@ public sealed class HtmlConversionLimitTests {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<style>.a{color:red}.b{color:blue}</style><p class='a'>x</p>",
+            "<style>.a{color:red}.b{color:blue}</style><p class='a b'>x</p>",
             new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
 
-        Assert.Contains("class='a'", document.SourceHtml);
+        Assert.Contains("class='a b'", document.SourceHtml);
         Assert.NotNull(document.LogicalDocument);
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
         Assert.Equal(HtmlConversionDiagnosticCodes.CssRuleLimitExceeded, exception.Code);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_RetainsOnlySelectorsWithPossibleDocumentOwners() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssRules = 1;
+        limits.MaxCssRuleCandidates = 3;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.absent{color:red}p{color:blue}</style><p>Text</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+
+        _ = document.StyleSummary;
+        Assert.Equal("rgba(0, 0, 255, 1)", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("p")!].GetValue("color"));
     }
 
     [Fact]
@@ -199,12 +218,26 @@ public sealed class HtmlConversionLimitTests {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<style>.a{x-officeimo-unknown-a:1}.b{x-officeimo-unknown-b:2}</style><p class='a'>x</p>",
+            "<style>.a{x-officeimo-unknown-a:1}.b{x-officeimo-unknown-b:2}</style><p class='a b'>x</p>",
             new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
 
         Assert.Equal(HtmlConversionDiagnosticCodes.CssRuleLimitExceeded, exception.Code);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_BoundsNestedSelectorExpansionBeforeCascadeWork() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssSelectorCharacters = 24;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.alpha,.beta{& .one,& .two{color:red}}</style><p class='alpha'><span class='one'>x</span></p>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssSelectorExpansionLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssSelectorCharacters), exception.LimitSource);
     }
 
     [Fact]

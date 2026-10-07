@@ -495,23 +495,23 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void AnnotationDictionaryBuilder_EmitsUriLinkAnnotationsWithEscapedUri() {
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /URI /URI (https://evotec.xyz/docs\\(pdf\\)) >> >>\n",
+                "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /URI /URI (https://evotec.xyz/docs\\(pdf\\)) >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20.5, 110, 44.25, "https://evotec.xyz/docs(pdf)"));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro\\(A\\)) >> >>\n",
+                "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro\\(A\\)) >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro(A)", "Jump metadata"));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /URI /URI (https://evotec.xyz/docs) >> /StructParent 7 >>\n",
+                "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /URI /URI (https://evotec.xyz/docs) >> /StructParent 7 >>\n",
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20.5, 110, 44.25, "https://evotec.xyz/docs", "Jump metadata", 7));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /URI /URI (assets/report.html#summary) >> >>\n",
+                "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /URI /URI (assets/report.html#summary) >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20.5, 110, 44.25, "assets/report.html#summary"));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro) >> /StructParent 8 >>\n",
+                "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro) >> /StructParent 8 >>\n",
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro", structParentIndex: 8));
 
             Assert.Equal(
