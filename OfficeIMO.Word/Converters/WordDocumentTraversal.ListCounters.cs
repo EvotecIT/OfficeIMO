@@ -56,7 +56,13 @@ namespace OfficeIMO.Word {
                     state.LastLevel = level;
                     bool firstUse = state.SeenInstanceLevels.Add((numbering.NumberId, level));
                     bool explicitRestart = firstUse && definition?.StartOverrides.ContainsKey(level) == true;
-                    if (explicitRestart || !state.Indices.ContainsKey(level)) state.Indices[level] = info.Start;
+                    if (explicitRestart) state.Indices[level] = info.Start;
+                    else if (!state.Indices.ContainsKey(level)) {
+                        // After a parent advances, use the abstract start. An instance's
+                        // explicit restart applies once, rather than to every later sublist.
+                        state.Indices[level] = definition != null && definition.Levels.TryGetValue(level, out ListLevelDefinition levelDefinition)
+                            ? levelDefinition.Start : info.Start;
+                    }
                     state.Formats[level] = info.NumberFormat;
                     int current = state.Indices[level];
                     state.Indices[level] = current + 1;
