@@ -213,11 +213,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
             _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
             pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
-            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition);
-        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition, ocrRuntime: _services.Ocr);
+        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory,
+            token => FileDialogs.PickOpenFileAsync(_localizer.Get("OcrSetup.ChooseExecutable"), StudioFileType.Any("Tesseract"), token), _services.Ocr);
         OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
             _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
-            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
+            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+            createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;

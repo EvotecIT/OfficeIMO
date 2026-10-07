@@ -1171,7 +1171,7 @@
     <value>System</value>
   </data>
   <data name="Settings.ManualUpdatePolicy" xml:space="preserve">
-    <value>Updates are manual until signed release channels and an explicit update policy are configured.</value>
+    <value>Store editions update through the store. For a direct-download installation, install a newer version from the official downloads page.</value>
   </data>
   <data name="Recent.TodayAt" xml:space="preserve">
     <value>Today, {0}</value>
@@ -2518,4 +2518,23 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.TrustAnchors" xml:space="preserve"><value>Trust anchors PEM path (optional)</value></data>
   <data name="Provenance.AllowedList" xml:space="preserve"><value>Allowed certificates PEM path (optional)</value></data>
   <data name="Provenance.CheckProvider" xml:space="preserve"><value>Check verifier</value></data>
+  <data name="OcrSetup.Title" xml:space="preserve"><value>Text recognition setup</value></data>
+  <data name="OcrSetup.Description" xml:space="preserve"><value>Studio uses an installed Tesseract engine. Check automatic discovery or choose your installation once for searchable PDFs, scan text and multi-file OCR.</value></data>
+  <data name="OcrSetup.CheckToStart" xml:space="preserve"><value>Check the engine before starting text recognition.</value></data>
+  <data name="OcrSetup.ExecutablePath" xml:space="preserve"><value>Tesseract executable path</value></data>
+  <data name="OcrSetup.AutomaticDiscovery" xml:space="preserve"><value>Leave empty to find an installed engine automatically</value></data>
+  <data name="OcrSetup.ChooseExecutable" xml:space="preserve"><value>Choose Tesseract executable</value></data>
+  <data name="OcrSetup.CheckAndSave" xml:space="preserve"><value>Check and save</value></data>
+  <data name="OcrSetup.UseAutomatic" xml:space="preserve"><value>Use automatic discovery</value></data>
+  <data name="OcrSetup.Checking" xml:space="preserve"><value>Checking the engine and installed recognition languages…</value></data>
+  <data name="OcrSetup.AbsolutePathRequired" xml:space="preserve"><value>Choose an executable using its complete file path.</value></data>
+  <data name="OcrSetup.NoLanguages" xml:space="preserve"><value>No recognition languages installed. Studio can download the selected language data when OCR starts.</value></data>
+  <data name="OcrSetup.Ready" xml:space="preserve"><value>The engine is available. Review the installed languages below.</value></data>
+  <data name="OcrSetup.Missing" xml:space="preserve"><value>Tesseract was not found. Install it using the instructions below, then check again or choose its executable.</value></data>
+  <data name="OcrSetup.CheckFailed" xml:space="preserve"><value>The engine check failed: {0}. The saved configuration has not changed.</value></data>
+  <data name="OcrSetup.InstalledLanguages" xml:space="preserve"><value>Installed recognition languages</value></data>
+  <data name="OcrSetup.InstallHelp" xml:space="preserve"><value>If the engine is missing, install Tesseract with your system package manager. Run this command yourself, then return here and check again.</value></data>
+  <data name="OcrSetup.InstallCommand" xml:space="preserve"><value>Tesseract installation instructions</value></data>
+  <data name="OcrSetup.LanguageHelp" xml:space="preserve"><value>Recognition languages are chosen in each OCR workflow. Missing supported models can be downloaded with checksum verification when language downloads are enabled.</value></data>
+  <data name="OcrSetup.OpenSettings" xml:space="preserve"><value>Set up text recognition…</value></data>
 </root>

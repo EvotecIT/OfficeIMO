@@ -136,6 +136,8 @@ For quick extraction, choose **Recognize text to copy**, review the selected pag
 
 Tesseract is an explicit OCR runtime prerequisite. OfficeIMO discovers an installed executable and can provision checksum-pinned language data, but the application does not silently install or bundle a native OCR executable. Scan preparation and raster-copy export do not require it.
 
+Use **Settings → Text recognition setup** to check the installed engine and its recognition languages. **Choose Tesseract executable** selects a local installation; **Check and save** verifies it before storing the choice. Searchable PDFs, scan-text extraction and multi-file OCR use that saved choice. **Use automatic discovery** returns to environment, PATH and known-installation discovery after a successful check. If no engine is found, Settings shows platform installation instructions; install it and check again. A failed check preserves the previous saved configuration. Recognition-language downloads remain a separate choice in each OCR workflow.
+
 ## Language, accessibility, and local data
 
 Studio stores versioned user preferences under the operating system's local application-data directory. English is the fallback interface language. The language catalog already reserves Polish, German, French, Italian, and more than fifteen additional culture packs; only reviewed translations appear in the settings picker. The `en-XA` expansion locale is available now to expose clipped controls, hard-coded strings, and layouts that cannot accommodate longer translations.
