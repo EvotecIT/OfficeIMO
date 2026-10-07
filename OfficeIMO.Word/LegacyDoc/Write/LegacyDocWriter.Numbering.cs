@@ -69,6 +69,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(listStream, checked((ushort)definitions.Length));
             var levelGroups = new List<Level[]>();
             foreach (AbstractNum definition in definitions) {
+                string? restartAfterBreak = definition.GetAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml").Value;
+                if (!string.IsNullOrEmpty(restartAfterBreak) && restartAfterBreak != "0" && restartAfterBreak != "false" && restartAfterBreak != "off")
+                    throw new NotSupportedException("Native DOC saving does not support restarting a list after a section break.");
                 if (definition.NumberingStyleLink != null || definition.StyleLink != null || definition.Descendants<LevelPictureBulletId>().Any())
                     throw new NotSupportedException("Native DOC saving does not support linked or picture-bullet list definitions.");
                 Level[] levels = definition.Elements<Level>().OrderBy(item => item.LevelIndex?.Value).ToArray();
@@ -109,16 +112,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             for (int id = 1; id <= maximumId; id++) {
                 WriteInt32(instanceStream, -1);
                 if (!byId.TryGetValue(id, out NumberingInstance? instance)) continue;
+                Level[] abstractLevels = levelGroups[nativeIds[instance.AbstractNumId!.Val!.Value] - 1];
                 foreach (LevelOverride item in instance.Elements<LevelOverride>()) {
                     Level? level = item.GetFirstChild<Level>();
                     int? start = item.StartOverrideNumberingValue?.Val?.Value;
                     if (start < 0 || start > short.MaxValue) throw new NotSupportedException("Native DOC list starts must be between 0 and 32767.");
                     WriteInt32(instanceStream, start ?? 0);
-                    instanceStream.WriteByte((byte)(item.LevelIndex!.Value | (start.HasValue ? 16 : 0) | (level != null ? 48 : 0)));
+                    instanceStream.WriteByte((byte)(item.LevelIndex!.Value | (start.HasValue ? 16 : 0) | (level != null ? 32 : 0)));
                     instanceStream.WriteByte(0); WriteUInt16(instanceStream, 0);
                     if (level != null) {
                         var effectiveLevel = (Level)level.CloneNode(true);
-                        if (start.HasValue) effectiveLevel.StartNumberingValue = new StartNumberingValue { Val = start.Value };
+                        // Word uses the abstract start unless w:startOverride explicitly
+                        // requests a restart; a formatting-only w:lvl can carry another start.
+                        effectiveLevel.StartNumberingValue = new StartNumberingValue {
+                            Val = start ?? abstractLevels[item.LevelIndex.Value].StartNumberingValue?.Val?.Value ?? 1
+                        };
                         WriteListLevel(instanceStream, effectiveLevel, styles, fonts);
                     }
                 }
@@ -153,7 +161,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 char character = marker[position];
                 if (character == '%' && position + 1 < marker.Length && marker[position + 1] >= '1' && marker[position + 1] <= '9') {
                     int referenced = marker[++position] - '1';
-                    if (referenced > index || rawText.Length >= byte.MaxValue || placeholders.Count >= 9)
+                    if (referenced > index || rawText.Length >= byte.MaxValue || placeholders.Count > index)
                         throw new NotSupportedException("Native DOC list marker has an unsupported level placeholder.");
                     placeholders.Add((byte)(rawText.Length + 1)); rawText.Append((char)referenced);
                 } else {
