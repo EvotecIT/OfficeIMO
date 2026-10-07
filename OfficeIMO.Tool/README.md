@@ -418,6 +418,10 @@ MCP assembly accepts PDF and raster image files; the CLI's `workflow assemble`
 owns heterogeneous Office, folder, and archive intake. Printer queue delivery
 is available through the explicit CLI print command, while MCP print planning
 has no device or queue side effect.
+The sheet planner accepts 1, 2, 4, 6 or 9 pages per sheet, custom scaling,
+individual point margins, nine-position alignment, source-page odd/even filters,
+and requested grayscale treatment. Its report includes clipped placement counts;
+it does not render sheets or confirm printer capabilities.
 
 The server accepts trusted startup OCR configuration:
 

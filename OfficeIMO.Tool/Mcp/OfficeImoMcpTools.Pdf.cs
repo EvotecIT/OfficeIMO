@@ -117,7 +117,7 @@ internal sealed partial class OfficeImoMcpTools {
     public Task<CallToolResult> AssemblePdfAsync(
         [Description("From 1 through 100 ordered local PDF/raster-image paths.")] string[] paths,
         [Description("Separate destination .pdf within allowed roots.")] string outputPath,
-        [Description("Name of the environment variable containing a source-PDF password.")] string? passwordEnvironmentVariable = null,
+        [Description("Host-admitted environment-variable name containing a source-PDF password.")] string? passwordEnvironmentVariable = null,
         [Description("Explicit permission to replace an existing output copy.")] bool overwrite = false,
         [Description("Maximum aggregate input bytes, 1-268435456.")] long maximumInputBytes = 268435456,
         [Description("Maximum output bytes, 1-536870912.")] long maximumOutputBytes = 536870912,
