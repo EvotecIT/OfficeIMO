@@ -134,7 +134,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int offset,
             int count,
             IReadOnlyList<string> fontFamilies,
-            IReadOnlyList<string>? revisionAuthors = null) {
+            IReadOnlyList<string>? revisionAuthors = null,
+            bool requireComplete = false) {
             int end = offset + count;
             bool bold = false;
             bool italic = false;
@@ -429,6 +430,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 offset += 2 + operandLength;
             }
+
+            if (requireComplete && offset != end)
+                throw new InvalidDataException("Truncated native list character formatting operand.");
 
             LegacyDocCapsKind? capsKind = caps
                 ? LegacyDocCapsKind.Caps
