@@ -43,10 +43,12 @@ namespace OfficeIMO.Word {
                     ListInfo? resolved = GetListInfo(paragraph, numbering, catalog.ListDefinitions);
                     if (!resolved.HasValue) continue;
                     ListInfo info = resolved.Value;
+                    int level = info.Level;
+                    if (level < 0 || level >= WordListTraversal.DefaultMaximumNestingDepth)
+                        throw new System.IO.InvalidDataException($"The Word list level {level} exceeds the {WordListTraversal.DefaultMaximumNestingDepth}-level traversal limit.");
                     catalog.ListDefinitions.TryGetValue(numbering.NumberId, out ListNumberingDefinition? definition);
                     var key = definition?.AbstractNumberId is int id ? (true, id) : (false, numbering.NumberId);
                     if (!states.TryGetValue(key, out ListCounterState? state)) states.Add(key, state = new ListCounterState());
-                    int level = info.Level;
                     foreach (int deeper in state.Indices.Keys.Where(item => item > level).ToArray()) {
                         int? restart = definition != null && definition.Levels.TryGetValue(deeper, out ListLevelDefinition deeperDefinition)
                             ? deeperDefinition.RestartLevel : null;
