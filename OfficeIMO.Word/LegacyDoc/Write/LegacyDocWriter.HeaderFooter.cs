@@ -311,7 +311,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
             var text = new StringBuilder();
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedHeaderFooterParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
             for (int index = 0; index < children.Length; index++) {
                 OpenXmlElement child = children[index];
@@ -364,18 +364,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             paragraphText = text.ToString();
             return paragraphFormatting;
-        }
-
-        private static LegacyDocWritableParagraphFormatting ReadSupportedHeaderFooterParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) {
-            ParagraphStyleId? paragraphStyleId = paragraphProperties?.GetFirstChild<ParagraphStyleId>();
-            string? styleId = paragraphStyleId?.Val?.Value;
-            if (!IsHeaderFooterParagraphStyle(styleId)) {
-                return ReadSupportedParagraphFormatting(paragraphProperties, styleIndexes);
-            }
-
-            ParagraphProperties clonedProperties = (ParagraphProperties)paragraphProperties!.CloneNode(true);
-            clonedProperties.RemoveAllChildren<ParagraphStyleId>();
-            return ReadSupportedParagraphFormatting(clonedProperties, styleIndexes);
         }
 
         private static bool IsHeaderFooterParagraphStyle(string? styleId) {
