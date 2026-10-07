@@ -29,9 +29,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Numbering? numbering = mainPart.NumberingDefinitionsPart?.Numbering;
             var instances = (numbering?.Elements<NumberingInstance>() ?? Enumerable.Empty<NumberingInstance>())
                 .Where(item => item.NumberID?.Value > 0).ToDictionary(item => item.NumberID!.Value);
-            var definitions = (numbering?.Elements<AbstractNum>() ?? Enumerable.Empty<AbstractNum>())
-                .Where(item => item.AbstractNumberId?.Value != null)
-                .GroupBy(item => item.AbstractNumberId!.Value).ToDictionary(group => group.Key, group => group.First());
+            var definitions = numbering != null ? WordListNumberingResolver.GetCanonicalAbstractDefinitions(numbering)
+                : new Dictionary<int, AbstractNum>();
             var roots = new List<OpenXmlElement?> { mainPart.Document, mainPart.FootnotesPart?.Footnotes,
                 mainPart.EndnotesPart?.Endnotes, mainPart.WordprocessingCommentsPart?.Comments };
             roots.AddRange(mainPart.HeaderParts.Select(part => part.Header));
@@ -57,14 +56,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (instances.Any(item => item.NumberID?.Value == null || item.NumberID.Value < 1 || item.NumberID.Value > short.MaxValue)
                 || instances.Select(item => item.NumberID!.Value).Distinct().Count() != instances.Length)
                 throw new NotSupportedException("Native DOC list instance ids must be unique values from 1 through 32767.");
-            var definitions = (numbering?.Elements<AbstractNum>() ?? Enumerable.Empty<AbstractNum>())
+            var referencedDefinitions = (numbering?.Elements<AbstractNum>() ?? Enumerable.Empty<AbstractNum>())
                 .Where(item => instances.Any(instance => instance.AbstractNumId?.Val?.Value == item.AbstractNumberId?.Value)).ToArray();
-            if (definitions.Length == 0 || definitions.Length > short.MaxValue
-                || definitions.Any(item => item.AbstractNumberId?.Value == null)
-                || definitions.Select(item => item.AbstractNumberId!.Value).Distinct().Count() != definitions.Length)
+            if (referencedDefinitions.Length == 0 || referencedDefinitions.Length > short.MaxValue
+                || referencedDefinitions.Any(item => item.AbstractNumberId?.Value == null)
+                || referencedDefinitions.Select(item => item.AbstractNumberId!.Value).Distinct().Count() != referencedDefinitions.Length)
                 throw new NotSupportedException("Native DOC lists require unique abstract numbering definitions.");
-            var nativeIds = definitions.Select((item, index) => new { id = item.AbstractNumberId!.Value, native = index + 1 })
-                .ToDictionary(item => item.id, item => item.native);
+            Dictionary<int, AbstractNum> canonicalDefinitions = WordListNumberingResolver.GetCanonicalAbstractDefinitions(numbering!);
+            AbstractNum[] definitions = referencedDefinitions.Select(item => canonicalDefinitions[item.AbstractNumberId!.Value]).Distinct().ToArray();
+            var nativeByDefinition = definitions.Select((item, index) => new { definition = item, native = index + 1 })
+                .ToDictionary(item => item.definition, item => item.native);
+            // Different abstract IDs with one authored identity select the first definition
+            // in Word. Preserve that shared sequence as one native lsid, including aliases.
+            var nativeIds = canonicalDefinitions.Where(item => nativeByDefinition.ContainsKey(item.Value))
+                .ToDictionary(item => item.Key, item => nativeByDefinition[item.Value]);
             using var listStream = new MemoryStream();
             WriteUInt16(listStream, checked((ushort)definitions.Length));
             var levelGroups = new List<Level[]>();
