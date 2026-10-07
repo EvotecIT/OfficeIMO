@@ -180,7 +180,13 @@ namespace OfficeIMO.Word.Pdf {
                         PdfCore.PdfTextRun styledRun = beginsVisualLine
                             ? replacement.StyledRun
                             : replacement.StyledRun.WithHorizontalOffset(0D);
-                        segments.Add(PdfCore.FooterSegment.RichText(styledRun));
+                        if (replacement.SerializedText == "{page}")
+                            segments.Add(PdfCore.FooterSegment.PageNumber(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
+                        else if (replacement.SerializedText == "{pages}")
+                            segments.Add(PdfCore.FooterSegment.TotalPages(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
+                        else if (replacement.SerializedText == "{documentpages}")
+                            segments.Add(PdfCore.FooterSegment.DocumentPages(CloneNativeHeaderFooterTextRun(styledRun, string.Empty)));
+                        else segments.Add(PdfCore.FooterSegment.RichText(styledRun));
                         index = replacementIndex + replacement.SerializedText.Length;
                     }
                 }
@@ -229,6 +235,8 @@ namespace OfficeIMO.Word.Pdf {
                         if (segment.StyledRun != null) builder.CurrentPage(segment.StyledRun); else builder.CurrentPage();
                     } else if (segment.Kind == PdfCore.FooterSegmentKind.TotalPages) {
                         if (segment.StyledRun != null) builder.TotalPages(segment.StyledRun); else builder.TotalPages();
+                    } else if (segment.Kind == PdfCore.FooterSegmentKind.DocumentPages) {
+                        if (segment.StyledRun != null) builder.DocumentPages(segment.StyledRun); else builder.DocumentPages();
                     } else if (segment.StyledRun != null) builder.Run(segment.StyledRun); else builder.Text(segment.Text ?? string.Empty);
                 }
             }
@@ -239,6 +247,8 @@ namespace OfficeIMO.Word.Pdf {
                         if (segment.StyledRun != null) builder.CurrentPage(segment.StyledRun); else builder.CurrentPage();
                     } else if (segment.Kind == PdfCore.FooterSegmentKind.TotalPages) {
                         if (segment.StyledRun != null) builder.TotalPages(segment.StyledRun); else builder.TotalPages();
+                    } else if (segment.Kind == PdfCore.FooterSegmentKind.DocumentPages) {
+                        if (segment.StyledRun != null) builder.DocumentPages(segment.StyledRun); else builder.DocumentPages();
                     } else if (segment.StyledRun != null) builder.Run(segment.StyledRun); else builder.Text(segment.Text ?? string.Empty);
                 }
             }

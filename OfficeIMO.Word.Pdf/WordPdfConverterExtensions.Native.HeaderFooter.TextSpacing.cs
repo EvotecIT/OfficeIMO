@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
@@ -9,11 +10,18 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph, NativeFontMap? fontMap) {
             var replacements = new List<NativeHeaderFooterStyledReplacement>();
             bool hasSpacing = false;
-            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
-                if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(run.Text)) continue;
+            var serializedRuns = new List<(W.Run Run, string Text)>();
+            bool hasFields = TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out _, serializedRuns);
+            IEnumerable<(WordParagraph Run, string Text)> visibleRuns = hasFields
+                ? serializedRuns.Select(item => (new WordParagraph(paragraph._document, paragraph._paragraph!, item.Run), item.Text))
+                : GetNativeRuns(paragraph).Select(run => (run, run.Text));
+            foreach (var item in visibleRuns) {
+                WordParagraph run = item.Run;
+                if (IsNativeHiddenTextRun(run, paragraph) || string.IsNullOrEmpty(item.Text)) continue;
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, paragraph, nativeFontMap: fontMap);
                 hasSpacing |= HasNativeTextSpacing(style.TextSpacing);
-                string text = ApplyNativeTextTransform(run.Text, run, paragraph, nativeFontMap: fontMap);
+                bool fieldToken = hasFields && item.Text is "{page}" or "{pages}" or "{documentpages}";
+                string text = fieldToken ? item.Text : ApplyNativeTextTransform(item.Text, run, paragraph, nativeFontMap: fontMap);
                 replacements.Add(new NativeHeaderFooterStyledReplacement(text,
                     CreateNativeHeaderFooterStyledTextRun(text, style, 0D)));
             }

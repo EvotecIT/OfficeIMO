@@ -733,7 +733,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap, includeSuffix: false);
             double markerFontSize = markerRun.FontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
-            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
+            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize, textStyle.TextSpacing);
             double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, -firstLineIndent));
             double leadingOffset = info.Value.LevelJustification switch {
                 WordListLevelAlignment.Right => Math.Max(0D, markerColumnWidth - markerWidth),

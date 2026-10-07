@@ -88,6 +88,11 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            // The inline paragraph path carries marker run typography. List blocks
+            // expose a uniform marker font but do not carry width or tracking.
+            if (HasNativeTextSpacing(ResolveNativeTextRunStyle(paragraph,
+                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap).TextSpacing)) return false;
+
             if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
                 paragraph.Shape != null ||
@@ -278,12 +283,12 @@ namespace OfficeIMO.Word.Pdf {
             bool includeSuffix = true) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null) {
-                return new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
+                return textStyle.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
                     italic: textStyle.Italic, fontSize: textStyle.FontSize, font: textStyle.Font,
-                    fontFamily: textStyle.FontFamily);
+                    fontFamily: textStyle.FontFamily));
             }
 
-            return new PdfCore.PdfTextRun(
+            return textStyle.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
                 marker + (includeSuffix ? ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix) : string.Empty),
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
@@ -292,7 +297,7 @@ namespace OfficeIMO.Word.Pdf {
                 font: ResolveNativeListMarkerFont(info.Value, marker, textStyle),
                 fontFamily: nativeFontMap != null
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
-                    : textStyle.FontFamily);
+                    : textStyle.FontFamily));
         }
 
         private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
@@ -313,7 +318,7 @@ namespace OfficeIMO.Word.Pdf {
         private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(WordListLevelSuffix? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) =>
             ResolveNativeListMarkerSpacing(levelSuffix.ToOpenXml(), markerTextWidth, fontSize, textIndent, markerIndent);
 
-        private static double EstimateNativeListMarkerWidth(string marker, double fontSize) {
+        private static double EstimateNativeListMarkerWidth(string marker, double fontSize, NativeTextSpacing textSpacing = default) {
             if (string.IsNullOrEmpty(marker)) {
                 return 0D;
             }
@@ -333,7 +338,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            return width;
+            return width * (textSpacing.WidthPercentage ?? 100D) / 100D
+                + marker.Length * (textSpacing.CharacterSpacing ?? 0D);
         }
 
         private static bool NativeListStylesEquivalent(PdfCore.PdfListStyle? left, PdfCore.PdfListStyle? right) {

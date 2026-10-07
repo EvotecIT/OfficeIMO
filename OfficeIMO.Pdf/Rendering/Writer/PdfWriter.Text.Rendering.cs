@@ -154,7 +154,7 @@ internal static partial class PdfWriter {
             foreach (var seg in segs) {
                 double w = GetRichSegmentWidth(seg);
                 if (seg.LeadingSpace) {
-                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.NamedFont, seg.FontSize, seg.Baseline, opts, seg.FeatureSettings);
+                    w += seg.LeadingAdvance;
                     if (seg.LeadingSpaceIsExpandable) {
                         gapsCount++;
                     }
@@ -176,7 +176,7 @@ internal static partial class PdfWriter {
             foreach (var s in segs) {
                 double leadingAdvance = 0D;
                 if (s.LeadingSpace) {
-                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.HorizontalTextScaling, s.CharacterSpacing);
+                    double baseGap = s.LeadingAdvance;
                     leadingAdvance = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
                     xCursor += leadingAdvance;
                 }
@@ -237,7 +237,7 @@ internal static partial class PdfWriter {
                 var seg = segs[si];
                 double w = GetRichSegmentWidth(seg);
                 if (seg.LeadingSpace) {
-                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.NamedFont, seg.FontSize, seg.Baseline, opts, seg.FeatureSettings);
+                    w += seg.LeadingAdvance;
                     if (seg.LeadingSpaceIsExpandable) {
                         gapsCount++;
                     }
@@ -294,7 +294,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (s.LeadingSpace) {
-                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings);
+                    double baseGap = s.LeadingAdvance;
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
                     if (s.LeadingUnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.LeadingSpaceIsExpandable) {
                         PdfColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? PdfColor.Black;

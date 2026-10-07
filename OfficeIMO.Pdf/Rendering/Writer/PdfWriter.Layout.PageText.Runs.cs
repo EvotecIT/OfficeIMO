@@ -23,6 +23,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<FooterSegment> segments,
         int page,
         int pages,
+        int documentPages,
         PdfStandardFont font,
         double fontSize,
         PdfColor? color,
@@ -35,6 +36,7 @@ internal static partial class PdfWriter {
                 FooterSegmentKind.Text => segment.Text ?? string.Empty,
                 FooterSegmentKind.PageNumber => FormatPageNumber(page, opts.PageNumberStyle),
                 FooterSegmentKind.TotalPages => FormatPageNumber(pages, opts.PageNumberStyle),
+                FooterSegmentKind.DocumentPages => FormatPageNumber(documentPages, opts.PageNumberStyle),
                 _ => throw new System.ArgumentOutOfRangeException(nameof(segments), segment.Kind, "PDF header/footer segment kind is not supported.")
             };
 
@@ -270,25 +272,6 @@ internal static partial class PdfWriter {
 
     private static PdfColor ResolvePageTextColor(PdfColor? color, PdfOptions opts) =>
         color ?? opts.DefaultTextColor ?? PdfColor.Black;
-
-    private static string BuildPageTextFromSegments(System.Collections.Generic.IReadOnlyList<FooterSegment> segments, int page, int pages, PdfPageNumberStyle style) {
-        var sb = new StringBuilder();
-        foreach (var segment in segments) {
-            switch (segment.Kind) {
-                case FooterSegmentKind.Text:
-                    sb.Append(segment.Text);
-                    break;
-                case FooterSegmentKind.PageNumber:
-                    sb.Append(FormatPageNumber(page, style));
-                    break;
-                case FooterSegmentKind.TotalPages:
-                    sb.Append(FormatPageNumber(pages, style));
-                    break;
-            }
-        }
-
-        return sb.ToString();
-    }
 
     private static string FormatPageText(string format, int page, int pages, int documentPages, PdfPageNumberStyle style) {
         string pageText = FormatPageNumber(page, style);

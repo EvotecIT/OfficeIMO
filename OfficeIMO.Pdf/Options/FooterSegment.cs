@@ -14,7 +14,8 @@ public sealed class FooterSegment {
     public FooterSegment(FooterSegmentKind kind, string? text = null) {
         if (kind != FooterSegmentKind.Text &&
             kind != FooterSegmentKind.PageNumber &&
-            kind != FooterSegmentKind.TotalPages) {
+            kind != FooterSegmentKind.TotalPages &&
+            kind != FooterSegmentKind.DocumentPages) {
             throw new System.ArgumentOutOfRangeException(nameof(kind), "Footer segments must use a supported segment kind.");
         }
 
@@ -52,6 +53,13 @@ public sealed class FooterSegment {
     public static FooterSegment TotalPages(PdfTextRun style) {
         Guard.NotNull(style, nameof(style));
         return new FooterSegment(FooterSegmentKind.TotalPages, null, style);
+    }
+
+    /// <summary>Creates a document-wide page-count token using the supplied visual text style.</summary>
+    /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
+    public static FooterSegment DocumentPages(PdfTextRun style) {
+        Guard.NotNull(style, nameof(style));
+        return new FooterSegment(FooterSegmentKind.DocumentPages, null, style);
     }
 
     internal static void ValidateStyledRun(PdfTextRun run, string paramName) {
