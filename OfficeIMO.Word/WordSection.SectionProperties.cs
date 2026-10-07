@@ -140,7 +140,7 @@ namespace OfficeIMO.Word {
                 var pn = _sectionProperties.GetFirstChild<PageNumberType>();
                 if (pn == null) {
                     pn = new PageNumberType();
-                    _sectionProperties.InsertAt(pn, 0);
+                    _sectionProperties.AddChild(pn, true);
                 }
                 return pn;
             }
@@ -148,13 +148,7 @@ namespace OfficeIMO.Word {
                 var existing = _sectionProperties.GetFirstChild<PageNumberType>();
                 existing?.Remove();
                 if (value != null) {
-                    var refNode = _sectionProperties.Elements<FooterReference>().Cast<OpenXmlElement>()
-                        .Concat(_sectionProperties.Elements<HeaderReference>()).LastOrDefault();
-                    if (refNode != null) {
-                        _sectionProperties.InsertAfter(value, refNode);
-                    } else {
-                        _sectionProperties.InsertAt(value, 0);
-                    }
+                    _sectionProperties.AddChild(value, true);
                 }
             }
         }

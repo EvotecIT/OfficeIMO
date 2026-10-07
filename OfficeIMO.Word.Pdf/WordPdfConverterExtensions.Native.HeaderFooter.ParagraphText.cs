@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.Pdf {
             double textOffset) {
             PdfCore.PdfTextRun styledMarker = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
             double markerFontSize = styledMarker.FontSize ?? textStyle.FontSize ?? 12D;
-            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
+            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize, textStyle.TextSpacing);
             double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, textOffset - markerOffset));
             double alignmentOffset = info.LevelJustification switch {
                 WordListLevelAlignment.Right => Math.Max(0D, markerColumnWidth - markerWidth),
@@ -172,7 +172,8 @@ namespace OfficeIMO.Word.Pdf {
                 marker,
                 markerFontSize,
                 resolvedMarkerOffset,
-                textOffset);
+                textOffset,
+                textStyle.TextSpacing);
             return CloneNativeHeaderFooterTextRun(styledMarker, marker + suffix)
                 .WithHorizontalOffset(resolvedMarkerOffset);
         }
@@ -183,7 +184,7 @@ namespace OfficeIMO.Word.Pdf {
             string marker,
             double markerFontSize,
             double markerOffset,
-            double textOffset) {
+            double textOffset, NativeTextSpacing textSpacing = default) {
             bool leftJustified = justification != WordListLevelAlignment.Right &&
                                  justification != WordListLevelAlignment.Center;
             if (leftJustified && suffix == WordListLevelSuffix.Nothing) {
@@ -193,8 +194,8 @@ namespace OfficeIMO.Word.Pdf {
                 return " ";
             }
 
-            double spaceWidth = Math.Max(0.01D, EstimateNativeListMarkerWidth(" ", markerFontSize));
-            double desiredGap = Math.Max(0D, textOffset - markerOffset - EstimateNativeListMarkerWidth(marker, markerFontSize));
+            double spaceWidth = Math.Max(0.01D, EstimateNativeListMarkerWidth(" ", markerFontSize, textSpacing));
+            double desiredGap = Math.Max(0D, textOffset - markerOffset - EstimateNativeListMarkerWidth(marker, markerFontSize, textSpacing));
             if (suffix == WordListLevelSuffix.Space) {
                 desiredGap += spaceWidth;
             }

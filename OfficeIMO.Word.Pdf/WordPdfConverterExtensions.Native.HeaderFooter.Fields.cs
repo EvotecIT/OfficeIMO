@@ -12,7 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool TryBuildNativeHeaderFooterParagraphText(WordParagraph paragraph, out string? text, out PdfCore.PdfPageNumberStyle? pageNumberStyle) {
+        private static bool TryBuildNativeHeaderFooterParagraphText(WordParagraph paragraph, out string? text, out PdfCore.PdfPageNumberStyle? pageNumberStyle, List<(W.Run Run, string Text)>? serializedRuns = null) {
             text = null;
             pageNumberStyle = null;
             if (paragraph._paragraph == null) {
@@ -22,6 +22,7 @@ namespace OfficeIMO.Word.Pdf {
             var builder = new StringBuilder();
             WordComplexFieldRunVisibility prefix = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
             var state = new NativeHeaderFooterFieldState {
+                SerializedRuns = serializedRuns,
                 CollectingFieldCode = prefix.HasOpenField && !prefix.IsVisible,
                 SkippingFieldResult = prefix.HasOpenField && prefix.IsVisible
             };
@@ -67,6 +68,8 @@ namespace OfficeIMO.Word.Pdf {
                 string fieldCode = simpleField.Instruction?.Value ?? string.Empty;
                 if (TryGetNativeHeaderFooterFieldToken(fieldCode, out string? token, out PdfCore.PdfPageNumberStyle? style)) {
                     builder.Append(token);
+                    W.Run? resultRun = simpleField.Descendants<W.Run>().FirstOrDefault(run => !IsNativeHiddenRun(run) && run.Elements<W.Text>().Any());
+                    if (resultRun != null) state.SerializedRuns?.Add((resultRun, token!));
                     MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
                     hasFieldToken = true;
                     return;
@@ -90,9 +93,11 @@ namespace OfficeIMO.Word.Pdf {
                         state.CollectingFieldCode = true;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
+                        state.PendingToken = null;
                     } else if (fieldCharType == W.FieldCharValues.Separate) {
                         if (TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(), out string? token, out PdfCore.PdfPageNumberStyle? style)) {
                             builder.Append(token);
+                            state.PendingToken = token;
                             MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
                             hasFieldToken = true;
                             state.SkippingFieldResult = true;
@@ -103,6 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                         state.CollectingFieldCode = false;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
+                        state.PendingToken = null;
                     }
 
                     continue;
@@ -117,11 +123,17 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (state.CollectingFieldCode || state.SkippingFieldResult) {
+                    if (state.SkippingFieldResult && state.PendingToken != null && child is W.Text) {
+                        state.SerializedRuns?.Add((run, state.PendingToken));
+                        state.PendingToken = null;
+                    }
                     continue;
                 }
 
                 if (child is W.Text text) {
-                    builder.Append(ApplyNativeHeaderFooterRunTextTransform(text.Text, run));
+                    string visibleText = ApplyNativeHeaderFooterRunTextTransform(text.Text, run);
+                    builder.Append(visibleText);
+                    state.SerializedRuns?.Add((run, visibleText));
                 } else if (child is W.TabChar) {
                     builder.Append('\t');
                 } else if (child is W.Break) {
@@ -267,6 +279,8 @@ namespace OfficeIMO.Word.Pdf {
         private sealed class NativeHeaderFooterFieldState {
             public bool CollectingFieldCode { get; set; }
             public bool SkippingFieldResult { get; set; }
+            public List<(W.Run Run, string Text)>? SerializedRuns { get; set; }
+            public string? PendingToken { get; set; }
             public StringBuilder FieldCode { get; } = new StringBuilder();
         }
 

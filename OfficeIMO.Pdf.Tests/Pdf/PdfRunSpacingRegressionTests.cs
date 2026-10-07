@@ -9,6 +9,31 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunSpacingRegressionTests {
+    [Theory]
+    [InlineData(100D, -4D, 1, false)]
+    [InlineData(50D, -2D, 1, false)]
+    [InlineData(200D, -8D, 1, false)]
+    [InlineData(100D, -3.336D, 1, false)]
+    [InlineData(100D, -4D, 2, true)]
+    public void CondensedRunWithSpaces_PreservesSignedSeparatorAdvances(double scaling, double spacing, int separatorCount, bool preserveWhitespace) {
+        PdfOptions options = Options();
+        options.PreserveTextWhitespace = preserveWhitespace;
+        var run = new PdfTextRun("MMMM" + new string(' ', separatorCount) + "MMMM", fontSize: 12D)
+            .WithHorizontalTextScaling(scaling).WithCharacterSpacing(spacing);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
+            .Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: 12D) })).ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Letter[] letters = pdf.GetPage(1).Letters.ToArray();
+        Letter[] ems = letters.Where(letter => letter.Value == "M").ToArray();
+        Assert.Equal(8, ems.Length);
+        double origin = ems[0].StartBaseLine.X;
+        double wordAdvance = 4D * (833D * 12D / 1000D * scaling / 100D + spacing);
+        double separatorAdvance = separatorCount * (278D * 12D / 1000D * scaling / 100D + spacing);
+        Assert.InRange(Math.Abs(ems[4].StartBaseLine.X - origin - wordAdvance - separatorAdvance), 0D, 0.02D);
+        Assert.InRange(Math.Abs(letters.Single(letter => letter.Value == "X").StartBaseLine.X - origin
+            - 2D * wordAdvance - separatorAdvance), 0D, 0.02D);
+    }
+
     [Fact]
     public void CondensedRunWithoutSpaces_DoesNotMeasureAnUnusedSpace() {
         var run = new PdfTextRun("MMMM", fontSize: 12D).WithHorizontalTextScaling(50D).WithCharacterSpacing(-2D);

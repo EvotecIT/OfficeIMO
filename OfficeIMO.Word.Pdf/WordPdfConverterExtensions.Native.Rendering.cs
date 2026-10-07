@@ -123,6 +123,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
+            bool inlineListMarker = marker is { Marker.Length: > 0 };
+            if (inlineListMarker) ApplyNativeInlineListIndent(paragraph, style);
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
@@ -228,7 +230,8 @@ namespace OfficeIMO.Word.Pdf {
             if (panelStyle != null) {
                 paragraphStyle = JoinNativeAdjacentParagraphShading(nextParagraph, paragraphStyle, panelStyle, nativeDefaults);
                 pdf.PanelParagraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
+                        inlineMarkerColumnWidth: inlineListMarker ? Math.Max(0D, -paragraphStyle.FirstLineIndent) : null);
                 }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
@@ -247,7 +250,8 @@ namespace OfficeIMO.Word.Pdf {
 
             if (needsAnchorLine || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
                 pdf.Paragraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
+                        inlineMarkerColumnWidth: inlineListMarker ? Math.Max(0D, -paragraphStyle.FirstLineIndent) : null);
                 }, align, defaultColor, paragraphStyle);
             }
 
@@ -605,7 +609,7 @@ namespace OfficeIMO.Word.Pdf {
                         (markerInfo.Value.LevelJustification == WordListLevelAlignment.Right ||
                          markerInfo.Value.LevelJustification == WordListLevelAlignment.Center)) {
                         double markerFontSize = markerInfo.Value.MarkerFontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
-                        double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize);
+                        double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize, textStyle.TextSpacing);
                         double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, inlineMarkerColumnWidth.Value));
                         leadingMarkerOffset = markerInfo.Value.LevelJustification == WordListLevelAlignment.Right
                             ? Math.Max(0D, markerColumnWidth - markerWidth)

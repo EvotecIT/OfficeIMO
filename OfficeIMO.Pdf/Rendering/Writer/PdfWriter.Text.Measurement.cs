@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
         PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection);
         double naturalWidth = command.AdvanceWidth1000.GetValueOrDefault() * effectiveFontSize / 1000D;
         double advance = naturalWidth * horizontalTextScaling / 100D + command.GlyphCount * characterSpacing;
-        if (advance < 0D || double.IsNaN(advance) || double.IsInfinity(advance)) {
+        if (double.IsNaN(advance) || double.IsInfinity(advance)) {
             throw new InvalidOperationException("The requested glyph width and character spacing produce an invalid text advance.");
         }
         return advance;
@@ -68,9 +68,7 @@ internal static partial class PdfWriter {
         for (int index = 0; index < line.Count; index++) {
             RichSeg segment = line[index];
             if (segment.LeadingSpace) {
-                width += segment.LeadingAdvance > 0
-                    ? segment.LeadingAdvance
-                    : MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, options, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
+                width += segment.LeadingAdvance;
             }
 
             width += GetRichSegmentWidth(segment);

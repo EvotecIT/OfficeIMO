@@ -90,8 +90,8 @@ Font sizes preserve half-point values, including 10.5 pt. When the run and its s
 
 Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
-taking precedence. Body text, table cells, hyperlinks and ordinary header/footer
-paragraphs retain the effective values. Width scaling preserves font height;
+taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
+paragraphs, including generated page fields, retain the effective values. Width scaling preserves font height;
 tracking remains an advance in page points. These saved run settings do not
 implement the separate dynamic table-cell Fit Text policy. Font substitution can
 still change exact line endings and glyph appearance.

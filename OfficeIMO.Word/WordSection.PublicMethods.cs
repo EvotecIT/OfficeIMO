@@ -454,13 +454,7 @@ namespace OfficeIMO.Word {
                 if (startNumber != null) {
                     pageNumberType.Start = startNumber.Value;
                 }
-                var refNode = _sectionProperties.Elements<FooterReference>().Cast<OpenXmlElement>()
-                    .Concat(_sectionProperties.Elements<HeaderReference>()).LastOrDefault();
-                if (refNode != null) {
-                    _sectionProperties.InsertAfter(pageNumberType, refNode);
-                } else {
-                    _sectionProperties.InsertAt(pageNumberType, 0);
-                }
+                _sectionProperties.AddChild(pageNumberType, true);
             }
 
             return this;
