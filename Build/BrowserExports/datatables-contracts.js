@@ -35,11 +35,17 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const reordered = O.createDataTablesExport(D, table, { exportOptions: { columns: ':visible', modifier: { selected: null } }, headings: 'leaf' });
   const reorderedRows = []; for await (const row of reordered.rows) reorderedRows.push(row);
   check(JSON.stringify(reorderedRows) === JSON.stringify([[3, 'visible-d', 'Other'], [7.5, 'visible-c', 'Łódź 🧪'], [12.5, 'visible-a', '=status']]), 'reordered columns and selection override');
-  const controller = new AbortController(); let projected = 0;
-  const cancelled = O.createDataTablesExport(D, table, { signal: controller.signal, batchRows: 1, headings: 'leaf',
-    project: v => { projected++; if (projected === 3) controller.abort('cancelled'); return v; } });
-  let cancellation; try { for await (const row of cancelled.rows) void row; } catch (error) { cancellation = error; }
-  check(cancellation === 'cancelled' && projected <= 4, 'cancellation bounds projection');
+  for (const mode of ['batched','compatibility']) {
+    const controller = new AbortController(); let projected = 0;
+    const cancelled = O.createDataTablesExport(D, table, { mode, signal: controller.signal, headings: 'leaf',
+      project: v => { projected++; controller.abort('cancelled'); return v; } });
+    let cancellation; try { for await (const row of cancelled.rows) void row; } catch (error) { cancellation = error; }
+    check(cancellation === 'cancelled' && projected === 1, mode + ' cancellation bounds projection');
+  }
+  const customized = O.createDataTablesExport(D,table,{mode:'compatibility',headings:'leaf',
+    exportOptions:{customizeData:data=>data.body.reverse()}});
+  const customizedRows=[]; for await(const row of customized.rows) customizedRows.push(row);
+  check(customizedRows[0][0]===12.5 && customizedRows[1][0]===7.5,'synchronous customization ignores return value');
   const downloads = [], failures = [];
   O.registerDataTablesButtons(D, { filename: 'Selected report', save: async (blob, filename) => { downloads.push(filename); await deliver('button-' + filename, blob); }, onError: error => failures.push(String(error)) });
   const buttons = new D.Buttons(table, { buttons: ['officeimoExcel', 'officeimoCsv'].map(extend => ({extend,
@@ -54,17 +60,21 @@ globalThis.runDataTablesContracts = async function (workerScript) {
     }
   }
   check(downloads.length === 2 && failures.length === 0, 'registered buttons save and clear processing after actual clicks');
+  const workerElement = document.createElement('table'); document.body.append(workerElement); workerElement.hidden=true;
+  const workerTable = new D(workerElement,{data:Array.from({length:130},(_,row)=>[row,'Łódź 🧪 '+row,row/10]),order:[],
+    columns:[{title:'Index',type:'num'},{title:'Text',type:'string'},{title:'Amount',type:'num'}],layout:{topStart:null,topEnd:null,bottomStart:null,bottomEnd:null}});
   const workers = [];
   for (const compression of ['auto','store']) {
-    const source = O.createDataTablesExport(D, table, { headings:'leaf',includeFooter:false,batchRows:1,
+    const source = O.createDataTablesExport(D, workerTable, { headings:'leaf',includeFooter:false,batchRows:32,
       project:(v,c) => c.columnIndex === 0 ? new O.ExportCell(v,{presentation:{background:'E2F0D9'}}) : v });
     const result = await runDataTablesWorker(source,workerScript,compression);
-    check(!result.failure && result.produced === source.rowCount && result.maxBatch <= 64 && result.maxChunk <= 65536,'bounded worker rows/output');
+    check(!result.failure && result.produced === 130 && result.maxBatch === 64 && result.maxChunk <= 65536,'bounded multi-batch worker rows/output');
     await deliver('worker-' + compression + '.xlsx',result.blob); workers.push({compression,produced:result.produced,maxBatch:result.maxBatch,maxChunk:result.maxChunk});
   }
-  const cancelledWorker = await runDataTablesWorker(O.createDataTablesExport(D,table,{headings:'leaf',includeFooter:false}),workerScript,'store',1);
+  const cancelledWorker = await runDataTablesWorker(O.createDataTablesExport(D,workerTable,{headings:'leaf',includeFooter:false}),workerScript,'store',65);
   check(cancelledWorker.failure?.includes('worker cancelled'),'worker cancellation');
-  return { dataTables: D.version, buttons: D.Buttons.version, reports, downloads, produced, workers, assertions: 16 };
+  workerTable.destroy(); workerElement.remove();
+  return { dataTables: D.version, buttons: D.Buttons.version, reports, downloads, produced, workers, assertions: 18 };
   async function deliver(name, blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer()); let binary = '';
     for (let first = 0; first < bytes.length; first += 8192) binary += String.fromCharCode(...bytes.subarray(first, first + 8192));

@@ -56,6 +56,10 @@ test("compatibility delegates whole-matrix customization and rejects ambiguous s
   assert.equal(source.rowCount, 3); assert.equal(calls.length, 0);
   assert.throws(() => createDataTablesExport(host, table, { exportOptions }), /compatibility mode/);
   assert.throws(() => createDataTablesExport(host, table, { mode: "compatibility", exportOptions, project: v => v }), /source indexes/);
+  const reversed = createDataTablesExport(host, table, { mode: "compatibility", exportOptions: { customizeData: data => data.body.reverse() } });
+  assert.deepEqual(await collect(reversed.rows), [["second", 12.5], ["first", 7.5]]);
+  assert.throws(() => createDataTablesExport(host, table, { mode: "compatibility", exportOptions: { customizeData: async () => { throw new Error("async customization"); } } }), /synchronous/);
+  await new Promise(resolve => setTimeout(resolve, 0));
 });
 
 test("projection budgets, preflight row limits and explicit server-side scope fail before output", async () => {
@@ -82,6 +86,13 @@ test("cancellation stops the next projection batch and preserves the caller's re
   const iterator = source.rows[Symbol.asyncIterator](); assert.equal((await iterator.next()).value[0], "first");
   controller.abort(reason); await assert.rejects(iterator.next(), error => error === reason); assert.equal(calls.length, 1);
   await assert.rejects(exportDataTable(host, table, "xlsx", { signal: controller.signal }), error => error === reason);
+  for (const mode of ["batched", "compatibility"]) {
+    const cancelled = new AbortController(); let projected = 0;
+    const source = createDataTablesExport(host, table, { mode, signal: cancelled.signal,
+      project: v => { projected++; cancelled.abort(reason); return v; } });
+    await assert.rejects(collect(source.rows), error => error === reason);
+    assert.equal(projected, 1, mode + " must stop before the next projection");
+  }
 });
 
 test("async projection and body formatter results are rejected with observed promise rejections", async () => {

@@ -11,7 +11,11 @@ function safeOptions(options: DataTablesExportOptions): DataTablesExportOptions 
     ...(format.header ? { header: (v: unknown, c: number, n: unknown) => value(format.header!(v, c, n)) } : {}),
     ...(format.footer ? { footer: (v: unknown, c: number, n: unknown) => value(format.footer!(v, c, n)) } : {}),
     ...(format.body ? { body: (v: unknown, r: number, c: number, n: unknown) => value(format.body!(v, r, c, n)) } : {})
-  } } : {}), ...(customize ? { customizeData: (data: unknown) => { value(customize(data)); } } : {}) };
+  } } : {}), ...(customize ? { customizeData: (data: unknown) => {
+    const result: unknown = customize(data);
+    // Buttons ignores synchronous return values; only asynchronous callbacks violate this contract.
+    if (typeof member(result, "then") === "function") value(result);
+  } } : {}) };
 }
 
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
@@ -107,6 +111,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     }
   }
   function project(input: unknown, rowIndex: number, column: number, rowOrdinal: number): ExportValue {
+    checkAbort(signal);
     const scalar = value(input);
     return projectValue ? value(projectValue(scalar, { rowIndex, columnIndex: columnIndexes[column]!, rowOrdinal })) : scalar;
   }

@@ -73,7 +73,8 @@ internal static class DataTablesComparisonSession {
                             using var document = SpreadsheetDocument.Open(path, false);
                             schemaErrors = new OpenXmlValidator().Validate(document.WorkbookPart!.WorkbookStylesPart!).Take(20).Select(error => error.Description).ToArray();
                         }
-                        if (format == "xlsx" && schemaErrors.Length == 0 && spec.GetProperty("rows").GetInt32() <= 10000) WorkbookVerifier.Verify(path);
+                        if (format == "xlsx" && schemaErrors.Length == 0 && spec.GetProperty("rows").GetInt32() <= 10000)
+                            WorkbookVerifier.Verify(path, 128L * 1024 * 1024);
                         string hash; using (Stream file = File.OpenRead(path)) hash = Convert.ToHexString(SHA256.HashData(file)).ToLowerInvariant();
                         result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, browserVersion = session.Browser?.Version, asset = BrowserAssets.DataTablesScript.HashedFileName };
                         File.Delete(path);

@@ -3185,7 +3185,12 @@ function safeOptions(options) {
                 ...(format.header ? { header: (v, c, n) => value(format.header(v, c, n)) } : {}),
                 ...(format.footer ? { footer: (v, c, n) => value(format.footer(v, c, n)) } : {}),
                 ...(format.body ? { body: (v, r, c, n) => value(format.body(v, r, c, n)) } : {})
-            } } : {}), ...(customize ? { customizeData: (data) => { value(customize(data)); } } : {}) };
+            } } : {}), ...(customize ? { customizeData: (data) => {
+                const result = customize(data);
+                // Buttons ignores synchronous return values; only asynchronous callbacks violate this contract.
+                if (typeof member(result, "then") === "function")
+                    value(result);
+            } } : {}) };
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
@@ -3303,6 +3308,7 @@ function createDataTablesExport(host, table, options = {}) {
         }
     }
     function project(input, rowIndex, column, rowOrdinal) {
+        checkAbort(signal);
         const scalar = value(input);
         return projectValue ? value(projectValue(scalar, { rowIndex, columnIndex: columnIndexes[column], rowOrdinal })) : scalar;
     }

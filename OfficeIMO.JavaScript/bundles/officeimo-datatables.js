@@ -3205,7 +3205,7 @@ _modules.set("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73",
 return _exports;
 })();
 
-const _m30 = _modules.get("259a034b650898a8a91b1ad0ddf0d81fd42f917d6386165ae52c79694f73c3f7") ?? (() => {
+const _m30 = _modules.get("82b1a9301f3e4055440af455bc87e8a6b6271f51443030d604c57f4bd990e6a5") ?? (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
@@ -3220,7 +3220,12 @@ function safeOptions(options) {
                 ...(format.header ? { header: (v, c, n) => value(format.header(v, c, n)) } : {}),
                 ...(format.footer ? { footer: (v, c, n) => value(format.footer(v, c, n)) } : {}),
                 ...(format.body ? { body: (v, r, c, n) => value(format.body(v, r, c, n)) } : {})
-            } } : {}), ...(customize ? { customizeData: (data) => { value(customize(data)); } } : {}) };
+            } } : {}), ...(customize ? { customizeData: (data) => {
+                const result = customize(data);
+                // Buttons ignores synchronous return values; only asynchronous callbacks violate this contract.
+                if (typeof member(result, "then") === "function")
+                    value(result);
+            } } : {}) };
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
@@ -3338,6 +3343,7 @@ function createDataTablesExport(host, table, options = {}) {
         }
     }
     function project(input, rowIndex, column, rowOrdinal) {
+        checkAbort(signal);
         const scalar = value(input);
         return projectValue ? value(projectValue(scalar, { rowIndex, columnIndex: columnIndexes[column], rowOrdinal })) : scalar;
     }
@@ -3345,11 +3351,11 @@ function createDataTablesExport(host, table, options = {}) {
         footer: footer ? Object.freeze(footer) : undefined, rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
-_modules.set("259a034b650898a8a91b1ad0ddf0d81fd42f917d6386165ae52c79694f73c3f7", _exports);
+_modules.set("82b1a9301f3e4055440af455bc87e8a6b6271f51443030d604c57f4bd990e6a5", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("0df4ad9220292e802b4c9ecef14c717060f9bce2014e7f040237141d68bf39cf") ?? (() => {
+const _m0 = _modules.get("8971879bda8084d91153cfe7ed9fe07081bdb07c47f2a66c9b1c691d37ad284d") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -3467,7 +3473,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m30.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("0df4ad9220292e802b4c9ecef14c717060f9bce2014e7f040237141d68bf39cf", _exports);
+_modules.set("8971879bda8084d91153cfe7ed9fe07081bdb07c47f2a66c9b1c691d37ad284d", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);
