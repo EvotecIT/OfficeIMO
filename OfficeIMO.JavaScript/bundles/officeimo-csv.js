@@ -5,7 +5,7 @@ const officeimo = root.OfficeIMO || (root.OfficeIMO = {});
 const cacheKey = Symbol.for("@evotecit/officeimo/modules");
 const _modules = officeimo[cacheKey] || new Map();
 if (!officeimo[cacheKey]) Object.defineProperty(officeimo, cacheKey, { value: _modules });
-const _m1 = _modules.get("60c75199fcb925cb57aae5b56e54ae795af64bb7459a77bff4388e611ad7ab9c") ?? (() => {
+const _m1 = _modules.get("b6c69a40cbab8d13448da5ee55677b3c32db76da99547182b2e7c4df098c753d") ?? (() => {
 function checkAbort(signal) {
     if (signal?.aborted)
         throw signal.reason ?? new DOMException("Export cancelled.", "AbortError");
@@ -62,10 +62,36 @@ async function* inputRows(input, signal) {
         }
     }
 }
+const rowConsumers = new WeakMap();
+/** @internal Keep bounded pages as ordinary async rows, with direct batch consumption for owned writers. */
+function rowsFromBatches(batches) {
+    let consumed = false;
+    const claim = () => { if (consumed)
+        throw new TypeError("A row source can be consumed only once."); consumed = true; };
+    const rows = { [Symbol.asyncIterator]() { claim(); return iterate(); } };
+    async function* iterate() { for await (const batch of inputRows(batches))
+        yield* batch; }
+    rowConsumers.set(rows, (signal, accept) => {
+        claim();
+        return consumeRows(batches, signal, batch => consumeRows(batch, signal, accept));
+    });
+    return rows;
+}
+/** @internal Concatenate headings, body and footer without another per-row async delegation. */
+function concatRows(...sources) {
+    const rows = { async *[Symbol.asyncIterator]() { for (const source of sources)
+            yield* source; } };
+    rowConsumers.set(rows, async (signal, accept) => { for (const source of sources)
+        await consumeRows(source, signal, accept); });
+    return rows;
+}
 /** @internal Consume synchronous work without an async-generator and per-row Promise.
  * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
 async function consumeRows(input, signal, accept) {
     checkAbort(signal);
+    const consume = rowConsumers.get(input);
+    if (consume)
+        return consume(signal, accept);
     const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
     if (!iterator)
         throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
@@ -135,8 +161,8 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
-_modules.set("60c75199fcb925cb57aae5b56e54ae795af64bb7459a77bff4388e611ad7ab9c", _exports);
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, rowsFromBatches: rowsFromBatches, concatRows: concatRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
+_modules.set("b6c69a40cbab8d13448da5ee55677b3c32db76da99547182b2e7c4df098c753d", _exports);
 return _exports;
 })();
 
@@ -162,7 +188,7 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("5af3897ce914f684e2587ae2f637f33a34952eeea10dccf6ea5bc5bfad22dd41") ?? (() => {
+const _m2 = _modules.get("80dda396ce23605ea1a20e8a77e71669be641b8a9024fe6474114baf4932f671") ?? (() => {
 const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m1;
 
 const { OfficeIMOError } = _m3;
@@ -264,7 +290,7 @@ async function writeBytes(source, sink, signal) {
     }
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("5af3897ce914f684e2587ae2f637f33a34952eeea10dccf6ea5bc5bfad22dd41", _exports);
+_modules.set("80dda396ce23605ea1a20e8a77e71669be641b8a9024fe6474114baf4932f671", _exports);
 return _exports;
 })();
 
@@ -360,7 +386,7 @@ _modules.set("4b62ca824c1a5e91400d406ef9a694f4db77f63d7ecd9b12a4fe5531b908e9e3",
 return _exports;
 })();
 
-const _m6 = _modules.get("62bf56e63b86ec486587f1bebeee9350bfd1ecf92e9dad61d00f7c832b99eb61") ?? (() => {
+const _m6 = _modules.get("a38882e1068a8ac909ee097ce78cf755a715f6ed54460279106fd959ae75c13e") ?? (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
@@ -417,11 +443,11 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("62bf56e63b86ec486587f1bebeee9350bfd1ecf92e9dad61d00f7c832b99eb61", _exports);
+_modules.set("a38882e1068a8ac909ee097ce78cf755a715f6ed54460279106fd959ae75c13e", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("52bdf92fb9eca58eb58efd2222d13bb3d0c0beb254bf916cd5200af112e06383") ?? (() => {
+const _m7 = _modules.get("9371b1572f672f5845d7a9f6ec30bc20a61fd7eff40111bc10831ca50aea5e8c") ?? (() => {
 
 
 
@@ -464,11 +490,11 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m3.OfficeIMOError, NotSupportedError: _m3.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m5.ExportCell, checkAbort: _m1.checkAbort, withAbort: _m1.withAbort, inputRows: _m1.inputRows, pause: _m1.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("52bdf92fb9eca58eb58efd2222d13bb3d0c0beb254bf916cd5200af112e06383", _exports);
+_modules.set("9371b1572f672f5845d7a9f6ec30bc20a61fd7eff40111bc10831ca50aea5e8c", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("27f67fdd5f86196cd7460ddaeabc9b5e1beac67d69d1bfc7100518fe09755095") ?? (() => {
+const _m0 = _modules.get("83ddb7276cc312b10db8ef544abf8ce3c422226ecf907dc3db99d19cafa5f58a") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -598,7 +624,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("27f67fdd5f86196cd7460ddaeabc9b5e1beac67d69d1bfc7100518fe09755095", _exports);
+_modules.set("83ddb7276cc312b10db8ef544abf8ce3c422226ecf907dc3db99d19cafa5f58a", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

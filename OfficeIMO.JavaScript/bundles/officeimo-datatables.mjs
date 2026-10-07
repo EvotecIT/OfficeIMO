@@ -77,10 +77,36 @@ async function* inputRows(input, signal) {
         }
     }
 }
+const rowConsumers = new WeakMap();
+/** @internal Keep bounded pages as ordinary async rows, with direct batch consumption for owned writers. */
+function rowsFromBatches(batches) {
+    let consumed = false;
+    const claim = () => { if (consumed)
+        throw new TypeError("A row source can be consumed only once."); consumed = true; };
+    const rows = { [Symbol.asyncIterator]() { claim(); return iterate(); } };
+    async function* iterate() { for await (const batch of inputRows(batches))
+        yield* batch; }
+    rowConsumers.set(rows, (signal, accept) => {
+        claim();
+        return consumeRows(batches, signal, batch => consumeRows(batch, signal, accept));
+    });
+    return rows;
+}
+/** @internal Concatenate headings, body and footer without another per-row async delegation. */
+function concatRows(...sources) {
+    const rows = { async *[Symbol.asyncIterator]() { for (const source of sources)
+            yield* source; } };
+    rowConsumers.set(rows, async (signal, accept) => { for (const source of sources)
+        await consumeRows(source, signal, accept); });
+    return rows;
+}
 /** @internal Consume synchronous work without an async-generator and per-row Promise.
  * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
 async function consumeRows(input, signal, accept) {
     checkAbort(signal);
+    const consume = rowConsumers.get(input);
+    if (consume)
+        return consume(signal, accept);
     const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
     if (!iterator)
         throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
@@ -150,7 +176,7 @@ function pause() {
         }
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, rowsFromBatches: rowsFromBatches, concatRows: concatRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -5144,7 +5170,7 @@ return _exports;
 })();
 
 const _m47 = (() => {
-const { checkAbort, pause, taskYieldDue } = _m4;
+const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m7;
 
@@ -5250,13 +5276,7 @@ function createDataTablesExport(host, table, options = {}) {
         if (tables !== 1)
             throw new TypeError("A batched export requires exactly one DataTables table.");
     }
-    let consumed = false;
-    const rows = { [Symbol.asyncIterator]() {
-            if (consumed)
-                throw new TypeError("A DataTables export source can be consumed only once.");
-            consumed = true;
-            return iterate();
-        } };
+    const rows = rowsFromBatches({ [Symbol.asyncIterator]: () => iterate() });
     async function* iterate() {
         for (let first = 0; first < count; first += batchSize) {
             checkAbort(signal);
@@ -5319,10 +5339,8 @@ function createDataTablesExport(host, table, options = {}) {
                     }
                 }
             }
-            for (const row of batch) {
-                checkAbort(signal);
-                yield row;
-            }
+            checkAbort(signal);
+            yield batch;
             if (taskYieldDue()) {
                 await pause();
                 checkAbort(signal);
@@ -5345,6 +5363,8 @@ return _exports;
 
 const _m0 = (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
+
+const { concatRows } = _m4;
 
 const { writeCsvTo } = _m6;
 
@@ -5390,21 +5410,11 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
     }
     else {
         const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
-        // A plain leaf heading already matches the shared CSV header contract. Avoid a
-        // second async-generator delegation around every data row in this common case.
-        const directHeader = !source.footer && headingCount === 1 && source.headers[0].every((cell, i) => typeof cell === "string" && cell === source.columns[i].header);
-        const extraRows = directHeader ? 0 : headingCount + footerCount;
-        async function* rows() {
-            for (const header of source.headers)
-                yield header;
-            yield* source.rows;
-            if (source.footer)
-                yield source.footer;
-        }
-        result = await writeCsvTo(directHeader ? source.rows : rows(), destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: directHeader,
-            ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + extraRows) } } : {}),
+        const rows = concatRows(source.headers, source.rows, source.footer ? [source.footer] : []);
+        result = await writeCsvTo(rows, destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: false,
+            ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
             onProgress: event => {
-                const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - (directHeader ? 0 : headingCount)));
+                const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));
                 options.onProgress?.({ ...event, rows: rowCount, totalRows: source.rowCount });
             } });
     }

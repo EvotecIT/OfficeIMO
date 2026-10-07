@@ -146,6 +146,19 @@ test("cancellation stops the next projection batch and preserves the caller's re
   }
 });
 
+test("CSV cancellation during batch backpressure releases the destination and stops the next batch", async () => {
+  const { host, table, calls } = fixture({ data: [["🧪".repeat(30000), 1], ["later", 2]], selected: [0, 1], grouped: false });
+  const controller = new AbortController(), reason = new Error("cancel slow CSV");
+  let accepted; const started = new Promise(resolve => { accepted = resolve; });
+  const destination = new WritableStream({ write() { accepted(); return new Promise(() => {}); } });
+  const writing = writeDataTableTo(host, table, "csv", destination, { headings: "leaf", includeFooter: false,
+    batchRows: 1, signal: controller.signal });
+  await started; controller.abort(reason);
+  await assert.rejects(writing, error => error === reason);
+  assert.equal(destination.locked, false);
+  assert.deepEqual(calls, [[0]]);
+});
+
 test("body formatting maps sparse DOM nodes and rejects async callback results", async () => {
   const deferred = fixture({nodeRows:[0]}), observed=[];
   const source = createDataTablesExport(deferred.host,deferred.table,{exportOptions:{format:{body:(v,row,column,node)=>{

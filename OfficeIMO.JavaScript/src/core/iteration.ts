@@ -40,11 +40,35 @@ export async function* inputRows<T>(input: Iterable<T> | AsyncIterable<T>, signa
   }
 }
 
+type RowConsumer = (signal: AbortSignal | undefined, accept: (value: unknown) => void | Promise<void>) => Promise<void>;
+const rowConsumers = new WeakMap<object, RowConsumer>();
+
+/** @internal Keep bounded pages as ordinary async rows, with direct batch consumption for owned writers. */
+export function rowsFromBatches<T>(batches: Iterable<readonly T[]> | AsyncIterable<readonly T[]>): AsyncIterable<T> {
+  let consumed = false;
+  const claim = () => { if (consumed) throw new TypeError("A row source can be consumed only once."); consumed = true; };
+  const rows: AsyncIterable<T> = { [Symbol.asyncIterator]() { claim(); return iterate(); } };
+  async function* iterate(): AsyncGenerator<T> { for await (const batch of inputRows(batches)) yield* batch; }
+  rowConsumers.set(rows, (signal, accept) => {
+    claim(); return consumeRows(batches, signal, batch => consumeRows(batch, signal, accept));
+  });
+  return rows;
+}
+
+/** @internal Concatenate headings, body and footer without another per-row async delegation. */
+export function concatRows<T>(...sources: (Iterable<T> | AsyncIterable<T>)[]): AsyncIterable<T> {
+  const rows: AsyncIterable<T> = { async *[Symbol.asyncIterator]() { for (const source of sources) yield* source; } };
+  rowConsumers.set(rows, async (signal, accept) => { for (const source of sources) await consumeRows(source, signal, accept); });
+  return rows;
+}
+
 /** @internal Consume synchronous work without an async-generator and per-row Promise.
  * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
 export async function consumeRows<T>(input: Iterable<T> | AsyncIterable<T>, signal: AbortSignal | undefined,
   accept: (value: T) => void | Promise<void>): Promise<void> {
   checkAbort(signal);
+  const consume = rowConsumers.get(input);
+  if (consume) return consume(signal, accept as (value: unknown) => void | Promise<void>);
   const iterator = (input as AsyncIterable<T>)?.[Symbol.asyncIterator]?.() ?? (input as Iterable<T>)?.[Symbol.iterator]?.();
   if (!iterator) throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
   let done = false;

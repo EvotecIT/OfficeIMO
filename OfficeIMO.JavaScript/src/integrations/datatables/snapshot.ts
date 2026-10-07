@@ -1,4 +1,4 @@
-import { checkAbort, pause, taskYieldDue } from "../../core/iteration.js";
+import { checkAbort, pause, rowsFromBatches, taskYieldDue } from "../../core/iteration.js";
 import { ExportBudget } from "../../core/limits.js";
 import type { Column, ExportValue } from "../../core/index.js";
 import { array, call, indexes, member } from "./api.js";
@@ -88,12 +88,8 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     call(emptyCells, "iterator", "table", () => { tables++; });
     if (tables !== 1) throw new TypeError("A batched export requires exactly one DataTables table.");
   }
-  let consumed = false;
-  const rows: AsyncIterable<readonly ExportValue[]> = { [Symbol.asyncIterator]() {
-    if (consumed) throw new TypeError("A DataTables export source can be consumed only once.");
-    consumed = true; return iterate();
-  } };
-  async function* iterate(): AsyncGenerator<readonly ExportValue[]> {
+  const rows = rowsFromBatches<readonly ExportValue[]>({ [Symbol.asyncIterator]: () => iterate() });
+  async function* iterate(): AsyncGenerator<readonly (readonly ExportValue[])[]> {
     for (let first = 0; first < count; first += batchSize) {
       checkAbort(signal);
       let batch: ExportValue[][];
@@ -147,7 +143,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
           if ((cell & 127) === 127 && taskYieldDue()) { await pause(); checkAbort(signal); }
         }
       }
-      for (const row of batch) { checkAbort(signal); yield row; }
+      checkAbort(signal); yield batch;
       if (taskYieldDue()) { await pause(); checkAbort(signal); }
     }
   }
