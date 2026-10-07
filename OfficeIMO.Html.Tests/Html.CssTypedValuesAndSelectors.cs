@@ -9,6 +9,27 @@ namespace OfficeIMO.Tests;
 [Collection(HtmlCssPropertyGrammarCollection.Name)]
 public sealed class HtmlCssTypedValuesAndSelectorsTests {
     [Fact]
+    public void SelectorProjectionsObserveAttributeAndSiblingChangesBetweenComputations() {
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument("""
+            <style>
+              li[data-selected='yes']:first-child { color: red; }
+              li + li[data-selected='yes'] { color: blue; }
+            </style>
+            <ul><li id="first" data-selected="yes">First</li><li id="second">Second</li></ul>
+            """);
+        var first = document.QuerySelector("#first")!;
+        var second = document.QuerySelector("#second")!;
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(document)[first].GetValue("color"));
+
+        first.RemoveAttribute("data-selected");
+        second.SetAttribute("data-selected", "yes");
+        Assert.Equal("rgba(0, 0, 255, 1)", HtmlComputedStyleEngine.Compute(document)[second].GetValue("color"));
+
+        second.ParentElement!.AppendChild(first);
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(document)[second].GetValue("color"));
+    }
+
+    [Fact]
     public void IndependentTypedValueCorpusMatchesTheDeclaredSlice() {
         TypedValueCase[] corpus = Read<TypedValueCase>("css-typed-values-corpus.json");
         Assert.Equal(22, corpus.Length);
@@ -43,6 +64,31 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
             if (item.Specificity != null) Assert.Equal(item.Specificity, result.Selector!.Specificity.ToString());
             if (item.Match != null) Assert.True(result.Selector!.Matches(target), item.Name + " should match the target.");
         }
+    }
+
+    [Fact]
+    public void OwnedSelectorsDriveTheManagedCascadeAndUnsupportedSelectorsFallBack() {
+        const string html = """
+            <style>
+              main > article.card[data-role='hero' i] { color:hsl(120 100% 25% / 50%); opacity:calc(.2 + .3); }
+              main > article.card[data-fallback='MATCH' i] { background:red; visibility:collapse; opacity:.25; }
+               article:first-child { visibility:hidden !important; }
+               article:lang(en) { white-space:pre-wrap; }
+            </style>
+            <main><article id="target" class="card" lang="en" data-role="HERO" data-fallback="match">Target</article></main>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document,
+            new HtmlComputedStyleOptions { IncludeCascadeTraces = true })[document.Document.QuerySelector("#target")!];
+
+        Assert.Equal("rgba(0, 128, 0, 0.5)", style.GetValue("color"));
+        Assert.Equal("0.25", style.GetValue("opacity"));
+        Assert.Equal("hidden", style.GetValue("visibility"));
+        Assert.Equal("pre-wrap", style.GetValue("white-space"));
+        HtmlCssCascadeTrace opacityTrace = style.GetCascadeTrace("opacity")!;
+        Assert.All(opacityTrace.Candidates, candidate => Assert.Equal(HtmlCssPropertyParseStatus.Parsed, candidate.GrammarStatus));
+        Assert.Contains(opacityTrace.Candidates, candidate => candidate.Decision == HtmlCssCascadeDecision.Selected
+            && candidate.DeclaredValue == "0.25");
     }
 
     [Fact]
@@ -122,6 +168,59 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
     }
 
     [Fact]
+    public void GroupedPseudoAndNamespaceSelectorsDriveTheManagedCascade() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("""
+            <style>
+              @namespace svg url("http://www.w3.org/2000/svg");
+              .picked, main > p:last-child { color: blue; }
+              main > p:nth-child(even):is(.picked, .other):not(.excluded) { color: red; }
+              :where(#target) { color: green; }
+              svg|a:last-child { visibility: hidden; string-set: marker 'Vector'; }
+              p:lang(en) { white-space: pre-wrap; }
+            </style>
+            <main><p>first</p><p id="target" class="picked" lang="en">second</p></main>
+            <svg><a id="svg-target" lang="en">link</a></svg>
+            """);
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.Document.QuerySelector("#target")!].GetValue("color"));
+        Assert.Equal("pre-wrap", styles[document.Document.QuerySelector("#target")!].GetValue("white-space"));
+        Assert.Equal("hidden", styles[document.Document.QuerySelector("#svg-target")!].GetValue("visibility"));
+        Assert.Equal("marker \"Vector\"", styles[document.Document.QuerySelector("#svg-target")!].GetValue("string-set"));
+    }
+
+    [Fact]
+    public void NamespaceQualifiedSelectorsRetainProviderFallbackAndListSpecificity() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("""
+            <style>
+              @namespace svg url("http://www.w3.org/2000/svg");
+              svg|a:lang(en), .fallback { color: blue; }
+              svg|a:lang(en) { string-set: provider 'Vector'; }
+              #vector { color: red; }
+              p.fallback { background-color: red; }
+              #missing, :where(.fallback):lang(en) { background-color: blue; }
+            </style>
+            <svg><a id="vector" lang="en">link</a></svg><p class="fallback" lang="en">text</p>
+            """);
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.Document.QuerySelector("#vector")!].GetValue("color"));
+        Assert.Equal("provider \"Vector\"", styles[document.Document.QuerySelector("#vector")!].GetValue("string-set"));
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[document.Document.QuerySelector(".fallback")!].GetValue("color"));
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.Document.QuerySelector(".fallback")!].GetValue("background-color"));
+    }
+
+    [Fact]
+    public void RawRetainedDeclarationsDiscardInvalidSelectorListsAtomically() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>p, :bogus( { string-set: marker 'bad'; }</style><p id='target'>x</p>");
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#target")!];
+
+        Assert.Equal(string.Empty, style.GetValue("string-set"));
+    }
+
+    [Fact]
     public void SelectorListsAndLogicalNestingHonorCancellationAndResourceBounds() {
         Assert.Equal(nameof(HtmlCssSelectorOptions.MaxSelectors), Assert.Throws<HtmlCssSelectorLimitException>(() =>
             HtmlCssSelectorParser.ParseList("a,b", new HtmlCssSelectorOptions { MaxSelectors = 1 })).LimitName);
@@ -172,6 +271,22 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
             Assert.True(item.Matches.SequenceEqual(actual), item.Name + ": expected [" + string.Join(",", item.Matches)
                 + "] but matched [" + string.Join(",", actual) + "].");
         }
+    }
+
+    [Fact]
+    public void ModernNumericHslAndHwbReachDeterministicComputedSrgbValues() {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse("""
+            <style>
+              #hsl { color:hsl(120 .5 .5 / 25%); }
+              #hwb { color:hwb(120 .2 .3); }
+            </style>
+            <p id="hsl"></p><p id="hwb"></p>
+            """);
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles =
+            HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal("rgba(1, 1, 1, 0.25)", styles[document.Document.QuerySelector("#hsl")!].GetValue("color"));
+        Assert.Equal("rgba(1, 254, 1, 1)", styles[document.Document.QuerySelector("#hwb")!].GetValue("color"));
     }
 
     [Fact]
@@ -233,6 +348,63 @@ public sealed class HtmlCssTypedValuesAndSelectorsTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => selector.Matches(deepest, cancellation.Token));
+    }
+
+    [Fact]
+    public void OwnedSelectorTraversalConsumesTheConversionEvaluationBudget() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxSelectorEvaluations = 4;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.missing * *{color:red}</style><main><section><p>target</p></section></main>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlComputedStyleEngine.Compute(document));
+        Assert.Equal(nameof(HtmlConversionLimits.MaxSelectorEvaluations), exception.LimitSource);
+    }
+
+    [Fact]
+    public void StructuralAndAttributeScansConsumeTheConversionEvaluationBudget() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxSelectorEvaluations = 5;
+        string comments = string.Concat(Enumerable.Repeat("<!-- retained -->", 12));
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>section[data-kind]:empty{color:red}</style><section data-kind='evidence'>" + comments + "</section>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlComputedStyleEngine.Compute(document));
+        Assert.Equal(nameof(HtmlConversionLimits.MaxSelectorEvaluations), exception.LimitSource);
+    }
+
+    [Fact]
+    public void SiblingPositionsAreCachedAcrossNthMatchesWithinTheConversionBudget() {
+        const int siblingCount = 5_000;
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxSelectorEvaluations = 30_000;
+        string siblings = string.Concat(Enumerable.Range(0, siblingCount).Select(index =>
+            "<article data-index='" + index + "'></article>"));
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>article:nth-child(odd){color:red}</style><main>" + siblings + "</main>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+
+        Assert.Equal(siblingCount, document.Document.QuerySelectorAll("article").Count);
+        Assert.Equal("rgba(255, 0, 0, 1)", styles[document.Document.QuerySelector("article")!].GetValue("color"));
+    }
+
+    [Fact]
+    public void SiblingDiscoveryAccountsForInterveningNonElementNodes() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxSelectorEvaluations = 4;
+        string comments = string.Concat(Enumerable.Repeat("<!-- retained -->", 20));
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>p:last-child{color:red}</style><main><p>target</p>" + comments + "</main>",
+            new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(document));
+        Assert.Equal(nameof(HtmlConversionLimits.MaxSelectorEvaluations), exception.LimitSource);
     }
 
     private static T[] Read<T>(string name) => JsonSerializer.Deserialize<T[]>(File.ReadAllText(

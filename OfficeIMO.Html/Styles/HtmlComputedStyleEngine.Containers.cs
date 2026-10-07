@@ -129,8 +129,10 @@ public static partial class HtmlComputedStyleEngine {
         ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight, out double horizontalInsets, out _);
         bool borderBox = IsBorderBox(style);
         double contentWidth;
-        if (HtmlRenderCssValues.TryLength(width, containingWidth, fontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double resolved)
-            && resolved >= 0D) {
+        if (HtmlRenderCssValues.TryLength(width, containingWidth, fontSize, rootFontSize, environment.Width, environment.Height,
+                containerUnitWidth, containerUnitHeight, out double resolved, out bool calculated)
+            && (resolved >= 0D || calculated)) {
+            resolved = Math.Max(0D, resolved);
             contentWidth = Math.Max(0D, resolved - (borderBox ? horizontalInsets : 0D));
         } else {
             contentWidth = Math.Max(0D, containingWidth - horizontalInsets);
@@ -157,10 +159,12 @@ public static partial class HtmlComputedStyleEngine {
         bool borderBox,
         out double contentSize) {
         contentSize = 0D;
-        if (!HtmlRenderCssValues.TryLength(value, containingSize, fontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double resolved)
-            || resolved < 0D) {
+        if (!HtmlRenderCssValues.TryLength(value, containingSize, fontSize, rootFontSize, environment.Width, environment.Height,
+                containerUnitWidth, containerUnitHeight, out double resolved, out bool calculated)
+            || (resolved < 0D && !calculated)) {
             return false;
         }
+        resolved = Math.Max(0D, resolved);
         contentSize = Math.Max(0D, resolved - (borderBox ? insets : 0D));
         return true;
     }
@@ -180,8 +184,10 @@ public static partial class HtmlComputedStyleEngine {
         bool borderBox = IsBorderBox(style);
         double contentHeight = 0D;
         bool hasDefiniteHeight = false;
-        if (HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double resolved)
-            && resolved >= 0D) {
+        if (HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height,
+                containerUnitWidth, containerUnitHeight, out double resolved, out bool calculated)
+            && (resolved >= 0D || calculated)) {
+            resolved = Math.Max(0D, resolved);
             contentHeight = Math.Max(0D, resolved - (borderBox ? verticalInsets : 0D));
             hasDefiniteHeight = true;
         } else if (HtmlCssReplacedElementParser.TryParseAspectRatio(style.GetValue("aspect-ratio"), out double? ratio, out _, out _)
@@ -284,6 +290,7 @@ public static partial class HtmlComputedStyleEngine {
         double rootFontSize = 16D,
         double containerUnitWidth = double.NaN,
         double containerUnitHeight = double.NaN) {
+        if (style.IsResetValue("font-size")) return 16D;
         if (style.IsInheritedValue("font-size")) return inheritedFontSize;
         string value = style.GetValue("font-size").Trim().ToLowerInvariant();
         if (HtmlRenderCssValues.TryResolveFontSizeKeyword(value, inheritedFontSize, 16D, out double keywordSize)) {

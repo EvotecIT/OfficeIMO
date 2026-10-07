@@ -1,0 +1,380 @@
+{
+  "functionalSourceHead": "45b4b30bb30fb8982bc171b6084a7ff88acef9d7",
+  "scope": "Inline SVG CSS font-size projection and computed/rendered font reset consistency; no general page-fidelity or budget qualification",
+  "wai": {
+    "sourceSha256": "e412cfda033d9aa02b7abd455ae0fab917c2e44ba0ad0f4bc83f233877a4397d",
+    "replayOperations": 13,
+    "failures": [],
+    "operations": [
+      {
+        "intent": "officeimo-print",
+        "pages": 4,
+        "sha256": "be5a17c947cfa4e2ca05f51bd20cb8db75f77208814745d79d1b4abe3d17e21a",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 7,
+        "svgWarningsAfter": 5
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pages": 3,
+        "sha256": "f2bf8beb668da5ebf138cb94f0b02c29ca91ea40fff2816e591f3fc946b9db60",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 7,
+        "svgWarningsAfter": 5
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pages": 2,
+        "sha256": "193c70ae223c328dc708d74a5f5cb00fc34173a47cd6404c584133b580e30bfd",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 12,
+        "svgWarningsAfter": 10
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pages": 2,
+        "sha256": "193c70ae223c328dc708d74a5f5cb00fc34173a47cd6404c584133b580e30bfd",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 12,
+        "svgWarningsAfter": 10
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pages": 3,
+        "sha256": "12b20b152c782d8f786dae79ded7a72f3da4c89f064f2359db25b3d126fbf508",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 7,
+        "svgWarningsAfter": 5
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pages": 3,
+        "sha256": "f2bf8beb668da5ebf138cb94f0b02c29ca91ea40fff2816e591f3fc946b9db60",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 7,
+        "svgWarningsAfter": 5
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pages": 3,
+        "sha256": "fa88b25eaba6aa5aa793da61413dc53e7173b84a827d8a55bd6ecab80c8b0085",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 11,
+        "svgWarningsAfter": 9
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pages": 3,
+        "sha256": "fa88b25eaba6aa5aa793da61413dc53e7173b84a827d8a55bd6ecab80c8b0085",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 11,
+        "svgWarningsAfter": 9
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pages": 4,
+        "sha256": "8f8e16774cc26adc8ac08f35adf99e9cb53fb08c927f32937dc3f534663a314f",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 11,
+        "svgWarningsAfter": 9
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pages": 4,
+        "sha256": "8f8e16774cc26adc8ac08f35adf99e9cb53fb08c927f32937dc3f534663a314f",
+        "pdfUnchanged": true,
+        "svgWarningsBefore": 11,
+        "svgWarningsAfter": 9
+      }
+    ],
+    "inspectedIntent": "officeimo-print-zero-margin-local-fonts",
+    "inspectedPages": [
+      1,
+      2,
+      3
+    ],
+    "rasterDpi": 96,
+    "listBodyStartCssPixels": {
+      "browser": 56,
+      "officeimo": 56
+    },
+    "remainingLimits": [
+      "External sprites missing from frozen resources",
+      "UA marker shape and placement differ",
+      "Portable fonts and separate intent appearance remain open"
+    ],
+    "listTextCoordinatesPoints": {
+      "browser": 41.999998,
+      "officeimo": 41.999983
+    }
+  },
+  "h4": {
+    "caseCount": 8,
+    "acceptance": "Passed",
+    "failures": [],
+    "managedRasterArtifacts": [
+      {
+        "path": "columns-footnotes-brief/officeimo-print-page-1.png",
+        "sha256": "212f318fa62d6a2d14c4efcd6ae18a8d702dbf6fd2278a7746a3584ad4e2a8ab",
+        "unchanged": true
+      },
+      {
+        "path": "columns-footnotes-brief/officeimo-print-scene-page-1.png",
+        "sha256": "793b4c3d36cdc36e8d8aa66419c839fa3f8c12685471199ae6a9c55e1f0c1a28",
+        "unchanged": true
+      },
+      {
+        "path": "columns-footnotes-brief/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "8abf90a63700773059f432beeecb1c62fc40f9c9fad4b70f9e00fb3fd7147748",
+        "unchanged": true
+      },
+      {
+        "path": "columns-footnotes-brief/officeimo-screen.png",
+        "sha256": "67a775aa1103fc010db4a63c983d989046cce5964910360b3955a433eef307d6",
+        "unchanged": true
+      },
+      {
+        "path": "legacy-portal/officeimo-print-page-1.png",
+        "sha256": "24b66d312ddd8c56e9fdf4024fb95c48f94d0801fd5aceaab20d8d65eb6a87f1",
+        "unchanged": true
+      },
+      {
+        "path": "legacy-portal/officeimo-print-scene-page-1.png",
+        "sha256": "7ad8cc6041528b303a03e74f37b7218178111845774bcc7a2870a16292c7642a",
+        "unchanged": true
+      },
+      {
+        "path": "legacy-portal/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "872d46cf6a821bff69e3b8ca4d076048455d00b4ea905dc93c7c51c0ba7e51ad",
+        "unchanged": true
+      },
+      {
+        "path": "legacy-portal/officeimo-screen.png",
+        "sha256": "d0ff308437ef31082306d3280d4196afe79bfb17ca03e24937e1a488d3590cda",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-print-page-1.png",
+        "sha256": "964c1b0e92400922b86e20de693b8e15ea0fa3888e34fd764b5398d279a94d15",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-print-page-2.png",
+        "sha256": "7ce05d4a5d12cfaa4875e30e05f6bccf445a6b1ecc57b6c027b243ba641cf579",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-print-page-3.png",
+        "sha256": "5fd931b462915818711669a4bcae9e7a7ddf30b14f8e01c32c7b394357e19f48",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-print-scene-page-1.png",
+        "sha256": "322b18ff6ea0edf570b80d9727d7f8115fd38f2e8112eebce84e362c050354f8",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-print-scene-page-2.png",
+        "sha256": "3d3d065d88e3f938de4ff864fc4c55cf80d111db6fd2c5ee4cde257bfd469329",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-print-scene-page-3.png",
+        "sha256": "8c6dffa1099b2fa454cb41151d46c7fb7c009ab2a626c94ae97fc12a31a9018f",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "50ae0080351bce1e781675ae993e134cb70e39ac1e3a2131cea35c4462e2e13d",
+        "unchanged": true
+      },
+      {
+        "path": "named-pages-brochure/officeimo-screen.png",
+        "sha256": "a5fa99b075b9a902dd608fe908326019a6ed2abe593c301862d7fdfd059a0a8d",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-print-page-1.png",
+        "sha256": "3b38d2fa4b0a1b3540fbc853111fa95cf00f68ef2b765c2038ae5c122b14a0b8",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-print-page-2.png",
+        "sha256": "f96938fc6728142d67b3fcbd7859cc65d25bcd66a12a4e9c8d1af1347f5f4c20",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-print-page-3.png",
+        "sha256": "6c5db0b49f60e87c520c9b773272a2e5b21c76302fbc79eb6c8f16ffc7380147",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-print-scene-page-1.png",
+        "sha256": "f61897816a3182e898564ecae088ee7dc46d69187a55d26ed24a20028401b87f",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-print-scene-page-2.png",
+        "sha256": "9c0936ff618a02eeab4eb8b8b1b35dcce034e77a8a5e68d096974680ef32280d",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-print-scene-page-3.png",
+        "sha256": "f803cc78a34c5a551b7a93bc91cedad04a71a06c6f7e20acef7da8072bbce669",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "8da133c83d6e03a411034e0efc796f95b77adecc2596acc8e0b986e9c51541bc",
+        "unchanged": true
+      },
+      {
+        "path": "nested-fragmentation-report/officeimo-screen.png",
+        "sha256": "b4f75df037d4bb871d8c947c71475c049176f3738b6151338dc753d57dad03f9",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-print-page-1.png",
+        "sha256": "39cecc087dd8af3b3499b6e9b803bb5cb56d6408c2d3da8e0b906164d5bea21d",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-print-page-2.png",
+        "sha256": "5149f1a9dbb98b660a8a9b50beef749e759fba87eea2be8185c2b98aa8a68ce0",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-print-scene-page-1.png",
+        "sha256": "2764f905bd9130b9abc12cfce81e450a0c30b0330853320661bc78e425397f46",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-print-scene-page-2.png",
+        "sha256": "2e3aac34d7c18847b8fc9b110cdc29679bf6107c0bd92374ebfafd15a5c0850b",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "65e85452c26dbd6f5792136f51789b81fdee7e7c5648e3e8eecfeda4fdd6640a",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-screen-to-pdf-page-2.png",
+        "sha256": "c6ab135ff5c172f41c5e6a45c6cdc76fa0e9cc974d8189b91e1fad2d94c6df32",
+        "unchanged": true
+      },
+      {
+        "path": "professional-print-catalog/officeimo-screen.png",
+        "sha256": "77d8b98df3658850550aae2dc9269a128d4e879cb7e0484fb9c21cb7c8f3c280",
+        "unchanged": true
+      },
+      {
+        "path": "stacking-clipping-board/officeimo-print-page-1.png",
+        "sha256": "17dc3f9028f9ded891b2dce9b291f7de8d0190bff3fc802c1dde7258c9f7c2cd",
+        "unchanged": true
+      },
+      {
+        "path": "stacking-clipping-board/officeimo-print-scene-page-1.png",
+        "sha256": "2704aa528b57fccb8e8745c9e0046713a26c62201159d0fd95b2cd528e736ad7",
+        "unchanged": true
+      },
+      {
+        "path": "stacking-clipping-board/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "c2c8ee72316155f927c896e44b931176bcf18f144e6080401cbc5d1694bd6299",
+        "unchanged": true
+      },
+      {
+        "path": "stacking-clipping-board/officeimo-screen.png",
+        "sha256": "f6286120a0ff1b96adaad57176233b933be1a1da51aed50336cdb9f22442562a",
+        "unchanged": true
+      },
+      {
+        "path": "subgrid-operations/officeimo-print-page-1.png",
+        "sha256": "e048b9e93fd2b0fc05b858cd5b1f63a17d2bfd7f255ddf8a58e674507d6434a4",
+        "unchanged": true
+      },
+      {
+        "path": "subgrid-operations/officeimo-print-scene-page-1.png",
+        "sha256": "ace54e7f48da2afea73e479fb0a51081b205c50ce1df19e7085730469a7ea457",
+        "unchanged": true
+      },
+      {
+        "path": "subgrid-operations/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "c9c988bb673b643f95b3f0864fefd735e22d4cc248ee86fbb09e964119c89dfe",
+        "unchanged": true
+      },
+      {
+        "path": "subgrid-operations/officeimo-screen.png",
+        "sha256": "c890251aa391bc27e62e9ed61bc2f4a19925f2323f1838250a97e81750e81937",
+        "unchanged": true
+      },
+      {
+        "path": "typography-specimen/officeimo-print-page-1.png",
+        "sha256": "d7a9e1b80b7c4ff29f349b3cfb954c21ef32f497547001f03142cacbeb6fcb95",
+        "unchanged": true
+      },
+      {
+        "path": "typography-specimen/officeimo-print-scene-page-1.png",
+        "sha256": "26f7103c75790da5187ba452b83e875c7522c0e431ac7408e356344326a38ace",
+        "unchanged": true
+      },
+      {
+        "path": "typography-specimen/officeimo-screen-to-pdf-page-1.png",
+        "sha256": "c3d64033b2b32eb9378e03c142341878eb32d25ce2425f1f48f15a79e41315e5",
+        "unchanged": true
+      },
+      {
+        "path": "typography-specimen/officeimo-screen.png",
+        "sha256": "c834b125730896626a497822867f3513a3e6d67347e2c98ff6944c355d9ac1a8",
+        "unchanged": true
+      }
+    ]
+  },
+  "review": {
+    "base": "bc2bef0066382472106bb25aec5c64a9d4355a9b",
+    "initialCandidate": "dc115c3a16d3c50ca483fdf6f0986d416e710cb1",
+    "reviewer": "h10_svg_font_projection_review",
+    "fullPassFindings": 1,
+    "targetedConfirmationFindings": 1,
+    "disposition": "CSS-wide reset/inheritance and computed container reset defects reproduced and fixed; final container fix validated by primary regression; no further review loop",
+    "boundary": "candidate-reviewed"
+  },
+  "validation": {
+    "fontContextRegressionCases": 15,
+    "focusedNet10": {
+      "passed": 372,
+      "failed": 0
+    },
+    "finalFullNet8": {
+      "passed": 3624,
+      "failed": 0
+    },
+    "finalFullNet10": {
+      "passed": 3624,
+      "failed": 0
+    },
+    "htmlNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "postAnalyzerCleanupFocusedNet8": {
+      "passed": 15,
+      "failed": 0,
+      "buildWarnings": 0
+    },
+    "finalNet10TestBuild": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "retainedEvidence": [
+    "Ignore/HtmlUnknownPageQualification/h10-wai-svg-font-clean-45b4b30bb",
+    "Ignore/HtmlUnknownPageQualification/h10-h4-svg-font-clean-45b4b30bb",
+    "Ignore/HtmlUnknownPageQualification/h10-wai-indentation-probe-bc2bef006"
+  ],
+  "cleanup": {
+    "removed": "Superseded replay PDFs/source and browser-probe bin/obj",
+    "retainedApproximateMiB": 14.5,
+    "note": "Current WAI/H4 outputs and compact browser/list evidence remain for H10 follow-through; prior frozen archives untouched"
+  }
+}

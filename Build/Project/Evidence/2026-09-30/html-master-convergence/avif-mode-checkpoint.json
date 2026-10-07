@@ -1,0 +1,239 @@
+{
+  "sourceCommit": "bef583eddbc724d1d4ca53123f76723f30c4099f",
+  "recordDate": "2026-10-01",
+  "scope": "Internal Main-8 reduced-still intra prediction modes through the palette/motion boundary. Public AVIF decode and support remain unchanged.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1BlockPreludeReader.cs": "c3d6ea0d89b907a41e9e2685f81b75df0e54a48379ac0577bae76583db56b2e0",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraModeReader.Cdfs.cs": "405339429214c1f5ee2fc0889d3e0048059987a9cd3adead5793de1ea9c52f00",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraModeReader.cs": "4db9c84e93644de48f501e67c8f3fd35594a56b9281729f610512ef98d3dd9c6",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1IntraModes.cs": "6f9afa7757c052527e6e84b1f939709a3b0fe615a5936b21135258fcdfdf3189",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1PartitionContext.cs": "16d47302b65e136559e52ae543c54ced22359024b2f67806d14acfef060b2641",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1TileGeometry.cs": "17c7a465e65131360abc7b0edd12e3568516891efbcdfe49cb474f2f6c877ea0",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Modes.cs": "357005411ed796004fa9d6e1cbdeafdc9a950d6931a7c7dcb0276b7c9760d192",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "b7f279a79a6c68031c990aea50b1717c80c63137b555d14ac96f78af5dd4ff33",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateModeFixtures.c": "2a01d0ea69f7540bda030084eb431826bf57fcf0e5122803a7f169ba07858bcd",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateModeFixtures.py": "a99d18eae9ac3b4171d9c05139a0d94153ed78aa4f70afd45ef74af495ffc43e",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GeneratePreludeFixtures.c": "bf8425bd7322f913d8ba36ec83bab20d6873f1f9aeee156bd5391582eb6f8be6",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/mode-reference.json": "11c27ee8e79434f1680f1557f1a8a7397ef173b54299a59ab9d08678871713fe"
+  },
+  "syntaxReferences": {
+    "spec": "AV1 5.11.7, intra-mode/chroma availability/CfL derivations",
+    "aomTag": "v3.13.1",
+    "tables": "av1/common/entropymode.c",
+    "nativeOwner": "Hash-pinned AOM entropy APIs/default probabilities with an original component-syntax harness; not a full native AV1 decoder."
+  },
+  "oracle": {
+    "receipt": {
+      "generatorSha256": "a99d18eae9ac3b4171d9c05139a0d94153ed78aa4f70afd45ef74af495ffc43e",
+      "harnessSha256": "2a01d0ea69f7540bda030084eb431826bf57fcf0e5122803a7f169ba07858bcd",
+      "sharedPreludeHarnessSha256": "bf8425bd7322f913d8ba36ec83bab20d6873f1f9aeee156bd5391582eb6f8be6",
+      "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "preludeReceiptSha256": "38c1169c4315e2cfef01678ebd346962b36af995b1b1ab98905dd240bc89580b",
+      "fixtureSha256": "11c27ee8e79434f1680f1557f1a8a7397ef173b54299a59ab9d08678871713fe",
+      "cases": 24,
+      "nativeSelfCheck": true,
+      "prefixes": 3
+    },
+    "freshReplayReceipt": {
+      "generatorSha256": "a99d18eae9ac3b4171d9c05139a0d94153ed78aa4f70afd45ef74af495ffc43e",
+      "harnessSha256": "2a01d0ea69f7540bda030084eb431826bf57fcf0e5122803a7f169ba07858bcd",
+      "sharedPreludeHarnessSha256": "bf8425bd7322f913d8ba36ec83bab20d6873f1f9aeee156bd5391582eb6f8be6",
+      "tableSourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+      "preludeReceiptSha256": "38c1169c4315e2cfef01678ebd346962b36af995b1b1ab98905dd240bc89580b",
+      "fixtureSha256": "11c27ee8e79434f1680f1557f1a8a7397ef173b54299a59ab9d08678871713fe",
+      "cases": 24,
+      "nativeSelfCheck": true,
+      "prefixes": 3
+    },
+    "freshReplayByteIdentical": true,
+    "leaves": 2308,
+    "lumaContextVisits": [
+      172,
+      70,
+      70,
+      168,
+      214,
+      82,
+      30,
+      24,
+      20,
+      54,
+      90,
+      26,
+      40,
+      40,
+      100,
+      132,
+      22,
+      50,
+      52,
+      134,
+      220,
+      34,
+      122,
+      90,
+      194
+    ],
+    "frozenFirstLeafPrefixes": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "offset": 302,
+        "length": 31,
+        "pixels": 32,
+        "preludeQ": 18,
+        "modes": [
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "offset": 447,
+        "length": 43,
+        "pixels": 32,
+        "preludeQ": 24,
+        "modes": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "offset": 298,
+        "length": 1189,
+        "pixels": 16,
+        "preludeQ": 112,
+        "modes": [
+          0,
+          1,
+          1,
+          0,
+          13,
+          0,
+          0,
+          -5,
+          -1
+        ]
+      }
+    ],
+    "previousFixtureSha256": {
+      "entropy": "edf6d3d84cc1018c05c7c356f0dfbeb67a3d02d0c030116b9610e199b9df74d5",
+      "partition": "7994ea863792505f7205839988148348d887fb8a32a949444eba8d2f50817901",
+      "prelude": "d572357c5b8d96d944966b01018fa8a7281464b1b192be60844a46a9f07039d3"
+    },
+    "previousFixturesByteIdentical": true,
+    "componentCoverage": [
+      "Adaptive/disabled CDF updates and independent shifted tiles",
+      "All 25 luma neighbor contexts and all mode CDF families",
+      "Monochrome/color and 4:2:0 small-block chroma availability",
+      "Narrow rectangular blocks with/without directional angles",
+      "Lossless CfL residual-size gating",
+      "Shared luma/UV angle and U/V alpha adaptation",
+      "Optional intra-block-copy flag, stopping before motion syntax",
+      "CompleteBlock lifecycle, geometry/resource guards, failure and cancellation"
+    ]
+  },
+  "validation": {
+    "focusedTests": [
+      {
+        "target": "net8",
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-mode-work-d377d00b1/mode-final-net8.trx",
+        "sha256": "2cf402e99b1ad16d4360b9a26767f16234843fe073f821b52d86d96524f2ecf0",
+        "counters": {
+          "total": "62",
+          "executed": "62",
+          "passed": "62",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "target": "net10",
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-av1-mode-work-d377d00b1/mode-final-net10.trx",
+        "sha256": "38f3a037d8f7a45bcb22511328e242763c04d348b15b9a90f76acb2360548bbb",
+        "counters": {
+          "total": "62",
+          "executed": "62",
+          "passed": "62",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "coreNetstandard20": {
+      "command": "dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore",
+      "succeeded": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    "sdk": "10.0.303",
+    "publicDefaultDecodePathChanged": false,
+    "newRuntimeDependencies": false
+  },
+  "localReview": {
+    "selectedFor": "Codec grammar/context correctness, shared geometry and resource/lifetime invariants",
+    "reviewer": "/root/av1_mode_review",
+    "baseCommit": "d377d00b155fa475b6d9485cb4bbdbc7c8bd6946",
+    "stagedDiffFingerprint": "cdeca9de839d34a2413b27186bdc621e4f106b5f",
+    "result": "No actionable P0-P3 findings",
+    "boundary": "current",
+    "confirmationUsed": false
+  },
+  "unqualified": [
+    "Mixed-size recursive partition/leaf traversal and positive clipped-edge mode replay",
+    "Palette/filter-intra and intra-block-copy motion syntax",
+    "Transforms, coefficients, reconstruction, filters and color/alpha composition",
+    "Complete real-tile termination and decoded pixels",
+    "Public raster integration and original static-gap HTML/PDF acceptance",
+    "Completed-decoder H4/NASA/performance gates",
+    "Windows/net472 execution and Windows/Linux operation budgets"
+  ],
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/static-gap-av1-mode-work-d377d00b1",
+  "supportCatalogChanged": false,
+  "goalComplete": false,
+  "cleanup": {
+    "removedBytes": 919601,
+    "removedTargets": 21,
+    "retainedBytes": 497393,
+    "retainedPurpose": "Final framework tests, receipts and small native reference with original license/patent notices for subsequent leaf syntax."
+  }
+}

@@ -1,0 +1,600 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "40bd3f7bbbf0aff338336511ed899d27f79cd3fe",
+  "integratedMaster": "344dd83dc12e48d98fba933194f7773f84be212d",
+  "sourceClean": true,
+  "peachPdfVersion": "0.9.20",
+  "archive": {
+    "path": "source.mhtml",
+    "bytes": 2641258,
+    "sha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2"
+  },
+  "tests": {
+    "htmlNet8": 3935,
+    "htmlNet10": 3935,
+    "pdfNet8": 8600,
+    "pdfNet10": 8600,
+    "drawingNet8": 2828,
+    "drawingNet10": 2828,
+    "runtimeNet10": 646,
+    "reviewedFontSelectionNet10": 159,
+    "netstandardBuildWarnings": 0
+  },
+  "localReview": {
+    "scope": "manual raster, font metadata and PDF text integration",
+    "findingsReproducedAndFixed": 2,
+    "targetedConfirmation": "no actionable remediation regressions"
+  },
+  "corePackage": {
+    "version": "3.4.4",
+    "license": "MIT",
+    "codeGlyphLicenseIncluded": false,
+    "libvpxLicenseAndPatentNoticesIncluded": true
+  },
+  "pdfVariants": [
+    {
+      "intent": "officeimo-print",
+      "pageCount": 19,
+      "previousPageCount": 19,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-print-zero-margin",
+      "pageCount": 16,
+      "previousPageCount": 16,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-print-fit-browser-viewport",
+      "pageCount": 16,
+      "previousPageCount": 16,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-print-fit-1200",
+      "pageCount": 11,
+      "previousPageCount": 11,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pageCount": 11,
+      "previousPageCount": 11,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-print-browser-ua",
+      "pageCount": 16,
+      "previousPageCount": 16,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pageCount": 16,
+      "previousPageCount": 16,
+      "imageCount": 18,
+      "previousImageCount": 18,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-screen-media",
+      "pageCount": 21,
+      "previousPageCount": 21,
+      "imageCount": 20,
+      "previousImageCount": 20,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-screen-media-local-fonts",
+      "pageCount": 21,
+      "previousPageCount": 21,
+      "imageCount": 20,
+      "previousImageCount": 20,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-screen-snapshot",
+      "pageCount": 16,
+      "previousPageCount": 16,
+      "imageCount": 26,
+      "previousImageCount": 26,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+      "bytesIdentical": false
+    },
+    {
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pageCount": 16,
+      "previousPageCount": 16,
+      "imageCount": 26,
+      "previousImageCount": 26,
+      "textTokenMultisetPreserved": true,
+      "textTokens": 3292,
+      "missingTokens": [],
+      "addedTokens": [],
+      "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+      "bytesIdentical": false
+    }
+  ],
+  "zeroMarginPixelComparison72Dpi": [
+    {
+      "page": 1,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 2,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 3,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 4,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 5,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 6,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 7,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 8,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": true,
+      "changedBounds": null,
+      "changedPixels": 0,
+      "changedPixelFraction": 0.0
+    },
+    {
+      "page": 9,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        18,
+        42,
+        509,
+        743
+      ],
+      "changedPixels": 34909,
+      "changedPixelFraction": 0.06956312072566118
+    },
+    {
+      "page": 10,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        18,
+        47,
+        551,
+        404
+      ],
+      "changedPixels": 8987,
+      "changedPixelFraction": 0.017908383682188462
+    },
+    {
+      "page": 11,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        18,
+        593,
+        572,
+        764
+      ],
+      "changedPixels": 13166,
+      "changedPixelFraction": 0.026235871765849926
+    },
+    {
+      "page": 12,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        18,
+        3,
+        575,
+        829
+      ],
+      "changedPixels": 62669,
+      "changedPixelFraction": 0.12488043807489359
+    },
+    {
+      "page": 13,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        18,
+        3,
+        562,
+        341
+      ],
+      "changedPixels": 9069,
+      "changedPixelFraction": 0.018071784979833888
+    },
+    {
+      "page": 14,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        39,
+        450,
+        457,
+        463
+      ],
+      "changedPixels": 623,
+      "changedPixelFraction": 0.0012414513223548917
+    },
+    {
+      "page": 15,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        36,
+        449,
+        427,
+        463
+      ],
+      "changedPixels": 1124,
+      "changedPixelFraction": 0.002239793396993416
+    },
+    {
+      "page": 16,
+      "size": [
+        596,
+        842
+      ],
+      "identicalPixels": false,
+      "changedBounds": [
+        18,
+        8,
+        556,
+        409
+      ],
+      "changedPixels": 9126,
+      "changedPixelFraction": 0.018185368808684977
+    }
+  ],
+  "peachPublishedDocumentation": [
+    {
+      "url": "https://github.com/jhaygood86/PeachPDF/blob/v0.9.20/docs/html-css-support.md",
+      "sha256": "e9e91b3158fbc9768f81b8dea1daeecc2d175b1ef96a5d1a5f2f83f6e9994991"
+    },
+    {
+      "url": "https://github.com/jhaygood86/PeachPDF/blob/v0.9.20/docs/supported-svg-features.md",
+      "sha256": "6411f92119b96b1995af47060803757d815ea09eb91f59da094b01a037d61261"
+    },
+    {
+      "url": "https://github.com/jhaygood86/PeachPDF/blob/v0.9.20/docs/supported-mathml-features.md",
+      "sha256": "e3018622a172097c5b74043de1f2a16f31e458c7217b8244bbc15bab6a409970"
+    }
+  ],
+  "h4": {
+    "acceptance": "Passed",
+    "cases": 8,
+    "failures": 0
+  },
+  "staticMacosBudget": "Passed",
+  "h10MacosBudget": {
+    "status": "Passed",
+    "operations": [
+      {
+        "name": "pdf-print",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4278.0339,
+        "managedAllocatedBytes": 2108477520,
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4285.9965,
+        "managedAllocatedBytes": 2112775376,
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16
+      },
+      {
+        "name": "pdf-screen-media",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3379.067,
+        "managedAllocatedBytes": 1651864144,
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3692.1979,
+        "managedAllocatedBytes": 1770040240,
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16
+      },
+      {
+        "name": "editable-word",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2448.2857,
+        "managedAllocatedBytes": 962719080,
+        "outputBytes": 1491220,
+        "outputSha256": "41de569eb000070f277848f030750ce2476189907dc5002d85c161431e75d9f7",
+        "pageCount": null
+      },
+      {
+        "name": "editable-excel",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1980.7509,
+        "managedAllocatedBytes": 896461448,
+        "outputBytes": 1528696,
+        "outputSha256": "a711c3ad5a99d8e17c0624749aff094652264134ab7674d143845513786b4e0f",
+        "pageCount": null
+      },
+      {
+        "name": "editable-powerpoint",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2895.5736,
+        "managedAllocatedBytes": 1027262984,
+        "outputBytes": 1499729,
+        "outputSha256": "c8c4ec89c610021d1754563824524275466616237960030fadfbcc49bcd2fde0",
+        "pageCount": null
+      },
+      {
+        "name": "editable-onenote",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1447.1531,
+        "managedAllocatedBytes": 644813960,
+        "outputBytes": 1595264,
+        "outputSha256": "987cbf4636ded9772f5ae32ac1ede4afcd62b6f028d00b6c37e6dc658113765b",
+        "pageCount": null
+      },
+      {
+        "name": "editable-rtf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1698.643,
+        "managedAllocatedBytes": 859574968,
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null
+      },
+      {
+        "name": "editable-markdown",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1451.4983,
+        "managedAllocatedBytes": 647192072,
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null
+      }
+    ],
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    }
+  },
+  "peachNasaReplay": {
+    "succeeded": true,
+    "pageCount": 14,
+    "failureCount": 0,
+    "appearanceAccepted": false
+  },
+  "limits": [
+    "NASA appearance remains unaccepted; page counts and content preservation are not browser parity.",
+    "Eight zero-margin pages differ from the preceding checkpoint; shared text spacing/wrapping changes were visually inspected on pages 9, 12 and 16.",
+    "Windows/Linux H10 operation budgets remain unqualified.",
+    "Provider fork pins remain deliberate; Jint 5 retirement consumer migration is not complete."
+  ]
+}

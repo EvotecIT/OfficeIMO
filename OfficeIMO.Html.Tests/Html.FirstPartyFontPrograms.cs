@@ -87,6 +87,31 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Fact]
+    public void HtmlPdfOutlinedTextAppliesForegroundAlphaOnce() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        string html = FontHtml("Roboto Flex", "font/ttf", fontData, "Pale", link: false)
+            .Replace("<p", "<p style='color:rgba(175,47,47,.2)'");
+        var options = new HtmlToPdfOptions();
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        string raw = System.Text.Encoding.GetEncoding(28591).GetString(pdf);
+        OfficeShape[] glyphs = PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes
+            .Select(item => item.Shape)
+            .Where(shape => shape.FillColor.HasValue)
+            .ToArray();
+
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
+        Assert.NotEmpty(glyphs);
+        Assert.All(glyphs, shape => {
+            Assert.Equal(OfficeColor.FromRgb(175, 47, 47), shape.FillColor);
+            Assert.Equal(0.2D, shape.FillOpacity!.Value, 3);
+        });
+        Assert.DoesNotContain("/ca 0.04", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdfTrueTypeCollectionUsesAccessibleVectorOutlines() {
         const string text = "OfficeIMO 0123456789";
         byte[] collection = ManagedTextShapingTestAssets.CreateFontCollection(
@@ -330,9 +355,82 @@ public sealed class HtmlFirstPartyFontProgramTests {
         var shapingProvider = new CollapsingTextShapingProvider();
         commandLimited.TextShapingProvider = shapingProvider;
         commandLimited.MaxOutlinedTextPathCommands = 1;
-        InvalidOperationException commandException = Assert.Throws<InvalidOperationException>(() => source.ToPdfDocumentResult(commandLimited));
-        Assert.Contains("point budget", commandException.Message, StringComparison.Ordinal);
+        PdfCore.PdfDocumentConversionResult commandResult = source.ToPdfDocumentResult(commandLimited);
+        byte[] commandPdf = commandResult.ToBytes();
+        Assert.Contains(text, PdfCore.PdfReadDocument.Open(commandPdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Equal("https://example.com/path", Assert.Single(PdfCore.PdfReadDocument.Open(commandPdf)
+            .Pages[0].GetLinkAnnotations()).Uri);
+        Assert.Contains(commandResult.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
+            && warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(commandResult.HasLoss);
         Assert.True(shapingProvider.Requests.Count >= 2);
+    }
+
+    [Fact]
+    public void HtmlPdfExactOutlineBudgetStillReportsTheNextApproximatedRun() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        string firstHtml = FontHtml("Exact Variable", "font/ttf", fontData, "A", link: false);
+        var options = new HtmlToPdfOptions();
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
+        byte[] firstPdf = HtmlConversionDocument.Parse(firstHtml).ToPdfDocumentResult(options).ToBytes();
+        int firstCommands = PdfCore.PdfDocument.Load(firstPdf).Render.Drawing(1).Shapes
+            .Sum(shape => shape.Shape.PathCommands.Count);
+        Assert.True(firstCommands > 0);
+
+        var exact = options.ClonePdf();
+        exact.MaxOutlinedTextPathCommands = firstCommands;
+        string twoRuns = firstHtml.Replace("</html>", "<p>B</p></html>");
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(twoRuns).ToPdfDocumentResult(exact);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("A", extracted, StringComparison.Ordinal);
+        Assert.Contains("B", extracted, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
+            && warning.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void HtmlPdfOutlineFallbackKeepsCharacterLimitAndOmitsOutlineOnlyPrivateUseGlyph() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        string html = FontHtml("Limited Variable", "font/ttf", fontData, "A", link: false)
+            .Replace("</html>", "<p>\uF50E Visible</p></html>");
+        var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        Assert.Contains("Visible", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("\uF50E", extracted, StringComparison.Ordinal);
+        Assert.Contains(result.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+
+        var characterLimited = options.ClonePdf();
+        characterLimited.MaxOutlinedTextCharactersPerRun = 2;
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(characterLimited));
+        Assert.Contains("character budget", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdfOutlineFallbackKeepsPrivateUseGlyphInRegisteredPdfFont() {
+        byte[] fontData = ReadFont("RobotoFlex.ttf");
+        string html = FontHtml("Limited Variable", "font/ttf", fontData, "A", link: false)
+            .Replace("</html>", "<p style='font-family:CallerIcon'>\uF50E Retained</p></html>");
+        var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
+        options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("CallerIcon", fontData));
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+
+        Assert.Contains("\uF50E Retained", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
     }
 
     [Fact]

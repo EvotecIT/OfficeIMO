@@ -4,13 +4,27 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private double ResolveReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style) {
+    private double ResolveReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style, bool validateSurface = true) {
+        if (IsInlineFrameElement(element)) {
+            ReplacedContentSize frameSize = ResolveReplacedContentSize(style, 300D, 150D, hasIntrinsicSize: true);
+            double frameWidth = frameSize.Width + style.HorizontalInsets;
+            if (validateSurface) EnsureReplacedBoxSize(frameWidth, frameSize.Height + style.VerticalInsets);
+            return frameWidth;
+        }
         byte[]? bytes;
         OfficeImageInfo? imageInfo;
-        if (!TryReadInlineSvgSource(element, out bytes, out imageInfo)) {
-            TryResolveImageSource(
-                element.GetAttribute("src"),
-                HtmlRenderStyleResolver.DescribeSource(element),
+        if (!TryReadInlineSvgSource(element, style.Font.Size, out bytes, out imageInfo)) {
+            bytes = null;
+            imageInfo = null;
+            string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
+            IReadOnlyList<string> candidates = HtmlImageSourceResolver.SelectImageForRendering(
+                element, _baseUri, _resourceUrlPolicy, _options).Sources;
+            foreach (string candidate in candidates) {
+                if (TryResolveImageSource(candidate, sourceDescription, out bytes, out _, out imageInfo, reportDiagnostics: false)) break;
+            }
+            if (bytes == null) TryResolveImageSource(
+                candidates.FirstOrDefault() ?? element.GetAttribute("src"),
+                sourceDescription,
                 out bytes,
                 out _,
                 out imageInfo,
@@ -42,8 +56,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReplacedContentSize size = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = size.Width + style.HorizontalInsets;
         double boxHeight = size.Height + style.VerticalInsets;
-        EnsureReplacedBoxSize(boxWidth, boxHeight);
+        if (validateSurface) EnsureReplacedBoxSize(boxWidth, boxHeight);
         return boxWidth;
+    }
+
+    private double ResolveIntrinsicReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style) {
+        if (!style.ExplicitWidthUsesPercentage && !style.MaxWidthUsesPercentage)
+            return ResolveReplacedImageBoxWidth(element, style);
+        // The containing size is indefinite while measuring a parent's intrinsic width.
+        // Resolve percentage-sized descendants from their replaced content instead.
+        HtmlRenderBoxStyle intrinsicStyle = style.Clone();
+        if (intrinsicStyle.ExplicitWidthUsesPercentage) {
+            intrinsicStyle.ExplicitWidth = null;
+            intrinsicStyle.ExplicitWidthUsesPercentage = false;
+        }
+        if (intrinsicStyle.MaxWidthUsesPercentage) {
+            intrinsicStyle.MaxWidth = null;
+            intrinsicStyle.MaxWidthUsesPercentage = false;
+        }
+        return ResolveReplacedImageBoxWidth(element, intrinsicStyle, validateSurface: false);
     }
 
     private ReplacedContentSize ResolveReplacedContentSize(
@@ -119,7 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 objectWidth,
                 objectHeight,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _styleResolver.RootFontSize,
                 ActiveSurfaceWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
@@ -240,5 +271,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Height { get; }
         internal OfficeImageSourceCrop SourceCrop { get; }
         internal bool IsVisible => Width > 0D && Height > 0D;
+        internal double FullWidth => !SourceCrop.HasCrop ? Width : Width / Math.Max(
+            OfficeImageSourceCrop.MinimumVisibleRatio,
+            1D - SourceCrop.Left - SourceCrop.Right);
+        internal double FullHeight => !SourceCrop.HasCrop ? Height : Height / Math.Max(
+            OfficeImageSourceCrop.MinimumVisibleRatio,
+            1D - SourceCrop.Top - SourceCrop.Bottom);
     }
 }

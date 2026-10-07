@@ -47,10 +47,12 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
             + "font-feature-settings:'liga' 1;" + style + "}</style><p>fi</p>";
         var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
 
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options));
-
-        Assert.Contains("point budget", error.Message, StringComparison.Ordinal);
+        PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(limited.ToBytes()).ExtractText().Trim());
+        Assert.Contains(limited.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
+            && warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(limited.HasLoss);
     }
 
     [Theory]
@@ -75,8 +77,11 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
         Assert.Equal("fi", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Trim());
 
         options.MaxOutlinedTextPathCommands = 1;
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options));
-        Assert.Contains("point budget", error.Message, StringComparison.Ordinal);
+        PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(limited.ToBytes()).ExtractText().Trim());
+        Assert.Contains(limited.Report.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
+            && warning.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(limited.HasLoss);
     }
 }

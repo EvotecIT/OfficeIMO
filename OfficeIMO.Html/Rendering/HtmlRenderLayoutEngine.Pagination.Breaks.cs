@@ -1,19 +1,91 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null) {
+    private double SkipUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
+        // Flex items do not collapse adjoining margins. A completed item's
+        // bottom margin can be immediately followed by the next item's top
+        // margin; truncate each unpainted interval without treating it as a
+        // content continuation or crossing retained paint/metadata.
+        while (start < block.Height - 0.0001D) {
+            double next = SkipOneUnpaintedLeadingMarginAtPageStart(block, start);
+            if (next <= start + 0.0001D) break;
+            start = next;
+        }
+        return start;
+    }
+
+    private double SkipOneUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
+        double discardableMargin = ResolvePageStartDiscardableMargin(block, start);
+        if (discardableMargin <= 0.0001D) return start;
+
+        double afterMargin = Math.Min(block.Height, start + discardableMargin);
+        if (block.ForcedBreaks.Any(item => item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
+            || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)
+            || SliceBlockVisuals(block, start, afterMargin).Any(visual =>
+                ContainsPageStartMarginContent(visual, block))) {
+            return start;
+        }
+
+        return afterMargin;
+    }
+
+    private static double ResolvePageStartDiscardableMargin(HtmlRenderFlowBlock block, double start) {
+        double discardableMargin = block.HasCollapsibleMargins
+            && block.CollapsibleMarginBottom > 0.0001D
+            && Math.Abs(start - (block.Height - block.CollapsibleMarginBottom)) <= 0.0001D
+                ? block.CollapsibleMarginBottom
+                : 0D;
+        foreach (HtmlInlineBreakProgress progress in block.InlineBreakProgress) {
+            if (Math.Abs(progress.Offset - start) > 0.0001D || !(progress.IsBlockEntry || progress.IsBlockExit || progress.IsFlexGap)
+                || progress.PageStartDiscardableMargin <= 0.0001D) continue;
+            discardableMargin = progress.PageStartDiscardableMargin;
+            break;
+        }
+        return discardableMargin;
+    }
+
+    private bool ContainsPageStartMarginContent(HtmlRenderVisual visual, HtmlRenderFlowBlock spacingBlock) {
+        // Print-fitting boxes and empty wrappers measure layout but do not paint.
+        // Retain every other leaf, including navigation and bookmark metadata.
+        if (visual is HtmlRenderLayoutBox) return false;
+        // A body's continuous background paints through margins and row gaps.
+        // Discarding spacing must not mistake the backdrop for content or discard borders,
+        // positioned paint, navigation metadata, or other authored boxes.
+        if (ReferenceEquals(spacingBlock.OwnerElement, _document.Body)
+            && visual is HtmlRenderShape shape && !shape.IsAtomicReplacedPlaceholder
+            && shape.Source == spacingBlock.Source && shape.LinkUri == null
+            && shape.InnerShape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Rectangle
+            && shape.InnerShape.StrokeWidth <= 0D
+            && shape.Width >= spacingBlock.Width - 0.0001D
+            && shape.Height >= spacingBlock.Height - 0.0001D) return false;
+        IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+        return children == null || children.Any(child => ContainsPageStartMarginContent(child, spacingBlock));
+    }
+
+    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null, double fullPageHeight = 0D) {
         double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         IReadOnlyList<double> offsets = block.BreakOffsets;
         for (int index = UpperBound(offsets, limit + 0.0001D) - 1; index >= 0; index--) {
             double offset = offsets[index];
             if (offset <= start + 0.0001D) break;
-            if (IsAllowedLineBreak(block, start, offset)) return offset;
+            if (IsAllowedLineBreak(block, start, offset)
+                && !BreaksAvoidedRangeThatFitsPage(block, start, offset, fullPageHeight, limit)) return offset;
         }
 
         return start;
     }
 
-    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, out double fragmentLimit) {
+    // Keep authored ranges intact. A synthetic flex-row keep is weaker when
+    // moving the whole row would leave more than half the page unused.
+    private static bool BreaksAvoidedRangeThatFitsPage(HtmlRenderFlowBlock block, double start, double candidate, double fullPageHeight, double pageLimit) =>
+        fullPageHeight > 0D && block.AvoidBreakRanges.Any(range =>
+            start <= range.Start + 0.0001D
+            && candidate > range.Start + 0.0001D
+            && candidate < range.End - 0.0001D
+            && range.End - range.Start <= fullPageHeight + 0.0001D
+            && !(range.Soft && pageLimit - range.Start > fullPageHeight * 0.5D + 0.0001D));
+
+    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, double fullPageHeight, out double fragmentLimit) {
         HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));
         if (active != null) {
             fragmentLimit = active.ContentEndsAt;
@@ -30,7 +102,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double candidateAvailable = Math.Max(0D, available - upcoming.Height);
-        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt);
+        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt, fullPageHeight);
         if (candidateEnd > upcoming.StartsAt + 0.0001D) {
             fragmentLimit = upcoming.ContentEndsAt;
             return upcoming;
@@ -40,15 +112,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return null;
     }
 
-    private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate) {
+    private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate, bool checkInteriorBreaks = false) {
         foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
+            // A final-line cut before a trailing paragraph margin leaves no widows.
+            // Other final-line cuts must retain authored fixed-height flow.
+            if (group.FinalLineMarginBreak && candidate >= group.End - 0.0001D
+                && ResolvePageStartDiscardableMargin(block, candidate) > 0.0001D) continue;
             IReadOnlyList<double> offsets = group.Offsets;
             int candidateIndex = UpperBound(offsets, candidate + 0.0001D) - 1;
-            if (candidateIndex < 0 || Math.Abs(offsets[candidateIndex] - candidate) > 0.0001D) continue;
+            bool exactLineBreak = candidateIndex >= 0 && Math.Abs(offsets[candidateIndex] - candidate) <= 0.0001D;
+            // A flex sibling can supply a break in this item's unpainted line-box
+            // space. Only flex rows need the wider paragraph-span check.
+            if (!exactLineBreak && (!(group.CheckInteriorBreaks || checkInteriorBreaks)
+                || candidate <= group.Start + 0.0001D || candidate >= group.End - 0.0001D)) continue;
             int firstFragmentLine = UpperBound(offsets, start + 0.0001D);
             int fragmentLines = candidateIndex >= firstFragmentLine ? candidateIndex - firstFragmentLine + 1 : 0;
             int remainingLines = offsets.Count - candidateIndex - 1 + (group.HasImplicitFinalLine ? 1 : 0);
-            return fragmentLines >= group.Orphans && remainingLines >= group.Widows;
+            if (fragmentLines < group.Orphans || remainingLines < group.Widows) return false;
         }
 
         return true;

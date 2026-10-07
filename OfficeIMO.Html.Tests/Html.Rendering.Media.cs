@@ -157,7 +157,10 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("(min-height:2e2px)", true)]
     [InlineData("(max-width:3.99e2px)", false)]
     [InlineData("(width:4e+px)", false)]
-    public void HtmlRender_MediaLengthsHonorExponentNotation(string mediaQuery, bool expected) {
+    [InlineData("(min-width:35em)", false)]
+    [InlineData("(max-width:25em)", true)]
+    [InlineData("(min-width:2e1em)", true)]
+    public void HtmlRender_MediaLengthsHonorExponentNotationAndEmUnits(string mediaQuery, bool expected) {
         Assert.Equal(
             expected,
             HtmlComputedStyleEngine.IsApplicableMedia(
@@ -165,6 +168,27 @@ public sealed partial class HtmlRenderingTests {
                 HtmlCssMediaContext.Screen,
                 400D,
                 200D));
+    }
+
+    [Fact]
+    public void HtmlRender_EmMediaBreakpointChangesRenderedWidth() {
+        const string html = """
+            <style>
+              .target { width:60px; height:10px; background:#ff0000 }
+              @media (min-width:35em) { .target { width:120px } }
+            </style>
+            <div class="target"></div>
+            """;
+
+        HtmlRenderDocument narrow = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderDocument wide = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(60D, Assert.Single(narrow.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div.target" && shape.Shape.FillColor.HasValue).Width, 3);
+        Assert.Equal(120D, Assert.Single(wide.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div.target" && shape.Shape.FillColor.HasValue).Width, 3);
     }
 
     [Fact]

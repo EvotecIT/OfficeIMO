@@ -1,0 +1,155 @@
+{
+  "schema": "officeimo.html.component-evidence",
+  "component": "avif-container-and-reduced-sequence-headers",
+  "sourceHead": "eea5c578acaacda2f23bf991845551b960be419c",
+  "sdk": "10.0.303",
+  "scope": "Internal whole in-file AV1 still items, optional auxiliary alpha, Main 8-bit reduced-still sequence headers. No pixel decoding or public format promotion.",
+  "specifications": [
+    "https://aomediacodec.github.io/av1-avif/v1.2.0.html",
+    "https://aomediacodec.github.io/av1-isobmff/v1.2.0.html",
+    "https://aomediacodec.github.io/av1-spec/av1-spec.pdf"
+  ],
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillSequence.cs": "8da1dbd54bab5dce4b1527d938534da6fc6e3fd797d28a911968cf6a5a145b28",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1StillSequenceReader.cs": "59506ff7fdda0dfa0b37eeecf6c200941f3ad2e3bc9143cfc4dd6e3a61aaed21",
+    "OfficeIMO.Core/Raster/Avif/OfficeAvifContainerReader.Items.cs": "cf34ae184351be6201084fdc434473ffc8762c5a54fe4e2d46be192561606ade",
+    "OfficeIMO.Core/Raster/Avif/OfficeAvifContainerReader.Properties.cs": "6743c8eaf2a61e20b59a1ab6167c71b0727a57e5a4a292602d3e33a57216b721",
+    "OfficeIMO.Core/Raster/Avif/OfficeAvifContainerReader.cs": "cfd0762e6ff58068d99ea1540bb5d7f556ab84ed4822264d85071b176f2a1d83",
+    "OfficeIMO.Core/Raster/Avif/OfficeAvifImageItem.cs": "d693e107e904279b8fa84ce81d3da6f2b6e423d587c6af56a3779cad27c9ed19",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.cs": "c97a35ee99889d198bc8bb085d8423fe52d0fa68a567fd42f5e5638a334484bb"
+  },
+  "assets": [
+    {
+      "path": "avif-opaque.avif",
+      "sha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3",
+      "length": 333,
+      "referencePixels": "avif-opaque.rgba",
+      "referenceSha256": "7df83385a95f1ec33cd00193804d1b4d845f4d8ec3870170b0b0f77667b66257",
+      "width": 49,
+      "height": 33,
+      "producer": "Pillow 12.3.0/libavif 1.4.2",
+      "profile": "8-bit YUV420 still"
+    },
+    {
+      "path": "avif-alpha.avif",
+      "sha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+      "length": 548,
+      "referencePixels": "avif-alpha.rgba",
+      "referenceSha256": "a09ee797c54e75b3d96752265f340ab1be77a9f812c8d065d2b2afd6489449cd",
+      "width": 49,
+      "height": 33,
+      "producer": "Pillow 12.3.0/libavif 1.4.2",
+      "profile": "8-bit YUV420 still with alpha auxiliary image"
+    }
+  ],
+  "tests": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-container-net10.trx",
+      "sha256": "f44e126bb475bd2439056905073e0c7a8b4e2d28d29ef0329f6867bd90a0f53d",
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "retained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-container-sequence-net10.trx",
+      "sha256": "ff3d1a45ca18bbd43a8e760d8096b525004de8c54da7e005ff614f1ddca8b0a3",
+      "passed": 13,
+      "failed": 0,
+      "total": 13,
+      "retained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-headers-final-net10.trx",
+      "sha256": "4186f6958dca69fe153828b7251db876341c4e8703ac69d5a7153aba11b95893",
+      "passed": 15,
+      "failed": 0,
+      "total": 15,
+      "retained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-headers-final-net8.trx",
+      "sha256": "581a4efa7a8a7fea77fb6bf5f96b862b2fb402078f151476beb6722e02e26311",
+      "passed": 15,
+      "failed": 0,
+      "total": 15,
+      "retained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-reviewed-net10.trx",
+      "sha256": "5d0619a161df7020611e27c16c2534330536cbc8fc652bc5db03dcecee81f793",
+      "passed": 17,
+      "failed": 0,
+      "total": 17,
+      "retained": true
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-reviewed-net8.trx",
+      "sha256": "2e599ae70fcfb6ce4a949e27e6f7f693b3ceaba5a061e889f8d31d5eef526c7f",
+      "passed": 17,
+      "failed": 0,
+      "total": 17,
+      "retained": true
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/identity-before-net10.trx",
+      "sha256": "6738d62bd2b49fc0124d80d5b2aeea02580db1e8585279b8e0a135fa167ea0f3",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "retained": true
+    }
+  ],
+  "build": {
+    "project": "OfficeIMO.Core/OfficeIMO.Core.csproj",
+    "framework": "netstandard2.0",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0
+  },
+  "directDefaultDecodeProbe": [
+    {
+      "file": "avif-opaque.avif",
+      "succeeded": false,
+      "format": "Unknown",
+      "image": null
+    },
+    {
+      "file": "avif-alpha.avif",
+      "succeeded": false,
+      "format": "Unknown",
+      "image": null
+    }
+  ],
+  "review": {
+    "task": "avif_header_review",
+    "fullPassFingerprint": "7973f270b65f0be1f4e84d371a34d953b3fede79",
+    "finalFingerprint": "39a10095feb32731afcb5ce62fe245d734312491",
+    "finding": "P2: identity matrix accepted for subsampled color and monochrome headers",
+    "before": "Both regression cases accepted invalid headers; 2/2 rejection assertions failed.",
+    "fix": "Reject identity matrix before the color/monochrome branches.",
+    "targetedConfirmation": "Closed; no remaining directly related findings.",
+    "boundary": "candidate-reviewed"
+  },
+  "unqualified": [
+    "Actual frame dimensions and tile syntax/entropy decoding",
+    "Prediction, inverse transforms, filtering, color conversion and alpha composition",
+    "Public raster/container integration and declared caller-codec behavior",
+    "Independent RGBA comparison and frozen AVIF HTML/PDF acceptance",
+    "H4/NASA and applicable budgets for the completed decoder",
+    "Broader AVIF baseline features outside the selected frozen still items",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "runtimeDependenciesAdded": [],
+  "cleanup": {
+    "removedBytes": 5929043,
+    "targets": [
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/default-decode-probe",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-container-net10.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-container-sequence-net10.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-headers-final-net10.trx",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b/avif-headers-final-net8.trx"
+    ],
+    "preflight": "Task-generated, contained, no tracked/staged files or symlinks/Git metadata; processes completed."
+  }
+}

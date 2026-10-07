@@ -53,24 +53,39 @@ public sealed class OfficeConicGradient {
         var ordered = new List<double>(boundaries);
         double centerX = CenterX * width;
         double centerY = CenterY * height;
-        const double overlap = 0.000001D;
         double cornerRadius = Math.Max(
             Math.Max(Distance(centerX, centerY, 0D, 0D), Distance(centerX, centerY, width, 0D)),
             Math.Max(Distance(centerX, centerY, 0D, height), Distance(centerX, centerY, width, height)));
+        double segmentAngle = (Math.PI * 2D) / qualitySegments;
+        double overlap = Math.Min(
+            segmentAngle * 0.49D,
+            Math.Atan2(1.25D, Math.Max(1D, cornerRadius)));
         double radius = cornerRadius / Math.Cos((Math.PI / qualitySegments) + overlap) * 1.000001D;
         var content = new OfficeDrawing(width, height);
+        bool hasHardBoundary = IsHardColorBoundary(0D);
+        foreach (OfficeGradientStop stop in Stops) hasHardBoundary |= IsHardColorBoundary(stop.Offset);
         for (int index = 1; index < ordered.Count; index++) {
             double start = ordered[index - 1];
             double end = ordered[index];
             if (end <= start) continue;
-            double startRadians = ToRadians(StartAngle + (start * 360D)) - (Math.PI / 2D) - overlap;
-            double endRadians = ToRadians(StartAngle + (end * 360D)) - (Math.PI / 2D) + overlap;
+            // Wedge overlap hides tessellation cracks, but must not paint across
+            // an authored hard stop or the discontinuity at the start of a turn.
+            double startOverlap = IsHardColorBoundary(start) ? 0D : overlap;
+            double endOverlap = IsHardColorBoundary(end) ? 0D : overlap;
+            double startRadians = ToRadians(StartAngle + (start * 360D)) - (Math.PI / 2D) - startOverlap;
+            double endRadians = ToRadians(StartAngle + (end * 360D)) - (Math.PI / 2D) + endOverlap;
             double firstX = centerX + (Math.Cos(startRadians) * radius);
             double firstY = centerY + (Math.Sin(startRadians) * radius);
             double secondX = centerX + (Math.Cos(endRadians) * radius);
             double secondY = centerY + (Math.Sin(endRadians) * radius);
+            // Continuous gradients retain apex padding to hide tessellation cracks.
+            // At a hard color boundary that padding would paint into the adjacent sector.
+            double middleRadians = ToRadians(StartAngle + (((start + end) / 2D) * 360D)) - (Math.PI / 2D);
+            double apexPadding = hasHardBoundary ? 0D : 1.25D;
+            double apexX = centerX - (Math.Cos(middleRadians) * apexPadding);
+            double apexY = centerY - (Math.Sin(middleRadians) * apexPadding);
             List<OfficePoint> clippedWedge = ClipTriangleToRectangle(
-                new OfficePoint(centerX, centerY),
+                new OfficePoint(apexX, apexY),
                 new OfficePoint(firstX, firstY),
                 new OfficePoint(secondX, secondY),
                 width,
@@ -98,6 +113,15 @@ public sealed class OfficeConicGradient {
         var drawing = new OfficeDrawing(width, height);
         drawing.AddClippedDrawing(content, 0D, 0D, OfficeClipPath.Rectangle(width, height));
         return drawing;
+    }
+
+    private bool IsHardColorBoundary(double offset) {
+        if (offset == 0D || offset == 1D) return Stops[0].Color != Stops[Stops.Count - 1].Color;
+        for (int index = 1; index < Stops.Count; index++) {
+            if (Stops[index].Offset == offset && Stops[index - 1].Offset == offset &&
+                Stops[index].Color != Stops[index - 1].Color) return true;
+        }
+        return false;
     }
 
     /// <summary>Creates a detached copy.</summary>

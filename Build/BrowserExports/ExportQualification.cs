@@ -8,11 +8,11 @@ using OfficeIMO.Browser;
 internal static class ExportQualification {
     internal sealed record Case(string Format, int Rows, int Columns, bool Styled = false, bool Unique = false,
         bool LongText = false, bool Worker = false, bool Fallback = false, bool SlowSink = false,
-        int? CancelAfterRows = null, bool HangSink = false, bool ResourceLimit = false, bool DelayedPages = false, bool PendingPage = false) {
+        int? CancelAfterRows = null, bool HangSink = false, bool ResourceLimit = false, bool DelayedPages = false, bool PendingPage = false, bool Conditional = false) {
         internal string Name => $"{Format}-{Rows}-{Columns}-{(Styled ? "styled" : "plain")}" +
             (Unique ? "-unique" : "-repeated") + (LongText ? "-unicode" : "") + (Worker ? "-worker" : "") +
             (Fallback ? "-fallback" : "") + (SlowSink ? "-slow" : "") + (CancelAfterRows.HasValue ? "-cancel" : "") +
-            (HangSink ? "-hung" : "") + (ResourceLimit ? "-limit" : "") + (DelayedPages ? "-paged" : "") + (PendingPage ? "-page-cancel" : "");
+            (HangSink ? "-hung" : "") + (ResourceLimit ? "-limit" : "") + (DelayedPages ? "-paged" : "") + (PendingPage ? "-page-cancel" : "") + (Conditional ? "-conditional" : "");
     }
     internal static async Task RunAsync(string repository, string evidence, string[] args) {
         int[] sizes = args.Contains("--full") ? new[] { 10000, 100000, 250000, 1000000 } : new[] { 10000 };
@@ -36,6 +36,8 @@ internal static class ExportQualification {
             cases.Add(new(format, 100000, 20, Styled: true, Unique: true, Worker: true));
             cases.Add(new(format, 100000, 20, Styled: true, Worker: true, Fallback: true));
         }
+        if (args.Contains("--conditional")) cases = cases.Where(spec => spec.Format == "xlsx" && (!spec.Unique || spec.Worker || spec.DelayedPages))
+            .Select(spec => spec with { Conditional = true }).ToList();
         string script = BrowserAssets.Script.Content, qualification = File.ReadAllText(Path.Combine(repository, "Build", "BrowserExports", "qualification.js"));
         string host = Path.Combine(evidence, "qualification.html");
         File.WriteAllText(Path.Combine(evidence, BrowserAssets.Script.HashedFileName), script, new UTF8Encoding(false));
@@ -64,7 +66,7 @@ internal static class ExportQualification {
                 await using (destination = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 65536, FileOptions.Asynchronous)) {
                     metrics = await session.Page.EvaluateAsync<JsonElement>("args => runQualificationCase(args)", new {
                         format = spec.Format, rows = spec.Rows, columns = spec.Columns, styled = spec.Styled, unique = spec.Unique, longText = spec.LongText,
-                        worker = spec.Worker, fallback = spec.Fallback, slowSink = spec.SlowSink, cancelAfterRows = spec.CancelAfterRows,
+                        worker = spec.Worker, fallback = spec.Fallback, slowSink = spec.SlowSink, cancelAfterRows = spec.CancelAfterRows, conditional = spec.Conditional,
                         hangSink = spec.HangSink, resourceLimit = spec.ResourceLimit, delayedPages = spec.DelayedPages, pendingPage = spec.PendingPage, workerScript = script, qualificationScript = qualification
                     });
                 }

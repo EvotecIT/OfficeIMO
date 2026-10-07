@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj" />
+    <ProjectReference Include="../../OfficeIMO.PowerPoint.Html/OfficeIMO.PowerPoint.Html.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj" />
+  </ItemGroup>
+</Project>

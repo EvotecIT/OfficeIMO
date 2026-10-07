@@ -1,0 +1,323 @@
+{
+  "recordedUtc": "2026-10-05T02:50:19.747332+00:00",
+  "scope": "Opaque auto-height box background continuation through unused space before a safe page break. Flow height, content cuts and final fragments are retained. This is bounded static qualification, not browser or manual accessibility parity.",
+  "sourceCommit": "83e18a18061fac6e78f8faed3635b7183bec62b3",
+  "baselineCommit": "b592f475215506212a16ecca23af5a4a20e3a581",
+  "frozenReferenceSourceSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+  "owner": "OfficeIMO.Html paged renderer",
+  "publicApiChanges": false,
+  "newProductionDependencies": false,
+  "contract": [
+    "Plain opaque rectangular background of a continuing authored auto-height block may cover page slack before a kept child.",
+    "Existing AutoHeightFlexStretch denotes used height and preserves auto-height eligibility.",
+    "Authored fixed height, aspect ratio, border, shadow, image, alpha, transform and path-clip exclusions remain.",
+    "Paint extension does not increase CSS flow height, move content, discard a painted page or extend a completed final box."
+  ],
+  "independentFixtures": {
+    "producer": "Published test-only HtmlTinkerX 3.0.3 with Chromium153; no shipped browser dependency",
+    "before": "Both visible/hidden fixtures2 pages/all17 labels; white below logo instead of black to page edge. First new regression2 failures retained.",
+    "final": "Visible/hidden/margin/nested controls pass. Stretch/flex-start3 pages/all21 labels once, black to edge inside footer, right margin/final page white.",
+    "proofRoot": "Ignore/MasterConvergenceQualification/reference-card-footer-inspection-b592f4752",
+    "initialBrowserObservationSha256": "b5fede2b9fecac5c1e899f1a4d492e219838b4c79e33af56dfd5c75e54feaa29",
+    "finalStretchObservationSha256": "abcb3bbdf8a7985c24e49bbd58fb7c9adcbb28e1e177903c2e8c4dcef62ed8af",
+    "originalSceneGeometryPreserved": true
+  },
+  "validation": {
+    "focusedCases": 6,
+    "fullHtml": [
+      {
+        "framework": "net10.0",
+        "passed": 4328,
+        "failed": 0,
+        "skipped": 0,
+        "h4CasesPassed": 8,
+        "trxSha256": "a4950f7f8a35cc733672587269f5a0e21cd0ac93a9a45c5396ce5102eef483b6",
+        "path": "Ignore/MasterConvergenceQualification/reference-card-footer-inspection-b592f4752/footer-final-full-net10.0.trx"
+      },
+      {
+        "framework": "net8.0",
+        "passed": 4328,
+        "failed": 0,
+        "skipped": 0,
+        "h4CasesPassed": 8,
+        "trxSha256": "b6eb05d1b3cc21d304b112ced45e558a53fedde4ad7d7a5d38d1f1d63b896de3",
+        "path": "Ignore/MasterConvergenceQualification/reference-card-footer-inspection-b592f4752/footer-final-full-net8.0.trx"
+      }
+    ],
+    "normalNetstandardBuild": "0 warnings / 0 errors",
+    "normalCleanApiToolAndFixtureBuilds": "all consumer informational versions use sourceCommit; five Core DLL copies byte-identical",
+    "ownerHashReceiptSha256": "fd563ca08a5b6e2c742255f7d1cac7bef9ab8b4c8c05fdd9d8751ea0719e45fd",
+    "referenceSourceBlocks": 36,
+    "sourceOrderProfiles": [
+      "print-paged",
+      "screen-media-paged",
+      "screen-snapshot-paged",
+      "print-zero-margin"
+    ],
+    "routes": [
+      {
+        "case": "reference",
+        "profile": "print-paged",
+        "pages": 10,
+        "imageOccurrences": 11,
+        "uriLinks": 59,
+        "sha256": "1a879814d1f8de56b264d6e3738b9bd83428828416d2c9aad4de0fdc6080e712",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "reference",
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "imageOccurrences": 11,
+        "uriLinks": 59,
+        "sha256": "6ca54d731de05f1c27ff35fdc2a98df24b89c61e321f210e57355d51570dc5ff",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "reference",
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "imageOccurrences": 17,
+        "uriLinks": 63,
+        "sha256": "f3c77ea82c618ad2f1b09bef883434eefe60403013cc8b0856c0bf4b6123ee6e",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "pages": 19,
+        "imageOccurrences": 16,
+        "uriLinks": 73,
+        "sha256": "cc2495358160dc69c5533f1318b711129e6671e183b19297b36b0731bfa3cdb7",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "pages": 22,
+        "imageOccurrences": 18,
+        "uriLinks": 74,
+        "sha256": "c18841f1cdc48f195b0de2c039205431c6f6ebc040031f5ffadcc0b304b97228",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [
+          1,
+          2,
+          3,
+          5,
+          6,
+          7,
+          8,
+          9,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21
+        ],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "pages": 14,
+        "imageOccurrences": 23,
+        "uriLinks": 84,
+        "sha256": "ef6c223d495397df57662762b7ae7ffc0359b0f02e649ee5efbe2ee66a0d72bb",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "pages": 3,
+        "imageOccurrences": 16,
+        "uriLinks": 44,
+        "sha256": "79ae6ea71595ff2ba1d51832aaa66d70610a06d8e2b0d2b258f19351fb43dbb4",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "pages": 5,
+        "imageOccurrences": 19,
+        "uriLinks": 56,
+        "sha256": "34c1501186e89bedd440c0edc30261b94a1bf843eb585f723ada531b1b55d272",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "pages": 4,
+        "imageOccurrences": 22,
+        "uriLinks": 57,
+        "sha256": "1ab3a088088eb8aa5bd6f204a47f40d7833902591a27bb121575c89411a994ed",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [],
+        "apiToolByteEqual": true,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      },
+      {
+        "case": "reference",
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "imageOccurrences": 11,
+        "uriLinks": 59,
+        "sha256": "146b8fdbb7b2c015b8187dcc06e48b3b7b0b27acfa2ad2bcec3e58fff02f902e",
+        "linkGeometryEqual": true,
+        "changedPaintPages": [
+          8
+        ],
+        "apiToolByteEqual": null,
+        "rawPerPageTextUnchanged": true,
+        "reportUnchanged": true,
+        "hasLoss": true,
+        "decodedImageMultisetPreserved": true
+      }
+    ],
+    "allPagePaint": {
+      "pages": 106,
+      "pixelIdentical": 50,
+      "changedPairs": 56,
+      "contactSheetsInspected": 19,
+      "classification": "Continuing white content/card backgrounds and black footer background fill formerly unpainted fragment slack. No text/image/link displacement observed. Planetary sparse media page3 remains sparse.",
+      "retainedRasters": "Ignore/MasterConvergenceQualification/footer-visuals-83e18a180"
+    }
+  },
+  "review": {
+    "boundary": "candidate-reviewed",
+    "fullPass": "paged_box_background_review; useful canonical owner, no new API/dependency. Reproduced P2 auto-height flex stretch omitted; fixed in consolidated candidate.",
+    "targetedConfirmation": "One read-only confirmation: marker fix/guards and final artifacts accepted; no remaining actionable finding in this paint repair.",
+    "fullPassDiffSha256": "93d064537cba9fd46d044e6e0acf953aeef62d9b83ab779f74e83eb7c7488f38",
+    "allowanceUsed": "one full pass plus one targeted confirmation; no repeat for a new SHA"
+  },
+  "openContinuationDefects": [
+    {
+      "case": "relative top:-80px ancestor",
+      "impact": "Side label and footer rows 01/02 are above continuation page and missing from independent extraction.",
+      "classification": "Reproduced on prior packed source e377c6ad6 and current candidate; background repair matches browser but does not fix content placement.",
+      "nextDeliverable": "Independent positive/negative relative-offset fixture and safe paint/layout fragment coordinate contract; retain CSS flow placement and exact-once content.",
+      "observedGeometry": "Independent PDF box observer: prior e377 and candidate place row03 at y=-8.616pt on page2; Chromium retains rows01-04 at y240.39..285.39pt on page1. Layout membership and paint-window cuts need independent qualification."
+    },
+    {
+      "case": "oversized grid continuation",
+      "impact": "Footer row 16 missing from independent extraction in tall grid control.",
+      "classification": "Reproduced on prior packed source e377c6ad6 and current candidate; separate grid fragmentation gap.",
+      "nextDeliverable": "Inspect row/line intersection and grid used-height contracts using independent producer geometry before a bounded owner fix.",
+      "observedGeometry": "Prior e377 and frozen candidate scene both omit row16 entirely: row15 page2 y372CSSpx, row17 page3 y12CSSpx. It is a grid fragmentation loss, not only an extractor issue."
+    }
+  ],
+  "priorControl": {
+    "source": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+    "normalHostedLocalFeed": "hosted-feed-e377c6ad6",
+    "packageVersion": "3.3.0",
+    "observedAssemblyVersion": "3.4.4+e377c6ad60c8db8dd92e5a485ffee674212828c2",
+    "receiptSha256": "5a81c80fe4b04c29c922ee513f033a5d223e1ee9af1357bb2f6477e47036edfc"
+  },
+  "remainingQualification": [
+    "Current-source hosted packages/budgets: run 37254233692 source e9819e175 covers preceding navigation implementation only, not this footer source. Inspect no earlier than03:25UTC.",
+    "Card-label boundaries, footer typography/link decoration, sparse media flow, named native/resource/corpus criteria and manual accessibility remain open.",
+    "Long-lived HTML/H10 adoption remains unqualified; no full HTML PR/master merge/release."
+  ],
+  "cleanup": {
+    "status": "complete",
+    "retain": "Frozen source/fixtures, independent PDFs/observations, final actual API/Tool routes, changed-page rasters, original failure logs/TRX and compact hashes; remove regenerable bin/obj/private package expansion only.",
+    "targetsRemoved": 187,
+    "bytesRemoved": 2392215901,
+    "nativeFilesystemErrorsRecoveredByGuardedDotNet": 96,
+    "allTargetsAbsent": true,
+    "resultSha256": "db36353a1a087fc1a756d9dd59cccbf48eaa4485dcf16e12ebb1b2447ad6df09"
+  }
+}

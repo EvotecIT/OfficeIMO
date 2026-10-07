@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><title>SVG symbol viewport probe</title><pre id="result">Running</pre>
+<svg id="sample" xmlns="http://www.w3.org/2000/svg" width="80" height="30"><defs><symbol id="tile"><rect width="12" height="10"/></symbol></defs><use href="#tile" x="2" y="2" width="6" height="8" fill="red"/><use href="#tile" x="20" y="2" width="24" height="12" fill="blue" preserveAspectRatio="none"/><use href="#tile" x="48" y="2" fill="lime"/></svg>
+<canvas id="canvas" width="80" height="30"></canvas>
+<script>
+(async () => {
+ const svg = new XMLSerializer().serializeToString(document.getElementById('sample'));
+ const url = URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
+ try {
+  const image = new Image(); image.src = url; await image.decode();
+  const ctx = document.getElementById('canvas').getContext('2d'); ctx.drawImage(image,0,0);
+  const points = [[4,4],[8,4],[4,10],[30,4],[34,4],[58,4],[62,4]];
+  document.getElementById('result').textContent=JSON.stringify({userAgent:navigator.userAgent,pixels:points.map(([x,y])=>({x,y,rgba:Array.from(ctx.getImageData(x,y,1,1).data)}))},null,2);
+ } finally {URL.revokeObjectURL(url);}
+})().catch(e=>document.getElementById('result').textContent=e.stack);
+</script>
