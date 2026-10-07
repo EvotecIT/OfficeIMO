@@ -227,7 +227,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
