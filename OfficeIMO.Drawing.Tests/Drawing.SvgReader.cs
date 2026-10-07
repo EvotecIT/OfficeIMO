@@ -806,7 +806,10 @@ public class DrawingSvgReaderTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
         Assert.Equal(0, unsupported);
-        OfficeDrawingEffectGroup group = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        // Font metrics can require a root viewport clip around the transformed text.
+        OfficeDrawingElement root = Assert.Single(drawing!.Elements);
+        OfficeDrawingEffectGroup group = Assert.IsType<OfficeDrawingEffectGroup>(
+            root is OfficeDrawingGroup viewport ? Assert.Single(viewport.Drawing.Elements) : root);
         OfficeDrawingText text = Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingText>());
         Assert.Equal("AffineLabel", text.Text);
         Assert.NotEqual(OfficeTransform.Identity, group.Transform);
