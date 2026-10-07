@@ -45,6 +45,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 inheritedPaintOffsetX + offsetX, inheritedPaintOffsetY + offsetY, element));
             return;
         }
+        if (style.Display == "inline-block") {
+            HtmlRenderFlowBlock box = CreateGeneratedInlineBox(element, style, content, link, source, width);
+            runs.Add(new HtmlInlineRun(box, style, link, source,
+                inheritedPaintOffsetX + offsetX, inheritedPaintOffsetY + offsetY, element));
+            return;
+        }
         AddGeneratedInlineFragments(
             content,
             element,
@@ -70,6 +76,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (CanPositionGeneratedContentLocally(style, parentStyle)) return;
 
+        if (style.Display == "inline-block") {
+            string source = DescribePseudoSource(element, kind);
+            string? link = string.Equals(element.TagName, "a", StringComparison.OrdinalIgnoreCase)
+                ? ResolveSafeLink(element.GetAttribute("href"), element)
+                : null;
+            HtmlRenderFlowBlock box = CreateGeneratedInlineBox(element, style, content, link, source, containingWidth);
+            blocks.Add(ApplyPositioning(box, style, containingWidth, ResolveContainingBlockHeight(parentStyle), source));
+            return;
+        }
         blocks.Add(CreateGeneratedContentBlock(element, kind, containingWidth, parentStyle, style, content));
     }
 
