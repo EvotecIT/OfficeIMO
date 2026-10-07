@@ -2,44 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { BlobByteSink, ChunkedTextSink, writeBytes, detectFeatures, saveBlob, NotSupportedError, pause } from "../dist/core/index.js";
 
-test("cooperative pauses yield tasks and release concurrent message channels", async () => {
-  const NativeChannel = globalThis.MessageChannel;
-  try {
-    let closed = 0;
-    globalThis.MessageChannel = class extends NativeChannel {
-      constructor() {
-        super();
-        for (const port of [this.port1, this.port2]) {
-          const close = port.close.bind(port);
-          port.close = () => { closed++; close(); };
-        }
-      }
-    };
-    let completed = 0;
-    const pending = Promise.all(Array.from({ length: 3 }, () => pause().then(() => { completed++; })));
-    await Promise.resolve(); assert.equal(completed, 0, "a microtask alone must not resume exports");
-    await pending; assert.equal(completed, 3); assert.equal(closed, 6);
-    globalThis.MessageChannel = undefined;
-    let resumed = false;
-    const timer = pause().then(() => { resumed = true; });
-    await Promise.resolve(); assert.equal(resumed, false);
-    await timer; assert.equal(resumed, true);
-  } finally {
-    globalThis.MessageChannel = NativeChannel;
-  }
-});
-
-test("a delayed message channel cannot hold up the timer yield or leak ports", async () => {
-  const NativeChannel = globalThis.MessageChannel;
-  let callback, closed = 0;
-  try {
-    globalThis.MessageChannel = class {
-      port1 = { set onmessage(value) { callback = value; }, close() { closed++; } };
-      port2 = { postMessage() {}, close() { closed++; } };
-    };
-    await pause(); assert.equal(closed, 2);
-    callback(); assert.equal(closed, 2, "a late message must not settle or clean up twice");
-  } finally { globalThis.MessageChannel = NativeChannel; }
+test("cooperative pauses yield tasks and resume concurrent writers", async () => {
+  let completed = 0;
+  const pending = Promise.all(Array.from({ length: 3 }, () => pause().then(() => { completed++; })));
+  await Promise.resolve(); assert.equal(completed, 0, "a microtask alone must not resume exports");
+  await pending; assert.equal(completed, 3);
 });
 
 test("text pipeline stages share a completed yield and yield again after further work", async () => {

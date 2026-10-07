@@ -118,19 +118,9 @@ export function pause(): Promise<void> {
     taskDeadline = performance.now() + taskBudgetMs;
   }, { priority: "background" });
   return new Promise(resolve => {
-    let done = false, channel: MessageChannel | undefined;
-    const finish = () => {
-      if (done) return;
-      done = true; clearTimeout(timer);
-      channel?.port1.close(); channel?.port2.close();
+    setTimeout(function finish() {
       taskDeadline = performance.now() + taskBudgetMs;
       resolve();
-    };
-    const timer = setTimeout(finish, 0);
-    if (typeof MessageChannel === "function") {
-      channel = new MessageChannel();
-      channel.port1.onmessage = finish;
-      channel.port2.postMessage(undefined);
-    }
+    }, 0);
   });
 }

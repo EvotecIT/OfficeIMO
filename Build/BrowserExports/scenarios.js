@@ -67,12 +67,11 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
   } finally { globalThis.CompressionStream = original; }
   await rejects(async () => new Workbook().addWorksheet("Wide", { columns: Array(16385).fill({ header: "V" }) }), "RangeError");
   await rejects(async () => new Workbook().addWorksheet("Long", { columns: [{ header: "V" }] }).addRows([["a".repeat(32768)]]), "RangeError");
-  const nativeChannel = globalThis.MessageChannel, nativeScheduler = globalThis.scheduler;
+  const nativeScheduler = globalThis.scheduler;
   const schedulerDescriptor = Object.getOwnPropertyDescriptor(globalThis, "scheduler");
   try {
-    for (const scheduling of ["native", "channel", "timer"]) {
+    for (const scheduling of ["native", "timer"]) {
       Object.defineProperty(globalThis, "scheduler", { configurable: true, value: scheduling === "native" ? nativeScheduler : undefined });
-      globalThis.MessageChannel = scheduling === "timer" ? undefined : nativeChannel;
       for (const kind of ["xlsx", "csv"]) {
         const controller = new AbortController(); let returned = false;
         function* rows() { try { for (let i = 0; i < 1000000; i++) yield ["row" + i]; } finally { returned = true; } }
@@ -84,7 +83,6 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
       }
     }
   } finally {
-    globalThis.MessageChannel = nativeChannel;
     if (schedulerDescriptor) Object.defineProperty(globalThis, "scheduler", schedulerDescriptor);
     else delete globalThis.scheduler;
   }
