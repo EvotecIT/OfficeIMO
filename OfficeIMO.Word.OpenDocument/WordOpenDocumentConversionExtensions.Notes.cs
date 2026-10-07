@@ -460,7 +460,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         settings.StartNumber.HasValue || settings.NumberingFormat.HasValue;
 
     private static bool HasSectionEndnoteSettings(WordEndnoteSettings settings) =>
-        settings.Position.HasValue || settings.NumberingRestart.HasValue ||
+        // Placement is document-wide and checked from authored settings above.
+        // The section view also exposes the effective default when none is stored.
+        settings.NumberingRestart.HasValue ||
         settings.StartNumber.HasValue || settings.NumberingFormat.HasValue;
 
     private static void CountOdtNoteConfigurationLoss(OdtDocument source, NoteMappingStats notes) {
