@@ -27,6 +27,15 @@ public sealed class DrawingRasterCodecRobustnessTests {
         var current = new byte[32 * 1024 * 1024];
         for (int index = 0; index < current.Length; index++) current[index] = 1;
         using var cancellation = new CancellationTokenSource();
+        using var observerReady = new ManualResetEventSlim();
+        var observer = new Thread(() => {
+            observerReady.Set();
+            // Keep the observer runnable: SpinWait.SpinUntil eventually sleeps and
+            // can miss the entire scanline when other test workers occupy the CPU.
+            while (Volatile.Read(ref current[16]) == 1 && !cancellation.IsCancellationRequested)
+                Thread.SpinWait(64);
+            if (!cancellation.IsCancellationRequested) cancellation.Cancel();
+        }) { IsBackground = true };
         Exception? error = null;
         var worker = new Thread(() => {
             try {
@@ -35,15 +44,20 @@ public sealed class DrawingRasterCodecRobustnessTests {
                 Volatile.Write(ref error, exception);
             }
         }) { IsBackground = true };
-        worker.Start();
+        observer.Start();
+        bool workerStarted = false;
         try {
-            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref current[16]) != 1,
-                TimeSpan.FromSeconds(5)), "PNG scanline processing did not enter the work buffer.");
-            cancellation.Cancel();
+            Assert.True(observerReady.Wait(TimeSpan.FromSeconds(5)), "PNG cancellation observer did not start.");
+            worker.Start();
+            workerStarted = true;
+            Assert.True(worker.Join(TimeSpan.FromSeconds(5)), "PNG scanline processing did not stop.");
         } finally {
             cancellation.Cancel();
-            Assert.True(worker.Join(TimeSpan.FromSeconds(5)));
+            bool observerStopped = observer.Join(TimeSpan.FromSeconds(5));
+            bool workerStopped = !workerStarted || worker.Join(TimeSpan.FromSeconds(5));
+            Assert.True(observerStopped && workerStopped);
         }
+        Assert.NotEqual(1, Volatile.Read(ref current[16]));
         Assert.IsType<OperationCanceledException>(Volatile.Read(ref error));
         Assert.Equal(1, current[current.Length - 1]);
     }

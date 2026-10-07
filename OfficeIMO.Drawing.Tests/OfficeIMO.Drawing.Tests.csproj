@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\JpegXrTestFixture.cs" Link="JpegXrTestFixture.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
