@@ -253,13 +253,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Settings? settings = mainPart!.DocumentSettingsPart?.Settings;
             bool trackRevisions = settings?.Elements<TrackRevisions>().Any(IsOnOffEnabled) == true;
             bool lockRevisionTracking = IsLockedRevisionTracking(settings);
-            return new LegacyDocWritableBody(
+            var writableBody = new LegacyDocWritableBody(
                 text.ToString(),
                 runs,
                 paragraphFormats,
                 bookmarks.Create(),
                 sections,
                 styleSheet,
+                mainPart.NumberingDefinitionsPart?.Numbering,
                 footnoteStories,
                 endnoteStories,
                 headerFooterStories,
@@ -274,6 +275,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadDocumentEndnotePosition(settings),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
+            ValidateNativeNumberingReferences(mainPart, styleSheet.StyleIndexes);
+            return writableBody;
         }
 
         private static bool HasEvenAndOddHeaders(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {

@@ -1,0 +1,164 @@
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal;
+using OfficeIMO.Word;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public partial class Word {
+    [Theory]
+    [InlineData("instance")]
+    [InlineData("level")]
+    [InlineData("override")]
+    public void NativeListDefinitions_SavingMissingListReferenceFailsBeforeProducingNativeBytes(string missing) {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        if (missing == "instance") {
+            numbering.RemoveAllChildren<NumberingInstance>();
+        } else {
+            foreach (Level level in numbering.Elements<AbstractNum>().Single().Elements<Level>().Skip(1).ToArray()) level.Remove();
+            if (missing == "override") numbering.Elements<NumberingInstance>().Single()
+                .Append(new LevelOverride(new StartOverrideNumberingValue { Val = 1 }) { LevelIndex = 1 });
+            else source.Paragraphs.First(paragraph => paragraph.Text == "First")
+                ._paragraph.ParagraphProperties!.NumberingProperties!.NumberingLevelReference!.Val = 1;
+        }
+        string before = numbering.OuterXml;
+        Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        Assert.Equal(before, numbering.OuterXml);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeListDefinitions_MissingOrMalformedTablesReportNumberingLoss(bool malformed) {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
+        byte[] word = (byte[])compound!.Streams["WordDocument"].Clone();
+        BitConverter.GetBytes(malformed ? 29 : 0).CopyTo(word, 0x2E6);
+        if (!malformed) BitConverter.GetBytes(0).CopyTo(word, 0x2EE);
+        byte[] altered = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["WordDocument"] = word });
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(altered));
+        Assert.Contains(reopened.LegacyDocUnsupportedFeatures, item => item.Kind == OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind.Numbering);
+        Assert.Throws<NotSupportedException>(() => reopened.ToBytes(WordFileFormat.Doc));
+    }
+
+    [Theory]
+    [InlineData("bullet", "•", "•")]
+    [InlineData("lowerRoman", "xii.", "xiii.")]
+    [InlineData("none", "", "")]
+    public void NativeListDefinitions_NativeFormatsRetainTheirMarkers(string formatName, string first, string second) {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        Level level = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<AbstractNum>().Single().Elements<Level>().First();
+        NumberFormatValues format = formatName == "bullet" ? NumberFormatValues.Bullet
+            : formatName == "none" ? NumberFormatValues.None : NumberFormatValues.LowerRoman;
+        level.NumberingFormat = new NumberingFormat { Val = format };
+        if (format == NumberFormatValues.Bullet || format == NumberFormatValues.None)
+            level.LevelText = new LevelText { Val = first };
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        Level actual = reopened._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<AbstractNum>().First().Elements<Level>().First();
+        Assert.Equal(format, actual.NumberingFormat!.Val!.Value);
+        var markers = WordDocumentTraversal.BuildListMarkers(reopened);
+        Assert.Equal(first, markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
+        Assert.Equal(second, markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeListDefinitions_LevelPropertyLengthExcludesParagraphPagePadding(bool enabled) {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        AbstractNum definition = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<AbstractNum>().Single();
+        definition.Elements<Level>().First().PreviousParagraphProperties = new PreviousParagraphProperties(
+            new ContextualSpacing { Val = enabled });
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
+        byte[] word = compound!.Streams["WordDocument"], table = compound.Streams["1Table"];
+        int firstLevel = BitConverter.ToInt32(word, 0x2E2) + BitConverter.ToInt32(word, 0x2E6);
+        Assert.Equal(3, table[firstLevel + 25]);
+        Assert.Equal((byte)(enabled ? 1 : 0), table[firstLevel + 30]);
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
+        Level level = reopened._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<AbstractNum>().First().Elements<Level>().First();
+        Assert.Equal(enabled, level.PreviousParagraphProperties!.GetFirstChild<ContextualSpacing>()!.Val!.Value);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(9)]
+    public void NativeListDefinitions_ExplicitInstanceStartOverridesAbstractStart(int levelCount) {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        NumberingInstance instance = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<NumberingInstance>().Single();
+        for (int level = 0; level < levelCount; level++)
+            instance.Append(new LevelOverride(new StartOverrideNumberingValue { Val = 1 }) { LevelIndex = level });
+        string before = instance.OuterXml;
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        var markers = WordDocumentTraversal.BuildListMarkers(reopened);
+        Assert.Equal("1.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
+        Assert.Equal("2.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
+        Assert.Equal(before, instance.OuterXml);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
+    public void NativeListDefinitions_SparseInstanceIdsKeepTheirParagraphReferences() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        NumberingInstance instance = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<NumberingInstance>().Single();
+        instance.NumberID = 7;
+        foreach (WordParagraph paragraph in source.Paragraphs.Where(paragraph => paragraph.Text == "First" || paragraph.Text == "Second"))
+            paragraph._paragraph.ParagraphProperties!.NumberingProperties!.NumberingId!.Val = 7;
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        var markers = WordDocumentTraversal.BuildListMarkers(reopened);
+        Assert.Equal("12.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
+        Assert.Equal("13.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
+    public void NativeListDefinitions_SaveAndImportPreserveAbstractStart() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        string numberingBefore = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml;
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
+        var markers = WordDocumentTraversal.BuildListMarkers(reopened);
+        Assert.Equal("12.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
+        Assert.Equal("13.", markers[reopened.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
+        Assert.Equal(numberingBefore, source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!.OuterXml);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
+    public void NativeListDefinitions_SaveWritesDefinitionAndInstanceTables() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
+        byte[] word = compound!.Streams["WordDocument"], table = compound.Streams["1Table"];
+        int listsOffset = BitConverter.ToInt32(word, 0x2E2), listsLength = BitConverter.ToInt32(word, 0x2E6);
+        int instancesOffset = BitConverter.ToInt32(word, 0x2EA), instancesLength = BitConverter.ToInt32(word, 0x2EE);
+        Assert.True(listsLength >= 30, "Native Word paragraphs need a real PlfLst definition.");
+        Assert.True(listsOffset >= 0 && listsOffset <= table.Length - listsLength);
+        Assert.Equal(1, BitConverter.ToUInt16(table, listsOffset));
+        Assert.True(instancesLength >= 24, "Native Word list indices need a matching PlfLfo instance.");
+        Assert.True(instancesOffset >= 0 && instancesOffset <= table.Length - instancesLength);
+        Assert.Equal(1u, BitConverter.ToUInt32(table, instancesOffset));
+        Assert.Equal(BitConverter.ToInt32(table, listsOffset + 2), BitConverter.ToInt32(table, instancesOffset + 4));
+    }
+
+    private static WordDocument CreateNativeListDefinitionControl() {
+        WordDocument document = WordDocument.Create();
+        WordList list = document.AddList(WordListStyle.Numbered);
+        list.Numbering.Levels[0].StartNumberingValue = 12;
+        list.AddItem("First"); list.AddItem("Second");
+        // Isolate the native codec contract from the separate fresh-DOCX-list precedence fix.
+        document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<NumberingInstance>().Single().RemoveAllChildren<LevelOverride>();
+        return document;
+    }
+}
