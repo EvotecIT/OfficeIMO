@@ -8,6 +8,39 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfListMarkerAnchorTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void OmittedNumberingJustificationRetainsLeftAlignment(bool table, bool inline) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 0;
+        level.LevelJustification = WordListLevelAlignment.Left;
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+        WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
+        paragraph.Text = "BODY";
+        paragraph.FontFamily = "Courier New";
+        paragraph.FontSize = 12;
+        if (inline) paragraph.CharacterScale = 95;
+        if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
+        var options = new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Courier" };
+        using var explicitPdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var expected = explicitPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        // Remove last: the public getter can materialize Word's left default.
+        level.OpenXmlElement.LevelJustification = null;
+        using var omittedPdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var actual = omittedPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("12.BODY", string.Concat(actual.Select(letter => letter.Value)));
+        Assert.InRange(Math.Abs(actual[0].StartBaseLine.X - expected[0].StartBaseLine.X), 0D, 0.03D);
+        Assert.InRange(Math.Abs(actual[3].StartBaseLine.X - expected[3].StartBaseLine.X), 0D, 0.03D);
+    }
+
+    [Theory]
     [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Nothing, 12, 100)]
     [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Nothing, 12, 100)]
     [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Nothing, 12, 100)]

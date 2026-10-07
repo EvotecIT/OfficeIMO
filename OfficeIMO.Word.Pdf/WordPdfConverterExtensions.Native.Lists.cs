@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
-                MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification),
+                MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification) ?? PdfCore.PdfAlign.Left,
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
             };
