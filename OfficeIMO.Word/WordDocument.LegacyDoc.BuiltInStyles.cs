@@ -210,6 +210,14 @@ namespace OfficeIMO.Word {
 
             StyleRunProperties properties = style.StyleRunProperties ?? style.AppendChild(new StyleRunProperties());
 
+            if (characterFormat.CharacterSpacingTwips != null || characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
+                ReplaceStyleProperty(properties, new Spacing { Val = characterFormat.CharacterSpacingTwips ?? 0 });
+            }
+
+            if (characterFormat.CharacterScalePercentage.HasValue) {
+                ReplaceStyleProperty(properties, new CharacterScale { Val = characterFormat.CharacterScalePercentage.Value });
+            }
+
             if (characterFormat.KerningMinimumFontSizeHalfPoints.HasValue) {
                 ReplaceStyleProperty(properties, new Kern { Val = (uint)characterFormat.KerningMinimumFontSizeHalfPoints.Value });
             }

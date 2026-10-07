@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Inline text segment with basic styling.
 /// </summary>
-public sealed class PdfTextRun {
+public sealed partial class PdfTextRun {
     /// <summary>Text content of this run.</summary>
     public string Text { get; }
     /// <summary>True when bold style is applied.</summary>
@@ -189,9 +189,7 @@ public sealed class PdfTextRun {
     public PdfTextRun WithTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         if (InlineElement != null) return this;
         string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
-        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor)
-            .WithFeatureSettings(FeatureSettings)
-            .WithTextDirection(TextDirection);
+        return CopyRunFormattingTo(new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
     }
 
     /// <summary>Creates a copy with explicit OpenType feature selections.</summary>
@@ -202,7 +200,7 @@ public sealed class PdfTextRun {
         if (featureSettings == null) throw new System.ArgumentNullException(nameof(featureSettings));
 #endif
         if (InlineElement != null) return this;
-        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        var copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.FeatureSettings = featureSettings;
         copy.HorizontalOffset = HorizontalOffset;
         copy.TextDirection = TextDirection;
@@ -214,7 +212,7 @@ public sealed class PdfTextRun {
             throw new ArgumentOutOfRangeException(nameof(horizontalOffset), "Horizontal text offsets must be finite and non-negative.");
         }
         if (InlineElement != null) return this;
-        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        var copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.FeatureSettings = FeatureSettings;
         copy.HorizontalOffset = horizontalOffset;
         copy.TextDirection = TextDirection;
@@ -229,7 +227,7 @@ public sealed class PdfTextRun {
             throw new ArgumentOutOfRangeException(nameof(textDirection));
         }
         if (InlineElement != null) return this;
-        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        var copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.FeatureSettings = FeatureSettings;
         copy.HorizontalOffset = HorizontalOffset;
         copy.TextDirection = textDirection;

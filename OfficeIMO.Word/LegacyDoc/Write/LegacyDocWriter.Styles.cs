@@ -10,7 +10,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
 
         private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(MainDocumentPart mainPart, Body body) {
-            string[] usedStyleIds = body.Descendants<ParagraphStyleId>()
+            // Header/footer, note and comment stories share the document's style sheet.
+            // Discover their referenced IDs, including custom IDs produced by native import.
+            SectionProperties[] sections = body.Descendants<SectionProperties>().ToArray();
+            IEnumerable<ParagraphStyleId> storyStyleIds = sections.SelectMany(section => section.Elements<HeaderReference>())
+                .Select(reference => GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, "header"))
+                .SelectMany(part => part.Header?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
+                .Concat(sections.SelectMany(section => section.Elements<FooterReference>())
+                    .Select(reference => GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, "footer"))
+                    .SelectMany(part => part.Footer?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>()))
+                .Concat(mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+                    .Where(IsUserFootnote)
+                    .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
+                .Concat(mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                    .Where(IsUserEndnote)
+                    .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
+                .Concat(mainPart.WordprocessingCommentsPart?.Comments?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>());
+            string[] usedStyleIds = body.Descendants<ParagraphStyleId>().Concat(storyStyleIds)
                 .Select(style => style.Val?.Value)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!)
@@ -40,6 +56,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
             paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
             MaterializeDocumentDefaultSpacing(paragraphStyles, styles);
+            MaterializeDocumentDefaultCharacterScale(paragraphStyles, styles);
 
             var orderedStyleIds = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

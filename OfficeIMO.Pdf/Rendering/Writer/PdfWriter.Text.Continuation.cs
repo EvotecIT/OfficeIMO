@@ -61,6 +61,8 @@ internal static partial class PdfWriter {
                 underlineStyle: segment.UnderlineStyle,
                 strikeStyle: segment.StrikeStyle,
                 decorationColor: segment.DecorationColor);
+            if (HasRichTextSpacing(segment.HorizontalTextScaling, segment.CharacterSpacing))
+                run = run.WithHorizontalTextScaling(segment.HorizontalTextScaling).WithCharacterSpacing(segment.CharacterSpacing);
             if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
                 run = run.WithFeatureSettings(segment.FeatureSettings);
             if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)

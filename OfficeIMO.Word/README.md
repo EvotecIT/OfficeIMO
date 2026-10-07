@@ -43,6 +43,20 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+Run width and tracking are readable and writable on `WordParagraph`:
+
+```csharp
+var text = document.AddParagraph("Condensed text");
+text.CharacterScale = 75; // Percentage, from 1 through 600.
+text.Spacing = 10;        // Twips: 10 adds half a point per glyph.
+```
+
+Set `CharacterScale` to 100 for an explicit normal-width override, or to `null`
+to remove the direct setting and restore style inheritance. DOCX and supported
+native DOC round trips retain run width and tracking in body text, tables, links,
+headers, footers and notes. Native DOC also preserves character width in paragraph
+styles and document defaults, including explicit normal-width overrides.
+
 When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
 
 ```csharp

@@ -33,6 +33,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCDxaSpace = 0x8840;
+        private const ushort SprmCCharScale = 0x4852;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgLid0 = 0x486D;

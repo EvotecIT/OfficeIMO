@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
                 run.UnderlineStyle,
                 run.StrikeStyle,
                 run.DecorationColor)
-                .WithFeatureSettings(run.FeatureSettings)
+                .WithSpacingFrom(run).WithFeatureSettings(run.FeatureSettings)
                 .WithTextDirection(run.TextDirection));
         }
 

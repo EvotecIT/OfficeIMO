@@ -98,6 +98,28 @@ including inside columns, table cells and canvas text boxes.
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
 
+## Glyph width and character spacing
+
+Run width and tracking adjust horizontal advances without changing font height:
+
+```csharp
+var condensed = PdfTextRun.Normal("Condensed text", fontSize: 12)
+    .WithHorizontalTextScaling(75)
+    .WithCharacterSpacing(0.5);
+
+PdfDocument.Create()
+    .Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }))
+    .Save("run-spacing.pdf");
+```
+
+`HorizontalTextScaling` is a positive percentage; 100 retains the font's normal
+width. `CharacterSpacing` adds page points after each rendered glyph, independently
+of that percentage. Negative spacing condenses advances. The copy methods retain
+the source run's other formatting. Paragraph builders expose matching
+`HorizontalTextScaling(...)` and `CharacterSpacing(...)` controls; use 100 and zero
+to restore natural text for following runs. Measurement, wrapping and painting use
+these metrics in rich paragraphs, table cells, page text and positioned text.
+
 ## Authoring model
 
 `PdfDocumentBuilder` owns document settings and page boundaries.
@@ -689,6 +711,10 @@ PdfDocument.Create(pdf => pdf.Page(page => page
 ```
 
 Styled header/footer runs support fonts, size, color, highlighting, underline, strike, and baseline changes. Use the existing header/footer image and shape methods for visuals; interactive links and inline elements are intentionally kept out of text runs. Authored header/footer content that enters margins or overlaps another zone is preserved instead of rejected; attach a `PdfConversionReport` with `ReportDiagnosticsTo(...)` when the host needs structured overflow or clipping warnings.
+
+Use `DocumentPages()` or `DocumentPages(style)` for a page count across all document
+sections. `TotalPages()` retains the count for the current numbering section.
+Literal text segments keep braces and page-token-like text unchanged.
 
 ### Rich report layout
 

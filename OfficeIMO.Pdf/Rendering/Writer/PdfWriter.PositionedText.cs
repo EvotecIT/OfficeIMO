@@ -16,13 +16,13 @@ internal static partial class PdfWriter {
         double effectiveFontSize = run.FontSize ?? fontSize;
         double measuredWidth = MeasurePositionedTextWidth(
             run.Text, font, namedFont, effectiveFontSize, run.Baseline, options,
-            run.FeatureSettings, run.TextDirection, fontMetricScale);
+            run.FeatureSettings, run.TextDirection, run.HorizontalTextScaling, run.CharacterSpacing, fontMetricScale);
         return new RichSeg(run.Text, run.Bold, run.Italic, run.Underline, run.Strike,
             run.Color, run.BackgroundColor, run.LinkUri, run.LinkDestinationName, run.LinkContents,
             font, effectiveFontSize, run.Baseline, measuredWidth, namedFont: namedFont,
             underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings,
-            textDirection: run.TextDirection, fontMetricScale: fontMetricScale);
+            textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing, fontMetricScale: fontMetricScale);
     }
 
     private static double MeasurePositionedTextWidth(
@@ -33,7 +33,12 @@ internal static partial class PdfWriter {
         PdfTextBaseline baseline,
         PdfOptions options,
         OfficeIMO.Drawing.OfficeTextFeatureSettings featureSettings,
-        OfficeIMO.Drawing.OfficeTextDirection direction, double fontMetricScale) {
+        OfficeIMO.Drawing.OfficeTextDirection direction, double horizontalTextScaling = 100D,
+        double characterSpacing = 0D, double fontMetricScale = 1D) {
+        if (HasRichTextSpacing(horizontalTextScaling, characterSpacing)) {
+            return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings,
+                horizontalTextScaling, characterSpacing, direction, fontMetricScale);
+        }
         if (direction == OfficeIMO.Drawing.OfficeTextDirection.Auto && fontMetricScale == 1D) {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
         }

@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
                 double descender = GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options);
                 double runBottom = runBaseline - descender;
                 double runTop = runBaseline + ascender;
-                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings);
+                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
                 if (width > 0D && run.BackgroundColor.HasValue) {
                     double paddingY = System.Math.Max(0.35D, effectiveFontSize * 0.04D);
                     runBottom -= paddingY;
@@ -148,7 +148,7 @@ internal static partial class PdfWriter {
                 double requestedFontSize = run.FontSize ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
-                double width = MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings);
+                double width = MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
                 PdfColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
                 PdfColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
 
@@ -170,7 +170,7 @@ internal static partial class PdfWriter {
                         double underlineY = baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D);
                         if (run.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
                             VisitWordDecorationAdvances(text,
-                                span => MeasureRichText(span, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings),
+                                span => MeasureRichText(span, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing),
                                 (start, end) => AppendPageTextDecorationLine(sb, cursorX + start, cursorX + end,
                                     underlineY, decorationWidth, decorationColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
                         } else {
