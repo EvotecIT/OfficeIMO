@@ -27,7 +27,9 @@ namespace OfficeIMO.Word.Pdf {
                 CollectingFieldCode = prefix.HasOpenField && !prefix.IsVisible,
                 SkippingFieldResult = prefix.HasOpenField && prefix.IsVisible
             };
-            bool hasFieldToken = false;
+            string prefixCode = ReadNativeHeaderFooterFieldPrefixCode(prefix.CurrentState?.BeginMarker, paragraph._paragraph);
+            if (state.CollectingFieldCode) state.FieldCode.Append(prefixCode);
+            bool hasFieldToken = state.SkippingFieldResult && TryGetNativeHeaderFooterFieldToken(prefixCode, out _, out _);
             bool hasConflictingStyles = false;
             foreach (var element in paragraph._paragraph.ChildElements) {
                 AppendNativeHeaderFooterElementText(element, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
@@ -101,29 +103,24 @@ namespace OfficeIMO.Word.Pdf {
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
                         state.PendingToken = null;
-                        state.PendingPageNumberStyle = null;
-                        state.SawResultText = false;
                     } else if (fieldCharType == W.FieldCharValues.Separate) {
                         if (TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(), out string? token, out PdfCore.PdfPageNumberStyle? style)) {
-                            state.PendingToken = token;
-                            state.PendingPageNumberStyle = style;
-                            state.SawResultText = false;
+                            bool visibleResult = HasVisibleNativeHeaderFooterFieldResult(fieldChar, state.Paragraph);
+                            state.PendingToken = visibleResult ? token : null;
+                            if (visibleResult) {
+                                builder.Append(token);
+                                MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
+                            }
                             hasFieldToken = true;
                             state.SkippingFieldResult = true;
                         }
 
                         state.CollectingFieldCode = false;
                     } else if (fieldCharType == W.FieldCharValues.End) {
-                        if (state.PendingToken != null && !state.SawResultText && !hidden) {
-                            AppendNativeHeaderFooterVisibleFieldToken(builder, run, state.PendingToken, state.PendingPageNumberStyle,
-                                state, ref pageNumberStyle, ref hasConflictingStyles);
-                        }
                         state.CollectingFieldCode = false;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
                         state.PendingToken = null;
-                        state.PendingPageNumberStyle = null;
-                        state.SawResultText = false;
                     }
 
                     continue;
@@ -139,10 +136,8 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (state.CollectingFieldCode || state.SkippingFieldResult) {
                     if (state.SkippingFieldResult && child is W.Text) {
-                        state.SawResultText = true;
                         if (state.PendingToken != null && !hidden) {
-                            AppendNativeHeaderFooterVisibleFieldToken(builder, run, state.PendingToken, state.PendingPageNumberStyle,
-                                state, ref pageNumberStyle, ref hasConflictingStyles);
+                            state.SerializedRuns?.Add((run, state.PendingToken, true, null));
                             state.PendingToken = null;
                         }
                     }
@@ -307,8 +302,6 @@ namespace OfficeIMO.Word.Pdf {
             public bool SkippingFieldResult { get; set; }
             public List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild)>? SerializedRuns { get; set; }
             public string? PendingToken { get; set; }
-            public PdfCore.PdfPageNumberStyle? PendingPageNumberStyle { get; set; }
-            public bool SawResultText { get; set; }
             public StringBuilder FieldCode { get; } = new StringBuilder();
         }
 
