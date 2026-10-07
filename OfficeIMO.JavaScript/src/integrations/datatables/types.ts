@@ -1,6 +1,6 @@
 import type { Column, ExportValue, StreamOptions } from "../../core/index.js";
 import type { CsvOptions } from "../../csv/index.js";
-import type { SheetOptions, WorkbookOptions, WorkbookLimits } from "../../xlsx/index.js";
+import type { PortableSheetOptions, PortableWorkbookOptions, WorkbookLimits } from "../../xlsx/index.js";
 
 /** Structural interoperability boundary; importing this adapter never imports DataTables. */
 export type DataTablesMethod = (...args: never[]) => unknown;
@@ -73,8 +73,8 @@ export interface DataTablesExport {
 export interface DataTablesWriteOptions extends DataTablesOptions {
   readonly limits?: WorkbookLimits;
   readonly sheetName?: string;
-  readonly workbook?: Omit<WorkbookOptions, "sink" | "signal" | "onProgress" | "limits">;
-  readonly sheet?: Omit<SheetOptions, "columns" | "includeHeader" | "headerStyle">;
+  readonly workbook?: Omit<PortableWorkbookOptions, "signal" | "onProgress" | "limits">;
+  readonly sheet?: Omit<PortableSheetOptions, "includeHeader">;
   readonly csv?: Omit<CsvOptions, "columns" | "includeHeader" | "signal" | "onProgress" | "limits">;
 }
 export interface DataTablesButtonOptions extends DataTablesWriteOptions {

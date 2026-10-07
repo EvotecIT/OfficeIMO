@@ -3094,6 +3094,52 @@ return _exports;
 })();
 
 const _m28 = (() => {
+const { ExportCell, assertScalar } = _m5;
+
+function style(patch) {
+    for (const component of ["font", "fill", "border", "numberFormat"])
+        if (typeof patch?.[component] === "number")
+            throw new TypeError("Workbook-local style indexes require the advanced Workbook API; use style definitions.");
+    return patch;
+}
+function value(result) {
+    if (!(result instanceof ExportCell))
+        assertScalar(result);
+    return result;
+}
+/** @internal Qualify the portable boundary before source/destination activity. */
+function portableSheet(options = {}) {
+    if (options.headerStyle !== undefined)
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    style(options.alternatingRowStyle);
+    style(options.title?.style);
+    style(options.footer?.style);
+    options.footer?.values?.forEach(value);
+    const rowStyle = options.rowStyle, cellStyle = options.cellStyle;
+    for (const callback of [rowStyle, cellStyle])
+        if (callback !== undefined && typeof callback !== "function")
+            throw new TypeError("Style callbacks must be functions.");
+    return { ...options, ...(rowStyle ? { rowStyle: (context) => style(rowStyle(context)) } : {}),
+        ...(cellStyle ? { cellStyle: (context) => style(cellStyle(context)) } : {}) };
+}
+/** @internal Keep custom writers inside the same portable value contract. */
+function portableWorkbook(options = {}) {
+    const writers = options.cellValueWriters;
+    if (!writers)
+        return options;
+    const wrapped = Object.create(null);
+    for (const [type, writer] of Object.entries(writers)) {
+        if (typeof writer !== "function")
+            throw new TypeError("Cell value writers must be functions.");
+        wrapped[type] = (input, context) => value(writer(input, context));
+    }
+    return { ...options, cellValueWriters: wrapped };
+}
+const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
+return _exports;
+})();
+
+const _m29 = (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
 function call(owner, name, ...args) {
     const fn = member(owner, name);
@@ -3125,10 +3171,10 @@ const _exports = Object.freeze({ call: call, member: member, array: array, index
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m30 = (() => {
 const { ExportCell, assertScalar } = _m5;
 
-const { member } = _m28;
+const { member } = _m29;
 
 /** @internal */
 function value(input) {
@@ -3188,14 +3234,14 @@ const _exports = Object.freeze({ value: value, text: text, headings: headings })
 return _exports;
 })();
 
-const _m30 = (() => {
+const _m31 = (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
 
-const { array, call, indexes, member } = _m28;
+const { array, call, indexes, member } = _m29;
 
-const { headings, text, value } = _m29;
+const { headings, text, value } = _m30;
 
 function safeOptions(options) {
     const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
@@ -3368,11 +3414,13 @@ const { writeCsvTo } = _m6;
 
 const { Workbook } = _m9;
 
-const { call, member } = _m28;
+const { portableSheet, portableWorkbook } = _m28;
 
-const { value } = _m29;
+const { call, member } = _m29;
 
-const { createDataTablesExport } = _m30;
+const { value } = _m30;
+
+const { createDataTablesExport } = _m31;
 
 
 
@@ -3382,18 +3430,17 @@ const { createDataTablesExport } = _m30;
 async function writeDataTableTo(host, table, format, sink, options = {}) {
     if (format !== "xlsx" && format !== "csv")
         throw new TypeError("DataTables export format must be xlsx or csv.");
-    if (options.sheet?.headerStyle !== undefined)
-        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    const sheetOptions = portableSheet(options.sheet), workbookOptions = portableWorkbook(options.workbook);
     const source = createDataTablesExport(host, table, options), signal = options.signal;
     let bytes = 0;
     const destination = { async write(chunk) { await sink.write(chunk); bytes += chunk.byteLength; } };
     const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
     if (format === "xlsx") {
-        const book = new Workbook({ ...options.workbook, ...stream, sink: destination, ...(options.onProgress ? { onProgress: options.onProgress } : {}) });
+        const book = new Workbook({ ...workbookOptions, ...stream, sink: destination, ...(options.onProgress ? { onProgress: options.onProgress } : {}) });
         try {
             const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
             const sheet = book.addSheet(options.sheetName ?? "Data", { boldHeader: true, autoFilter: true,
-                autoSize: { minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
+                autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetOptions, columns: source.columns,
                 ...(footer ? { footer } : {}) });
             await sheet.addRows(source.rows);
             await book.finish();
@@ -3483,7 +3530,7 @@ function registerDataTablesButtons(host, options = {}) {
         };
     }
 }
-const _exports = Object.freeze({ createDataTablesExport: _m30.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
+const _exports = Object.freeze({ createDataTablesExport: _m31.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
 return _exports;
 })();
 const { createDataTablesExport, ExportCell, writeDataTableTo, exportDataTable, registerDataTablesButtons } = _m0;

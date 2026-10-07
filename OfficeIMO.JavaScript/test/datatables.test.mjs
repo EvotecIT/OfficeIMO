@@ -14,6 +14,16 @@ test("DataTables rejects workbook-local style IDs before reading the source or d
   assert.equal(sourceRead, false); assert.equal(written, false);
 });
 
+test("adapter portable presentation rejects component IDs and advanced Cells in sibling paths", async () => {
+  const { host, table } = fixture();
+  for (const sheet of [{ alternatingRowStyle: { font: 0 } }, { title: { text: "Title", style: { fill: 0 } } },
+    { footer: { style: { border: 0 } } }, { rowStyle: () => ({ numberFormat: 0 }) }, { cellStyle: () => ({ font: 0 }) }])
+    await assert.rejects(exportDataTable(host, table, "xlsx", { sheet }), /Workbook-local/);
+  const { Cell } = await import("../dist/xlsx/index.js");
+  await assert.rejects(exportDataTable(host, table, "xlsx", { sheet: { footer: { values: [new Cell(1, 0)] } } }), TypeError);
+  await assert.rejects(exportDataTable(host, table, "xlsx", { columnOptions: { 1: { type: "custom" } }, workbook: { cellValueWriters: { custom: v => new Cell(v, 0) } } }), TypeError);
+});
+
 // Contract-shaped external API: deliberately returns batch cells in a different order.
 function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows } = {}) {
   const calls = [], apiArray = values => ({ toArray: () => values });

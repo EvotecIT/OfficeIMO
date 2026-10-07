@@ -2,6 +2,7 @@ import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
 import type { ByteSink, ExportValue } from "../../core/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { Workbook } from "../../xlsx/index.js";
+import { portableSheet, portableWorkbook } from "../../xlsx/portable.js";
 import { call, member } from "./api.js";
 import { value } from "./headings.js";
 import { createDataTablesExport } from "./snapshot.js";
@@ -15,18 +16,17 @@ export type { DataTablesApi, DataTablesHost, DataTablesOptions, DataTablesExport
 export async function writeDataTableTo(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv", sink: ByteSink,
   options: DataTablesWriteOptions = {}): Promise<{ readonly rows: number; readonly columns: number; readonly bytes: number }> {
   if (format !== "xlsx" && format !== "csv") throw new TypeError("DataTables export format must be xlsx or csv.");
-  if ((options.sheet as { headerStyle?: unknown } | undefined)?.headerStyle !== undefined)
-    throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+  const sheetOptions = portableSheet(options.sheet), workbookOptions = portableWorkbook(options.workbook);
   const source = createDataTablesExport(host, table, options), signal = options.signal;
   let bytes = 0;
   const destination: ByteSink = { async write(chunk) { await sink.write(chunk); bytes += chunk.byteLength; } };
   const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
   if (format === "xlsx") {
-    const book = new Workbook({ ...options.workbook, ...stream, sink: destination, ...(options.onProgress ? { onProgress: options.onProgress } : {}) });
+    const book = new Workbook({ ...workbookOptions, ...stream, sink: destination, ...(options.onProgress ? { onProgress: options.onProgress } : {}) });
     try {
       const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
       const sheet = book.addSheet(options.sheetName ?? "Data", { boldHeader: true, autoFilter: true,
-        autoSize: { minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
+        autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetOptions, columns: source.columns,
         ...(footer ? { footer } : {}) });
       await sheet.addRows(source.rows); await book.finish();
     } catch (error) { await book.discard(error); throw error; }

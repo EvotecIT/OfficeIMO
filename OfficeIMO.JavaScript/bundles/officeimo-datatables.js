@@ -3126,7 +3126,54 @@ _modules.set("45bc25db7f6172b512f77d3b2ca192ec1617b1758c77c6ab8b6dc4f4af9e5316",
 return _exports;
 })();
 
-const _m28 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
+const _m28 = _modules.get("434dca91757c21aa6541228b9c69f367844c0cffd60dfa5699d8d803d5efaa2c") ?? (() => {
+const { ExportCell, assertScalar } = _m5;
+
+function style(patch) {
+    for (const component of ["font", "fill", "border", "numberFormat"])
+        if (typeof patch?.[component] === "number")
+            throw new TypeError("Workbook-local style indexes require the advanced Workbook API; use style definitions.");
+    return patch;
+}
+function value(result) {
+    if (!(result instanceof ExportCell))
+        assertScalar(result);
+    return result;
+}
+/** @internal Qualify the portable boundary before source/destination activity. */
+function portableSheet(options = {}) {
+    if (options.headerStyle !== undefined)
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    style(options.alternatingRowStyle);
+    style(options.title?.style);
+    style(options.footer?.style);
+    options.footer?.values?.forEach(value);
+    const rowStyle = options.rowStyle, cellStyle = options.cellStyle;
+    for (const callback of [rowStyle, cellStyle])
+        if (callback !== undefined && typeof callback !== "function")
+            throw new TypeError("Style callbacks must be functions.");
+    return { ...options, ...(rowStyle ? { rowStyle: (context) => style(rowStyle(context)) } : {}),
+        ...(cellStyle ? { cellStyle: (context) => style(cellStyle(context)) } : {}) };
+}
+/** @internal Keep custom writers inside the same portable value contract. */
+function portableWorkbook(options = {}) {
+    const writers = options.cellValueWriters;
+    if (!writers)
+        return options;
+    const wrapped = Object.create(null);
+    for (const [type, writer] of Object.entries(writers)) {
+        if (typeof writer !== "function")
+            throw new TypeError("Cell value writers must be functions.");
+        wrapped[type] = (input, context) => value(writer(input, context));
+    }
+    return { ...options, cellValueWriters: wrapped };
+}
+const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook: portableWorkbook });
+_modules.set("434dca91757c21aa6541228b9c69f367844c0cffd60dfa5699d8d803d5efaa2c", _exports);
+return _exports;
+})();
+
+const _m29 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
 function call(owner, name, ...args) {
     const fn = member(owner, name);
@@ -3159,10 +3206,10 @@ _modules.set("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f",
 return _exports;
 })();
 
-const _m29 = _modules.get("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73") ?? (() => {
+const _m30 = _modules.get("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73") ?? (() => {
 const { ExportCell, assertScalar } = _m5;
 
-const { member } = _m28;
+const { member } = _m29;
 
 /** @internal */
 function value(input) {
@@ -3223,14 +3270,14 @@ _modules.set("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73",
 return _exports;
 })();
 
-const _m30 = _modules.get("2c7d6cb641e5dbcee1dfac886c076bdf5f486febb567b964f56ad1bb47274a67") ?? (() => {
+const _m31 = _modules.get("2c7d6cb641e5dbcee1dfac886c076bdf5f486febb567b964f56ad1bb47274a67") ?? (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
 
-const { array, call, indexes, member } = _m28;
+const { array, call, indexes, member } = _m29;
 
-const { headings, text, value } = _m29;
+const { headings, text, value } = _m30;
 
 function safeOptions(options) {
     const format = options.format ? { ...options.format } : undefined, customize = options.customizeData;
@@ -3397,18 +3444,20 @@ _modules.set("2c7d6cb641e5dbcee1dfac886c076bdf5f486febb567b964f56ad1bb47274a67",
 return _exports;
 })();
 
-const _m0 = _modules.get("fc3a3adace6f0c4c5037daf7641c861e0ab7e7c69eb77a41edce2737bef91854") ?? (() => {
+const _m0 = _modules.get("565335b3f90139bed7a167a9c28146702422b262519a61c69c27ee27a919839f") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
 
 const { Workbook } = _m9;
 
-const { call, member } = _m28;
+const { portableSheet, portableWorkbook } = _m28;
 
-const { value } = _m29;
+const { call, member } = _m29;
 
-const { createDataTablesExport } = _m30;
+const { value } = _m30;
+
+const { createDataTablesExport } = _m31;
 
 
 
@@ -3418,18 +3467,17 @@ const { createDataTablesExport } = _m30;
 async function writeDataTableTo(host, table, format, sink, options = {}) {
     if (format !== "xlsx" && format !== "csv")
         throw new TypeError("DataTables export format must be xlsx or csv.");
-    if (options.sheet?.headerStyle !== undefined)
-        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+    const sheetOptions = portableSheet(options.sheet), workbookOptions = portableWorkbook(options.workbook);
     const source = createDataTablesExport(host, table, options), signal = options.signal;
     let bytes = 0;
     const destination = { async write(chunk) { await sink.write(chunk); bytes += chunk.byteLength; } };
     const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
     if (format === "xlsx") {
-        const book = new Workbook({ ...options.workbook, ...stream, sink: destination, ...(options.onProgress ? { onProgress: options.onProgress } : {}) });
+        const book = new Workbook({ ...workbookOptions, ...stream, sink: destination, ...(options.onProgress ? { onProgress: options.onProgress } : {}) });
         try {
             const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
             const sheet = book.addSheet(options.sheetName ?? "Data", { boldHeader: true, autoFilter: true,
-                autoSize: { minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
+                autoSize: { minWidth: 6, maxWidth: 54 }, ...sheetOptions, columns: source.columns,
                 ...(footer ? { footer } : {}) });
             await sheet.addRows(source.rows);
             await book.finish();
@@ -3519,8 +3567,8 @@ function registerDataTablesButtons(host, options = {}) {
         };
     }
 }
-const _exports = Object.freeze({ createDataTablesExport: _m30.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("fc3a3adace6f0c4c5037daf7641c861e0ab7e7c69eb77a41edce2737bef91854", _exports);
+const _exports = Object.freeze({ createDataTablesExport: _m31.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
+_modules.set("565335b3f90139bed7a167a9c28146702422b262519a61c69c27ee27a919839f", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

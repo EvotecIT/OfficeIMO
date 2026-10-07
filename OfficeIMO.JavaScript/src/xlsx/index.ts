@@ -1,5 +1,6 @@
 export { Workbook, createWorkbook } from "./workbook.js";
 export { Worksheet } from "./worksheet.js";
+export type { PortableCellStyle, PortableSheetOptions, PortableWorkbookOptions } from "./portable.js";
 export { Cell } from "./values.js";
 export { StyleRegistry, NumberFormats } from "./styles.js";
 export type { Font, Fill, Border, BorderEdge, BorderLineStyle, CellStyle } from "./styles.js";
