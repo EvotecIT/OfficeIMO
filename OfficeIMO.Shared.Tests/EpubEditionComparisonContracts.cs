@@ -64,7 +64,7 @@ public sealed class EpubEditionComparisonContracts {
     public void UnmanifestedExtensionChangesAreNotOverlooked() {
         byte[] source = Book().Write().Bytes;
         EpubPublication LoadWithExtension(byte value) {
-            using var stream = new MemoryStream(); stream.Write(source); stream.Position = 0;
+            using var stream = new MemoryStream(); stream.Write(source, 0, source.Length); stream.Position = 0;
             using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update, true)) {
                 using var entry = archive.CreateEntry("vendor/state.bin").Open(); entry.WriteByte(value);
             }

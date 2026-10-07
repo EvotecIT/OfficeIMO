@@ -66,7 +66,7 @@ public sealed class EpubMediaOverlayReplacementContracts {
         book.AddMetadataProperty("schema:accessibilitySummary", "Retained summary");
         // Import a publisher's existing metadata identity through the public archive boundary.
         byte[] input = book.Write().Bytes;
-        using var buffer = new MemoryStream(); buffer.Write(input); buffer.Position = 0;
+        using var buffer = new MemoryStream(); buffer.Write(input, 0, input.Length); buffer.Position = 0;
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Update, true)) {
             var entry = archive.GetEntry("EPUB/package.opf")!;
             XDocument package;
@@ -95,7 +95,8 @@ public sealed class EpubMediaOverlayReplacementContracts {
             var smil = book.GetContentXml("overlay");
             if (boundary == "structure") smil.Descendants(Smil + "seq").Single().SetAttributeValue("id", "sequence");
             else smil.AddFirst(new XProcessingInstruction("xml-stylesheet", "href='style.css'"));
-            using var buffer = new MemoryStream(); buffer.Write(book.Write().Bytes); buffer.Position = 0;
+            byte[] input = book.Write().Bytes;
+            using var buffer = new MemoryStream(); buffer.Write(input, 0, input.Length); buffer.Position = 0;
             using (var zip = new ZipArchive(buffer, ZipArchiveMode.Update, true)) {
                 zip.GetEntry("EPUB/read.smil")!.Delete();
                 using var output = zip.CreateEntry("EPUB/read.smil").Open(); smil.Save(output);

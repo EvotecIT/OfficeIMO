@@ -40,7 +40,7 @@ public sealed class EpubMergeIdentifierContracts {
     public void InvalidMapsLeaveWholePublicationUnchanged(string failure) {
         var book = Book();
         var options = Options();
-        var map = new Dictionary<string, string>(options.SecondChapterIdMap);
+        var map = options.SecondChapterIdMap.ToDictionary(pair => pair.Key, pair => pair.Value);
         if (failure == "first-collision") map["heading"] = "description";
         if (failure == "second-collision") map["heading"] = "second-description";
         if (failure == "boundary") map["heading"] = "second-start";

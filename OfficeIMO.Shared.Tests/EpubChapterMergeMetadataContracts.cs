@@ -82,7 +82,8 @@ public sealed class EpubChapterMergeMetadataContracts {
             new XElement(Opf + "link", new XAttribute("id", "linked-description"), new XAttribute("rel", "dcterms:description"), new XAttribute("href", "https://example.org/description.html"), new XAttribute("media-type", "text/html"), new XAttribute("refines", resourceTarget)));
         if (extension) package.Root.Element(Opf + "metadata")!.Add(new XElement(XName.Get("annotation", "urn:test:extension"), new XAttribute("refines", "#two"), "Keep scoped"));
         using var stream = new MemoryStream();
-        stream.Write(authored.Write().Bytes);
+        byte[] bytes = authored.Write().Bytes;
+        stream.Write(bytes, 0, bytes.Length);
         using (var zip = new ZipArchive(stream, ZipArchiveMode.Update, true)) {
             zip.GetEntry(authored.PackagePath)!.Delete();
             using var output = zip.CreateEntry(authored.PackagePath).Open();
