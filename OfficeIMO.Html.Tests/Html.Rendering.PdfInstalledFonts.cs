@@ -8,17 +8,22 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
-    [Fact]
-    public void HtmlPdf_ShortLineUsesTheCallerNamedFaceAndKeepsHighAscentVisible() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPdf_ShortLineUsesTheCallerNamedFaceAndKeepsHighAscentVisible(bool precedingNormalText) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
         var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
 
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
-            HtmlConversionDocument.Parse("<div style='font:20px/20px Arial'><span style='font-size:100px;text-shadow:0 0 red'>A</span></div>"),
+            HtmlConversionDocument.Parse("<div style='font:20px/20px Arial'>"
+                + (precedingNormalText ? "A" : string.Empty)
+                + "<span style='font-size:100px;text-shadow:0 0 red'>A</span></div>"),
             options);
-        HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
+        HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
+            .OfType<HtmlRenderText>(), run => run.Font.Size == 100D);
         Assert.True(result.Document.Options.TryResolveNamedFontFace("Arial", false, false, out PdfCore.PdfNamedFontFace face));
         Assert.True(result.Document.Options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? program));
         double ascent = program!.GetAscender(100D);
@@ -34,7 +39,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText shadowText = Assert.IsType<HtmlRenderText>(Assert.Single(sample.Visuals));
         Assert.Equal(text.PaintTopOverflow, shadowText.PaintTopOverflow, 3);
         Assert.True(sample.Y <= shadowText.Y - shadowText.PaintTopOverflow);
-        Assert.Equal("A", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText().Trim());
+        string extracted = PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
+        Assert.Equal(precedingNormalText ? "AA" : "A", string.Concat(extracted.Where(c => !char.IsWhiteSpace(c))));
     }
 
     [Fact]

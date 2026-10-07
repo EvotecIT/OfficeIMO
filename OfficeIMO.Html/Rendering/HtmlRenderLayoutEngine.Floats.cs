@@ -494,7 +494,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // when the line box can contain the source em sizes.
             bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle)
                 && !current.Segments.Any(segment => segment.Run.AtomicBlock == null
-                    && segment.Run.Style.Font.Size > lineHeight);
+                    && segment.Run.Style.Font.Size > segment.Run.Style.LineHeight);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
             double lineX = current.HasExplicitPlacement ? current.X : 0D;
