@@ -49,7 +49,7 @@ internal sealed partial class ContentStreamBuilder {
                 PdfGlyphRun.AppendGlyphHex(_sb, single.GlyphId);
                 _sb.Append("> Tj\n");
                 if (singleMarked) _sb.Append("EMC\n");
-                AdvanceTrackedText(single.AdvanceWidth1000 * fontSize / 1000D);
+                AdvanceTrackedText(single.AdvanceWidth1000 * fontSize / 1000D + _textCharacterSpacing);
                 index++;
                 continue;
             }
