@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PNG scan sample layout
+
+`OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
+one-bit grayscale PNGs. Other opaque images use eight-bit RGB samples. Decoded
+pixels, dimensions, and density remain unchanged.
+Consumers that inspect samples or add color-dependent PNG chunks must read the
+IHDR bit depth and color type instead of assuming eight-bit RGBA output.
+`EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
+encoding retains eight-bit RGBA output.
+
 ## PDF editing protection and source fonts
 
 Authenticated page, text, form, metadata and redaction rewrites preserve the

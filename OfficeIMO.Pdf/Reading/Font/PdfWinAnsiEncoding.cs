@@ -78,7 +78,7 @@ internal static class PdfWinAnsiEncoding {
     internal static bool CanEncodeCharacter(char value) =>
         TryGetByte(value, out _);
 
-    private static bool TryGetByte(char ch, out byte value) {
+    internal static bool TryGetByte(char ch, out byte value) {
         if (IsUnsupportedControlCharacter(ch)) {
             value = 0;
             return false;

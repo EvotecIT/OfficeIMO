@@ -6,10 +6,17 @@ namespace OfficeIMO.Workflows.Tests;
 public sealed class PdfPrintRendererTests {
     [Fact]
     public void PreparationRejectsSheetOutsideTheDeliveryWorkingSetBudget() {
-        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(200, 300)));
+        OfficeShape marker = OfficeShape.Rectangle(20, 20);
+        marker.FillColor = OfficeColor.Red;
+        marker.StrokeWidth = 0;
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            PageWidth = 200, PageHeight = 300, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
+        }).Canvas(canvas => canvas.Shape(marker, 20, 20));
+        // This sheet fits the pixel budget, but its RGB scanlines and decoded RGBA output
+        // together exceed the shared 256 MiB decoder bound. A blank bilevel sheet does not.
         Assert.Throws<InvalidOperationException>(() => PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = PageSizes.A4 },
-            new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 40_000_000 }));
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PageSize(650, 900) },
+            new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 45_000_000 }));
     }
 
     [Fact]

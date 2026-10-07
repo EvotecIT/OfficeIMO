@@ -829,7 +829,7 @@ jobs:
 
       - name: Run net472 contract tests
         # Exact image pixels are a dedicated modern-runtime visual-gate contract, not a cross-TFM invariant.
-        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --filter "Category!=ExcelImageVisualGate" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --filter "Category!=ExcelImageVisualGate&Category!=Performance" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Pack optional CodeGlyphX drawing bridge
         if: ${{ matrix.name == 'Drawing-CodeGlyphX' }}

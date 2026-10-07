@@ -12,7 +12,8 @@ internal enum OfficeRasterEncodingCheckpoint {
     PngFilteringBlock,
     JpegCoefficientRow,
     TiffCompressionRow,
-    WebpCompressionBlock
+    WebpCompressionBlock,
+    PngColorSelectionBlock
 }
 
 public static partial class OfficeRasterImageEncoder {
