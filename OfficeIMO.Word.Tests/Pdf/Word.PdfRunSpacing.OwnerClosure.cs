@@ -24,6 +24,8 @@ public partial class Word {
     [InlineData(true, "nested-textbox", true)]
     [InlineData(false, "nested-textbox-prefix", false)]
     [InlineData(true, "nested-textbox-prefix", true)]
+    [InlineData(false, "nested-textbox-surrounded", false)]
+    [InlineData(true, "nested-textbox-surrounded", true)]
     public void HeaderFooterSpacingSurvivesAlternateStoryPaths(bool footer, string route, bool characterStyle) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.AddParagraph("BODY");
@@ -46,9 +48,11 @@ public partial class Word {
             WordTextBox box = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square);
             first = box.Paragraphs.Single();
             if (route.StartsWith("nested-textbox", StringComparison.Ordinal)) {
-                first.Text = route == "nested-textbox-prefix" ? "AB" : string.Empty;
+                first.Text = route is "nested-textbox-prefix" or "nested-textbox-surrounded" ? "AB" : string.Empty;
                 ApplyClosureSpacing(first, characterStyle, scale, tracking);
-                first = first.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+                WordParagraph envelope = first;
+                first = envelope.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+                if (route == "nested-textbox-surrounded") ApplyClosureSpacing(envelope.AddText("CD"), characterStyle, scale, tracking);
             }
             if (reset) outer.SetStyleId("ExpandedParagraph");
         } else first = first.AddText(route.StartsWith("join", StringComparison.Ordinal) ? "MM" : "MMMMX");
@@ -76,12 +80,33 @@ public partial class Word {
         Assert.All(text, letter => Assert.Equal(text[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
         // Helvetica M advances 9.996pt at 12pt; tracking is fixed page points.
         Assert.InRange(Math.Abs(text[4].StartBaseLine.X - text[0].StartBaseLine.X - (4D * 9.996D * scale / 100D + 4D * tracking / 20D)), 0D, 0.03D);
-        if (route == "nested-textbox-prefix") {
+        if (route is "nested-textbox-prefix" or "nested-textbox-surrounded") {
             Letter a = pdf.GetPage(1).Letters.Single(letter => letter.Value == "A");
             Letter b = pdf.GetPage(1).Letters.Single(letter => letter.Value == "B" && Math.Abs(letter.StartBaseLine.Y - a.StartBaseLine.Y) < 0.01D);
             Assert.InRange(Math.Abs(b.StartBaseLine.X - a.StartBaseLine.X - (8.004D * scale / 100D + tracking / 20D)), 0D, 0.03D);
         }
         Assert.Equal(before, footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HeaderFooterMixedTextBoxesKeepSourceOrderAndRepeatedTextIdentity(bool footer) {
+        using WordDocument document = CreateJoinedParagraphDocument(); document.AddParagraph("Body");
+        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordParagraph outer = story.AddParagraph("MMMMX"); outer.Style = WordParagraphStyles.Normal;
+        WordParagraph firstBox = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = 20;
+        WordParagraph suffix = outer.AddText("MMMMX");
+        WordParagraph secondBox = suffix.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
+        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = -10;
+        using var pdf = OpenJoinedParagraphPdf(document);
+        Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
+        Assert.Equal(string.Concat(Enumerable.Repeat("MMMMX", 4)), string.Concat(text.Select(letter => letter.Value)));
+        double[] expected = { 39.984D, 83.968D, 39.984D, 17.992D };
+        for (int index = 0; index < 4; index++)
+            Assert.InRange(Math.Abs(text[index * 5 + 4].StartBaseLine.X - text[index * 5].StartBaseLine.X - expected[index]), 0D, 0.03D);
+        Assert.Empty(document.ValidateDocument());
     }
 
     private static void ApplyClosureSpacing(WordParagraph paragraph, bool characterStyle, int scale, int tracking) {

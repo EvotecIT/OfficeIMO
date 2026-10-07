@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
             double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
             double textWidth;
-            if (GetMaxExplicitTableRunFontSize(cell) > 0D) {
+            if (GetMaxExplicitTableRunFontSize(cell) > 0D || HasTableCellCharacterSpacing(cell)) {
                 explicitMeasurements ??= new TableCellTextWidthMeasurement?[cells.Count];
                 TableCellTextWidthMeasurement measurement = PrepareTableCellTextWidthMeasurement(cell, rowFont, effectiveOptions);
                 explicitMeasurements[cellIndex] = measurement;
@@ -246,6 +246,18 @@ internal static partial class PdfWriter {
             foreach (TableTextLineWidthMeasurement line in paragraph)
                 foreach (TableRunWidthMeasurement run in line.Runs)
                     if (!run.Inline && run.FixedWidth != 0D) return true;
+        return false;
+    }
+
+    private static bool HasTableCellCharacterSpacing(TableCellLayout cell) {
+        if (cell.Paragraphs.Count > 0) {
+            foreach (PdfTableCellParagraph paragraph in cell.Paragraphs)
+                foreach (PdfTextRun run in paragraph.Runs)
+                    if (run.CharacterSpacing != 0D) return true;
+        } else {
+            foreach (PdfTextRun run in cell.Runs)
+                if (run.CharacterSpacing != 0D) return true;
+        }
         return false;
     }
 

@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
             string? text = GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out PdfCore.PdfPageNumberStyle? pageNumberStyle, out NativeHeaderFooterZone? zoneOverride);
             IReadOnlyList<NativeHeaderFooterStyledReplacement>? replacements = textBox == null
                 ? CreateNativeHeaderFooterSpacingReplacements(paragraph, nativeFontMap)
-                : CreateNativeHeaderFooterTextBoxListReplacements(textBox, listMarkers, nativeFontMap);
+                : CreateNativeHeaderFooterTextBoxReplacements(paragraph, listMarkers, nativeFontMap);
             AddNativeHeaderFooterResolvedParagraphText(parts, paragraph, text, pageNumberStyle, forcedZone ?? zoneOverride, listMarkers, nativeFontMap, replacements);
         }
 
@@ -84,54 +84,6 @@ namespace OfficeIMO.Word.Pdf {
             } else {
                 parts.AppendLeft(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
             }
-        }
-
-        private static IReadOnlyList<NativeHeaderFooterStyledReplacement> CreateNativeHeaderFooterTextBoxListReplacements(
-            WordTextBox textBox,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
-            NativeFontMap? nativeFontMap) {
-            var replacements = new List<NativeHeaderFooterStyledReplacement>();
-            var pending = new Stack<IEnumerator<WordParagraph>>();
-            pending.Push(GetNativeTextBoxParagraphs(textBox).GetEnumerator());
-            while (pending.Count > 0) {
-                IEnumerator<WordParagraph> current = pending.Peek();
-                if (!current.MoveNext()) {
-                    current.Dispose();
-                    pending.Pop();
-                    continue;
-                }
-
-                WordParagraph innerParagraph = current.Current;
-                WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(innerParagraph);
-                if (info != null &&
-                    listMarkers.TryGetValue(innerParagraph, out var marker) &&
-                    !string.IsNullOrEmpty(marker.Marker)) {
-                    string serializedPrefix = NormalizeNativeDirectText(
-                        marker.Marker + ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix));
-                    NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(innerParagraph, nativeFontMap: nativeFontMap);
-                    (double MarkerOffset, double TextOffset) offsets = ResolveNativeHeaderFooterListOffsets(innerParagraph, info.Value);
-                    PdfCore.PdfTextRun styledMarker = CreateNativeHeaderFooterListMarkerTextRun(
-                        marker.Marker,
-                        innerParagraph,
-                        info.Value,
-                        textStyle,
-                        nativeFontMap,
-                        offsets.MarkerOffset,
-                        offsets.TextOffset);
-                    replacements.Add(new NativeHeaderFooterStyledReplacement(serializedPrefix, styledMarker));
-                }
-
-                WordTextBox? nested = GetNativeParagraphTextBox(innerParagraph, out _);
-                // Flattened text retains each inner paragraph's direct runs and
-                // natural resets. Nested text is collected from its own paragraph.
-                IReadOnlyList<NativeHeaderFooterStyledReplacement>? spacing =
-                    CreateNativeHeaderFooterSpacingReplacements(innerParagraph, nativeFontMap, preserveNaturalSpacing: true);
-                if (spacing != null) replacements.AddRange(spacing);
-                if (nested != null) {
-                    pending.Push(GetNativeTextBoxParagraphs(nested).GetEnumerator());
-                }
-            }
-            return replacements;
         }
 
         private static (double MarkerOffset, double TextOffset) ResolveNativeHeaderFooterListOffsets(
