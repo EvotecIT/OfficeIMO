@@ -18,6 +18,7 @@ param(
 $ErrorActionPreference = 'Stop'
 if (-not $Qualification -and $Formats -contains 'xlsx') { throw 'XLSX lanes perform unequal width-sizing work. Use -Qualification with -Lanes compatibility,batched for output validation without cross-library rankings.' }
 if ($Qualification -and $Lanes -contains 'native') { throw 'Qualification accepts only OfficeIMO compatibility/batched lanes; select -Lanes explicitly.' }
+if (-not $Qualification -and ($Lanes -notcontains 'native' -or @($Lanes | Where-Object { $_ -ne 'native' }).Count -eq 0)) { throw 'A comparison requires native and at least one OfficeIMO lane. Use -Qualification for OfficeIMO-only measurements.' }
 Import-Module PSPublishModule -ErrorAction Stop
 $repository = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
 Add-Type -Path (Join-Path $PSScriptRoot 'DataTablesBenchmarkClient.cs')

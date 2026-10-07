@@ -5,6 +5,15 @@ import { createDataTablesExport, exportDataTable, writeDataTableTo, registerData
 import { readZip } from "./zip-reader.mjs";
 async function collect(source) { const rows = []; for await (const row of source) rows.push(row); return rows; }
 
+test("DataTables rejects workbook-local style IDs before reading the source or destination", async () => {
+  const { host, table } = fixture();
+  let sourceRead = false, written = false;
+  table.page.info = () => { sourceRead = true; throw new Error("source read"); };
+  assert.throws(() => createDataTablesExport(host, table, { columnOptions: { 0: { style: 1 } } }), /Workbook-local/);
+  await assert.rejects(writeDataTableTo(host, table, "xlsx", { write() { written = true; } }, { sheet: { headerStyle: 1 } }), /Workbook-local/);
+  assert.equal(sourceRead, false); assert.equal(written, false);
+});
+
 // Contract-shaped external API: deliberately returns batch cells in a different order.
 function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows } = {}) {
   const calls = [], apiArray = values => ({ toArray: () => values });

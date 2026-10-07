@@ -37,7 +37,7 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 
 `OFFICEIMO_JS_EVIDENCE_DIR` optionally retains the ordinary C# test's generated corpus beneath a caller-owned evidence directory. Without it, the test uses and deletes a unique temporary directory. Browser reports record engine/version, layer assertions, workbooks, CSV counts, worker/limit coverage and runtime errors. Example screenshots capture wide/compact states; screenshots complement the download assertions.
 
-Host-dependent measurements stay explicit:
+Host-dependent measurements stay explicit. Comparison runs require the native baseline and at least one OfficeIMO lane; select `-Qualification` for OfficeIMO-only measurements:
 
 ```powershell
 node Build/BrowserExports/measure.mjs "$evidence/measurements"

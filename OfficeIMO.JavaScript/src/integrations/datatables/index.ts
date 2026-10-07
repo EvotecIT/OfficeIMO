@@ -15,6 +15,8 @@ export type { DataTablesApi, DataTablesHost, DataTablesOptions, DataTablesExport
 export async function writeDataTableTo(host: DataTablesHost, table: DataTablesApi, format: "xlsx" | "csv", sink: ByteSink,
   options: DataTablesWriteOptions = {}): Promise<{ readonly rows: number; readonly columns: number; readonly bytes: number }> {
   if (format !== "xlsx" && format !== "csv") throw new TypeError("DataTables export format must be xlsx or csv.");
+  if ((options.sheet as { headerStyle?: unknown } | undefined)?.headerStyle !== undefined)
+    throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
   const source = createDataTablesExport(host, table, options), signal = options.signal;
   let bytes = 0;
   const destination: ByteSink = { async write(chunk) { await sink.write(chunk); bytes += chunk.byteLength; } };
@@ -24,7 +26,7 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
     try {
       const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
       const sheet = book.addSheet(options.sheetName ?? "Data", { boldHeader: true, autoFilter: true,
-        autoSize: { sampleRows: 100, minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
+        autoSize: { minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
         ...(footer ? { footer } : {}) });
       await sheet.addRows(source.rows); await book.finish();
     } catch (error) { await book.discard(error); throw error; }

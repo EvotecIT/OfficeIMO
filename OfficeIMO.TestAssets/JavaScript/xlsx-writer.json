@@ -1,6 +1,13 @@
 {
   "schemaVersion": 1,
   "cases": [
+    { "name": "automatic-width-budget", "options": { "limits": { "maxBufferedCells": 4, "maxBufferedCharacters": 50 } }, "sheets": [
+      { "name": "Budget", "columns": [{ "header": "Name" }, { "header": "Amount", "key": "amount", "format": "0.00" }, { "header": "Seen", "type": "date", "format": "yyyy-mm-dd" }],
+        "autoSize": {}, "footer": { "totals": { "amount": "sum" } },
+        "rows": [["Łódź 🧪", 12.5, { "kind": "date", "value": "2026-10-07T00:00:00Z" }], ["second", 7.5, null]],
+        "expected": { "A2": "Łódź 🧪", "B2": 12.5, "B3": 7.5, "B4": 20 }
+      }
+    ] },
     { "name": "conditional-report", "options": { "limits": { "maxConditionalFormats": 10, "maxDifferentialStyles": 4 } },
       "styles": [{ "font": { "bold": true, "italic": true, "underline": true }, "border": { "left": { "style": "thin", "color": "0000FF" } } }], "sheets": [
       { "name": "Live report", "title": { "text": "Live report highlights", "height": 30 },

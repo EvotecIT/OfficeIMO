@@ -1807,7 +1807,7 @@ _modules.set("67c9ed709d6d3b3ebea43d7d9235aa40076a207c3e574b8810e8a5d2ce5e1239",
 return _exports;
 })();
 
-const _m23 = _modules.get("e74eb8cfdcb658bf4a6b094e8218392a1f8239c7915e84256a7986f3538cf408") ?? (() => {
+const _m23 = _modules.get("1c4c718102cb82a554d539adc7195636bf9d67a553f359fb030dff6465bcc7c8") ?? (() => {
 const { ExportCell } = _m5;
 
 const { Cell, cellText, columnName } = _m20;
@@ -1841,7 +1841,7 @@ class ReportLayout {
     widths;
     sampleRows;
     aggregates;
-    constructor(columns, options, policy, maximumMerges = 10000) {
+    constructor(columns, options, policy, maximumMerges = 10000, maximumSampleCells = 100000) {
         this.columns = columns;
         this.options = options;
         const titleRows = options.title === undefined ? 0 : 1;
@@ -1894,7 +1894,7 @@ class ReportLayout {
         this.headings = headings;
         this.merges = this.regions.references;
         const sizing = options.autoSize;
-        this.sampleRows = sizing ? sizing.sampleRows ?? 100 : 0;
+        this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
         if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000)
             throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
         const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
@@ -1995,7 +1995,7 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("e74eb8cfdcb658bf4a6b094e8218392a1f8239c7915e84256a7986f3538cf408", _exports);
+_modules.set("1c4c718102cb82a554d539adc7195636bf9d67a553f359fb030dff6465bcc7c8", _exports);
 return _exports;
 })();
 
@@ -2165,7 +2165,7 @@ _modules.set("245bcab47c5fb74eea208523698093cdf2acce107e7eb260272d57f713c245a6",
 return _exports;
 })();
 
-const _m21 = _modules.get("1f8526ef111b0cc8f6dc4a4c69eebc1106f475f60ddc7ed4ebb0ce147b053a57") ?? (() => {
+const _m21 = _modules.get("db997ce32414f768d8c208bf589fd03073e9c3c346b5c2f57005697ace79cda3") ?? (() => {
 const { checkAbort, inputRows } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -2236,7 +2236,7 @@ class Worksheet {
             ...(options.print ? { print: { ...options.print, ...(options.print.margins ? { margins: { ...options.print.margins } } : {}) } } : {}),
             ...(options.footer ? { footer: { ...options.footer, ...(options.footer.values ? { values: options.footer.values.map(copyValue) } : {}), ...(options.footer.totals ? { totals: { ...options.footer.totals } } : {}), ...(options.footer.style ? { style: copyStylePatch(options.footer.style) } : {}) } } : {}),
             ...(alternate ? { alternatingRowStyle: copyStylePatch(alternate) } : {}) };
-        this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+        this.layout = new ReportLayout(this.columns, this.options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
         for (const link of options.hyperlinks ?? [])
@@ -2262,7 +2262,7 @@ class Worksheet {
         book.checkConditionalFormats(options.conditionalFormats?.length ?? 0);
         const conditional = prepareConditionalFormats(options.conditionalFormats, columns, book.settings.invalidCharacterPolicy);
         book.styles.checkDifferentials(conditional.flatMap(rule => rule.style ? [rule.style] : []));
-        const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000);
+        const layout = new ReportLayout(columns, options, book.settings.invalidCharacterPolicy, book.settings.limits?.maxMergedRanges ?? 10000, book.settings.limits?.maxBufferedCells ?? 100000);
         book.checkMerges(layout.merges.length);
         if (options.title?.style)
             validateStylePatch(options.title.style);
@@ -2527,15 +2527,33 @@ class Worksheet {
                         throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
                     const encoded = [];
                     for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
-                        if (this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000))
-                            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
-                        this.pendingCharacters += chunk.length;
-                        encoded.push(chunk);
+                        if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
+                            if (this.options.autoSize?.sampleRows !== undefined)
+                                throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                            // Automatic sizing can finish early. Continue this same serialized row so
+                            // custom writers, presentation callbacks, totals and links run only once.
+                            this.layout.sample(values);
+                            await this.start();
+                            for (const retained of encoded)
+                                if (this.buffer.append(retained))
+                                    await this.buffer.flush();
+                            encoded.length = 0;
+                        }
+                        if (this.started) {
+                            if (this.buffer.append(chunk))
+                                await this.buffer.flush();
+                        }
+                        else {
+                            this.pendingCharacters += chunk.length;
+                            encoded.push(chunk);
+                        }
                     }
-                    this.layout.sample(values);
-                    this.pending.push(encoded);
+                    if (!this.started) {
+                        this.layout.sample(values);
+                        this.pending.push(encoded);
+                    }
                     this.count++;
-                    if (this.pending.length >= this.layout.sampleRows)
+                    if (!this.started && this.pending.length >= this.layout.sampleRows)
                         await this.start();
                 }
                 else {
@@ -2683,11 +2701,11 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("1f8526ef111b0cc8f6dc4a4c69eebc1106f475f60ddc7ed4ebb0ce147b053a57", _exports);
+_modules.set("db997ce32414f768d8c208bf589fd03073e9c3c346b5c2f57005697ace79cda3", _exports);
 return _exports;
 })();
 
-const _m26 = _modules.get("d9a28cccf419c0443867f4eb6aa3d782569cd3232ebe82e5e8b5ba5f70dd7798") ?? (() => {
+const _m26 = _modules.get("83e9d7c4c352fc3c98529ffb0c61ca667d40b79f1605ee1f18fb19e83412b586") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m14;
 
 const { cellText, columnName } = _m20;
@@ -2730,7 +2748,7 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("d9a28cccf419c0443867f4eb6aa3d782569cd3232ebe82e5e8b5ba5f70dd7798", _exports);
+_modules.set("83e9d7c4c352fc3c98529ffb0c61ca667d40b79f1605ee1f18fb19e83412b586", _exports);
 return _exports;
 })();
 
@@ -2802,7 +2820,7 @@ _modules.set("8b1eabba233e018a997d7562b13203704ad86f3332e3b57f96ab5790a053203b",
 return _exports;
 })();
 
-const _m10 = _modules.get("54d3beefbef6bbab388190c08d52de16ef6b80869a0c19becca1c323816d2fcc") ?? (() => {
+const _m10 = _modules.get("c4fea32747ba03929213bccd7648796386fe2483c1f8a17867f07078a084a408") ?? (() => {
 const { checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -3097,14 +3115,14 @@ class Workbook {
 }
 function createWorkbook(options = {}) { return new Workbook(options); }
 const _exports = Object.freeze({ Workbook: Workbook, createWorkbook: createWorkbook });
-_modules.set("54d3beefbef6bbab388190c08d52de16ef6b80869a0c19becca1c323816d2fcc", _exports);
+_modules.set("c4fea32747ba03929213bccd7648796386fe2483c1f8a17867f07078a084a408", _exports);
 return _exports;
 })();
 
-const _m9 = _modules.get("188fa32f5002472c62ee03d375fefc8f0a3a97980438450938b46082eb4cc6b2") ?? (() => {
+const _m9 = _modules.get("45bc25db7f6172b512f77d3b2ca192ec1617b1758c77c6ab8b6dc4f4af9e5316") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m10.Workbook, createWorkbook: _m10.createWorkbook, Worksheet: _m21.Worksheet, Cell: _m20.Cell, StyleRegistry: _m17.StyleRegistry, NumberFormats: _m17.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("188fa32f5002472c62ee03d375fefc8f0a3a97980438450938b46082eb4cc6b2", _exports);
+_modules.set("45bc25db7f6172b512f77d3b2ca192ec1617b1758c77c6ab8b6dc4f4af9e5316", _exports);
 return _exports;
 })();
 
@@ -3205,7 +3223,7 @@ _modules.set("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73",
 return _exports;
 })();
 
-const _m30 = _modules.get("0eb1083c8deef226fb9d3104ed964bf95b517e05bac9e9402564f6f98fbc68e3") ?? (() => {
+const _m30 = _modules.get("2c7d6cb641e5dbcee1dfac886c076bdf5f486febb567b964f56ad1bb47274a67") ?? (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
@@ -3229,6 +3247,9 @@ function safeOptions(options) {
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
+    for (const column of Object.values(options.columnOptions ?? {}))
+        if (column.style !== undefined)
+            throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
     const mode = options.mode ?? "batched", headingMode = options.headings ?? "grouped";
     if (!["batched", "compatibility"].includes(mode))
         throw new TypeError("Unknown DataTables export mode.");
@@ -3372,11 +3393,11 @@ function createDataTablesExport(host, table, options = {}) {
         footer: footer ? Object.freeze(footer) : undefined, rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
-_modules.set("0eb1083c8deef226fb9d3104ed964bf95b517e05bac9e9402564f6f98fbc68e3", _exports);
+_modules.set("2c7d6cb641e5dbcee1dfac886c076bdf5f486febb567b964f56ad1bb47274a67", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("0aa4541fb138cfe6c3a94d9d23a6319e2098371ac45df4de943eef8ee8475778") ?? (() => {
+const _m0 = _modules.get("fc3a3adace6f0c4c5037daf7641c861e0ab7e7c69eb77a41edce2737bef91854") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -3397,6 +3418,8 @@ const { createDataTablesExport } = _m30;
 async function writeDataTableTo(host, table, format, sink, options = {}) {
     if (format !== "xlsx" && format !== "csv")
         throw new TypeError("DataTables export format must be xlsx or csv.");
+    if (options.sheet?.headerStyle !== undefined)
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
     const source = createDataTablesExport(host, table, options), signal = options.signal;
     let bytes = 0;
     const destination = { async write(chunk) { await sink.write(chunk); bytes += chunk.byteLength; } };
@@ -3406,7 +3429,7 @@ async function writeDataTableTo(host, table, format, sink, options = {}) {
         try {
             const footer = source.footer || options.sheet?.footer ? { values: source.footer ?? [], ...options.sheet?.footer } : undefined;
             const sheet = book.addSheet(options.sheetName ?? "Data", { boldHeader: true, autoFilter: true,
-                autoSize: { sampleRows: 100, minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
+                autoSize: { minWidth: 6, maxWidth: 54 }, ...options.sheet, columns: source.columns,
                 ...(footer ? { footer } : {}) });
             await sheet.addRows(source.rows);
             await book.finish();
@@ -3497,7 +3520,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m30.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("0aa4541fb138cfe6c3a94d9d23a6319e2098371ac45df4de943eef8ee8475778", _exports);
+_modules.set("fc3a3adace6f0c4c5037daf7641c861e0ab7e7c69eb77a41edce2737bef91854", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

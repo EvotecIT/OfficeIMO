@@ -15,6 +15,10 @@ async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
     project: value => new ExportCell(value instanceof ExportCell ? value.value : value, { presentation: { bold: true } }) });
   void source.rowCount;
   await exportDataTable(host, table, 'xlsx', { sheet: { table: {} }, columnOptions: { 1: { type: 'number', format: '0.00' } } });
+  // @ts-expect-error adapter columns use portable presentation, not private workbook IDs
+  await exportDataTable(host, table, 'xlsx', { columnOptions: { 0: { style: 1 } } });
+  // @ts-expect-error header style IDs belong to the advanced Workbook API
+  await exportDataTable(host, table, 'xlsx', { sheet: { headerStyle: 1 } });
   await writeDataTableTo(host, table, 'csv', { write() {} }, { serverSide: 'loaded', csv: { quote: 'all' } });
   registerDataTablesButtons(host, { save: async (blob, filename) => { void [blob, filename]; } });
   // @ts-expect-error PDF is a separate format milestone

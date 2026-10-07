@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { ExportCell } from "../dist/core/index.js";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { createWorkbook } from "../dist/xlsx/index.js";
+import { createWorkbook, Workbook } from "../dist/xlsx/index.js";
 import { readZip } from "./zip-reader.mjs";
 
 test("typed workbook stores literal text, date serials and styles with valid ZIP payloads", async () => {
@@ -147,6 +148,33 @@ test("standalone ES module assets execute the same writer contracts", async () =
       assert.match((await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content, /Łódź 🧪/);
     }
     if (module.writeCsv) assert.equal(await (await module.writeCsv([["=literal"]], { columns: [{ header: "V" }] })).text(), "V\r\n'=literal\r\n");
+  }
+});
+
+test("automatic width sampling fits wide tables within cell and encoded text budgets", async () => {
+  const columns = Array.from({ length: 1001 }, (_, i) => ({ header: "C" + i }));
+  const book = new Workbook({ compression: "store" });
+  await book.addSheet("Wide", { columns, autoSize: {} }).addRows(Array.from({ length: 100 }, () => columns.map(() => 1)));
+  const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
+  assert.equal([...xml.matchAll(/<row /g)].length, 101);
+  assert.match(xml, /r="ALM101"[^>]*><v>1<\/v>/);
+});
+
+test("automatic sampling can flush mid-row without repeating callbacks, links or totals", async () => {
+  for (const limits of [{ maxBufferedCells: 1 }, { maxBufferedCharacters: 50 }]) {
+    let calls = 0;
+    const book = new Workbook({ compression: "store", limits, cellValueWriters: { amount: v => { calls++; return new ExportCell(v, { presentation: { background: "C6EFCE" } }); } } });
+    const sheet = book.addSheet("Budget", { columns: [{ header: "Name" }, { header: "Amount", key: "amount", type: "amount", format: "0.00" }],
+      autoSize: {}, footer: { totals: { amount: "sum" } }, hyperlinks: [{ cell: "A2", target: "https://example.com" }] });
+    await sheet.addRows([["Łódź 🧪", 12.5]]); await sheet.addRows([["second", 7.5]]);
+    const parts = await readZip(await book.toBlob()), xml = parts.get("xl/worksheets/sheet1.xml").content;
+    assert.equal(calls, 2); assert.match(xml, /Łódź 🧪/); assert.match(xml, /<f>SUBTOTAL\(109,B2:B3\)<\/f><v>20<\/v>/);
+    assert.equal([...xml.matchAll(/<hyperlink /g)].length, 1); assert.equal([...xml.matchAll(/<row /g)].length, 4);
+    assert.match(parts.get("xl/styles.xml").content, /formatCode="0.00"/);
+  }
+  for (const limits of [{ maxBufferedCells: 1 }, { maxBufferedCharacters: 50 }]) {
+    const book = new Workbook({ limits });
+    await assert.rejects(book.addSheet("Explicit", { columns: [{ header: "A" }, { header: "B" }], autoSize: { sampleRows: 2 } }).addRows([["value", 1]]), { code: "RESOURCE_LIMIT" });
   }
 });
 

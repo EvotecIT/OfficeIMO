@@ -57,7 +57,7 @@ export interface DataTablesOptions extends StreamOptions {
   /** Server-side tables require explicit acknowledgement that only loaded rows are available. */
   readonly serverSide?: "reject" | "loaded";
   /** Overrides keyed by DataTables column index, independent of the selected export position. */
-  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups">>>>;
+  readonly columnOptions?: Readonly<Record<number, Partial<Omit<Column, "groups" | "style">>>>;
   /** Resolve portable values/presentation once. Results must be synchronous scalar values or ExportCells. */
   readonly project?: (value: ExportValue, context: DataTablesCellContext) => ExportValue;
 }
@@ -74,7 +74,7 @@ export interface DataTablesWriteOptions extends DataTablesOptions {
   readonly limits?: WorkbookLimits;
   readonly sheetName?: string;
   readonly workbook?: Omit<WorkbookOptions, "sink" | "signal" | "onProgress" | "limits">;
-  readonly sheet?: Omit<SheetOptions, "columns" | "includeHeader">;
+  readonly sheet?: Omit<SheetOptions, "columns" | "includeHeader" | "headerStyle">;
   readonly csv?: Omit<CsvOptions, "columns" | "includeHeader" | "signal" | "onProgress" | "limits">;
 }
 export interface DataTablesButtonOptions extends DataTablesWriteOptions {
