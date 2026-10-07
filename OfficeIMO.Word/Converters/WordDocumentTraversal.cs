@@ -620,7 +620,7 @@ namespace OfficeIMO.Word {
             public int GetHashCode(WordParagraph obj) => RuntimeHelpers.GetHashCode(obj._paragraph);
         }
 
-        private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
+        private static string BuildMarker(int level, int index, Dictionary<int, long> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
             if (string.IsNullOrEmpty(pattern)) {
                 string formatted = FormatNumber(index, formats[level]);
                 return formatted + ".";
@@ -633,7 +633,7 @@ namespace OfficeIMO.Word {
                     return m.Value;
                 }
                 int lvl = placeholderLevel - 1;
-                int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
+                int value = lvl == level ? index : indices.TryGetValue(lvl, out long val) ? checked((int)(val - 1)) : 0;
                 formats.TryGetValue(lvl, out WordNumberFormat? fmt);
                 return FormatNumber(value, fmt);
             });
