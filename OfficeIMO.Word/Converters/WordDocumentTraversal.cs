@@ -339,12 +339,7 @@ namespace OfficeIMO.Word {
                 return result;
             }
 
-            var abstracts = new Dictionary<int, AbstractNum>();
-            foreach (AbstractNum abstractNum in numbering.Elements<AbstractNum>()) {
-                if (abstractNum.AbstractNumberId?.HasValue == true && !abstracts.ContainsKey(abstractNum.AbstractNumberId.Value)) {
-                    abstracts.Add(abstractNum.AbstractNumberId.Value, abstractNum);
-                }
-            }
+            Dictionary<int, AbstractNum> abstracts = WordListNumberingResolver.GetCanonicalAbstractDefinitions(numbering);
 
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
                 if (instance.NumberID?.Value == null) {
