@@ -3,10 +3,6 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Markup;
 
 public static partial class OfficeMarkupParser {
-    private static MarkdownReaderOptions CreateNestedMarkdownOptions() {
-        return DefaultMarkdownOptions;
-    }
-
     private static string ToPlainText(InlineSequence sequence) {
         return InlinePlainText.Extract(sequence);
     }

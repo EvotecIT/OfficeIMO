@@ -175,6 +175,8 @@ An authored `<details>` disclosure without `open` renders its first `<summary>` 
 
 CSS corner radii scale proportionally to fit the used box before creating rounded shapes and clips. Fractional dimensions and narrow form-control tracks retain rounded geometry within the shared drawing bounds.
 
+HTML `<button>` descendants retain their own fonts, visibility and block, flex or grid layout in static image and PDF output. Buttons with normal-flow child content center that content vertically when their height leaves spare space; authored flex and grid alignment controls those layouts. Automatic inline-block widths measure styled descendants, including their padding and borders, so larger child text reserves its own space. Hidden buttons follow the same display rules as other elements.
+
 The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
 including nested scripts. Logical replacement text owns its painted content once, so independent
 PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image
