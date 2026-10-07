@@ -11,20 +11,21 @@ public static partial class OfficeDrawingRasterRenderer {
         if (pattern.Opacity <= 0D) return;
         canvas = canvas.WithDrawingTextProfile(pattern.InnerTile);
         cancellationToken.ThrowIfCancellationRequested();
+        double scaleX = scale * canvas.CoordinateScaleX, scaleY = scale * canvas.CoordinateScaleY;
         _ = OfficeRasterExportPlanner.Resolve(
-            pattern.InnerTile.Width,
-            pattern.InnerTile.Height,
+            pattern.InnerTile.Width * scaleX,
+            pattern.InnerTile.Height * scaleY,
             OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
-                Scale = scale,
+                Scale = 1D,
                 MaximumRasterPixels = maximumRasterPixels,
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
         canvas.ChargeIntermediateSurfacePixels(
-            (long)System.Math.Ceiling(pattern.InnerTile.Width * scale) *
-            (long)System.Math.Ceiling(pattern.InnerTile.Height * scale), maximumRasterPixels);
-        OfficeRasterImage tile = Render(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
-            Scale = scale,
+            (long)System.Math.Ceiling(pattern.InnerTile.Width * scaleX) *
+            (long)System.Math.Ceiling(pattern.InnerTile.Height * scaleY), maximumRasterPixels);
+        OfficeRasterImage tile = RenderCore(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
+            Scale = System.Math.Max(scaleX, scaleY),
             ImageCodec = imageCodec,
             TextShapingProvider = canvas.TextShapingProvider,
             TextShapingLanguage = canvas.TextShapingLanguage,
@@ -33,7 +34,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
-        });
+        }, scaleX, scaleY);
         bool interpolate = !ContainsNonInterpolatedImage(
             pattern.InnerTile,
             (0D, 0D, pattern.InnerTile.Width, pattern.InnerTile.Height),
@@ -42,7 +43,10 @@ public static partial class OfficeDrawingRasterRenderer {
         using (canvas.PushClipRectangle(area.X * scale, area.Y * scale, area.Width * scale, area.Height * scale)) {
             foreach (OfficeTransform transform in pattern.GetTileTransforms(pattern.MaximumTileCount)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var pixelTransform = new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX * scale, transform.OffsetY * scale);
+                OfficeTransform pixelTransform = new OfficeTransform(
+                    transform.M11 * scale / scaleX, transform.M12 * scale / scaleX,
+                    transform.M21 * scale / scaleY, transform.M22 * scale / scaleY,
+                    transform.OffsetX * scale, transform.OffsetY * scale);
                 canvas.DrawAffineImage(tile, pixelTransform, pattern.Opacity, interpolate);
             }
         }

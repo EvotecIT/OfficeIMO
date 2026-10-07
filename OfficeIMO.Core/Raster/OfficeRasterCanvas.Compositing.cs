@@ -13,6 +13,8 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        transform = ScaleCoordinates(transform);
+
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");

@@ -8,6 +8,9 @@ public static partial class OfficeDrawingRasterRenderer {
     private static void RenderTransformedPositionedText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         canvas.CancellationToken.ThrowIfCancellationRequested();
         using var cffScope = canvas.PushCffExecutionScope();
+        OfficeImageFrameTransform frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale,
+            text.RotationCenterY * scale, text.FlipHorizontal, text.FlipVertical);
+        (double axisX, double axisY) = GetTextLayerAxisScales(frame, canvas);
         double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
         double sourceSize = Math.Max(.1D, text.Font.Size * scale);
         string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
@@ -32,26 +35,28 @@ public static partial class OfficeDrawingRasterRenderer {
         // Transparent sampling support is optional; actual ink and the caller's pixel
         // ceiling are not. An exact-fit frame must not fail solely because of padding.
         double paddedWidth = right - left + 2D, paddedHeight = bottom - top + 2D;
-        if (paddedHeight > 0D && paddedWidth <= maximumRasterPixels / paddedHeight) {
+        if (paddedHeight > 0D && paddedWidth * axisX <= maximumRasterPixels / (paddedHeight * axisY)) {
             left -= 1D; top -= 1D; right += 1D; bottom += 1D;
         }
-        _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
+        double pixelWidth = Math.Max(1D, Math.Ceiling((right - left) * axisX));
+        double pixelHeight = Math.Max(1D, Math.Ceiling((bottom - top) * axisY));
+        _ = OfficeRasterExportPlanner.Resolve(pixelWidth, pixelHeight, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
         canvas.ChargeTransformedTextIntermediatePixels(
-            checked((long)Math.Max(1D, Math.Ceiling(right - left)) * (long)Math.Max(1D, Math.Ceiling(bottom - top))), maximumRasterPixels);
-        var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));
+            checked((long)pixelWidth * (long)pixelHeight), maximumRasterPixels);
+        OfficeRasterImage layer = new OfficeRasterImage((int)pixelWidth, (int)pixelHeight);
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
         local.FontMetricScale = canvas.FontMetricScale;
+        local.SetCoordinateScale(axisX, axisY);
         using var faceScope = local.PushTextFace(text.Font.Face);
         local.ShareCffOperationBudget(canvas);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
         local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
-        var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale, text.RotationCenterY * scale,
-            text.FlipHorizontal, text.FlipVertical);
-        OfficeTransform transform = OfficeTransform.Translate(text.X * scale + left, text.Y * scale + top).Then(frame.CreateDestinationTransform());
+        OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
+            .Then(OfficeTransform.Translate(text.X * scale + left, text.Y * scale + top)).Then(frame.CreateDestinationTransform());
         canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
     }
 
@@ -86,19 +91,25 @@ public static partial class OfficeDrawingRasterRenderer {
         double contentWidth,
         double contentHeight,
         long maximumRasterPixels) {
-        _ = OfficeRasterExportPlanner.Resolve(contentWidth, contentHeight, OfficeImageExportFormat.Png,
+        OfficeImageFrameTransform frame = new OfficeImageFrameTransform(text.RotationDegrees,
+            text.RotationCenterX * scale, text.RotationCenterY * scale, text.FlipHorizontal, text.FlipVertical);
+        (double axisX, double axisY) = GetTextLayerAxisScales(frame, canvas);
+        double pixelWidth = Math.Max(1D, Math.Ceiling(contentWidth * axisX));
+        double pixelHeight = Math.Max(1D, Math.Ceiling(contentHeight * axisY));
+        _ = OfficeRasterExportPlanner.Resolve(pixelWidth, pixelHeight, OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
                 MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels),
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
-        long layerPixels = checked((long)Math.Max(1D, Math.Ceiling(contentWidth)) * (long)Math.Max(1D, Math.Ceiling(contentHeight)));
+        long layerPixels = checked((long)pixelWidth * (long)pixelHeight);
         canvas.ChargeTransformedTextIntermediatePixels(layerPixels, maximumRasterPixels);
-        var layer = new OfficeRasterImage(Math.Max(1, (int)Math.Ceiling(contentWidth)), Math.Max(1, (int)Math.Ceiling(contentHeight)));
+        OfficeRasterImage layer = new OfficeRasterImage((int)pixelWidth, (int)pixelHeight);
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
             cancellationToken: canvas.CancellationToken);
         local.FontMetricScale = canvas.FontMetricScale;
+        local.SetCoordinateScale(axisX, axisY);
         using var faceScope = local.PushTextFace(text.Font.Face);
         local.ShareCffOperationBudget(canvas);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
@@ -124,15 +135,18 @@ public static partial class OfficeDrawingRasterRenderer {
             }
         }
 
-        var frame = new OfficeImageFrameTransform(
-            text.RotationDegrees,
-            text.RotationCenterX * scale,
-            text.RotationCenterY * scale,
-            text.FlipHorizontal,
-            text.FlipVertical);
-        OfficeTransform transform = OfficeTransform.Translate(contentX, contentY).Then(frame.CreateDestinationTransform());
+        OfficeTransform transform = OfficeTransform.Scale(1D / axisX, 1D / axisY)
+            .Then(OfficeTransform.Translate(contentX, contentY)).Then(frame.CreateDestinationTransform());
         canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
         return true;
+    }
+
+    private static (double X, double Y) GetTextLayerAxisScales(OfficeImageFrameTransform frame, OfficeRasterCanvas canvas) {
+        // Text frames contain only rotation/reflection. Preserve their exact unit
+        // density on isotropic canvases rather than letting roundoff add a pixel.
+        return canvas.CoordinateScaleX == canvas.CoordinateScaleY
+            ? (canvas.CoordinateScaleX, canvas.CoordinateScaleY)
+            : GetEffectAxisScales(frame.CreateDestinationTransform(), canvas.CoordinateScaleX, canvas.CoordinateScaleY);
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
