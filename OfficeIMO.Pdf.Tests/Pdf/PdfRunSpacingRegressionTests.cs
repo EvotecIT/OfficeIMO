@@ -26,7 +26,7 @@ public sealed class PdfRunSpacingRegressionTests {
         Assert.InRange(Math.Abs(dots[1].StartBaseLine.X - dots[0].StartBaseLine.X - advance), 0D, 0.02D);
         Assert.InRange(Math.Abs(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X
             - (options.MarginLeft + 150D)), 0D, 0.02D);
-        Assert.True(dots[^1].EndBaseLine.X <= options.MarginLeft + 150D + 0.02D);
+        Assert.True(dots[dots.Length - 1].EndBaseLine.X <= options.MarginLeft + 150D + 0.02D);
     }
 
     [Theory]
