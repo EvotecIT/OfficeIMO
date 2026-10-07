@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void VisitListCounters(WordDocument document, CancellationToken cancellationToken,
-            Action<WordParagraph, ListInfo, int, Dictionary<int, int>, Dictionary<int, WordNumberFormat?>> visit) {
+            Action<WordParagraph, ListInfo, int, Dictionary<int, long>, Dictionary<int, WordNumberFormat?>> visit) {
             WordListNumberingResolver.StyleCatalog catalog = WordListNumberingResolver.CreateStyleCatalog(document);
             foreach (IEnumerable<WordParagraph> story in EnumerateListStories(document)) {
                 // A numbering instance selects formatting and optional restarts. Instances
@@ -64,8 +64,11 @@ namespace OfficeIMO.Word {
                             ? levelDefinition.Start : info.Start;
                     }
                     state.Formats[level] = info.NumberFormat;
-                    int current = state.Indices[level];
-                    state.Indices[level] = current + 1;
+                    long next = state.Indices[level];
+                    if (next > int.MaxValue || next < int.MinValue)
+                        throw new System.IO.InvalidDataException("The list counter exceeds the supported 32-bit index range.");
+                    int current = (int)next;
+                    state.Indices[level] = next + 1;
                     visit(paragraph, info, current, state.Indices, state.Formats);
                 }
             }
@@ -73,7 +76,7 @@ namespace OfficeIMO.Word {
 
         private sealed class ListCounterState {
             internal int? LastLevel { get; set; }
-            internal Dictionary<int, int> Indices { get; } = new();
+            internal Dictionary<int, long> Indices { get; } = new();
             internal Dictionary<int, WordNumberFormat?> Formats { get; } = new();
             internal HashSet<(int NumberId, int Level)> SeenInstanceLevels { get; } = new();
         }
