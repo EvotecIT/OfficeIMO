@@ -28,7 +28,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        IDictionary<IElement, InlineContainingBounds> bounds) {
+        IDictionary<IElement, InlineContainingBounds> bounds,
+        bool decorationFragment = true) {
         for (IElement? current = run.OwnerElement; current != null; current = current.ParentElement) {
             if ((_localPositionedElements.ContainsKey(current) || _inlineStackingElements.Contains(current))
                 && _layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
@@ -41,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     x + run.PaintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, width),
-                    Math.Max(0.01D, height), run.PaintOffsetY);
+                    Math.Max(0.01D, height), decorationFragment, run.PaintOffsetY);
             }
             if (ReferenceEquals(current, formattingContainer)) break;
         }
@@ -80,7 +81,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     x + run.PaintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, width),
-                    Math.Max(0.01D, height), run.PaintOffsetY);
+                    Math.Max(0.01D, height), relativePaintOffsetY: run.PaintOffsetY);
                 return;
             }
             if (ReferenceEquals(current, formattingContainer)) break;
@@ -259,12 +260,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal IReadOnlyList<InlineFragmentRect> Fragments => _fragments;
 
-        internal void Include(double x, double y, double width, double height, double relativePaintOffsetY = 0D) {
+        internal void Include(double x, double y, double width, double height, bool decorationFragment = true, double relativePaintOffsetY = 0D) {
             _left = Math.Min(_left, x);
             _top = Math.Min(_top, y);
             _right = Math.Max(_right, x + width);
             _bottom = Math.Max(_bottom, y + height);
-            IncludeFragment(x, y, width, height, relativePaintOffsetY);
+            if (decorationFragment) IncludeFragment(x, y, width, height, relativePaintOffsetY);
+        }
+
+        internal void Merge(InlineContainingBounds other, double offsetX, double offsetY) {
+            if (!double.IsPositiveInfinity(other._left)) {
+                Include(other._left + offsetX, other._top + offsetY, other._right - other._left,
+                    other._bottom - other._top, decorationFragment: false);
+            }
+            foreach (InlineFragmentRect fragment in other._fragments) {
+                IncludeFragment(fragment.X + offsetX, fragment.Y + offsetY, fragment.Width, fragment.Height, fragment.RelativePaintOffsetY);
+            }
         }
 
         private void IncludeFragment(double x, double y, double width, double height, double relativePaintOffsetY) {

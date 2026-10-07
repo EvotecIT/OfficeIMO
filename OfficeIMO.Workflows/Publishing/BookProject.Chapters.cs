@@ -6,6 +6,28 @@ using OfficeIMO.Html;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
+    /// <summary>Applies stale-checked scoped content edits in one undoable transaction.</summary>
+    public void ApplyContentEdits(IEnumerable<EpubContentEdit> edits, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.ApplyContentEdits(edits, cancellationToken), cancellationToken);
+
+    /// <summary>Merges consecutive compatible chapters, repairing references in one undoable transaction.</summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.MergeChapters(firstManifestId, secondManifestId, boundaryId, cancellationToken), cancellationToken);
+
+    /// <summary>Merges chapters using explicit EPUB reconciliation options in one undoable transaction.</summary>
+    public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
+        CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.MergeChapters(firstManifestId, secondManifestId, boundaryId, options, cancellationToken), cancellationToken);
+
+    /// <summary>Splits a chapter before a block identifier, with reference repair and one undoable transaction.</summary>
+    public void SplitChapter(string manifestId, string boundaryId, string newManifestId, string newContainerPath,
+        string title, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.SplitChapter(manifestId, boundaryId, newManifestId, newContainerPath, title, cancellationToken), cancellationToken);
+
+    /// <summary>Moves a publication resource and repairs its references in an undoable project edit.</summary>
+    public void RenameResource(string manifestId, string containerPath, CancellationToken cancellationToken = default) =>
+        Mutate(publication => publication.RenameResource(manifestId, containerPath, cancellationToken), cancellationToken);
+
     /// <summary>Appends a chapter, retaining the first XHTML chapter's head and resolving its resource references from the new location.</summary>
     public string AddChapter(string title, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);

@@ -85,7 +85,9 @@ public static partial class OfficeImageReader {
                     out int height)) {
                     return false;
                 }
-                info = new OfficeImageInfo(OfficeImageFormat.Jpeg, width, height, dpiX, dpiY);
+                info = new OfficeImageInfo(OfficeImageFormat.Jpeg, width, height, dpiX, dpiY) {
+                    JpegComponentCount = data[segmentStart + 5]
+                };
                 return true;
             }
 
