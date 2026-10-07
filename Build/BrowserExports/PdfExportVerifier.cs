@@ -15,11 +15,17 @@ internal static class PdfExportVerifier {
         string all = string.Concat(texts);
         foreach (JsonElement value in contract.GetProperty("required").EnumerateArray()) {
             string text = value.GetString()!;
-            if (!all.Contains(text, StringComparison.Ordinal)) throw new InvalidDataException(Path.GetFileName(path) + " lost required text (length " + text.Length + "): " + text.Substring(0, Math.Min(text.Length, 100)));
+            if (!all.Contains(text, StringComparison.Ordinal)) throw new InvalidDataException(Path.GetFileName(path) + " lost required text (length " + text.Length + "): " + text.Substring(0, Math.Min(text.Length, 100)) + "; extracted prefix: " + all.Substring(0, Math.Min(all.Length, 200)));
         }
         if (contract.TryGetProperty("repeated", out JsonElement repeated))
             foreach (string page in texts) foreach (JsonElement value in repeated.EnumerateArray())
                 if (!page.Contains(value.GetString()!, StringComparison.Ordinal)) throw new InvalidDataException("A PDF page lost a repeated heading.");
+        if (contract.TryGetProperty("firstPageOnly", out JsonElement firstPageOnly))
+            foreach (JsonElement value in firstPageOnly.EnumerateArray()) {
+                string heading = value.GetString()!;
+                if (!texts[0].Contains(heading, StringComparison.Ordinal) || texts.Skip(1).Any(page => page.Contains(heading, StringComparison.Ordinal)))
+                    throw new InvalidDataException("PDF repeated a table heading outside the table.");
+            }
         if (contract.TryGetProperty("bodyText", out JsonElement bodyText)) {
             string body = all;
             foreach (JsonElement heading in contract.GetProperty("repeated").EnumerateArray()) body = body.Replace(heading.GetString()!, "", StringComparison.Ordinal);

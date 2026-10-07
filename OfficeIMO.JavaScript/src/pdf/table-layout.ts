@@ -16,10 +16,11 @@ export interface PdfLayoutCell {
   readonly font: PdfFontResource;
   readonly style: Readonly<CellPresentation>;
   readonly lines: readonly PdfTextLine[];
+  readonly lineHeight: number;
   readonly rowSpan?: number;
   readonly height?: number;
 }
-export interface PdfLayoutRow { readonly cells: readonly PdfLayoutCell[]; readonly lines: number; readonly height: number; readonly structured?: boolean; }
+export interface PdfLayoutRow { readonly cells: readonly PdfLayoutCell[]; readonly lines: number; readonly lineHeight: number; readonly height: number; readonly structured?: boolean; }
 interface HeadingCell { readonly first: number; readonly span: number; readonly text: string; }
 export class PdfTableLayout {
   readonly widths: readonly number[];
@@ -29,17 +30,17 @@ export class PdfTableLayout {
   readonly totals: readonly NumericAggregate[];
   constructor(readonly settings: PdfSettings, readonly fonts: PdfFontResources) {
     const { options, padding, fontSize, page, margins } = settings, columns = options.columns, available = page.width - margins.left - margins.right;
-    const digit = fonts.select().width(48) * fontSize / 1000;
+    let digit: number | undefined;
     if (options.columnWidths && options.columnWidths.length !== columns.length) throw new RangeError("columnWidths must declare one point width per column.");
-    const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? (column.width === undefined ? available / columns.length : positive(column.width, "Column width", 255) * digit + padding * 2), "PDF column width"));
+    const widths = columns.map((column, i) => positive(options.columnWidths?.[i] ?? (column.width === undefined ? available / columns.length :
+      positive(column.width, "Column width", 255) * (digit ??= fonts.select().width(48) * fontSize / 1000) + padding * 2), "PDF column width"));
     const sum = widths.reduce((n, w) => n + w, 0);
     if (sum > available + .001 && options.wideTable === "reject") throw new RangeError("Table widths exceed the printable page width.");
     this.widths = sum > available ? widths.map(w => w * available / sum) : widths;
     let left = margins.left;
     this.lefts = this.widths.map(width => { const position = left; left += width; return position; });
     if (this.widths.some(w => w <= padding * 2)) throw new RangeError("Page is too narrow for this many columns and the requested padding.");
-    const regular = fonts.select().program;
-    this.lineHeight = Math.max(1.3, regular ? (regular.ascent - regular.descent) / 1000 + .1 : 1.3) * fontSize;
+    this.lineHeight = fonts.select().lineHeight(fontSize);
     const depth = columns.reduce((n, c) => Math.max(n, c.groups?.length ?? 0), 0);
     if (depth > 16) throw new RangeError("Grouped headings support at most 16 levels.");
     if (depth && options.includeHeader === false) throw new TypeError("Grouped headings require leaf headings.");
@@ -68,11 +69,13 @@ export class PdfTableLayout {
     const font = this.fonts.select(combined.bold, combined.italic), width = this.widths.slice(first, first + span).reduce((n, w) => n + w, 0);
     const text = displayText(value, options, { rowIndex: row, columnIndex: first, column });
     budget.cell(text);
-    return { first, span, width, font, style: combined, lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
+    return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
+      lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
   }
   private row(cells: readonly PdfLayoutCell[]): PdfLayoutRow {
     const lines = Math.max(1, ...cells.map(c => c.lines.length));
-    return { cells, lines, height: lines * this.lineHeight + this.settings.padding * 2 };
+    const lineHeight = Math.max(this.lineHeight, ...cells.map(c => c.lineHeight));
+    return { cells, lines, lineHeight, height: lines * lineHeight + this.settings.padding * 2 };
   }
   headers(): readonly PdfLayoutRow[] {
     if (this.settings.options.headerRows) return this.block(this.settings.options.headerRows, this.settings.options.headerPresentation ?? {});
@@ -89,13 +92,13 @@ export class PdfTableLayout {
         ...(value.presentation ? { presentation: value.presentation } : {}) });
       return { ...this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan };
     }));
-    const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * this.lineHeight + this.settings.padding * 2)));
+    const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * c.lineHeight + this.settings.padding * 2)));
     cells.forEach((row, r) => row.forEach(c => {
-      const existing = heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0), needed = c.lines.length * this.lineHeight + this.settings.padding * 2;
+      const existing = heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0), needed = c.lines.length * c.lineHeight + this.settings.padding * 2;
       if (needed > existing) for (let i = r; i < r + c.rowSpan; i++) heights[i]! += (needed - existing) / c.rowSpan;
     }));
     return cells.map((row, r) => ({ cells: row.map(c => ({ ...c, height: heights.slice(r, r + c.rowSpan).reduce((n, h) => n + h, 0) })),
-      lines: Math.max(1, Math.ceil((heights[r]! - this.settings.padding * 2) / this.lineHeight)), height: heights[r]!, structured: true }));
+      lines: Math.max(1, Math.ceil((heights[r]! - this.settings.padding * 2) / this.lineHeight)), lineHeight: this.lineHeight, height: heights[r]!, structured: true }));
   }
   data(values: readonly ExportValue[], index: number, footer = false): PdfLayoutRow {
     const { options } = this.settings;

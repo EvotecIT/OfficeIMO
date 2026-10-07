@@ -51,6 +51,9 @@ export class PdfFontResource {
     const mapping = { cid: this.mappings.size + 1, glyph, width: this.program.widths[glyph]! };
     this.mappings.set(scalar, mapping); return mapping.width;
   }
+  lineHeight(size: number): number {
+    return Math.max(1.3, this.program ? (this.program.ascent - this.program.descent) / 1000 + .1 : 1.3) * size;
+  }
   encode(text: string): string {
     if (this.shared) return this.shared.encode(text);
     let hex = "";

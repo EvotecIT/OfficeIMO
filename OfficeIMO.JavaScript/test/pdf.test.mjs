@@ -140,3 +140,90 @@ test("PDF fonts and portable cells compose across standalone ESM assemblies with
   const second = await inspectPdf(await standalone.writePdf([[other]], {columns:[{header:'City'}],fonts:{regular}}));
   assert.ok(second.text.includes('Gdańsk'));
 });
+
+function fontTable(bytes, tag) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let i = 0; i < view.getUint16(4); i++) {
+    const p = 12 + i * 16;
+    if (String.fromCharCode(...bytes.subarray(p, p + 4)) === tag) return view.getUint32(p + 8);
+  }
+  throw Error("Missing fixture font table " + tag);
+}
+
+test("PDF point and equal widths do not require a zero glyph from a sparse Unicode font", async () => {
+  const bytes = fontBytes.slice(), view = new DataView(bytes.buffer), cmap = fontTable(bytes, "cmap");
+  for (let i = 0; i < view.getUint16(cmap + 2); i++) {
+    const offset = cmap + view.getUint32(cmap + 8 + i * 8);
+    if (view.getUint16(offset) !== 4) continue;
+    const segments = view.getUint16(offset + 6) / 2;
+    for (let j = 0; j < segments; j++) {
+      const end = offset + 14 + j * 2, start = offset + 16 + segments * 2 + j * 2;
+      if (view.getUint16(start) <= 48 && view.getUint16(end) >= 48) {
+        // Keep the Greek fixture glyphs; replace this ASCII segment with an absent zero.
+        view.setUint16(start, 48); view.setUint16(end, 48);
+        view.setInt16(offset + 16 + segments * 4 + j * 2, -48);
+        view.setUint16(offset + 16 + segments * 6 + j * 2, 0);
+      }
+    }
+  }
+  const sparse = new PdfFont(bytes), options = { columns: [{ header: "" }], fonts: { regular: sparse }, includeHeader: false, pageNumbers: false };
+  for (const widths of [undefined, [120]]) {
+    const pdf = await inspectPdf(await writePdf([["Δ"]], { ...options, columnWidths: widths }));
+    assert.equal(pdf.text, "Δ");
+  }
+  await assert.rejects(writePdf([["Δ"]], { ...options, columns: [{ header: "", width: 12 }] }), /no glyph for U\+30/);
+});
+
+test("PDF mixed font rows and paragraphs respect each selected face's vertical metrics", async () => {
+  const bytes = fontBytes.slice(), view = new DataView(bytes.buffer), hhea = fontTable(bytes, "hhea"), head = fontTable(bytes, "head");
+  const units = view.getUint16(head + 18);
+  view.setInt16(hhea + 4, units * 2); view.setInt16(hhea + 6, -units / 2);
+  const tall = new PdfFont(bytes);
+  const pdf = await inspectPdf(await writePdf([[new ExportCell("Tall", { presentation: { bold: true } })], ["Next"]], {
+    columns: [{ header: "Heading" }], fonts: { regular, bold: tall }, fontSize: 10, pageNumbers: false, compression: false,
+    messageBottom: "End", headerPresentation: { bold: false }
+  }));
+  const content = pdf.pages[0].content;
+  const rectangles = [...content.matchAll(/36 ([\d.]+) [\d.]+ ([\d.]+) re S/g)].map(m => ({ bottom: Number(m[1]), height: Number(m[2]) }));
+  assert.ok(rectangles[1].height >= 33.99, "Tall face needs 26 points of line space plus padding");
+  const baselines = [...content.matchAll(/1 0 0 1 40 ([\d.]+) Tm/g)].map(m => Number(m[1]));
+  assert.ok(baselines[1] - 5 >= rectangles[1].bottom, "Tall face descent stays inside its row");
+  assert.ok(baselines[2] < rectangles[1].bottom, "Following row starts below the tall face");
+  const spanned = await inspectPdf(await writePdf([["Data", "Other"]], { columns, fonts: { regular, bold: tall }, fontSize: 10,
+    title: "Title", pageNumbers: false, compression: false,
+    headerRows: [[{ value: "Spanned", rowSpan: 2 }, { value: "Top" }], [null, { value: "Leaf" }]] }));
+  const drawn = [...spanned.pages[0].content.matchAll(/1 0 0 1 ([\d.]+) ([\d.]+) Tm/g)].map(m => ({ x: Number(m[1]), y: Number(m[2]) }));
+  const tableTop = [...spanned.pages[0].content.matchAll(/36 ([\d.]+) [\d.]+ ([\d.]+) re S/g)].map(m => ({ bottom: Number(m[1]), height: Number(m[2]) }));
+  assert.ok(tableTop[0].bottom + tableTop[0].height <= drawn[0].y - 7.5, "Tall title descent ends before the spanning header");
+  assert.ok(drawn.at(-2).y < tableTop[0].bottom, "Data starts below the complete spanning header");
+  await assert.rejects(writePdf([], { columns, fonts: { regular, bold: tall }, title: "Too tall", includeHeader: false,
+    pageNumbers: false, pageSize: { width: 200, height: 100 }, orientation: "landscape", margins: 20, fontSize: 30 }), /paragraph line/);
+});
+
+test("PDF page numbers fit the declared page bounds at large font sizes", async () => {
+  const pdf = await inspectPdf(await writePdf([["Value"]], { columns: [{ header: "Heading" }], fontSize: 36,
+    pageSize: { width: 700, height: 900 }, margins: { left: 36, right: 36, top: 36, bottom: 80 }, pageFooter: "End", compression: false }));
+  const placement = /q 1 0 0 1 ([\d.]+) [\d.]+ cm \/TotalPages Do/.exec(pdf.pages[0].content);
+  const form = [...pdf.objects.values()].find(o => /\/Subtype \/Form/.test(o.body));
+  const width = Number(/\/BBox \[-1 [-\d.]+ ([\d.]+)/.exec(form.body)[1]);
+  assert.ok(Number(placement[1]) + width <= 665, "Total page count stays within the right margin");
+  assert.ok(pdf.text.includes("Page 1 of "));
+  const many = await inspectPdf(await writePdf(Array.from({ length: 1000 }, () => ["Row"]), { columns: [{ header: "" }],
+    includeHeader: false, fontSize: 16, pageSize: { width: 260, height: 100 }, orientation: "landscape",
+    margins: { top: 20, bottom: 30, left: 16, right: 16 }, limits: { maxPages: 1024 }, compression: false }));
+  assert.equal(many.pages.length, 1000);
+  assert.ok(many.pages.at(-1).lines.includes("Page 1000 of "));
+});
+
+test("PDF message-only continuation pages omit table headings and retain decorations", async () => {
+  const message = "Afterword ".repeat(1000);
+  const pdf = await inspectPdf(await writePdf([["Data"]], { columns: [{ header: "Table heading" }], pageSize: "A5", compression: false,
+    pageHeader: "Report", pageFooter: "Footer", messageBottom: message }));
+  assert.ok(pdf.pages.length > 2);
+  assert.equal(pdf.pages[0].lines.filter(t => t === "Table heading").length, 1);
+  for (const page of pdf.pages.slice(1)) {
+    assert.ok(!page.lines.includes("Table heading"));
+    assert.ok(page.lines.includes("Report") && page.lines.includes("Footer"));
+  }
+  assert.equal(pdf.pages.flatMap(p => p.lines).filter(t => t.includes("Afterword")).join("").replaceAll(" ", ""), message.replaceAll(" ", ""));
+});
