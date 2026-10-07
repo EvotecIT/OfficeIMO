@@ -90,6 +90,21 @@ internal static partial class PdfWriter {
             }
 
             double candidate = Math.Max(minimumFontSize, rowFontSize * innerWidth / textWidth);
+            if (explicitMeasurements?[cellIndex] is { } explicitMeasurement &&
+                HasFixedTableTextTracking(explicitMeasurement)) {
+                // Font size and tracking have different units. Solve the affine
+                // width instead of scaling the fixed point spacing with the font.
+                double low = Math.Min(1D, minimumFontSize / rowFontSize);
+                double high = 1D;
+                for (int iteration = 0; iteration < 20; iteration++) {
+                    double proposedScale = (low + high) / 2D;
+                    double proposedWidth = MeasurePreparedTableCellTextWidth(explicitMeasurement,
+                        rowFontSize * proposedScale, proposedScale, minimumFontSize);
+                    if (proposedWidth <= innerWidth - 0.001D) low = proposedScale;
+                    else high = proposedScale;
+                }
+                candidate = Math.Max(minimumFontSize, rowFontSize * low);
+            }
             resolvedFontSize = Math.Min(resolvedFontSize, candidate);
         }
 
@@ -197,17 +212,24 @@ internal static partial class PdfWriter {
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                     ? resolvedNamedFont
                     : null;
-                double unitTextWidth = MeasureRichText(
-                    run.Text ?? string.Empty,
-                    ResolvePageTextRunFont(run, baseFont),
-                    namedFont,
-                    1D,
-                    run.Baseline,
-                    options,
-                    run.FeatureSettings);
+                double unitTextWidth;
+                double fixedTracking = 0D;
+                if (run.HorizontalTextScaling != 100D || run.CharacterSpacing != 0D) {
+                    PdfTextShowCommand command = EncodeTextShowCommand(run.Text ?? string.Empty,
+                        ResolvePageTextRunFont(run, baseFont), namedFont, options, run.FeatureSettings, run.TextDirection);
+                    unitTextWidth = command.AdvanceWidth1000.GetValueOrDefault() / 1000D *
+                        EffectiveRichFontSize(1D, run.Baseline) * run.HorizontalTextScaling / 100D;
+                    // Tracking remains in page points when the solver changes font size.
+                    fixedTracking = command.GlyphCount * run.CharacterSpacing;
+                    if (double.IsNaN(unitTextWidth + fixedTracking) || double.IsInfinity(unitTextWidth + fixedTracking))
+                        throw new InvalidOperationException("The requested glyph width and character spacing produce an invalid text advance.");
+                } else {
+                    unitTextWidth = MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont),
+                        namedFont, 1D, run.Baseline, options, run.FeatureSettings);
+                }
                 preparedRuns[runIndex] = new TableRunWidthMeasurement(
                     run.HorizontalOffset,
-                    0D,
+                    fixedTracking,
                     unitTextWidth,
                     run.FontSize,
                     inline: false);
@@ -217,6 +239,14 @@ internal static partial class PdfWriter {
         }
 
         return preparedLines;
+    }
+
+    private static bool HasFixedTableTextTracking(TableCellTextWidthMeasurement measurement) {
+        foreach (TableTextLineWidthMeasurement[] paragraph in measurement.Lines)
+            foreach (TableTextLineWidthMeasurement line in paragraph)
+                foreach (TableRunWidthMeasurement run in line.Runs)
+                    if (!run.Inline && run.FixedWidth != 0D) return true;
+        return false;
     }
 
     private static double MeasurePreparedTableCellTextWidth(TableCellTextWidthMeasurement measurement, double fontSize, double runFontSizeScale, double minimumShrinkFontSize) {
@@ -249,7 +279,7 @@ internal static partial class PdfWriter {
                     ? run.ExplicitFontSize.Value
                     : Math.Max(minimumExplicitFontSize, run.ExplicitFontSize.Value * runFontSizeScale)
                 : fontSize;
-            width += run.UnitTextWidth * effectiveFontSize;
+            width += run.UnitTextWidth * effectiveFontSize + run.FixedWidth;
         }
 
         return width;

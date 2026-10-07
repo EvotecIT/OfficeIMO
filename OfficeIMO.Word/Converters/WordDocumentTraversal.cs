@@ -68,7 +68,7 @@ namespace OfficeIMO.Word {
                 : this(level, ordered, markerVisible: true, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix, pictureBulletId: null) {
             }
 
-            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId) {
+            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId, long? markerCharacterScale = null, int? markerCharacterSpacingTwips = null) {
                 Level = level;
                 Ordered = ordered;
                 MarkerVisible = markerVisible;
@@ -82,6 +82,8 @@ namespace OfficeIMO.Word {
                 MarkerItalic = markerItalic;
                 MarkerColorHex = markerColorHex;
                 MarkerFontSize = markerFontSize;
+                MarkerCharacterScale = markerCharacterScale;
+                MarkerCharacterSpacingTwips = markerCharacterSpacingTwips;
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
@@ -113,6 +115,10 @@ namespace OfficeIMO.Word {
             public string? MarkerColorHex { get; }
             /// <summary>Marker font size from the numbering level, in points, when defined.</summary>
             public double? MarkerFontSize { get; }
+            /// <summary>Marker character width from the effective numbering level, as a percentage, when defined.</summary>
+            public long? MarkerCharacterScale { get; }
+            /// <summary>Marker character spacing from the effective numbering level, in twentieths of a point, when defined.</summary>
+            public int? MarkerCharacterSpacingTwips { get; }
             /// <summary>Marker justification from the numbering level, when defined.</summary>
             public WordListLevelAlignment? LevelJustification { get; }
             /// <summary>Marker suffix from the numbering level, when defined.</summary>
@@ -196,6 +202,8 @@ namespace OfficeIMO.Word {
             bool? markerItalic = null;
             string? markerColorHex = null;
             double? markerFontSize = null;
+            long? markerCharacterScale = null;
+            int? markerCharacterSpacingTwips = null;
             WordListLevelAlignment? levelJustification = null;
             WordListLevelSuffix? levelSuffix = null;
             int? pictureBulletId = null;
@@ -222,6 +230,8 @@ namespace OfficeIMO.Word {
                 markerItalic = levelDefinition.MarkerItalic;
                 markerColorHex = levelDefinition.MarkerColorHex;
                 markerFontSize = levelDefinition.MarkerFontSize;
+                markerCharacterScale = levelDefinition.MarkerCharacterScale;
+                markerCharacterSpacingTwips = levelDefinition.MarkerCharacterSpacingTwips;
                 levelJustification = levelDefinition.LevelJustification.ToOfficeEnum();
                 levelSuffix = levelDefinition.LevelSuffix.ToOfficeEnum();
                 pictureBulletId = levelDefinition.PictureBulletId;
@@ -235,7 +245,7 @@ namespace OfficeIMO.Word {
                     WordListStyle.BulletedChars => false,
                     _ => true,
                 };
-            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId);
+            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId, markerCharacterScale, markerCharacterSpacingTwips);
         }
 
         private static int? ParseOptionalInt32(string? value) {
@@ -518,6 +528,8 @@ namespace OfficeIMO.Word {
                 markerItalic: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Italic>()),
                 markerColorHex: markerProperties?.GetFirstChild<Color>()?.Val?.Value,
                 markerFontSize: ResolveListMarkerFontSize(markerProperties),
+                markerCharacterScale: markerProperties?.GetFirstChild<CharacterScale>()?.Val?.Value,
+                markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
                 levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
@@ -662,6 +674,8 @@ namespace OfficeIMO.Word {
                 bool? markerItalic,
                 string? markerColorHex,
                 double? markerFontSize,
+                long? markerCharacterScale,
+                int? markerCharacterSpacingTwips,
                 LevelJustificationValues? levelJustification,
                 LevelSuffixValues? levelSuffix,
                 int? pictureBulletId) {
@@ -676,6 +690,8 @@ namespace OfficeIMO.Word {
                 MarkerItalic = markerItalic;
                 MarkerColorHex = markerColorHex;
                 MarkerFontSize = markerFontSize;
+                MarkerCharacterScale = markerCharacterScale;
+                MarkerCharacterSpacingTwips = markerCharacterSpacingTwips;
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
@@ -692,6 +708,8 @@ namespace OfficeIMO.Word {
             internal bool? MarkerItalic { get; }
             internal string? MarkerColorHex { get; }
             internal double? MarkerFontSize { get; }
+            internal long? MarkerCharacterScale { get; }
+            internal int? MarkerCharacterSpacingTwips { get; }
             internal LevelJustificationValues? LevelJustification { get; }
             internal LevelSuffixValues? LevelSuffix { get; }
             internal int? PictureBulletId { get; }

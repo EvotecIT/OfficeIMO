@@ -9,6 +9,34 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfRunSpacingReviewTests {
+    [Fact]
+    public void NumberingLevelSpacingUsesTheFullInstanceOverride() {
+        Letter[] actual = RenderList("body", 100, 0, 50, -10, fullOverride: true);
+        double advance = actual.Single(letter => letter.Value == "2").StartBaseLine.X
+            - actual.Single(letter => letter.Value == "1").StartBaseLine.X;
+        Assert.InRange(Math.Abs(advance - 2.836D), 0D, 0.03D);
+    }
+    [Theory]
+    [InlineData("body", false)]
+    [InlineData("cell", false)]
+    [InlineData("header", false)]
+    [InlineData("footer", false)]
+    [InlineData("header-box", false)]
+    [InlineData("footer-box", true)]
+    [InlineData("body", true)]
+    [InlineData("cell", true)]
+    [InlineData("header", true)]
+    [InlineData("footer", true)]
+    public void NumberingLevelSpacingOverridesParagraphMarkerSpacing(string route, bool reset) {
+        Letter[] actual = RenderList(route, reset ? 200 : 100, reset ? 20 : 0,
+            reset ? 100 : 200, reset ? 0 : 20);
+        double advance = actual.Single(letter => letter.Value == "2").StartBaseLine.X
+            - actual.Single(letter => letter.Value == "1").StartBaseLine.X;
+        Assert.InRange(Math.Abs(advance - (reset ? 6.672D : 14.344D)), 0D, 0.03D);
+        double bodyAdvance = actual.Single(letter => letter.Value == "O").StartBaseLine.X
+            - actual.Single(letter => letter.Value == "B").StartBaseLine.X;
+        Assert.InRange(Math.Abs(bodyAdvance - (reset ? 17.008D : 8.004D)), 0D, 0.03D);
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -82,7 +110,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         Assert.InRange(Math.Abs(styled - natural - (6.672D + 1D)), 0D, 0.03D);
     }
 
-    private static Letter[] RenderList(string route, int scale, int spacing) {
+    private static Letter[] RenderList(string route, int scale, int spacing, int? markerScale = null, int? markerSpacing = null, bool fullOverride = false) {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddList(WordListStyle.Numbered);
         WordListLevel level = list.Numbering.Levels[0];
@@ -92,11 +120,24 @@ public sealed class WordPdfRunSpacingReviewTests {
         level.LevelSuffix = WordListLevelSuffix.Tab;
         level.IndentationLeft = 1080;
         level.IndentationHanging = 720;
+        if (markerScale.HasValue) {
+            var properties = new NumberingSymbolRunProperties(new Spacing { Val = markerSpacing }, new CharacterScale { Val = markerScale.Value });
+            if (fullOverride) {
+                level._level.AddChild(new NumberingSymbolRunProperties(new Spacing { Val = 20 }, new CharacterScale { Val = 200L }), true);
+                var effective = (Level)level._level.CloneNode(true);
+                effective.RemoveAllChildren<NumberingSymbolRunProperties>();
+                effective.AddChild(properties, true);
+                document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+                    .Elements<NumberingInstance>().First().Elements<LevelOverride>().Single(item => item.LevelIndex == 0).AddChild(effective, true);
+            } else level._level.AddChild(properties, true);
+        }
         WordParagraph item = list.AddItem("BODY");
         WordParagraph paragraph = item;
         if (route == "cell") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         else if (route == "header") paragraph = document.HeaderDefaultOrCreate.AddParagraph();
         else if (route == "footer") paragraph = document.FooterDefaultOrCreate.AddParagraph();
+        else if (route == "header-box") paragraph = document.HeaderDefaultOrCreate.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
+        else if (route == "footer-box") paragraph = document.FooterDefaultOrCreate.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
         if (!ReferenceEquals(item, paragraph)) {
             paragraph._paragraph.RemoveAllChildren();
             foreach (var child in item._paragraph.ChildElements) paragraph._paragraph.Append(child.CloneNode(true));

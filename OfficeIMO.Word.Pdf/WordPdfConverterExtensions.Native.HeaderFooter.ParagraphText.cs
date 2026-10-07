@@ -122,6 +122,11 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 WordTextBox? nested = GetNativeParagraphTextBox(innerParagraph, out _);
+                // Flattened text retains each inner paragraph's direct runs and
+                // natural resets. Nested text is collected from its own paragraph.
+                IReadOnlyList<NativeHeaderFooterStyledReplacement>? spacing =
+                    CreateNativeHeaderFooterSpacingReplacements(innerParagraph, nativeFontMap, preserveNaturalSpacing: true);
+                if (spacing != null) replacements.AddRange(spacing);
                 if (nested != null) {
                     pending.Push(GetNativeTextBoxParagraphs(nested).GetEnumerator());
                 }
@@ -156,7 +161,8 @@ namespace OfficeIMO.Word.Pdf {
             double textOffset) {
             PdfCore.PdfTextRun styledMarker = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
             double markerFontSize = styledMarker.FontSize ?? textStyle.FontSize ?? 12D;
-            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize, textStyle.TextSpacing);
+            NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(info, textStyle.TextSpacing);
+            double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize, markerSpacing);
             double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, textOffset - markerOffset));
             double alignmentOffset = info.LevelJustification switch {
                 WordListLevelAlignment.Right => Math.Max(0D, markerColumnWidth - markerWidth),
@@ -173,7 +179,7 @@ namespace OfficeIMO.Word.Pdf {
                 markerFontSize,
                 resolvedMarkerOffset,
                 textOffset,
-                textStyle.TextSpacing);
+                markerSpacing);
             return CloneNativeHeaderFooterTextRun(styledMarker, marker + suffix)
                 .WithHorizontalOffset(resolvedMarkerOffset);
         }
