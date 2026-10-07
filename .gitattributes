@@ -11,6 +11,7 @@ OfficeIMO.Html.Tests/Fixtures/ExcelRaster/*.webp -text -diff
 *.avif -text -diff
 *.obu -text -diff
 *.bin -text -diff
+OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf -text -diff
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
 # Integrity-labelled document inputs and provider captures must survive Windows
