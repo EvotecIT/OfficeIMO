@@ -2565,4 +2565,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="PrintPreview.Alignment.BottomLeft" xml:space="preserve"><value>Bottom left</value></data>
   <data name="PrintPreview.Alignment.Bottom" xml:space="preserve"><value>Bottom center</value></data>
   <data name="PrintPreview.Alignment.BottomRight" xml:space="preserve"><value>Bottom right</value></data>
+  <data name="Conversion.Package.Picker" xml:space="preserve"><value>Choose an Apple document package</value></data>
 </root>
