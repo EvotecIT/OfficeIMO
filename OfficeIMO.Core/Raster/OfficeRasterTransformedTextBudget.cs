@@ -9,10 +9,13 @@ internal sealed class OfficeRasterTransformedTextBudget {
     internal long IntermediatePixels;
     private long _maximumRasterPixels = long.MaxValue;
 
+    internal long GetRemainingIntermediateSurfacePixels(long maximumRasterPixels) =>
+        Math.Min(_maximumRasterPixels, maximumRasterPixels) - IntermediatePixels;
+
     internal void EnsureIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
         maximumRasterPixels = Math.Min(_maximumRasterPixels, maximumRasterPixels);
         long consumed = IntermediatePixels;
-        if (pixels < 0L || pixels > maximumRasterPixels - consumed) {
+        if (pixels < 0L || pixels > GetRemainingIntermediateSurfacePixels(maximumRasterPixels)) {
             throw new OfficeImageExportLimitException(1D,
                 pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
                 maximumRasterPixels,

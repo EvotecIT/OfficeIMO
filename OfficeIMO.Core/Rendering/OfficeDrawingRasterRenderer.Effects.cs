@@ -132,6 +132,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingGroup group,
         (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
         SamplingInspectionContext inspection) {
+        if (group.ClipPath.Kind == OfficeClipPathKind.Empty || group.ClipPath.Width <= 0D || group.ClipPath.Height <= 0D) return false;
         var groupBounds = (
             Left: group.X,
             Top: group.Y,
@@ -209,6 +210,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingTilingPattern pattern,
         (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
         SamplingInspectionContext inspection) {
+        if (pattern.Area.Width <= 0D || pattern.Area.Height <= 0D) return false;
         if (!ContainsAnyNonInterpolatedImage(pattern.InnerTile, inspection)) return false;
         if (!parentVisibleBounds.HasValue) return true;
         var patternBounds = (
@@ -284,16 +286,21 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool IntersectsVisibleBounds(
         (double Left, double Top, double Right, double Bottom) bounds,
         (double Left, double Top, double Right, double Bottom)? visibleBounds) =>
-        !visibleBounds.HasValue ||
-        bounds.Right > visibleBounds.Value.Left &&
-        bounds.Left < visibleBounds.Value.Right &&
-        bounds.Bottom > visibleBounds.Value.Top &&
-        bounds.Top < visibleBounds.Value.Bottom;
+        bounds.Right > bounds.Left && bounds.Bottom > bounds.Top &&
+        (!visibleBounds.HasValue ||
+        bounds.Right >= visibleBounds.Value.Left &&
+        bounds.Left <= visibleBounds.Value.Right &&
+        bounds.Bottom >= visibleBounds.Value.Top &&
+        bounds.Top <= visibleBounds.Value.Bottom);
 
     private static bool TryIntersectBounds(
         (double Left, double Top, double Right, double Bottom) bounds,
         (double Left, double Top, double Right, double Bottom)? visibleBounds,
         out (double Left, double Top, double Right, double Bottom) intersection) {
+        if (bounds.Right <= bounds.Left || bounds.Bottom <= bounds.Top) {
+            intersection = bounds;
+            return false;
+        }
         if (!visibleBounds.HasValue) {
             intersection = bounds;
             return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
@@ -304,7 +311,9 @@ public static partial class OfficeDrawingRasterRenderer {
             System.Math.Max(bounds.Top, visibleBounds.Value.Top),
             System.Math.Min(bounds.Right, visibleBounds.Value.Right),
             System.Math.Min(bounds.Bottom, visibleBounds.Value.Bottom));
-        return intersection.Right > intersection.Left && intersection.Bottom > intersection.Top;
+        // A reflected source can include its maximum edge at a destination pixel
+        // centre. Touching bounds therefore remain inconclusive for nearest sampling.
+        return intersection.Right >= intersection.Left && intersection.Bottom >= intersection.Top;
     }
 
     private static OfficeRasterImage ApplySoftMask(

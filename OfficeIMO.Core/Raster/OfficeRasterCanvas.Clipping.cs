@@ -89,6 +89,9 @@ public sealed partial class OfficeRasterCanvas {
     internal bool IntersectsVisibleSurface(OfficeTransform transform, double width, double height) =>
         IntersectsVisibleBounds(ScaleCoordinates(transform).TransformRectangleBounds(0D, 0D, width, height));
 
+    /// <summary>Tests current clip bounds against the canvas pixel centres; overlapping bounds remain inconclusive.</summary>
+    internal bool HasVisibleClipBounds => IntersectsVisibleBounds((0D, 0D, Width, Height));
+
     private bool IntersectsVisibleBounds((double Left, double Top, double Right, double Bottom) bounds) {
         // Overflowed corner arithmetic is inconclusive, never proof of invisibility.
         if (double.IsNaN(bounds.Left) || double.IsNaN(bounds.Top) ||
