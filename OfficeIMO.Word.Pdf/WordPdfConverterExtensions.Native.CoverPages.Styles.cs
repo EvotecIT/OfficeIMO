@@ -11,13 +11,12 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static void ApplyNativeVmlShapeStyle(OfficeShape shape, OpenXmlElement element) {
+            OpenXmlElement? shapeType = GetNativeVmlReferencedShapeTypeElement(element);
             if (shape.Kind != OfficeShapeKind.Line) {
-                OpenXmlElement? fillElement = GetNativeVmlChild(element, "fill");
-                bool fillEnabled = IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(element, "filled")) &&
-                                   (fillElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(fillElement, "on")));
+                OpenXmlElement? fillElement = GetNativeVmlEffectiveStyleChild(element, shapeType, "fill");
+                bool fillEnabled = IsNativeVmlSwitchEnabled(GetNativeVmlStyleValue(element, shapeType, "fill", "on", "filled"));
                 if (fillEnabled) {
-                    string? childFillColor = fillElement is not null ? GetNativeOpenXmlAttribute(fillElement, "color") : null;
-                    string? fillColor = GetNativeOpenXmlAttribute(element, "fillcolor") ?? childFillColor;
+                    string? fillColor = GetNativeVmlStyleValue(element, shapeType, "fill", "color", "fillcolor");
                     bool explicitNoFill = IsNativeVmlNoColor(fillColor);
                     PdfCore.PdfColor? fill = explicitNoFill ? null : ParseNativeColor(NormalizeNativeVmlColor(fillColor));
                     if (!explicitNoFill) {
@@ -36,12 +35,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeVmlShapeShadow(shape, element);
-            OpenXmlElement? strokeElement = GetNativeVmlChild(element, "stroke");
-            string? childStrokeColor = strokeElement is not null ? GetNativeOpenXmlAttribute(strokeElement, "color") : null;
-            string? rawStrokeColor = GetNativeOpenXmlAttribute(element, "strokecolor") ?? childStrokeColor;
+            OpenXmlElement? strokeElement = GetNativeVmlEffectiveStyleChild(element, shapeType, "stroke");
+            string? rawStrokeColor = GetNativeVmlStyleValue(element, shapeType, "stroke", "color", "strokecolor");
             string? strokeColor = NormalizeNativeVmlColor(rawStrokeColor);
-            bool stroked = IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(element, "stroked")) &&
-                           (strokeElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(strokeElement, "on")));
+            bool stroked = IsNativeVmlSwitchEnabled(GetNativeVmlStyleValue(element, shapeType, "stroke", "on", "stroked"));
 
             if (!stroked || IsNativeVmlNoColor(rawStrokeColor)) {
                 shape.StrokeColor = null;
@@ -50,7 +47,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             shape.StrokeColor = (ParseNativeColor(strokeColor) ?? PdfCore.PdfColor.Black).ToOfficeColor();
-            shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeOpenXmlAttribute(element, "strokeweight")) ?? 1D;
+            // VML defaults to a one-pixel stroke, which is 0.75 PDF points.
+            shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeVmlStyleValue(element, shapeType, "stroke", "weight", "strokeweight")) ?? 0.75D;
             shape.StrokeDashStyle = MapNativeVmlStrokeDashStyle(GetNativeOpenXmlAttribute(strokeElement ?? element, "dashstyle"));
             shape.StrokeLineCap = MapNativeVmlStrokeLineCap(GetNativeOpenXmlAttribute(strokeElement ?? element, "endcap"));
             shape.StrokeLineJoin = MapNativeVmlStrokeLineJoin(GetNativeOpenXmlAttribute(strokeElement ?? element, "joinstyle"));

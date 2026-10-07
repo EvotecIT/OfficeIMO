@@ -338,8 +338,6 @@ namespace OfficeIMO.Word.Pdf {
                 shape = OfficeShape.Ellipse(width, height);
             } else if (localName == "roundrect") {
                 shape = OfficeShape.RoundedRectangle(width, height, GetNativeVmlRoundRectCornerRadius(element, width, height));
-            } else if (IsNativeVmlTextBoxShape(element) && string.IsNullOrWhiteSpace(GetNativeOpenXmlAttribute(element, "fillcolor")) && GetNativeVmlChild(element, "fill") == null) {
-                return false;
             } else if (TryCreateNativeVmlPathShape(element, width, height, out shape)) {
             } else if (TryCreateNativeVmlBuiltInShapeType(element, width, height, out shape)) {
             } else {
