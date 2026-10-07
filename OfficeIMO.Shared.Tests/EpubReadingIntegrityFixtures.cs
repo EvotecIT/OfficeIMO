@@ -1,3 +1,4 @@
+using OfficeIMO.Provenance;
 using System.IO.Compression;
 using System.Text;
 
@@ -16,30 +17,28 @@ internal static class EpubIntegrityFixtures {
         string extraMetadata = "",
         string packageAttributes = "",
         string? nav = null) {
-        using var stream = new MemoryStream();
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true)) {
-            Add(archive, "mimetype", "application/epub+zip", CompressionLevel.NoCompression);
-            Add(archive, "META-INF/container.xml",
-                "<container xmlns='urn:oasis:names:tc:opendocument:xmlns:container' version='1.0'><rootfiles>" +
-                "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/></rootfiles></container>");
-            string items = string.Concat(manifest.Select(i =>
-                $"<item id='{i.Id}' href='{i.Href}' media-type='{i.Media}' properties='{i.Properties}'/>"));
-            if (version == "3.0") {
-                items += "<item id='nav' href='nav.xhtml' media-type='application/xhtml+xml' properties='nav'/>";
-                string links = string.Concat(manifest.Where(i => i.Media == "application/xhtml+xml" || i.Media == "image/svg+xml")
-                    .Select(i => $"<li><a href='{i.Href}'>{i.Id}</a></li>"));
-                Add(archive, "EPUB/nav.xhtml", nav ??
-                    "<html xmlns='http://www.w3.org/1999/xhtml' xmlns:epub='http://www.idpf.org/2007/ops'>" +
-                    "<head><title>Contents</title></head><body><nav epub:type='toc'><ol>" + links + "</ol></nav></body></html>");
-            }
-            Add(archive, "EPUB/package.opf",
-                $"<package xmlns='http://www.idpf.org/2007/opf' xmlns:dc='http://purl.org/dc/elements/1.1/' version='{version}' unique-identifier='uid' {packageAttributes}>" +
-                "<metadata><dc:identifier id='uid'>urn:book:integrity</dc:identifier><dc:title>Integrity book</dc:title><dc:language>en</dc:language>" +
-                "<meta property='dcterms:modified'>2026-10-02T00:00:00Z</meta>" + extraMetadata +
-                "</metadata><manifest>" + items + "</manifest><spine " + spineAttributes + ">" + spine + "</spine></package>");
-            foreach (var entry in entries) Add(archive, "EPUB/" + entry.Path, entry.Text);
+        var archive = new List<KeyValuePair<string, byte[]>>();
+        Add(archive, "mimetype", "application/epub+zip");
+        Add(archive, "META-INF/container.xml",
+            "<container xmlns='urn:oasis:names:tc:opendocument:xmlns:container' version='1.0'><rootfiles>" +
+            "<rootfile full-path='EPUB/package.opf' media-type='application/oebps-package+xml'/></rootfiles></container>");
+        string items = string.Concat(manifest.Select(i =>
+            $"<item id='{i.Id}' href='{i.Href}' media-type='{i.Media}' properties='{i.Properties}'/>"));
+        if (version == "3.0") {
+            items += "<item id='nav' href='nav.xhtml' media-type='application/xhtml+xml' properties='nav'/>";
+            string links = string.Concat(manifest.Where(i => i.Media == "application/xhtml+xml" || i.Media == "image/svg+xml")
+                .Select(i => $"<li><a href='{i.Href}'>{i.Id}</a></li>"));
+            Add(archive, "EPUB/nav.xhtml", nav ??
+                "<html xmlns='http://www.w3.org/1999/xhtml' xmlns:epub='http://www.idpf.org/2007/ops'>" +
+                "<head><title>Contents</title></head><body><nav epub:type='toc'><ol>" + links + "</ol></nav></body></html>");
         }
-        return stream.ToArray();
+        Add(archive, "EPUB/package.opf",
+            $"<package xmlns='http://www.idpf.org/2007/opf' xmlns:dc='http://purl.org/dc/elements/1.1/' version='{version}' unique-identifier='uid' {packageAttributes}>" +
+            "<metadata><dc:identifier id='uid'>urn:book:integrity</dc:identifier><dc:title>Integrity book</dc:title><dc:language>en</dc:language>" +
+            "<meta property='dcterms:modified'>2026-10-02T00:00:00Z</meta>" + extraMetadata +
+            "</metadata><manifest>" + items + "</manifest><spine " + spineAttributes + ">" + spine + "</spine></package>");
+        foreach (var entry in entries) Add(archive, "EPUB/" + entry.Path, entry.Text);
+        return Archive(archive);
     }
 
     internal static byte[] OneChapter(string body, string extraMetadata = "", string packageAttributes = "", string spineProperties = "") =>
@@ -49,21 +48,28 @@ internal static class EpubIntegrityFixtures {
 
     internal static byte[] ReplaceEntry(byte[] package, string path, byte[] bytes) {
         using var input = new MemoryStream(package);
-        using var output = new MemoryStream();
-        using (var source = new ZipArchive(input, ZipArchiveMode.Read))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, true)) {
-            foreach (var entry in source.Entries) {
-                using var destination = target.CreateEntry(entry.FullName,
-                    entry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal).Open();
-                if (entry.FullName == path) destination.Write(bytes, 0, bytes.Length);
-                else { using var original = entry.Open(); original.CopyTo(destination); }
-            }
-        }
-        return output.ToArray();
+        using var source = new ZipArchive(input, ZipArchiveMode.Read);
+        var entries = source.Entries.Select(entry => {
+            if (entry.FullName == path) return new KeyValuePair<string, byte[]>(entry.FullName, bytes);
+            using var original = entry.Open();
+            using var content = new MemoryStream();
+            original.CopyTo(content);
+            return new KeyValuePair<string, byte[]>(entry.FullName, content.ToArray());
+        }).ToArray();
+        return Archive(entries);
     }
 
-    private static void Add(ZipArchive archive, string path, string text, CompressionLevel level = CompressionLevel.Optimal) {
-        using var writer = new StreamWriter(archive.CreateEntry(path, level).Open(), new UTF8Encoding(false));
-        writer.Write(text);
+    internal static byte[] Archive(IEnumerable<KeyValuePair<string, byte[]>> entries) {
+        // Framework ZipArchive uses deflate even for NoCompression. EPUB requires
+        // a physically stored leading mimetype entry on every target framework.
+        var records = entries.OrderBy(entry => entry.Key == "mimetype" ? 0 : 1)
+            .Select(entry => new OfficeProvenanceZipWriteEntry(entry.Key, entry.Value.LongLength,
+                entry.Key != "mimetype", new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero), 0, 0,
+                Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<byte>(),
+                () => new MemoryStream(entry.Value, writable: false))).ToArray();
+        return OfficeProvenanceZipWriter.Write(records, int.MaxValue);
     }
+
+    private static void Add(List<KeyValuePair<string, byte[]>> entries, string path, string text) =>
+        entries.Add(new KeyValuePair<string, byte[]>(path, new UTF8Encoding(false).GetBytes(text)));
 }

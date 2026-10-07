@@ -5,6 +5,54 @@ using System.Xml.Linq;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class BookProjectTests {
+    [Fact]
+    public void ChapterMergeIsUndoableAndRetainsChapterNavigationAfterProjectReopen() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<p>First</p>");
+        publication.AddChapter("two", "EPUB/two.xhtml", "Two", "<p>Second</p>");
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        project.MergeChapters("one", "two", "second-start");
+        Assert.Single(project.Publication.Spine);
+        Assert.Equal("EPUB/one.xhtml", project.Publication.Write().Report.MergedEntries["EPUB/two.xhtml"]);
+        project.Undo(); Assert.Equal(2, project.Publication.Spine.Count);
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Single(reopened.Publication.Spine);
+        Assert.Equal("second-start", reopened.Publication.Read().TableOfContents[1].Fragment);
+        Assert.Contains("FirstSecond", reopened.Publication.GetContentXml("one").Root!.Element(XName.Get("body", "http://www.w3.org/1999/xhtml"))!.Value);
+    }
+
+    [Fact]
+    public void ChapterSplitParticipatesInUndoRedoAndProjectPersistence() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<h1>First</h1><p id='cut'>Second</p>");
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        project.SplitChapter("one", "cut", "two", "EPUB/parts/two.xhtml", "Two");
+        Assert.Equal(new[] { "one", "two" }, project.Publication.Spine.Select(item => item.ManifestId));
+        project.Undo();
+        Assert.Single(project.Publication.Spine);
+        Assert.Contains("Second", project.Publication.GetContentXml("one").ToString());
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Equal("EPUB/parts/two.xhtml", reopened.Publication.Read().TableOfContents[1].Target);
+        Assert.Equal("cut", reopened.Publication.Read().TableOfContents[1].Fragment);
+        Assert.DoesNotContain("Second", reopened.Publication.GetContentXml("one").ToString());
+    }
+
+    [Fact]
+    public void ResourceRenameRepairsNavigationAndParticipatesInUndoRedo() {
+        var project = BookProject.Create("Book");
+        string id = project.Publication.Spine[0].ManifestId;
+        string oldPath = project.Publication.Manifest.Single(item => item.Id == id).Reference.ContainerPath!;
+        project.RenameResource(id, "EPUB/edited/first.xhtml");
+        Assert.Equal("EPUB/edited/first.xhtml", project.Publication.Read().TableOfContents[0].Target);
+        project.Undo();
+        Assert.Equal(oldPath, project.Publication.Read().TableOfContents[0].Target);
+        project.Redo();
+        var reopened = BookProject.LoadProject(project.ToProjectBytes());
+        Assert.Equal("EPUB/edited/first.xhtml", reopened.Publication.Read().TableOfContents[0].Target);
+    }
+
     [Theory]
     [InlineData("rename", EpubVersion.Epub3)]
     [InlineData("move", EpubVersion.Epub3)]
@@ -96,7 +144,7 @@ public sealed class BookProjectTests {
         else Assert.NotEmpty(Assert.Single(project.PreviewChapter(1)).Bytes!);
     }
     [Theory]
-    [InlineData("{\"Version\":2,\"Diagnostics\":[]}", typeof(NotSupportedException))]
+    [InlineData("{\"Version\":99,\"Diagnostics\":[]}", typeof(NotSupportedException))]
     [InlineData("{\"Version\":1,\"Diagnostics\":[],\"Unexpected\":true}", typeof(System.Text.Json.JsonException))]
     [InlineData("{\"Version\":1,\"Diagnostics\":[{\"Code\":\"TEST\",\"Message\":\"Finding\",\"Source\":\"HTML\",\"LossKind\":99}]}", typeof(InvalidDataException))]
     public void InvalidProjectReviewRecordsAreRejected(string review, Type expectedException) {

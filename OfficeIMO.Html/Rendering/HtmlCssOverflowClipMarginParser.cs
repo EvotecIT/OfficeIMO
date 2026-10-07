@@ -8,7 +8,7 @@ internal static class HtmlCssOverflowClipMarginParser {
         double viewportWidth,
         double viewportHeight,
         out string box,
-        out double margin) {
+        out double margin, double characterAdvance = double.NaN) {
         box = "padding-box";
         margin = 0D;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
@@ -26,7 +26,7 @@ internal static class HtmlCssOverflowClipMarginParser {
             }
             if (marginSpecified
                 || normalized.EndsWith("%", StringComparison.Ordinal)
-                || !HtmlRenderCssValues.TryLength(normalized, 0D, fontSize, rootFontSize, viewportWidth, viewportHeight, out double parsed)
+                || !HtmlRenderCssValues.TryLength(normalized, 0D, fontSize, rootFontSize, viewportWidth, viewportHeight, out double parsed, characterAdvance)
                 || parsed < 0D) return false;
             margin = parsed;
             marginSpecified = true;

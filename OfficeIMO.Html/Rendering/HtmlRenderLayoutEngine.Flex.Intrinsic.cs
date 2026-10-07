@@ -7,7 +7,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         double boxBasis;
         if (style.FlexBasis != "auto") {
-            if (TryResolveLength(style.FlexBasis, availableWidth, style.Font.Size, out double parsed)) {
+            if (TryResolveLength(style.FlexBasis, availableWidth, style, out double parsed)) {
                 boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
             } else {
                 ReportUnsupportedFlexValue(item, "flex-basis=" + style.FlexBasis);

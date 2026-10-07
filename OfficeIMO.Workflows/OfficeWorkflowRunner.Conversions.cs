@@ -95,6 +95,10 @@ public sealed partial class OfficeWorkflowRunner {
                 bytes = output.ToArray();
                 break;
             }
+            case "book-project-epub": {
+                (bytes, hasLoss) = ExportBookProject(input, maximumOutputBytes, diagnostics, cancellationToken);
+                break;
+            }
             case "doc-pdf": {
                 using var source = new MemoryStream(input, writable: false);
                 PdfDocumentConversionResult conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source,

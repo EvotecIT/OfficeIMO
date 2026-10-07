@@ -70,6 +70,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FlexValueUnsupported = "HtmlRenderFlexValueUnsupported";
     /// <summary>A float or clear property value used a documented deterministic fallback.</summary>
     public const string FloatValueUnsupported = "HtmlRenderFloatValueUnsupported";
+    /// <summary>A text-indent value could not be rendered.</summary>
+    public const string TextIndentValueUnsupported = "HtmlRenderTextIndentValueUnsupported";
     /// <summary>Multi-column generation exceeded the configured safety limit.</summary>
     public const string MultiColumnLimitExceeded = "HtmlRenderMultiColumnLimitExceeded";
     /// <summary>A multi-column property value used a documented deterministic fallback.</summary>
@@ -100,6 +102,18 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PositionStaticAnchorFallback = "HtmlRenderPositionStaticAnchorFallback";
     /// <summary>A scrollable overflow box was captured at its initial static scroll position.</summary>
     public const string OverflowScrollSnapshot = "HtmlRenderOverflowScrollSnapshot";
+    /// <summary>Inspection found rendered element bounds outside a rectangular scene clip.</summary>
+    public const string ClippedElementBounds = "HtmlRenderClippedElementBounds";
+    /// <summary>Inspection encountered path-shaped clipping whose precise geometry was not measured.</summary>
+    public const string ClipGeometryNotInspected = "HtmlRenderClipGeometryNotInspected";
+    /// <summary>Measured positioned text paint bounds exceed the inspected canvas.</summary>
+    public const string TextInkOutsideCanvas = "HtmlRenderTextInkOutsideCanvas";
+    /// <summary>Positioned text paint bounds extend beyond an inspected region border box.</summary>
+    public const string TextInkOutsideRegion = "HtmlRenderTextInkOutsideRegion";
+    /// <summary>Positioned text outline bounds are cropped by an authored rectangular or convex path clip.</summary>
+    public const string ClippedTextInkBounds = "HtmlRenderClippedTextInkBounds";
+    /// <summary>Text ink cannot be established for an inspected source.</summary>
+    public const string TextInkNotInspected = "HtmlRenderTextInkNotInspected";
     /// <summary>Visible layout overflow remains after bounded automatic print fitting.</summary>
     public const string PrintFitOverflowUnresolved = "HtmlRenderPrintFitOverflowUnresolved";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
@@ -281,6 +295,12 @@ public static class HtmlRenderDiagnosticCodes {
         FrameDepthLimitExceeded,
         OverflowClipMarginValueUnsupported,
         OverflowScrollSnapshot,
+        ClippedElementBounds,
+        ClipGeometryNotInspected,
+        TextInkOutsideCanvas,
+        TextInkOutsideRegion,
+        ClippedTextInkBounds,
+        TextInkNotInspected,
         PrintFitOverflowUnresolved,
         OverflowValueUnsupported,
         TransformValueUnsupported,

@@ -1586,7 +1586,7 @@ public sealed partial class PdfReadPage {
         pattern = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
         if (dictionary == null ||
-            ResolveEffectObject(dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "Pattern" } ||
+            !HasSupportedOptionalPatternType(dictionary) ||
             TryReadInteger(dictionary.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ? patternTypeObject : null) != 2 ||
             HasUnsupportedShadingPatternGraphicsState(dictionary) ||
             !dictionary.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||

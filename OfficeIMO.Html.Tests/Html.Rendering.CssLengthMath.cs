@@ -60,7 +60,7 @@ public partial class Html {
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed,
             new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), style => style.Font.Size * 0.5D);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("#parent")!, 200D);
 
         Assert.Equal(0D, resolver.Resolve(document.QuerySelector("#calculated")!, 200D, parent).ExplicitWidth);
@@ -76,7 +76,7 @@ public partial class Html {
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed,
             new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), style => style.Font.Size * 0.5D);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("#parent")!, 200D);
         HtmlRenderBoxStyle child = resolver.Resolve(document.QuerySelector("#child")!, 200D, parent);
         HtmlRenderBoxStyle indefinite = resolver.Resolve(document.QuerySelector("#indefinite")!, 200D);

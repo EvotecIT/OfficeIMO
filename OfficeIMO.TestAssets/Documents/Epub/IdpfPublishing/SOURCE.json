@@ -1,0 +1,58 @@
+{
+  "repository": "https://github.com/IDPF/epub3-samples",
+  "revision": "7651e2002b631e6577fadf7e9e0692fa6efb8746",
+  "sourceDirectory": "30/childrens-literature",
+  "license": "CC-BY-SA-3.0",
+  "files": [
+    {
+      "path": "childrens-literature/EPUB/cover.xhtml",
+      "sha256": "afcda536183202def2ef1d238d31339f22ce3080d019fd6d0ff85bfd6e65706c",
+      "bytes": 381
+    },
+    {
+      "path": "childrens-literature/EPUB/css/epub.css",
+      "sha256": "e5d252fb105cb94ffb3273575b008be11f039ba5fce5d64fb757e008823abb3b",
+      "bytes": 1378
+    },
+    {
+      "path": "childrens-literature/EPUB/css/nav.css",
+      "sha256": "95031c8c203956d2245eba15f07af0fd4184a11a9e6c30f8bdc0db963411cb36",
+      "bytes": 570
+    },
+    {
+      "path": "childrens-literature/EPUB/images/cover.png",
+      "sha256": "c59858ad501f93545c13e4c986f80cecdd0b364ceca63cf0dfe5011f9997a769",
+      "bytes": 41134
+    },
+    {
+      "path": "childrens-literature/EPUB/nav.xhtml",
+      "sha256": "b2ba142b98ef4ef22f3cb335829ca23ea214689fd36a31ab4a5034814b9c8526",
+      "bytes": 12199
+    },
+    {
+      "path": "childrens-literature/EPUB/package.opf",
+      "sha256": "c982889128fefa4fcaae87d17d559220a5202f3a1dc9e513dd9054409faf279c",
+      "bytes": 2004
+    },
+    {
+      "path": "childrens-literature/EPUB/s04.xhtml",
+      "sha256": "74a918a5d0c6d10100c770f0a389e6ad7e5053f6951a5476189a9468f114136c",
+      "bytes": 338187
+    },
+    {
+      "path": "childrens-literature/EPUB/toc.ncx",
+      "sha256": "c0b7a82a9330e8f30841544d6043582a3486e1150d515028cdc8a7cda3031a47",
+      "bytes": 17324
+    },
+    {
+      "path": "childrens-literature/META-INF/container.xml",
+      "sha256": "d8e06aaf7ca55890848ec4ada5c7668f4a819fb8f7f165ad400e0b9084dcb422",
+      "bytes": 251
+    },
+    {
+      "path": "childrens-literature/mimetype",
+      "sha256": "e468e350d1143eb648f60c7b0bd6031101ec0544a361ca74ecef256ac901f48b",
+      "bytes": 20
+    }
+  ]
+}

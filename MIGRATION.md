@@ -1,5 +1,37 @@
 # Upgrading OfficeIMO
 
+## EPUB XHTML image export
+
+Image export parses retained `application/xhtml+xml` chapters as XML. Repair malformed
+XHTML and replace DTD-defined entities with numeric references or Unicode characters
+before exporting. Use lowercase XHTML names and remove unsupported processing
+instructions. XML errors are no longer silently recovered using HTML parsing.
+
+## HTML widths larger than their container
+
+The shared HTML renderer honors explicit `width` and `min-width` values that exceed
+the containing block. It no longer silently reduces these boxes to the available
+width. If a document relied on that reduction, use `max-width:100%` and remove any
+conflicting `min-width`, or choose an explicit overflow policy. Check fixed-layout
+EPUB canvas and clipping diagnostics after changing the layout.
+
+## EPUB chapter selector reconciliation
+
+Replace `EpubChapterMergeOptions.RewriteSecondChapterIdSelectors` with
+`RewriteChapterSelectors`. The option repairs reference-attribute selectors in both
+source chapters; the identifier map still applies only to the second chapter.
+Linked stylesheets receive separate private copies for each chapter, so merges may
+use more entries and retained bytes. Keep `AppendSecondStyles` explicit, and handle
+atomic rejection when first-chapter selectors are ambiguous or unsupported.
+
+## Book project revision storage
+
+`BookProject.ToProjectBytes()` writes version-2 `.oibook` files, including named
+publication revisions. Update applications that read these projects before sharing
+newly saved files with them; older readers reject version 2. Existing version-1
+projects remain readable. `MaximumProjectBytes` is now 260 MiB to accommodate the
+current publication and bounded revision storage. Session undo/redo remains transient.
+
 This guide contains version-to-version changes that require application code, package references, or configuration to change. It is not a release history or a second API manual.
 
 - Use [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) for release notes and downloadable artifacts.
@@ -350,6 +382,11 @@ The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `
 ODT-to-Word conversion enforces aggregate table expansion limits before allocation. Adjust `WordOpenDocumentConversionOptions` for trusted larger workloads. Reader OpenDocument format settings belong to `ReaderOpenDocumentOptions`, passed to `AddOpenDocumentHandler`; generic size and password settings remain in `ReaderOptions`.
 
 ## EPUB reading positions, text, and completeness
+
+Authoring and rewriting reject unresolved document-local ARIA, table-header,
+form-control and microdata ID references, and missing local image-map names. Repair
+the source relationship or keep both ends in the same chapter before splitting.
+For an image map, retain the matching `map name` alongside its `usemap` reference.
 
 EPUB extraction preserves repeated and empty spine positions. Applications that
 deduplicate or count chapters by resource path should use `SpineIndex` or `Order`
@@ -935,6 +972,20 @@ CLI single and batch reports use `officeimo.provenance.result.v2` and `officeimo
 The browser provenance download uses this shared result contract instead of the former anonymous `schemaVersion: 1` envelope. Read `inspection` for an inspection and `before`, `after`, and `changes` for carrier removal. Enum values are strings with camelCase property names. Cryptographic and provider checks remain distinct from structural inspection.
 
 A null `assessment.textIntegrity` means no text report was produced. Use `assessment.textIntegrityStatus` or `checks.textIntegrity` to distinguish disabled, unsupported and unrequested checks. Use the verification/provider check states to distinguish an absent provider from a check that completed or failed. Do not interpret null as a completed zero-finding report.
+
+### ONIX translation languages
+
+When a translation list contains more than one entry, give every entry a distinct
+explicit ONIX list 74 `LanguageCode`. This applies to subject and audience headings,
+edition statements, audience descriptions, collateral `Texts` (plain text or XHTML),
+and collateral `SourceTitles`. Export rejects a mixture of named and unspecified
+languages within each list. A single value may still omit its language; separate
+composites do not inherit or share a language requirement.
+
+`BookOnixAudienceCode.Value` is nullable so a declaration can carry headings without
+a code. Consumers reading this property must handle null; use `Headings` for the
+supplied labels. Existing code-only declarations retain their output. An explicitly
+empty code remains invalid.
 
 ### Provenance format ownership
 
