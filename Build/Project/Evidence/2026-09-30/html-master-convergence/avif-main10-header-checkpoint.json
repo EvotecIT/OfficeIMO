@@ -1,0 +1,507 @@
+{
+  "sourceCommit": "5cc20e9b7fcb7ca44cd8abf372bf22b234022e84",
+  "baseCommit": "15f97207a6298e385903c645fc6fbfceb94c081c",
+  "scope": "AVIF Main10 container, reduced sequence and frame headers. This does not qualify ten-bit entropy, reconstructed pixels or rendered support.",
+  "normativeContracts": [
+    "https://aomediacodec.github.io/av1-avif/#av1-item-configuration-property",
+    "https://aomediacodec.github.io/av1-spec/#color-config-syntax"
+  ],
+  "frozenCaseCount": 18,
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "nativeBuild": {
+    "aomSourceCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "libavifSourceCommit": "c5240fc79fe5c2407e10afd35f5505ef6333ea49",
+    "aomSourceArchiveSha256": "9d538d875de3a1cc01dda3c7a2c2339e6d4178671d3b7f588616d0d466beb986",
+    "libavifSourceArchiveSha256": "95191d3fd965b0bd5802f3b7384af0be3bf7ca887fb55de82dfd144164cecf6b",
+    "aomBuildHighBitDepth": true,
+    "aomConfigureLogSha256": "ed0d52883bdb34feae42567f6c73c711101e92af6cc0a6ec987350276e2bb5c7",
+    "libavifConfigureLogSha256": "72146692994b7e2b94ed2b0eb3224633445dd25e55ca4826388077f58d705140",
+    "aomLibrarySha256": "44b33d3553eed119d814f024f2ab23e01a0ec67019cd70b2de127ff8a43bcdcb",
+    "libavifLibrarySha256": "82934683296f4fa7dd60ed2b82b86333e62bfb0eed889e0446831a854f0e5117",
+    "dav1dVersion": "1.5.3",
+    "dav1dLibrarySha256": "bdd18b4f70a9e8956a58de310d8acfdad2ecf6b1be00b813b397e14331d5d0bd",
+    "aomConfigureOptions": [
+      "CMAKE_BUILD_TYPE=Release",
+      "BUILD_SHARED_LIBS=ON",
+      "CONFIG_AV1_HIGHBITDEPTH=1",
+      "ENABLE_TESTS=0",
+      "ENABLE_EXAMPLES=0",
+      "ENABLE_TOOLS=0"
+    ],
+    "libavifConfigureOptions": [
+      "CMAKE_BUILD_TYPE=Release",
+      "BUILD_SHARED_LIBS=ON",
+      "AVIF_CODEC_AOM=SYSTEM",
+      "AVIF_CODEC_DAV1D=SYSTEM",
+      "AVIF_LIBYUV=OFF",
+      "AVIF_LIBSHARPYUV=OFF",
+      "AVIF_BUILD_APPS=OFF",
+      "AVIF_BUILD_TESTS=OFF"
+    ],
+    "sourcePatches": false,
+    "installedWheelEncoderFailure": "AOM in the Pillow wheel lacked high-bit-depth capability; no fixture or source acceptance was based on that encoder."
+  },
+  "nativeProducer": {
+    "libavif": "1.4.2",
+    "codecs": "dav1d [dec]:1.5.3, aom [enc/dec]:v3.13.1",
+    "cases": [
+      {
+        "name": "avif-main10-420-limited",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": false,
+        "fullRange": false,
+        "hasAlpha": false,
+        "av1C": "81004c00",
+        "files": {
+          "avif": {
+            "bytes": 1817,
+            "sha256": "08c23fa4b880345adf18a4283e7157471ae9a12593effebd0e9e6d646bb034bc"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "33140cfb04a1fa07dc8b2f65bce59a7f1d1e998f1c461a972b2fdaec7b44b8de"
+          },
+          "yuv16": {
+            "bytes": 4934,
+            "sha256": "f33d7ae8fc79ce2c429cdfa21ef371d77c953148f7911306840140be44ba5a1f"
+          },
+          "source-yuv16": {
+            "bytes": 4934,
+            "sha256": "f1f814c3b4e0d90f9084a6eb62d4826eae98777689cd066e3f89d7997154c2f3"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-420-limited-alpha",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": false,
+        "fullRange": false,
+        "hasAlpha": true,
+        "av1C": "81004c00",
+        "files": {
+          "avif": {
+            "bytes": 3314,
+            "sha256": "2760d2d626c8836618fa7be2f9bb5a6438f3bdeae16df32779bb4b07dbf25cb3"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "a5a9a6ea0e7f9d35586df99d863e8b724cb643e57b5b5d0361631851c41081d3"
+          },
+          "yuv16": {
+            "bytes": 8168,
+            "sha256": "cb3ecdac4a242a9d86c52342e4d973b3cb146a9a11edb12c7fba6a0ef74a6716"
+          },
+          "source-yuv16": {
+            "bytes": 8168,
+            "sha256": "22543e9067e9d6c83d95bc819d4690021677b3c098b4e1d0ab49f8607eb8a253"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-420-full",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": false,
+        "fullRange": true,
+        "hasAlpha": false,
+        "av1C": "81004c00",
+        "files": {
+          "avif": {
+            "bytes": 1877,
+            "sha256": "b7b55b2abe014bd36488434b09c9655b5e4fe91e2423353de5ed418816009001"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "889c5d568876473b7492db7895ce4a8522adc8adbf0b6dd775093d394444f983"
+          },
+          "yuv16": {
+            "bytes": 4934,
+            "sha256": "d2db479a5577dabe833bef8e120add4dbc1f64d09b054edfcfed777294c016c5"
+          },
+          "source-yuv16": {
+            "bytes": 4934,
+            "sha256": "f8c3643056cc3abb34f8c3a39ff7a91e4cfac6163f2a1be42c3d5788ff23cdec"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-420-full-alpha",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": false,
+        "fullRange": true,
+        "hasAlpha": true,
+        "av1C": "81004c00",
+        "files": {
+          "avif": {
+            "bytes": 3374,
+            "sha256": "5bf04d2fc1a73fce9e9771698410a39222300cbe05ee039c1c917dbafb2e0638"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "aa9d3b49961812ddc63a435f60560baa1a6d40981d6c7cc377db4059df169dfa"
+          },
+          "yuv16": {
+            "bytes": 8168,
+            "sha256": "b899d64cf93afb642b301eddb38e89c995534c73ecaa968ca4f2efc2a6ddc62c"
+          },
+          "source-yuv16": {
+            "bytes": 8168,
+            "sha256": "98f8c951007552bbc15df45a4104975d6c8e6a5cba531ec5abe5b3a6f088d483"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-mono-limited",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": true,
+        "fullRange": false,
+        "hasAlpha": false,
+        "av1C": "81005c00",
+        "files": {
+          "avif": {
+            "bytes": 1207,
+            "sha256": "3c15e91d90d77429120c6cc31b46d8fa04b213f0da2d1f64b785b8f0dbcfec8d"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "f510de12e7baec38f57604b430119cee63a341fc8afdf77450271a57e6bd4cc5"
+          },
+          "yuv16": {
+            "bytes": 3234,
+            "sha256": "bed7bbe262f965e59af08c820f279bfa591f71536d461a8c2e2f85f8544f38ac"
+          },
+          "source-yuv16": {
+            "bytes": 3234,
+            "sha256": "4162193d61cb5aaf6b88b50c6904c3b72293d789d3b0801c5795f6dc34481e9e"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-mono-limited-alpha",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": true,
+        "fullRange": false,
+        "hasAlpha": true,
+        "av1C": "81005c00",
+        "files": {
+          "avif": {
+            "bytes": 2678,
+            "sha256": "e8787330fa9eba4b2e002ad1143b12362b17f7a2725c846d50fee213ecb14c40"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "853ab44302b1ef29b590f759f2dda0cb415400771a1b9ab05ac9c4d976c5ac99"
+          },
+          "yuv16": {
+            "bytes": 6468,
+            "sha256": "b9063693a04a62c8b81cbdb6f13b908363191155131c50d0361721a9f22cebe9"
+          },
+          "source-yuv16": {
+            "bytes": 6468,
+            "sha256": "e55114fb07fcd9d25589362e92bed002652fa85676320d85ab4f4939ddc80d1d"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-mono-full",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": true,
+        "fullRange": true,
+        "hasAlpha": false,
+        "av1C": "81005c00",
+        "files": {
+          "avif": {
+            "bytes": 1254,
+            "sha256": "b0f7e320a35e656beb7ffce553df3a2e19ad4cf8213e62bf905f273a86324a90"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "6eb4cd8651751b0952869cb9026045d5101353a3130fe549a37153cab5aaea62"
+          },
+          "yuv16": {
+            "bytes": 3234,
+            "sha256": "c0578ae5a67bee5901f7682e504f5de1b94f8b5c2bd564d55fe2221d0f5b6879"
+          },
+          "source-yuv16": {
+            "bytes": 3234,
+            "sha256": "002e61608c422b847f9d3eb1e3395b8fb4ba7002015e6f8f156cd0e2d4d89738"
+          }
+        }
+      },
+      {
+        "name": "avif-main10-mono-full-alpha",
+        "width": 49,
+        "height": 33,
+        "bitDepth": 10,
+        "monochrome": true,
+        "fullRange": true,
+        "hasAlpha": true,
+        "av1C": "81005c00",
+        "files": {
+          "avif": {
+            "bytes": 2725,
+            "sha256": "79d8c0266981be6d44b439f477f60558fb5df3a9989d29469b4133e2bec53212"
+          },
+          "rgba": {
+            "bytes": 6468,
+            "sha256": "d6b49d5baa927a14709eceb75a7ec693a8d07427f6203b57262069ed81dfcb96"
+          },
+          "yuv16": {
+            "bytes": 6468,
+            "sha256": "70c0c94282970d9c189594b3f4b5adc6fbccaa595966c4c67605039030c800d7"
+          },
+          "source-yuv16": {
+            "bytes": 6468,
+            "sha256": "2d25a3e493cba508862d069453535a49904cad4870cf793cd843a6292b325b65"
+          }
+        }
+      }
+    ],
+    "nativeSourceCommit": "c5240fc79fe5c2407e10afd35f5505ef6333ea49",
+    "headerSha256": "43ec2563fcc739a4d5ca18e22f74bc15e76a11f8c9a82bd7e1ee572bff7afc04",
+    "nativeLibrarySha256": "82934683296f4fa7dd60ed2b82b86333e62bfb0eed889e0446831a854f0e5117",
+    "driverSha256": "ad1225b0930826c31a3e2544179dcaa7e9bad7c7f75eb38c06049c8ba8a89294",
+    "generatorSha256": "bb73ea8161066426f769487c6e24b4993d45f5465f203bf7016a1fdf6919b808",
+    "encoderOptions": {
+      "codec": "aom",
+      "quality": 85,
+      "qualityAlpha": 100,
+      "speed": 6,
+      "maxThreads": 1
+    },
+    "decoderOptions": {
+      "codec": "dav1d",
+      "rgbDepth": 8,
+      "avoidLibYUV": true,
+      "chromaUpsampling": "bilinear"
+    }
+  },
+  "independentReproduction": {
+    "cases": 8,
+    "files": [
+      {
+        "file": "avif-main10-420-limited.avif",
+        "sha256": "08c23fa4b880345adf18a4283e7157471ae9a12593effebd0e9e6d646bb034bc"
+      },
+      {
+        "file": "avif-main10-420-limited.rgba",
+        "sha256": "33140cfb04a1fa07dc8b2f65bce59a7f1d1e998f1c461a972b2fdaec7b44b8de"
+      },
+      {
+        "file": "avif-main10-420-limited.yuv16",
+        "sha256": "f33d7ae8fc79ce2c429cdfa21ef371d77c953148f7911306840140be44ba5a1f"
+      },
+      {
+        "file": "avif-main10-420-limited.source-yuv16",
+        "sha256": "f1f814c3b4e0d90f9084a6eb62d4826eae98777689cd066e3f89d7997154c2f3"
+      },
+      {
+        "file": "avif-main10-420-limited-alpha.avif",
+        "sha256": "2760d2d626c8836618fa7be2f9bb5a6438f3bdeae16df32779bb4b07dbf25cb3"
+      },
+      {
+        "file": "avif-main10-420-limited-alpha.rgba",
+        "sha256": "a5a9a6ea0e7f9d35586df99d863e8b724cb643e57b5b5d0361631851c41081d3"
+      },
+      {
+        "file": "avif-main10-420-limited-alpha.yuv16",
+        "sha256": "cb3ecdac4a242a9d86c52342e4d973b3cb146a9a11edb12c7fba6a0ef74a6716"
+      },
+      {
+        "file": "avif-main10-420-limited-alpha.source-yuv16",
+        "sha256": "22543e9067e9d6c83d95bc819d4690021677b3c098b4e1d0ab49f8607eb8a253"
+      },
+      {
+        "file": "avif-main10-420-full.avif",
+        "sha256": "b7b55b2abe014bd36488434b09c9655b5e4fe91e2423353de5ed418816009001"
+      },
+      {
+        "file": "avif-main10-420-full.rgba",
+        "sha256": "889c5d568876473b7492db7895ce4a8522adc8adbf0b6dd775093d394444f983"
+      },
+      {
+        "file": "avif-main10-420-full.yuv16",
+        "sha256": "d2db479a5577dabe833bef8e120add4dbc1f64d09b054edfcfed777294c016c5"
+      },
+      {
+        "file": "avif-main10-420-full.source-yuv16",
+        "sha256": "f8c3643056cc3abb34f8c3a39ff7a91e4cfac6163f2a1be42c3d5788ff23cdec"
+      },
+      {
+        "file": "avif-main10-420-full-alpha.avif",
+        "sha256": "5bf04d2fc1a73fce9e9771698410a39222300cbe05ee039c1c917dbafb2e0638"
+      },
+      {
+        "file": "avif-main10-420-full-alpha.rgba",
+        "sha256": "aa9d3b49961812ddc63a435f60560baa1a6d40981d6c7cc377db4059df169dfa"
+      },
+      {
+        "file": "avif-main10-420-full-alpha.yuv16",
+        "sha256": "b899d64cf93afb642b301eddb38e89c995534c73ecaa968ca4f2efc2a6ddc62c"
+      },
+      {
+        "file": "avif-main10-420-full-alpha.source-yuv16",
+        "sha256": "98f8c951007552bbc15df45a4104975d6c8e6a5cba531ec5abe5b3a6f088d483"
+      },
+      {
+        "file": "avif-main10-mono-limited.avif",
+        "sha256": "3c15e91d90d77429120c6cc31b46d8fa04b213f0da2d1f64b785b8f0dbcfec8d"
+      },
+      {
+        "file": "avif-main10-mono-limited.rgba",
+        "sha256": "f510de12e7baec38f57604b430119cee63a341fc8afdf77450271a57e6bd4cc5"
+      },
+      {
+        "file": "avif-main10-mono-limited.yuv16",
+        "sha256": "bed7bbe262f965e59af08c820f279bfa591f71536d461a8c2e2f85f8544f38ac"
+      },
+      {
+        "file": "avif-main10-mono-limited.source-yuv16",
+        "sha256": "4162193d61cb5aaf6b88b50c6904c3b72293d789d3b0801c5795f6dc34481e9e"
+      },
+      {
+        "file": "avif-main10-mono-limited-alpha.avif",
+        "sha256": "e8787330fa9eba4b2e002ad1143b12362b17f7a2725c846d50fee213ecb14c40"
+      },
+      {
+        "file": "avif-main10-mono-limited-alpha.rgba",
+        "sha256": "853ab44302b1ef29b590f759f2dda0cb415400771a1b9ab05ac9c4d976c5ac99"
+      },
+      {
+        "file": "avif-main10-mono-limited-alpha.yuv16",
+        "sha256": "b9063693a04a62c8b81cbdb6f13b908363191155131c50d0361721a9f22cebe9"
+      },
+      {
+        "file": "avif-main10-mono-limited-alpha.source-yuv16",
+        "sha256": "e55114fb07fcd9d25589362e92bed002652fa85676320d85ab4f4939ddc80d1d"
+      },
+      {
+        "file": "avif-main10-mono-full.avif",
+        "sha256": "b0f7e320a35e656beb7ffce553df3a2e19ad4cf8213e62bf905f273a86324a90"
+      },
+      {
+        "file": "avif-main10-mono-full.rgba",
+        "sha256": "6eb4cd8651751b0952869cb9026045d5101353a3130fe549a37153cab5aaea62"
+      },
+      {
+        "file": "avif-main10-mono-full.yuv16",
+        "sha256": "c0578ae5a67bee5901f7682e504f5de1b94f8b5c2bd564d55fe2221d0f5b6879"
+      },
+      {
+        "file": "avif-main10-mono-full.source-yuv16",
+        "sha256": "002e61608c422b847f9d3eb1e3395b8fb4ba7002015e6f8f156cd0e2d4d89738"
+      },
+      {
+        "file": "avif-main10-mono-full-alpha.avif",
+        "sha256": "79d8c0266981be6d44b439f477f60558fb5df3a9989d29469b4133e2bec53212"
+      },
+      {
+        "file": "avif-main10-mono-full-alpha.rgba",
+        "sha256": "d6b49d5baa927a14709eceb75a7ec693a8d07427f6203b57262069ed81dfcb96"
+      },
+      {
+        "file": "avif-main10-mono-full-alpha.yuv16",
+        "sha256": "70c0c94282970d9c189594b3f4b5adc6fbccaa595966c4c67605039030c800d7"
+      },
+      {
+        "file": "avif-main10-mono-full-alpha.source-yuv16",
+        "sha256": "2d25a3e493cba508862d069453535a49904cad4870cf793cd843a6292b325b65"
+      }
+    ],
+    "byteIdentical": true
+  },
+  "tests": {
+    "before-headers.trx": {
+      "sha256": "184892f123817fb5b6cfb9b1e5c7cdee4eb644a94d4123f2cd9e952b38b9232c",
+      "total": 8,
+      "passed": 0,
+      "failed": 8,
+      "notExecuted": 0
+    },
+    "main10-focused-net10.trx": {
+      "sha256": "28b2ebba44691dd7f17f59cdee37c9872708034c779b0d8dbab682238f9d4285",
+      "total": 31,
+      "passed": 31,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "drawing-full-net10.trx": {
+      "sha256": "55e6201a608bd6d04adbcf9802caa0ba62a7af9df12a65a4199ee0a0284c3e78",
+      "total": 3051,
+      "passed": 3051,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "drawing-full-net8.trx": {
+      "sha256": "3de359bf7cfb247ab6a1b70bb6cf21dfa81a1635551e4f787adf3a30064f8e00",
+      "total": 3051,
+      "passed": 3051,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "html-avif-net10.trx": {
+      "sha256": "17032ba11cc1fa5d64c9b716371a97393fc9d35f26ca267c71d2c7c8ec42a657",
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  },
+  "testSourceBoundary": "Focused and broad tests ran on the unchanged source contents subsequently committed as sourceCommit.",
+  "builds": {
+    "netstandard2.0Core": {
+      "succeeded": true,
+      "warnings": 0,
+      "errors": 0,
+      "logSha256": "753e65c9e033b57e07e41492ed80d407d479eba54cd849119c12601a12a46f8a"
+    }
+  },
+  "independentReview": {
+    "used": true,
+    "reason": "Parser/sample-depth agreement and fail-closed reconstruction boundary",
+    "agent": "avif_main10_header_review",
+    "scopeFingerprint": "f583bec4aebfe46a17e9718795f2f1610b343114",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "boundary": "current"
+  },
+  "publicBehavior": {
+    "contentMetadataIdentified": true,
+    "decodedTenBitContentValidated": false,
+    "defaultTenBitPixelDecode": false,
+    "callerCodecEligible": false,
+    "partialPixelsPublished": false
+  },
+  "runtimeDependencyGraphChanged": false,
+  "supportCatalogChanged": false,
+  "priorAcceptanceBoundary": "Prior H4/NASA/rendered/platform budgets qualify their recorded grayscale source a291c0e2f; they are not ten-bit pixel evidence and were not rerun for this header-only foundation.",
+  "remaining": [
+    "Ten-bit entropy palettes, quantization/inverse transforms, prediction, padded planes, all filters and RGBA/alpha conversion require independent numeric/full-frame evidence.",
+    "Default ten-bit decoding and HTML/PDF placement remain failed/unqualified until that pipeline is complete.",
+    "Non-reduced still headers and formal AVIF Baseline accounting remain unfinished.",
+    "Frozen language-pattern hyphenation, selected SVG/resources, MathML/PDF semantics/conformance gaps.",
+    "Windows/net472 runtime and Windows/Linux operation budgets."
+  ],
+  "retainedArtifacts": [
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-work-15f97207a"
+  ],
+  "cleanup": {
+    "removedGeneratedTargets": 8,
+    "removedBytes": 81997613,
+    "retainedBytes": 122439223,
+    "retainedPurpose": "Pinned unpatched high-bit-depth AOM source/build and reusable native encoder/decoder binaries are required for the next numeric/full-frame stages. Compact receipts, sources, decisive failed/focused tests and logs remain. Shared caches and unrelated worktrees are untouched."
+  }
+}

@@ -21,8 +21,8 @@
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "resolved": "1.1.2",
+        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)",
           "System.Memory": "4.5.5"
@@ -74,7 +74,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "AngleSharp.Css": "[1.0.1, )",
+          "AngleSharp.Css": "[1.1.2, )",
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
           "OfficeIMO.Html.Core": "[3.4.4, )"
@@ -118,8 +118,8 @@
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "resolved": "1.1.2",
+        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
@@ -131,7 +131,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "AngleSharp.Css": "[1.0.1, )",
+          "AngleSharp.Css": "[1.1.2, )",
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
           "OfficeIMO.Html.Core": "[3.4.4, )"
@@ -174,8 +174,8 @@
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "resolved": "1.1.2",
+        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
@@ -187,7 +187,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "AngleSharp.Css": "[1.0.1, )",
+          "AngleSharp.Css": "[1.1.2, )",
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
           "OfficeIMO.Html.Core": "[3.4.4, )"

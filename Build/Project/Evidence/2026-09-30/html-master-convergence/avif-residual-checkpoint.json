@@ -1,0 +1,243 @@
+{
+  "sourceCommit": "f2a03e74713e8fa7562295b144646e0918f4384d",
+  "recordDate": "2026-10-01",
+  "previousCheckpoint": "5d6ff1c497e47eb3cdf80943997e7d4e5b1b4c90",
+  "scope": "Internal Main-8 dequantization and integer DCT/ADST/identity/WHT inverse residual transforms; no reconstructed image or public AVIF path.",
+  "sourceSha256": {
+    ".gitattributes": "400df1e6fc8a59c68326dd6961fa5458f8a143384b8c33fb2349642b3ace410f",
+    "OfficeIMO.Core/OfficeIMO.Core.csproj": "180ae6affc38233dbc03932b3c19c6024ba81111dfea6135ccc0aef82ebcefa0",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1InverseTransform.Adst.cs": "afa5dff237173f29d35daaf2fdb36c3938d6c23440934cbf29e7baef43b064ed",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1InverseTransform.Dct.cs": "4c490fa754139844d0f03bb7c99e932eb9daff551807ba3fc749f67142aefb0c",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1InverseTransform.cs": "24b99109db14b31cbbe453df765b745b4bc850a704f4189ee40a91a72e482fb5",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1QuantizationTables.Generated.cs": "21d3e1c1f23730d6e9990f60a6eb472cf0ca676a7c8b5cb75ae96688e5857895",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1QuantizationTables.cs": "18deca0c8726c154a656cb8a313db413869f10d8bf4746d88f8869f32216e8a5",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1QuantizerMatrices.bin": "faa3960fa4f18495e3b627a7b75bfe22959979894fab1aa37aa8a52faba1c323",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1ResidualTransform.cs": "a4f64bb05b46da8eb1e40e0b5c4fd4059980eb96ec771c727681a1334dbfbc3c",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Residuals.cs": "72b492131bfbf8bb54de32b88acc3442dddc76322574eaaf7480983acb86f466",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "3827b84bf50cfdc0022aaf901d4ab570d204ff97b139c2eaa6f7c21da4effc23",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateResidualFixtures.py": "fbde9cea0d18e9a8040c366764b4d42ea98306a4ade22c2195d12c63eaf4ec72",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateResidualTables.py": "556c076aa4122195d38db548fa7a956df8cf099e85010ed84677b15ada66ab6f",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeDequantProbe.inc": "ddac4dd0c4c9855e151484f178decb3aaa8824d4aef9775ae01f5928bd7215cd",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeInverseProbe.h": "21c8729d0adbe681ba160624b9b342e2fba1d1bf55962d37b6c411633f70fa06",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeInverseProbe.inc": "529fce3603e70e7724466fb0783162f45d9a3dc9ca83aea48b5ee7b3f1548a39",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadResidualReference.c": "e10762562d64727710709d7118ba231fcb9a361e66a53b021b345ed36f9fa885",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/TraceInverseTransform.patch": "4bee7c9655ddba8b4adf89edc936e8a87d3b60386e1df5991e5b8ae617cf281e",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/residual-reference.json.gz": "e708c9b3186b3a1205460112347aaf6eecbddac125d95e60ab2d38ee581f4a7f"
+  },
+  "independentOracle": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "sourceSha256": {
+      "av1/common/av1_inv_txfm2d.c": "4e27a497fe384185826a6de08d1b63a6754c7dd2106844a77fdc1e0640fe99c5",
+      "av1/common/av1_inv_txfm1d.c": "d16765d227aebed749398bd649e17bbdf7df4f818a2761eabc92e0e74ca13ae1",
+      "av1/common/quant_common.c": "dd419b0adfd6178da6b9df1af1b1592feb65ac22811bc7954624fb6caa624a66",
+      "av1/decoder/decodetxb.c": "cd87de06a3f215926b58453c3efda90b43c0f9ac3242ad87309b1703863c8243"
+    },
+    "assetsSha256": {
+      "ReadResidualReference.c": "e10762562d64727710709d7118ba231fcb9a361e66a53b021b345ed36f9fa885",
+      "OfficeInverseProbe.h": "21c8729d0adbe681ba160624b9b342e2fba1d1bf55962d37b6c411633f70fa06",
+      "OfficeInverseProbe.inc": "529fce3603e70e7724466fb0783162f45d9a3dc9ca83aea48b5ee7b3f1548a39",
+      "OfficeDequantProbe.inc": "ddac4dd0c4c9855e151484f178decb3aaa8824d4aef9775ae01f5928bd7215cd",
+      "TraceInverseTransform.patch": "4bee7c9655ddba8b4adf89edc936e8a87d3b60386e1df5991e5b8ae617cf281e",
+      "GenerateResidualFixtures.py": "fbde9cea0d18e9a8040c366764b4d42ea98306a4ade22c2195d12c63eaf4ec72",
+      "GenerateResidualTables.py": "556c076aa4122195d38db548fa7a956df8cf099e85010ed84677b15ada66ab6f"
+    },
+    "numericFacts": {
+      "specTextSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+      "matrixSha256": "faa3960fa4f18495e3b627a7b75bfe22959979894fab1aa37aa8a52faba1c323",
+      "matrixBytes": 100320
+    },
+    "fixtureSha256": "e708c9b3186b3a1205460112347aaf6eecbddac125d95e60ab2d38ee581f4a7f",
+    "canonicalJsonSha256": "c61bb98c4d87fd00733080501489ef38df43cb308bce91bcc4f63906f8e73d7c",
+    "cases": 749,
+    "residualSamples": 156816,
+    "transformSizes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "transformTypes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "losslessCases": 9
+  },
+  "referenceBoundary": {
+    "actualNativeInverseKernels": true,
+    "nativeKernelAlgorithmsChanged": false,
+    "preClipResidualAndNativeClippedSampleObservation": true,
+    "dequantization": "Original harness implements coefficient storage/sign/scale grammar over actual native get_dqv factors and native numeric facts. It is not an independent complete AV1 decoder.",
+    "freshSourceCheckoutAndBuild": true,
+    "finalDatasetReplayedAgainstFreshBuild": true,
+    "freshFixtureByteIdenticalToCheckedIn": true,
+    "normativeMatrixBytesMatchNative": true,
+    "selectedPatterns": "DC, sparse corners, dense low levels, maximum 20-bit coefficient, and lossless/skip controls across eligible sizes/types; not every conforming coefficient stream."
+  },
+  "validation": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-residual-work-5d6ff1c49/residual-final-focused-net10.trx",
+      "sha256": "a73f9e6e6ae21b744d2718bb2e9e03ff66cfae2ad6c29440897f0e15f3a16052",
+      "counters": {
+        "total": "17",
+        "executed": "17",
+        "passed": "17",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-residual-work-5d6ff1c49/residual-full-net8.trx",
+      "sha256": "23f5b305fd5a74a78151c9e05541c7b3a544ad2cd9a2c291a0688ee90b8eb4e6",
+      "counters": {
+        "total": "2956",
+        "executed": "2956",
+        "passed": "2956",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-residual-work-5d6ff1c49/residual-full-net10.trx",
+      "sha256": "27c2500e4d1e7bfc9356482309b53545b63953e6c280e5d384a5606ab5436ead",
+      "counters": {
+        "total": "2956",
+        "executed": "2956",
+        "passed": "2956",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "corePackage": {
+    "packageSha256": "17d50a0339bd56b271411eb09011286e68bb61e7ab77e4daa32d4ff1c3a7be27",
+    "runtimeDependencies": 0,
+    "noNativeOracleAssets": true,
+    "libraries": {
+      "lib/net10.0/OfficeIMO.Core.dll": "8999ebf558ae48b5b7b5b03271ccb00d965b5f53785959f89f3788a020fe15eb",
+      "lib/net8.0/OfficeIMO.Core.dll": "83cdb3afb383028ac2d7bd4ca9de6d92be6696095b056929c0ada6cef68b3b9e",
+      "lib/netstandard2.0/OfficeIMO.Core.dll": "14f8606065d54bbcb3a475f1f25b4e7b77951f009837e54b4be0dec971fae536"
+    },
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "embeddedMatrixBytes": 100320,
+    "embeddedMatrixSha256": "faa3960fa4f18495e3b627a7b75bfe22959979894fab1aa37aa8a52faba1c323",
+    "allPackedResourcesVerified": true,
+    "disposition": "Package and extracted assemblies removed after inspection; compact facts retained."
+  },
+  "coreBuild": {
+    "configuration": "Release",
+    "sdk": "10.0.303",
+    "targets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "warnings": 0,
+    "errors": 0
+  },
+  "localReview": {
+    "task": "av1_residual_review",
+    "reason": "Fixed-point transforms, quantization, embedded facts and resource/cancellation boundaries",
+    "base": "5d6ff1c497e47eb3cdf80943997e7d4e5b1b4c90",
+    "stagedBinaryDiffFingerprint": "8e276bbd57ee332d37449bf6bd9b5052bfea9645",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "boundary": "current",
+    "reviewerRanTests": false
+  },
+  "limits": {
+    "aggregateManagedBytes": 268435456,
+    "contextReservationBytes": 104416,
+    "coefficientMagnitudeMaximum": 1048575,
+    "maximumFrameAxis": 65536,
+    "returnedResiduals": "Immutable. Reconstruction consumer must budget retained outputs separately.",
+    "cancellation": "Constructor, each dequant row, each inverse row/column and before result publication."
+  },
+  "defaultAvifDecodeQualified": false,
+  "supportCatalogChanged": false,
+  "externalRuntimeDependenciesAdded": false,
+  "fullMilestoneComplete": false,
+  "unchangedRendererEvidence": "No public/default decode/render caller changed. Prior H4/NASA/performance proof retains its earlier boundary and does not qualify public AVIF output.",
+  "remainingAvif": [
+    "Intra/palette/filter-intra/copy prediction and reconstructed full-image samples",
+    "Positive complete-tile skip/copy/restoration integration beyond component proof",
+    "In-loop filtering, color/alpha composition and independent full-image pixel comparison",
+    "Public raster integration and original frozen HTML/PDF acceptance with unchanged applicable ceilings"
+  ],
+  "unavailableProof": [
+    "Windows/net472 execution",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "cleanup": {
+    "removedBytes": 139690976,
+    "removed": "Two native source/build copies, raw case/results/matrix files, superseded fixture/tests and inspected package/extracted probe.",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-residual-work-5d6ff1c49",
+    "retainedBytes": 10331169,
+    "purpose": "Final tests, compact native replay/package receipts, pinned license/patent notices and one small native residual reference executable."
+  }
+}

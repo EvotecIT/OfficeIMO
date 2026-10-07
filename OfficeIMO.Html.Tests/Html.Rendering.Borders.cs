@@ -9,6 +9,97 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlBorders_CssWideResetOutranksEarlierBorderShorthands() {
+        const string html = """
+            <style>
+              .box { border: 1px solid red; width: 40px; height: 20px; }
+              #side { border-top: initial; }
+              #style { border-top: solid red; border-top-style: initial; }
+            </style>
+            <div id="side" class="box"></div><div id="style" class="box"></div>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var styles = HtmlComputedStyleEngine.Compute(document);
+        foreach (string id in new[] { "side", "style" }) {
+            HtmlComputedStyle style = styles[document.Document.QuerySelector("#" + id)!];
+            Assert.NotEqual("solid", style.GetValue("border-top-style"));
+            Assert.True(style.IsResetValue("border-top-style"));
+            Assert.True(HtmlCssBoxStrokeParser.TryParseBorder(style, 100D, 16D, 16D, 800D, 600D,
+                OfficeColor.Black, out HtmlRenderBorderEdges border, out string detail), detail);
+            Assert.False(border.Top.ParticipatesInLayout);
+            Assert.True(border.Right.ParticipatesInLayout);
+        }
+    }
+
+    [Fact]
+    public void HtmlBorders_LaterColorShorthandKeepsEarlierWidthAndStyleOnFloatedChildren() {
+        const string html = """
+            <style>
+              .box > .title, .box > .content, .box > .reset { border: 1px solid #565c65; padding: 4px; }
+              .box > .title, .box > .content, .box > .reset { border-color: #4d8055; }
+              .box > .reset { border-top: green; }
+            </style>
+            <div class="box" style="float:right;width:100px">
+              <div id="title" class="title">Title</div>
+              <div id="content" class="content">Content</div>
+              <div id="reset" class="reset">Reset</div>
+            </div>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var computed = HtmlComputedStyleEngine.Compute(document);
+        HtmlComputedStyle title = computed[document.Document.QuerySelector("#title")!];
+        HtmlComputedStyle reset = computed[document.Document.QuerySelector("#reset")!];
+        Assert.Equal("1px", title.GetValue("border-top-width"));
+        Assert.Equal("solid", title.GetValue("border-top-style"));
+        Assert.NotEqual("solid", reset.GetValue("border-top-style"));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape[] edges = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderShape>().ToArray();
+        Assert.Contains(edges, shape => shape.Source is "div#title" or "div#title:border-top"
+            && shape.Shape.StrokeColor == OfficeColor.FromRgb(0x4D, 0x80, 0x55)
+            && shape.Shape.StrokeWidth == 1D);
+        Assert.Contains(edges, shape => shape.Source is "div#content" or "div#content:border-top"
+            && shape.Shape.StrokeColor == OfficeColor.FromRgb(0x4D, 0x80, 0x55));
+        Assert.DoesNotContain(edges, shape => shape.Source == "div#reset:border-top");
+        Assert.Contains(edges, shape => shape.Source == "div#reset:border-right");
+    }
+
+    [Fact]
+    public void HtmlBorders_ImportantColorLonghandPreservesVariableShorthandWidthAndStyle() {
+        const string html = """
+            <style>
+              :root { --border-width:1px; --border-style:solid; --border-color:#dee2e6; --light-rgb:248,249,250; }
+              .border { border:var(--border-width) var(--border-style) var(--border-color) !important; }
+              .light { border-color:rgba(var(--light-rgb),1) !important; }
+              .end-0 { border-right:0 !important; }
+            </style>
+            <div id="box" class="border light end-0" style="width:100px;height:20px;background:#212529"></div>
+            <div id="color-only" class="light" style="width:100px;height:20px"></div>
+            """;
+
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var styles = HtmlComputedStyleEngine.Compute(document);
+        HtmlComputedStyle computed = styles[document.Document.QuerySelector("#box")!];
+        Assert.Equal("1px", computed.GetValue("border-top-width"));
+        Assert.Equal("solid", computed.GetValue("border-top-style"));
+        Assert.Equal("0", computed.GetValue("border-right"));
+        Assert.Equal(string.Empty, styles[document.Document.QuerySelector("#color-only")!].GetValue("border"));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape =>
+            shape.Source == "div#box:border-top"
+            && shape.Shape.StrokeColor == OfficeColor.FromRgb(248, 249, 250)
+            && shape.Shape.StrokeWidth == 1D);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape =>
+            shape.Source == "div#box:border-right" || shape.Source == "div#color-only:border-top");
+    }
+
+    [Fact]
     public void HtmlBorders_BoxDecorationBreakPaintsInlineLineFragments() {
         const string html = "<p style='margin:0;width:72px;font-size:10px;line-height:12px'>"
             + "<span id='slice' style='background:#ffeecc;border:1px solid red;padding:1px;box-decoration-break:slice'>alpha beta gamma delta epsilon</span></p>"
@@ -181,7 +272,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlBorders_ExplicitNoneSuppressesSyntheticTableCellBorder() {
+    public void HtmlBorders_TableOuterBorderDoesNotCreateCellBorders() {
         const string html = "<table style='width:30px;border:2px solid red;border-collapse:separate'><tr>"
             + "<td id='plain-cell' style='height:10px'></td><td id='none-cell' style='height:10px;border:none'></td>"
             + "</tr></table>";
@@ -193,7 +284,8 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         });
 
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#plain-cell" && shape.Shape.StrokeWidth > 0D);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "table" && shape.Shape.StrokeWidth > 0D);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#plain-cell" && shape.Shape.StrokeWidth > 0D);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#none-cell" && shape.Shape.StrokeWidth > 0D);
     }
 

@@ -5,7 +5,7 @@ internal static partial class TextContentParser {
         propertyObject is PdfContentDictionary dictionary &&
         dictionary.Items.TryGetValue("OfficeIMOLogicalBounds", out object? value) && value is bool flag && flag;
 
-    private sealed partial class MarkedContentState {
+    internal sealed partial class MarkedContentState {
         internal bool PreserveAnchorGeometry { get; }
         private List<PdfTextSpan>? _invisibleAnchorOwner;
         private int _invisibleAnchorIndex;

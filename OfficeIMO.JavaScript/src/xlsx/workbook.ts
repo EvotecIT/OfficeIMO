@@ -35,6 +35,7 @@ export class Workbook {
   private imageBytes = 0;
   private bufferedBytes = 0;
   private mergedRanges = 0;
+  private conditionalFormats = 0;
   /** @internal Shared budget across worksheet headers and data. */
   readonly budget: ExportBudget;
   /** @internal Immutable settings used by the worksheet owner. */
@@ -46,7 +47,7 @@ export class Workbook {
     if (options.oversizedText !== undefined && !["reject", "preserve"].includes(options.oversizedText)) throw new RangeError("oversizedText must be reject or preserve.");
     cleanXml("", policy); corePropertiesXml(options, policy);
     this.budget = new ExportBudget(options.limits);
-    this.styles = new StyleRegistry(policy, options.limits?.maxStyles);
+    this.styles = new StyleRegistry(policy, options.limits?.maxStyles, options.limits?.maxDifferentialStyles);
     if (options.sink !== undefined && typeof options.sink.write !== "function") throw new TypeError("sink must be a ByteSink.");
     this.settings = Object.freeze({ ...options, ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}), dateMode, compression, invalidCharacterPolicy: policy });
     this.writers = Object.freeze({ ...options.cellValueWriters });
@@ -98,10 +99,11 @@ export class Workbook {
     if (this.settings.limits?.maxSheets !== undefined && count > this.settings.limits.maxSheets) throw new OfficeIMOError("RESOURCE_LIMIT", "maxSheets exceeded.");
   }
   /** @internal */
-  retainLink(): void {
-    if (this.settings.limits?.maxHyperlinks !== undefined && this.links + 1 > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
-    this.links++;
+  checkLinks(count: number): void {
+    if (this.settings.limits?.maxHyperlinks !== undefined && this.links + count > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
   }
+  /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
+  retainLink(count = 1): void { this.checkLinks(count); this.links += count; }
   /** @internal */
   retainImage(bytes: number): void {
     if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");
@@ -111,6 +113,8 @@ export class Workbook {
   retainBufferedBytes(bytes: number): void { this.budget.check("maxOutputBytes", this.bufferedBytes + bytes); this.bufferedBytes += bytes; }
   /** @internal Includes generated report merges across all sheets. */
   checkMerges(count: number): void { if (this.mergedRanges + count > (this.settings.limits?.maxMergedRanges ?? 10000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxMergedRanges exceeded."); }
+  /** @internal */
+  checkConditionalFormats(count: number): void { if (this.conditionalFormats + count > (this.settings.limits?.maxConditionalFormats ?? 1000)) throw new OfficeIMOError("RESOURCE_LIMIT", "maxConditionalFormats exceeded."); }
   /** @internal Streamed parts cannot interleave. Starting a new sheet completes the preceding one. */
   async openSheet(sheet: Worksheet): Promise<ZipEntry> {
     if (this.activeSheet && this.activeSheet !== sheet) {
@@ -131,7 +135,7 @@ export class Workbook {
   addWorksheet(name: string, options: SheetOptions = {}): Worksheet {
     this.assertOpen();
     this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
-    Worksheet.validate(this, options);
+    const conditional = Worksheet.validate(this, options);
     let tableOptions = options.table;
     if (tableOptions && tableOptions.name === undefined) {
       let suffix = this.tableCount + 1;
@@ -140,8 +144,10 @@ export class Workbook {
     }
     const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
     if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
-    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy), options, table);
+    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+    this.names.add(sheet.name.toLowerCase());
     this.mergedRanges += sheet.mergeCount;
+    this.conditionalFormats += sheet.conditionalFormatCount;
     if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
     this.sheets.push(sheet); return sheet;
   }

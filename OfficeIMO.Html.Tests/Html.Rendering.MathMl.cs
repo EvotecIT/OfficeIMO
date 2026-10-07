@@ -23,17 +23,51 @@ public sealed partial class HtmlRenderingTests {
             EnumerateMathMlScene(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
             item => item.Source == "math#fraction");
         HtmlRenderDrawing drawing = Assert.Single(logical.Visuals.OfType<HtmlRenderDrawing>());
-        HtmlRenderText before = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), item => item.Text.Contains("Before", StringComparison.Ordinal));
+        OfficeDrawingShape fractionBar = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingShape>());
+        OfficeDrawingText numerator = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "x");
+        OfficeDrawingText denominator = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>(), item => item.Text == "2");
 
         Assert.Equal("(x)/(2)", logical.Text);
         Assert.Equal("x divided by two", drawing.AlternativeText);
         Assert.Equal("Before \n(x)/(2)\n after", rendered.Text);
-        Assert.Contains(drawing.Drawing.Elements, item => item is OfficeDrawingShape);
-        Assert.Contains(drawing.Drawing.Elements, item => item is OfficeDrawingText text && text.Text == "x");
-        Assert.Contains(drawing.Drawing.Elements, item => item is OfficeDrawingText text && text.Text == "2");
-        Assert.True(drawing.Y < before.Y, $"Expected the fraction to rise above the neighboring text, but math Y={drawing.Y} and text Y={before.Y}.");
-        Assert.True(drawing.Y + drawing.Height > before.Y + before.Font.Size, "Expected the fraction denominator to extend below the neighboring text baseline.");
+        Assert.True(numerator.Y < fractionBar.Y, "Expected the fraction numerator above its bar.");
+        Assert.True(denominator.Y > fractionBar.Y, "Expected the fraction denominator below its bar.");
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlMathMl_InlineFractionAndRootKeepBoundedNeighborGeometry() {
+        const string html = "<body style='margin:0;font:20px Arial;line-height:24px'>"
+            + "<p style='margin:0'>FractionBefore <math id='fraction' style='font-family:inherit'><mfrac><mi>x</mi><mn>2</mn></mfrac></math> after</p>"
+            + "<p style='margin:0'>RootBefore <math id='root' style='font-family:inherit'><msqrt><mi>x</mi></msqrt></math> after</p>"
+            + "</body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 360D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderDrawing fraction = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            item => item.Source == "math#fraction");
+        HtmlRenderDrawing root = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
+            item => item.Source == "math#root");
+        HtmlRenderText fractionText = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text.Contains("FractionBefore", StringComparison.Ordinal));
+        HtmlRenderText rootText = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text.Contains("RootBefore", StringComparison.Ordinal));
+
+        double fractionTopDelta = fraction.Y - fractionText.Y;
+        Assert.True(
+            fractionTopDelta >= -3D && fractionTopDelta <= 1D,
+            $"Expected the fraction top to stay close to adjacent text; fraction=({fraction.X},{fraction.Y},{fraction.Width},{fraction.Height}), text=({fractionText.X},{fractionText.Y},{fractionText.Width},{fractionText.Height}).");
+        Assert.InRange(fraction.Y + fraction.Height - fractionText.Y - fractionText.Height, 2D, 8D);
+        Assert.InRange(
+            (root.Y + root.Height / 2D) - (rootText.Y + rootText.Height / 2D),
+            -5D,
+            5D);
     }
 
     [Fact]
@@ -81,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(drawing.Y >= above.Y + above.Height - 0.01D);
         Assert.True(below.Y >= drawing.Y + drawing.Height - 0.01D);
         Assert.Contains("sqrt(x)", rendered.Text, StringComparison.Ordinal);
-        Assert.Contains(">x</text>", svg, StringComparison.Ordinal);
+        Assert.Contains(">\U0001D465</text>", svg, StringComparison.Ordinal);
         Assert.Contains("sqrt(x)", pdfText, StringComparison.Ordinal);
         Assert.Equal(pdfText.IndexOf("sqrt(x)", StringComparison.Ordinal), pdfText.LastIndexOf("sqrt(x)", StringComparison.Ordinal));
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
@@ -100,7 +134,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Contains("x", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("\U0001D465", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Pages[0].Visuals, item => item is HtmlRenderDrawing drawing && drawing.Source == "math#broken");
     }
 

@@ -39,7 +39,6 @@ public class HtmlExcelRasterNormalization {
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }
 
-
     [Theory]
     [InlineData("pixels")]
     [InlineData("attempts")]

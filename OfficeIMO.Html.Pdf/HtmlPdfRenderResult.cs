@@ -4,10 +4,12 @@ namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Internal direct-render output before shared PDF diagnostics are projected.</summary>
 internal sealed class HtmlPdfRenderResult {
-    internal HtmlPdfRenderResult(PdfCore.PdfDocument document, HtmlDiagnosticReport diagnostics, PdfCore.PdfConversionReport conversionReport) {
+    internal HtmlPdfRenderResult(PdfCore.PdfDocument document, HtmlDiagnosticReport diagnostics,
+        PdfCore.PdfConversionReport conversionReport, HtmlRenderResult? renderResult = null) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         ConversionReport = conversionReport ?? throw new ArgumentNullException(nameof(conversionReport));
+        RenderResult = renderResult;
     }
 
     internal PdfCore.PdfDocument Document { get; }
@@ -15,4 +17,9 @@ internal sealed class HtmlPdfRenderResult {
     internal HtmlDiagnosticReport Diagnostics { get; }
 
     internal PdfCore.PdfConversionReport ConversionReport { get; }
+
+    internal HtmlRenderResult? RenderResult { get; }
+
+    internal HtmlPdfRenderResult WithRenderResult(HtmlRenderResult renderResult) =>
+        new(Document, Diagnostics, ConversionReport, renderResult);
 }

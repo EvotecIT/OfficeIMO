@@ -1,0 +1,909 @@
+{
+  "source": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+  "component": "SVG local symbol user coordinates, clipping and viewport origin",
+  "scope": "Symbol component qualification; cyclic paint resource and remaining static suite criteria are not declared complete",
+  "pdfProof": {
+    "source": {
+      "corpusId": "officeimo-static-html-pdf-gaps",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+      "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+      "commit": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+      "worktreeDirty": false,
+      "caseCount": 1
+    },
+    "symbolPixelEvidence": [
+      {
+        "engine": "officeImo",
+        "pageCount": 1,
+        "greenPixelCount": 2000,
+        "greenBoundingBox": [
+          44,
+          92,
+          94,
+          132
+        ],
+        "markerCount": 1,
+        "links": [
+          {
+            "uri": "https://example.test/svg-link",
+            "rect": [
+              198.0,
+              712.89,
+              258.0,
+              772.89
+            ]
+          }
+        ]
+      },
+      {
+        "engine": "browser",
+        "pageCount": 1,
+        "greenPixelCount": 2000,
+        "greenBoundingBox": [
+          44,
+          92,
+          94,
+          132
+        ],
+        "markerCount": 1,
+        "links": [
+          {
+            "uri": "https://example.test/svg-link",
+            "rect": [
+              198.0,
+              712.91998,
+              258.0,
+              772.91998
+            ]
+          }
+        ]
+      },
+      {
+        "engine": "peachPdf",
+        "pageCount": 1,
+        "greenPixelCount": 2000,
+        "greenBoundingBox": [
+          44,
+          92,
+          94,
+          132
+        ],
+        "markerCount": 1,
+        "links": [
+          {
+            "uri": "https://example.test/svg-link",
+            "rect": [
+              198.0,
+              712.89,
+              258.0,
+              772.89
+            ]
+          }
+        ]
+      }
+    ],
+    "remainingDiagnostics": [
+      {
+        "code": "HtmlRenderSvgContentUnsupported",
+        "detail": "features=1"
+      }
+    ]
+  },
+  "browserPixels": {
+    "browser": "Chromium 154.0.0.0 Codex in-app browser",
+    "fixture": "browser.html",
+    "pixels": [
+      {
+        "x": 4,
+        "y": 4,
+        "rgba": [
+          255,
+          0,
+          0,
+          255
+        ]
+      },
+      {
+        "x": 8,
+        "y": 4,
+        "rgba": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 4,
+        "y": 10,
+        "rgba": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 30,
+        "y": 4,
+        "rgba": [
+          0,
+          0,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 34,
+        "y": 4,
+        "rgba": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 58,
+        "y": 4,
+        "rgba": [
+          0,
+          255,
+          0,
+          255
+        ]
+      },
+      {
+        "x": 62,
+        "y": 4,
+        "rgba": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "browserOriginPixels": {
+    "browser": "Chromium 154.0.0.0 Codex in-app browser",
+    "fixture": "origin-browser.html",
+    "results": [
+      {
+        "symbolViewBox": false,
+        "nestedViewport": false,
+        "expected": {
+          "x": 3,
+          "y": 3,
+          "rgba": [
+            255,
+            0,
+            0,
+            255
+          ]
+        },
+        "wrong": {
+          "x": 13,
+          "y": 8,
+          "rgba": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "symbolViewBox": false,
+        "nestedViewport": true,
+        "expected": {
+          "x": 8,
+          "y": 6,
+          "rgba": [
+            255,
+            0,
+            0,
+            255
+          ]
+        },
+        "wrong": {
+          "x": 18,
+          "y": 11,
+          "rgba": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "symbolViewBox": true,
+        "nestedViewport": false,
+        "expected": {
+          "x": 3,
+          "y": 3,
+          "rgba": [
+            255,
+            0,
+            0,
+            255
+          ]
+        },
+        "wrong": {
+          "x": 13,
+          "y": 8,
+          "rgba": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      {
+        "symbolViewBox": true,
+        "nestedViewport": true,
+        "expected": {
+          "x": 8,
+          "y": 6,
+          "rgba": [
+            255,
+            0,
+            0,
+            255
+          ]
+        },
+        "wrong": {
+          "x": 18,
+          "y": 11,
+          "rgba": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    ]
+  },
+  "tests": [
+    {
+      "file": "qualified-symbol-html-net10.trx",
+      "sha256": "60d14deb9a19d18e70e247cc6e669f46b0ad43df75f997b521ab446283ac9a83",
+      "counters": {
+        "total": "3935",
+        "executed": "3935",
+        "passed": "3935",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-09-30T16:58:29.4584890+02:00",
+        "queuing": "2026-09-30T16:58:29.4584890+02:00",
+        "start": "2026-09-30T16:58:20.9977210+02:00",
+        "finish": "2026-09-30T17:01:09.8156210+02:00"
+      }
+    },
+    {
+      "file": "qualified-symbol-net10.trx",
+      "sha256": "838e64357bba76c7c8c6daed60bb216b8d43d03c45b70ac9cd9dd4586dfe9d82",
+      "counters": {
+        "total": "2859",
+        "executed": "2859",
+        "passed": "2859",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-09-30T16:56:26.1401790+02:00",
+        "queuing": "2026-09-30T16:56:26.1401790+02:00",
+        "start": "2026-09-30T16:56:16.7855620+02:00",
+        "finish": "2026-09-30T16:57:31.0536630+02:00"
+      }
+    },
+    {
+      "file": "qualified-symbol-net8.trx",
+      "sha256": "d28655427620b0ddaac9b44f604f67e089e2421542c57e1c669e4943d315f320",
+      "counters": {
+        "total": "2859",
+        "executed": "2859",
+        "passed": "2859",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-09-30T16:58:14.1660910+02:00",
+        "queuing": "2026-09-30T16:58:14.1660910+02:00",
+        "start": "2026-09-30T16:58:09.8879020+02:00",
+        "finish": "2026-09-30T16:59:03.9092660+02:00"
+      }
+    },
+    {
+      "file": "symbol-complete-focused.trx",
+      "sha256": "7ccb20dc5f9674eeaf5cbace60f01de86b46472733f4f9ab4b6cc446f710c834",
+      "counters": {
+        "total": "216",
+        "executed": "216",
+        "passed": "216",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "times": {
+        "creation": "2026-09-30T16:55:18.1239660+02:00",
+        "queuing": "2026-09-30T16:55:18.1239660+02:00",
+        "start": "2026-09-30T16:55:17.6800330+02:00",
+        "finish": "2026-09-30T16:55:18.5018520+02:00"
+      }
+    }
+  ],
+  "coreNetstandard20": {
+    "result": "Passed",
+    "warnings": 0
+  },
+  "localReview": {
+    "base": "38c95f4ebece7563350a3792dbf067af39ff2385",
+    "reviewer": "svg_symbol_viewport_review",
+    "reason": "SVG reference parsing, viewport placement and resource bounds",
+    "fullPassFingerprint": "5744cbc1f29ebb8747c28d9c1e41c7e544a0b6b2",
+    "targetedConfirmationUsed": true,
+    "findings": [
+      {
+        "priority": "P2",
+        "issue": "containing origin omitted in symbol use placement",
+        "classification": "newly exposed path and preexisting authored-viewBox sibling",
+        "reproduced": "four failures in symbol-review-before.trx",
+        "resolution": "pass containing origins and subtract from placement"
+      },
+      {
+        "priority": "P2",
+        "issue": "root dimensions authorize unresolved nested symbol fallback",
+        "classification": "remediation introduced",
+        "reproduced": "failure in symbol-safety-nested-before.trx",
+        "resolution": "conservatively reject implicit no-viewBox symbol dimensions when containing context is uncertain; native import resolves context independently; bounded optional caller limitation documented and owned in roadmap"
+      }
+    ],
+    "boundary": "candidate-reviewed",
+    "next": "Complete final broad suites, rebuild clean source and replay SVGresources/H4/NASA unchanged budgets before integration; no further review loop"
+  },
+  "h4": {
+    "source": {
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "commit": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+      "worktreeDirty": false,
+      "caseCount": 8
+    },
+    "cases": 8,
+    "status": "Passed"
+  },
+  "nasa": {
+    "source": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+    "worktreeDirty": false,
+    "baseline": "22157e58d55c8eaf4f6bf3c85368ca22043210f3",
+    "archive": {
+      "path": "source.mhtml",
+      "bytes": 2641258,
+      "sha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2"
+    },
+    "operations": [
+      {
+        "intent": "officeimo-print",
+        "pageCount": 19,
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pageCount": 16,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "pageCount": 16,
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pageCount": 11,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pageCount": 11,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pageCount": 16,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pageCount": 16,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pageCount": 21,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pageCount": 21,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pageCount": 16,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "sameBytes": true,
+        "samePageCount": true
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pageCount": 16,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "sameBytes": true,
+        "samePageCount": true
+      }
+    ],
+    "failures": []
+  },
+  "macosStaticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-09-30T15:05:20.32659+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.11",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 5628.2949,
+      "peakWorkingSetBytes": 369737728,
+      "memorySampleCount": 182,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 5542.4411,
+          "managedAllocatedBytes": 1081738176,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11788.2975,
+      "peakWorkingSetBytes": 548618240,
+      "memorySampleCount": 376,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2320.6735,
+          "managedAllocatedBytes": 893843992,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1917.875,
+          "managedAllocatedBytes": 895417600,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1899.7688,
+          "managedAllocatedBytes": 895378128,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.8157,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "macosH10Budget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-09-30T15:07:24.826163+00:00",
+    "caseId": "nasa-solar-system-terrestrial-planets",
+    "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
+    "sourceCommit": "b040f7d85e9882d3f68bb7d6885056fc871c472f",
+    "sourceClean": true,
+    "runnerVersion": "1.0.0+b040f7d85e9882d3f68bb7d6885056fc871c472f",
+    "manifestSha256": "ad84429c1bbccec1e2add012ba578d8a85ed140989c2c1ca01a5f87daf5b3928",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "archivePath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-nasa-22157e58d/source.mhtml",
+    "archiveBytes": 2641258,
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "osDescription": "macOS 27.0.0",
+    "framework": ".NET 10.0.11",
+    "processorCount": 10,
+    "machineName": "evomini",
+    "memoryScope": "fresh child process tree per declared operation, including startup and conversion",
+    "conversionScope": "layout and PDF conversion of preloaded MHTML for PDF; MHTML load, visible-content preparation, save and reopen for editable",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4442.2791,
+        "managedAllocatedBytes": 2108529328,
+        "processMilliseconds": 4913.2073,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 488570880,
+          "sampleCount": 146,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/pdf-print/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4624.154,
+        "managedAllocatedBytes": 2112746824,
+        "processMilliseconds": 5030.9421,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 418201600,
+          "sampleCount": 151,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/pdf-print-zero-margin/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3714.4954,
+        "managedAllocatedBytes": 1651881264,
+        "processMilliseconds": 4128.5036,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 444563456,
+          "sampleCount": 124,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/pdf-screen-media/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3777.1593,
+        "managedAllocatedBytes": 1770089040,
+        "processMilliseconds": 4173.3849,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 543457280,
+          "sampleCount": 125,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/pdf-screen-snapshot/html-mhtml-evidence.json"
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2633.4462,
+        "managedAllocatedBytes": 961942584,
+        "processMilliseconds": 2919.4913,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 319045632,
+          "sampleCount": 89,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491328,
+        "outputSha256": "b97a5482a871c8e8b98f661aaf25ce8f983ee2038cd39c598c6f8ad3f7ea215a",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/editable-word/word/report.json"
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2026.7596,
+        "managedAllocatedBytes": 941757296,
+        "processMilliseconds": 2214.0216,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 342523904,
+          "sampleCount": 67,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528708,
+        "outputSha256": "59b5e773994dc2b0b93c636282609025565feced96b06aa5011e140e4c887cbc",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/editable-excel/excel/report.json"
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3000.4897,
+        "managedAllocatedBytes": 1027245216,
+        "processMilliseconds": 3186.3517,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 346046464,
+          "sampleCount": 97,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499720,
+        "outputSha256": "4061c07cc917d3175d0b3e506c4f269670bef4f3a54f2e8c24eea2299239e4f6",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/editable-powerpoint/powerpoint/report.json"
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1484.2732,
+        "managedAllocatedBytes": 645709328,
+        "processMilliseconds": 1673.2712,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 248119296,
+          "sampleCount": 50,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "d7f312df67a8438d1224fe3dc4033f6990782b746f43681312a55ac2e979eaef",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/editable-onenote/onenote/report.json"
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1923.8985,
+        "managedAllocatedBytes": 858736944,
+        "processMilliseconds": 2117.0637,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 297828352,
+          "sampleCount": 62,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/editable-rtf/rtf/report.json"
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1476.3392,
+        "managedAllocatedBytes": 646882240,
+        "processMilliseconds": 1652.397,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 217415680,
+          "sampleCount": 50,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85/editable-markdown/markdown/report.json"
+      }
+    ],
+    "failures": []
+  },
+  "retainedArtifacts": [
+    "Ignore/HtmlUnknownPageQualification/static-gap-symbol-tests",
+    "Ignore/HtmlUnknownPageQualification/static-gap-symbol-b040f7d85",
+    "Ignore/HtmlUnknownPageQualification/static-gap-symbol-h4-b040f7d85",
+    "Ignore/HtmlUnknownPageQualification/static-gap-symbol-nasa-b040f7d85",
+    "Ignore/HtmlUnknownPageQualification/static-gap-symbol-budget-b040f7d85",
+    "Ignore/HtmlUnknownPageQualification/static-gap-symbol-h10-budget-b040f7d85"
+  ],
+  "cleanup": {
+    "supersededPassingTrxBytesRemoved": 23351191,
+    "duplicateBaselinePdfBytesRemoved": 85065108,
+    "preserved": "Baseline source.mhtml, reports and hashes; current full PDFs; before-fix regressions and final gate logs"
+  }
+}

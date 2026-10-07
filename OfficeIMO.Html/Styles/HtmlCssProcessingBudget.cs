@@ -3,15 +3,64 @@ namespace OfficeIMO.Html;
 /// <summary>Tracks operation-wide CSS parsing and selector-matching complexity.</summary>
 internal sealed class HtmlCssProcessingBudget {
     private readonly HtmlConversionLimits _limits;
+    private readonly bool _hasConfiguredLimits;
+    private readonly System.Func<string, bool>? _selectorPresence;
     private long _declarations;
     private long _rules;
+    private long _ruleCandidates;
     private long _selectorEvaluations;
 
-    internal HtmlCssProcessingBudget(HtmlConversionLimits? limits) {
+    internal HtmlCssProcessingBudget(HtmlConversionLimits? limits,
+        System.Func<OfficeIMO.Html.Css.IHtmlCssSelectorElement, string, bool>? providerMatcher = null,
+        System.Func<string, bool>? selectorPresence = null) {
+        _hasConfiguredLimits = limits != null;
         _limits = (limits ?? HtmlConversionLimits.CreateTrustedProfile()).Clone();
+        _selectorPresence = selectorPresence;
+        SelectorMatchContext = new OfficeIMO.Html.Css.HtmlCssSelectorMatchContext(
+            RecordSelectorEvaluation, default, providerMatcher);
+    }
+
+    internal OfficeIMO.Html.Css.HtmlCssSelectorMatchContext SelectorMatchContext { get; }
+
+    internal HtmlComputedStyleEngine.AngleSharpSelectorElementCache SelectorElements { get; } = new();
+
+    internal HtmlComputedStyleEngine.ProviderDeclarationQueryCache ProviderDeclarationQueries { get; } = new();
+
+    internal OfficeIMO.Html.Css.HtmlCssSyntaxOptions CreateInlineSyntaxOptions() =>
+        new OfficeIMO.Html.Css.HtmlCssSyntaxOptions {
+            MaxInputCharacters = null,
+            MaxTokens = _hasConfiguredLimits ? _limits.MaxCssTokens : null,
+            MaxNestingDepth = _hasConfiguredLimits ? _limits.MaxCssNestingDepth : null,
+            MaxSyntaxNodes = _hasConfiguredLimits ? _limits.MaxCssSyntaxNodes : null
+        };
+
+    internal OfficeIMO.Html.Css.HtmlCssSyntaxOptions CreateStylesheetSyntaxOptions() => CreateInlineSyntaxOptions();
+
+    internal void RecordDeclarations(int declarationCount) {
+        _declarations += declarationCount;
+        if (_limits.MaxCssDeclarations.HasValue && _declarations > _limits.MaxCssDeclarations.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssDeclarations),
+                _declarations,
+                _limits.MaxCssDeclarations.Value);
+        }
     }
 
     internal bool HasDeclarationLimit => _limits.MaxCssDeclarations.HasValue;
+
+    internal bool CanRetainSelector(string selector) => _selectorPresence?.Invoke(selector) ?? true;
+
+    internal void RecordRuleCandidate() {
+        _ruleCandidates++;
+        if (_limits.MaxCssRuleCandidates.HasValue && _ruleCandidates > _limits.MaxCssRuleCandidates.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssRuleLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssRuleCandidates),
+                _ruleCandidates,
+                _limits.MaxCssRuleCandidates.Value);
+        }
+    }
 
     internal void RecordRule(int declarationCount) {
         _rules++;
@@ -27,17 +76,6 @@ internal sealed class HtmlCssProcessingBudget {
     }
 
     internal void RecordDeclaration() => RecordDeclarations(1);
-
-    private void RecordDeclarations(int count) {
-        _declarations += count;
-        if (_limits.MaxCssDeclarations.HasValue && _declarations > _limits.MaxCssDeclarations.Value) {
-            throw Limit(
-                HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,
-                nameof(HtmlConversionLimits.MaxCssDeclarations),
-                _declarations,
-                _limits.MaxCssDeclarations.Value);
-        }
-    }
 
     internal void RecordSelectorEvaluation() {
         _selectorEvaluations++;
@@ -71,6 +109,50 @@ internal sealed class HtmlCssProcessingBudget {
                 depth,
                 maximum);
         }
+    }
+
+    internal void ValidateResolvedSelectorList(int selectors, long characters) {
+        if (_limits.MaxCssSelectorsPerRule.HasValue && selectors > _limits.MaxCssSelectorsPerRule.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssSelectorExpansionLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssSelectorsPerRule),
+                selectors,
+                _limits.MaxCssSelectorsPerRule.Value);
+        }
+        if (_limits.MaxCssSelectorCharacters.HasValue && characters > _limits.MaxCssSelectorCharacters.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssSelectorExpansionLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssSelectorCharacters),
+                characters,
+                _limits.MaxCssSelectorCharacters.Value);
+        }
+    }
+
+    internal HtmlDomLimitException TranslateSyntaxLimit(OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
+        string code;
+        string source;
+        switch (exception.LimitName) {
+            case nameof(OfficeIMO.Html.Css.HtmlCssSyntaxOptions.MaxTokens):
+                code = HtmlConversionDiagnosticCodes.CssTokenLimitExceeded;
+                source = nameof(HtmlConversionLimits.MaxCssTokens);
+                break;
+            case nameof(OfficeIMO.Html.Css.HtmlCssSyntaxOptions.MaxSyntaxNodes):
+                code = HtmlConversionDiagnosticCodes.CssSyntaxNodeLimitExceeded;
+                source = nameof(HtmlConversionLimits.MaxCssSyntaxNodes);
+                break;
+            default:
+                code = HtmlConversionDiagnosticCodes.CssNestingDepthLimitExceeded;
+                source = nameof(HtmlConversionLimits.MaxCssNestingDepth);
+                break;
+        }
+
+        return new HtmlDomLimitException(
+            code,
+            "CSS processing exceeded the configured conversion complexity limit.",
+            source,
+            exception.Actual,
+            exception.Maximum,
+            exception);
     }
 
     private static HtmlDomLimitException Limit(string code, string source, long actual, long limit) =>

@@ -1,6 +1,17 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private static PdfFormFieldStyle ScaleFormWidgetStyle(PdfFormFieldStyle style, double scale) {
+        if (scale == 1D) return style;
+        PdfFormFieldStyle scaled = style.Clone();
+        scaled.BorderWidth *= scale;
+        scaled.CornerRadius *= scale;
+        if (scaled.BorderDashPattern != null) {
+            scaled.BorderDashPattern = scaled.BorderDashPattern.Select(value => value * scale).ToArray();
+        }
+        return scaled;
+    }
+
     private static readonly char[] FormTextFieldLineSeparators = { '\n' };
     private static readonly double[] FormFieldDefaultBorderDashPattern = { 3D };
 

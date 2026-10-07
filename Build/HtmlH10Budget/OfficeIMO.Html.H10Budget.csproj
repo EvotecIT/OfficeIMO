@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../OfficeIMO.Pdf.Benchmarks.Comparisons/ProcessTreeMemorySampler.cs"
+             Link="ProcessTreeMemorySampler.cs" />
+    <Compile Include="../../OfficeIMO.Pdf.Benchmarks.Comparisons/SourceProvenanceReader.cs"
+             Link="SourceProvenanceReader.cs" />
+  </ItemGroup>
+</Project>

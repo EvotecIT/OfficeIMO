@@ -18,7 +18,10 @@ internal static partial class HtmlPdfRenderedConverter {
         bool asSpan,
         bool logicalTextOwned,
         CancellationToken cancellationToken,
-        double baselineFontSize) {
+        double baselineFontSize,
+        bool suppressLink,
+        bool preservePositionedFrame,
+        ClipBounds? logicalClip) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -36,6 +39,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     run.Text,
                     run.FamilyName,
                     requestedStyle,
+                    visual.Font.Size,
                     out OfficeFontFace? face)
                 || face == null) {
                 return false;
@@ -48,7 +52,8 @@ internal static partial class HtmlPdfRenderedConverter {
             // The managed PDF shaper can retain features in static embedded fonts. Keep
             // synthetic styles, configured providers and color fonts on their outline route;
             // substitutions can select color glyphs absent from the source character map.
-            requiresOutlines |= !face.CanEmbedAsStaticPdfFont ||
+            requiresOutlines |= (preservePositionedFrame && (simulateBold || simulateItalic)) ||
+                !face.CanEmbedAsStaticPdfFont ||
                 (!visual.FeatureSettings.IsDefault &&
                     (simulateBold || simulateItalic || webFonts.TextShapingProvider != null ||
                         (face.Program is OfficeTrueTypeFont colorFont && colorFont.HasColorGlyphs) ||
@@ -67,6 +72,8 @@ internal static partial class HtmlPdfRenderedConverter {
         if (!requiresOutlines) return false;
 
         webFonts.OutlineBudget.ValidateTextLength(visual.Text.Length);
+        if (webFonts.OutlineBudget.IsPathLimitReached)
+            throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
         if (resolvedRuns.Any(run => run.Face.Program is not IOfficeBoundedFontProgram)) {
             throw new InvalidOperationException(
                 "Provider-owned HTML-to-PDF text outlines require IOfficeBoundedFontProgram so cancellation and output limits remain enforceable.");
@@ -204,8 +211,9 @@ internal static partial class HtmlPdfRenderedConverter {
             }
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
-            double italicBottom = runTop + lineHeights[runIndex];
-            double boldOffset = Math.Max(1D, visual.Font.Size / 22D);
+            double italicBottom = runTop + (preservePositionedFrame ? visual.Font.Size : lineHeights[runIndex]);
+            double boldOffset = preservePositionedFrame
+                ? OfficeSyntheticTextStyle.BoldOffset(visual.Font.Size) : Math.Max(1D, visual.Font.Size / 22D);
             int copies = run.SimulateBold ? 2 : 1;
             foreach (OutlinedPaintContours sourceGroup in sourcePaintGroups) {
                 var transformedGroup = new List<List<OfficePoint>>();
@@ -222,7 +230,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         scaleX,
                         italicBottom,
                         run.SimulateItalic,
-                        0D)).ToList();
+                        0D, preservePositionedFrame)).ToList();
                     transformedGroup.Add(transformed);
                     allContours.Add(transformed);
                     if (run.SimulateBold) {
@@ -232,7 +240,7 @@ internal static partial class HtmlPdfRenderedConverter {
                             scaleX,
                             italicBottom,
                             run.SimulateItalic,
-                            boldOffset)).ToList();
+                            boldOffset, preservePositionedFrame)).ToList();
                         transformedGroup.Add(bold);
                         allContours.Add(bold);
                     }
@@ -304,8 +312,8 @@ internal static partial class HtmlPdfRenderedConverter {
             decoration.StrokeColor = null;
             drawing.AddShape(decoration, 0D, 0D);
         }
-        string? link = string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
-        string? linkDestination = IsFragmentLink(visual.LinkUri)
+        string? link = suppressLink || string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
+        string? linkDestination = !suppressLink && IsFragmentLink(visual.LinkUri)
             ? MapNamedDestination(visual.LinkUri!.Substring(1))
             : null;
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
@@ -333,21 +341,28 @@ internal static partial class HtmlPdfRenderedConverter {
         if (logicalTextOwned) {
             addDrawingAndLink(canvas);
         } else {
+            double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
+            var carrier = logicalClip?.ConstrainLogicalRectangle(visual.X + textX, visual.Y, resolvedAdvance, logicalHeight)
+                ?? (X: visual.X + textX, Y: visual.Y, Width: resolvedAdvance, Height: logicalHeight);
             PdfCore.PdfCanvasTextStructureRole role = asSpan
                 ? PdfCore.PdfCanvasTextStructureRole.Span
                 : MapStructureRole(visual.SemanticRole);
             if (role == PdfCore.PdfCanvasTextStructureRole.Span) {
                 canvas.ActualText(
                     visual.Text,
-                    visual.X * PointsPerCssPixel,
-                    (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
+                    carrier.X * PointsPerCssPixel,
+                    carrier.Y * PointsPerCssPixel,
+                    carrier.Width * PointsPerCssPixel,
+                    carrier.Height * PointsPerCssPixel,
                     addDrawingAndLink);
             } else {
                 canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
                     nested.ActualText(
                         visual.Text,
-                        visual.X * PointsPerCssPixel,
-                        (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
+                        carrier.X * PointsPerCssPixel,
+                        carrier.Y * PointsPerCssPixel,
+                        carrier.Width * PointsPerCssPixel,
+                        carrier.Height * PointsPerCssPixel,
                         addDrawingAndLink));
             }
         }
@@ -551,7 +566,12 @@ internal static partial class HtmlPdfRenderedConverter {
         double scaleX,
         double bottom,
         bool simulateItalic,
-        double boldOffset) {
+        double boldOffset, bool preservePositionedFrame) {
+        if (preservePositionedFrame) {
+            double positionedX = originX + ((point.X - originX) * scaleX) + boldOffset;
+            if (simulateItalic) positionedX += OfficeSyntheticTextStyle.ItalicOffset(bottom, point.Y);
+            return new OfficePoint(positionedX, point.Y);
+        }
         double x = point.X + boldOffset;
         if (simulateItalic) x += (bottom - point.Y) * SyntheticItalicShear;
         return new OfficePoint(originX + ((x - originX) * scaleX), point.Y);

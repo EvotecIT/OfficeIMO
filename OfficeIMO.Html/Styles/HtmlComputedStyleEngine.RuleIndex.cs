@@ -19,12 +19,12 @@ public static partial class HtmlComputedStyleEngine {
             CustomPropertyRegistrations = customPropertyRegistrations
                 ?? new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
             foreach (StyleRule rule in rules) {
-                if (!rule.PseudoKind.HasValue) {
+                if (!rule.PseudoElementKind.HasValue) {
                     _elements.Add(rule);
                     continue;
                 }
 
-                HtmlPseudoElementKind kind = rule.PseudoKind.Value;
+                HtmlPseudoElementKind kind = rule.PseudoElementKind.Value;
                 if (!_pseudoElements.TryGetValue(kind, out SelectorRuleBucket? bucket)) {
                     bucket = new SelectorRuleBucket();
                     _pseudoElements[kind] = bucket;
