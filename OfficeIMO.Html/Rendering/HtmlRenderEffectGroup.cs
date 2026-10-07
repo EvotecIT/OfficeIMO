@@ -71,6 +71,12 @@ public sealed class HtmlRenderEffectGroup : HtmlRenderVisual {
             LayoutY);
     }
 
+    internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderEffectGroup(
+            X + offsetX, Y + offsetY, Width, Height,
+            RebaseTransform(Transform, offsetX, offsetY), Opacity, visuals,
+            paintOrder, Source, LayoutY);
+
     private static OfficeTransform RebaseTransform(OfficeTransform transform, double offsetX, double offsetY) =>
         OfficeTransform.Translate(-offsetX, -offsetY)
             .Then(transform)

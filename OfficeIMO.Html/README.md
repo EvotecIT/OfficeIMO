@@ -9,10 +9,10 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - URL policy evaluation and base URI resolution
 - owned document snapshots, node queries and edits, with replaceable parser and charset providers
 - DOM traversal facts and node/depth limit tracking
-- image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
+- image source discovery and deterministic responsive candidate selection for `img`, lazy-loading attributes, `srcset`, `sizes`, and `picture/source`
 - image data URI parsing and media-type extension mapping
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
-- dependency-free HTML layout for continuous and paged output
+- browser-free HTML layout for continuous and paged output
 - structured Presentation MathML routed through the shared OfficeIMO.Core expression and vector-rendering model
 - bounded CSS length math, caller stylesheets, deterministic media preferences, running strings and elements, and Unicode-range-aware font fallback packs
 - first-party TrueType/WOFF 1, .NET 8+ single-face WOFF 2, CFF/CFF2, and variable-font programs, plus an optional complete OpenType shaping provider
@@ -33,6 +33,46 @@ File.WriteAllText("exports/service-review.html", report.ExportSourceHtml());
 
 `ExportSourceHtml()` records the original effective base URI in the document. It preserves source markup; referenced files remain at their original locations. Use `SourceHtml` for the exact original text or `HtmlForConversion` for policy-normalized conversion HTML.
 
+## Load a ZIP site bundle
+
+`HtmlSiteBundle` loads an HTML page and its archived stylesheets, fonts and images
+without extracting files or granting network access. Root `index.html` takes
+precedence over `index.htm`; otherwise a single HTML entry is selected. Specify
+`EntryPath` when the archive contains several possible pages.
+
+```csharp
+using OfficeIMO.Html;
+
+using Stream source = File.OpenRead("saved-site.zip");
+HtmlSiteBundle bundle = await HtmlSiteBundle.LoadAsync(source,
+    new HtmlSiteBundleOptions { EntryPath = "articles/report.html" });
+
+HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg));
+HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request);
+rendered.RequireNoLoss();
+int pageNumber = 1;
+foreach (var page in rendered.ExportImages()) {
+    File.WriteAllBytes($"report-{pageNumber++:D3}.svg", page.Bytes);
+}
+```
+
+The loader supports stored and Deflate ZIP entries. It checks encoded size, entry count,
+actual decoded entry and total sizes, compression ratios and ZIP checksums. It normalizes
+leading `./` and backslashes, and rejects traversal, duplicate normalized names and
+non-regular entries. Caller streams remain open; seekable streams retain
+their original position. HTML parser limits and cancellation also apply.
+
+`ArchiveBaseUri` assigns a virtual HTTP(S) directory to the archive. It changes
+relative URL resolution, not resource permissions. Archived resources are served
+from snapshots. An explicitly supplied render resolver remains the fallback;
+missing resources produce the existing conversion diagnostics. Resource requests
+still use the renderer's URL, byte, count and timeout limits.
+
+For PDF output use the [site-bundle adapter in OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md#zip-site-bundles),
+which also enforces the PDF embedded-package resource policy. MHTML uses the
+separate [OfficeIMO.Mhtml](../OfficeIMO.Mhtml/README.md) MIME reader and CID resolver.
+
 ## Inspect and edit owned HTML
 
 ```csharp
@@ -40,16 +80,29 @@ using OfficeIMO.Html;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Markdown.Html;
 
-HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1 id='title'>Draft</h1>");
-HtmlElement title = source.Document.QuerySelector("#title")!;
-HtmlConversionDocument edited = source.Edit(document => {
-    document.GetNode(title.NodeId)!.TextContent = "Approved";
+HtmlDocument source = HtmlDocumentEngine.Default.ParseDocument(
+    "<table><tbody><tr id='items'><th>Item</th></tr></tbody></table>");
+HtmlElement row = source.QuerySelector("#items")!;
+HtmlDocumentFragment cells = HtmlDocumentEngine.Default.ParseFragment(
+    "<td>Quarterly report</td><td>Approved</td>", row);
+
+HtmlDocument edited = source.Edit(document => {
+    HtmlElement targetRow = document.QuerySelector("#items")!;
+    targetRow.AppendChild(document.ImportNode(cells));
 });
-string markdown = edited.ToMarkdown();
-byte[] preview = edited.ToPng();
+HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(edited);
+string markdown = conversion.ToMarkdown();
+byte[] preview = conversion.ToPng();
 ```
 
-`Document` is an immutable source snapshot. `Edit` clones it and freezes the result;
+`HtmlDocumentEngine` is the provider-neutral document entry point. The default engine
+uses the packaged AngleSharp provider, while its constructor accepts any
+`IHtmlParserProvider`. Full documents and contextual fragments are immutable owned
+snapshots. Fragment parsing uses the supplied element and ancestor context, including
+table insertion modes, foreign namespaces and ancestor forms. Import a returned
+fragment into a mutable destination before insertion; appending it splices its children.
+
+`HtmlConversionDocument.Document` is also an immutable source snapshot. `Edit` clones it and freezes the result;
 the original document, retained node handles and cached conversion results remain
 unchanged. `Clone` returns a mutable tree for a single owner, while
 `HtmlConversionDocument.FromDocument` captures the attached tree, including template
@@ -86,8 +139,75 @@ comments and doctype identifiers before copying or native projection. Canonical
 source serialization stops when its expanded output exceeds that limit. These are
 separate checks: an owned tree can contain data that HTML serialization omits, such
 as children of void elements. Cancellation is cooperative, not a hard worker
-memory or execution-time limit. Fragment-context parsing and provider-independent CSS
-execution remain separate work; parsing a string here uses full-document HTML rules.
+memory or execution-time limit. Context reconstruction needed by the retained provider
+is isolated inside `OfficeIMO.Html.AngleSharp`; consumers retain the same owned API when
+the provider changes. Provider-independent CSS execution is being adopted in qualified
+vertical slices while the retained CSS provider covers the remaining grammar.
+
+The owned property grammar covers CSS-wide keywords and selected `display`, `visibility`,
+`opacity`, `color`, physical width and height constraints, and physical margin and padding
+longhands. It represents constant number/percentage calculations, contextual length-percentage
+expressions, and legacy or modern sRGB, HSL, and HWB functions as typed values. Computed
+opacity is converted to a clamped number, while functional colors use the shared `OfficeColor`
+conversion. Width and spacing percentages remain typed at computed-value time and resolve
+against the layout reference at used-value time. Inline declarations enter the managed
+cascade through the lossless owned style-block parser.
+
+Qualified rules whose declarations stay inside that property slice retain their original
+OfficeIMO syntax nodes and selector AST through the cascade, including nested qualified rules
+inside style rules and supported `@media`, `@supports`, `@layer`, and `@container` groups.
+Direct declaration runs preserve their authored position around nested rules. The owned matcher
+handles atomic selector lists, stylesheet namespace bindings, type, universal, id, class,
+and attribute selectors, the four structural combinators, selected child/of-type and An+B
+pseudo-classes, a single-range `:lang()`, and `:is()`, `:where()`, and `:not()`. Grouped rules use the owned path only
+when every selector and declaration is qualified, so a partially understood list cannot
+silently change which elements match. For a namespace-qualified selector that also needs a
+wider pseudo-class, the owned matcher retains the stylesheet namespace and combinator envelope
+while the provider evaluates that pseudo-class against the current element. `:is()` and `:where()`
+use forgiving lists, while `:not()` stays strict. `:empty` follows deployed browser behavior:
+whitespace text makes an element non-empty and comments do not.
+
+AngleSharp.Css remains in the default package for wider property grammars, dynamic and
+relational pseudo-classes, filtered `:nth-child(... of S)`, conditional-group evaluation,
+pseudo-elements, unknown at-rules, and other fallback cases. Retained declarations can still use an owned
+selector match, including namespace-qualified selectors. OfficeIMO keeps rule order, cascade
+layers, computed-style projection, and fallback selection stable while the owned subset grows.
+
+Cascade explanations are opt-in so normal rendering does not retain candidate graphs for
+every element:
+
+```csharp
+using OfficeIMO.Html.Css;
+
+HtmlConversionDocument source = HtmlConversionDocument.Parse(
+    "<style>@layer theme { .status { color: blue; width:calc(24px + 25%) } }</style>" +
+    "<p class='status' style='color:lime'>Ready</p>");
+var styles = HtmlComputedStyleEngine.Compute(source, new HtmlComputedStyleOptions {
+    IncludeCascadeTraces = true
+});
+HtmlCssCascadeTrace trace = styles[source.Document.QuerySelector(".status")!]
+    .GetCascadeTrace("color")!;
+HtmlCssCascadeCandidate winner = trace.Candidates.Single(candidate =>
+    candidate.Decision == HtmlCssCascadeDecision.Selected);
+
+HtmlComputedStyle statusStyle = styles[source.Document.QuerySelector(".status")!];
+if (statusStyle.TryGetTypedValue("width", out HtmlCssPropertyValue? width)) {
+    HtmlCssLengthResolutionResult used = HtmlCssMathResolver.ResolveLength(
+        width.MathExpression!,
+        new HtmlCssLengthResolutionContext { PercentageReference = 640 });
+}
+```
+
+The trace uses OfficeIMO types only. It reports computed value, inheritance/reset state,
+source kind, selector, layer, specificity, importance, source order, winner decision, and
+the owned grammar status of each retained candidate. `IsEffective` identifies the authored
+declaration that won the local cascade. `InvalidAtComputedValue` identifies a failed custom-property
+substitution whose result fell back to inheritance or the property's initial value. A retained provider may normalize a
+stylesheet declaration before the cascade sees it; inspect `HtmlCssStyleSheet` when exact
+authored spelling and source spans are required. Traces are currently available for the
+properties in `HtmlCssPropertyCatalog`. Inline syntax parsing uses the conversion operation's
+CSS byte, token, syntax-node, declaration, nesting, and resolved-selector expansion limits; the explicitly unbounded document overload does
+not introduce the standalone CSS parser's default input ceiling.
 
 See [the migration guide](../MIGRATION.md#owned-html-documents-and-callbacks) for the
 replaced public DOM signatures.
@@ -116,6 +236,35 @@ string review = OfficeHtmlDocumentShell.WrapBody(
 Set `EmitDocumentShell = false` to return a fragment. Adapter save options expose this object through `DocumentOutput`; their older title, language, theme, style, fragment, and newline properties remain synchronized aliases. Adapter-required body classes are retained and `BodyClass` values are appended with stable de-duplication. The shell is presentation only. Parsing, resource policy, layout interpretation, conversion diagnostics, and static execution boundaries remain owned by the managed HTML engine and the destination adapter.
 
 `HtmlTargetCapabilityContracts` describes conversion routes directionally. `HtmlToTarget` and `TargetToHtml` have independent entry points, result contracts, I/O boundaries, diagnostics, profiles, and feature classifications; a missing reverse route is represented by `TargetToHtml == null`. Catalog collections and finalized gallery or conversion results are defensive snapshots; mutable reports remain available only while callers or converters assemble a result.
+
+## Responsive image selection
+
+Use the DOM-independent selector when a crawler, resource broker, or another host
+needs the same candidate decision as the renderer:
+
+```csharp
+HtmlResponsiveImageSelection selected = HtmlResponsiveImageSelector.Select(
+    "small.webp 400w, medium.webp 800w, large.webp 1200w",
+    "(max-width: 600px) 100vw, 50vw",
+    defaultSource: "fallback.webp",
+    new HtmlResponsiveImageSelectionOptions {
+        ViewportWidth = 800,
+        ViewportHeight = 600,
+        DevicePixelRatio = 2
+    });
+
+string selectedUrl = selected.Candidate.Url; // medium.webp
+```
+
+The selector supports density descriptors and width descriptors normalized by a
+bounded `sizes` list. `MaxSizesCharacters` bounds direct selector calls, while
+`HtmlConversionLimits.MaxResponsiveImageSizesCharacters` applies the shared conversion
+boundary. It evaluates supported media conditions through the shared CSS
+media engine, resolves supported CSS lengths and math, keeps the first duplicate
+density, reports whether a default `src` supplied the selected candidate, and falls back
+to `100vw` when no supported size matches. Resource policy is applied before candidate
+selection. Static rendering derives device density from
+`HtmlRenderMediaFeatures.ResolutionDpi`.
 
 ## Direct HTML rendering
 
@@ -150,6 +299,107 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .Save("status-pages");
 ```
 
+The default style mode keeps OfficeIMO's established document layout: an
+uninset body and Arial fallback. Select the bounded browser user-agent defaults
+when a screen or application capture should begin with the conventional
+eight-pixel body margin and generic serif family:
+
+```csharp
+var browserOptions = new HtmlRenderOptions {
+    ViewportWidth = 816,
+    Margins = HtmlRenderMargins.All(0)
+};
+browserOptions.UseBrowserUserAgentStyles();
+```
+
+Authored CSS such as `body { margin: 0 }` still overrides that margin. The
+browser mode is a versioned subset of common user-agent defaults; it does not
+claim a complete Chromium stylesheet or cross-platform system-font identity.
+Set `DefaultFontFamily` after calling the helper when the application supplies
+or requires a particular font family.
+
+Unavailable `@font-face` declarations remain in the diagnostic report. They
+count as font approximation when rendered text requests the unavailable face;
+unused declarations and fallback faces that are never reached are informational.
+This attribution uses the original family, weight, style, stretch and Unicode
+coverage request before fallback. Resource-policy failures and execution limits
+retain their own diagnostics.
+
+Use a named render request when CSS media, viewport behavior, pagination, page
+selection, and output format must be independently reviewable. The request takes an
+immutable options snapshot. The retained result records the exact profile, surfaces,
+source offsets, clipping, requested scale and background, declared providers, and
+loss diagnostics before an encoder consumes it.
+
+```csharp
+var request = HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.ScreenSnapshotPaged,
+        HtmlRenderEncoder.Png,
+        new HtmlRenderOptions {
+            ViewportWidth = 816,
+            PageSize = OfficePageSizes.A4,
+            Scale = 1.5
+        },
+        HtmlRenderDocumentState.EditedSnapshot)
+    .WithPageSet(HtmlRenderPageSet.Pages(firstPageIndex: 0, pageCount: 2));
+
+HtmlRenderResult retained = HtmlRenderEngine.Execute(source, request);
+IReadOnlyList<OfficeImageExportResult> pages = retained.ExportImages();
+
+HtmlRenderSurface firstSurface = retained.GetSurface(0);
+OfficeDrawing preview = firstSurface.CreateDrawing();
+HtmlRenderHitTestReport hits = firstSurface.HitTest(120, 80, new HtmlRenderHitTestOptions {
+    InteractiveOnly = true,
+    MaximumResults = 8
+});
+firstSurface.TryMapToSource(120, 80, out HtmlRenderSourcePoint? sourcePoint);
+
+HtmlRenderArchiveResult archive = retained.ExportArchive(new HtmlRenderArchiveOptions {
+    MaximumArchiveBytes = 128 * 1024 * 1024
+});
+File.WriteAllBytes("screen-pages.zip", archive.Bytes);
+```
+
+Named profiles are immutable defaults. Use `WithCssMedia(...)`,
+`WithLayoutSurface(...)`, and `WithPagination(...)` to form a coherent custom
+combination; use `WithLayout(...)` or `WithAxes(...)` when two coupled geometry
+axes must change atomically. `MatchesNamedProfile` becomes false and `Coverage` becomes
+`Unqualified` when those effective axes no longer match the named profile.
+The encoder and page-set admission rules still apply.
+
+The built-in profiles are `ScreenViewport`, `ScreenFullPage`, `PrintPaged`,
+`ScreenMediaPaged`, `ScreenSnapshotPaged`, and `ContinuousVector`.
+`ScreenMediaPaged` applies screen CSS and performs paged reflow.
+`ScreenSnapshotPaged` completes one continuous screen layout and slices it into
+fixed page canvases, so it may split elements. `PrintPaged` applies print CSS and
+normal fragmentation. Separate pages, one selected page, a range, and stitched
+output are available now. `SourcePlacements` records every source page or slice
+and its output offset in a stitched surface. Projection is cancellable and bounded
+by `MaxProjectedVisuals`, `MaxPageCount`, `MaxSurfaceWidth`, and
+`MaxSurfaceHeight`.
+
+`HtmlRenderResult.OutputSurfaces` exposes immutable executable surface views for
+preview drawings, output-to-source coordinate mapping, and bounded topmost-first
+hit testing. Hit testing applies retained transforms and rectangle, rounded, and
+path clips, and reports whether each result used transformed bounds or clip-aware
+transformed bounds. It does not claim exact glyph, stroke, or arbitrary shape
+paint containment.
+
+`ExportArchive()` packages the already selected, ranged, separate, or stitched
+PNG/SVG surfaces. The deterministic ZIP contains ordered `pages/page-NNNN.*`
+entries plus `manifest.json`; the manifest records request axes and range values, qualification,
+dimensions, encoded hashes, clipping, source placements, requested scale and
+background, provider IDs, retained HTML diagnostics with source-to-target
+provenance, and per-page scale, font, and codec diagnostics. Page encoding loss
+participates in both the page and manifest `HasLoss` values. Container adapters
+can attach their own evidence without mutating the retained result through
+`WithAdditionalDiagnostics(...)`. Image byte limits continue
+to come from `HtmlRenderOptions`, while `HtmlRenderArchiveOptions` independently
+bounds the final ZIP and manifest. Element-aware placement remains an explicit
+unsupported boundary. Inspect `HtmlRenderProfileContracts.All`
+or `officeimo html capabilities --format json` for current qualification and encoder
+availability.
+
 Set `FidelityPolicy` when diagnosed fallback is not acceptable. The renderer collects the complete report, then rejects any warning, error, approximation, omission, or failure instead of returning a silently simplified scene.
 
 ```csharp
@@ -161,7 +411,39 @@ var strict = new HtmlRenderOptions {
 OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
 ```
 
-The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All` or the generated support matrix for the exact declared subset.
+The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
+
+Shrink-to-fit sizing for inline blocks, floats and absolute-positioned boxes measures
+styled child text, generated content and replaced images or SVG. Atomic child widths
+remain intact when adjacent labels or whitespace are normalized.
+
+Inline SVG CSS font sizes use the surrounding HTML font context and the SVG
+parent's presentation size when resolving relative units. CSS declarations,
+including `inherit`, `unset`, and `initial`, take precedence over presentation
+attributes. Unsupported SVG syntax remains visible in the conversion diagnostics.
+
+Inline SVG without intrinsic dimensions uses its resolved painted object size as the
+vector viewport, including `object-fit` sizing and cropping. The element's CSS
+background and the SVG's supported strokes remain in the same retained scene
+for screen, print, and screen-to-page output. The
+[HTML support matrix](../Docs/officeimo.html-support-matrix.md) lists supported
+SVG capabilities and known limits. Font and page defaults can change geometry
+across these output intents.
+When a caller supplies an SVG raster codec, inline SVG reaches that fallback only
+if the shared SVG safety predicate accepts its authored dimensions and resource
+work. Rejected inline content receives an omission diagnostic.
+
+Iframe `srcdoc` content is laid out as an independent replaced viewport with the
+browser default 300 by 150 CSS-pixel intrinsic size, overridden by CSS or `width`
+and `height` attributes. The child uses the selected screen or print media context,
+keeps its own base URI and styles, clips overflow at the iframe content box, and
+retains searchable text in PDF output. `MaxFrameDepth` defaults to eight and may be
+lowered for stricter workloads. Layout-operation and repeated-background tile limits
+apply cumulatively to the root and all rendered frame viewports. Static rendering does not fetch an iframe `src`;
+the runtime application workflow supplies captured same-origin frame bodies through
+an isolated render clone.
+
+Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Auto layout considers cell text, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
 
 Explicit body margins, padding, and borders participate in layout and painting. A body background propagated to the canvas is painted once; when the HTML element supplies the canvas background, the body retains its own background box. Overflow propagated from the body clips at the viewport; body-local clipping remains active when the HTML element owns viewport overflow.
 
@@ -184,9 +466,43 @@ exports retain the same scene geometry and page count; font rasterization can di
 Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
 PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
 
-The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
+The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output. Tagged PDF output retains a Formula container and its accessible description, including transformed and vertical equations. Unsupported structures use a diagnosed child-content fallback.
 
-For documents that opt into `hyphens:auto`, supply the language-appropriate break points used by the application. The same immutable lexicon can be shared with the PDF text engine:
+MathML roots default to `font-family: math` with regular weight and style, while
+inheriting the surrounding font size. Supply a face named `math`, or a supported
+mathematical family such as `STIX Two Math`, through `HtmlRenderOptions.Fonts` for
+predictable output. When `AllowSystemFontFallback` is enabled, the renderer can
+load supported installed mathematical TrueType or CFF faces within the existing
+font-source, decoded-byte and cancellation limits. SVG foreign-object viewports share
+the parent operation's resource-byte and resource-count budgets, including decoded
+fonts, without invoking external resolvers. Installed families vary by host;
+an unavailable face produces a diagnostic and follows the font fallback path.
+HTML-to-PDF also applies `HtmlToPdfOptions.ResourcePolicy`: the balanced PDF policy
+permits renderer-selected mathematical families while blocking document-named host
+fonts. Portable deterministic policy disables installed-font discovery; explicitly
+supplied mathematical faces remain available.
+Authored CSS overrides the defaults. To retain surrounding typography, use
+`math { font-family: inherit; font-weight: inherit; font-style: inherit; }`.
+Single-letter identifiers use `text-transform: math-auto` unless overridden by
+MathML or CSS. Scoped static math fonts supply MATH constants for fraction geometry,
+right/left script placement and scale, limits and bars through the shared Core renderer.
+The managed static font readers supply designed radical, fence and large-operator
+variants, bounded connector assemblies, italic correction, per-corner script
+kerning and accent attachment. Explicit `stretchy="false"` and `largeop="false"`
+retain natural operators. Missing or unusable records use deterministic fallback
+geometry. Variable MATH metrics, complete matrix/stack typesetting and the full
+MathML attribute/CSS grammar remain outside this subset. See the
+[shared math contract](../OfficeIMO.Core/README.md#structured-math) for limits and
+the caller's font-metric opt-out.
+
+For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
+(`lang="en-US"` or `en`) and reformed German (`lang="de-DE"`, `de`, `de-1996` or `de-DE-1996`)
+patterns for each text run. Nested language attributes override the inherited language; an empty
+or unsupported language produces no automatic breaks. Other regional English and German spelling
+tags are unsupported. Pattern resources retain their source notices and use no external runtime.
+
+Supply an application lexicon or callback to override the embedded patterns, including returning
+no breaks. The same immutable lexicon can be shared with the PDF text engine:
 
 ```csharp
 options.UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(new[] {
@@ -288,7 +604,7 @@ HtmlConversionDocument source = HtmlConversionDocument.Parse(html, options);
 
 The untrusted profile is the default. It rejects local-file navigation, does not fetch external resources by itself, and applies one shared set of limits before adapters allocate native Office objects. Embedded `data:` resources remain available through the separate resource policy and are still subject to renderer or adapter byte budgets. Use `CreateTrustedProfile()` only when the caller controls the HTML and resource locations.
 
-`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
+`HtmlConversionLimits` is the common source for parser and CSS complexity decisions. CSS byte volume, rules, declarations, inline lexical tokens, inline syntax nodes, nesting depth, selectors per rule, resolved selector characters, and selector evaluations have separate limits and stable diagnostics. Word forwards its compatibility limit properties to this object; Excel, PowerPoint, and OneNote use `HtmlImportLimits` for native artifact counts, image bytes, chart dimensions, table cells, and geometry. This keeps shared HTML decisions in `OfficeIMO.Html` while leaving format-specific constraints with the target model.
 
 ## Shared Diagnostics And Gallery Contracts
 
@@ -390,7 +706,21 @@ foreach (HtmlFeaturePreflightResult feature in excel.Features) {
 
 The generated [HTML support matrix](../Docs/officeimo.html-support-matrix.md) is checked against those executable contracts in the test suite. Run `Build/Export-HtmlSupportMatrix.ps1 -Check` to verify it or omit `-Check` to regenerate it.
 
-Applications can inspect the same contract through `HtmlRenderCapabilityCatalog.All`. The catalog lists each declared supported subset as `Full` and records unsupported boundaries separately as `Fallback`, `Ignored`, or `Rejected`, linked to stable diagnostic codes where content can change.
+Applications can inspect the same versioned contract through `HtmlRenderCapabilityCatalog.ProfileManifests` and `HtmlRenderCapabilityCatalog.All`. A profile manifest pins its admitted providers, specifications, evidence, platforms, outputs, version, and promotion state. Each capability reports the stages where the claim applies, its exact feature subset, and separate coverage, handling, maturity, required or optional provider, specification, evidence, limitation, and diagnostic fields.
+
+```csharp
+HtmlCapabilityProfileManifest profile = HtmlRenderCapabilityCatalog.GetProfile(
+    HtmlCapabilityProfileIds.StaticScreenV1);
+
+HtmlRenderCapability grid = HtmlRenderCapabilityCatalog.Get("layout-grid");
+HtmlCapabilityProfileBinding support = grid.GetProfileBinding(profile.Id);
+
+Console.WriteLine($"{profile.Id} {profile.Version}: {profile.Promotion}");
+Console.WriteLine($"{grid.Stages}: {support.Coverage}/{support.Handling}");
+Console.WriteLine(string.Join(", ", support.ProviderIds));
+```
+
+`Qualified` describes the listed subset and stages; it does not mean an entire HTML or CSS specification. `Fallback`, `Ignored`, and `Rejected` are handling outcomes and carry stable diagnostics when content is changed or refused. `HtmlRenderCapabilityCatalog.Validate()` checks manifest references, ordering, promotion consistency, diagnostic coverage, and release evidence for stable-default bindings.
 
 ## Resource sessions
 

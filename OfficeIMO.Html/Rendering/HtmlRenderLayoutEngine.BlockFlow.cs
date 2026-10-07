@@ -10,7 +10,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         IElement? continuationTarget = null,
         int continuationLogicalCharacters = 0,
-        InlineFloatContext? floatContext = null) =>
+        PagedFloatBoundary? pageBoundary = null,
+        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
+        ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? floatContext = null) =>
         BuildChildBlocks(
             container,
             container.ChildNodes,
@@ -20,7 +22,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             includeGeneratedBefore: true,
             includeGeneratedAfter: true,
             continuationTarget,
-            continuationLogicalCharacters, floatContext);
+            continuationLogicalCharacters,
+            pageBoundary,
+            inheritedFloats,
+            emittedFloats, floatContext);
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
         IElement container,
@@ -32,10 +37,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool includeGeneratedAfter,
         IElement? continuationTarget = null,
         int continuationLogicalCharacters = 0,
-        InlineFloatContext? floatContext = null) {
+        PagedFloatBoundary? pageBoundary = null,
+        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
+        ICollection<HtmlFloatExclusion>? emittedFloats = null, InlineFloatContext? floatContext = null) {
         EnsureDepth(depth, container);
         bool ownsFloatContext = floatContext == null;
-        floatContext ??= new InlineFloatContext(width);
+        floatContext ??= new InlineFloatContext(width, inheritedFloats);
+        if (container.TagName.Equals("details", StringComparison.OrdinalIgnoreCase) && !container.HasAttribute("open")) {
+            IElement? summary = container.Children.FirstOrDefault(child =>
+                child.TagName.Equals("summary", StringComparison.OrdinalIgnoreCase));
+            nodes = nodes.Where(node => ReferenceEquals(node, summary));
+        }
         var blocks = new List<HtmlRenderFlowBlock>();
         IElement? continuationChild = FindDirectChildContaining(container, continuationTarget);
         bool seekingContinuation = continuationChild != null;
@@ -43,8 +55,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double flowHeight = blocks.Sum(block => block.Height);
         var adjoiningMargins = new AdjoiningMarginState();
         var inlineNodes = new List<INode>();
+        List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue || emittedFloats != null
+            ? inheritedFloats == null ? new List<HtmlFloatExclusion>() : new List<HtmlFloatExclusion>(inheritedFloats)
+            : null;
         foreach (INode node in nodes) {
             CheckCancellation();
+            for (int index = (activeFloats?.Count ?? 0) - 1; index >= 0; index--) {
+                if (activeFloats![index].Bottom <= flowHeight + 0.0001D) activeFloats.RemoveAt(index);
+            }
             if (IsClosedDisclosureChild(node)) continue;
             if (seekingContinuation) {
                 if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
@@ -60,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (HtmlCssRunningElementParser.TryParsePosition(childStyle.Position, out string runningElementName)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) adjoiningMargins.Clear();
                     IReadOnlyList<HtmlCssRunningStringAssignment> assignments = CaptureRunningElement(
@@ -88,9 +106,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? CreateFlattenedSemanticBoundary(element, childStyle)
                     : null;
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
+                    List<HtmlFloatExclusion>? flattenedFloats = activeFloats != null
+                        ? new List<HtmlFloatExclusion>()
+                        : null;
                     IReadOnlyList<HtmlRenderFlowBlock> flattenedBlocks = BuildChildBlocks(
                         element,
                         width,
@@ -98,7 +119,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         depth + 1,
                         carriesContinuation ? continuationTarget : null,
                         carriesContinuation ? continuationLogicalCharacters : 0,
-                        floatContext.At(width, 0D, flowHeight));
+                        pageBoundary?.Shift(flowHeight),
+                        activeFloats?.Count > 0 ? activeFloats.Select(item => item.Shift(0D, -flowHeight)).ToArray() : null,
+                        flattenedFloats, floatContext.At(width, 0D, flowHeight));
+                    if (flattenedFloats != null) {
+                        foreach (HtmlFloatExclusion exclusion in flattenedFloats) {
+                            HtmlFloatExclusion positioned = exclusion.Shift(0D, flowHeight);
+                            activeFloats?.Add(positioned);
+                            emittedFloats?.Add(positioned);
+                        }
+                    }
                     foreach (HtmlRenderFlowBlock flattenedBlock in ApplyFlattenedElementSemantics(flattenedBlocks, flattenedSemanticBoundary!)) {
                         blocks.Add(flattenedBlock);
                         flowHeight += flattenedBlock.Height;
@@ -116,7 +146,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         inlineNodes.Add(node);
                         continue;
                     }
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
@@ -128,31 +158,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (childStyle.FloatSide != "none") {
+                if (childStyle.FloatSide != "none" || TryGetPageFloatSide(element, childStyle, out _)
+                    || TryGetColumnEdgeFloatSide(element, childStyle, out _, out _)) {
                     inlineNodes.Add(node);
                     continue;
                 }
 
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
-                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, floatContext.At(width, 0D, flowHeight));
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
-                    double blockY = Math.Max(flowHeight, floatContext.Clearance(childStyle.ClearSide));
-                    childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY);
-                    double clearance = blockY - flowHeight;
-                    if (clearance > 0D) {
-                        blocks.Add(CreateFloatClearanceBlock(width, clearance));
-                        flowHeight += clearance;
-                        adjoiningMargins.Clear();
+                    if (activeFloats == null) {
+                        double blockY = Math.Max(flowHeight, floatContext.Clearance(childStyle.ClearSide));
+                        childStyle = PlaceIndependentBlockBesideFloats(childStyle, width, floatContext, ref blockY);
+                        if (blockY > flowHeight) {
+                            blocks.Add(CreateFloatClearanceBlock(width, blockY - flowHeight));
+                            flowHeight = blockY;
+                            adjoiningMargins.Clear();
+                        }
                     }
                     var anticipatedMargins = adjoiningMargins;
-                    anticipatedMargins.Add(childStyle.MarginTop);
+                    anticipatedMargins.Add(new HtmlCollapsedMargin(childStyle.MarginTop));
                     double anticipatedMarginAdjustment = adjoiningMargins.Count > 0
                         ? anticipatedMargins.Allocated - anticipatedMargins.Collapsed : 0D;
+                    HtmlRenderBoxStyle unavoidedStyle = childStyle.Clone();
+                    childStyle = AvoidActiveFloatsForFormattingContext(
+                        unavoidedStyle, width, flowHeight, activeFloats);
+                    childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
-                    HtmlRenderFlowBlock childBlock = LayoutElement(
+                    List<HtmlFloatExclusion>? childFloats = activeFloats != null
+                        && ContainsFloatingDescendant(element, width, childStyle, depth + 1)
+                            ? new List<HtmlFloatExclusion>()
+                            : null;
+                    HtmlRenderFlowBlock LayoutPlacedChild() => LayoutElement(
                         element,
                         width,
                         childStyle,
@@ -160,19 +200,52 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         depth + 1,
                         carriesContinuation ? continuationTarget : null,
                         carriesContinuation ? continuationLogicalCharacters : 0,
-                        floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
+                        pageBoundary?.Shift(flowHeight),
+                        activeFloats?.Count > 0 && !EstablishesFloatContainingBlock(childStyle) ? activeFloats.Select(item => item.Shift(
+                            -childStyle.MarginLeft - childStyle.BorderLeftWidth - childStyle.PaddingLeft,
+                            -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,
+                        childFloats, floatContext.At(width, 0D, flowHeight - anticipatedMarginAdjustment));
+                    HtmlRenderFlowBlock childBlock = LayoutPlacedChild();
+                    if (activeFloats?.Count > 0 && EstablishesFloatContainingBlock(unavoidedStyle)
+                        && !unavoidedStyle.ExplicitHeight.HasValue) {
+                        // Auto height is only known after layout. Recheck the
+                        // float bands with that height so a short box can stay
+                        // beside a float without a taller box crossing a later one.
+                        for (int attempt = 0; attempt <= activeFloats.Count; attempt++) {
+                            double measuredHeight = Math.Max(0.01D,
+                                childBlock.Height - childStyle.MarginTop - childStyle.MarginBottom);
+                            HtmlRenderBoxStyle measuredStyle = AvoidActiveFloatsForFormattingContext(
+                                unavoidedStyle, width, flowHeight, activeFloats, measuredHeight);
+                            measuredStyle = ResolveNormalFlowHorizontalAutoMargins(element, measuredStyle, width);
+                            if (Math.Abs(measuredStyle.MarginTop - childStyle.MarginTop) <= 0.0001D
+                                && Math.Abs(measuredStyle.MarginLeft - childStyle.MarginLeft) <= 0.0001D
+                                && Math.Abs(measuredStyle.MarginRight - childStyle.MarginRight) <= 0.0001D) break;
+                            childStyle = measuredStyle;
+                            childFloats?.Clear();
+                            childBlock = LayoutPlacedChild();
+                        }
+                    }
                     if (carriesContinuation) {
                         continuationTarget = null;
                         continuationLogicalCharacters = 0;
                     }
                     double marginAdjustment = 0D;
                     if (childBlock.HasCollapsibleMargins && adjoiningMargins.Count > 0) {
-                        adjoiningMargins.Add(childBlock.CollapsibleMarginTop);
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginTopGroup);
                         if (!childBlock.CollapsesThrough) {
                             marginAdjustment = adjoiningMargins.Allocated - adjoiningMargins.Collapsed;
                         }
                     }
                     childBlock = childBlock.AdjustLeadingFlowSpace(marginAdjustment);
+                    if (childFloats != null) {
+                        foreach (HtmlFloatExclusion exclusion in childFloats) {
+                            HtmlFloatExclusion positioned = exclusion.Shift(
+                                childStyle.MarginLeft + childStyle.BorderLeftWidth + childStyle.PaddingLeft,
+                                flowHeight - marginAdjustment + childStyle.MarginTop + childStyle.BorderTopWidth + childStyle.PaddingTop);
+                            activeFloats?.Add(positioned);
+                            emittedFloats?.Add(positioned);
+                        }
+                    }
                     HtmlRenderBoxStyle placementStyle = childStyle.Clone();
                     if (childBlock.HasCollapsibleMargins) {
                         placementStyle.MarginTop = childBlock.CollapsibleMarginTop;
@@ -185,9 +258,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         adjoiningMargins.Clear();
                     } else if (childBlock.CollapsesThrough) {
                         if (adjoiningMargins.Count == 0) {
-                            adjoiningMargins.Reset(childBlock.CollapsibleMarginTop);
+                            adjoiningMargins.Reset(childBlock.CollapsibleMarginTopGroup);
                         }
-                        adjoiningMargins.Add(childBlock.CollapsibleMarginBottom);
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginBottomGroup);
                         double collapsed = adjoiningMargins.Collapsed;
                         double trailingAdjustment = adjoiningMargins.Allocated - collapsed;
                         if (Math.Abs(trailingAdjustment) > 0.0001D) {
@@ -198,7 +271,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                         adjoiningMargins.SetAllocated(collapsed);
                     } else {
-                        adjoiningMargins.Reset(childBlock.CollapsibleMarginBottom);
+                        adjoiningMargins.Reset(childBlock.CollapsibleMarginBottomGroup);
                     }
                     continue;
                 }
@@ -207,10 +280,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineNodes.Add(node);
         }
 
-        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, floatContext.At(width, 0D, flowHeight));
+        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
         flowHeight += trailingInlineHeight;
-        if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
         if (ownsFloatContext && floatContext.Bottom > flowHeight) blocks.Add(CreateFloatClearanceBlock(width, floatContext.Bottom - flowHeight));
+        if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
     }
@@ -231,12 +304,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private static double CollapseVerticalMargins(double first, double second) {
-        double positive = Math.Max(0D, Math.Max(first, second));
-        double negative = Math.Min(0D, Math.Min(first, second));
-        return positive + negative;
-    }
-
     private struct AdjoiningMarginState {
         private double _positive;
         private double _negative;
@@ -245,18 +312,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Allocated { get; private set; }
         internal double Collapsed => _positive + _negative;
 
-        internal void Add(double margin) {
+        internal void Add(HtmlCollapsedMargin margin) {
             Count++;
-            Allocated += margin;
-            _positive = Math.Max(_positive, margin);
-            _negative = Math.Min(_negative, margin);
+            Allocated += margin.Value;
+            _positive = Math.Max(_positive, margin.Positive);
+            _negative = Math.Min(_negative, margin.Negative);
         }
 
         internal void Clear() {
             this = default;
         }
 
-        internal void Reset(double margin) {
+        internal void Reset(HtmlCollapsedMargin margin) {
             this = default;
             Add(margin);
         }

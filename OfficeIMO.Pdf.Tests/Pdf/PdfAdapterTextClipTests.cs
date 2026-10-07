@@ -10,16 +10,27 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfAdapterTextClipTests {
     [Theory]
-    [InlineData("font:32px Arial;line-height:1")]
-    [InlineData("font:bold 32px Arial;line-height:1.2")]
-    [InlineData("font:italic 32px Arial;line-height:.8")]
-    public void HtmlLineMetricsDoNotIntroduceAnUnauthoredGlyphClip(string style) {
+    [InlineData("font:32px Arial;line-height:1", 0)]
+    [InlineData("font:bold 32px Arial;line-height:1.2", 0)]
+    [InlineData("font:italic 32px Arial;line-height:.8", 0)]
+    [InlineData("font:italic 32px Arial;line-height:.8", 8)]
+    public void HtmlLineMetricsDoNotClipGlyphsToTheirLayoutFrame(string style, int topMargin) {
         byte[] bytes = HtmlConversionDocument.Parse("<p style='margin:0;" + style + "'>gypqj</p>")
-            .ToPdfBytes(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) });
+            .ToPdfBytes(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(topMargin) });
 
-        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(bytes).Pages[0].GetTextSpans());
+        var page = PdfReadDocument.Open(bytes).Pages[0];
+        PdfTextSpan span = Assert.Single(page.GetTextSpans());
         Assert.Equal("gypqj", span.Text);
-        Assert.Null(span.ClipPath);
+        if (span.ClipPath.HasValue) {
+            // Short leading can put glyph paint above the page edge. Retain the
+            // surface clip without introducing a clip to the line's CSS box.
+            Assert.Equal(0D, span.ClipPath.Value.X, 3);
+            Assert.Equal(0D, span.ClipPath.Value.Y, 3);
+            var media = page.GetGeometry().MediaBox!;
+            Assert.Equal(media.Width, span.ClipPath.Value.Width, 3);
+            Assert.Equal(media.Height, span.ClipPath.Value.Height, 3);
+            Assert.Equal(0, topMargin);
+        }
     }
 
     [Theory]

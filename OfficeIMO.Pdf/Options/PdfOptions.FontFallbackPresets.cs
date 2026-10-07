@@ -5,7 +5,7 @@ public sealed partial class PdfOptions {
     /// Default installed multilingual family candidates used by document converters for CJK,
     /// Arabic, and other non-Latin generated PDF text.
     /// </summary>
-    public const string DefaultDocumentMultilingualFontFamilyFallback = "Arial Unicode MS, Noto Sans CJK JP, Yu Gothic, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, Meiryo, Hiragino Sans GB, Microsoft JhengHei, Noto Sans CJK TC, Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, MS Gothic, SimSun, Noto Sans JP, Noto Sans SC, Noto Sans TC, Noto Sans KR, Noto Sans Arabic, Noto Naskh Arabic, Arabic Typesetting, Traditional Arabic, Nirmala UI, Microsoft Uighur, DejaVu Sans";
+    public const string DefaultDocumentMultilingualFontFamilyFallback = "Arial Unicode MS, Microsoft YaHei, Yu Gothic, PingFang SC, Noto Sans CJK SC, Noto Sans CJK JP, Nirmala UI, DejaVu Sans, Droid Sans Fallback, WenQuanYi Zen Hei, IPAGothic, IPA Gothic, Noto Sans Arabic, Noto Naskh Arabic, Arabic Typesetting, Traditional Arabic, Microsoft Uighur, Meiryo, Hiragino Sans GB, Microsoft JhengHei, Noto Sans CJK TC, Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, MS Gothic, SimSun, Noto Sans JP, Noto Sans SC, Noto Sans TC, Noto Sans KR";
 
     /// <summary>
     /// Default installed symbol and emoji family candidates used by document converters for generated PDF text fallback runs.
@@ -28,7 +28,8 @@ public sealed partial class PdfOptions {
         PdfTextFallbackFeatures features,
         IEnumerable<PdfStandardFont> reservedFontSlots,
         bool allowSystemFontEmbedding,
-        bool preserveConfiguredFontSlots = false) {
+        bool preserveConfiguredFontSlots = false,
+        string? requiredText = null) {
         Guard.NotNull(reservedFontSlots, nameof(reservedFontSlots));
         if (!allowSystemFontEmbedding || features == PdfTextFallbackFeatures.None) {
             return this;
@@ -74,12 +75,8 @@ public sealed partial class PdfOptions {
              !HasEmbeddedStandardFontFamily(effectiveDocumentSlot))) {
             runFallbacks |= PdfTextFallbackFeatures.DocumentFont;
         }
-        if (runFallbacks == PdfTextFallbackFeatures.SymbolAndEmojiFonts) {
-            TryRegisterEmbeddedFontFallbacksFromSystem(
-                DefaultDocumentSymbolAndEmojiFontFamilyFallback,
-                reservedFontSlots: reservedSlots);
-        } else if (runFallbacks != PdfTextFallbackFeatures.None) {
-            TryRegisterRunFallbacksFromSystem(runFallbacks, reservedSlots);
+        if (runFallbacks != PdfTextFallbackFeatures.None) {
+            TryRegisterRunFallbacksFromSystem(runFallbacks, reservedSlots, requiredText);
         }
 
         if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0 &&
@@ -93,7 +90,8 @@ public sealed partial class PdfOptions {
 
     private bool TryRegisterRunFallbacksFromSystem(
         PdfTextFallbackFeatures features,
-        IEnumerable<PdfStandardFont> reservedFontSlots) {
+        IEnumerable<PdfStandardFont> reservedFontSlots,
+        string? requiredText) {
         if (_embeddedFontFallbacks != null) return true;
 
         bool document = (features & PdfTextFallbackFeatures.DocumentFont) != 0;
@@ -103,6 +101,27 @@ public sealed partial class PdfOptions {
         foreach (PdfStandardFont slot in reservedFontSlots) AddRegisteredFontFamilySlot(reservedSlots, slot);
         var candidates = new List<PdfEmbeddedFontFallbackCandidate>();
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrEmpty(requiredText)) {
+            string remaining = requiredText!;
+            foreach (string familyNames in new[] {
+                         document ? DefaultDocumentFontFamilyFallback : string.Empty,
+                         multilingual ? DefaultDocumentMultilingualFontFamilyFallback : string.Empty,
+                         symbols ? DefaultDocumentSymbolAndEmojiFontFamilyFallback : string.Empty
+                     }) {
+                if (remaining.Length == 0 || candidates.Count == 6) break;
+                if (familyNames.Length == 0) continue;
+                remaining = AddCoverageDrivenInstalledCandidates(
+                    familyNames,
+                    remaining,
+                    6,
+                    candidates,
+                    registeredFamilies);
+            }
+            if (candidates.Count == 0) return false;
+            RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates));
+            return true;
+        }
+
         int groupCount = (document ? 1 : 0) + (multilingual ? 1 : 0) + (symbols ? 1 : 0);
         int perGroup = groupCount == 1 ? 2 : 1;
         if (document) AddInstalledRunFallbackCandidates(
@@ -150,9 +169,32 @@ public sealed partial class PdfOptions {
             if (count == 0) return;
             if (!registeredFamilies.Add(familyName)) continue;
             if (!PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family) || family == null) continue;
-            candidates.Add(new PdfEmbeddedFontFallbackCandidate(family.FamilyName, family.Regular));
+            candidates.Add(new PdfEmbeddedFontFallbackCandidate(family));
             count--;
         }
+    }
+
+    private static string AddCoverageDrivenInstalledCandidates(
+        string familyNames,
+        string requiredText,
+        int maximumCandidates,
+        List<PdfEmbeddedFontFallbackCandidate> candidates,
+        HashSet<string> registeredFamilies) {
+        string remaining = requiredText;
+        foreach (string familyName in EnumerateOfficeFontFamilyCandidates(familyNames)) {
+            if (remaining.Length == 0 || candidates.Count == maximumCandidates) break;
+            if (!registeredFamilies.Add(familyName)) continue;
+            if (!PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family) || family == null) continue;
+            var candidate = new PdfEmbeddedFontFallbackCandidate(family);
+            PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText(
+                remaining,
+                new[] { candidate },
+                "generated text fallback selection");
+            if (plan.Segments.Count == 0) continue;
+            candidates.Add(candidate);
+            remaining = string.Concat(plan.Diagnostics.Select(diagnostic => diagnostic.Text));
+        }
+        return remaining;
     }
 
     /// <summary>
@@ -181,7 +223,8 @@ public sealed partial class PdfOptions {
     internal bool TryRegisterEmbeddedFontFallbacksFromSystem(
         string? familyNames,
         int maxFallbackFonts = 2,
-        IEnumerable<PdfStandardFont>? reservedFontSlots = null) {
+        IEnumerable<PdfStandardFont>? reservedFontSlots = null,
+        string? requiredText = null) {
         if (maxFallbackFonts <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxFallbackFonts), "Maximum fallback font count must be positive.");
         }
@@ -207,7 +250,7 @@ public sealed partial class PdfOptions {
 
             if (PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family) &&
                 family != null) {
-                candidates.Add(new PdfEmbeddedFontFallbackCandidate(family.FamilyName, family.Regular));
+                candidates.Add(new PdfEmbeddedFontFallbackCandidate(family));
             }
         }
 

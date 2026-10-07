@@ -14,7 +14,9 @@ internal static class HtmlCssBorderRadiusParser {
         out string detail) {
         radii = default;
         detail = string.Empty;
-        if (!TryParseShorthand(style.BorderRadius, width, height, style.Font.Size, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double[] horizontal, out double[] vertical, style.CharacterAdvance)) {
+        bool uprightVerticalText = (style.WritingMode == "vertical-rl" || style.WritingMode == "vertical-lr")
+            && style.TextOrientation == "upright";
+        if (!TryParseShorthand(style.BorderRadius, width, height, style.Font.Size, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double[] horizontal, out double[] vertical, style.CharacterAdvance, uprightVerticalText)) {
             detail = "border-radius=" + style.BorderRadius;
             return false;
         }
@@ -27,7 +29,7 @@ internal static class HtmlCssBorderRadiusParser {
         };
         for (int index = 0; index < overrides.Length; index++) {
             if (string.IsNullOrWhiteSpace(overrides[index])) continue;
-            if (!TryParseCorner(overrides[index], width, height, style.Font.Size, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out horizontal[index], out vertical[index], style.CharacterAdvance)) {
+            if (!TryParseCorner(overrides[index], width, height, style.Font.Size, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out horizontal[index], out vertical[index], style.CharacterAdvance, uprightVerticalText)) {
                 detail = CornerPropertyName(index) + "=" + overrides[index];
                 return false;
             }
@@ -63,18 +65,19 @@ internal static class HtmlCssBorderRadiusParser {
         double containerWidth,
         double containerHeight,
         out double[] horizontal,
-        out double[] vertical, double characterAdvance = double.NaN) {
+        out double[] vertical,
+        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
         horizontal = new double[4];
         vertical = new double[4];
         string normalized = string.IsNullOrWhiteSpace(value) ? "0" : value.Trim().ToLowerInvariant();
         string[] axes = normalized.Split('/');
         if (axes.Length > 2
-            || !TryParseAxis(axes[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out horizontal, characterAdvance)) return false;
+            || !TryParseAxis(axes[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out horizontal, characterAdvance, uprightVerticalText)) return false;
         if (axes.Length == 1) {
             Array.Copy(horizontal, vertical, horizontal.Length);
             return true;
         }
-        return TryParseAxis(axes[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out vertical, characterAdvance);
+        return TryParseAxis(axes[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out vertical, characterAdvance, uprightVerticalText);
     }
 
     private static bool TryParseCorner(
@@ -88,26 +91,27 @@ internal static class HtmlCssBorderRadiusParser {
         double containerWidth,
         double containerHeight,
         out double horizontal,
-        out double vertical, double characterAdvance = double.NaN) {
+        out double vertical,
+        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
         horizontal = 0D;
         vertical = 0D;
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(value.Trim().ToLowerInvariant());
         if (values.Count < 1 || values.Count > 2
-            || !TryLength(values[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out horizontal, characterAdvance)) return false;
+            || !TryLength(values[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out horizontal, characterAdvance, uprightVerticalText)) return false;
         if (values.Count == 1) {
             vertical = horizontal;
             return true;
         }
-        return TryLength(values[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out vertical, characterAdvance);
+        return TryLength(values[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out vertical, characterAdvance, uprightVerticalText);
     }
 
-    private static bool TryParseAxis(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double[] expanded, double characterAdvance = double.NaN) {
+    private static bool TryParseAxis(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double[] expanded, double characterAdvance, bool uprightVerticalText) {
         expanded = new double[4];
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(value.Trim());
         if (values.Count < 1 || values.Count > 4) return false;
         var resolved = new double[values.Count];
         for (int index = 0; index < values.Count; index++) {
-            if (!TryLength(values[index], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved[index], characterAdvance)) return false;
+            if (!TryLength(values[index], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved[index], characterAdvance, uprightVerticalText)) return false;
         }
         expanded[0] = resolved[0];
         expanded[1] = resolved.Length > 1 ? resolved[1] : resolved[0];
@@ -116,8 +120,8 @@ internal static class HtmlCssBorderRadiusParser {
         return true;
     }
 
-    private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length, double characterAdvance = double.NaN) =>
-        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length, characterAdvance)
+    private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length, double characterAdvance, bool uprightVerticalText) =>
+        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length, characterAdvance, uprightVerticalText)
         && length >= 0D
         && !double.IsNaN(length)
         && !double.IsInfinity(length);

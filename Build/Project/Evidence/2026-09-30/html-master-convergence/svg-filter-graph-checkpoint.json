@@ -1,0 +1,811 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-01T21:19:27.562531+00:00",
+  "sourceCommit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+  "sourceTree": "ee822ef340249a522975e8a34c2e69f084b44584",
+  "baseCommit": "37daa97d79c10f8d6d7bb86adcb63857b4715717",
+  "mergedMaster": "f606c956dea11adc65a6ab8808b8cba87ffe497f",
+  "mergeConflict": "MIGRATION.md only; both upgrade contracts preserved",
+  "localReview": {
+    "reviewer": "/root/svg_filter_graph_review",
+    "initialCandidate": "5223d5915ab4b2422d888cf01f10c7eb6253dce0",
+    "boundary": "candidate-reviewed",
+    "fullPassUsed": true,
+    "targetedConfirmationUsed": true,
+    "findings": [
+      "P1 source polygon work/cancellation",
+      "P2 optional codec fallback",
+      "P2 nested off-viewport paint",
+      "P2 empty-region object geometry",
+      "P2 marker-free object geometry"
+    ],
+    "reproduced": "six focused failures before remediation",
+    "confirmationFinding": "P1 tiny outer region undercharged full nested effect canvas; separately reproduced and corrected using actual nested dimensions",
+    "closure": "67 focused tests and both complete owner suites pass. Final nested-surface correction has primary regression proof; no further independent pass."
+  },
+  "tests": {
+    "filter": "Category!=Performance",
+    "suites": [
+      {
+        "file": "settled-Drawing-net10.0.trx",
+        "passed": 3261,
+        "failed": 0,
+        "sha256": "8f8197acd0b9fd9c66f3acb462da4347e0c69bcd0d8347b4596e2640ee382e01"
+      },
+      {
+        "file": "settled-Drawing-net8.0.trx",
+        "passed": 3261,
+        "failed": 0,
+        "sha256": "cc2ca5d2f7567887c062dc85669e3b7bd85b28b255ed51bfe5071cbecc8c85ef"
+      },
+      {
+        "file": "settled-Html-net10.0.trx",
+        "passed": 4041,
+        "failed": 0,
+        "sha256": "2cbe32556fb1ab36553360d8eceb82970a70779c052e9fe5be7f6138e82c7f7c"
+      },
+      {
+        "file": "settled-Html-net8.0.trx",
+        "passed": 4041,
+        "failed": 0,
+        "sha256": "41068c06e4d7aa00ae08f03eb5111a73352f3f0b0092c39d3c819b93cdbc4d94"
+      },
+      {
+        "file": "settled-Pdf-net10.0.trx",
+        "passed": 8619,
+        "failed": 0,
+        "sha256": "3cb398523055b3df15a00126593667a40c1943f47b2d80fe778b9d9659b70ef0"
+      },
+      {
+        "file": "settled-Pdf-net8.0.trx",
+        "passed": 8619,
+        "failed": 0,
+        "sha256": "66d896ae8ec364c5b791d4670105dad5f3c42c68fd7ade8d386f3b48d94c1f37"
+      }
+    ],
+    "netstandard2.0": "HTML PDF graph including Core: zero warnings/errors",
+    "toolBuilds": "comparison, editable, static and H10: zero warnings/errors"
+  },
+  "selectedSvg": {
+    "acceptance": {
+      "solidChannelDifferenceFromIndependentReferences": 5,
+      "solidRectangleBoundsDifferencePixels": 1,
+      "shadow": "outside source rectangle; dark at +4px and decreasing toward +16px",
+      "text": "complete token recall and precision in both references",
+      "resource": "expected cycle/denial diagnostics; adjacent native source paint preserved",
+      "scope": "Selected frozen fixtures only; no whole-page pixel-parity claim."
+    },
+    "cases": [
+      {
+        "id": "svg-patterns",
+        "source": {
+          "corpusId": "officeimo-static-html-pdf-gaps",
+          "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+          "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+          "commit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+          "worktreeDirty": false,
+          "caseCount": 1
+        },
+        "sourceSha256": "c5a442114675dcda3eafafbc9f4552e34107a9a3a1bd7de994050d7bcb0583d3",
+        "diagnosticCodes": [],
+        "textComparisons": {
+          "officeImoPrintToChromiumPrint": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 5,
+            "candidateTokenCount": 5
+          },
+          "officeImoPrintToPeachPdf": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 5,
+            "candidateTokenCount": 5
+          }
+        },
+        "nativePdf": {
+          "relativePath": "officeimo-print.pdf",
+          "mediaType": "application/pdf",
+          "sizeBytes": 98811,
+          "sha256": "bef46c8ce493cfffa5ccfad42e137120525719b0ea79a7997f358e3d2c9dbb57",
+          "pageCount": 1,
+          "pages": [
+            {
+              "pageNumber": 1,
+              "relativePath": "officeimo-print-1.png",
+              "width": 794,
+              "height": 1123,
+              "sizeBytes": 14916,
+              "sha256": "074b0fabc8ebf55d9eaf4e0737d7d5bdb037fd3fd7f436013fa4d4df7f71570f",
+              "diagnostics": []
+            }
+          ]
+        },
+        "evidenceSha256": "0940c82dd3fe78eb00cbbacbdc020a5195d7843afc1990b62688f335574ef67c"
+      },
+      {
+        "id": "svg-filter-graph",
+        "source": {
+          "corpusId": "officeimo-static-html-pdf-gaps",
+          "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+          "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+          "commit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+          "worktreeDirty": false,
+          "caseCount": 1
+        },
+        "sourceSha256": "e5b3b75f053f6367864c664ae0920433d36e93d3c5c85d6152070d674b71b29d",
+        "diagnosticCodes": [],
+        "textComparisons": {
+          "officeImoPrintToChromiumPrint": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 7,
+            "candidateTokenCount": 7
+          },
+          "officeImoPrintToPeachPdf": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 7,
+            "candidateTokenCount": 7
+          }
+        },
+        "nativePdf": {
+          "relativePath": "officeimo-print.pdf",
+          "mediaType": "application/pdf",
+          "sizeBytes": 13073,
+          "sha256": "f4e40be74838a91f7a66d2e718ab88a038258dfbc0ba9843626ea2b295aa82f6",
+          "pageCount": 1,
+          "pages": [
+            {
+              "pageNumber": 1,
+              "relativePath": "officeimo-print-1.png",
+              "width": 794,
+              "height": 1123,
+              "sizeBytes": 11969,
+              "sha256": "72afd772cd0df922a495c7accbc16043b1331d1b9420435868ade855b77d9e11",
+              "diagnostics": []
+            }
+          ]
+        },
+        "evidenceSha256": "5101df1f80838f681a925b45c914af81fb9712f092b433c04eb8f62590bfe661",
+        "filterPaint": {
+          "officeimo": {
+            "red": [
+              224,
+              48,
+              32
+            ],
+            "purple": [
+              119,
+              9,
+              119
+            ],
+            "boxes": {
+              "red": [
+                60,
+                108,
+                158,
+                196
+              ],
+              "purple": [
+                235,
+                108,
+                333,
+                196
+              ]
+            },
+            "shadowGrayAtRightPlus4_10_16": [
+              3,
+              53,
+              191
+            ]
+          },
+          "chromium": {
+            "red": [
+              223,
+              50,
+              34
+            ],
+            "purple": [
+              119,
+              13,
+              119
+            ],
+            "boxes": {
+              "red": [
+                59,
+                107,
+                158,
+                196
+              ],
+              "purple": [
+                234,
+                107,
+                333,
+                196
+              ]
+            },
+            "shadowGrayAtRightPlus4_10_16": [
+              1,
+              56,
+              202
+            ]
+          },
+          "peachpdf": {
+            "red": [
+              223,
+              50,
+              34
+            ],
+            "purple": [
+              119,
+              13,
+              119
+            ],
+            "boxes": {
+              "red": [
+                59,
+                108,
+                158,
+                196
+              ],
+              "purple": [
+                235,
+                107,
+                333,
+                196
+              ]
+            },
+            "shadowGrayAtRightPlus4_10_16": [
+              1,
+              50,
+              195
+            ]
+          }
+        }
+      },
+      {
+        "id": "svg-resources",
+        "source": {
+          "corpusId": "officeimo-static-html-pdf-gaps",
+          "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+          "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+          "commit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+          "worktreeDirty": false,
+          "caseCount": 1
+        },
+        "sourceSha256": "99eb8e06fd5b6302dcf508db3717124380f01ddd886856b16c6b32b621f90847",
+        "diagnosticCodes": [
+          "HtmlRenderSvgContentUnsupported"
+        ],
+        "textComparisons": {
+          "officeImoPrintToChromiumPrint": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 5,
+            "candidateTokenCount": 5
+          },
+          "officeImoPrintToPeachPdf": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 5,
+            "candidateTokenCount": 5
+          }
+        },
+        "nativePdf": {
+          "relativePath": "officeimo-print.pdf",
+          "mediaType": "application/pdf",
+          "sizeBytes": 10188,
+          "sha256": "0b718852e088082bd68901c4e995768d52bf2058d46cfee5f5a29183c7ff5934",
+          "pageCount": 1,
+          "pages": [
+            {
+              "pageNumber": 1,
+              "relativePath": "officeimo-print-1.png",
+              "width": 794,
+              "height": 1123,
+              "sizeBytes": 9654,
+              "sha256": "fde4c1739df8c3c5e9141abf14dcf5e5ab36a83afd6af7cd8604c013b968ec34",
+              "diagnostics": []
+            }
+          ]
+        },
+        "evidenceSha256": "492d8df545a536c46ac281e1e520e8cae767c6299a8be18a5f25e666910896c1"
+      },
+      {
+        "id": "svg-resource-denied",
+        "source": {
+          "corpusId": "officeimo-static-html-pdf-gaps",
+          "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+          "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+          "commit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+          "worktreeDirty": false,
+          "caseCount": 1
+        },
+        "sourceSha256": "24151127fd57f9a21ad994d646b2c67b3f39ae978eaa3bad5dba6b461c5cc0e4",
+        "diagnosticCodes": [
+          "ImageResourceRejectedByPolicy",
+          "HtmlRenderSvgContentUnsupported"
+        ],
+        "textComparisons": {
+          "officeImoPrintToChromiumPrint": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 11,
+            "candidateTokenCount": 11
+          },
+          "officeImoPrintToPeachPdf": {
+            "tokenRecall": 1,
+            "tokenPrecision": 1,
+            "referenceTokenCount": 11,
+            "candidateTokenCount": 11
+          }
+        },
+        "nativePdf": {
+          "relativePath": "officeimo-print.pdf",
+          "mediaType": "application/pdf",
+          "sizeBytes": 11525,
+          "sha256": "455a1832503740adf5be62ef7a9779bd42873e2bad9486e882032d7fe1cccdb3",
+          "pageCount": 1,
+          "pages": [
+            {
+              "pageNumber": 1,
+              "relativePath": "officeimo-print-1.png",
+              "width": 794,
+              "height": 1123,
+              "sizeBytes": 14456,
+              "sha256": "23497820f8397ce3b3ffa8dff7f86ad66556a093917dff7a0a0b64f8f858b457",
+              "diagnostics": []
+            }
+          ]
+        },
+        "evidenceSha256": "469e441815ff61b0153eda799579043bddd7843f75953a6e84abb80586a825cc"
+      }
+    ]
+  },
+  "resourceLinkPreservation": {
+    "officeimo": [
+      "https://example.test/svg-link"
+    ],
+    "chromium": [
+      "https://example.test/svg-link"
+    ],
+    "peachpdf": [
+      "https://example.test/svg-link"
+    ]
+  },
+  "heldOut": {
+    "passed": true,
+    "cases": [
+      {
+        "id": "subgrid-operations",
+        "sha256": "cc26aef529dab85f5ba4bc32cc85628db52172a2afc82993af390924ca3d8600",
+        "byteIdentical": true
+      },
+      {
+        "id": "nested-fragmentation-report",
+        "sha256": "a3a3da9bb6bd79231df006c232cfbc8011e915cec139a263a4b4b66829d2a79a",
+        "byteIdentical": true
+      },
+      {
+        "id": "columns-footnotes-brief",
+        "sha256": "f4ef29e6da2714c927f57bc929497c0a0b6bb46fce97d202d93df983fb5930d5",
+        "byteIdentical": true
+      },
+      {
+        "id": "named-pages-brochure",
+        "sha256": "5f19c816add4ba6e596d3f8a98ba16d26469fedce1e4f19cfd58e183d42e5e5e",
+        "byteIdentical": true
+      },
+      {
+        "id": "stacking-clipping-board",
+        "sha256": "2d54c8881a1c27deeca4d4421be3db4947c7330710a62c41d5fde36c99721b68",
+        "byteIdentical": true
+      },
+      {
+        "id": "typography-specimen",
+        "sha256": "e4651439cac12b6d6a928a1c86fb12675e7e0286758d68e9f1f10ba891282456",
+        "byteIdentical": true
+      },
+      {
+        "id": "professional-print-catalog",
+        "sha256": "686b728faafa46ec0dcb606078c0746fdabe74b44944466e6ee1b60f63ab1fb2",
+        "byteIdentical": true
+      },
+      {
+        "id": "legacy-portal",
+        "sha256": "dc831d0d18a109a87ac899484a7f0aab11ad139436c3f520b50e19ed5ae97f3e",
+        "byteIdentical": true
+      }
+    ],
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8"
+  },
+  "frozenNasa": {
+    "sourceCommit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+    "variants": [
+      {
+        "intent": "officeimo-print",
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print.pdf"
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print-zero-margin.pdf"
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "pageCount": 16,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print-fit-browser-viewport.pdf"
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "pageCount": 11,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print-fit-1200.pdf"
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "pageCount": 11,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print-fit-1200-local-fonts.pdf"
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print-browser-ua.pdf"
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-print-zero-margin-local-fonts.pdf"
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-screen-media.pdf"
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-screen-media-local-fonts.pdf"
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-screen-snapshot.pdf"
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "byteIdentical": true,
+        "retainedBaselineFile": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c/officeimo-screen-snapshot-local-fonts.pdf"
+      }
+    ],
+    "referenceFailures": []
+  },
+  "macosStaticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-10-01T21:08:08.296699+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4975.0468,
+      "peakWorkingSetBytes": 367312896,
+      "memorySampleCount": 144,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4906.2988,
+          "managedAllocatedBytes": 1083313640,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 10919.0009,
+      "peakWorkingSetBytes": 547799040,
+      "memorySampleCount": 317,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2345.602,
+          "managedAllocatedBytes": 893895232,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1981.6802,
+          "managedAllocatedBytes": 894847128,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1870.7753,
+          "managedAllocatedBytes": 894791056,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.6272,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "macosH10Budget": {
+    "sourceCommit": "77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+    "passed": true,
+    "ceilingsUnchanged": true,
+    "failures": [],
+    "operations": [
+      {
+        "name": "pdf-print",
+        "conversionMilliseconds": 4449.1972,
+        "managedAllocatedBytes": 2110113752,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 487292928,
+          "sampleCount": 145,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "conversionMilliseconds": 4477.6111,
+        "managedAllocatedBytes": 2114246936,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 419266560,
+          "sampleCount": 148,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "pdf-screen-media",
+        "conversionMilliseconds": 3733.7845,
+        "managedAllocatedBytes": 1652746040,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 444547072,
+          "sampleCount": 124,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "conversionMilliseconds": 3744.1832,
+        "managedAllocatedBytes": 1772263600,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 548044800,
+          "sampleCount": 125,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "editable-word",
+        "conversionMilliseconds": 2509.9625,
+        "managedAllocatedBytes": 962141408,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 319553536,
+          "sampleCount": 81,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "102915e6caaa9ed77a740b1fdefdfd023778507f5009320ed271853969820338",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "editable-excel",
+        "conversionMilliseconds": 2099.6861,
+        "managedAllocatedBytes": 941147784,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 326533120,
+          "sampleCount": 69,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "2e5e9fc5d3577a687ed96bcb520e46cf648b65b5a0da78f6ae27dccd1c4d7555",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "editable-powerpoint",
+        "conversionMilliseconds": 3026.0405,
+        "managedAllocatedBytes": 982064648,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 272482304,
+          "sampleCount": 97,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "f9f96ac3518217cdc6285ef6b5c30bdfd6da69bb74fd13e91665b1d4e4c56c17",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "editable-onenote",
+        "conversionMilliseconds": 1506.64,
+        "managedAllocatedBytes": 645508584,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 251035648,
+          "sampleCount": 51,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "95260d8962246f73b13fb1ba56ae0981a95146e80313d111765b8f420632bf9f",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "editable-rtf",
+        "conversionMilliseconds": 2101.1889,
+        "managedAllocatedBytes": 892014504,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 243744768,
+          "sampleCount": 67,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "7d6b4474a77947ce1403fbda115fc3cfc52b3307372acb26fb6f275f4fdcabe7",
+        "passed": true,
+        "hasLoss": true
+      },
+      {
+        "name": "editable-markdown",
+        "conversionMilliseconds": 1503.4145,
+        "managedAllocatedBytes": 646970368,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 245448704,
+          "sampleCount": 49,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "passed": true,
+        "hasLoss": true
+      }
+    ]
+  },
+  "package": {
+    "version": "3.4.4",
+    "license": "MIT",
+    "runtimeDependencies": [],
+    "nativeAssets": [],
+    "bytes": 5129447,
+    "sha256": "ab3f34ec352b2aa0ef41aa3e94a5aa3db26a5e5aaa43fde21e2766f6a4b80d7d",
+    "consumers": [
+      {
+        "framework": ".NET 8.0.23",
+        "core": "3.4.4+77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+        "red": 188,
+        "alpha": 64,
+        "unsupported": 0,
+        "cancellation": true
+      },
+      {
+        "framework": ".NET 10.0.12",
+        "core": "3.4.4+77c8a9c82e0261b7068c1704f9a051a5d37dd3f4",
+        "red": 188,
+        "alpha": 64,
+        "unsupported": 0,
+        "cancellation": true
+      }
+    ]
+  },
+  "comparisonReference": {
+    "latestStable": "0.9.20",
+    "referencePin": "0.9.20",
+    "nuspec": "\ufeff<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<package xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\">\n  <metadata>\n    <id>PeachPDF</id>\n    <version>0.9.20</version>\n    <authors>PeachPDF</authors>\n    <license type=\"expression\">BSD-3-Clause</license>\n    <licenseUrl>https://licenses.nuget.org/BSD-3-Clause</licenseUrl>\n    <icon>peach.png</icon>\n    <readme>README.md</readme>\n    <projectUrl>https://peachpdf.net/</projectUrl>\n    <description>Package Description</description>\n    <repository type=\"git\" url=\"https://github.com/jhaygood86/PeachPDF.git\" commit=\"06db16f4977ab2ca09457a6156a04c3302adba8f\" />\n    <dependencies>\n      <group targetFramework=\"net10.0\">\n        <dependency id=\"MimeKit\" version=\"4.17.0\" exclude=\"Build,Analyzers\" />\n        <dependency id=\"PeachImage\" version=\"0.4.6\" exclude=\"Build,Analyzers\" />\n      </group>\n      <group targetFramework=\"net11.0\">\n        <dependency id=\"MimeKit\" version=\"4.17.0\" exclude=\"Build,Analyzers\" />\n        <dependency id=\"PeachImage\" version=\"0.4.6\" exclude=\"Build,Analyzers\" />\n      </group>\n      <group targetFramework=\"net8.0\">\n        <dependency id=\"MimeKit\" version=\"4.17.0\" exclude=\"Build,Analyzers\" />\n        <dependency id=\"PeachImage\" version=\"0.4.6\" exclude=\"Build,Analyzers\" />\n        <dependency id=\"System.IO.Pipelines\" version=\"8.0.0\" exclude=\"Build,Analyzers\" />\n      </group>\n    </dependencies>\n  </metadata>\n</package>",
+    "package": "/Users/przemyslawklys/.nuget/packages/peachpdf/0.9.20/peachpdf.0.9.20.nupkg"
+  },
+  "currentPeachNasaReference": {
+    "completed": true,
+    "pageCount": 14,
+    "sha256": "95860eaf9eaed31d7fe7a5afe5cb4ffb7f0bcb8caf3497cc7c45cfa06345cbbf",
+    "note": "Published0.9.20 completed this replay; prior bookmark errors do not describe this run."
+  },
+  "visualInspection": [
+    "Final native filter, pattern, resource and denied-resource prints inspected alongside independent browser/reference images. Filter solid channels differ by at most4 levels and rectangle bounds by at most1 pixel.",
+    "Pattern rotation/tiling/clipping is preserved with edge antialiasing differences. Cyclic gradients are transparent in both native and browser; symbol and linked rectangles remain visible."
+  ],
+  "retainedEvidenceRoot": "Ignore/HtmlUnknownPageQualification/static-gap-svg-filter-clean-77c8a9c82",
+  "remainingLimits": [
+    "Selected uniform-colorspace shape/group graphs only; no browser pixel-parity or general filter-conformance claim.",
+    "The frozen18 goal remains active: remaining PDF Formula/MathML associated-file/conformance and language/image qualification in Docs/ROADMAP.md.",
+    "Windows/net472 and Windows/Linux operation budgets remain unfinished.",
+    "All H10 editable operations still report loss; budgets do not qualify appearance.",
+    "No HTML PR, master merge, release or deployment. Other active WIP remains preserved."
+  ],
+  "artifactRetention": {
+    "manifest": "retention-manifest.json",
+    "retainedBytes": 17274616,
+    "supersededArtifactBytesRemoved": 485702310,
+    "retainedFiles": 323,
+    "nativeNasaPdfs": "Eleven actual byte comparisons verified retained baseline files before deleting duplicate outputs."
+  }
+}

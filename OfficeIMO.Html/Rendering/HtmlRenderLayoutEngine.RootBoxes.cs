@@ -22,18 +22,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private IReadOnlyList<HtmlRenderFlowBlock> BuildRootBlocks(IElement root, double width, HtmlRenderBoxStyle style) {
-        if (!RequiresRootBox(root, style)) return BuildChildBlocks(root, width, style, 0);
-        return new[] { LayoutRootBox(root, width, style) };
-    }
-
     private bool RequiresRootBox(IElement root, HtmlRenderBoxStyle style) =>
         style.Position != "static" || style.HasBorderLayout || style.HorizontalInsets != 0D || style.VerticalInsets != 0D ||
-        style.MarginLeft != 0D || style.MarginRight != 0D || style.MarginTop != 0D || style.MarginBottom != 0D ||
-        !ReferenceEquals(_surfaceRootElement, root) && HasDeclaredCanvasBackground(style);
+        style.MarginLeft != 0D || style.MarginRight != 0D || style.MarginTop != 0D || style.MarginBottom != 0D;
 
     private HtmlRenderFlowBlock LayoutRootBox(IElement root, double width, HtmlRenderBoxStyle style,
-        IElement? continuationTarget = null, int continuationLogicalCharacters = 0) {
+        IElement? continuationTarget = null, int continuationLogicalCharacters = 0, PagedFloatBoundary? pageBoundary = null) {
         var boxStyle = style.Clone();
         // The canvas owns a propagated background. Paint the root border and content
         // without compositing a translucent background a second time over that canvas.
@@ -49,7 +43,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             boxStyle.OverflowY = "visible";
         }
         HtmlRenderBoxStyle parentStyle = root.ParentElement == null ? boxStyle : _styleResolver.Resolve(root.ParentElement, width);
-        return LayoutElement(root, width, boxStyle, parentStyle, 0, continuationTarget, continuationLogicalCharacters)
+        HtmlRenderFlowBlock block = LayoutElement(root, width, boxStyle, parentStyle, 0,
+            continuationTarget, continuationLogicalCharacters, pageBoundary);
+        // A propagated canvas background no longer paints a root-box rectangle,
+        // but its authored width and trailing padding still bound the scroll surface.
+        double outerWidth = boxStyle.MarginLeft + boxStyle.MarginRight
+            + ResolveBoxWidth(Math.Max(1D, width - boxStyle.MarginLeft - boxStyle.MarginRight), boxStyle);
+        return block.WithVisuals(block.Visuals, width: Math.Max(width, outerWidth))
             .WithLayoutViewport(_activePageGeometry.Width, _activePageGeometry.Height);
     }
 }

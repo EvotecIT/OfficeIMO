@@ -1,0 +1,2380 @@
+{
+  "sourceCommit": "04cb30a03579d35d731326af76460cc27e0ba9da",
+  "status": "Relative projection, glyph bounds and finite snapshot carrier locally qualified; wider profile/platform acceptance remains open.",
+  "scope": "Physical-page paint projection preserves normal-flow advancement and source-owned clips, logical text and links. Original independent reproductions remain below.",
+  "fixturePageCssPixels": [
+    400,
+    400
+  ],
+  "pageMarginsCssPixels": 0,
+  "fontContract": "16px Arial/sans-serif,20px line height; independent glyph baselines differ and pixel parity is not claimed.",
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+  "independentProducer": "Published HtmlTinkerX3.0.3 session/GetPagePdfAsync; isolated test only.",
+  "extractor": "Poppler26.09 raw UTF8/LF plus bbox-layout; original layout extraction retained.",
+  "fixtureRoot": "relative-paint-fixtures-20261005",
+  "observations": [
+    {
+      "case": "footer-negative-clipped",
+      "fixtureSha256": "0d8ec6c63d961ee8a3afd97ce730d357cfbd71894dfa31b2cb9a5a55aa853365",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "950e2883c86e59c5496644e3e27f744883f1e4cc91662bfda7f965a6b6124a7b",
+          "missingInRawExtraction": [
+            "Side label",
+            "Footer row 01",
+            "Footer row 02"
+          ],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "bac0684e38e1599af2ba55917f81c3c23628bb563751cc8523b8807b7654747b",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "footer-negative-link",
+      "fixtureSha256": "38727b5f642a039f77c90c19f4e5b790140daac49e1c41d34798e88df2d7ab93",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "8a430f2cf448401a685c7a4987757fcd4e3b9f30373ee4738422e80541926fef",
+          "missingInRawExtraction": [
+            "Side label",
+            "Footer row 01",
+            "Footer row 02"
+          ],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "cff09b927fdb577218111a593d2d5d52d302b07c8e92e6ba1a02890b8379fadd",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "footer-negative",
+      "fixtureSha256": "b160c3c8fdde4da138c54d194b22753c9ab8413945e1d58232aa43f4cfa4a21d",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "8a430f2cf448401a685c7a4987757fcd4e3b9f30373ee4738422e80541926fef",
+          "missingInRawExtraction": [
+            "Side label",
+            "Footer row 01",
+            "Footer row 02"
+          ],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "07d431d2a94f9d708c401f39585b060e7fbd8b37da6aa1f01f425cef3f7912b7",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "footer-normal",
+      "fixtureSha256": "53975a088cc75ffd055561fc1415e9a3340fe80ca60ea87f1ca6e70823a38ab9",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "ce27f7a496a4fa7b10cc09b6d942fa89a9c0ebae51baa8e563ef7e06030d4277",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "3635f6842d5685fa7a72bdfd42dd25fbc6523baacb5c4002b7864e126e80a23a",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "footer-positive",
+      "fixtureSha256": "7bb391ef858929f30a31f291f54646a783d7a01d1ee284fe670a24527bd4a035",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "8e21763d38d3b568b24941d034a3c4e9fdc2cfca14dcd49511bcc94b3c59a723",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "bd60ec00fc28f16879ac4f6f594e489298812b015bd2ca382879333e5086056b",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "plain-negative",
+      "fixtureSha256": "982e7fa05e26947e7534673bd02aeccee3876c8f65c56754506dfce5cd851b67",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "377a94e487316b2f12798f6d2d5ae9fac3339d26af8850ee31d8e4ff696df10a",
+          "missingInRawExtraction": [
+            "Plain row 09",
+            "Plain row 10",
+            "Plain row 11",
+            "Plain row 12"
+          ],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "c46480d68f873bbc69e258d478c4b2f083fc2fa205bcfc8109de3a2f2ef86bd3",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "plain-normal",
+      "fixtureSha256": "0e4d1b234d1a93b243bc91668747f2d0e8bef6d0aa33d867a4f41591e583ac16",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "e3ec940666fad4389e5d90f76b404d6b6abda3e876545b081c9dbf0d12cd60b6",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "12921ab3463e11a5e3dd2c97c8c597c498b229bbcfa992c2fe21eed161d0abb9",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    },
+    {
+      "case": "plain-positive",
+      "fixtureSha256": "4d2d1419e6fca9970ec7d3f391345243423726200c7eb37a3e865db33525cf5e",
+      "engines": {
+        "before": {
+          "pageCount": 2,
+          "pdfSha256": "cea148a7171f4605d4bb7399cb722878f527858a7f928e1877f0c778242555f1",
+          "missingInRawExtraction": [
+            "Plain row 05",
+            "Plain row 06",
+            "Plain row 07",
+            "Plain row 08"
+          ],
+          "duplicateInRawExtraction": []
+        },
+        "chromium": {
+          "pageCount": 2,
+          "pdfSha256": "14f068a928b59080414b74937342aa138fc2623ae7be1de681a1046d1372f5ab",
+          "missingInRawExtraction": [],
+          "duplicateInRawExtraction": []
+        }
+      }
+    }
+  ],
+  "decisiveGeometry": {
+    "footer-negative": {
+      "before": [
+        {
+          "page": 2,
+          "text": "Footer row 03",
+          "bounds": {
+            "xMin": 15.0,
+            "yMin": -8.616,
+            "xMax": 89.028,
+            "yMax": 2.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Footer row 04",
+          "bounds": {
+            "xMin": 15.0,
+            "yMin": 6.384,
+            "xMax": 89.028,
+            "yMax": 17.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Footer row 05",
+          "bounds": {
+            "xMin": 15.0,
+            "yMin": 21.384,
+            "xMax": 89.028,
+            "yMax": 32.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Trailing label",
+          "bounds": {
+            "xMin": 42.672,
+            "yMin": 231.384,
+            "xMax": 68.016,
+            "yMax": 242.484
+          }
+        }
+      ],
+      "chromium": [
+        {
+          "page": 1,
+          "text": "Footer row 01",
+          "bounds": {
+            "xMin": 14.999999,
+            "yMin": 240.386709,
+            "xMax": 89.033199,
+            "yMax": 253.792958
+          }
+        },
+        {
+          "page": 1,
+          "text": "Footer row 03",
+          "bounds": {
+            "xMin": 14.999999,
+            "yMin": 270.386707,
+            "xMax": 89.033199,
+            "yMax": 283.792957
+          }
+        },
+        {
+          "page": 1,
+          "text": "Footer row 04",
+          "bounds": {
+            "xMin": 14.999999,
+            "yMin": 285.386707,
+            "xMax": 89.033199,
+            "yMax": 298.792956
+          }
+        },
+        {
+          "page": 1,
+          "text": "Side label",
+          "bounds": {
+            "xMin": 149.999994,
+            "yMin": 240.386709,
+            "xMax": 202.70507,
+            "yMax": 253.792958
+          }
+        },
+        {
+          "page": 2,
+          "text": "Footer row 05",
+          "bounds": {
+            "xMin": 14.999999,
+            "yMin": 0.386719,
+            "xMax": 89.033199,
+            "yMax": 13.792968
+          }
+        },
+        {
+          "page": 2,
+          "text": "Trailing label",
+          "bounds": {
+            "xMin": 42.234373,
+            "yMin": 210.38671,
+            "xMax": 67.587888,
+            "yMax": 223.792959
+          }
+        }
+      ]
+    },
+    "plain-negative": {
+      "before": [
+        {
+          "page": 1,
+          "text": "Plain row 05",
+          "bounds": {
+            "xMin": 30.012,
+            "yMin": 183.384,
+            "xMax": 66.024,
+            "yMax": 194.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 13",
+          "bounds": {
+            "xMin": 30.012,
+            "yMin": 3.384,
+            "xMax": 66.024,
+            "yMax": 14.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Trailing label",
+          "bounds": {
+            "xMin": 42.672,
+            "yMin": 153.384,
+            "xMax": 68.016,
+            "yMax": 164.484
+          }
+        }
+      ],
+      "chromium": [
+        {
+          "page": 1,
+          "text": "Plain row 05",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 180.386711,
+            "xMax": 66.035153,
+            "yMax": 193.792961
+          }
+        },
+        {
+          "page": 1,
+          "text": "Plain row 09",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 240.386709,
+            "xMax": 66.035153,
+            "yMax": 253.792958
+          }
+        },
+        {
+          "page": 1,
+          "text": "Plain row 12",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 285.386707,
+            "xMax": 66.035153,
+            "yMax": 298.792956
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 13",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 0.386719,
+            "xMax": 66.035153,
+            "yMax": 13.792968
+          }
+        },
+        {
+          "page": 2,
+          "text": "Trailing label",
+          "bounds": {
+            "xMin": 42.234373,
+            "yMin": 150.386712,
+            "xMax": 67.587888,
+            "yMax": 163.792962
+          }
+        }
+      ]
+    },
+    "plain-positive": {
+      "before": [
+        {
+          "page": 2,
+          "text": "Plain row 09",
+          "bounds": {
+            "xMin": 30.012,
+            "yMin": 63.384,
+            "xMax": 66.024,
+            "yMax": 74.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 12",
+          "bounds": {
+            "xMin": 30.012,
+            "yMin": 108.384,
+            "xMax": 66.024,
+            "yMax": 119.484
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 13",
+          "bounds": {
+            "xMin": 30.012,
+            "yMin": 123.384,
+            "xMax": 66.024,
+            "yMax": 134.484
+          }
+        }
+      ],
+      "chromium": [
+        {
+          "page": 2,
+          "text": "Plain row 05",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 0.386719,
+            "xMax": 66.035153,
+            "yMax": 13.792968
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 09",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 60.386716,
+            "xMax": 66.035153,
+            "yMax": 73.792966
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 12",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 105.386714,
+            "xMax": 66.035153,
+            "yMax": 118.792964
+          }
+        },
+        {
+          "page": 2,
+          "text": "Plain row 13",
+          "bounds": {
+            "xMin": 30.017577,
+            "yMin": 120.386714,
+            "xMax": 66.035153,
+            "yMax": 133.792963
+          }
+        }
+      ]
+    }
+  },
+  "diagnosis": {
+    "entry": "HtmlRenderLayoutEngine.ApplyPositioning -> HtmlRenderFlowBlock.TranslatePaint",
+    "flow": "TranslatePaint retains Height/BreakOffsets/LineBreakGroups/avoid ranges and each visual LayoutY, while moving its paint Y.",
+    "fragmentMembership": "SliceVisuals selects by normal-flow LayoutY/LayoutHeight; AddTranslatedVisuals/CommitPage emits each resulting fragment on one physical page.",
+    "failure": "After fragment assignment, a relative paint shift crosses a physical page boundary. A line still exists in the scene but lies outside its assigned page box and is clipped by the PDF surface.",
+    "negativeProof": "Plain lines09-12 belong to the next normal-flow fragment but paint in its negativeY range; Chromium paints them on the preceding page.",
+    "positiveProof": "Plain lines05-08 belong to the first normal-flow fragment but paint past its bottom; Chromium paints them at the beginning of page2.",
+    "normalFlow": "Both engines keep the following sibling at its unshifted flow location; positive offsets create an authored overlap with row15.",
+    "extractorCaveat": "Layout-ordered extraction interleaves overlapping row15/trailing labels in both engines. Raw extraction preserves both in Chromium; this is not content loss. Original observation was retained and refined.",
+    "linkConsequence": "The linked first footer row has no PDF annotation in the current output because its paint lands outside page2; Chromium retains one page1 annotation aligned with the visible row."
+  },
+  "rejectedApproaches": [
+    "Resetting relative offset on continuation changes the browser-observed placement and leaves earlier missing lines on the wrong page.",
+    "Moving normal-flow break offsets/height with paint changes sibling placement and authored keep semantics.",
+    "Dropping sparse/painted pages hides the defect.",
+    "A generic post-export text overlay loses scene/tag/clip/link ownership and cannot qualify the engine."
+  ],
+  "retainedEvidence": "Ignore/MasterConvergenceQualification/relative-fragment-qualification-d79651444",
+  "linkedFirstRow": {
+    "before": [],
+    "chromium": [
+      {
+        "page": 1,
+        "uri": "https://example.com/row01",
+        "rect": [
+          15.0,
+          46.5,
+          89.25,
+          59.25
+        ],
+        "pageBox": [
+          0.0,
+          0.0,
+          300.0,
+          300.0
+        ]
+      }
+    ]
+  },
+  "pageWindowControls": {
+    "sourceBehaviorChanged": false,
+    "independentProducer": "Published HtmlTinkerX3.0.3 session/GetPagePdfAsync; isolated test only.",
+    "cases": [
+      {
+        "case": "negative-forced-break",
+        "fixtureSha256": "ec7eb96c40e05995a1d9d4768203c935f88ffda288e4eb319ac4fabb2b227a4f",
+        "pdfSha256": "d5abca9a3410664f2dd9d160bb526d821e9ad6264d12ae5b5f58bf7a88957b64",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 12",
+            "rowCount": 12
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 13",
+            "lastRow": "Plain row 18",
+            "rowCount": 6
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 1,
+            "text": "Plain row 12",
+            "topPdfPt": 285.386707,
+            "bottomPdfPt": 298.792956
+          },
+          {
+            "page": 2,
+            "text": "Plain row 13",
+            "topPdfPt": 0.386719,
+            "bottomPdfPt": 13.792968
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 75.386716,
+            "bottomPdfPt": 88.792965
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 150.386712,
+            "bottomPdfPt": 163.792962
+          }
+        ]
+      },
+      {
+        "case": "negative-forced-early",
+        "fixtureSha256": "cd1ef071148078e66361073d72088fb81591cde8271f44eeae65f127b55dc09f",
+        "pdfSha256": "317008683b27a92b04ef524e400240f7cf31a11529843cb437d9a2cd301af072",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 09",
+            "rowCount": 9
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 10",
+            "lastRow": "Plain row 18",
+            "rowCount": 9
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 1,
+            "text": "Plain row 09",
+            "topPdfPt": 285.386707,
+            "bottomPdfPt": 298.792956
+          },
+          {
+            "page": 2,
+            "text": "Plain row 10",
+            "topPdfPt": 0.386719,
+            "bottomPdfPt": 13.792968
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 195.386711,
+            "bottomPdfPt": 208.79296
+          }
+        ]
+      },
+      {
+        "case": "negative-margins",
+        "fixtureSha256": "b799c9ef66ee366addda9caf538c6a865135e3aa5bf97ba191624839e8328687",
+        "pdfSha256": "5b04d2b995f300b5793a39d2ba46e4628fd7029ea21ce9712141921b170039d1",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 08",
+            "rowCount": 8
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 09",
+            "lastRow": "Plain row 18",
+            "rowCount": 10
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 150.386712,
+            "bottomPdfPt": 163.792962
+          },
+          {
+            "page": 1,
+            "text": "Plain row 08",
+            "topPdfPt": 255.386708,
+            "bottomPdfPt": 268.792958
+          },
+          {
+            "page": 2,
+            "text": "Plain row 09",
+            "topPdfPt": 30.386717,
+            "bottomPdfPt": 43.792967
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 165.386712,
+            "bottomPdfPt": 178.792961
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 240.386709,
+            "bottomPdfPt": 253.792958
+          }
+        ]
+      },
+      {
+        "case": "negative-varying-height",
+        "fixtureSha256": "0742e8dea4348c02d76300e4d4b940e871a5ed1178bb33dc8e4581ff733a1744",
+        "pdfSha256": "37de49940472b02393b92469ddcfb159d2488ed367e567ece335740519436549",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            450
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 12",
+            "rowCount": 12
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 13",
+            "lastRow": "Plain row 18",
+            "rowCount": 6
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 1,
+            "text": "Plain row 01",
+            "topPdfPt": 120.386714,
+            "bottomPdfPt": 133.792963
+          },
+          {
+            "page": 1,
+            "text": "Plain row 12",
+            "topPdfPt": 285.386707,
+            "bottomPdfPt": 298.792956
+          },
+          {
+            "page": 2,
+            "text": "Plain row 13",
+            "topPdfPt": 0.386719,
+            "bottomPdfPt": 13.792968
+          },
+          {
+            "page": 2,
+            "text": "Plain row 18",
+            "topPdfPt": 75.386716,
+            "bottomPdfPt": 88.792965
+          },
+          {
+            "page": 2,
+            "text": "Trailing label",
+            "topPdfPt": 150.386712,
+            "bottomPdfPt": 163.792962
+          }
+        ]
+      },
+      {
+        "case": "positive-margins",
+        "fixtureSha256": "3ecded7836ffa71323647fea2757d9cec84c6cc06f04f9084a548d2db21b7ce1",
+        "pdfSha256": "9acca6b4a13ef1af408a364adacea58e4c8f9856e216904a479fa636de275840",
+        "boxes": [
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ],
+          [
+            0,
+            0,
+            300,
+            300
+          ]
+        ],
+        "labelsOnce": true,
+        "perPageRows": [
+          {
+            "page": 1,
+            "firstRow": null,
+            "lastRow": null,
+            "rowCount": 0
+          },
+          {
+            "page": 2,
+            "firstRow": "Plain row 01",
+            "lastRow": "Plain row 16",
+            "rowCount": 16
+          },
+          {
+            "page": 3,
+            "firstRow": "Plain row 17",
+            "lastRow": "Plain row 18",
+            "rowCount": 2
+          }
+        ],
+        "boundaryGeometry": [
+          {
+            "page": 2,
+            "text": "Plain row 01",
+            "topPdfPt": 30.386717,
+            "bottomPdfPt": 43.792967
+          },
+          {
+            "page": 2,
+            "text": "Plain row 16",
+            "topPdfPt": 255.386708,
+            "bottomPdfPt": 268.792958
+          },
+          {
+            "page": 3,
+            "text": "Plain row 17",
+            "topPdfPt": 30.386717,
+            "bottomPdfPt": 43.792967
+          },
+          {
+            "page": 3,
+            "text": "Plain row 18",
+            "topPdfPt": 45.386717,
+            "bottomPdfPt": 58.792966
+          }
+        ]
+      }
+    ],
+    "interpretation": [
+      "A negative offset recovers later normal-flow lines on the preceding physical page; margins and varying content heights define different windows.",
+      "A positive offset can require an extra physical paint page while the following sibling stays at its unshifted flow location and overlaps authored text.",
+      "Forced early break at paragraph6 changes the unused-flow region: page1 paints rows01-09 and page2 rows10-18. The original paragraph9 forced control coincided with the natural boundary and is not decisive.",
+      "Keep source-owned clipping, link/tag identity and normal-flow advancement; resetting relative offsets or mapping paint by consumed flow length alone cannot satisfy these independent observations."
+    ],
+    "retained": "Ignore/MasterConvergenceQualification/relative-fragment-qualification-d79651444/page-window-browser",
+    "implementationStillOpen": true,
+    "fullGeometryReceiptSha256": "8a15ae9c5bbeea27081ef470de241111d3812b43e5f4334a2e554fa90068c1b8",
+    "currentOfficeIMO": {
+      "sourceCommit": "b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+      "cases": [
+        {
+          "case": "negative-forced-early",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 06",
+            "Plain row 07",
+            "Plain row 08",
+            "Plain row 09"
+          ],
+          "duplicate": []
+        },
+        {
+          "case": "negative-margins",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 05",
+            "Plain row 06"
+          ],
+          "duplicate": []
+        },
+        {
+          "case": "negative-varying-height",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 09",
+            "Plain row 10",
+            "Plain row 11",
+            "Plain row 12"
+          ],
+          "duplicate": []
+        },
+        {
+          "case": "positive-margins",
+          "source": "3.4.4+b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+          "pages": 2,
+          "missing": [
+            "Plain row 03",
+            "Plain row 04"
+          ],
+          "duplicate": []
+        }
+      ],
+      "receiptSha256": "30c6357d15e3db038420605330281e8e44c7fe3e3d42b7b5c9430a5fe6d817ff",
+      "scope": "Independent relative-offset reproduction on the qualified grid source; no relative behavior change. Native PDF/scene proof retained."
+    },
+    "nextBoundedImplementation": "Engine-owned relative paint projection must map shifted paint across resolved physical content windows while retaining flow-fragment advancement and unused regions from authored breaks. Start with the simple positive/negative block fixtures, then nested clip/link/semantic ownership and kept-column controls; no post-PDF overlay or offset reset."
+  },
+  "imageWindowControls20261005": {
+    "sourceHead": "ed5b27cd475c4976d27818567c43ba511587638a",
+    "scope": "Independent image/clip contract controls; no relative-position implementation accepted",
+    "retained": "Ignore/MasterConvergenceQualification/relative-fragment-qualification-d79651444/image-window-projection-control",
+    "fixtureRoot": "relative-paint-fixtures-20261005",
+    "cases": [
+      {
+        "case": "image-negative",
+        "controls": [
+          {
+            "route": "image-window-browser",
+            "pages": 4,
+            "sha256": "3991701f0a92f945d1248921913d8173b4bf794db5546acfaece164c2556c357",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      239,
+                      150,
+                      300
+                    ],
+                    "pixels": 9150
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      60.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      60.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 239,
+                    "last": 299,
+                    "pixelCount": 9150
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      0,
+                      150,
+                      165
+                    ],
+                    "pixels": 24750
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 0,
+                    "last": 164,
+                    "pixelCount": 24750
+                  },
+                  "green": {
+                    "first": 165,
+                    "last": 299,
+                    "pixelCount": 20250
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      90,
+                      150,
+                      300
+                    ],
+                    "pixels": 31500
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 89,
+                    "pixelCount": 13500
+                  },
+                  "blue": {
+                    "first": 90,
+                    "last": 299,
+                    "pixelCount": 31500
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Image caption\n\nTrailing label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      150,
+                      15
+                    ],
+                    "pixels": 2250
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 14,
+                    "pixelCount": 2250
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-original",
+            "pages": 4,
+            "sha256": "cfa9e0ca612d2ede0a7f805ccdea7d63cbbbcf640127df5dfa2b872a5b5ce444",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      166
+                    ],
+                    "pixels": 25066
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      166,
+                      151,
+                      300
+                    ],
+                    "pixels": 20234
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 0,
+                    "last": 165,
+                    "pixelCount": 25066
+                  },
+                  "green": {
+                    "first": 166,
+                    "last": 299,
+                    "pixelCount": 20234
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      91
+                    ],
+                    "pixels": 13741
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      91,
+                      151,
+                      300
+                    ],
+                    "pixels": 31559
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 90,
+                    "pixelCount": 13741
+                  },
+                  "blue": {
+                    "first": 91,
+                    "last": 299,
+                    "pixelCount": 31559
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Image caption\n\nTrailing label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      16
+                    ],
+                    "pixels": 2416
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 15,
+                    "pixelCount": 2416
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-projection-control",
+            "pages": 4,
+            "sha256": "cfa9e0ca612d2ede0a7f805ccdea7d63cbbbcf640127df5dfa2b872a5b5ce444",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      166
+                    ],
+                    "pixels": 25066
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      166,
+                      151,
+                      300
+                    ],
+                    "pixels": 20234
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 0,
+                    "last": 165,
+                    "pixelCount": 25066
+                  },
+                  "green": {
+                    "first": 166,
+                    "last": 299,
+                    "pixelCount": 20234
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      91
+                    ],
+                    "pixels": 13741
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      91,
+                      151,
+                      300
+                    ],
+                    "pixels": 31559
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 90,
+                    "pixelCount": 13741
+                  },
+                  "blue": {
+                    "first": 91,
+                    "last": 299,
+                    "pixelCount": 31559
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Image caption\n\nTrailing label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      16
+                    ],
+                    "pixels": 2416
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      285.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 15,
+                    "pixelCount": 2416
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "fixtureSha256": "56eecfecbf4a851121959c56305f36a563d9e9ae9216c615072389d02d889d57",
+        "decodedPngSha256": "36d3a3e1836430d21fbf0fad7b2706efae000dea70462e7fb102a283a4f7be15",
+        "sourceColors": [
+          [
+            255,
+            0,
+            0
+          ],
+          [
+            0,
+            255,
+            0
+          ],
+          [
+            0,
+            0,
+            255
+          ]
+        ]
+      },
+      {
+        "case": "image-positive",
+        "controls": [
+          {
+            "route": "image-window-browser",
+            "pages": 4,
+            "sha256": "dd4d85c90fc7563a337271b936ddbeb5591126abbd3e9608174c87b29d42a40e",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      59,
+                      150,
+                      285
+                    ],
+                    "pixels": 33900
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      240.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      240.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 59,
+                    "last": 284,
+                    "pixelCount": 33900
+                  },
+                  "green": {
+                    "first": 285,
+                    "last": 299,
+                    "pixelCount": 2250
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      210,
+                      150,
+                      300
+                    ],
+                    "pixels": 13500
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 209,
+                    "pixelCount": 31500
+                  },
+                  "blue": {
+                    "first": 210,
+                    "last": 299,
+                    "pixelCount": 13500
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Trailing label\n\nImage caption\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      150,
+                      135
+                    ],
+                    "pixels": 20250
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      165.0,
+                      300.0,
+                      300.0
+                    ]
+                  },
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      165.0,
+                      150.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 134,
+                    "pixelCount": 20250
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-original",
+            "pages": 4,
+            "sha256": "f6ed713c6fad15ab0e4043bad67429d814ed9b2e6767a76529d5aa20b1bd70b3",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      60,
+                      151,
+                      286
+                    ],
+                    "pixels": 34126
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      286,
+                      151,
+                      300
+                    ],
+                    "pixels": 2114
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      240.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 60,
+                    "last": 285,
+                    "pixelCount": 34126
+                  },
+                  "green": {
+                    "first": 286,
+                    "last": 299,
+                    "pixelCount": 2114
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      211
+                    ],
+                    "pixels": 31861
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      211,
+                      151,
+                      300
+                    ],
+                    "pixels": 13439
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 210,
+                    "pixelCount": 31861
+                  },
+                  "blue": {
+                    "first": 211,
+                    "last": 299,
+                    "pixelCount": 13439
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Trailing label\n\nImage caption\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      75
+                    ],
+                    "pixels": 11325
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      225.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 74,
+                    "pixelCount": 11325
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "route": "image-window-projection-control",
+            "pages": 4,
+            "sha256": "f6ed713c6fad15ab0e4043bad67429d814ed9b2e6767a76529d5aa20b1bd70b3",
+            "pagesObserved": [
+              {
+                "page": 1,
+                "text": "Leading label\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 2,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": [
+                      0,
+                      60,
+                      151,
+                      286
+                    ],
+                    "pixels": 34126
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      286,
+                      151,
+                      300
+                    ],
+                    "pixels": 2114
+                  },
+                  "blue": {
+                    "bbox": null,
+                    "pixels": 0
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      240.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": 60,
+                    "last": 285,
+                    "pixelCount": 34126
+                  },
+                  "green": {
+                    "first": 286,
+                    "last": 299,
+                    "pixelCount": 2114
+                  },
+                  "blue": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  }
+                }
+              },
+              {
+                "page": 3,
+                "text": "\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      211
+                    ],
+                    "pixels": 31861
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      211,
+                      151,
+                      300
+                    ],
+                    "pixels": 13439
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      0.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": 0,
+                    "last": 210,
+                    "pixelCount": 31861
+                  },
+                  "blue": {
+                    "first": 211,
+                    "last": 299,
+                    "pixelCount": 13439
+                  }
+                }
+              },
+              {
+                "page": 4,
+                "text": "Trailing label\n\nImage caption\n\n\f",
+                "bands": {
+                  "red": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "green": {
+                    "bbox": null,
+                    "pixels": 0
+                  },
+                  "blue": {
+                    "bbox": [
+                      0,
+                      0,
+                      151,
+                      75
+                    ],
+                    "pixels": 11325
+                  }
+                },
+                "links": [
+                  {
+                    "uri": "https://example.test/photo",
+                    "rect": [
+                      0.0,
+                      225.0,
+                      300.0,
+                      300.0
+                    ]
+                  }
+                ],
+                "tolerantBandRows": {
+                  "red": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "green": {
+                    "first": null,
+                    "last": null,
+                    "pixelCount": 0
+                  },
+                  "blue": {
+                    "first": 0,
+                    "last": 74,
+                    "pixelCount": 11325
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "fixtureSha256": "1fb2042b5b34a920e8db7a03bea53461f1a87831ce967984aae9e523207053e9",
+        "decodedPngSha256": "36d3a3e1836430d21fbf0fad7b2706efae000dea70462e7fb102a283a4f7be15",
+        "sourceColors": [
+          [
+            255,
+            0,
+            0
+          ],
+          [
+            0,
+            255,
+            0
+          ],
+          [
+            0,
+            0,
+            255
+          ]
+        ]
+      }
+    ],
+    "method": "72dpi Poppler renders; original exact RGB masks retained. Supplemental dominant-channel tolerance accounts for Chromium PDF color encoding; bounds are diagnostic, not byte/pixel parity.",
+    "diagnosis": [
+      "Negative 80px relative offset loses the first image band portion because flow-fragment clips remain at the unshifted physical page window.",
+      "Positive 80px offset loses the final image band portion; the image caption moves but the image fragment clips do not.",
+      "The text-only reflection experiment preserves these losses and is not usable product code.",
+      "Separate synthesized flow-fragment clips from authored overflow/path clips before physical-window projection; retain each image segment exactly once, link rectangles and normal-flow sibling placement."
+    ],
+    "inspection": [
+      "image-negative-contact.png",
+      "image-positive-contact.png"
+    ]
+  },
+  "reproductionSourceCommit": "d79651444419f045afcfb4ecf04df8d0cc9e65c0",
+  "qualifiedClosure": {
+    "sourceCommit": "04cb30a03579d35d731326af76460cc27e0ba9da",
+    "normalBuilds": "Html netstandard2.0, API/Tool/zero-margin/fixture/comparison runners: zero warnings and errors; source graph, not package proof.",
+    "fullHtml": {
+      "net8.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net8.0.trx",
+        "sha256": "b5ae4fa5ea818c54a85cf1bb69e8d7b214f224437b90cdc8f9cd376f5deeee0b",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      "net10.0": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/relative-04cb30a03-net10.0.trx",
+        "sha256": "7dc2d7bb8100604881feefdcd3b571f0d8d130d9bb16c5ff79db6590bbdbd4b1",
+        "counters": {
+          "total": "4361",
+          "executed": "4361",
+          "passed": "4361",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    },
+    "heldOutH4": {
+      "accepted": 8,
+      "cases": 8,
+      "receipt": {
+        "path": "Ignore/MasterConvergenceQualification/h4-relative-clean-04cb30a03/html-corpus-evidence.json",
+        "sha256": "e76532807be13eb1827915bd87c968369808dda9ee79f2cb851b156683bd2f4e"
+      }
+    },
+    "independentRelativeFixtures": {
+      "count": 14,
+      "receipt": {
+        "path": "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a/product-clean-04cb30a03/final-observed-v3/observations.json",
+        "sha256": "581600563e1d0730d61599fecf04ff07beaa06cd4d93ae82a72e7908858cbf2f"
+      },
+      "cases": [
+        "plain-normal",
+        "plain-negative",
+        "plain-positive",
+        "footer-normal",
+        "footer-negative",
+        "footer-positive",
+        "footer-negative-clipped",
+        "footer-negative-link",
+        "negative-margins",
+        "positive-margins",
+        "negative-varying-height",
+        "negative-forced-early",
+        "image-negative",
+        "image-positive"
+      ],
+      "contract": "Every expected raw label once; normal-flow sibling placement retained. Both linked oversized-image controls preserve all three bands and bounded annotations. Margins, varying height, authored clipping and early forced break remain covered."
+    },
+    "actualApiToolReplay": {
+      "pairedRoutes": 9,
+      "additionalZeroMarginApiRoute": 1,
+      "pages": 106,
+      "receipt": {
+        "path": "Ignore/MasterConvergenceQualification/relative-corpus-observations-04cb30a03.json",
+        "sha256": "3d0d1972a18cbc08493751d329e9fcaf094b62c207af7a7d06d87969e95219b1"
+      },
+      "baseline": "83e18a18061fac6e78f8faed3635b7183bec62b3",
+      "allPagePixelEqual72dpi": 106,
+      "sourceBlocksReferenceOrdered": 36,
+      "contract": "All nine API/Tool routes match bytes and independent raw UTF8/LF text; the additional zero-margin API route is observed independently. Full visible-character multisets, decoded rasters, URI targets/geometry, reports and HasLoss match baseline. Raw per-page extraction changes are retained; universal token or PDF byte equality is not claimed."
+    },
+    "reviews": {
+      "relativeProjection": "One scoped read-only full pass and one targeted confirmation; valid findings reproduced and fixed. No remaining findings in that boundary.",
+      "glyphInkClosure": "Existing full owner pass followed by one targeted closure; synthetic-bold allowance and authored-clip bounds findings reproduced and fixed.",
+      "finiteSnapshotCarrier": "One fresh read-only full pass and one targeted confirmation, candidate-reviewed; no remaining findings. Transformed-coordinate carriers and external font-envelope containment remain outside this boundary."
+    },
+    "standaloneDrawing": {
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2817",
+      "head": "18d43803188d0621e462f65fdf388d0a860a2bde",
+      "base": "3472faec6b9eb4bdec147204d3d7319e4fb18f91",
+      "runtimeDependenciesAdded": false,
+      "publicApiChanged": false,
+      "proof": "Drawing 3317/3317; HTML 3231 passed and six font failures on each framework, all six reproduced on the same master base. Standard build clean. Current-head CI/delayed feedback remains required."
+    },
+    "limits": [
+      "Current-source hosted packages/budgets are not qualified by these local suites or artifacts.",
+      "No long-lived branch adoption, full HTML PR, browser/native/manual accessibility parity or release claim.",
+      "Transformed-coordinate ActualText projection and external selection/font-envelope geometry need separate controls."
+    ],
+    "retainedFailures": [
+      "Intermediate4777798ff full run: 4352 passed/9 failed. Floating-point contained-width reconstruction falsely introduced clipped ActualText; original tuples now return unchanged when contained. Focused 36 and both final 4361 suites pass.",
+      "Obsolete contiguous-word bbox observer failed on interleaved overlapping text. Raw exact-once labels retained; established unique-token geometry observer used, failed original observation preserved.",
+      "Original standalone six master-font failures and prior hosted timing failures remain retained."
+    ],
+    "retained": [
+      "Ignore/MasterConvergenceQualification/relative-product-qualification-64b9f1c1a",
+      "Ignore/MasterConvergenceQualification/logical-carrier-boundary-9e2d7e19e",
+      "Ignore/TransformedTextPaintQualification in the standalone worktree"
+    ]
+  }
+}

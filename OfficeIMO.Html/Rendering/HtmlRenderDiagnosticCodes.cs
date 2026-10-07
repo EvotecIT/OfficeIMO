@@ -8,6 +8,10 @@ namespace OfficeIMO.Html;
 public static class HtmlRenderDiagnosticCodes {
     /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
     public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
+    /// <summary>A serialized shadow tree was flattened for static rendering without shadow-scoped CSS or live behavior.</summary>
+    public const string SerializedShadowRootApproximated = "HtmlRenderSerializedShadowRootApproximated";
+    /// <summary>A shadow-scoped stylesheet was omitted instead of applying its rules to the whole document.</summary>
+    public const string SerializedShadowStyleOmitted = "HtmlRenderSerializedShadowStyleOmitted";
     /// <summary>CSS background-image layers beyond the configured per-element limit were omitted.</summary>
     public const string BackgroundImageLayerLimit = "HtmlRenderBackgroundImageLayerLimit";
     /// <summary>A CSS background-repeat value used a single-image fallback.</summary>
@@ -88,6 +92,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string CounterRepresentationLimitExceeded = "HtmlRenderCounterRepresentationLimitExceeded";
     /// <summary>A replaced-element sizing or object-placement value used a deterministic fallback.</summary>
     public const string ReplacedElementValueUnsupported = "HtmlRenderReplacedElementValueUnsupported";
+    /// <summary>Nested iframe rendering exceeded the configured depth limit.</summary>
+    public const string FrameDepthLimitExceeded = "HtmlRenderFrameDepthLimitExceeded";
     /// <summary>A positioned inset could not be resolved by the current length model.</summary>
     public const string PositionInsetUnsupported = "HtmlRenderPositionInsetUnsupported";
     /// <summary>A positioned layout mode used the documented normal-flow fallback.</summary>
@@ -108,6 +114,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ClippedTextInkBounds = "HtmlRenderClippedTextInkBounds";
     /// <summary>Text ink cannot be established for an inspected source.</summary>
     public const string TextInkNotInspected = "HtmlRenderTextInkNotInspected";
+    /// <summary>Visible layout overflow remains after bounded automatic print fitting.</summary>
+    public const string PrintFitOverflowUnresolved = "HtmlRenderPrintFitOverflowUnresolved";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
     public const string OverflowValueUnsupported = "HtmlRenderOverflowValueUnsupported";
     /// <summary>An overflow-clip-margin value used its initial padding-box zero fallback.</summary>
@@ -158,6 +166,9 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldTypographyStaticFallback = "HtmlRenderFormFieldTypographyStaticFallback";
     /// <summary>A textarea with wrap=off used truthful static rendering because PDF multiline widgets cannot preserve no-wrap appearance semantics.</summary>
     public const string FormFieldNoWrapStaticFallback = "HtmlRenderFormFieldNoWrapStaticFallback";
+
+    /// <summary>An indeterminate checkbox retained its static appearance because PDF fields cannot represent mixed state.</summary>
+    public const string FormFieldIndeterminateStaticFallback = "HtmlRenderFormFieldIndeterminateStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A CSS border radius contained invalid or unsupported syntax and used square-corner fallback.</summary>
@@ -196,6 +207,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
     /// <summary>MathML content could not be represented by the bounded shared mathematical expression model.</summary>
     public const string MathMlContentUnsupported = "HtmlRenderMathMlContentUnsupported";
+    /// <summary>A formula retained current MathML serialization rather than exact original source markup.</summary>
+    public const string MathMlSourceNormalized = "HtmlRenderMathMlSourceNormalized";
+    /// <summary>A painted formula could not retain bounded XML source.</summary>
+    public const string MathMlSourceUnavailable = "HtmlRenderMathMlSourceUnavailable";
     /// <summary>A caller codec rasterized SVG features outside the bounded vector scene.</summary>
     public const string SvgRasterFallback = "HtmlRenderSvgRasterFallback";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
@@ -237,6 +252,8 @@ public static class HtmlRenderDiagnosticCodes {
 
     /// <summary>All stable renderer diagnostic codes.</summary>
     public static IReadOnlyList<string> All { get; } = new ReadOnlyCollection<string>(new[] {
+        SerializedShadowRootApproximated,
+        SerializedShadowStyleOmitted,
         BackgroundImageLayerLimit,
         BackgroundImageRepeatUnsupported,
         BackgroundImageValueUnsupported,
@@ -275,6 +292,7 @@ public static class HtmlRenderDiagnosticCodes {
         GridTrackLimitExceeded,
         GridValueUnsupported,
         ReplacedElementValueUnsupported,
+        FrameDepthLimitExceeded,
         OverflowClipMarginValueUnsupported,
         OverflowScrollSnapshot,
         ClippedElementBounds,
@@ -283,6 +301,7 @@ public static class HtmlRenderDiagnosticCodes {
         TextInkOutsideRegion,
         ClippedTextInkBounds,
         TextInkNotInspected,
+        PrintFitOverflowUnresolved,
         OverflowValueUnsupported,
         TransformValueUnsupported,
         ClipPathValueUnsupported,
@@ -307,6 +326,7 @@ public static class HtmlRenderDiagnosticCodes {
         FormFieldBorderStyleStaticFallback,
         FormFieldTypographyStaticFallback,
         FormFieldNoWrapStaticFallback,
+        FormFieldIndeterminateStaticFallback,
         OpacityValueUnsupported,
         BorderRadiusValueUnsupported,
         BoxShadowLayerLimit,
@@ -328,6 +348,8 @@ public static class HtmlRenderDiagnosticCodes {
         PageBleedUnsupported,
         PageMarksUnsupported,
         MathMlContentUnsupported,
+        MathMlSourceNormalized,
+        MathMlSourceUnavailable,
         SvgContentUnsupported,
         SvgRasterFallback,
         ResourceByteLimitExceeded,

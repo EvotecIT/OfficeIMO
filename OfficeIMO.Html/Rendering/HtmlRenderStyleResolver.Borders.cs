@@ -9,12 +9,13 @@ internal sealed partial class HtmlRenderStyleResolver {
                 computed,
                 reference,
                 fontSize,
-                _options.DefaultFontSize,
+                _rootFontSize,
                 _viewportWidth,
                 _viewportHeight,
                 style.Color,
                 out HtmlRenderBorderEdges borders,
-                out string borderDetail, _activeCharacterAdvance)) {
+                out string borderDetail,
+                _activeCharacterAdvance, _activeUprightVerticalText)) {
             style.Borders = borders;
         } else {
             style.Borders = HtmlRenderBorderEdges.Uniform(0D, "none", style.Color);
@@ -31,7 +32,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 computed,
                 reference,
                 fontSize,
-                _options.DefaultFontSize,
+                _rootFontSize,
                 _viewportWidth,
                 _viewportHeight,
                 style.Color,
@@ -40,7 +41,8 @@ internal sealed partial class HtmlRenderStyleResolver {
                 out OfficeColor outlineColor,
                 out bool outlineColorInvert,
                 out double outlineOffset,
-                out string outlineDetail, _activeCharacterAdvance)) {
+                out string outlineDetail,
+                _activeCharacterAdvance, _activeUprightVerticalText)) {
             style.OutlineWidth = outlineWidth;
             style.OutlineStyle = outlineStyle;
             style.OutlineColor = outlineColor;

@@ -35,7 +35,7 @@ export function columnName(index: number): string {
   return name;
 }
 function clipName(text: string, length: number): string { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
-export function sheetName(requested: string, names: Set<string>, policy: InvalidCharacterPolicy): string {
+export function sheetName(requested: string, names: Set<string>, policy: InvalidCharacterPolicy, register = true): string {
   if (typeof requested !== "string") throw new TypeError("Sheet name must be a string.");
   // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
   // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
@@ -45,7 +45,7 @@ export function sheetName(requested: string, names: Set<string>, policy: Invalid
   base = clipName(base, 31);
   let name = base, suffix = 2;
   while (names.has(name.toLowerCase())) { const tail = " (" + suffix++ + ")"; name = clipName(base, 31 - tail.length) + tail; }
-  names.add(name.toLowerCase()); return name;
+  if (register) names.add(name.toLowerCase()); return name;
 }
 
 export function excelDate(date: Date, mode: "local" | "utc"): number | null {

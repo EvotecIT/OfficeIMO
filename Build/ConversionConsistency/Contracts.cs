@@ -6,6 +6,7 @@ namespace OfficeIMO.ConversionConsistency;
 internal sealed record ConsistencySuite {
     public int SchemaVersion { get; init; } = 1;
     public required string FontPath { get; init; }
+    public string? BoldFontPath { get; init; }
     public string FontFamily { get; init; } = "Consistency Sans";
     public int Dpi { get; init; } = 96;
     public required List<ConsistencyCase> Cases { get; init; }
@@ -58,7 +59,9 @@ internal sealed record PixelTolerance {
 
 internal sealed record EvidenceBundle(int SchemaVersion, string Commit, string SourceDiffSha256,
     string FontSha256, string FontFamily, int Dpi, string ShapingProvider, string Background,
-    List<CaseBundle> Cases, List<SourceFileHash> UntrackedSourceFiles);
+    List<CaseBundle> Cases, List<SourceFileHash> UntrackedSourceFiles) {
+    public string? BoldFontSha256 { get; init; }
+}
 internal sealed record SourceFileHash(string Path, string Sha256);
 internal sealed record CaseBundle(ConsistencyCase Contract, string SourceSha256, string PdfPath,
     string PdfSha256, string PdfRoute, List<ImageArtifact> Images, List<string> Diagnostics) {
@@ -66,7 +69,9 @@ internal sealed record CaseBundle(ConsistencyCase Contract, string SourceSha256,
 }
 internal sealed record ImageArtifact(int Page, string Format, string Path, string Sha256, int Width, int Height);
 internal sealed record GateReport(int SchemaVersion, string Commit, string FontSha256,
-    string ExternalRasterizer, string BrowserVersion, bool Passed, List<CaseReport> Cases);
+    string ExternalRasterizer, string BrowserVersion, bool Passed, List<CaseReport> Cases) {
+    public string? SvgFontHinting { get; init; }
+}
 internal sealed record CaseReport(string Id, bool Passed, List<string> Errors, List<PageReport> Pages,
     string PdfRoute, bool FullVisualCoverage, bool SearchablePdfVerified, List<string> Limitations);
 internal sealed record PageReport(int Page, bool Passed, List<string> Errors, List<ComparisonReport> Comparisons);

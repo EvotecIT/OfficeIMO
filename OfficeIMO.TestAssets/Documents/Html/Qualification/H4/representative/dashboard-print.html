@@ -1,0 +1,18 @@
+<style>
+  body{font:12px/1.35 Arial,sans-serif;color:#25324a;background:#f2f5f9}main{max-width:800px;margin:auto}
+  header{display:flex;justify-content:space-between;align-items:end}.stamp{color:#667085}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .card{background:#fff;border:1px solid #dae1eb;border-radius:7px;padding:12px}.metric{font-size:24px;font-weight:bold;color:#204f91}
+  main>h2{font-size:16px;margin:18px 0 8px}.chart{display:flex;align-items:flex-end;gap:8px;height:110px;background:#fff;padding:14px;border:1px solid #dae1eb}
+  .bar{flex:1;background:linear-gradient(180deg,#5b8def,#2656b0)}.legend{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 16px}
+  .incident{background:#fff4e5;border-left:4px solid #e58b23;padding:10px}
+</style>
+<main><header><div><p>PRINT SNAPSHOT</p><h1>Operations Dashboard</h1></div><p class='stamp'>20 July 2026 · 14:30 UTC</p></header>
+  <div class='cards'><section class='card'><h2>Availability</h2><p class='metric'>99.95%</p><small>30-day service level</small></section>
+    <section class='card'><h2>Jobs</h2><p class='metric'>128</p><small>12 currently running</small></section>
+    <section class='card'><h2>Alerts</h2><p class='metric'>2</p><small>1 requires review</small></section></div>
+  <h2>Documents processed</h2><div class='chart' aria-label='Seven day document volume'>
+    <div class='bar' style='height:42%'></div><div class='bar' style='height:58%'></div><div class='bar' style='height:51%'></div>
+    <div class='bar' style='height:76%'></div><div class='bar' style='height:68%'></div><div class='bar' style='height:91%'></div><div class='bar' style='height:84%'></div></div>
+  <p class='legend'><span>Word 42%</span><span>Excel 31%</span><span>PowerPoint 17%</span><span>HTML 10%</span></p>
+  <p class='incident'>Open incident: Two archived templates need font remapping.</p>
+</main>

@@ -10,12 +10,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         measurementStyle.Font = style.Font.WithFamilyName(fallback?.FamilyName ?? style.Font.FamilyName);
         measurementStyle.BaselineScale = 1D;
         double advance = TryMeasureWithConfiguredProvider("0", measurementStyle, out double shaped)
-            ? shaped : MeasureText("0", measurementStyle.Font);
+            ? shaped : MeasureText("0", measurementStyle.Font, measurementStyle.FontDescriptor);
         return double.IsNaN(advance) || double.IsInfinity(advance) || advance < 0D ? style.Font.Size * 0.5D : advance;
     }
 
     private bool TryResolveLength(string? value, double reference, HtmlRenderBoxStyle style, out double result) =>
-        HtmlRenderCssValues.TryLength(value, reference, style.Font.Size, _options.DefaultFontSize,
+        HtmlRenderCssValues.TryLength(value, reference, style.Font.Size, _styleResolver.RootFontSize,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
             style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out result, style.CharacterAdvance);

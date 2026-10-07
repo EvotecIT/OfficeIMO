@@ -45,7 +45,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals.Add(new HtmlRenderShape(link, 0D, 0D, visuals.Count, run.LinkUri, run.Source));
                 block = block.WithVisuals(visuals);
             }
-            block = block.TranslatePaint(run.PaintOffsetX, run.PaintOffsetY);
+            block = block.TranslateRelativePaint(run.PaintOffsetX, run.PaintOffsetY);
             blocks.Add(block);
             captures.Add(null);
             blockRuns.Add(run);
@@ -124,16 +124,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (adjoining.Count > 0) {
-                adjoining.Add(block.CollapsibleMarginTop);
+                adjoining.Add(block.CollapsibleMarginTopGroup);
                 if (!block.CollapsesThrough) block = block.AdjustLeadingFlowSpace(adjoining.Allocated - adjoining.Collapsed);
             }
             if (block.CollapsesThrough) {
-                if (adjoining.Count == 0) adjoining.Reset(block.CollapsibleMarginTop);
-                adjoining.Add(block.CollapsibleMarginBottom);
+                if (adjoining.Count == 0) adjoining.Reset(block.CollapsibleMarginTopGroup);
+                adjoining.Add(block.CollapsibleMarginBottomGroup);
                 block = block.AdjustTrailingFlowSpace(adjoining.Allocated - adjoining.Collapsed);
                 adjoining.SetAllocated(adjoining.Collapsed);
             } else {
-                adjoining.Reset(block.CollapsibleMarginBottom);
+                adjoining.Reset(block.CollapsibleMarginBottomGroup);
             }
             blocks[index] = block;
         }

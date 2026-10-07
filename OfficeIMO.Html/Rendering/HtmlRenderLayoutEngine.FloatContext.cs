@@ -35,22 +35,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private readonly double _width;
         private readonly List<InlineFloatPlacement> _placements;
         private readonly double _originX, _originY;
+        private readonly IReadOnlyList<HtmlFloatExclusion> _inheritedFloats;
+        private readonly List<HtmlFloatExclusion> _originatingPageExclusions;
+        internal IReadOnlyList<HtmlFloatExclusion> OriginatingPageExclusions => _originatingPageExclusions
+            .Select(item => item.Shift(-_originX, -_originY)).ToArray();
+
+        internal void ReserveOriginatingPageExclusion(InlineFloatPlacement placement, double start, double end) {
+            if (end <= start + 0.0001D) return;
+            _originatingPageExclusions.Add(new HtmlFloatExclusion(
+                placement.X + _originX, start + _originY, placement.Width, end - start, placement.Run.FloatSide));
+        }
 
         internal double FirstLineIndent;
         internal bool IndentAtRight;
 
-        internal InlineFloatContext(double width) : this(width, new List<InlineFloatPlacement>(), 0D, 0D) { }
+        internal InlineFloatContext(double width, IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null)
+            : this(width, new List<InlineFloatPlacement>(), 0D, 0D,
+                inheritedFloats ?? Array.Empty<HtmlFloatExclusion>(), new List<HtmlFloatExclusion>()) { }
 
-        private InlineFloatContext(double width, List<InlineFloatPlacement> placements, double originX, double originY) {
+        private InlineFloatContext(double width, List<InlineFloatPlacement> placements, double originX, double originY, IReadOnlyList<HtmlFloatExclusion> inheritedFloats,
+            List<HtmlFloatExclusion> originatingPageExclusions) {
             _width = Math.Max(1D, width);
             _placements = placements;
             _originX = originX;
             _originY = originY;
+            _inheritedFloats = inheritedFloats;
+            _originatingPageExclusions = originatingPageExclusions;
         }
 
-        internal bool HasFloats => _placements.Count > 0;
+        internal bool HasFloats => _placements.Count > 0 || _inheritedFloats.Count > 0 || _originatingPageExclusions.Count > 0;
         internal InlineFloatContext At(double width, double x, double y) =>
-            new InlineFloatContext(width, _placements, _originX + x, _originY + y);
+            new InlineFloatContext(width, _placements, _originX + x, _originY + y, _inheritedFloats, _originatingPageExclusions);
 
         private void Register(InlineFloatPlacement placement) => _placements.Add(
             new InlineFloatPlacement(placement.Run, placement.X + _originX, placement.Y + _originY, placement.Width, placement.Height));
@@ -96,6 +111,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double left = 0D;
             double right = _width;
             double bottom = y + Math.Max(0.01D, height);
+            foreach (HtmlFloatExclusion exclusion in _inheritedFloats.Concat(_originatingPageExclusions)) {
+                if (exclusion.Y >= bottom + _originY - 0.0001D || exclusion.Bottom <= y + _originY + 0.0001D) continue;
+                if (exclusion.Right <= _originX || exclusion.X >= _originX + _width) continue;
+                if (exclusion.Side == "right") right = Math.Max(0D, Math.Min(right, exclusion.X - _originX));
+                else left = Math.Min(_width, Math.Max(left, exclusion.Right - _originX));
+            }
             foreach (InlineFloatPlacement placement in _placements) {
                 if (placement.Y >= bottom + _originY - 0.0001D || placement.Bottom <= y + _originY + 0.0001D) continue;
                 if (placement.Right <= _originX || placement.X >= _originX + _width) continue;
@@ -105,9 +126,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return new InlineFloatBand(left, Math.Max(left, right));
         }
 
-        internal double NextBottomAfter(double y) => _placements
-            .Where(item => item.Bottom > y + _originY + 0.0001D)
-            .Select(item => item.Bottom - _originY)
+        internal double NextBottomAfter(double y) => _placements.Select(item => item.Bottom)
+            .Concat(_inheritedFloats.Select(item => item.Bottom))
+            .Concat(_originatingPageExclusions.Select(item => item.Bottom))
+            .Where(bottom => bottom > y + _originY + 0.0001D)
+            .Select(bottom => bottom - _originY)
             .DefaultIfEmpty(y)
             .Min();
 
@@ -116,6 +139,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return _placements
                 .Where(item => clearSide == "both" || item.Run.FloatSide == clearSide)
                 .Select(item => item.Bottom - _originY)
+                .Concat(_inheritedFloats.Where(item => clearSide == "both" || item.Side == clearSide).Select(item => item.Bottom - _originY))
+                .Concat(_originatingPageExclusions.Where(item => clearSide == "both" || item.Side == clearSide).Select(item => item.Bottom - _originY))
                 .DefaultIfEmpty(0D)
                 .Max();
         }

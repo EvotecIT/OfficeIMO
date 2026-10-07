@@ -14,6 +14,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         bool paintBorders = true) {
+        // Record the finalized border box even when it has no background or border paint.
+        // Descendant geometry then follows the normal overflow/effect/fragmentation path.
+        if (CapturePrintLayoutBoxes && width > 0.0001D && height > 0.0001D) {
+            visuals.Add(new HtmlRenderLayoutBox(x, y, width, height, visuals.Count,
+                HtmlRenderStyleResolver.DescribeSource(source)));
+        }
         if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
         int backgroundStart = visuals.Count;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
@@ -78,7 +84,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeShape fill = CreateBoxShape(colorBox.Width, colorBox.Height, colorBox.Radii);
             fill.FillColor = style.BackgroundColor;
             fill.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription));
+            visuals.Add(new HtmlRenderShape(fill, colorBox.X, colorBox.Y, visuals.Count, source: visualSourceDescription,
+                canExtendFragmentBackground: CanExtendBoxBackgroundThroughFragmentSlack(style, fill)));
         }
 
         AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
@@ -261,7 +268,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 horizontal.Step,
                 vertical.Step);
             long tileCount = pattern.EstimatedTileCount;
-            if (tileCount > 0L && tileCount <= _options.MaxBackgroundImageTiles - _backgroundImageTileCount) {
+            if (_operationBudget.TryReserveBackgroundImageTiles(tileCount, _options.MaxBackgroundImageTiles)) {
                 if (svgDrawing != null) {
                     AddBackgroundDrawingPattern(layerVisuals, svgDrawing, pattern, _options.MaxBackgroundImageTiles, layerVisualSource);
                 } else {
@@ -273,7 +280,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         layerVisuals.Count,
                         layerVisualSource));
                 }
-                _backgroundImageTileCount += tileCount;
             } else if (tileCount > 0L) {
                 _diagnostics.Add(
                     ComponentName,
@@ -323,7 +329,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
 
         if (layer.ConicGradient != null) {
-            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded, style.CharacterAdvance)
+            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _styleResolver.RootFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded, style.CharacterAdvance)
                 || conicGradient == null) {
                 if (conicStopLimitExceeded) {
                     _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
@@ -350,7 +356,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool stopLimitExceeded = false;
         OfficeLinearGradient? linearGradient = null;
         if (layer.LinearGradient != null
-            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out linearGradient, out stopLimitExceeded, style.CharacterAdvance)) {
+            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _styleResolver.RootFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out linearGradient, out stopLimitExceeded, style.CharacterAdvance)) {
             if (stopLimitExceeded) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
                     "A repeating CSS linear gradient exceeded the configured materialized color-stop limit and was omitted.",
@@ -368,7 +374,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         fill.FillGradient = linearGradient;
         OfficeRadialGradient? radialGradient = null;
         if (layer.RadialGradient != null
-            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out radialGradient, out stopLimitExceeded, style.CharacterAdvance)) {
+            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _styleResolver.RootFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out radialGradient, out stopLimitExceeded, style.CharacterAdvance)) {
             if (stopLimitExceeded) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
                     "A repeating CSS radial gradient exceeded the configured materialized color-stop limit and was omitted.",
@@ -438,7 +444,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style,
             width,
             height,
-            _options.DefaultFontSize,
+            _styleResolver.RootFontSize,
             ActiveSurfaceWidth,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
             style.ContainerUnitWidth ?? double.NaN,
@@ -463,7 +469,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlResolvedBorderRadii normalized = radii.Normalize(width, height);
         if (normalized.IsZero) return OfficeShape.Rectangle(width, height);
         return normalized.IsUniformCircular
-            ? OfficeShape.RoundedRectangle(width, height, normalized.GetUniformRadius(width, height))
+            ? OfficeShape.RoundedRectangle(width, height, normalized.BoundedUniformRadius(width, height))
             : OfficeShape.Path(normalized.CreatePathCommands(width, height));
     }
 

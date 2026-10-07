@@ -1,0 +1,283 @@
+{
+  "sourceCommit": "5e7c75fc8d4074de902d3edb06ab3639ce53bb87",
+  "baseCommit": "509d75ca3a76ae50d666426dbe1e94ed9d296c9f",
+  "recordedAt": "2026-10-01T12:17:05.967852+00:00",
+  "scope": "Depth-aware Main8/Main10 internal AV1 deblocking over existing ushort frame planes. Subsequent ten-bit filters, color composition and default decode remain guarded.",
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1DeblockFilter.cs": "004aa9058f5a1cae4a2b070208a57bd4793f5971f5bcb23949c69dd7ca944781",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Deblocker.cs": "39ad46fd50047a28742926a538834aabb370c56d5242191dd33251fcd58a8763",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "2506c49d3cb7609549bc6a2e2f3044fc09a5150e3c8e1fe6e6b31bfcf9e48157",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Deblocking.cs": "f7c207bca8a50b27977ed67cc11644cd3055aa3e692b22ef327e678761fe1a95",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Reconstruction.cs": "6e7e2c8e568bda1981ada6034b3bd66a4ff04279e843ea22d7640c1d62164522",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "b4f38a397ae4ad06693684c713877a2e784d0324d5fafb33e6f3282c86ab5c01",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/EncodeFilterControls.c": "df0726e8b0b400756c50b626d13a9a2852c5a4e202fa6a52ddda0dd7ef7e8a71",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateDeblockFixtures.py": "b2897e078d0c2dfdf4548f457307c8b90939bcb9c465964c95e289e59497b653",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateReconstructionFixtures.py": "83849acf40c853ea197b4239c2fa8e0d4da6ae895c28c7f000f51414d0eec668",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadDeblockKernels.c": "beb5346f40cbbf67eaae68c6055e476a18ef8ac8ccaae5e3c22c452d834e3aae",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/deblock-main10-reference.json.gz": "f5fd92b8ce74319120a5e6eab62f3979292d72de6f7990c7de9863007190bb38"
+  },
+  "nativeReference": {
+    "receipt": {
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+      "loopFilterSourceSha256": {
+        "aom_dsp/loopfilter.c": "bb9d6de53a4ad448af145892fc59dd72c767224d02532409305505d9d330fdb5",
+        "av1/common/av1_loopfilter.c": "385077f5637f33947d4a8ef3dca02931cbce4d4764a19124be4860d3494d71bd"
+      },
+      "bitDepth": 10,
+      "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+      "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+      "assetsSha256": {
+        "GenerateDeblockFixtures.py": "b2897e078d0c2dfdf4548f457307c8b90939bcb9c465964c95e289e59497b653",
+        "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+        "GenerateReconstructionFixtures.py": "83849acf40c853ea197b4239c2fa8e0d4da6ae895c28c7f000f51414d0eec668",
+        "TraceDeblocking.patch": "e8089ca09a532341dc53a8c0c91f79590ccf3432a893817f8bc3a724ba5af85e",
+        "OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+        "ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+        "ReadDeblockKernels.c": "beb5346f40cbbf67eaae68c6055e476a18ef8ac8ccaae5e3c22c452d834e3aae",
+        "EncodeFilterControls.c": "df0726e8b0b400756c50b626d13a9a2852c5a4e202fa6a52ddda0dd7ef7e8a71",
+        "reconstruction-main10-reference.json.gz": "b65d18958c296fda22ac1eea1591968f6bac80a7038abc67ccfc64950e33362b",
+        "reconstruction-main10-inputs.json": "897fab6fb38341b072a15927f4508abef0b35db17fe9772be75f6e09538e1a26"
+      },
+      "fixtureSha256": "f5fd92b8ce74319120a5e6eab62f3979292d72de6f7990c7de9863007190bb38",
+      "canonicalJsonSha256": "df5ef0070cc06cd0f1f94d0df454eb6a64ab77d2388d6670facd5d30af46c406",
+      "cases": 16,
+      "kernels": 12096,
+      "changedKernelCases": 6112,
+      "changedFrameSamples": 21748
+    },
+    "observation": "Copied decodeframe.c with access-only stage observers; actual pinned AOM C kernels and threshold initialization; reusable source/build unchanged. Decoder driver requests one thread; build includes multithreading/runtime CPU detection.",
+    "repeat": {
+      "repeatFrames": 16,
+      "repeatKernelCases": 12096,
+      "frameSamples": 229984,
+      "activeFrameChangedSamples": {
+        "odd-color": 4162,
+        "odd-mono": 2378,
+        "odd-tiled-color": 15208
+      },
+      "changedKernelCases": 6112,
+      "lowBitPhases": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "repeat": "every frame field, final YUV hash and kernel identical"
+    },
+    "eightBitReplay": {
+      "eightBitFrameAndKernelReplay": "All original fields identical; additional final YUV hashes and tile metadata excluded.",
+      "eightBitFilterControlInputs": [
+        {
+          "name": "odd-color",
+          "sha256": "2096d2012d270b7f092c119121880580f902d2ab9a7409b7e9f4b83a92ab98b2"
+        },
+        {
+          "name": "odd-mono",
+          "sha256": "80416f86027a6d390fcf83e79cf7268912609887b8929778770e1458c4b53f85"
+        },
+        {
+          "name": "odd-tiled-color",
+          "sha256": "fe5b5753ab60efc91d9eba9ba21926fab70a0da41c3522cc66e571e2870678d9"
+        }
+      ]
+    },
+    "immutableEightBitFixtureSha256": "2997e41d842dd82f2679e25c5402048fea1c9087f69be3e7b99462626846a304"
+  },
+  "validation": {
+    "sourceCommit": "5e7c75fc8d4074de902d3edb06ab3639ce53bb87",
+    "checks": [
+      {
+        "file": "before/_evomini_2026-10-01_14_06_38_net10.0.trx",
+        "sha256": "99b04d0d0dc7efd83e2bf1b50652cb1d3f146b79ea9e3114ddd57680260b0462",
+        "counters": {
+          "total": "24",
+          "executed": "24",
+          "passed": "7",
+          "failed": "17",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "focused/_evomini_2026-10-01_14_08_08_net10.0.trx",
+        "sha256": "339e6ac8e5385602564bf70024fc64e2870b315247077d5c5acbfe6db77f398d",
+        "counters": {
+          "total": "45",
+          "executed": "45",
+          "passed": "45",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "focused-final/_evomini_2026-10-01_14_09_51_net10.0.trx",
+        "sha256": "44827ff33cb88f4918ec50b8fd8c7ddd9924d4bb3f35eaf6042ce31a8f7aec51",
+        "counters": {
+          "total": "73",
+          "executed": "73",
+          "passed": "73",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "full-net10/_evomini_2026-10-01_14_11_02_net10.0.trx",
+        "sha256": "ee453caf55cf92d08f9d1b7e0cbc18ab3c2ab525d98f8787c1a405d56ae9d5f6",
+        "counters": {
+          "total": "3096",
+          "executed": "3096",
+          "passed": "3096",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "full-net8/_evomini_2026-10-01_14_11_23_net8.0.trx",
+        "sha256": "39cc71f756ee9129051e6ece9b7da9964e6d5fa31bdd2bbe277b8ab8e02b7b8e",
+        "counters": {
+          "total": "3096",
+          "executed": "3096",
+          "passed": "3096",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "html-net10/_evomini_2026-10-01_14_12_27_net10.0.trx",
+        "sha256": "9d9d2f272f63734b67671ad4e52846669eb97a489bbeb35c7068e6a83d044a2d",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      {
+        "file": "html-net8/_evomini_2026-10-01_14_14_08_net8.0.trx",
+        "sha256": "124c13c3b0ceffc2a0f24e7c83ea52f26a7e6e53059d3bbd63a2144df1f80c61",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      }
+    ],
+    "coreNetstandard2Build": {
+      "framework": "netstandard2.0",
+      "warnings": 0,
+      "errors": 0
+    },
+    "review": {
+      "task": "/root/avif_main10_deblock_review",
+      "stagedDiffFingerprint": "73c2fc4d422bfe9b5952b27752734462d498ee98",
+      "boundary": "current",
+      "result": "no actionable P0-P3",
+      "confirmationUsed": false
+    },
+    "beforeProofNote": "Before run: 15 ten-bit frames hit the old stage guard, ten-bit numeric kernels failed old eight-bit arithmetic, odd-mono additionally exposed an incorrect test av1C monochrome flag corrected before final proof."
+  },
+  "cleanup": {
+    "removedBytes": 29518906,
+    "removedPaths": [
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-deblock-work-509d75ca3",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-deblock-replay-509d75ca3",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-deblock-proof-5e7c75fc8/focused",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-deblock-proof-5e7c75fc8/full-net10",
+      "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-deblock-proof-5e7c75fc8/full-net8"
+    ],
+    "verifiedAbsent": true,
+    "retainedEvidence": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-deblock-proof-5e7c75fc8",
+    "postCleanupFrames": 16,
+    "postCleanupKernels": 12096,
+    "retainedBytes": 2658905,
+    "transientReplayOutputRemoved": true
+  },
+  "remainingQualification": [
+    "Main10 CDEF, superresolution, restoration and final color/alpha pixels/default decode",
+    "Non-reduced frame/header profile and formal AVIF Baseline claim",
+    "Packaged Main10 consumers and full static rendered/H4/NASA/unchanged budget gates after final pipeline enablement",
+    "Windows/net472 runtime and Windows/Linux operation budgets",
+    "Other confirmed gaps in the frozen static conversion suite"
+  ]
+}

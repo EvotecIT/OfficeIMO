@@ -1,0 +1,238 @@
+{
+  "sourceCommit": "5fc95db6a2c7be8041d98325cdcd9de04e01e6d3",
+  "runtimeSourceCommit": "234de3facd6ce99ca404fbb7500591c01635d621",
+  "baseCommit": "1bda9511eab30bd6e64ffb1c6098f64b935adbf5",
+  "scope": "Internal CDEF native-frame qualification across tile rows/columns and mixed skipped regions; no runtime changes or public AVIF qualification.",
+  "reference": {
+    "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+    "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+    "assetsSha256": {
+      "GenerateCdefFixtures.py": "7bfb5109972dda99368cfd9d0a1b253ef3b2815aff6339596fc1413b6f417f54",
+      "GenerateSvtCdefControl.py": "574e418d417e713e981e5ab514effbe78c8b4a1d9c4798636821dc3f0388387b",
+      "cdef-svt-mixed-skip.obu": "a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f",
+      "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+      "GenerateReconstructionFixtures.py": "a1e3c6fa9c46972f12f006e3f66b425b3d55d1387e0828fd471a9d61a69150f3",
+      "TraceCdef.patch": "8373120ccdf79b7a487b7b5f3234736c8615a3125ce292857bb81d738fd9fc8e",
+      "OfficeReconstructionProbe.inc": "315f4206a9ed85e4b9be71b8bd9767486ecad289f2fa1384fdaf0ac199addc4b",
+      "ReadTileTrace.c": "daabcd17898f5eb60ddd1f34610f37aa0d627621f58c7488093d5139c86d695b",
+      "EncodeFilterControls.c": "8b285cbbff1d689e2c1ed78b5871ba2db1e88952aa0f8871a59edc1da6fe8bef",
+      "ReadCdefKernels.c": "a3f844928b5732ed2b6a21dc20aeacfc118606f57c889fdb5b617b0068d9f327",
+      "reconstruction-reference.json.gz": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d"
+    },
+    "fixtureSha256": "b789244cf8f076487f6120000627287234a3a26a381097d63e1778dc3885a243",
+    "canonicalJsonSha256": "7d3d2a4ab1b4033b02f8c112d823133b04946582dbcf9e9c8965d4d042694ff0",
+    "cases": 9,
+    "directions": 17,
+    "kernels": 2304,
+    "changedKernelCases": 938,
+    "changedCdefSamples": 67776
+  },
+  "producer": {
+    "ffmpeg": "ffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers",
+    "encoder": "SVT-AV1 4.0.1",
+    "pixelsSha256": "0b07088fab1449cdbba0b8cb8a8270a7fbc4485825b56205e8c3e19c6052672e",
+    "inputBytes": 52224,
+    "outputBytes": 3363,
+    "outputSha256": "a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f",
+    "scriptSha256": "574e418d417e713e981e5ab514effbe78c8b4a1d9c4798636821dc3f0388387b",
+    "parameters": [
+      "-hide_banner",
+      "-nostdin",
+      "-loglevel",
+      "info",
+      "-f",
+      "rawvideo",
+      "-pixel_format",
+      "yuv420p",
+      "-video_size",
+      "256x136",
+      "-framerate",
+      "1",
+      "-i",
+      "<input.yuv>",
+      "-frames:v",
+      "1",
+      "-c:v",
+      "libsvtav1",
+      "-preset",
+      "4",
+      "-crf",
+      "36",
+      "-svtav1-params",
+      "avif=1:tile-columns=1:tile-rows=1:lp=1:enable-restoration=0",
+      "-f",
+      "obu"
+    ],
+    "boundary": "Opt-in producer only; normal tests consume the checked-in OBU and native pixel fixture."
+  },
+  "sampleCoverage": {
+    "frames": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "inputSha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3",
+        "width": 49,
+        "height": 33,
+        "tiles": 1,
+        "leaves": 4,
+        "skipLeaves": 0,
+        "samplesPerStage": 3360,
+        "deblockChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": false,
+        "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+        "width": 49,
+        "height": 33,
+        "tiles": 1,
+        "leaves": 4,
+        "skipLeaves": 0,
+        "samplesPerStage": 3360,
+        "deblockChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "inputSha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+        "width": 49,
+        "height": 33,
+        "tiles": 1,
+        "leaves": 9,
+        "skipLeaves": 0,
+        "samplesPerStage": 2240,
+        "deblockChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "inputSha256": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a",
+        "width": 256,
+        "height": 128,
+        "tiles": 4,
+        "leaves": 350,
+        "skipLeaves": 0,
+        "samplesPerStage": 49152,
+        "deblockChangedSamples": 11042,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "lossless-copy",
+        "alpha": false,
+        "inputSha256": "9d7eca4b07732cab2bd1da6dd6567690607cf17cf80cf280c723b442d27a0cae",
+        "width": 640,
+        "height": 128,
+        "tiles": 1,
+        "leaves": 1091,
+        "skipLeaves": 59,
+        "samplesPerStage": 122880,
+        "deblockChangedSamples": 0,
+        "cdefChangedSamples": 0
+      },
+      {
+        "name": "odd-color",
+        "alpha": false,
+        "inputSha256": "2096d2012d270b7f092c119121880580f902d2ab9a7409b7e9f4b83a92ab98b2",
+        "width": 97,
+        "height": 65,
+        "tiles": 1,
+        "leaves": 156,
+        "skipLeaves": 0,
+        "samplesPerStage": 11232,
+        "deblockChangedSamples": 3091,
+        "cdefChangedSamples": 7909
+      },
+      {
+        "name": "odd-mono",
+        "alpha": false,
+        "inputSha256": "80416f86027a6d390fcf83e79cf7268912609887b8929778770e1458c4b53f85",
+        "width": 97,
+        "height": 65,
+        "tiles": 1,
+        "leaves": 151,
+        "skipLeaves": 0,
+        "samplesPerStage": 7488,
+        "deblockChangedSamples": 1693,
+        "cdefChangedSamples": 5274
+      },
+      {
+        "name": "odd-tiled-color",
+        "alpha": false,
+        "inputSha256": "fe5b5753ab60efc91d9eba9ba21926fab70a0da41c3522cc66e571e2870678d9",
+        "width": 257,
+        "height": 137,
+        "tiles": 4,
+        "leaves": 556,
+        "skipLeaves": 0,
+        "samplesPerStage": 57024,
+        "deblockChangedSamples": 10520,
+        "cdefChangedSamples": 27879
+      },
+      {
+        "name": "svt-tiled-mixed-skip",
+        "alpha": false,
+        "inputSha256": "a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f",
+        "width": 256,
+        "height": 136,
+        "tiles": 4,
+        "leaves": 217,
+        "skipLeaves": 6,
+        "samplesPerStage": 52224,
+        "deblockChangedSamples": 7855,
+        "cdefChangedSamples": 26714
+      }
+    ],
+    "frameSamplesPerStage": 308960,
+    "changedCdefSamples": 67776
+  },
+  "regressionStrength": {
+    "mutation": {
+      "sourceRestoredSha256": "bb2a04b07833008e570d51b3c62ed00a1c820d287be669e9cb588abc719afe6d",
+      "mutation": "Remove the all-four-MI skip guard; keep unassigned-region guard",
+      "exitCode": 1
+    },
+    "failure": "svt-tiled-mixed-skip Cdef plane 0 (54,94): native 128, managed 129",
+    "runtimeRestored": true,
+    "mutationLogSha256": "20edf5ea39143e080d85a0c6898c6ac8fc862f51c88ce9cd6517a421e051e541"
+  },
+  "validation": {
+    "tests": {
+      "cdef-tiled-full-net10.trx": {
+        "total": 2983,
+        "passed": 2983,
+        "failed": 0,
+        "sha256": "17033671061817599f011c57406843aecd34d3840e78f519479404b41744bb96"
+      },
+      "cdef-tiled-full-net8.trx": {
+        "total": 2983,
+        "passed": 2983,
+        "failed": 0,
+        "sha256": "23d25f85a54cc97acd6475661466933ae0a51f8d88a48fb78a201d3da07b55d0"
+      }
+    },
+    "coreRuntimeIdenticalToPriorCheckpoint": true,
+    "packageEvidence": "avif-cdef-checkpoint.json: unchanged Core source and project/package graph; no new pack performed",
+    "nativeReplay": "Existing pinned AOM source/build, observation-only patch; SVT producer rerun byte-identical. No fresh AOM source/build replay for this fixture expansion."
+  },
+  "localReview": {
+    "decision": "retain-current",
+    "boundary": "current",
+    "priorReview": "avif-cdef-checkpoint.json",
+    "reason": "No runtime changes; generated native fixture expansion and narrow producer scripts directly exercised, including mutation proof. No new full review or targeted confirmation requested."
+  },
+  "explicitGaps": [
+    "Restoration, applicable superresolution, color/alpha composition, public AVIF integration and original frozen HTML/PDF qualification remain unfinished.",
+    "Broader segmentation/deltaLF/reference-delta combinations and mid-filter cancellation evidence remain limited.",
+    "Windows/net472 execution and Windows/Linux H10 operation budgets remain unavailable and unfinished."
+  ],
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/static-gap-av1-cdef-work-023f4f0e7",
+  "publication": "Branch checkpoint only; no HTML PR/master merge/release.",
+  "cleanup": {
+    "allTargetsAbsent": true,
+    "removedBytes": 9754507,
+    "retainedBytes": 84588049
+  }
+}

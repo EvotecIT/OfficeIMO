@@ -1,0 +1,2460 @@
+{
+  "schemaVersion": 1,
+  "qualifiedCodeHead": "22157e58d55c8eaf4f6bf3c85368ca22043210f3",
+  "corpusManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "reference": {
+    "PeachPDF": "0.9.20",
+    "Chromium": "151.0.7922.34",
+    "Poppler": "26.09.0",
+    "pypdf": "6.10.0"
+  },
+  "scope": "Frozen inputs and observations; not full-suite visual or conformance acceptance.",
+  "mergedCorePr": {
+    "url": "https://github.com/EvotecIT/OfficeIMO/pull/2657",
+    "mergeCommit": "fe1a6785fd6985500167a878c0529e132b4baea2",
+    "checksPassed": 92,
+    "skipped": 5,
+    "unresolvedThreads": 0
+  },
+  "tests": {
+    "drawingNet8": 2850,
+    "drawingNet10": 2850,
+    "htmlNet8": 3935,
+    "htmlNet10": 3935,
+    "pdfNet10": 8600,
+    "coreNetstandard2BuildWarnings": 0,
+    "pdfTestSourceWarnings": "Existing nullable/analyzer warnings remain."
+  },
+  "localReview": {
+    "boundary": "Inspected caller-codec/raster/SVG paths",
+    "fullPass": "static_webp_integration_review",
+    "targetedConfirmationUsed": true,
+    "findings": "SVG bypasses, placeholder-source confusion and unidentified WebP retries reproduced and fixed. No further review loop; final fixes have direct before/after regressions and broad suites."
+  },
+  "webpPdfPixels": {
+    "occurrences": 16,
+    "allPassed": true,
+    "maximumRgbError": 1,
+    "maximumAlphaError": 0
+  },
+  "execution": [
+    {
+      "case": "webp-raw-filters",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.803
+    },
+    {
+      "case": "webp-compressed-filters",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.397
+    },
+    {
+      "case": "avif-opaque",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.218
+    },
+    {
+      "case": "avif-alpha",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.284
+    },
+    {
+      "case": "page-float-top",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 4.679
+    },
+    {
+      "case": "page-float-bottom",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 4.873
+    },
+    {
+      "case": "page-float-snap",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 4.718
+    },
+    {
+      "case": "column-float-left",
+      "exitCode": 1,
+      "timedOut": false,
+      "wallSeconds": 3.714
+    },
+    {
+      "case": "column-float-top",
+      "exitCode": 1,
+      "timedOut": false,
+      "wallSeconds": 3.754
+    },
+    {
+      "case": "column-float-bottom",
+      "exitCode": 1,
+      "timedOut": false,
+      "wallSeconds": 3.557
+    },
+    {
+      "case": "column-notes",
+      "exitCode": 1,
+      "timedOut": false,
+      "wallSeconds": 3.976
+    },
+    {
+      "case": "language-hyphenation",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.275
+    },
+    {
+      "case": "svg-patterns",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 6.752
+    },
+    {
+      "case": "svg-filter-graph",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 6.795
+    },
+    {
+      "case": "svg-resources",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.366
+    },
+    {
+      "case": "svg-resource-denied",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.207
+    },
+    {
+      "case": "mathml-semantics",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.3
+    },
+    {
+      "case": "pdf-conformance",
+      "exitCode": 0,
+      "timedOut": false,
+      "wallSeconds": 3.264
+    }
+  ],
+  "h4": {
+    "sourceHead": "22157e58d55c8eaf4f6bf3c85368ca22043210f3",
+    "acceptedCases": 8,
+    "failures": 0
+  },
+  "staticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-09-30T14:06:34.933267+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.11",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "22157e58d55c8eaf4f6bf3c85368ca22043210f3",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 7097.9585,
+      "peakWorkingSetBytes": 369754112,
+      "memorySampleCount": 197,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 7028.6357,
+          "managedAllocatedBytes": 1082085200,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 17131.1625,
+      "peakWorkingSetBytes": 548012032,
+      "memorySampleCount": 408,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2560.2924,
+          "managedAllocatedBytes": 895468872,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 2435.5726,
+          "managedAllocatedBytes": 895338800,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 2241.7281,
+          "managedAllocatedBytes": 895312928,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 2.0911,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "h10Budget": {
+    "sourceCommit": "22157e58d55c8eaf4f6bf3c85368ca22043210f3",
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4398.5577,
+        "managedAllocatedBytes": 2108523488,
+        "processMilliseconds": 4777.2375,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 496910336,
+          "sampleCount": 180,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/pdf-print/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4361.9831,
+        "managedAllocatedBytes": 2112749904,
+        "processMilliseconds": 4745.4535,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 517308416,
+          "sampleCount": 180,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/pdf-print-zero-margin/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3604.2966,
+        "managedAllocatedBytes": 1651873392,
+        "processMilliseconds": 3967.4792,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 443482112,
+          "sampleCount": 149,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/pdf-screen-media/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3675.223,
+        "managedAllocatedBytes": 1770065392,
+        "processMilliseconds": 4066.3515,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 545800192,
+          "sampleCount": 152,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/pdf-screen-snapshot/html-mhtml-evidence.json"
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2480.984,
+        "managedAllocatedBytes": 962766832,
+        "processMilliseconds": 2705.6533,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 318636032,
+          "sampleCount": 101,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491224,
+        "outputSha256": "a027c896487890624ba2e50d2934dc8c0b58bce7b314bdf9537a74b230700451",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/editable-word/word/report.json"
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2079.8042,
+        "managedAllocatedBytes": 896454920,
+        "processMilliseconds": 2250.0271,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 281296896,
+          "sampleCount": 84,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528680,
+        "outputSha256": "81d8a2c151ce0c660d16703a6306a675517a83eaf583817a2e4e8196f93f0053",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/editable-excel/excel/report.json"
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3027.9646,
+        "managedAllocatedBytes": 1026537048,
+        "processMilliseconds": 3198.7186,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 347455488,
+          "sampleCount": 118,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499710,
+        "outputSha256": "14bc8c733ff47812d7fd031633305ed0a9543344a9db456f56fb1cde85736538",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/editable-powerpoint/powerpoint/report.json"
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1518.6491,
+        "managedAllocatedBytes": 645700584,
+        "processMilliseconds": 1677.4118,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 249298944,
+          "sampleCount": 63,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "0e5f2660db0b6b4b532b1ed607e58f61e66665f7e23b149c9032593c450631b8",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/editable-onenote/onenote/report.json"
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1804.8027,
+        "managedAllocatedBytes": 859287584,
+        "processMilliseconds": 1977.4498,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 288571392,
+          "sampleCount": 74,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/editable-rtf/rtf/report.json"
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1398.2103,
+        "managedAllocatedBytes": 646862608,
+        "processMilliseconds": 1563.409,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 219463680,
+          "sampleCount": 58,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null,
+        "reportPath": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-h10-budget-22157e58d/editable-markdown/markdown/report.json"
+      }
+    ],
+    "failures": []
+  },
+  "nasaPreservation": {
+    "baselineHead": "40bd3f7bbbf0aff338336511ed899d27f79cd3fe",
+    "sourceHead": "22157e58d55c8eaf4f6bf3c85368ca22043210f3",
+    "operations": [
+      {
+        "intent": "officeimo-print",
+        "pagesBefore": 19,
+        "pagesAfter": 19,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "newSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e"
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pagesBefore": 16,
+        "pagesAfter": 16,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "newSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "pagesBefore": 16,
+        "pagesAfter": 16,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "newSha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68"
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pagesBefore": 11,
+        "pagesAfter": 11,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "newSha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376"
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pagesBefore": 11,
+        "pagesAfter": 11,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "newSha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376"
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pagesBefore": 16,
+        "pagesAfter": 16,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "newSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pagesBefore": 16,
+        "pagesAfter": 16,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 18,
+        "imagesAfter": 18,
+        "oldSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "newSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pagesBefore": 21,
+        "pagesAfter": 21,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 20,
+        "imagesAfter": 20,
+        "oldSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "newSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8"
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pagesBefore": 21,
+        "pagesAfter": 21,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 20,
+        "imagesAfter": 20,
+        "oldSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "newSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8"
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pagesBefore": 16,
+        "pagesAfter": 16,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 26,
+        "imagesAfter": 26,
+        "oldSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "newSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2"
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pagesBefore": 16,
+        "pagesAfter": 16,
+        "perPageTextEqual": true,
+        "wholeDocumentTextEqual": true,
+        "imagesBefore": 26,
+        "imagesAfter": 26,
+        "oldSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "newSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2"
+      }
+    ]
+  },
+  "observations": [
+    {
+      "case": "webp-raw-filters",
+      "inputSha256": "324bcd0879696c81901d616d734d37476e1f52e7ed2b26e68c665b17ba3dedb5",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "webp-compressed-filters",
+      "inputSha256": "352e9af17b23736dc8727dd068b643c7d71d263382a9ac93355dd2d0d0e316c5",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "avif-opaque",
+      "inputSha256": "e28224b7fd7ba84858bf4af40a0ad42cf631945944f8fbe66a1f0ae9838be38b",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "HtmlPdfImagePayloadOmitted",
+        "HtmlPdfImagePayloadOmitted"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "avif-alpha",
+      "inputSha256": "dbef59f75215a4c88beb7a0c102c9e0b8899a2bbbc86220b184b5287a946573f",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "HtmlPdfImagePayloadOmitted",
+        "HtmlPdfImagePayloadOmitted"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "page-float-top",
+      "inputSha256": "25ed5941bedead0bbf9103a9b8b20f5089b414b4c65f0c1361077afcee13debd",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 2,
+      "peachPdfPages": 2,
+      "chromiumPages": 2
+    },
+    {
+      "case": "page-float-bottom",
+      "inputSha256": "dc5955a0be0a57129799df36a752d618686ea5d024b0c2cdfda0bbee22e77204",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 2,
+      "peachPdfPages": 2,
+      "chromiumPages": 2
+    },
+    {
+      "case": "page-float-snap",
+      "inputSha256": "84ae75d36e60934d5ea3e48544d18f6fba0c584787c43406ecf211c39d50767e",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 2,
+      "peachPdfPages": 2,
+      "chromiumPages": 2
+    },
+    {
+      "case": "column-float-left",
+      "inputSha256": "9772d72d0665d638033e9aff6ef28a3d6ea97a89183bfc879b85949fd6650970",
+      "runnerFailures": [
+        "OfficeIMO print PDF lost markers: COLAFTER-37, COLUMN-LINK.",
+        "OfficeIMO scene export page 1 failed: ArgumentOutOfRangeException: Drawing text must fit inside the drawing bounds. (Parameter 'text')"
+      ],
+      "officeImoPdfWarnings": [
+        "HtmlRenderPrintFitOverflowUnresolved",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "column-float-top",
+      "inputSha256": "a12ba429eee9c189e2d1a569216f2b0c771f2c399b43d5ab7e0e71da8f043eff",
+      "runnerFailures": [
+        "OfficeIMO print PDF lost markers: COLAFTER-37, COLUMN-LINK.",
+        "OfficeIMO scene export page 1 failed: ArgumentOutOfRangeException: Drawing text must fit inside the drawing bounds. (Parameter 'text')"
+      ],
+      "officeImoPdfWarnings": [
+        "HtmlRenderPrintFitOverflowUnresolved",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "column-float-bottom",
+      "inputSha256": "df8d5dc0575e9a414241a5ecfc17a073a54a3abd34abf3c22ee3832156b35e09",
+      "runnerFailures": [
+        "OfficeIMO print PDF lost markers: COLAFTER-37, COLUMN-LINK.",
+        "OfficeIMO scene export page 1 failed: ArgumentOutOfRangeException: Drawing text must fit inside the drawing bounds. (Parameter 'text')"
+      ],
+      "officeImoPdfWarnings": [
+        "HtmlRenderPrintFitOverflowUnresolved",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "column-notes",
+      "inputSha256": "883a047a207023dbe9356b5c38d86888890bd7c300068cc5dbea17930ff916db",
+      "runnerFailures": [
+        "OfficeIMO scene export page 1 failed: ArgumentOutOfRangeException: Drawing text must fit inside the drawing bounds. (Parameter 'text')"
+      ],
+      "officeImoPdfWarnings": [
+        "HtmlRenderPrintFitOverflowUnresolved",
+        "HtmlRenderPrintFitOverflowUnresolved"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "language-hyphenation",
+      "inputSha256": "56eacf004d583dd7e3f80e5dcfd264284e6c836942df5115ede6bd46d71cb2bd",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "svg-patterns",
+      "inputSha256": "c5a442114675dcda3eafafbc9f4552e34107a9a3a1bd7de994050d7bcb0583d3",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "svg-filter-graph",
+      "inputSha256": "e5b3b75f053f6367864c664ae0920433d36e93d3c5c85d6152070d674b71b29d",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "HtmlRenderSvgContentUnsupported",
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "svg-resources",
+      "inputSha256": "99eb8e06fd5b6302dcf508db3717124380f01ddd886856b16c6b32b621f90847",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "HtmlRenderSvgContentUnsupported"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "svg-resource-denied",
+      "inputSha256": "24151127fd57f9a21ad994d646b2c67b3f39ae978eaa3bad5dba6b461c5cc0e4",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "ImageResourceRejectedByPolicy",
+        "HtmlRenderSvgContentUnsupported"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "mathml-semantics",
+      "inputSha256": "eeb36c25ca894cb7da3856426b7d44e21fd2e3c87c2760df87e84d2b826281bb",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    },
+    {
+      "case": "pdf-conformance",
+      "inputSha256": "202a80932c000db9de0e110472ca34c01d3a255286acaf07cf0bfb988c301567",
+      "runnerFailures": [],
+      "officeImoPdfWarnings": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "officeImoPages": 1,
+      "peachPdfPages": 1,
+      "chromiumPages": 1
+    }
+  ],
+  "independentContentObjects": [
+    {
+      "case": "webp-raw-filters",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "webp-raw-filters": 1,
+            "FILTER-0": 1,
+            "FILTER-1": 1,
+            "FILTER-2": 1,
+            "FILTER-3": 1,
+            "END-webp-raw-filters": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 8,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "webp-raw-filters": 1,
+            "FILTER-0": 1,
+            "FILTER-1": 1,
+            "FILTER-2": 1,
+            "FILTER-3": 1,
+            "END-webp-raw-filters": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 8,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "webp-raw-filters": 1,
+            "FILTER-0": 1,
+            "FILTER-1": 1,
+            "FILTER-2": 1,
+            "FILTER-3": 1,
+            "END-webp-raw-filters": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 8,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "webp-compressed-filters",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "webp-compressed-filters": 1,
+            "FILTER-0": 1,
+            "FILTER-1": 1,
+            "FILTER-2": 1,
+            "FILTER-3": 1,
+            "END-webp-compressed-filters": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 8,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "webp-compressed-filters": 1,
+            "FILTER-0": 1,
+            "FILTER-1": 1,
+            "FILTER-2": 1,
+            "FILTER-3": 1,
+            "END-webp-compressed-filters": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 8,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "webp-compressed-filters": 1,
+            "FILTER-0": 1,
+            "FILTER-1": 1,
+            "FILTER-2": 1,
+            "FILTER-3": 1,
+            "END-webp-compressed-filters": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 8,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "avif-opaque",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "avif-opaque": 1,
+            "END-avif-opaque": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": false,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "avif-opaque": 1,
+            "END-avif-opaque": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": false,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "avif-opaque": 1,
+            "END-avif-opaque": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 2,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "avif-alpha",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "avif-alpha": 1,
+            "END-avif-alpha": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": false,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "avif-alpha": 1,
+            "END-avif-alpha": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": false,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "avif-alpha": 1,
+            "END-avif-alpha": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 2,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "page-float-top",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-top": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-TOP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-top": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-top": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-TOP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-top": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-top": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-TOP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-top": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "page-float-bottom",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-bottom": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-BOTTOM": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-bottom": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-bottom": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-BOTTOM": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-bottom": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-bottom": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-BOTTOM": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-bottom": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "page-float-snap",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-snap": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-SNAP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-snap": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-snap": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-SNAP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-snap": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 2,
+          "markerCounts": {
+            "page-float-snap": 1,
+            "BEFORE-00": 1,
+            "BEFORE-01": 1,
+            "BEFORE-02": 1,
+            "BEFORE-03": 1,
+            "BEFORE-04": 1,
+            "BEFORE-05": 1,
+            "BEFORE-06": 1,
+            "BEFORE-07": 1,
+            "BEFORE-08": 1,
+            "BEFORE-09": 1,
+            "BEFORE-10": 1,
+            "BEFORE-11": 1,
+            "BEFORE-12": 1,
+            "BEFORE-13": 1,
+            "BEFORE-14": 1,
+            "FLOAT-SNAP": 1,
+            "AFTER-00": 1,
+            "AFTER-01": 1,
+            "AFTER-02": 1,
+            "AFTER-03": 1,
+            "AFTER-04": 1,
+            "AFTER-05": 1,
+            "AFTER-06": 1,
+            "AFTER-07": 1,
+            "AFTER-08": 1,
+            "AFTER-09": 1,
+            "AFTER-10": 1,
+            "AFTER-11": 1,
+            "AFTER-12": 1,
+            "AFTER-13": 1,
+            "AFTER-14": 1,
+            "AFTER-15": 1,
+            "AFTER-16": 1,
+            "AFTER-17": 1,
+            "AFTER-18": 1,
+            "AFTER-19": 1,
+            "AFTER-20": 1,
+            "AFTER-21": 1,
+            "AFTER-22": 1,
+            "AFTER-23": 1,
+            "AFTER-24": 1,
+            "AFTER-25": 1,
+            "AFTER-26": 1,
+            "AFTER-27": 1,
+            "AFTER-28": 1,
+            "AFTER-29": 1,
+            "AFTER-30": 1,
+            "AFTER-31": 1,
+            "AFTER-32": 1,
+            "AFTER-33": 1,
+            "AFTER-34": 1,
+            "END-page-float-snap": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "column-float-left",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-left": 1,
+            "COLUMN-LEFT": 1,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 0,
+            "COLUMN-LINK": 0,
+            "END-column-float-left": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-left": 1,
+            "COLUMN-LEFT": 1,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 1,
+            "COLUMN-LINK": 1,
+            "END-column-float-left": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-left": 1,
+            "COLUMN-LEFT": 1,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 1,
+            "COLUMN-LINK": 1,
+            "END-column-float-left": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "column-float-top",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-top": 1,
+            "COLUMN-TOP": 1,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 0,
+            "COLUMN-LINK": 0,
+            "END-column-float-top": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-top": 1,
+            "COLUMN-TOP": 1,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 1,
+            "COLUMN-LINK": 1,
+            "END-column-float-top": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-top": 1,
+            "COLUMN-TOP": 1,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 0,
+            "COLUMN-LINK": 0,
+            "END-column-float-top": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [],
+          "linksMet": false,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "column-float-bottom",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-bottom": 1,
+            "COLUMN-BOTTOM": 0,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 0,
+            "COLUMN-LINK": 0,
+            "END-column-float-bottom": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-bottom": 1,
+            "COLUMN-BOTTOM": 0,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 1,
+            "COLUMN-LINK": 1,
+            "END-column-float-bottom": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/column-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "column-float-bottom": 1,
+            "COLUMN-BOTTOM": 0,
+            "COLBEFORE-00": 1,
+            "COLAFTER-37": 0,
+            "COLUMN-LINK": 0,
+            "END-column-float-bottom": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/column-link"
+          ],
+          "retainedLinks": [],
+          "linksMet": false,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "column-notes",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "column-notes": 1,
+            "CALL-A": 1,
+            "NOTE-A": 1,
+            "CALL-B": 1,
+            "LONG-NOTE-00": 1,
+            "LONG-NOTE-34": 1,
+            "NOTE-TAIL-27": 0,
+            "END-column-notes": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "column-notes": 1,
+            "CALL-A": 1,
+            "NOTE-A": 0,
+            "CALL-B": 1,
+            "LONG-NOTE-00": 0,
+            "LONG-NOTE-34": 1,
+            "NOTE-TAIL-27": 1,
+            "END-column-notes": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "column-notes": 1,
+            "CALL-A": 1,
+            "NOTE-A": 1,
+            "CALL-B": 1,
+            "LONG-NOTE-00": 1,
+            "LONG-NOTE-34": 0,
+            "NOTE-TAIL-27": 0,
+            "END-column-notes": 1
+          },
+          "markersExactlyOnce": false,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "language-hyphenation",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "language-hyphenation": 1,
+            "END-language-hyphenation": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "language-hyphenation": 1,
+            "END-language-hyphenation": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "language-hyphenation": 1,
+            "END-language-hyphenation": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "svg-patterns",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "svg-patterns": 1,
+            "END-svg-patterns": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "svg-patterns": 1,
+            "END-svg-patterns": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "svg-patterns": 1,
+            "END-svg-patterns": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "svg-filter-graph",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "svg-filter-graph": 1,
+            "END-svg-filter-graph": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "svg-filter-graph": 1,
+            "END-svg-filter-graph": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 2,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "svg-filter-graph": 1,
+            "END-svg-filter-graph": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 2,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "svg-resources",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "svg-resources": 1,
+            "END-svg-resources": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/svg-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/svg-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "svg-resources": 1,
+            "END-svg-resources": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/svg-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/svg-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "svg-resources": 1,
+            "END-svg-resources": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/svg-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/svg-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "svg-resource-denied",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "svg-resource-denied": 1,
+            "DENIED-RESOURCE-SAFE-TEXT": 1,
+            "END-svg-resource-denied": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "svg-resource-denied": 1,
+            "DENIED-RESOURCE-SAFE-TEXT": 1,
+            "END-svg-resource-denied": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "svg-resource-denied": 1,
+            "DENIED-RESOURCE-SAFE-TEXT": 1,
+            "END-svg-resource-denied": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 1,
+          "minimumImagesMet": true,
+          "requiredLinks": [],
+          "retainedLinks": [],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "mathml-semantics",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "mathml-semantics": 1,
+            "FORMULA-PREFIX": 1,
+            "FORMULA-SUFFIX": 1,
+            "MATH-LINK": 1,
+            "END-mathml-semantics": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/math-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/math-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "mathml-semantics": 1,
+            "FORMULA-PREFIX": 1,
+            "FORMULA-SUFFIX": 1,
+            "MATH-LINK": 1,
+            "END-mathml-semantics": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/math-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/math-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [
+            {
+              "alt": "",
+              "hasAF": true
+            }
+          ],
+          "catalogHasAssociatedFiles": true
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "mathml-semantics": 1,
+            "FORMULA-PREFIX": 1,
+            "FORMULA-SUFFIX": 1,
+            "MATH-LINK": 1,
+            "END-mathml-semantics": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/math-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/math-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    },
+    {
+      "case": "pdf-conformance",
+      "engines": [
+        {
+          "engine": "OfficeIMO",
+          "pages": 1,
+          "markerCounts": {
+            "pdf-conformance": 1,
+            "FORMULA-PREFIX": 1,
+            "FORMULA-SUFFIX": 1,
+            "MATH-LINK": 1,
+            "END-pdf-conformance": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/math-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/math-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        },
+        {
+          "engine": "PeachPDF",
+          "pages": 1,
+          "markerCounts": {
+            "pdf-conformance": 1,
+            "FORMULA-PREFIX": 1,
+            "FORMULA-SUFFIX": 1,
+            "MATH-LINK": 1,
+            "END-pdf-conformance": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/math-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/math-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [
+            {
+              "alt": "",
+              "hasAF": true
+            }
+          ],
+          "catalogHasAssociatedFiles": true
+        },
+        {
+          "engine": "Chromium",
+          "pages": 1,
+          "markerCounts": {
+            "pdf-conformance": 1,
+            "FORMULA-PREFIX": 1,
+            "FORMULA-SUFFIX": 1,
+            "MATH-LINK": 1,
+            "END-pdf-conformance": 1
+          },
+          "markersExactlyOnce": true,
+          "imageOccurrences": 0,
+          "minimumImagesMet": true,
+          "requiredLinks": [
+            "https://example.test/math-link"
+          ],
+          "retainedLinks": [
+            "https://example.test/math-link"
+          ],
+          "linksMet": true,
+          "formulaRoles": [],
+          "catalogHasAssociatedFiles": false
+        }
+      ]
+    }
+  ],
+  "remainingAcceptance": "All-page geometry/color criteria, full authored-text preservation, visible link bounds, selected semantic/policy outputs and Windows/Linux budgets remain unfinished."
+}

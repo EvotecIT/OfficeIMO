@@ -1,10 +1,31 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlPdfForegroundColorAlpha_UsesTransparentTextPaint() {
+        const string html = "<h1 style='font-size:40px;color:rgba(175,47,47,.2)'>Pale heading</h1>"
+            + "<p style='color:rgb(0,0,0)'>Opaque body</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 160D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text == "Pale heading");
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
+
+        Assert.Equal(51, heading.Color.A);
+        Assert.Contains("/Type /ExtGState /ca 0.2 /CA 0.2", rawPdf, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("color-mix(in srgb, red -10%, blue)")]
     [InlineData("color-mix(in srgb, red 110%, blue)")]

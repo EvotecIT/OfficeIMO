@@ -1,0 +1,39 @@
+{
+  "$schema": "officeimo.html.static-rendering-budget",
+  "schemaVersion": 1,
+  "corpusId": "officeimo-html-h4-advanced-held-out",
+  "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+  "warmIterations": 3,
+  "platforms": [
+    {
+      "osFamily": "Windows",
+      "coldProcessElapsedMilliseconds": 12000,
+      "warmIterationElapsedMilliseconds": 4000,
+      "coldManagedAllocatedBytes": 2500000000,
+      "warmManagedAllocatedBytes": 1200000000,
+      "peakWorkingSetBytes": 1500000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    {
+      "osFamily": "Linux",
+      "coldProcessElapsedMilliseconds": 12000,
+      "warmIterationElapsedMilliseconds": 5000,
+      "coldManagedAllocatedBytes": 1100000000,
+      "warmManagedAllocatedBytes": 1000000000,
+      "peakWorkingSetBytes": 500000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    }
+  ]
+}
