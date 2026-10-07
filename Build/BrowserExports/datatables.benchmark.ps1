@@ -6,8 +6,11 @@ $rowCounts = Get-BenchmarkInput Rows 10000, 100000 -Int
 $columnCounts = Get-BenchmarkInput Columns 20 -Int
 $browserNames = (Get-BenchmarkInput Browsers 'Chromium,Firefox,WebKit').Split(',')
 $stackNames = (Get-BenchmarkInput Stacks 'bundled,current').Split(',')
-$formats = (Get-BenchmarkInput Formats 'xlsx,csv').Split(',')
+$formats = (Get-BenchmarkInput Formats 'csv').Split(',')
 $unique = Get-BenchmarkInput Unique $false -Bool
+$comparison = Get-BenchmarkInput Comparison $true -Bool
+if ($formats.Where({ $_ -notin 'csv','xlsx' }).Count) { throw 'Supported formats are csv and xlsx.' }
+if ($comparison -and $formats -contains 'xlsx') { throw 'XLSX width-sizing work differs between lanes. Cross-library comparisons support CSV only.' }
 
 function Invoke-TableComparisonRequest {
     param([hashtable] $Request)
@@ -18,7 +21,8 @@ function Invoke-TableComparisonRequest {
 
 New-BenchmarkSuite 'officeimo-browser-table-exports' -OutputRoot $evidence {
     Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -OutlierMode None
-    Add-BenchmarkMetadata Contract 'Same grid, rows, typed numbers and literal Unicode strings; plain exports, fixed width 20, no title/footer. Browser export and control roundtrip measured; setup, transfer and independent every-value validation excluded.'
+    Add-BenchmarkMetadata Contract 'Same grid, rows, typed numbers and literal Unicode strings; plain quoted CSV, no title/footer. Browser export and control roundtrip measured; setup, transfer and independent every-value validation excluded. XLSX is output qualification only: native width sizing is not equivalent.'
+    Add-BenchmarkMetadata ComparisonEnabled $comparison
     Add-BenchmarkMetadata BinarySha256 (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash
     Add-BenchmarkMetadata AssetManifestSha256 (Get-FileHash -LiteralPath (Join-Path $repository 'Build/BrowserExports/comparison-assets.json') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata HeapBoundary 'Sampled Chromium JavaScript heap only; unavailable in Firefox/WebKit. Does not measure browser process-tree/native memory.'
@@ -58,6 +62,6 @@ New-BenchmarkSuite 'officeimo-browser-table-exports' -OutputRoot $evidence {
     Add-BenchmarkMetric OutputBytes { param($case, $run) $run.Measurement.outputBytes }
     Add-BenchmarkMetric MaxTimerGapMs { param($case, $run) $run.Measurement.maxTimerGapMs }
     Add-BenchmarkMetric ValidatedCells { param($case, $run) $run.Validation.proof.cells }
-    Add-BenchmarkComparison -Baseline native -Metric BrowserExportMs,OutputBytes,MaxTimerGapMs
+    if ($comparison) { Add-BenchmarkComparison -Baseline native -Metric BrowserExportMs,OutputBytes,MaxTimerGapMs }
     Set-BenchmarkArtifacts Json,Csv,Markdown
 }
