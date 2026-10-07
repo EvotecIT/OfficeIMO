@@ -1088,11 +1088,8 @@ Q3,260
                 Assert.DoesNotContain(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
                     box.Text.Contains("Architecture Overview", StringComparison.Ordinal));
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
-                    box.Text.Contains("Mermaid diagram", StringComparison.OrdinalIgnoreCase)
-                    && box.Text.Contains("Mermaid renderer", StringComparison.Ordinal));
-                Assert.DoesNotContain(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
                     box.Text.Contains("Markup --> AST", StringComparison.Ordinal)
-                    || box.Text.Contains("AST --> PPTX", StringComparison.Ordinal));
+                    && box.Text.Contains("AST --> PPTX", StringComparison.Ordinal));
                 Assert.NotEmpty(presentation.Slides[2].Charts);
                 Assert.Contains(presentation.Slides[2].Shapes.OfType<PowerPointAutoShape>(), shape =>
                     shape.Name?.Contains("Chart Panel", StringComparison.Ordinal) == true);

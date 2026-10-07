@@ -354,7 +354,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
 
         HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        Assert.Contains(drawing.InnerDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "A");
+        Assert.Contains(DrawingTestTraversal.Elements(drawing.InnerDrawing).OfType<OfficeDrawingText>(), text => text.Text == "A");
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
     }
 

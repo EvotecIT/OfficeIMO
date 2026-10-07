@@ -789,7 +789,7 @@ public partial class DrawingTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(0, unsupported);
-        Assert.Contains(drawing!.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("a\u0301", StringComparison.Ordinal));
+        Assert.Contains(SvgTestScene.Content(drawing!).Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("a\u0301", StringComparison.Ordinal));
     }
 
     [Fact]

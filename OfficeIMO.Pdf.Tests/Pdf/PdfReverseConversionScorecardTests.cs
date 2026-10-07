@@ -162,7 +162,11 @@ public sealed class PdfReverseConversionScorecardTests {
                 using (OfficeIMO.Word.WordDocument document = logical.ToWordDocument()) {
                     using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToBytes()), false);
                     DocumentFormat.OpenXml.Wordprocessing.Body body = Assert.IsType<DocumentFormat.OpenXml.Wordprocessing.Body>(package.MainDocumentPart?.Document?.Body);
-                    AssertTokenRecall(sourceTokens, string.Join(" ", body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(static text => text.Text)), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
+                    // Styled fragments are adjacent within a paragraph. Adding spaces
+                    // between Word runs changes words that the document preserves.
+                    string wordText = string.Join(" ", body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
+                        .Select(static paragraph => string.Concat(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(static text => text.Text))));
+                    AssertTokenRecall(sourceTokens, wordText, routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
                     if (expectedTables) Assert.NotEmpty(body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>());
                 }
                 return;
@@ -212,7 +216,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 byte[] artifact = odtResult.Value.ToBytes();
                 OdtDocument reopened = OdtDocument.Load(new MemoryStream(artifact));
                 Assert.NotEmpty(reopened.Paragraphs);
-                AssertTokenRecall(sourceTokens, ReadOpenDocumentText(artifact), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
+                AssertTokenRecall(sourceTokens, string.Join(" ", reopened.Paragraphs.Select(static paragraph => paragraph.Text)), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
                 return;
             }
             case "pdf-to-ods": {
@@ -272,7 +276,7 @@ public sealed class PdfReverseConversionScorecardTests {
         HashSet<string> actualTokens = GetTokens(actualText);
         int retained = expectedTokens.Count(actualTokens.Contains);
         double recall = (double)retained / expectedTokens.Count;
-        Assert.True(recall >= minimumRecall, route + " retained " + retained + "/" + expectedTokens.Count + " source tokens (" + recall.ToString("P1", System.Globalization.CultureInfo.InvariantCulture) + "); expected at least " + minimumRecall.ToString("P1", System.Globalization.CultureInfo.InvariantCulture) + ".");
+        Assert.True(recall >= minimumRecall, route + " retained " + retained + "/" + expectedTokens.Count + " source tokens (" + recall.ToString("P1", System.Globalization.CultureInfo.InvariantCulture) + "); expected at least " + minimumRecall.ToString("P1", System.Globalization.CultureInfo.InvariantCulture) + ". Missing: " + string.Join(", ", expectedTokens.Except(actualTokens).OrderBy(static token => token, StringComparer.Ordinal)));
     }
 
     private static string GetSpreadsheetText(SpreadsheetDocument package) {

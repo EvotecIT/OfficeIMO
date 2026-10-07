@@ -77,8 +77,8 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], width, height, alignment, slice);
 
         OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
-            maximumViewportDimension, maximumViewportPixels, ref unsupported, out double retainedScenePixels);
-        if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - viewBox[2] * viewBox[3])) {
+            maximumViewportDimension, maximumViewportPixels, ref unsupported, out double additionalSurfacePixels);
+        if (!references.TryChargeNestedViewportExpansion(additionalSurfacePixels)) {
             references.RestoreSurfaceBudget(symbolBudget);
             unsupported++;
             return;

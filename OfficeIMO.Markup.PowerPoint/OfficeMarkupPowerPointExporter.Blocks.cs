@@ -19,7 +19,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 AddText(slide, paragraph.Text, cursor, height: EstimateTextHeight(paragraph.Text), styleResolver.Resolve(paragraph));
                 break;
             case OfficeMarkupListBlock list:
-                AddList(slide, list, cursor, styleResolver.Resolve("body"));
+                AddList(slide, list, cursor, options, metrics, styleResolver);
                 break;
             case OfficeMarkupImageBlock image:
                 AddImage(slide, image, cursor, options, metrics);
@@ -140,7 +140,21 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
     }
 
-    private static void AddList(PowerPointSlide slide, OfficeMarkupListBlock list, LayoutCursor cursor, OfficeMarkupResolvedStyle? style) {
+    private static void AddList(PowerPointSlide slide, OfficeMarkupListBlock list, LayoutCursor cursor,
+        MarkupToPowerPointOptions options, SlideCanvasMetrics metrics, OfficeMarkupStyleResolver styleResolver) {
+        if (!OfficeMarkupListTraversal.IsTextOnly(list)) {
+            for (int index = 0; index < list.Items.Count; index++) {
+                var item = list.Items[index];
+                var lead = new OfficeMarkupListBlock(list.Ordered, list.Start + index);
+                lead.Items.Add(new OfficeMarkupListItem(item.Text, item.IsTask, item.IsChecked));
+                AddList(slide, lead, cursor, options, metrics, styleResolver);
+                foreach (var child in OfficeMarkupListTraversal.ContentBlocks(item)) {
+                    ExportBlock(slide, child, options, metrics, cursor, styleResolver);
+                }
+            }
+            return;
+        }
+        var style = styleResolver.Resolve("body", list.Attributes);
         var items = list.Items.Select(item => item.Text).Where(text => !string.IsNullOrWhiteSpace(text)).ToList();
         if (items.Count == 0) {
             return;
@@ -185,9 +199,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         if (options.IncludeUnsupportedBlocksAsText) {
-            var text = IsMermaid(diagram.Language)
-                ? "Mermaid diagram\nInstall or configure the Mermaid renderer to export this block as an image."
-                : $"{diagram.Language} diagram";
+            var text = $"{diagram.Language} diagram\n{diagram.Content}";
             var textBox = slide.AddTextBoxInches(text.Trim(), box.Left, box.Top, box.Width, box.Height);
             ApplyTextStyle(textBox, styleResolver.Resolve("caption"));
             if (!HasExplicitPlacement(diagram.Placement, diagram.Attributes)) {

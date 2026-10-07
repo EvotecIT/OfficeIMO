@@ -359,7 +359,7 @@ public partial class DrawingTests {
         Assert.NotNull(useDrawing);
         Assert.Equal(0, textUnsupported);
         Assert.Equal(0, useUnsupported);
-        Assert.NotNull(Assert.Single(textDrawing!.Elements.OfType<OfficeDrawingEffectGroup>()).SoftMask);
+        Assert.NotNull(Assert.Single(SvgTestScene.Content(textDrawing!).Elements.OfType<OfficeDrawingEffectGroup>()).SoftMask);
         Assert.NotNull(Assert.Single(useDrawing!.Elements.OfType<OfficeDrawingEffectGroup>()).SoftMask);
     }
 

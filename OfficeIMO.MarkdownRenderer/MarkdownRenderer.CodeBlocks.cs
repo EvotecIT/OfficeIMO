@@ -83,7 +83,8 @@ public static partial class MarkdownRenderer {
         }
 
         var codeBlock = new CodeBlock(block.InfoString, block.Content) {
-            Caption = block.Caption
+            Caption = block.Caption,
+            SourceSpan = block.SourceSpan
         };
         return TryRenderCodeBlockOverride(codeBlock, options);
     }
@@ -97,7 +98,7 @@ public static partial class MarkdownRenderer {
         var exactLanguageMatch = TryRenderMatchingFencedCodeBlockRenderer(
             renderers,
             renderer => RendererHandlesLanguage(renderer, block.Language),
-            CreateCodeBlockMatch(block.InfoString, block.Content),
+            CreateCodeBlockMatch(block.InfoString, block.Content, block.SourceSpan, block.ContentSourceSpan),
             options);
         if (exactLanguageMatch != null) {
             return exactLanguageMatch;
@@ -106,7 +107,7 @@ public static partial class MarkdownRenderer {
         return TryRenderMatchingFencedCodeBlockRenderer(
             renderers,
             renderer => RendererHandlesSemanticKind(renderer, block.SemanticKind),
-            CreateCodeBlockMatch(block.InfoString, block.Content),
+            CreateCodeBlockMatch(block.InfoString, block.Content, block.SourceSpan, block.ContentSourceSpan),
             options);
     }
 
@@ -170,15 +171,16 @@ public static partial class MarkdownRenderer {
     }
 
     private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(CodeBlock block) {
-        return CreateCodeBlockMatch(block.InfoString, block.Content);
+        return CreateCodeBlockMatch(block.InfoString, block.Content, block.SourceSpan, block.ContentSourceSpan);
     }
 
-    private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(string infoString, string rawContent) {
+    private static MarkdownFencedCodeBlockMatch CreateCodeBlockMatch(string infoString, string rawContent,
+        MarkdownSourceSpan? sourceSpan, MarkdownSourceSpan? contentSourceSpan) {
         rawContent ??= string.Empty;
         var fenceInfo = MarkdownCodeFenceInfo.Parse(infoString);
         var encodedContent = BuildHtmlEncodedCodeBlockContent(rawContent);
         var originalHtml = BuildDefaultCodeBlockPreHtml(fenceInfo.Language, rawContent);
-        return new MarkdownFencedCodeBlockMatch(fenceInfo.InfoString, encodedContent, rawContent, originalHtml);
+        return new MarkdownFencedCodeBlockMatch(fenceInfo.InfoString, encodedContent, rawContent, originalHtml, sourceSpan, contentSourceSpan);
     }
 
     private static string BuildHtmlEncodedCodeBlockContent(string rawContent) {
