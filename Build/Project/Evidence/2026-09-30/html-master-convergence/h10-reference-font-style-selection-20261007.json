@@ -1,0 +1,354 @@
+{
+  "schema": 1,
+  "observedUtc": "2026-10-07T21:26:54.732855+00:00",
+  "milestone": "H10 Reference Systems footer typography independent control and shared font lookup",
+  "status": "focused Core candidate locally qualified and published; hosted gates and accepted-source adoption remain; whole footer appearance open",
+  "source": "6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
+  "base": "4467d2f09dd1cab22797adb8d89f9d7e50b78f91",
+  "engineBefore": "c41702c55427cfbfb32fd5b2debbea06a2bac11e",
+  "frozenSource": {
+    "role": "development regression",
+    "sha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d"
+  },
+  "publication": {
+    "pr": 2933,
+    "url": "https://github.com/EvotecIT/OfficeIMO/pull/2933",
+    "branch": "fix/font-face-style-selection",
+    "head": "6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
+    "adoptedIntoEngine": false
+  },
+  "contract": {
+    "defect": "style-based regular or bold selection preferred registration order among numeric faces sharing a coarse style; text could select weight200 instead of available400",
+    "fix": "use existing numeric matcher for400/700 and matching slant; keep family-local scope for substitution diagnostics",
+    "publicApiChanged": false,
+    "productionDependencyChanged": false
+  },
+  "independentControl": {
+    "sameCapturedFonts": true,
+    "viewport": [
+      816,
+      900
+    ],
+    "paper": [
+      816,
+      900
+    ],
+    "margins": 0,
+    "regularBeforeAdvanceCssPx": 162.6583806818182,
+    "regularFinalAdvanceCssPx": 167.72727272727275,
+    "browserRangeExtentCssPx": 167.734375,
+    "testOnlyBrowser": "isolated HtmlTinkerX3.0.3/Chromium153; source/resource fetch blocked outside local fixture",
+    "capturedFooterPrintAndScreenByteIdentical": true,
+    "finalArtifactEqualsReviewedCandidate": true,
+    "visualInspection": "final96dpi independent control viewed; captured finalbytes equal previously viewed control; full footer appearance remains open"
+  },
+  "tests": [
+    {
+      "file": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/before.trx",
+      "counters": {
+        "total": "5",
+        "executed": "5",
+        "passed": "0",
+        "failed": "5",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/closure-net10.trx",
+      "counters": {
+        "total": "40",
+        "executed": "40",
+        "passed": "40",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/final-drawing-net8.trx",
+      "counters": {
+        "total": "3704",
+        "executed": "3700",
+        "passed": "3700",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/final-drawing-net10.trx",
+      "counters": {
+        "total": "3704",
+        "executed": "3700",
+        "passed": "3700",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/final-html-fonts-net8.0.trx",
+      "counters": {
+        "total": "372",
+        "executed": "372",
+        "passed": "372",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "H4AcceptancePassed": 8
+    },
+    {
+      "file": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/final-html-fonts-net10.0.trx",
+      "counters": {
+        "total": "372",
+        "executed": "372",
+        "passed": "372",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "H4AcceptancePassed": 8
+    }
+  ],
+  "supplementaryTests": {
+    "initialFullHtmlNet10": 4856,
+    "scope": "before candidate-introduced diagnostic attribution closure; not final full-source qualification"
+  },
+  "review": {
+    "boundary": "current",
+    "base": "4467d2f09dd1cab22797adb8d89f9d7e50b78f91",
+    "source": "6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
+    "fullPass": "font_style_selection_review",
+    "initialPatch": "762d1d69800cccdec2b8287b5ad03e3b252f6892",
+    "targetedPatch": "91797a1be3edc3c58fdb91553e6f6cb56ede0627",
+    "findings": [
+      {
+        "priority": "P2",
+        "class": "candidate-introduced registered fallback scope/diagnostic attribution",
+        "disposition": "reproduced public before null/wrong-family outputs, restored explicit family scope with shared numeric ordering, two regressions and public after attribution confirmed"
+      }
+    ],
+    "targetedConfirmationUsed": true,
+    "remainingActionableFindings": [],
+    "manualHostedReviewRequested": false
+  },
+  "packages": {
+    "source": "6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
+    "package": {
+      "id": "OfficeIMO.Core",
+      "version": "3.4.4-h10-style-selection",
+      "sha256": "aac9609faf3c06976fee3267876659306bb21024a55db56701d110251972a7b0",
+      "sha512": "vs/Z0ieMN4UXGNYMIZ873JvJtd8WhhjP2avSYBLLyj7GC5TAa2LWDi+URZtVSehlVjgkB5bgJEiUsGmgVU3NYg==",
+      "origin": {
+        "version": 2,
+        "contentHash": "vs/Z0ieMN4UXGNYMIZ873JvJtd8WhhjP2avSYBLLyj7GC5TAa2LWDi+URZtVSehlVjgkB5bgJEiUsGmgVU3NYg==",
+        "source": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification/package-feed"
+      },
+      "dependencies": [],
+      "dllSha256": {
+        "net10.0": "555c9ae676610a5544152f25911fa8295147c7853947552bc1d27ac8592064ee",
+        "net472": "93df1cd44e1df26cc23bd26a00fbe8847ffb7b91947aab99998603ff775f54a1",
+        "net8.0": "971be3d42b7bb3b9964e31ddb3e394dad6407b3f12a2e253438ca25071a89ed9",
+        "netstandard2.0": "14f3d843f7d9ded045314318859023730c5446d567a425496d0a330ab827fb76"
+      }
+    },
+    "consumers": [
+      {
+        "framework": ".NET 8.0.23",
+        "results": [
+          {
+            "regularLast": false,
+            "regularWeight": 400,
+            "width": 167.72727272727275,
+            "boldWeight": 700
+          },
+          {
+            "regularLast": true,
+            "regularWeight": 400,
+            "width": 167.72727272727275,
+            "boldWeight": 700
+          }
+        ],
+        "owner": {
+          "name": "OfficeIMO.Core",
+          "version": "3.4.4+6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
+          "sha256": "971be3d42b7bb3b9964e31ddb3e394dad6407b3f12a2e253438ca25071a89ed9"
+        }
+      },
+      {
+        "framework": ".NET 10.0.12",
+        "results": [
+          {
+            "regularLast": false,
+            "regularWeight": 400,
+            "width": 167.72727272727275,
+            "boldWeight": 700
+          },
+          {
+            "regularLast": true,
+            "regularWeight": 400,
+            "width": 167.72727272727275,
+            "boldWeight": 700
+          }
+        ],
+        "owner": {
+          "name": "OfficeIMO.Core",
+          "version": "3.4.4+6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
+          "sha256": "555c9ae676610a5544152f25911fa8295147c7853947552bc1d27ac8592064ee"
+        }
+      }
+    ],
+    "nativeWindowsNet472": "not executed locally; exact current-head Windows CI required"
+  },
+  "fourProfileReplay": {
+    "source": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+    "results": [
+      {
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "imageCount": 17,
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "readerTextExact": true,
+          "rawPopplerPerPageExact": true,
+          "decodedImagesExact": true
+        },
+        "pixelIdenticalPages": 9
+      },
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "imageCount": 17,
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "readerTextExact": true,
+          "rawPopplerPerPageExact": true,
+          "decodedImagesExact": true
+        },
+        "pixelIdenticalPages": 10
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "imageCount": 17,
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "readerTextExact": true,
+          "rawPopplerPerPageExact": true,
+          "decodedImagesExact": true
+        },
+        "pixelIdenticalPages": 12
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "imageCount": 30,
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "readerTextExact": true,
+          "rawPopplerPerPageExact": true,
+          "decodedImagesExact": true
+        },
+        "pixelIdenticalPages": 8
+      }
+    ],
+    "all39PagesPixelIdentical": true
+  },
+  "limits": [
+    "local Core/private package proof is not released NuGet",
+    "Macnet472 cross-build is not native Windows execution; latest-head CI required",
+    "does not qualify whole footer layout/typography, all H10 profiles/corpus, native/manual accessibility, runtime or historical timing gates"
+  ],
+  "retained": {
+    "fontPrEvidence": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification",
+    "engineFooterEvidence": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-provider-forks/Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007",
+    "feedsAndFailuresPreserved": true
+  },
+  "storage": {
+    "finalCleanup": [
+      {
+        "targetsRemoved": 73,
+        "logicalBytesRemoved": 1550763224,
+        "remainingTargets": [],
+        "feedsFixturesSourceFailuresRetained": true,
+        "sharedCachesRemoved": false
+      },
+      {
+        "targetsRemoved": 14,
+        "logicalBytesRemoved": 249889506,
+        "remainingTargets": [],
+        "feedsFixturesSourceFailuresRetained": true,
+        "sharedCachesRemoved": false
+      }
+    ],
+    "priorToolCleanupLogicalBytes": 186133990,
+    "sharedCachesRemoved": false
+  },
+  "next": "settle font and decoration PRs; remediate shared compliance setup separately; adopt exact accepted owners deliberately and preserve proof before removing temporary worktrees"
+}

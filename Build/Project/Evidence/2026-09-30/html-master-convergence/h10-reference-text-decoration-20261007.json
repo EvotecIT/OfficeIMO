@@ -303,5 +303,51 @@
     },
     "originalFailuresAndFinalProofPreserved": true,
     "sharedCachesTouched": false
+  },
+  "hostedCheckpoint20261007": {
+    "head": "2d930f0beabfcbe77d666967ec028939826f50cf",
+    "latestCompleteFeedback": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-provider-forks/Ignore/H10ReferenceAppearanceQualification-20261007/pr-2930-2026-10-07T21-22-34.json",
+    "unresolvedThreads": 0,
+    "proofRun": 37668008164,
+    "singleFailedJobRerunUsed": true,
+    "attempt2": "canceled during18-minute apt OpenJDK download before any product proof",
+    "libraryChecks": "passed latest complete snapshot",
+    "merge": "held until current-head compliance gate passes; no bypass",
+    "remediation": {
+      "pr": 2934,
+      "url": "https://github.com/EvotecIT/OfficeIMO/pull/2934",
+      "source": "4a8831d4ea73e5b3acde2181ceb0b349ed6ee4bc",
+      "qualification": {
+        "observedUtc": "2026-10-07T21:26:08.918642+00:00",
+        "base": "50fcc300f5156facd3e99093329e7a100371a7bc",
+        "changedContract": "Use existing setup-java@v6/Temurin17 instead of redundant apt OpenJDK installation; other package and validator stages unchanged",
+        "checks": [
+          "YAML parsed",
+          "changed Bash syntax checked",
+          "restored structure equals original exactly",
+          "20-minute timeout unchanged",
+          "existing dotnet-tests setup-java@v6 owner reused"
+        ],
+        "runtimeSetupProof": "hosted current-head CI required; not executed on macOS",
+        "originalFailedRuns": [
+          {
+            "run": 37668008164,
+            "attempt": 1,
+            "disposition": "apt OpenJDK consumed nearly13minutes; timed out later"
+          },
+          {
+            "run": 37668008164,
+            "attempt": 2,
+            "disposition": "apt OpenJDK consumed over18minutes; canceled before product proof"
+          }
+        ],
+        "oldRunRerunAllowanceExhausted": true,
+        "localReview": "proportionately skipped: narrow existing action/config reuse with direct parsed contract validation; hosted stage is decisive",
+        "runtimeDependencyChanged": false,
+        "authority": "required in-scope CI remediation; no gate bypass"
+      },
+      "latestHeadCI": "queued/running; not yet qualified",
+      "dependency": "accept shared setup fix, then deliberately update downstream heads and recheck their own exact-head proof"
+    }
   }
 }
