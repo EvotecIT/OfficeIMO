@@ -3205,7 +3205,7 @@ _modules.set("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73",
 return _exports;
 })();
 
-const _m30 = _modules.get("82b1a9301f3e4055440af455bc87e8a6b6271f51443030d604c57f4bd990e6a5") ?? (() => {
+const _m30 = _modules.get("77849e133291ca57dc9e1fe8c48251a5805a7f42c9467f8a4330b456a3fd0d6c") ?? (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
@@ -3285,6 +3285,14 @@ function createDataTablesExport(host, table, options = {}) {
     const count = columns.length ? body?.length ?? rowIndexes.length : 0;
     budget.check("maxRows", count);
     const batchSize = columns.length ? Math.min(batchRows, Math.floor(maxBatchCells / columns.length)) : batchRows;
+    // Keep the public cell API context without selecting or traversing the table's rows.
+    const emptyCells = mode === "batched" && count ? call(table, "cells", [], []) : undefined;
+    if (emptyCells) {
+        let tables = 0;
+        call(emptyCells, "iterator", "table", () => { tables++; });
+        if (tables !== 1)
+            throw new TypeError("A batched export requires exactly one DataTables table.");
+    }
     let consumed = false;
     const rows = { [Symbol.asyncIterator]() {
             if (consumed)
@@ -3306,10 +3314,12 @@ function createDataTablesExport(host, table, options = {}) {
             }
             else {
                 const selectedRows = rowIndexes.slice(first, first + batchSize);
-                // Numeric selector arrays cause an upstream linear membership search for every row.
-                // A public predicate selects the same captured indexes with constant-time membership.
-                const selected = new Set(selectedRows);
-                const cells = call(table, "cells", (index) => selected.has(index), columnIndexes, { order: "index", search: "none" });
+                // Public result-set operations replace the bounded cell indexes. Row selectors would
+                // rescan the complete table on every batch, even with constant-time membership.
+                const requested = selectedRows.flatMap(row => columnIndexes.map(column => ({ row, column })));
+                call(emptyCells, "pop");
+                call(emptyCells, "push", requested);
+                const cells = emptyCells;
                 const rendered = array(call(cells, "render", config.orthogonal ?? "display"));
                 const positions = array(call(cells, "indexes"));
                 const nodes = config.format?.body ? array(call(cells, "nodes")) : undefined;
@@ -3351,18 +3361,18 @@ function createDataTablesExport(host, table, options = {}) {
         footer: footer ? Object.freeze(footer) : undefined, rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
-_modules.set("82b1a9301f3e4055440af455bc87e8a6b6271f51443030d604c57f4bd990e6a5", _exports);
+_modules.set("77849e133291ca57dc9e1fe8c48251a5805a7f42c9467f8a4330b456a3fd0d6c", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8971879bda8084d91153cfe7ed9fe07081bdb07c47f2a66c9b1c691d37ad284d") ?? (() => {
+const _m0 = _modules.get("b0a91d81857125cc2b8b2af3a3a4ace55858a81a1515a6519cf2918b84ca84eb") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
 
 const { Workbook } = _m9;
 
-const { member } = _m28;
+const { call, member } = _m28;
 
 const { value } = _m29;
 
@@ -3450,10 +3460,13 @@ function registerDataTablesButtons(host, options = {}) {
                             throw new TypeError("XML customize callbacks are unsupported; use OfficeIMO sheet/workbook options.");
                         if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
                             throw new TypeError("Use OfficeIMO sheet title/footer options; native Buttons report layout options are unsupported.");
-                        const blob = await exportDataTable(host, table, format, current);
-                        const file = value(typeof current.filename === "function" ? current.filename() : current.filename ?? "Export");
-                        if (typeof file !== "string" || !file.trim())
+                        const pattern = value(typeof current.filename === "function" ? current.filename(configuration, table) : current.filename ?? "Export");
+                        if (typeof pattern !== "string" || !pattern.trim())
                             throw new TypeError("Export filename must be a non-empty string.");
+                        const file = value(member(call(table.buttons, "exportInfo", { filename: pattern, extension: "" }), "filename"));
+                        if (typeof file !== "string" || !file.trim())
+                            throw new TypeError("Resolved export filename must be a non-empty string.");
+                        const blob = await exportDataTable(host, table, format, current);
                         await (current.save ?? saveBlob)(blob, file.toLowerCase().endsWith("." + format) ? file : file + "." + format);
                     }
                     catch (error) {
@@ -3473,7 +3486,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m30.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("8971879bda8084d91153cfe7ed9fe07081bdb07c47f2a66c9b1c691d37ad284d", _exports);
+_modules.set("b0a91d81857125cc2b8b2af3a3a4ace55858a81a1515a6519cf2918b84ca84eb", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

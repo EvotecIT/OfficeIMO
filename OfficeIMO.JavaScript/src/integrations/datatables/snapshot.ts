@@ -65,6 +65,13 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
   const count = columns.length ? body?.length ?? rowIndexes.length : 0;
   budget.check("maxRows", count);
   const batchSize = columns.length ? Math.min(batchRows, Math.floor(maxBatchCells / columns.length)) : batchRows;
+  // Keep the public cell API context without selecting or traversing the table's rows.
+  const emptyCells = mode === "batched" && count ? call(table, "cells", [], []) : undefined;
+  if (emptyCells) {
+    let tables = 0;
+    call(emptyCells, "iterator", "table", () => { tables++; });
+    if (tables !== 1) throw new TypeError("A batched export requires exactly one DataTables table.");
+  }
   let consumed = false;
   const rows: AsyncIterable<readonly ExportValue[]> = { [Symbol.asyncIterator]() {
     if (consumed) throw new TypeError("A DataTables export source can be consumed only once.");
@@ -82,10 +89,12 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
         });
       } else {
         const selectedRows = rowIndexes.slice(first, first + batchSize);
-        // Numeric selector arrays cause an upstream linear membership search for every row.
-        // A public predicate selects the same captured indexes with constant-time membership.
-        const selected = new Set(selectedRows);
-        const cells = call(table, "cells", (index: number) => selected.has(index), columnIndexes, { order: "index", search: "none" });
+        // Public result-set operations replace the bounded cell indexes. Row selectors would
+        // rescan the complete table on every batch, even with constant-time membership.
+        const requested = selectedRows.flatMap(row => columnIndexes.map(column => ({ row, column })));
+        call(emptyCells, "pop");
+        call(emptyCells, "push", requested);
+        const cells = emptyCells;
         const rendered = array(call(cells, "render", config.orthogonal ?? "display"));
         const positions = array(call(cells, "indexes"));
         const nodes = config.format?.body ? array(call(cells, "nodes")) : undefined;

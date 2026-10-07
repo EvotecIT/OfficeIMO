@@ -14,7 +14,9 @@ globalThis.prepareDataTablesMeasurement = function (spec) {
     autoWidth: false, columns: Array.from({ length: spec.columns }, (_, column) => ({ title: 'Column ' + (column + 1), type: column % 3 === 1 ? 'string' : 'num' })),
     layout: { topStart: null, topEnd: null, bottomStart: null, bottomEnd: null } });
   DataTable.Buttons.jszip(JSZip);
-  return { rows: comparisonTable.rows().count(), dataTables: DataTable.version, buttons: DataTable.Buttons.version };
+  const nativeExporters = ['excelHtml5','csvHtml5'].every(name=>typeof DataTable.ext.buttons[name]?.action==='function');
+  if (!nativeExporters) throw new Error('Pinned comparison stack did not register native HTML5 exporters.');
+  return { rows: comparisonTable.rows().count(), dataTables: DataTable.version, buttons: DataTable.Buttons.version, nativeExporters };
 };
 
 globalThis.runDataTablesMeasurement = async function (lane, format) {

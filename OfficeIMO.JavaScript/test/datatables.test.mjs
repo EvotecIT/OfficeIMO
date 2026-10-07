@@ -14,14 +14,16 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
     table: () => ({}),
     rows: selector => ({ indexes: () => apiArray(Array.isArray(selector) ? selector : [...selected]), count: () => selected.length }),
     columns: () => ({ indexes: () => apiArray([0, 1]) }),
-    cells(rows) {
-      if (typeof rows === 'function') rows = data.map((_, index) => index).filter(rows);
-      calls.push([...rows]);
-      const positions = rows.flatMap(row => [1, 0].map(column => ({ row, column })));
-      return { render: () => apiArray(positions.map(p => data[p.row][p.column])),
+    cells(rows, columns) {
+      assert.deepEqual(rows, []); assert.deepEqual(columns, []);
+      let positions = [];
+      return { iterator(type, callback) { assert.equal(type, 'table'); callback(); },
+        pop() { positions = []; },
+        push(requested) { calls.push([...new Set(requested.map(p => p.row))]); positions = [...requested].reverse(); },
+        render: () => apiArray(positions.map(p => data[p.row][p.column])),
         indexes: () => apiArray(positions), nodes: () => apiArray(positions.map(() => null)) };
     },
-    buttons: { exportData(options) {
+    buttons: { exportInfo: options => ({filename:options.filename.replaceAll('*','Fixture title')}), exportData(options) {
       const result = { header: ["Name", "Amount"], body: options.rows?.length === 0 ? [] : selected.map(row => [...data[row]]),
         footer: ["Totals", 20], footerStructure: [[{ title: "Totals", colspan: 1, rowspan: 1 }, { title: "20", colspan: 1, rowspan: 1 }]],
         headerStructure: grouped ? [[{ title: "Metrics", colspan: 2, rowspan: 1 }, null],
@@ -69,6 +71,9 @@ test("projection budgets, preflight row limits and explicit server-side scope fa
   assert.throws(() => createDataTablesExport(host, table, { serverSide: "loaded", maxBatchCells: 1 }), /selected row/);
   assert.throws(() => createDataTablesExport(host, table, { serverSide: "loaded", limits: { maxRows: 1 } }), /maxRows/);
   assert.throws(() => createDataTablesExport(host, table, { serverSide: "loaded", batchRows: 0 }), /batchRows/);
+  const cells = table.cells;
+  table.cells = (...args) => ({ ...cells(...args), iterator(_type, callback) { callback(); callback(); } });
+  assert.throws(() => createDataTablesExport(host, table, { serverSide: "loaded" }), /exactly one/);
 });
 
 test("CSV row limits count data rows and progress excludes grouped headings and footer", async () => {
@@ -128,6 +133,10 @@ test("buttons complete once after saving and before asynchronous error reporting
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   await action({}); assert.deepEqual(events, ["Report.csv", "done"]); events.length = 0;
+  await action({filename:'*'}); assert.deepEqual(events,['Fixture title.csv','done']); events.length=0;
+  await action({filename:'Report.csv'}); assert.deepEqual(events,['Report.csv','done']); events.length=0;
+  await action({filename:(config,api)=> { assert.equal(api,table);assert.equal(typeof config.filename,'function');return 'Report-*'; }});
+  assert.deepEqual(events,['Report-Fixture title.csv','done']); events.length=0;
   await action({ customize() {} }); assert.equal(events[0], "done"); assert.match(events[1], /XML customize/);
   events.length = 0;
   await action({ get officeimo() { throw new Error('configuration getter'); } });

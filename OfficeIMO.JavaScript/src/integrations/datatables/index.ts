@@ -2,7 +2,7 @@ import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
 import type { ByteSink, ExportValue } from "../../core/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { Workbook } from "../../xlsx/index.js";
-import { member } from "./api.js";
+import { call, member } from "./api.js";
 import { value } from "./headings.js";
 import { createDataTablesExport } from "./snapshot.js";
 import type { DataTablesApi, DataTablesButtonOptions, DataTablesHost, DataTablesWriteOptions } from "./types.js";
@@ -76,9 +76,11 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
             if (member(configuration, "customize") !== undefined) throw new TypeError("XML customize callbacks are unsupported; use OfficeIMO sheet/workbook options.");
             if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
               throw new TypeError("Use OfficeIMO sheet title/footer options; native Buttons report layout options are unsupported.");
+            const pattern = value(typeof current.filename === "function" ? current.filename(configuration, table) : current.filename ?? "Export");
+            if (typeof pattern !== "string" || !pattern.trim()) throw new TypeError("Export filename must be a non-empty string.");
+            const file = value(member(call(table.buttons, "exportInfo", { filename: pattern, extension: "" }), "filename"));
+            if (typeof file !== "string" || !file.trim()) throw new TypeError("Resolved export filename must be a non-empty string.");
             const blob = await exportDataTable(host, table, format, current);
-            const file = value(typeof current.filename === "function" ? current.filename() : current.filename ?? "Export");
-            if (typeof file !== "string" || !file.trim()) throw new TypeError("Export filename must be a non-empty string.");
             await (current.save ?? saveBlob)(blob, file.toLowerCase().endsWith("." + format) ? file : file + "." + format);
           } catch (error) {
             // Completion runs before the error handler so application error UI cannot strand Buttons' spinner.

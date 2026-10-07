@@ -2,6 +2,8 @@
 globalThis.runDataTablesContracts = async function (workerScript) {
   const O = globalThis.OfficeIMO, D = globalThis.DataTable;
   const check = (ok, message) => { if (!ok) throw new Error(message); };
+  const nativeExporters = ['excelHtml5','csvHtml5'].every(name=>typeof D.ext.buttons[name]?.action==='function');
+  check(nativeExporters,'pinned stack registers native HTML5 exporters');
   document.body.innerHTML = '<table id="server"></table>';
   const server = new D('#server', { serverSide: true, columns: [{ title: 'Name' }],
     ajax: (request, callback) => callback({ draw: request.draw, recordsTotal: 200, recordsFiltered: 200, data: [['loaded']] }) });
@@ -49,32 +51,42 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const downloads = [], failures = [];
   O.registerDataTablesButtons(D, { filename: 'Selected report', save: async (blob, filename) => { downloads.push(filename); await deliver('button-' + filename, blob); }, onError: error => failures.push(String(error)) });
   const buttons = new D.Buttons(table, { buttons: ['officeimoExcel', 'officeimoCsv'].map(extend => ({extend,
+    filename:extend==='officeimoExcel'?'*':(config,api)=>{check(api.table().node()===table.table().node() && typeof config.filename==='function','filename callback arguments');return 'Report-*';},
     officeimo:{headings:'leaf',exportOptions:{columns:':visible'}}})) });
   document.body.prepend(buttons.container()[0] ?? buttons.container());
   for (let index = 0; index < 2; index++) {
     const node = table.button(index).node(); (node[0] ?? node).click();
     const started = performance.now();
     while (downloads.length <= index || table.button(index).processing()) {
+      if (failures.length) throw new Error('Registered button failed: '+failures.join('; '));
       if (performance.now()-started > 10000) throw new Error('Registered button did not finish.');
       await new Promise(resolve => setTimeout(resolve,5));
     }
   }
   check(downloads.length === 2 && failures.length === 0, 'registered buttons save and clear processing after actual clicks');
+  check(downloads[0]===document.title+'.xlsx' && downloads[1]==='Report-'+document.title+'.csv','Buttons document-title filenames');
   const workerElement = document.createElement('table'); document.body.append(workerElement); workerElement.hidden=true;
   const workerTable = new D(workerElement,{data:Array.from({length:130},(_,row)=>[row,'Łódź 🧪 '+row,row/10]),order:[],
     columns:[{title:'Index',type:'num'},{title:'Text',type:'string'},{title:'Amount',type:'num'}],layout:{topStart:null,topEnd:null,bottomStart:null,bottomEnd:null}});
+  const originalCells = workerTable.cells; let predicateCalls=0;
+  workerTable.cells=function(selector,...args){
+    const bounded=typeof selector==='function'?(...values)=>{predicateCalls++;return selector(...values);}:selector;
+    return originalCells.call(this,bounded,...args);
+  };
   const workers = [];
   for (const compression of ['auto','store']) {
+    const predicatesBefore=predicateCalls;
     const source = O.createDataTablesExport(D, workerTable, { headings:'leaf',includeFooter:false,batchRows:32,
       project:(v,c) => c.columnIndex === 0 ? new O.ExportCell(v,{presentation:{background:'E2F0D9'}}) : v });
     const result = await runDataTablesWorker(source,workerScript,compression);
     check(!result.failure && result.produced === 130 && result.maxBatch === 64 && result.maxChunk <= 65536,'bounded multi-batch worker rows/output');
-    await deliver('worker-' + compression + '.xlsx',result.blob); workers.push({compression,produced:result.produced,maxBatch:result.maxBatch,maxChunk:result.maxChunk});
+    check(predicateCalls-predicatesBefore<=source.rowCount,'projection rescanned table: '+(predicateCalls-predicatesBefore)+' predicates for '+source.rowCount+' rows');
+    await deliver('worker-' + compression + '.xlsx',result.blob); workers.push({compression,produced:result.produced,maxBatch:result.maxBatch,maxChunk:result.maxChunk,selectionPredicateCalls:predicateCalls-predicatesBefore});
   }
   const cancelledWorker = await runDataTablesWorker(O.createDataTablesExport(D,workerTable,{headings:'leaf',includeFooter:false}),workerScript,'store',65);
   check(cancelledWorker.failure?.includes('worker cancelled'),'worker cancellation');
   workerTable.destroy(); workerElement.remove();
-  return { dataTables: D.version, buttons: D.Buttons.version, reports, downloads, produced, workers, assertions: 18 };
+  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 21 };
   async function deliver(name, blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer()); let binary = '';
     for (let first = 0; first < bytes.length; first += 8192) binary += String.fromCharCode(...bytes.subarray(first, first + 8192));

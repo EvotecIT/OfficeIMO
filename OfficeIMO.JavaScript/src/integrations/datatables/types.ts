@@ -9,7 +9,7 @@ export interface DataTablesApi {
   readonly columns: DataTablesMethod;
   readonly cells: DataTablesMethod;
   readonly page: { readonly info: DataTablesMethod };
-  readonly buttons: { readonly exportData: DataTablesMethod };
+  readonly buttons: { readonly exportData: DataTablesMethod; readonly exportInfo?: DataTablesMethod };
 }
 export interface DataTablesHost {
   /** Checked at runtime; older Buttons declarations omit the public stripData helper. */
@@ -78,7 +78,7 @@ export interface DataTablesWriteOptions extends DataTablesOptions {
   readonly csv?: Omit<CsvOptions, "columns" | "includeHeader" | "signal" | "onProgress" | "limits">;
 }
 export interface DataTablesButtonOptions extends DataTablesWriteOptions {
-  readonly filename?: string | (() => string);
+  readonly filename?: string | ((configuration: unknown, table: DataTablesApi) => string);
   /** Receives failures after Buttons' completion callback has cleared its processing state. */
   readonly onError?: (error: unknown) => void | Promise<void>;
   /** Override destination delivery, for example to retain a download in an application. */
