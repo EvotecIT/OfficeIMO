@@ -465,7 +465,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(200D, image.Width, 3);
         Assert.Equal(100D, image.Height, 3);
-        Assert.Single(EnumerateDrawingElements(image.Drawing).OfType<OfficeDrawingShape>());
+        Assert.Single(DrawingTestTraversal.Elements(image.Drawing).OfType<OfficeDrawingShape>());
         Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
@@ -498,9 +498,8 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.Equal(3, vector.Drawing.Shapes.Count);
-        string[] svgTextRuns = vector.Drawing.Elements.OfType<OfficeDrawingEffectGroup>()
-            .SelectMany(group => group.Drawing.Elements.OfType<OfficeDrawingText>())
+        Assert.Equal(4, DrawingTestTraversal.Elements(vector.Drawing).OfType<OfficeDrawingShape>().Count());
+        string[] svgTextRuns = DrawingTestTraversal.Elements(vector.Drawing).OfType<OfficeDrawingText>()
             .Select(text => text.Text)
             .ToArray();
         Assert.Equal(new[] { "Svg", "LabelX" }, svgTextRuns);

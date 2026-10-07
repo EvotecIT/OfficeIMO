@@ -438,7 +438,7 @@ public sealed partial class PdfLogicalPage {
             analysis is null
                 ? BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex)
                 : BuildParagraphsFromSemanticRegions(pageNumber, textBlocks, semanticByTextBlock),
-            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<StructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex),
+            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<StructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
             tables.AsReadOnly(),
             vectorPrimitiveCount,
             unrepresentedVectorPrimitiveCount,
@@ -778,13 +778,15 @@ public sealed partial class PdfLogicalPage {
         List<PdfLogicalTextBlock> textBlocks,
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
-        LogicalTextBlockSourceIndex textBlockSourceIndex) {
+        LogicalTextBlockSourceIndex textBlockSourceIndex,
+        PdfUnderstandingPageResult analysis) {
         var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
+        AddTaggedListItems(pageNumber, textBlocks, semanticByTextBlock, analysis, result, represented);
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             PdfLogicalTextBlock block = textBlocks[blockIndex];
-            if (block.Kind != PdfLogicalElementKind.ListItem ||
+            if (represented.Contains(block) || block.Kind != PdfLogicalElementKind.ListItem ||
                 !semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic) ||
                 semantic.Kind != PdfUnderstandingSemanticKind.ListItem ||
                 !PreservesListContinuationOwnership(semantic)) continue;

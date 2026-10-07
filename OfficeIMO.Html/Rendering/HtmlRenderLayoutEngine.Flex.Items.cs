@@ -24,6 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!(node is IElement element) || ShouldSkipElement(element)) return true;
         EnsureDepth(depth, element);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, containingWidth, parentStyle);
+        style = PrepareButtonChildStyle(element, style);
         if (style.Display == "none") return true;
         if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
             if (runningElementAssignments != null) {

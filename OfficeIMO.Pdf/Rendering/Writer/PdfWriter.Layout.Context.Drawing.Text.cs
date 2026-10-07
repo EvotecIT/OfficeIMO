@@ -105,7 +105,8 @@ internal static partial class PdfWriter {
                         decorationColor: ToPdfColor(text.DecorationColor))
                         .WithFeatureSettings(text.FeatureSettings)
                         .WithTextDirection(positionedDirection);
-                    WriteDrawingPositionedRun(run, x, baseline, advance, frameX, frameTopY - text.Height, text.Width, text.Height);
+                    WriteDrawingPositionedRun(run, x, baseline, advance, frameX, frameTopY - text.Height, text.Width, text.Height,
+                        clipToFrame: text.ClipToFrame);
                     baseline -= text.LineHeight ?? text.Font.Size * 1.2D;
                 }
             }
@@ -204,7 +205,7 @@ internal static partial class PdfWriter {
         }
 
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
-            double clipX, double clipY, double clipWidth, double clipHeight) {
+            double clipX, double clipY, double clipWidth, double clipHeight, bool clipToFrame = true) {
             double size = run.FontSize ?? currentOpts.DefaultFontSize;
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
@@ -214,7 +215,8 @@ internal static partial class PdfWriter {
                 WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, PdfAlign.Left, null),
                     line.Lines, line.LineHeights, currentOpts, baseline, size, size * 1.2D,
                     currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
-                    clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren);
+                    clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren,
+                    clipToFrame: clipToFrame);
             }
             if (Math.Abs(scale - 1D) > 0.000001D) {
                 RenderOpaqueEffectGroupInline(new OfficeTransform(scale, 0D, 0D, 1D, x * (1D - scale), 0D), Paint);

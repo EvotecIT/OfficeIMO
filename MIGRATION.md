@@ -657,6 +657,14 @@ Image stamp streams continue to read from their current position.
 
 PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
 
+## Imported SVG text scenes
+
+SVG drawings containing positioned text retain an explicit root viewport clip.
+Applications that inspect `OfficeDrawing.Elements` should traverse
+`OfficeDrawingGroup.Drawing` and `OfficeDrawingEffectGroup.Drawing` instead of
+assuming imported text and shapes are always top-level elements. Pass the complete
+drawing to renderers so the viewport clip stays effective.
+
 ## PDF drawing font family names
 
 `PdfReadPage.ToDrawing()` now gives every embedded font program a drawing-local family name derived from its PDF base name and content, including full fonts without a subset prefix. This keeps different page and annotation programs with the same PDF name from replacing each other. If an application matched `OfficeDrawingText.Font.FamilyName` to the original PDF font name, use that name to find the face in the drawing's `Fonts.Faces` instead. Read the PDF name from `PdfTextSpan.BaseFont` when that source label is needed.

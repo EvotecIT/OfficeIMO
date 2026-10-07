@@ -248,6 +248,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (node is not IElement child || ShouldSkipElement(child)) continue;
             EnsureDepth(depth, child);
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
+            childStyle = PrepareButtonChildStyle(child, childStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
                 && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
@@ -264,7 +265,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
                 && (!includeDescendantInsets || childStyle.FloatSide == "none");
             bool isReplacedChild = IsReplacedImageElement(child)
-                || IsFormControlElement(child.LocalName.ToLowerInvariant());
+                || (IsFormControlElement(child.LocalName.ToLowerInvariant()) && !UsesButtonChildLayout(child));
             if (includeDescendantInsets && establishesLineBoundary && !isReplacedChild) {
                 HtmlRenderBoxStyle intrinsicStyle = childStyle;
                 if (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage
@@ -300,7 +301,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
-            if (IsFormControlElement(child.LocalName.ToLowerInvariant())) {
+            if (IsFormControlElement(child.LocalName.ToLowerInvariant()) && !UsesButtonChildLayout(child)) {
                 result.Add(IntrinsicTextRun.Replaced(
                     ResolveFormControlIntrinsicOuterWidth(child, childStyle, availableSize), childStyle));
             } else if (IsReplacedImageElement(child)) {
@@ -312,7 +313,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : width;
                 result.Add(IntrinsicTextRun.Replaced(minimumWidth, width, childStyle));
             } else if (childStyle.Display is "inline-block" or "inline-flex" or "inline-grid"
-                && child.LocalName != "math") {
+                && child.LocalName != "math" && (!IsFormControlElement(child.LocalName) || UsesButtonChildLayout(child))) {
                 var atomic = new FlexItem(child, childStyle, 0);
                 (double Minimum, double Maximum) widths = ResolveGridContentContributions(atomic, availableSize, depth + 1);
                 result.Add(IntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));

@@ -7,6 +7,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.TestAssets;
+using OfficeIMO.Tests;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -151,7 +152,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
             && warning.Details.TryGetValue("Representation", out string? representation)
             && representation == "vector-outlines-plus-actual-text");
-        Assert.NotEmpty(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes);
+        Assert.NotEmpty(DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1)).OfType<OfficeDrawingShape>());
     }
 
     [Fact]

@@ -438,7 +438,8 @@ internal static partial class PdfWriter {
                 structureType: structureType,
                 markedContentId: markedContentId,
                 structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
-                suppressActualText: _suppressCanvasActualTextChildren);
+                suppressActualText: _suppressCanvasActualTextChildren,
+                clipToFrame: !item.PreservePositionedText);
             MarkRichFonts(item.Runs);
             DrawDebugCanvasItemBox(item.X, bottomY, width, item.Height);
             pageDirty = true;

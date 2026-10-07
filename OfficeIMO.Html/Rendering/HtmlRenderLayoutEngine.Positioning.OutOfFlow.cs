@@ -465,7 +465,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Shrink-to-fit uses the same styled in-flow content as flex/grid sizing.
         // TextContent omits generated content and replaced descendants and loses child font styles.
         IReadOnlyList<IntrinsicTextRun> content = ResolveInFlowIntrinsicTextRuns(
-            new FlexItem(element, style, 0), containingWidth, includeDescendantInsets: true);
+            new FlexItem(element, style, 0), containingWidth, depth + 1, includeDescendantInsets: true);
         double preferredContentWidth = content.Count == 0 ? 1D : MeasureMaxContentRuns(content);
         double minimumContentWidth = content.Count == 0 ? 1D : MeasureMinContentRuns(content);
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);

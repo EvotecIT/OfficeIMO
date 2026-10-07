@@ -350,6 +350,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool continuesThisBox = continuationTarget != null
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
+        style = PrepareButtonChildStyle(element, style);
+        if (UsesButtonChildLayout(element) && !style.ExplicitWidth.HasValue) {
+            // A native button remains intrinsically sized with display:block.
+            // Its descendants still use normal layout, including styled boxes.
+            SetPositionedExplicitWidth(style,
+                ResolvePositionedOuterWidth(element, style, containingWidth, null, null, depth));
+        }
         if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
         _inlineFloatOverhangs.Remove(element);
         ReportUnsupportedFloatValues(element, style);
@@ -360,7 +367,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, pageBoundary, out HtmlRenderFlowBlock flexBlock)) {
@@ -636,7 +643,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals.Add(new HtmlRenderShape(geometry, style.MarginLeft, style.MarginTop, visuals.Count, source: interactionSource));
         }
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop
+            + ResolveButtonChildContentOffset(element, style, boxHeight, contentHeight);
         AppendBlockPositionedVisuals(
             element,
             Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
@@ -680,7 +688,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         ReportUnsupportedLayout(element, style);
-        double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double contentYForBreaks = contentY;
         // Propagate only a child's explicit paged overhang. Ordinary child
         // geometry in a zero-height panel must not enlarge its print flow.
         double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"

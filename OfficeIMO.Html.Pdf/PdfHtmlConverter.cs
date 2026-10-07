@@ -656,8 +656,13 @@ public static partial class PdfHtmlConverterExtensions {
 
     private static List<HtmlItem> BuildSemanticPageItems(PdfCore.PdfLogicalPage page, PdfToHtmlOptions options) {
         var items = new List<HtmlItem>();
+        IReadOnlyList<PdfCore.PdfLogicalReadingOrderItem> projection = PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(
+            page, PdfCore.PdfLogicalReadingOrderScope.PageContent);
+        var projectedLists = new HashSet<int>(projection.Where(static item => item.Kind == PdfCore.PdfLogicalReadingOrderKind.ListItem)
+            .Select(static item => item.SourceIndex));
+        var listOwnedLines = new HashSet<PdfCore.PdfLogicalTextBlock>(projectedLists.SelectMany(index => page.ListItems[index].Lines));
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
-            BuildReadingOrder(page, options.UseSharedPageReadingOrder);
+            BuildReadingOrder(projection, options.UseSharedPageReadingOrder);
         int sequence = 0;
         long retainedHtmlCharacters = 0L;
 
@@ -674,7 +679,7 @@ public static partial class PdfHtmlConverterExtensions {
 
         for (int i = 0; i < page.Paragraphs.Count; i++) {
             PdfCore.PdfLogicalParagraph paragraph = page.Paragraphs[i];
-            if (IsParagraphRepresentedByStructuredElement(paragraph, page)) {
+            if (IsParagraphRepresentedByStructuredElement(paragraph, page, listOwnedLines)) {
                 continue;
             }
 
@@ -687,6 +692,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         for (int i = 0; i < page.ListItems.Count; i++) {
+            if (!projectedLists.Contains(i)) continue;
             PdfCore.PdfLogicalListItem listItem = page.ListItems[i];
             string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
                 builder.Append("<ul data-pdf-list-level=\"");
@@ -721,7 +727,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
         }
 
-        AppendUnmatchedTextBlocks(page, items, readingOrder, options, ref sequence, ref retainedHtmlCharacters);
+        AppendUnmatchedTextBlocks(page, items, readingOrder, listOwnedLines, options, ref sequence, ref retainedHtmlCharacters);
 
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
@@ -1095,12 +1101,13 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalPage page,
         List<HtmlItem> items,
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder,
+        HashSet<PdfCore.PdfLogicalTextBlock> listOwnedLines,
         PdfToHtmlOptions options,
         ref int sequence,
         ref long retainedHtmlCharacters) {
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
-            if (IsTextBlockRepresented(block, page)) {
+            if (IsTextBlockRepresented(block, page, listOwnedLines)) {
                 continue;
             }
 
@@ -1124,8 +1131,9 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append(Suffix);
         });
 
-    private static bool IsTextBlockRepresented(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalPage page) {
-        if (block.Kind == PdfCore.PdfLogicalElementKind.Heading || block.Kind == PdfCore.PdfLogicalElementKind.ListItem) {
+    private static bool IsTextBlockRepresented(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalPage page,
+        HashSet<PdfCore.PdfLogicalTextBlock> listOwnedLines) {
+        if (block.Kind == PdfCore.PdfLogicalElementKind.Heading || listOwnedLines.Contains(block)) {
             return true;
         }
 
@@ -1147,14 +1155,15 @@ public static partial class PdfHtmlConverterExtensions {
         return IsTextBlockRepresentedByLeaderRow(block, page);
     }
 
-    private static bool IsParagraphRepresentedByStructuredElement(PdfCore.PdfLogicalParagraph paragraph, PdfCore.PdfLogicalPage page) {
+    private static bool IsParagraphRepresentedByStructuredElement(PdfCore.PdfLogicalParagraph paragraph, PdfCore.PdfLogicalPage page,
+        HashSet<PdfCore.PdfLogicalTextBlock> listOwnedLines) {
         if (paragraph.Lines.Count == 0) {
             return false;
         }
 
         for (int i = 0; i < paragraph.Lines.Count; i++) {
             PdfCore.PdfLogicalTextBlock line = paragraph.Lines[i];
-            bool represented = false;
+            bool represented = listOwnedLines.Contains(line);
             for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
                 if (IsTextBlockRepresentedByTable(line, page.Tables[tableIndex])) {
                     represented = true;
@@ -1311,12 +1320,10 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> BuildReadingOrder(
-        PdfCore.PdfLogicalPage page,
+        IReadOnlyList<PdfCore.PdfLogicalReadingOrderItem> projection,
         bool enabled) {
         if (!enabled) return new Dictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int>();
-        return PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(
-            page,
-            PdfCore.PdfLogicalReadingOrderScope.PageContent).ToDictionary(
+        return projection.ToDictionary(
             static item => (item.Kind, item.SourceIndex, item.PlacementIndex),
             static item => item.OrderIndex);
     }

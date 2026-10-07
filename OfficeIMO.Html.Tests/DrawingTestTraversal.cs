@@ -2,8 +2,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Tests;
 
-public sealed partial class HtmlRenderingTests {
-    private static IEnumerable<OfficeDrawingElement> EnumerateDrawingElements(OfficeDrawing drawing) {
+internal static class DrawingTestTraversal {
+    internal static IEnumerable<OfficeDrawingElement> Elements(OfficeDrawing drawing) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             yield return element;
             OfficeDrawing? nested = element switch {
@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
                 _ => null
             };
             if (nested == null) continue;
-            foreach (OfficeDrawingElement child in EnumerateDrawingElements(nested)) yield return child;
+            foreach (OfficeDrawingElement child in Elements(nested)) yield return child;
         }
     }
 }
