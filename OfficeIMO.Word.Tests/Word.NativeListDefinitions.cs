@@ -7,6 +7,17 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void NativeListDefinitions_AbsentOptionalRestartAttributeSupportsNativeRewrite() {
+        using WordDocument source = CreateNativeListDefinitionControl();
+        source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Elements<AbstractNum>().Single().RemoveAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml");
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument rewritten = WordDocument.Load(new MemoryStream(reopened.ToBytes(WordFileFormat.Doc)));
+        Assert.Equal("12.", WordDocumentTraversal.BuildListMarkers(rewritten)[rewritten.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
+        Assert.Empty(rewritten.ValidateDocument());
+    }
+
+    [Fact]
     public void NativeListDefinitions_FormattingOnlyOverrideDoesNotCreateARestart() {
         using WordDocument source = CreateNativeListDefinitionControl();
         Numbering numbering = source._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;

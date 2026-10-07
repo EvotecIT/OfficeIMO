@@ -69,7 +69,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(listStream, checked((ushort)definitions.Length));
             var levelGroups = new List<Level[]>();
             foreach (AbstractNum definition in definitions) {
-                string? restartAfterBreak = definition.GetAttribute("restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml").Value;
+                string? restartAfterBreak = definition.GetAttributes().FirstOrDefault(attribute =>
+                    attribute.LocalName == "restartNumberingAfterBreak" && attribute.NamespaceUri == "http://schemas.microsoft.com/office/word/2012/wordml").Value;
                 if (!string.IsNullOrEmpty(restartAfterBreak) && restartAfterBreak != "0" && restartAfterBreak != "false" && restartAfterBreak != "off")
                     throw new NotSupportedException("Native DOC saving does not support restarting a list after a section break.");
                 if (definition.NumberingStyleLink != null || definition.StyleLink != null || definition.Descendants<LevelPictureBulletId>().Any())
