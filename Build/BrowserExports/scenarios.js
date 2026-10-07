@@ -67,13 +67,15 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
   } finally { globalThis.CompressionStream = original; }
   await rejects(async () => new Workbook().addWorksheet("Wide", { columns: Array(16385).fill({ header: "V" }) }), "RangeError");
   await rejects(async () => new Workbook().addWorksheet("Long", { columns: [{ header: "V" }] }).addRows([["a".repeat(32768)]]), "RangeError");
-  const nativeChannel = globalThis.MessageChannel;
+  const nativeChannel = globalThis.MessageChannel, nativeScheduler = globalThis.scheduler;
+  const schedulerDescriptor = Object.getOwnPropertyDescriptor(globalThis, "scheduler");
   try {
-    for (const scheduling of ["channel", "timer"]) {
-      if (scheduling === "timer") globalThis.MessageChannel = undefined;
+    for (const scheduling of ["native", "channel", "timer"]) {
+      Object.defineProperty(globalThis, "scheduler", { configurable: true, value: scheduling === "native" ? nativeScheduler : undefined });
+      globalThis.MessageChannel = scheduling === "timer" ? undefined : nativeChannel;
       for (const kind of ["xlsx", "csv"]) {
         const controller = new AbortController(); let returned = false;
-        function* rows() { try { for (let i = 0; i < 100000; i++) yield ["row" + i]; } finally { returned = true; } }
+        function* rows() { try { for (let i = 0; i < 1000000; i++) yield ["row" + i]; } finally { returned = true; } }
         const options = { columns: [{ header: "V" }], signal: controller.signal };
         const book = new Workbook(options);
         const writing = kind === "xlsx" ? book.addWorksheet("Cancelled", options).addRows(rows()) : writeCsv(rows(), options);
@@ -83,6 +85,8 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
     }
   } finally {
     globalThis.MessageChannel = nativeChannel;
+    if (schedulerDescriptor) Object.defineProperty(globalThis, "scheduler", schedulerDescriptor);
+    else delete globalThis.scheduler;
   }
   if (limits) {
     const book = new Workbook(), sheet = book.addWorksheet("Limit", { columns: [{ header: "V" }] });

@@ -301,7 +301,7 @@ _modules.set("71e5e56167cc80f07fbf2f108f895d9a604b337820dac226106d5b8fb3272011",
 return _exports;
 })();
 
-const _m4 = _modules.get("d40a14da52705d788234b8083d6d8edccdbd8df1df785aeec268b4ca946b4230") ?? (() => {
+const _m4 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
 const { OfficeIMOError } = _m3;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -333,6 +333,10 @@ class ExportBudget {
     cell(value, reservedCharacters) {
         if (reservedCharacters !== undefined)
             this.release(1, reservedCharacters);
+        // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
+        // when neither emitted-cell nor text totals are observable by a resource cap.
+        if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined)
+            return;
         this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
         this.check("maxTextCharacters", this.text + this.reservedText + length);
@@ -350,7 +354,7 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("d40a14da52705d788234b8083d6d8edccdbd8df1df785aeec268b4ca946b4230", _exports);
+_modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d", _exports);
 return _exports;
 })();
 
@@ -501,7 +505,7 @@ _modules.set("48406067aa27096b1189595ce6cc1144dde63f3eeeb30ae8d46454552fdf8295",
 return _exports;
 })();
 
-const _m0 = _modules.get("7ec7fe32ea52958192b2ae6a563efe6e3d28ec64a1c69ea50f4564f2d0b62bb8") ?? (() => {
+const _m0 = _modules.get("a345917e1ee171e5ea6575b75d318fa8f20a7fb2044ea747d6898d6d419400d7") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -631,7 +635,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("7ec7fe32ea52958192b2ae6a563efe6e3d28ec64a1c69ea50f4564f2d0b62bb8", _exports);
+_modules.set("a345917e1ee171e5ea6575b75d318fa8f20a7fb2044ea747d6898d6d419400d7", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m7, csv: _m0 });

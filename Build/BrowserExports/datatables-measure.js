@@ -30,7 +30,21 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
   const originalUrl = URL.createObjectURL, originalZip = JSZip.prototype.generateAsync;
   const originalChannel = globalThis.MessageChannel;
   const originalTimeout = globalThis.setTimeout;
+  const originalStrip = DataTable.Buttons.stripData, originalCells = comparisonTable.cells;
+  let stripMs = 0, stripCalls = 0, renderMs = 0, indexesMs = 0;
   const yieldDelays = [], timeoutDelays = []; let yieldPosts = 0;
+  if (diagnosticYields) {
+    DataTable.Buttons.stripData = function (...args) {
+      const start = performance.now(); try { return originalStrip.apply(this, args); }
+      finally { stripMs += performance.now() - start; stripCalls++; }
+    };
+    comparisonTable.cells = function (...args) {
+      const cells = originalCells.apply(this, args), render = cells.render, indexes = cells.indexes;
+      cells.render = function (...args) { const start = performance.now(); try { return render.apply(this, args); } finally { renderMs += performance.now() - start; } };
+      cells.indexes = function (...args) { const start = performance.now(); try { return indexes.apply(this, args); } finally { indexesMs += performance.now() - start; } };
+      return cells;
+    };
+  }
   if (diagnosticYields) globalThis.setTimeout = function (callback, delay, ...args) {
     if (typeof callback !== 'function' || delay !== 0 || callback.name !== 'finish') return originalTimeout.call(this, callback, delay, ...args);
     const started = performance.now();
@@ -99,13 +113,15 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
       ...(diagnosticYields ? { diagnosticYields: { posts: yieldPosts, messages: yieldDelays.length,
         totalDelayMs: yieldDelays.reduce((a, b) => a + b, 0), maxDelayMs: Math.max(0, ...yieldDelays),
         timeouts: timeoutDelays.length, totalTimeoutMs: timeoutDelays.reduce((a, b) => a + b, 0),
-        schedulerYield: typeof globalThis.scheduler?.yield === 'function', yieldTransport } } : {}) };
+        schedulerPostTask: typeof globalThis.scheduler?.postTask === 'function', yieldTransport,
+        stripMs, stripCalls, renderMs, indexesMs } } : {}) };
   } finally {
     clearInterval(timer); comparisonTable.buttons.exportData = originalGather;
     URL.createObjectURL = originalUrl; JSZip.prototype.generateAsync = originalZip;
     window.removeEventListener('unhandledrejection', failedGeneration);
     globalThis.MessageChannel = originalChannel;
     globalThis.setTimeout = originalTimeout;
+    DataTable.Buttons.stripData = originalStrip; comparisonTable.cells = originalCells;
   }
 };
 
