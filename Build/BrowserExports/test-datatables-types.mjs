@@ -13,6 +13,7 @@ import {createDataTablesExport,exportDataTable,registerDataTablesButtons} from '
 const table = new DataTable('#grid');
 createDataTablesExport(DataTable,table,{exportOptions:{columns:':visible'}});
 exportDataTable(DataTable,table,'xlsx');
+exportDataTable(DataTable,table,'pdf',{pdf:{pageSize:'A4',orientation:'landscape'}});
 registerDataTablesButtons(DataTable);
 `;
 const reports = [];

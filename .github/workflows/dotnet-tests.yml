@@ -92,6 +92,8 @@ jobs:
           path: |
             ${{ runner.temp }}/officeimo-browser-exports/browser/interop
             ${{ runner.temp }}/officeimo-browser-exports/datatables
+            ${{ runner.temp }}/officeimo-browser-exports/pdf-current
+            ${{ runner.temp }}/officeimo-browser-exports/pdf-bundled
             ${{ runner.temp }}/officeimo-browser-exports/npm/datatables-types.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/archive.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/*.tgz
