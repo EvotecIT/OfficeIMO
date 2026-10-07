@@ -739,7 +739,7 @@
     <value>Geöffnete Dokumente erscheinen hier.</value>
   </data>
   <data name="Home.DragAndDropFilesHere" xml:space="preserve">
-    <value>Dateien hier ablegen oder eine Datei öffnen</value>
+    <value>Dateien an beliebiger Stelle ablegen oder eine Datei öffnen</value>
   </data>
   <data name="Home.Home" xml:space="preserve">
     <value>Startseite</value>
@@ -1177,7 +1177,7 @@
     <value>Englisch ist die neutrale Rückfallsprache. Die erweiterte Testlokalisierung en-XA ist für Prüfungen auf abgeschnittene und fest einprogrammierte Texte verfügbar.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>Der Sprachkatalog ist für Ressourcenpakete in Polnisch, Deutsch, Französisch, Italienisch, Spanisch, Portugiesisch, Niederländisch, Tschechisch, Slowakisch, Ukrainisch, Rumänisch, Ungarisch, Schwedisch, Dänisch, Finnisch, Norwegisch, Arabisch, Hebräisch, Japanisch, Koreanisch und Chinesisch vorbereitet.</value>
+    <value>Die Oberfläche ist auf Englisch, Polnisch, Deutsch und Französisch verfügbar. Weitere Sprachpakete werden nach Prüfung der Übersetzung freigegeben.</value>
   </data>
   <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
     <value>Datenschutz und Diagnosen</value>
@@ -1414,7 +1414,7 @@
     <value>Das Dokument wurde geändert, bevor die Schwärzungsvorschau bereit war. Zeichnen Sie den Bereich erneut.</value>
   </data>
   <data name="Editor.RedactionSummary" xml:space="preserve">
-    <value>Seite {0}: Texttreffer: {1}, Bildtreffer: {2}, Anmerkungstreffer: {3}. Überschneidende Bilder werden als ganze Platzierungen entfernt. Prüfen Sie den Bereich und wenden Sie dann die dauerhaft überprüfte Schwärzung an.</value>
+    <value>Seite {0}: Texttreffer: {1}, Bildtreffer: {2}, Anmerkungstreffer: {3}. Überschneidende Bilder werden als ganze Platzierungen entfernt. Prüfen Sie den Bereich und wenden Sie dann die überprüfte, dauerhafte Schwärzung an.</value>
   </data>
   <data name="Editor.ImageSelectionStale" xml:space="preserve">
     <value>Das Dokument wurde geändert, während das Bild ausgewählt wurde. Platzieren Sie das Bild erneut.</value>
@@ -3034,7 +3034,7 @@
     <value>Eine Seite in der Vorschau anzeigen, einen OCR-Bereich zeichnen oder eine fotografierte Seite vor der Erkennung korrigieren.</value>
   </data>
   <data name="Scan.Page" xml:space="preserve">
-    <value>Seite in Vorschau anzeigen</value>
+    <value>Seite für die Vorschau</value>
   </data>
   <data name="Scan.Cleanup" xml:space="preserve">
     <value>Scanbereinigung anwenden</value>
@@ -3693,7 +3693,7 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Alle Seiten oder 1, 3-5</value>
   </data>
   <data name="Watermark.PreviewPage" xml:space="preserve">
-    <value>Seite in Vorschau anzeigen</value>
+    <value>Seite für die Vorschau</value>
   </data>
   <data name="Watermark.Preview" xml:space="preserve">
     <value>Vorschau aktualisieren</value>
@@ -4374,7 +4374,7 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Nach {0} geprüft</value>
   </data>
   <data name="Compliance.Ready" xml:space="preserve">
-    <value>Erfüllt für {0} die {1}-Prüfungen, die Studio überprüfen kann. Den abschließenden Nachweis liefert weiterhin ein spezialisiertes Validierungswerkzeug.</value>
+    <value>Die von Studio überprüfbaren Prüfungen für {0} wurden bestanden. Anzahl bestandener Prüfungen: {1}. Den abschließenden Nachweis liefert weiterhin ein spezialisiertes Validierungswerkzeug.</value>
   </data>
   <data name="Compliance.NotReady" xml:space="preserve">
     <value>Bei {0}: Punkte mit Handlungsbedarf: {1}; bestandene Prüfungen: {2}.</value>

@@ -68,9 +68,18 @@ public static class TesseractRuntime {
 
     /// <summary>Returns a concise installation command for the current operating system.</summary>
     public static string GetInstallationHint() {
-        if (IsWindows()) return "Install Tesseract, for example: winget install --id UB-Mannheim.TesseractOCR --exact";
-        if (IsMacOS()) return "Install Tesseract, for example: brew install tesseract";
-        return "Install Tesseract with the host package manager, for example: apt-get install tesseract-ocr";
+        string command = GetInstallationCommand();
+        return IsWindows() || IsMacOS()
+            ? "Install Tesseract, for example: " + command
+            : "Install Tesseract with the host package manager, for example: " + command;
+    }
+
+    /// <summary>Returns only the example package-manager command, allowing hosts to localize the surrounding instructions.</summary>
+    /// <remarks>The Linux example uses apt-get; use the appropriate package manager for the actual distribution.</remarks>
+    public static string GetInstallationCommand() {
+        if (IsWindows()) return "winget install --id UB-Mannheim.TesseractOCR --exact";
+        if (IsMacOS()) return "brew install tesseract";
+        return "apt-get install tesseract-ocr";
     }
 
     private static bool TryCreate(string candidate, TesseractRuntimeSource source, out TesseractRuntimeInfo? runtime) {

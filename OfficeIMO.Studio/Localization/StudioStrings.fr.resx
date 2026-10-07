@@ -400,7 +400,7 @@
   <data name="Settings.LocalizationReadiness" xml:space="preserve"><value>Préparation à la localisation</value></data>
   <data name="Settings.LocalizationReadinessDescription" xml:space="preserve"><value>L'interface utilise des clés de ressources stables propres à chaque fonctionnalité. Des packs linguistiques supplémentaires relus peuvent être ajoutés sans modifier les moteurs de documents ni les contrats des modèles de vue.</value></data>
   <data name="Settings.LocalizationCoverage" xml:space="preserve"><value>L'anglais sert de langue de repli neutre. La variante d'expansion en-XA permet de tester les textes tronqués et les textes codés en dur.</value></data>
-  <data name="Settings.LocalizationContract" xml:space="preserve"><value>Le catalogue linguistique peut accueillir des packs de ressources en polonais, allemand, français, italien, espagnol, portugais, néerlandais, tchèque, slovaque, ukrainien, roumain, hongrois, suédois, danois, finnois, norvégien, arabe, hébreu, japonais, coréen et chinois.</value></data>
+  <data name="Settings.LocalizationContract" xml:space="preserve"><value>Les traductions de l'interface en anglais, polonais, allemand et français sont disponibles. Les autres packs linguistiques sont admis après révision de leur traduction.</value></data>
   <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve"><value>Confidentialité et diagnostics</value></data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve"><value>Les diagnostics locaux enregistrent les zones de l'application, des codes d'événements stables, des métadonnées d'exécution et des traces de pile assainies. Ils excluent le contenu, le nom et le chemin des documents, ainsi que les messages d'exception.</value></data>
   <data name="Settings.DiagnosticsLocation" xml:space="preserve"><value>Emplacement des diagnostics locaux</value></data>
@@ -487,7 +487,7 @@
   <data name="Editor.TextSelectionSummary" xml:space="preserve"><value>Texte · page {0} · caractères : {1}</value></data>
   <data name="Editor.ImageSelectionSummary" xml:space="preserve"><value>Image · page {0} · {1:0.#} × {2:0.#} pt</value></data>
   <data name="Editor.RedactionReviewStale" xml:space="preserve"><value>Le document a changé après l'examen de ce caviardage. Tracez et examinez de nouveau la zone.</value></data>
-  <data name="Editor.RedactionVerified" xml:space="preserve"><value>Suppression vérifiée de {0} éléments de contenu PDF examinés sur {1} pages.</value></data>
+  <data name="Editor.RedactionVerified" xml:space="preserve"><value>Suppression vérifiée des éléments de contenu PDF examinés. Éléments : {0} ; pages : {1}.</value></data>
   <data name="Editor.RedactionIncomplete" xml:space="preserve"><value>La vérification du caviardage PDF est incomplète : éléments examinés résiduels : {0}, résultats non concluants : {1}.</value></data>
   <data name="Search.ResultLabel" xml:space="preserve"><value>{2}. Page {0} : {1}</value></data>
   <data name="FormField.Label" xml:space="preserve"><value>{0} · {1}</value></data>
@@ -812,7 +812,7 @@
   <data name="Organizer.ExtractLocalHint" xml:space="preserve"><value>Examinez l'ordre des pages avant d'enregistrer un PDF distinct. Une destination existante sera remplacée.</value></data>
   <data name="Organizer.ExtractRecovery" xml:space="preserve"><value>Une copie de récupération vérifiée est disponible dans Tâches. Vérifiez la destination avant de réessayer.</value></data>
   <data name="Organizer.ExtractRange" xml:space="preserve"><value>Pages dans l'ordre de sortie (par exemple, 3,1-2,3)</value></data>
-  <data name="Organizer.ExtractPageCount" xml:space="preserve"><value>Source : {0} pages · Sortie : {1} pages</value></data>
+  <data name="Organizer.ExtractPageCount" xml:space="preserve"><value>Pages sources : {0} · Pages de sortie : {1}</value></data>
   <data name="Organizer.ExtractPageLimit" xml:space="preserve"><value>Une extraction ne peut pas dépasser 100 000 pages sélectionnées.</value></data>
   <data name="Organizer.ExtractOrder" xml:space="preserve"><value>Ordre de pages obtenu</value></data>
   <data name="Organizer.ExtractOutputPage" xml:space="preserve"><value>Page de sortie</value></data>
@@ -824,7 +824,7 @@
   <data name="Protection.Title" xml:space="preserve"><value>Examiner la copie protégée</value></data>
   <data name="Protection.RemoveTitle" xml:space="preserve"><value>Examiner la copie non chiffrée</value></data>
   <data name="Protection.Create" xml:space="preserve"><value>Créer une copie</value></data>
-  <data name="Protection.Pages" xml:space="preserve"><value>Les {0} pages du document actuel, y compris les modifications non enregistrées.</value></data>
+  <data name="Protection.Pages" xml:space="preserve"><value>Toutes les pages du document actuel, y compris les modifications non enregistrées. Nombre de pages : {0}.</value></data>
   <data name="Protection.RemoveHint" xml:space="preserve"><value>La copie ne sera pas chiffrée par mot de passe. Toute personne y ayant accès pourra ouvrir son contenu.</value></data>
   <data name="Protection.EncryptionHint" xml:space="preserve"><value>La copie utilisera le chiffrement AES-256 et les mots de passe saisis dans l'espace de travail. La protection existante sera remplacée.</value></data>
   <data name="Protection.MetadataEncrypted" xml:space="preserve"><value>Les métadonnées du document seront chiffrées.</value></data>
@@ -1019,7 +1019,7 @@
   <data name="Conversion.Job.VisualFidelity" xml:space="preserve"><value>Images de pages visuelles · examiner les limites de rendu et de modification</value></data>
   <data name="Scan.Title" xml:space="preserve"><value>Préparation des numérisations</value></data>
   <data name="Scan.Hint" xml:space="preserve"><value>Prévisualisez une page, tracez une zone OCR ou corrigez une page photographiée avant la reconnaissance.</value></data>
-  <data name="Scan.Page" xml:space="preserve"><value>Prévisualiser la page</value></data>
+  <data name="Scan.Page" xml:space="preserve"><value>Page à prévisualiser</value></data>
   <data name="Scan.Cleanup" xml:space="preserve"><value>Appliquer le nettoyage de numérisation</value></data>
   <data name="Scan.Adjustments" xml:space="preserve"><value>Redressement et niveaux</value></data>
   <data name="Scan.Deskew" xml:space="preserve"><value>Redressement automatique</value></data>
@@ -1045,7 +1045,7 @@
   <data name="Scan.Color.Keep" xml:space="preserve"><value>Conserver la couleur</value></data>
   <data name="Scan.Color.Gray" xml:space="preserve"><value>Niveaux de gris</value></data>
   <data name="Scan.Color.BlackWhite" xml:space="preserve"><value>Noir et blanc</value></data>
-  <data name="Scan.KeyboardHint" xml:space="preserve"><value>Lorsque la page source a le focus, utilisez les touches fléchées pour déplacer la zone et Shift+arrow keys pour la redimensionner. En mode coins, choisissez un coin de 1 à 4 dans le sens horaire depuis le coin supérieur gauche, puis utilisez les touches fléchées.</value></data>
+  <data name="Scan.KeyboardHint" xml:space="preserve"><value>Lorsque la page source a le focus, utilisez les touches fléchées pour déplacer la zone et Shift+touches fléchées pour la redimensionner. En mode coins, choisissez un coin de 1 à 4 dans le sens horaire depuis le coin supérieur gauche, puis utilisez les touches fléchées.</value></data>
   <data name="Ocr.Text.Hint" xml:space="preserve"><value>Reconnaître la page numérisée ou la zone sélectionnée, examiner ses mots et copier le texte.</value></data>
   <data name="Ocr.Text.Recognize" xml:space="preserve"><value>Reconnaître le texte à copier</value></data>
   <data name="Ocr.Text.Copy" xml:space="preserve"><value>Copier le texte révisé</value></data>
@@ -1240,7 +1240,7 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Watermark.Behind" xml:space="preserve"><value>Placer derrière le contenu de la page</value></data>
   <data name="Watermark.Pages" xml:space="preserve"><value>Appliquer aux pages</value></data>
   <data name="Watermark.PagesHint" xml:space="preserve"><value>Toutes les pages, ou 1, 3-5</value></data>
-  <data name="Watermark.PreviewPage" xml:space="preserve"><value>Prévisualiser la page</value></data>
+  <data name="Watermark.PreviewPage" xml:space="preserve"><value>Page à prévisualiser</value></data>
   <data name="Watermark.Preview" xml:space="preserve"><value>Mettre à jour l'aperçu</value></data>
   <data name="Watermark.Apply" xml:space="preserve"><value>Appliquer le filigrane</value></data>
   <data name="Watermark.ReviewHint" xml:space="preserve"><value>L'aperçu s'actualise lorsque vous changez les paramètres. Appliquer devient disponible une fois l'aperçu à jour.</value></data>
@@ -1467,7 +1467,7 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Compliance.Profile" xml:space="preserve"><value>Norme</value></data>
   <data name="Compliance.Check" xml:space="preserve"><value>Vérifier</value></data>
   <data name="Compliance.Checked" xml:space="preserve"><value>Contrôlé selon {0}</value></data>
-  <data name="Compliance.Ready" xml:space="preserve"><value>Satisfait aux contrôles {1} que Studio peut vérifier pour {0}. Un validateur spécialisé reste nécessaire pour une preuve définitive.</value></data>
+  <data name="Compliance.Ready" xml:space="preserve"><value>Les contrôles que Studio peut effectuer pour {0} ont réussi. Nombre de contrôles réussis : {1}. Un validateur spécialisé reste nécessaire pour une preuve définitive.</value></data>
   <data name="Compliance.NotReady" xml:space="preserve"><value>Pour {0}, éléments nécessitant une attention : {1} ; contrôles réussis : {2}.</value></data>
   <data name="Tools.Squiggly" xml:space="preserve"><value>Ondulé</value></data>
   <data name="Tools.SquigglyTip" xml:space="preserve"><value>Soulignement ondulé (Q)</value></data>

@@ -1177,7 +1177,7 @@
     <value>Angielski jest neutralnym językiem zapasowym. Wariant en-XA z wydłużonymi tekstami służy do wykrywania obciętych elementów i tekstów wpisanych na stałe.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>Katalog języków obsługuje pakiety polskie, niemieckie, francuskie, włoskie, hiszpańskie, portugalskie, niderlandzkie, czeskie, słowackie, ukraińskie, rumuńskie, węgierskie, szwedzkie, duńskie, fińskie, norweskie, arabskie, hebrajskie, japońskie, koreańskie i chińskie.</value>
+    <value>Dostępne są tłumaczenia interfejsu na angielski, polski, niemiecki i francuski. Pozostałe pakiety językowe są dopuszczane po sprawdzeniu tłumaczeń.</value>
   </data>
   <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
     <value>Prywatność i diagnostyka</value>
@@ -1438,7 +1438,7 @@
     <value>Dokument zmienił się po sprawdzeniu tego usunięcia treści. Narysuj i sprawdź obszar ponownie.</value>
   </data>
   <data name="Editor.RedactionVerified" xml:space="preserve">
-    <value>Zweryfikowano usunięcie {0} sprawdzonych elementów treści PDF na {1} stronach.</value>
+    <value>Zweryfikowano usunięcie sprawdzonych elementów treści PDF. Liczba elementów: {0}; liczba stron: {1}.</value>
   </data>
   <data name="Editor.RedactionIncomplete" xml:space="preserve">
     <value>Dowody usunięcia treści PDF są niepełne: elementy pozostałe: {0}, nierozstrzygnięte: {1}.</value>
@@ -3061,7 +3061,7 @@
     <value>Punkt bieli</value>
   </data>
   <data name="Scan.Gamma" xml:space="preserve">
-    <value>Gamma półtonów</value>
+    <value>Gamma tonów średnich</value>
   </data>
   <data name="Scan.Color" xml:space="preserve">
     <value>Tryb koloru</value>
@@ -4374,7 +4374,7 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
     <value>Sprawdzono według {0}</value>
   </data>
   <data name="Compliance.Ready" xml:space="preserve">
-    <value>Dla {0} spełnia wymagania {1}, które Studio potrafi zweryfikować. Ostatecznym potwierdzeniem pozostaje dedykowany walidator.</value>
+    <value>Kontrole standardu {0}, które Studio potrafi przeprowadzić, zakończyły się pomyślnie. Liczba zaliczonych kontroli: {1}. Ostatecznym potwierdzeniem pozostaje dedykowany walidator.</value>
   </data>
   <data name="Compliance.NotReady" xml:space="preserve">
     <value>Dla {0}: elementy wymagające uwagi: {1}; spełnione wymagania: {2}.</value>
@@ -5013,7 +5013,7 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
     <value>Sprawdź ustalenia importu i wygląd książki. Brakujące zależności lub nieudane konwersje blokują eksport EPUB. Zgłoszone pominięcia i przybliżenia wymagają Twojego potwierdzenia. Przed publikacją niezależnie sprawdź końcowy EPUB i jego metadane dostępności; ten obszar roboczy nie certyfikuje dostępności.</value>
   </data>
   <data name="Book.AcceptLoss" xml:space="preserve">
-    <value>Sprawdzono i zaakceptowano te zmiany importu</value>
+    <value>Potwierdzam sprawdzenie tych zmian importu i je akceptuję</value>
   </data>
   <data name="Command.PublishBook.Title" xml:space="preserve">
     <value>Opublikuj książkę</value>

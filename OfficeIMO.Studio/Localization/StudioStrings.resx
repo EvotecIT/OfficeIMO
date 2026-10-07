@@ -1147,7 +1147,7 @@
     <value>English is the neutral fallback. The en-XA expansion locale is available for clipping and hard-coded-text testing.</value>
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
-    <value>The culture catalog is ready for Polish, German, French, Italian, Spanish, Portuguese, Dutch, Czech, Slovak, Ukrainian, Romanian, Hungarian, Swedish, Danish, Finnish, Norwegian, Arabic, Hebrew, Japanese, Korean, and Chinese resource packs.</value>
+    <value>English, Polish, German and French interface translations are available. Other language packs are admitted after translation review.</value>
   </data>
   <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
     <value>Privacy and diagnostics</value>

@@ -24,12 +24,14 @@ public sealed class StudioTranslatedWorkspaceTests {
             IStudioLocalizer previous = StudioLocalization.Current;
             CultureInfo previousCulture = CultureInfo.CurrentCulture, previousUiCulture = CultureInfo.CurrentUICulture;
             CultureInfo? previousDefault = CultureInfo.DefaultThreadCurrentCulture, previousDefaultUi = CultureInfo.DefaultThreadCurrentUICulture;
+            var previousTheme = Application.Current!.RequestedThemeVariant;
             var paths = new StudioDataPaths(Path.Combine(Path.GetTempPath(), "officeimo-translated-" + Guid.NewGuid().ToString("N")));
             new JsonStudioPreferencesStore(paths.PreferencesPath).Save(new StudioPreferences {
                 UiCulture = culture, Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light
             });
             var services = StudioApplicationServices.Create(paths);
             StudioLocalization.Configure(services.Localizer);
+            Application.Current.RequestedThemeVariant = dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
             var window = new MainWindow(services) { Width = width, Height = height };
             try {
                 Assert.Equal(culture, services.Localizer.Culture.Name);
@@ -66,6 +68,7 @@ public sealed class StudioTranslatedWorkspaceTests {
             } finally {
                 window.Close();
                 StudioLocalization.Configure(previous);
+                Application.Current!.RequestedThemeVariant = previousTheme;
                 CultureInfo.CurrentCulture = previousCulture; CultureInfo.CurrentUICulture = previousUiCulture;
                 CultureInfo.DefaultThreadCurrentCulture = previousDefault; CultureInfo.DefaultThreadCurrentUICulture = previousDefaultUi;
                 Directory.Delete(paths.Root, recursive: true);

@@ -33,7 +33,7 @@ internal sealed partial class StudioOcrSetupViewModel : ObservableObject, IDispo
     }
 
     public bool IsAvailable => StudioOcrProvider.UnavailableReason is null;
-    public string InstallationCommand => TesseractRuntime.GetInstallationHint();
+    public string InstallationCommand => TesseractRuntime.GetInstallationCommand();
     public string LanguageHelp => T("LanguageHelp");
     public bool CanCheck => IsAvailable && !_disposed && !IsBusy;
 
