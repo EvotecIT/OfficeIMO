@@ -197,9 +197,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             var pictures = new LegacyDocWritablePictures(document);
-            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures);
-            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
+            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures, styleSheet.StyleIndexes);
+            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures, styleSheet.StyleIndexes);
             LegacyDocWritableComments comments = ReadSupportedComments(mainPart!, pictures, styleSheet.StyleIndexes);
             IReadOnlyDictionary<string, Style> tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;

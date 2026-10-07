@@ -452,7 +452,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return customStyleIndex;
             }
 
-            throw new NotSupportedException($"Native DOC saving currently supports only built-in Normal and Heading1 through Heading9 paragraph styles. Unsupported paragraph style: {styleId}.");
+            throw new NotSupportedException($"Native DOC saving cannot resolve paragraph style '{styleId}' in the document style sheet.");
         }
 
         private static bool TryMapBuiltInParagraphStyleIndex(string styleId, out ushort styleIndex) {
