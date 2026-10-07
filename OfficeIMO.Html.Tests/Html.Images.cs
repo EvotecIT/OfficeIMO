@@ -1648,8 +1648,8 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Logo", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
-            Assert.Equal("ImageSkippedByPolicy", diagnostic.Code);
+            var diagnostic = Assert.Single(conversion.Report.Diagnostics,
+                item => item.Code == "ImageSkippedByPolicy");
             Assert.Equal(uri, diagnostic.Source);
         }
 

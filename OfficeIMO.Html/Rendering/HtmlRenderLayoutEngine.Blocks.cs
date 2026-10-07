@@ -42,6 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             CheckCancellation();
+            if (IsClosedDisclosureChild(node)) continue;
             if (seekingContinuation) {
                 if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
                 seekingContinuation = false;
@@ -288,6 +289,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
         if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
+        style = PrepareButtonChildStyle(element, style);
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
@@ -296,7 +298,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, out HtmlRenderFlowBlock flexBlock)) {
@@ -477,7 +479,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             overflowContent,
             positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop
+            + ResolveButtonChildContentOffset(element, style, boxHeight, contentHeight);
         foreach (HtmlRenderVisual visual in contentVisuals) {
             overflowContent.Add(visual.Translate(contentX, contentY, overflowContent.Count));
         }
@@ -504,9 +507,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         ReportUnsupportedLayout(element, style);
-        double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double contentYForBreaks = contentY;
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
+        if (children.Count == 0 && contentVisuals.Count == 0) {
+            breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
+                element,
+                Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+                Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+                style.MarginTop + style.BorderTopWidth,
+                outerHeight));
+        }
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
         IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));
         IEnumerable<HtmlRenderContinuationGroup> adjustedContinuationGroups = continuationGroups.Select(group => group.Translate(contentX, contentYForBreaks));
@@ -744,9 +755,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static bool ShouldSkipElement(IElement element) {
+    private bool ShouldSkipElement(IElement element) {
+        if (IsClosedDisclosureChild(element)) return true;
         string tag = element.TagName.ToLowerInvariant();
-        if (element.HasAttribute("hidden")) return true;
         if (tag == "input" && string.Equals(element.GetAttribute("type"), "hidden", StringComparison.OrdinalIgnoreCase)) return true;
         return tag == "head" || tag == "style" || tag == "script" || tag == "template" || tag == "noscript" || tag == "meta" || tag == "link" || tag == "title" || tag == "base";
     }

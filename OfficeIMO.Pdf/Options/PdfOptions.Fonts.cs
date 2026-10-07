@@ -395,14 +395,16 @@ public sealed partial class PdfOptions {
                 Array.Empty<PdfEmbeddedFontFamily>(),
                 prepared,
                 OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay,
-                prepared.Candidates.Select(candidate => candidate.FontName));
+                prepared.Candidates.Select(candidate => candidate.FontName),
+                replacingAutomaticFallbacks: true);
         }
         if (prepared.UsesNamedFontFamilies) {
             ValidateRenderingProfileFamilyCapacity(
                 Array.Empty<PdfEmbeddedFontFamily>(),
                 prepared,
                 OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay,
-                prepared.Candidates.Select(candidate => candidate.FontName));
+                prepared.Candidates.Select(candidate => candidate.FontName),
+                replacingAutomaticFallbacks: true);
             foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
                 // Release stale profile ownership before the caller's active set is installed.
                 // Otherwise registration can filter the newly assigned candidate itself.

@@ -298,8 +298,12 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     internal OfficeDrawingText CloneWithFont(OfficeFontInfo font) => new OfficeDrawingText(Text, X, Y, Width, Height, font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor, FeatureSettings, FontPalette, TextDirection) {
         PreservesPaintedGlyphs = PreservesPaintedGlyphs,
         RasterText = RasterText,
-        FontMetricScale = FontMetricScale
+        FontMetricScale = FontMetricScale,
+        ClipToFrame = ClipToFrame
     };
+
+    /// <summary>Whether a positioned run's layout frame is also an authored paint clip.</summary>
+    internal bool ClipToFrame { get; set; } = true;
 
     /// <summary>
     /// Marks a run whose characters already name shaped glyphs in painted left-to-right order, such

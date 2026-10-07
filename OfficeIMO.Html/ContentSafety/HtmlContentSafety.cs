@@ -358,7 +358,7 @@ public static partial class HtmlContentSafety {
         string display = style?.GetValue("display").Trim() ?? string.Empty;
         if (hasHiddenAttribute
             && (style == null
-                || !style.IsSpecifiedValue("display")
+                || !(style.IsSpecifiedValue("display") || style.IsInheritedValue("display"))
                 || string.Equals(display, "none", StringComparison.OrdinalIgnoreCase))) {
             return new Concealment(
                 OfficeContentConcealmentKind.HiddenByProperty,
