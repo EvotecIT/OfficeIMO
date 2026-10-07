@@ -3205,7 +3205,7 @@ _modules.set("e87b4dd2082734a8f87db74c6fe6850686f246b31c4c2a39955f4ead14644a73",
 return _exports;
 })();
 
-const _m30 = _modules.get("77849e133291ca57dc9e1fe8c48251a5805a7f42c9467f8a4330b456a3fd0d6c") ?? (() => {
+const _m30 = _modules.get("0eb1083c8deef226fb9d3104ed964bf95b517e05bac9e9402564f6f98fbc68e3") ?? (() => {
 const { checkAbort, pause } = _m4;
 
 const { ExportBudget } = _m7;
@@ -3323,7 +3323,7 @@ function createDataTablesExport(host, table, options = {}) {
                 const rendered = array(call(cells, "render", config.orthogonal ?? "display"));
                 const positions = array(call(cells, "indexes"));
                 const nodes = config.format?.body ? array(call(cells, "nodes")) : undefined;
-                if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length !== rendered.length)
+                if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length > rendered.length)
                     throw new TypeError("The table changed or returned an incomplete export batch.");
                 batch = selectedRows.map(() => new Array(columns.length));
                 const rowPositions = new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
@@ -3336,7 +3336,18 @@ function createDataTablesExport(host, table, options = {}) {
                     if (row === undefined || column === undefined || seen.has(row * columns.length + column))
                         throw new TypeError("Invalid DataTables cell indexes.");
                     seen.add(row * columns.length + column);
-                    const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, nodes[cell])
+                    let node = nodes?.[cell];
+                    if (nodes && nodes.length !== rendered.length) {
+                        // nodes() omits deferred cells without DOM nodes. Resolve each coordinate
+                        // through the same bounded result set so compacted nodes cannot shift rows.
+                        call(cells, "pop");
+                        call(cells, "push", [{ row: rowIndex, column: columnIndex }]);
+                        const exact = array(call(cells, "nodes"));
+                        if (exact.length > 1)
+                            throw new TypeError("Invalid DataTables cell nodes.");
+                        node = exact[0];
+                    }
+                    const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, node)
                         : call(host.Buttons, "stripData", rendered[cell], stripOptions);
                     batch[row][column] = project(formatted, rowIndex, column, first + row);
                 }
@@ -3361,11 +3372,11 @@ function createDataTablesExport(host, table, options = {}) {
         footer: footer ? Object.freeze(footer) : undefined, rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
-_modules.set("77849e133291ca57dc9e1fe8c48251a5805a7f42c9467f8a4330b456a3fd0d6c", _exports);
+_modules.set("0eb1083c8deef226fb9d3104ed964bf95b517e05bac9e9402564f6f98fbc68e3", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("b0a91d81857125cc2b8b2af3a3a4ace55858a81a1515a6519cf2918b84ca84eb") ?? (() => {
+const _m0 = _modules.get("0aa4541fb138cfe6c3a94d9d23a6319e2098371ac45df4de943eef8ee8475778") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -3486,7 +3497,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m30.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("b0a91d81857125cc2b8b2af3a3a4ace55858a81a1515a6519cf2918b84ca84eb", _exports);
+_modules.set("0aa4541fb138cfe6c3a94d9d23a6319e2098371ac45df4de943eef8ee8475778", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

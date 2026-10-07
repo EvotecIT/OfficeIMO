@@ -3288,7 +3288,7 @@ function createDataTablesExport(host, table, options = {}) {
                 const rendered = array(call(cells, "render", config.orthogonal ?? "display"));
                 const positions = array(call(cells, "indexes"));
                 const nodes = config.format?.body ? array(call(cells, "nodes")) : undefined;
-                if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length !== rendered.length)
+                if (rendered.length !== selectedRows.length * columns.length || positions.length !== rendered.length || nodes && nodes.length > rendered.length)
                     throw new TypeError("The table changed or returned an incomplete export batch.");
                 batch = selectedRows.map(() => new Array(columns.length));
                 const rowPositions = new Map(selectedRows.map((index, ordinal) => [index, ordinal]));
@@ -3301,7 +3301,18 @@ function createDataTablesExport(host, table, options = {}) {
                     if (row === undefined || column === undefined || seen.has(row * columns.length + column))
                         throw new TypeError("Invalid DataTables cell indexes.");
                     seen.add(row * columns.length + column);
-                    const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, nodes[cell])
+                    let node = nodes?.[cell];
+                    if (nodes && nodes.length !== rendered.length) {
+                        // nodes() omits deferred cells without DOM nodes. Resolve each coordinate
+                        // through the same bounded result set so compacted nodes cannot shift rows.
+                        call(cells, "pop");
+                        call(cells, "push", [{ row: rowIndex, column: columnIndex }]);
+                        const exact = array(call(cells, "nodes"));
+                        if (exact.length > 1)
+                            throw new TypeError("Invalid DataTables cell nodes.");
+                        node = exact[0];
+                    }
+                    const formatted = config.format?.body ? config.format.body(rendered[cell], rowIndex, columnIndex, node)
                         : call(host.Buttons, "stripData", rendered[cell], stripOptions);
                     batch[row][column] = project(formatted, rowIndex, column, first + row);
                 }

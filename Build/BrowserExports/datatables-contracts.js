@@ -68,6 +68,8 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const workerElement = document.createElement('table'); document.body.append(workerElement); workerElement.hidden=true;
   const workerTable = new D(workerElement,{data:Array.from({length:130},(_,row)=>[row,'Łódź 🧪 '+row,row/10]),order:[],
     columns:[{title:'Index',type:'num'},{title:'Text',type:'string'},{title:'Amount',type:'num'}],layout:{topStart:null,topEnd:null,bottomStart:null,bottomEnd:null}});
+  // Reverse a second draw so exported batches mix drawn and deferred rows.
+  workerTable.order([[0,'desc']]).draw();
   const originalCells = workerTable.cells; let predicateCalls=0;
   workerTable.cells=function(selector,...args){
     const bounded=typeof selector==='function'?(...values)=>{predicateCalls++;return selector(...values);}:selector;
@@ -76,17 +78,25 @@ globalThis.runDataTablesContracts = async function (workerScript) {
   const workers = [];
   for (const compression of ['auto','store']) {
     const predicatesBefore=predicateCalls;
+    let formatted=0, missingNodes=0, presentNodes=0;
     const source = O.createDataTablesExport(D, workerTable, { headings:'leaf',includeFooter:false,batchRows:32,
+      exportOptions:{format:{body:(value,_row,_column,node)=>{
+        formatted++;
+        if(node){presentNodes++;check(node.textContent===String(value),'formatter node belongs to captured cell');}
+        else missingNodes++;
+        return value;
+      }}},
       project:(v,c) => c.columnIndex === 0 ? new O.ExportCell(v,{presentation:{background:'E2F0D9'}}) : v });
     const result = await runDataTablesWorker(source,workerScript,compression);
     check(!result.failure && result.produced === 130 && result.maxBatch === 64 && result.maxChunk <= 65536,'bounded multi-batch worker rows/output');
     check(predicateCalls-predicatesBefore<=source.rowCount,'projection rescanned table: '+(predicateCalls-predicatesBefore)+' predicates for '+source.rowCount+' rows');
-    await deliver('worker-' + compression + '.xlsx',result.blob); workers.push({compression,produced:result.produced,maxBatch:result.maxBatch,maxChunk:result.maxChunk,selectionPredicateCalls:predicateCalls-predicatesBefore});
+    check(formatted===390 && missingNodes>0 && presentNodes>0,'formatting drawn and deferred cells');
+    await deliver('worker-' + compression + '.xlsx',result.blob); workers.push({compression,produced:result.produced,maxBatch:result.maxBatch,maxChunk:result.maxChunk,selectionPredicateCalls:predicateCalls-predicatesBefore,formatted,missingNodes,presentNodes});
   }
   const cancelledWorker = await runDataTablesWorker(O.createDataTablesExport(D,workerTable,{headings:'leaf',includeFooter:false}),workerScript,'store',65);
   check(cancelledWorker.failure?.includes('worker cancelled'),'worker cancellation');
   workerTable.destroy(); workerElement.remove();
-  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 21 };
+  return { dataTables: D.version, buttons: D.Buttons.version, nativeExporters, reports, downloads, produced, workers, assertions: 23 };
   async function deliver(name, blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer()); let binary = '';
     for (let first = 0; first < bytes.length; first += 8192) binary += String.fromCharCode(...bytes.subarray(first, first + 8192));

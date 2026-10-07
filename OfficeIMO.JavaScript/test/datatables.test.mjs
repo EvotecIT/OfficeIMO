@@ -6,7 +6,7 @@ import { readZip } from "./zip-reader.mjs";
 async function collect(source) { const rows = []; for await (const row of source) rows.push(row); return rows; }
 
 // Contract-shaped external API: deliberately returns batch cells in a different order.
-function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true } = {}) {
+function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows } = {}) {
   const calls = [], apiArray = values => ({ toArray: () => values });
   const host = { Buttons: { stripData: v => v }, ext: { buttons: {} } };
   const table = {
@@ -21,7 +21,7 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
         pop() { positions = []; },
         push(requested) { calls.push([...new Set(requested.map(p => p.row))]); positions = [...requested].reverse(); },
         render: () => apiArray(positions.map(p => data[p.row][p.column])),
-        indexes: () => apiArray(positions), nodes: () => apiArray(positions.map(() => null)) };
+        indexes: () => apiArray(positions), nodes: () => apiArray(nodeRows ? positions.filter(p => nodeRows.includes(p.row)) : positions.map(() => null)) };
     },
     buttons: { exportInfo: options => ({filename:options.filename.replaceAll('*','Fixture title')}), exportData(options) {
       const result = { header: ["Name", "Amount"], body: options.rows?.length === 0 ? [] : selected.map(row => [...data[row]]),
@@ -100,7 +100,13 @@ test("cancellation stops the next projection batch and preserves the caller's re
   }
 });
 
-test("async projection and body formatter results are rejected with observed promise rejections", async () => {
+test("body formatting maps sparse DOM nodes and rejects async callback results", async () => {
+  const deferred = fixture({nodeRows:[0]}), observed=[];
+  const source = createDataTablesExport(deferred.host,deferred.table,{exportOptions:{format:{body:(v,row,column,node)=>{
+    assert.deepEqual(node,row===0?{row,column}:undefined);observed.push({row,column,node});return v;
+  }}}});
+  assert.deepEqual(await collect(source.rows),[['first',7.5],['second',12.5]]);
+  assert.equal(observed.length,4);
   const { host, table } = fixture();
   for (const options of [{ project: async () => { throw new Error("async project"); } },
     { exportOptions: { format: { body: async () => { throw new Error("async format"); } } } }])
