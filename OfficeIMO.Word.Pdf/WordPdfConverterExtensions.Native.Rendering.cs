@@ -624,7 +624,7 @@ namespace OfficeIMO.Word.Pdf {
                         (markerInfo.Value.LevelJustification == WordListLevelAlignment.Right ||
                          markerInfo.Value.LevelJustification == WordListLevelAlignment.Center)) {
                         double markerFontSize = markerInfo.Value.MarkerFontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
-                        NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.TextSpacing);
+                        NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
                         double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize, markerSpacing);
                         double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, inlineMarkerColumnWidth.Value));
                         leadingMarkerOffset = markerInfo.Value.LevelJustification == WordListLevelAlignment.Right
@@ -638,7 +638,7 @@ namespace OfficeIMO.Word.Pdf {
                         AddNativeInlineListMarkerSpacer(builder, leadingMarkerOffset);
                     }
                     ApplyNativeTextStyle(builder, textStyle);
-                    NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.TextSpacing);
+                    NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
                     builder.HorizontalTextScaling(resolvedMarkerSpacing.WidthPercentage ?? 100D);
                     builder.CharacterSpacing(resolvedMarkerSpacing.CharacterSpacing ?? 0D);
                     builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);

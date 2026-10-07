@@ -239,8 +239,8 @@ namespace OfficeIMO.Word.Pdf {
             return result;
         }
 
-        private static NativeCharacterStyleDefaults GetNativeCharacterStyleDefaults(WordDocument? document, W.RunProperties? runProperties) {
-            string? styleId = runProperties?.RunStyle?.Val?.Value;
+        private static NativeCharacterStyleDefaults GetNativeCharacterStyleDefaults(WordDocument? document, DocumentFormat.OpenXml.OpenXmlElement? runProperties) {
+            string? styleId = runProperties?.GetFirstChild<W.RunStyle>()?.Val?.Value;
             NativeStyleLookupCache? cache = GetNativeStyleLookupCache(document);
             if (cache != null && !string.IsNullOrWhiteSpace(styleId) && cache.CharacterDefaults.TryGetValue(styleId!, out NativeCharacterStyleDefaults cachedDefaults)) {
                 return cachedDefaults;

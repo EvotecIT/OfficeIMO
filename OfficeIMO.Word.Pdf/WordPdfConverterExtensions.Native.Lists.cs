@@ -88,12 +88,16 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            // Space and nothing suffixes follow each item's actual marker advance.
+            // The paragraph path retains that per-item position instead of a shared column.
+            if (info.Value.LevelSuffix is WordListLevelSuffix.Space or WordListLevelSuffix.Nothing) return false;
+
             // The inline paragraph path carries marker run typography. List blocks
             // expose a uniform marker font but do not carry width or tracking.
-            NativeTextSpacing paragraphSpacing = ResolveNativeTextRunStyle(paragraph,
-                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap).TextSpacing;
-            if (HasNativeTextSpacing(paragraphSpacing) ||
-                HasNativeTextSpacing(ResolveNativeListMarkerTextSpacing(info.Value, paragraphSpacing))) return false;
+            NativeResolvedTextStyle paragraphTextStyle = ResolveNativeTextRunStyle(paragraph,
+                nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            if (HasNativeTextSpacing(paragraphTextStyle.TextSpacing) ||
+                HasNativeTextSpacing(ResolveNativeListMarkerTextSpacing(info.Value, paragraphTextStyle.ListMarkerTextSpacing))) return false;
 
             if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
@@ -176,9 +180,8 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
                 MarkerAlignsAtIndent = true,
-                MarkerGap = info.LevelSuffix == WordListLevelSuffix.Space ? null : 0D,
-                MarkerWidth = info.LevelSuffix == WordListLevelSuffix.Nothing || info.LevelSuffix == WordListLevelSuffix.Space
-                    ? 0D : Math.Max(0D, textIndent - markerIndent),
+                MarkerGap = 0D,
+                MarkerWidth = Math.Max(0D, textIndent - markerIndent),
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle),
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
@@ -309,7 +312,7 @@ namespace OfficeIMO.Word.Pdf {
                     fontFamily: textStyle.FontFamily));
             }
 
-            return ResolveNativeListMarkerTextSpacing(info.Value, textStyle.TextSpacing).ApplyTo(new PdfCore.PdfTextRun(
+            return ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing).ApplyTo(new PdfCore.PdfTextRun(
                 marker + (includeSuffix ? ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix) : string.Empty),
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
@@ -320,24 +323,6 @@ namespace OfficeIMO.Word.Pdf {
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
                     : textStyle.FontFamily));
         }
-
-        private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
-            if (levelSuffix == W.LevelSuffixValues.Nothing) {
-                return (markerTextWidth, 0D);
-            }
-
-            if (levelSuffix == W.LevelSuffixValues.Space) {
-                return (markerTextWidth, EstimateNativeListMarkerWidth(" ", fontSize));
-            }
-
-            double markerColumnWidth = Math.Max(0D, textIndent - markerIndent);
-            double markerWidth = Math.Max(markerTextWidth, markerColumnWidth);
-            double markerGap = Math.Max(0D, markerColumnWidth - markerWidth);
-            return (markerWidth, markerGap);
-        }
-
-        private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(WordListLevelSuffix? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) =>
-            ResolveNativeListMarkerSpacing(levelSuffix.ToOpenXml(), markerTextWidth, fontSize, textIndent, markerIndent);
 
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize, NativeTextSpacing textSpacing = default) {
             if (string.IsNullOrEmpty(marker)) {

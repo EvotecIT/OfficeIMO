@@ -8,6 +8,81 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfListMarkerAnchorTests {
     [Theory]
+    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Nothing)]
+    [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Nothing)]
+    [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Nothing)]
+    [InlineData(WordListLevelAlignment.Left, WordListLevelSuffix.Space)]
+    [InlineData(WordListLevelAlignment.Center, WordListLevelSuffix.Space)]
+    [InlineData(WordListLevelAlignment.Right, WordListLevelSuffix.Space)]
+    public void SpaceAndNothingSuffixesFollowEachItemsActualMarkerWidth(WordListLevelAlignment alignment, WordListLevelSuffix suffix) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 720;
+        level.LevelJustification = alignment;
+        level.LevelSuffix = suffix;
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+        foreach (string text in new[] { "FIRST", "SECOND" }) {
+            WordParagraph paragraph = list.AddItem(text);
+            paragraph.FontFamily = "Courier New";
+            paragraph.FontSize = 12;
+        }
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, FontFamily = "Courier"
+        }));
+        var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2)).ToArray();
+        Assert.Equal(2, lines.Length);
+        for (int i = 0; i < lines.Length; i++) {
+            var letters = lines[i].ToArray();
+            int markerLength = i == 0 ? 2 : 3;
+            Assert.Equal(i == 0 ? "9.FIRST" : "10.SECOND", string.Concat(letters.Select(letter => letter.Value)));
+            double gap = letters[markerLength].StartBaseLine.X - letters[markerLength - 1].EndBaseLine.X;
+            Assert.InRange(Math.Abs(gap - (suffix == WordListLevelSuffix.Space ? 7.2D : 0D)), 0D, 0.03D);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 40)]
+    [InlineData(true, 40)]
+    public void ListMarkerTrackingUsesTheParagraphMarkInsteadOfDirectBodyRunFormatting(bool table, int markerSpacingTwips) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
+        WordListLevel level = list.Numbering.Levels[0];
+        level.IndentationLeft = 1440;
+        level.IndentationHanging = 720;
+        level.LevelJustification = WordListLevelAlignment.Right;
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
+        WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("MARKER BODY");
+        paragraph.Text = "MARKER BODY";
+        paragraph.FontFamily = "Courier New";
+        paragraph.FontSize = 12;
+        paragraph.Spacing = 20;
+        paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
+            new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });
+        paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
+            new Spacing { Val = markerSpacingTwips });
+        Assert.Empty(document.ValidateDocument());
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, FontFamily = "Courier"
+        }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("12.MARKERBODY", string.Concat(letters.Select(letter => letter.Value)));
+        double markerAdvance = letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        double bodyAdvance = letters[4].StartBaseLine.X - letters[3].StartBaseLine.X;
+        Assert.InRange(Math.Abs(markerAdvance - 7.2D - markerSpacingTwips / 20D), 0D, 0.03D);
+        Assert.InRange(Math.Abs(bodyAdvance - 8.2D), 0D, 0.03D);
+    }
+
+    [Theory]
     [InlineData(WordListLevelAlignment.Left, 720)]
     [InlineData(WordListLevelAlignment.Right, 720)]
     [InlineData(WordListLevelAlignment.Center, 720)]
