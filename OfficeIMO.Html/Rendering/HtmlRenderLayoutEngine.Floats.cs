@@ -71,9 +71,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer,
-        PagedFloatBoundary? pageBoundary,
-        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats) {
-        var context = new InlineFloatContext(width, inheritedFloats);
+        PagedFloatBoundary? pageBoundary = null,
+        IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
+        InlinePaintCapture? paintCapture = null,
+        InlineFloatContext? sharedContext = null) {
+        var context = sharedContext ?? new InlineFloatContext(width, inheritedFloats);
+        context.FirstLineIndent = paragraphStyle.TextIndent?.Resolve(width) ?? 0D;
+        context.IndentAtRight = paragraphStyle.Direction == "rtl";
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
         double y = 0D;
@@ -322,8 +326,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && lines[0].Width > lines[0].AvailableWidth + 0.0001D) {
             ApplyEndEllipsis(lines[0], width, completeLogicalProgress: 0);
         }
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom,
-            flowExclusions: context.OriginatingPageExclusions);
+        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, sharedContext == null ? context.Bottom : 0D, paintCapture: paintCapture, flowExclusions: context.OriginatingPageExclusions);
     }
 
     private static bool FinalizeFloatNoWrapRange(
@@ -393,6 +396,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (line.Segments.Count > 0 || includeEmpty) {
             lines.Add(line);
             y = line.Y + line.ResolveLineHeight(defaultLineHeight);
+            if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;
         }
         line = CreateFloatLine(context, ref y, defaultLineHeight);
     }
@@ -401,6 +405,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
         var line = new InlineLine();
         line.Place(band.Left, y, band.Width);
+        line.Indent(context.FirstLineIndent, context.IndentAtRight);
         return line;
     }
 
@@ -419,8 +424,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
             line = new InlineLine();
             line.Place(band.Left, y, band.Width);
+            line.Indent(context.FirstLineIndent, context.IndentAtRight);
             foreach (InlineSegment marker in runningStringMarkers) line.Add(marker);
-            if (requiredWidth <= band.Width + 0.0001D) return;
+            if (requiredWidth <= line.AvailableWidth + 0.0001D) return;
             next = context.NextBottomAfter(y);
         }
     }
@@ -434,7 +440,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double minimumHeight = 0D,
         bool supportsContinuationReflow = false,
         bool isInlineContinuation = false,
-        IReadOnlyList<HtmlFloatExclusion>? flowExclusions = null) {
+        InlinePaintCapture? paintCapture = null, IReadOnlyList<HtmlFloatExclusion>? flowExclusions = null) {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
@@ -461,10 +467,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (run.Style.PaintVisible) {
                     foreach (HtmlRenderVisual visual in block.Visuals) {
+                        HtmlRenderVisual floated = visual.Translate(placement.X, placement.Y, visuals.Count);
+                        floated.PaintPhase = HtmlRenderPaintPhase.Float;
                         AddInlineOwnedVisual(
                             visuals,
                             ownedVisuals,
-                            visual.Translate(placement.X, placement.Y, visuals.Count),
+                            floated,
                             run.OwnerElement,
                             formattingContainer);
                     }
@@ -493,9 +501,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
-            double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
-            double lineX = current.HasExplicitPlacement ? current.X : 0D;
-            double offsetX = ResolveLineOffset(paragraphStyle.Alignment, availableWidth, current.Width);
+            double availableWidth = current.ResolveAvailableWidth(width);
+            double lineX = (current.HasExplicitPlacement ? current.X : 0D) + current.IndentOffset;
+            double offsetX = current.ResolveAlignmentOffset(paragraphStyle.Alignment, width);
             double lineStart = lineX + offsetX;
             double lineRight = lineX + availableWidth;
             IReadOnlyList<InlineSegment> paintLineSegments = resolvedBidiLines?[lineIndex] ?? mergedLines[lineIndex];
@@ -720,8 +728,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendInlineAnchorFragments(visuals, ownedVisuals, anchorBounds,
             formattingContainer, isInlineContinuation);
+        paintCapture?.Capture(visuals, ownedVisuals, inlineBounds);
         return new HtmlInlineLayout(
-            ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation),
+            paintCapture == null
+                ? ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer, isInlineContinuation)
+                : visuals.Concat(ownedVisuals.Values.SelectMany(items => items)).ToArray(),
             height,
             breakOffsets,
             runningStringAssignments.OrderBy(assignment => assignment.OrderOffset),
@@ -819,103 +830,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && y < RemainingHeight - 0.0001D
             && y + floatHeight > RemainingHeight + 0.0001D
             && floatHeight <= PageHeight + 0.0001D;
-    }
-
-    private sealed class InlineFloatContext {
-        private readonly double _width;
-        private readonly List<InlineFloatPlacement> _placements = new List<InlineFloatPlacement>();
-        private readonly List<HtmlFloatExclusion> _originatingPageExclusions = new List<HtmlFloatExclusion>();
-        private readonly IReadOnlyList<HtmlFloatExclusion> _inheritedFloats;
-
-        internal InlineFloatContext(double width, IReadOnlyList<HtmlFloatExclusion>? inheritedFloats) {
-            _width = Math.Max(1D, width);
-            _inheritedFloats = inheritedFloats ?? Array.Empty<HtmlFloatExclusion>();
-        }
-
-        internal double Bottom => _placements.Count == 0 ? 0D : _placements.Max(item => item.Bottom);
-        internal IReadOnlyList<HtmlFloatExclusion> OriginatingPageExclusions => _originatingPageExclusions;
-
-        internal void ReserveOriginatingPageExclusion(InlineFloatPlacement placement, double start, double end) {
-            if (end <= start + 0.0001D) return;
-            _originatingPageExclusions.Add(new HtmlFloatExclusion(
-                placement.X, start, placement.Width, end - start, placement.Run.FloatSide));
-        }
-
-        internal InlineFloatPlacement Place(HtmlInlineRun run, double requestedY) {
-            HtmlRenderFlowBlock block = run.FloatingBlock!;
-            double boxWidth = Math.Min(_width, Math.Max(0.01D, block.Width));
-            double boxHeight = Math.Max(0.01D, block.Height);
-            double y = Math.Max(requestedY, Clearance(run.ClearSide));
-            while (true) {
-                InlineFloatBand band = ResolveBand(y, boxHeight);
-                if (boxWidth <= band.Width + 0.0001D) {
-                    double x = run.FloatSide == "right" ? band.Right - boxWidth : band.Left;
-                    var placement = new InlineFloatPlacement(run, x, y, boxWidth, boxHeight);
-                    _placements.Add(placement);
-                    return placement;
-                }
-                double next = NextBottomAfter(y);
-                if (next <= y + 0.0001D) {
-                    double x = run.FloatSide == "right" ? Math.Max(0D, _width - boxWidth) : 0D;
-                    var placement = new InlineFloatPlacement(run, x, y, boxWidth, boxHeight);
-                    _placements.Add(placement);
-                    return placement;
-                }
-                y = next;
-            }
-        }
-
-        internal InlineFloatBand ResolveUsableBand(ref double y, double height) {
-            InlineFloatBand band = ResolveBand(y, height);
-            while (band.Width <= 0.01D) {
-                double next = NextBottomAfter(y);
-                if (next <= y + 0.0001D) break;
-                y = next;
-                band = ResolveBand(y, height);
-            }
-            return band;
-        }
-
-        internal InlineFloatBand ResolveBand(double y, double height) {
-            double left = 0D;
-            double right = _width;
-            double bottom = y + Math.Max(0.01D, height);
-            foreach (HtmlFloatExclusion exclusion in _inheritedFloats) {
-                if (exclusion.Y >= bottom - 0.0001D || exclusion.Bottom <= y + 0.0001D) continue;
-                if (exclusion.Side == "right") right = Math.Min(right, exclusion.X);
-                else left = Math.Max(left, exclusion.Right);
-            }
-            foreach (HtmlFloatExclusion exclusion in _originatingPageExclusions) {
-                if (exclusion.Y >= bottom - 0.0001D || exclusion.Bottom <= y + 0.0001D) continue;
-                if (exclusion.Side == "right") right = Math.Min(right, exclusion.X);
-                else left = Math.Max(left, exclusion.Right);
-            }
-            foreach (InlineFloatPlacement placement in _placements) {
-                if (placement.Y >= bottom - 0.0001D || placement.Bottom <= y + 0.0001D) continue;
-                if (placement.Run.FloatSide == "right") right = Math.Min(right, placement.X);
-                else left = Math.Max(left, placement.Right);
-            }
-            return new InlineFloatBand(left, Math.Max(left, right));
-        }
-
-        internal double NextBottomAfter(double y) => _placements.Select(item => item.Bottom)
-            .Concat(_inheritedFloats.Select(item => item.Bottom))
-            .Concat(_originatingPageExclusions.Select(item => item.Bottom))
-            .Where(bottom => bottom > y + 0.0001D)
-            .DefaultIfEmpty(y)
-            .Min();
-
-        private double Clearance(string clearSide) {
-            if (clearSide == "none") return 0D;
-            return _placements.Where(item => clearSide == "both" || item.Run.FloatSide == clearSide)
-                .Select(item => item.Bottom)
-                .Concat(_inheritedFloats.Where(item => clearSide == "both" || item.Side == clearSide)
-                    .Select(item => item.Bottom))
-                .Concat(_originatingPageExclusions.Where(item => clearSide == "both" || item.Side == clearSide)
-                    .Select(item => item.Bottom))
-                .DefaultIfEmpty(0D)
-                .Max();
-        }
     }
 
     private sealed class InlineFloatPlacement {

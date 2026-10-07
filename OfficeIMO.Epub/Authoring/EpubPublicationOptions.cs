@@ -43,12 +43,14 @@ public sealed class EpubWriteOptions {
 /// <summary>Preservation and omission evidence for one writer operation; this is not a conformance certificate.</summary>
 public sealed class EpubWriteReport : IOfficeConversionReport {
     internal EpubWriteReport(bool usedOriginal, IEnumerable<string> preserved, IEnumerable<string> regenerated, IEnumerable<string> removed,
-        IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics) {
+        IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics, IReadOnlyDictionary<string, string>? renamed = null, IReadOnlyDictionary<string, string>? merged = null) {
         UsedOriginalPackage = usedOriginal;
         PreservedEntries = Array.AsReadOnly(preserved.ToArray());
         RegeneratedEntries = Array.AsReadOnly(regenerated.ToArray());
         RemovedEntries = Array.AsReadOnly(removed.ToArray());
         FidelityDiagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        RenamedEntries = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>((renamed ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
+        MergedEntries = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>((merged ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }
     /// <summary>Whether the exact original compressed package was returned.</summary>
     public bool UsedOriginalPackage { get; }
@@ -56,8 +58,12 @@ public sealed class EpubWriteReport : IOfficeConversionReport {
     public IReadOnlyList<string> PreservedEntries { get; }
     /// <summary>Entry payloads created or changed by authoring or serialization.</summary>
     public IReadOnlyList<string> RegeneratedEntries { get; }
-    /// <summary>Original entries explicitly removed by edits or signature policy.</summary>
+    /// <summary>Original paths absent from output, including renamed entries, explicit removal and signature policy.</summary>
     public IReadOnlyList<string> RemovedEntries { get; }
+    /// <summary>Original entry paths moved to current paths by resource renaming, rather than omitted.</summary>
+    public IReadOnlyDictionary<string, string> RenamedEntries { get; }
+    /// <summary>Original resource paths whose content was consolidated into current paths by chapter merging.</summary>
+    public IReadOnlyDictionary<string, string> MergedEntries { get; }
     /// <inheritdoc />
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />

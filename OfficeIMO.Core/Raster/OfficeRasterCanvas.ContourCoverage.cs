@@ -81,6 +81,17 @@ public sealed partial class OfficeRasterCanvas {
                 while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] <= y) boundaryIndex++;
                 while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] < y + 1D) rowBoundaries.Add(boundaries[boundaryIndex++]);
                 rowBoundaries.Sort();
+                // Shared glyph heights do not create additional scanlines. Remove
+                // exact duplicates before charging work, retaining every positive
+                // interval so even extremely thin contour details keep their coverage.
+                int distinctBoundaryCount = 1;
+                for (int index = 1; index < rowBoundaries.Count; index++) {
+                    double boundary = rowBoundaries[index];
+                    if (boundary > rowBoundaries[distinctBoundaryCount - 1]) {
+                        rowBoundaries[distinctBoundaryCount++] = boundary;
+                    }
+                }
+                rowBoundaries.RemoveRange(distinctBoundaryCount, rowBoundaries.Count - distinctBoundaryCount);
                 long rowWork = contourEdges * (rowBoundaries.Count - 1L);
                 if (rowWork > MaximumContourRowCrossingWork ||
                     rowWork > MaximumContourCrossingWork - crossingWork) {
@@ -239,7 +250,7 @@ public sealed partial class OfficeRasterCanvas {
                 if (crossings[index].SecondShape) secondWinding += delta;
                 else winding += delta;
                 index++;
-            } while (index < endIndex && Math.Abs(crossings[index].X - x) <= 1E-9D);
+            } while (index < endIndex && Math.Abs(crossings[index].X - x) <= ContourCrossingTolerance);
             previous = x;
         }
     }

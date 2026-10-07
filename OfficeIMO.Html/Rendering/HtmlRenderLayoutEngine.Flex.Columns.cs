@@ -230,7 +230,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveColumnFlexBasis(FlexItem item, double heightReference, bool hasDefiniteHeight) {
         string basis = item.Style.FlexBasis;
         if (basis == "auto" || !hasDefiniteHeight && basis.IndexOf('%') >= 0) return item.Block!.Height;
-        if (TryResolveLength(basis, heightReference, item.Style.Font.Size, out double resolved)) {
+        if (TryResolveLength(basis, heightReference, item.Style, out double resolved)) {
             double boxBasis = Math.Max(0D, resolved) + (item.Style.BorderBox ? 0D : item.Style.VerticalInsets);
             return boxBasis + item.Style.MarginTop + item.Style.MarginBottom;
         }
