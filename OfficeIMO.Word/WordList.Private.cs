@@ -147,71 +147,6 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
-    /// Creates a numbering instance that restarts numbering after a break.
-    /// </summary>
-    /// <param name="abstractNumId">The abstract numbering ID.</param>
-    /// <param name="numberId">The numbering instance ID.</param>
-    private NumberingInstance RestartNumberingInstance(AbstractNumId abstractNumId, int numberId) {
-        NumberingInstance numberingInstance1 = new NumberingInstance(abstractNumId) { NumberID = numberId };
-
-        LevelOverride levelOverride1 = new LevelOverride() { LevelIndex = 0 };
-        StartOverrideNumberingValue startOverrideNumberingValue1 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride1.Append(startOverrideNumberingValue1);
-
-        LevelOverride levelOverride2 = new LevelOverride() { LevelIndex = 1 };
-        StartOverrideNumberingValue startOverrideNumberingValue2 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride2.Append(startOverrideNumberingValue2);
-
-        LevelOverride levelOverride3 = new LevelOverride() { LevelIndex = 2 };
-        StartOverrideNumberingValue startOverrideNumberingValue3 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride3.Append(startOverrideNumberingValue3);
-
-        LevelOverride levelOverride4 = new LevelOverride() { LevelIndex = 3 };
-        StartOverrideNumberingValue startOverrideNumberingValue4 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride4.Append(startOverrideNumberingValue4);
-
-        LevelOverride levelOverride5 = new LevelOverride() { LevelIndex = 4 };
-        StartOverrideNumberingValue startOverrideNumberingValue5 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride5.Append(startOverrideNumberingValue5);
-
-        LevelOverride levelOverride6 = new LevelOverride() { LevelIndex = 5 };
-        StartOverrideNumberingValue startOverrideNumberingValue6 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride6.Append(startOverrideNumberingValue6);
-
-        LevelOverride levelOverride7 = new LevelOverride() { LevelIndex = 6 };
-        StartOverrideNumberingValue startOverrideNumberingValue7 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride7.Append(startOverrideNumberingValue7);
-
-        LevelOverride levelOverride8 = new LevelOverride() { LevelIndex = 7 };
-        StartOverrideNumberingValue startOverrideNumberingValue8 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride8.Append(startOverrideNumberingValue8);
-
-        LevelOverride levelOverride9 = new LevelOverride() { LevelIndex = 8 };
-        StartOverrideNumberingValue startOverrideNumberingValue9 = new StartOverrideNumberingValue() { Val = 1 };
-
-        levelOverride9.Append(startOverrideNumberingValue9);
-
-        numberingInstance1.Append(levelOverride1);
-        numberingInstance1.Append(levelOverride2);
-        numberingInstance1.Append(levelOverride3);
-        numberingInstance1.Append(levelOverride4);
-        numberingInstance1.Append(levelOverride5);
-        numberingInstance1.Append(levelOverride6);
-        numberingInstance1.Append(levelOverride7);
-        numberingInstance1.Append(levelOverride8);
-        numberingInstance1.Append(levelOverride9);
-        return numberingInstance1;
-    }
-
-    /// <summary>
     /// Adds a list to the document with the specified style.
     /// </summary>
     /// <param name="style">The list style to apply.</param>
@@ -227,7 +162,7 @@ public partial class WordList : WordElement {
         var abstractNumId = new AbstractNumId {
             Val = _abstractId
         };
-        NumberingInstance numberingInstance = RestartNumberingInstance(abstractNumId, _numberId);
+        NumberingInstance numberingInstance = DefaultNumberingInstance(abstractNumId, _numberId);
         numbering.Append(abstractNum, numberingInstance);
     }
 
