@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                 var drawingImage = new OfficeDrawingImage(image.Bytes, image.ContentType,
                     new OfficeImageProjection(new OfficeImagePlacement(x, y, width, height)));
                 OfficeDrawingRasterRenderer.RenderImage(
-                    canvas, drawingImage, 1D,
+                    canvas.WithTextShapingProfile(options.TextShapingProvider, options.TextShapingLanguage), drawingImage, 1D,
                     new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, diagnosticSource),
                     options.MaximumRasterPixels, cancellationToken,
                     diagnosticSource: diagnosticSource, diagnosticSink: diagnostics);

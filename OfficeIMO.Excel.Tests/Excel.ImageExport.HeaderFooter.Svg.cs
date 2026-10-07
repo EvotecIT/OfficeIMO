@@ -37,7 +37,10 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", widthPoints: 72, heightPoints: 12);
 
         OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png,
-            new ExcelWorksheetImageExportOptions { Range = "A1:D4", ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+            new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4", ShowGridlines = false, SplitByManualPageBreaks = true,
+                TextShapingProvider = new RecordingShaper(), TextShapingLanguage = "ar-SA"
+            })[0];
 
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
         Assert.Equal(OfficeColor.Red, image!.GetPixel(12, 10));
@@ -64,7 +67,10 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         foreach (ExcelHeaderFooterPosition position in new[] { ExcelHeaderFooterPosition.Left, ExcelHeaderFooterPosition.Center, ExcelHeaderFooterPosition.Right })
             sheet.SetHeaderImage(position, svg, "image/svg+xml", widthPoints: 36, heightPoints: 36);
         sheet.SetFooterImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", widthPoints: 36, heightPoints: 36);
-        var options = new ExcelWorksheetImageExportOptions { Range = "A1:A1", ShowGridlines = false, SplitByManualPageBreaks = true, MaximumRasterPixels = 10_000 };
+        var options = new ExcelWorksheetImageExportOptions {
+            Range = "A1:A1", ShowGridlines = false, SplitByManualPageBreaks = true, MaximumRasterPixels = 10_000,
+            TextShapingProvider = new RecordingShaper(), TextShapingLanguage = "ar-SA"
+        };
         sheet.ExportImages(OfficeImageExportFormat.Png, options);
         sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, svg, "image/svg+xml", widthPoints: 36, heightPoints: 36);
 
@@ -109,6 +115,40 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         Assert.Throws<OfficeImageExportPolicyException>(() => sheet.ExportImages(OfficeImageExportFormat.Png, options));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SvgHeaderAndFooterRetainCallerTextShapingContext(bool footer) {
+        byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='80' height='40'>"
+            + "<text x='4' y='24' font-family='Arial' font-size='20'>A</text></svg>");
+        Assert.True(OfficeSvgDrawingReader.TryRead(svg, out OfficeDrawing? drawing, out int loss));
+        Assert.Equal(0, loss);
+        var direct = new RecordingShaper();
+        OfficeDrawingRasterRenderer.Render(drawing!, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = direct, TextShapingLanguage = "ar-SA"
+        });
+        Assert.Contains("A|ar-SA", direct.Requests);
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddWorksheet("Report");
+        sheet.AddImage(1, 1, svg, "image/svg+xml", 80, 40);
+        var anchored = new RecordingShaper();
+        sheet.Range("A1:D4").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
+            ShowGridlines = false, TextShapingProvider = anchored, TextShapingLanguage = "ar-SA"
+        });
+        Assert.Contains("A|ar-SA", anchored.Requests);
+        if (footer) sheet.SetFooterImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", 60, 30);
+        else sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", 60, 30);
+        var composed = new RecordingShaper();
+
+        sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+            Range = "A1:D4", SplitByManualPageBreaks = true, ShowGridlines = false,
+            TextShapingProvider = composed, TextShapingLanguage = "ar-SA"
+        });
+
+        // The same text appears in the anchored image and in the selected band.
+        Assert.Equal(2, composed.Requests.Count(request => request == "A|ar-SA"));
+    }
+
     private static OfficeImageExportResult ExportPersisted(byte[] bytes, string contentType) {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
@@ -129,6 +169,14 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
             cancellation.Cancel();
             image = new OfficeRasterImage(32, 16, OfficeColor.Red);
             return true;
+        }
+    }
+
+    private sealed class RecordingShaper : IOfficeTextShapingProvider {
+        internal List<string> Requests { get; } = new();
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            Requests.Add(request.Text + "|" + request.Language);
+            return null;
         }
     }
 }
