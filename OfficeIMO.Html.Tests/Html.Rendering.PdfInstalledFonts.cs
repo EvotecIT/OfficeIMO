@@ -9,18 +9,25 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void HtmlPdf_ShortLineUsesTheCallerNamedFaceAndKeepsHighAscentVisible(bool precedingNormalText) {
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, true, true)]
+    public void HtmlPdf_ShortLineUsesTheCallerNamedFaceAndKeepsHighAscentVisible(
+        bool precedingNormalText, bool largeParagraphFont, bool inlineImage) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
         var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
 
+        string image = inlineImage ? "<img style='width:40px;height:40px' src='data:image/png;base64,"
+            + Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(255, 0, 0)) + "'>" : string.Empty;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
-            HtmlConversionDocument.Parse("<div style='font:20px/20px Arial'>"
-                + (precedingNormalText ? "A" : string.Empty)
-                + "<span style='font-size:100px;text-shadow:0 0 red'>A</span></div>"),
+            HtmlConversionDocument.Parse("<div style='font:" + (largeParagraphFont ? "100" : "20") + "px/20px Arial'>"
+                + (precedingNormalText ? (largeParagraphFont ? "<span style='text-shadow:0 0 red'>A</span>" : "A") : string.Empty)
+                + "<span style='font-size:" + (largeParagraphFont ? "20px" : "100px;text-shadow:0 0 red") + "'>A</span>"
+                + image + "</div>"),
             options);
         HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
             .OfType<HtmlRenderText>(), run => run.Font.Size == 100D);
@@ -41,6 +48,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(sample.Y <= shadowText.Y - shadowText.PaintTopOverflow);
         string extracted = PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText();
         Assert.Equal(precedingNormalText ? "AA" : "A", string.Concat(extracted.Where(c => !char.IsWhiteSpace(c))));
+    }
+
+    [Fact]
+    public void HtmlPdf_ShortNamedFaceImageKeepsFollowingFlowBelowItsBaseline() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
+        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
+        string image = Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<div style='font:20px/20px Arial'><span style='font-size:100px'>A</span>"
+            + "<img style='width:40px;height:40px' src='data:image/png;base64," + image + "'></div>"
+            + "<div style='margin:0;font:10px/20px Arial;background:blue'>NEXT</div>";
+
+        HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
+
+        IReadOnlyList<HtmlRenderVisual> visuals = result.RenderResult!.Document.Pages[0].Visuals;
+        HtmlRenderImage renderedImage = Assert.Single(visuals.OfType<HtmlRenderImage>());
+        HtmlRenderText following = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "NEXT");
+        Assert.True(following.LayoutY >= renderedImage.Y + renderedImage.Height,
+            "The selected-face image baseline must also advance the containing line's flow height.");
+        Assert.Equal(40D, renderedImage.Height, 3);
     }
 
     [Fact]

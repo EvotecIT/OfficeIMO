@@ -489,8 +489,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
-            double baseline = alignTextBaseline && !current.HasReplacedImage
-                ? ResolveInlineMixedTextBaseline(current, paragraphStyle)
+            double baseline = alignTextBaseline || current.HasReplacedImage
+                ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;

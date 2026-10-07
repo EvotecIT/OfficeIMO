@@ -30,31 +30,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
             textY = lineY + (lineHeight - face.Value.Height) / 2D
                 + face.Value.BaselineOffset - fontSize;
         }
-        paintHeight = Math.Max(lineHeight, face.Value.Height);
+        // This frame starts one source em above the baseline, rather than at the
+        // face ascent. Its lower edge must include the selected face's descent.
+        paintHeight = Math.Max(lineHeight, fontSize + face.Value.Height - face.Value.BaselineOffset);
         paintTopOverflow = Math.Max(0D, face.Value.BaselineOffset - fontSize);
     }
 
-    private double ResolveInlineMixedTextBaseline(InlineLine line, HtmlRenderBoxStyle paragraphStyle) {
-        double baseline = paragraphStyle.Font.Size;
+    private double ResolveInlineSharedBaseline(InlineLine line, HtmlRenderBoxStyle paragraphStyle, ref double lineHeight) {
+        bool hasImage = line.HasReplacedImage;
+        string strutText = line.Segments.FirstOrDefault(segment => segment.Run.AtomicBlock == null
+            && segment.Text.Length > 0)?.Text ?? string.Empty;
+        double baseline = ResolveInlineTextBaseline(strutText, paragraphStyle, hasImage);
+        double descent = Math.Max(0D, paragraphStyle.LineHeight - baseline);
         foreach (InlineSegment segment in line.Segments) {
-            if (segment.Run.AtomicBlock != null) continue;
-            HtmlRenderBoxStyle style = segment.Run.Style;
-            HtmlTextFaceMetrics? face = ResolveInlineShortLineFace(segment);
-            // Alignment and face overflow are separate. A short authored line
-            // supplies the same centered face baseline whether text stands alone
-            // or shares the line with ordinary text or a first-letter fragment.
-            double sourceBaseline = face.HasValue
-                ? (style.LineHeight - face.Value.Height) / 2D + face.Value.BaselineOffset
-                : style.Font.Size;
+            HtmlRenderFlowBlock? atomic = segment.Run.AtomicBlock;
+            if (atomic != null && !hasImage) continue;
+            double sourceBaseline = atomic != null
+                ? Math.Min(atomic.Height, Math.Max(0D, segment.Run.AtomicBaseline ?? atomic.Height))
+                : ResolveInlineTextBaseline(segment.Text, segment.Run.Style, hasImage);
             baseline = Math.Max(baseline, sourceBaseline);
+            descent = Math.Max(descent, (atomic?.Height ?? segment.Run.Style.LineHeight) - sourceBaseline);
         }
+        // Replaced images occupy flow space through their baseline. When a
+        // selected short-line face raises that baseline, advance the line by the
+        // same ascent/descent so a following block or legal cut cannot cross it.
+        if (hasImage) lineHeight = Math.Max(lineHeight, baseline + descent);
         return baseline;
     }
 
-    private HtmlTextFaceMetrics? ResolveInlineShortLineFace(InlineSegment segment) {
-        HtmlRenderBoxStyle style = segment.Run.Style;
+    private double ResolveInlineTextBaseline(string text, HtmlRenderBoxStyle style, bool hasImage) {
+        HtmlTextFaceMetrics? face = ResolveInlineShortLineFace(text, style);
+        // Alignment and ink overflow are separate. The paragraph strut and each
+        // text run use the same selected face, including beside an actual image.
+        return face.HasValue
+            ? (style.LineHeight - face.Value.Height) / 2D + face.Value.BaselineOffset
+            : hasImage ? ResolveTextAscent(style) : style.Font.Size;
+    }
+
+    private HtmlTextFaceMetrics? ResolveInlineShortLineFace(InlineSegment segment) =>
+        ResolveInlineShortLineFace(segment.Text, segment.Run.Style);
+
+    private HtmlTextFaceMetrics? ResolveInlineShortLineFace(string text, HtmlRenderBoxStyle style) {
         if (style.LineHeight >= style.Font.Size) return null;
-        HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(segment.Text, style);
+        HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(text, style);
         if (!face.HasValue || face.Value.Height <= 0D
             || double.IsNaN(face.Value.Height) || double.IsInfinity(face.Value.Height)
             || double.IsNaN(face.Value.BaselineOffset) || double.IsInfinity(face.Value.BaselineOffset)
