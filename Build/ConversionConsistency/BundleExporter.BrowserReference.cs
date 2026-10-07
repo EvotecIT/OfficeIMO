@@ -11,6 +11,7 @@ internal static partial class BundleExporter {
         string source,
         ConsistencySuite suite,
         byte[] fontBytes,
+        byte[]? boldFontBytes,
         string output,
         CancellationToken cancellationToken) {
         if (!string.Equals(contract.Format, "html", StringComparison.OrdinalIgnoreCase))
@@ -30,6 +31,8 @@ internal static partial class BundleExporter {
         string family = suite.FontFamily;
         string fontCss = "<style data-officeimo-qualification-font>" +
             "@font-face{font-family:'" + family + "';src:url(data:font/woff2;base64," + Convert.ToBase64String(fontBytes) + ") format('woff2');font-style:normal;font-weight:400;font-display:block}" +
+            (boldFontBytes == null ? string.Empty :
+                "@font-face{font-family:'" + family + "';src:url(data:font/ttf;base64," + Convert.ToBase64String(boldFontBytes) + ") format('truetype');font-style:normal;font-weight:700;font-display:block}") +
             "</style>";
         string html = File.ReadAllText(source);
         int headEnd = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);

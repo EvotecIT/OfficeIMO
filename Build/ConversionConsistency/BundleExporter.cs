@@ -60,7 +60,7 @@ internal static partial class BundleExporter {
             }
             BrowserReferenceArtifact? browserReference = contract.CaptureBrowserReference
                 ? await CaptureBrowserReferenceAsync(browser ?? throw new InvalidOperationException("Browser renderer was not initialized."),
-                    contract, source, suite, fontBytes, output, cancellationToken)
+                    contract, source, suite, fontBytes, boldFontBytes, output, cancellationToken)
                 : null;
             cases.Add(new CaseBundle(contract, ArtifactPaths.HashFile(source), pdfPath, ArtifactPaths.Hash(exported.Pdf), exported.PdfRoute, images, diagnostics.Distinct().ToList()) {
                 DiagnosticDetails = diagnosticDetails.OrderBy(value => value, StringComparer.Ordinal).ToList(),
