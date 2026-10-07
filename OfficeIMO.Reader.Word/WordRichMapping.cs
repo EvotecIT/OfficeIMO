@@ -342,7 +342,7 @@ internal static class WordRichMapping {
                     Kind = kind,
                     Text = paragraph.Text,
                     Level = headingLevel ?? paragraph.ListLevel,
-                    Marker = paragraph.IsListItem ? (paragraph.IsOrderedList == true ? "1." : "-") : null,
+                    Marker = paragraph.ListMarker,
                     Location = location
                 });
                 AddWordParagraphLinks(paragraph, location, links, ref linkIndex);

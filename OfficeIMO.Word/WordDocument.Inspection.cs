@@ -7,12 +7,15 @@ namespace OfficeIMO.Word {
         private const int MaximumInspectionNoteDepth = 32;
 
         private sealed class InspectionExpansionContext {
-            internal InspectionExpansionContext(IReadOnlyDictionary<string, string?> paragraphStyleNames) {
+            internal InspectionExpansionContext(IReadOnlyDictionary<string, string?> paragraphStyleNames,
+                IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> listMarkers) {
                 ParagraphStyleNames = paragraphStyleNames;
+                ListMarkers = listMarkers;
             }
 
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
+            internal IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> ListMarkers { get; }
             private Dictionary<Paragraph, WordComplexFieldRunVisibility.FieldState> ComplexFieldPrefixes { get; } = new();
             private HashSet<OpenXmlElement> ScannedFieldStories { get; } = new();
 
@@ -38,7 +41,8 @@ namespace OfficeIMO.Word {
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         public WordDocumentSnapshot CreateInspectionSnapshot() {
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
-            var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup());
+            var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),
+                WordDocumentTraversal.BuildResolvedListMarkers(this));
             var snapshot = new WordDocumentSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 Title = BuiltinDocumentProperties?.Title,
@@ -188,6 +192,7 @@ namespace OfficeIMO.Word {
         private WordParagraphSnapshot BuildParagraphSnapshot(WordParagraph paragraph, InspectionExpansionContext expansionContext) {
             var bookmark = paragraph.Bookmark;
             var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
+            bool hasListMarker = expansionContext.ListMarkers.TryGetValue(paragraph, out WordDocumentTraversal.ResolvedListMarker listMarker);
             var snapshot = new WordParagraphSnapshot {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
@@ -195,6 +200,8 @@ namespace OfficeIMO.Word {
                 IsListItem = paragraph.IsListItem,
                 IsOrderedList = ResolveOrderedList(paragraph),
                 ListLevel = paragraph.ListItemLevel,
+                ListMarker = hasListMarker ? listMarker.Marker : null,
+                ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
                 ListStyleName = paragraph.ListStyle?.ToString(),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
                 IndentStartPoints = paragraph.IndentationBeforePoints,

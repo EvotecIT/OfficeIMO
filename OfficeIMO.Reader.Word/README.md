@@ -2,6 +2,12 @@
 
 Word ingestion for `OfficeIMO.Reader.Core` with DOCX, DOCM, and legacy DOC support.
 
+Rich `list-item` blocks carry the resolved Word marker in `OfficeDocumentBlock.Marker`,
+including authored starts, Roman or lettered formats, continuation, and explicit restarts.
+Portable bullet symbols are retained, and invisible list markers are empty.
+The values come from `WordParagraphSnapshot.ListMarker`; inspection snapshots also expose
+the numeric counter of an ordered item through `WordParagraphSnapshot.ListIndex`.
+
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordHandler()

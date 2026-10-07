@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
                     : info.Ordered ? BuildMarker(info.Level, index, counters, formats, info.LevelText)
                     : info.LevelText ?? "•";
                 (string marker, bool useTextFont) = NormalizeListMarker(rawMarker, info.MarkerFontFamily);
-                result[paragraph] = new ResolvedListMarker(info, marker, useTextFont);
+                result[paragraph] = new ResolvedListMarker(info, index, marker, useTextFont);
             });
             return result;
         }

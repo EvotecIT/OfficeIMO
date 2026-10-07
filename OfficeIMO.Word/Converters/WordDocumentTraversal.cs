@@ -132,9 +132,10 @@ namespace OfficeIMO.Word {
         /// characters have been projected to portable Unicode text.
         /// </summary>
         internal readonly struct ResolvedListMarker {
-            internal ResolvedListMarker(ListInfo info, string marker, bool useTextFont) {
+            internal ResolvedListMarker(ListInfo info, int index, string marker, bool useTextFont) {
                 Info = info;
                 Level = info.Level;
+                Index = index;
                 Marker = marker;
                 UseTextFont = useTextFont;
                 PictureBulletId = info.PictureBulletId;
@@ -142,6 +143,7 @@ namespace OfficeIMO.Word {
 
             internal ListInfo Info { get; }
             internal int Level { get; }
+            internal int Index { get; }
             internal string Marker { get; }
             internal bool UseTextFont { get; }
             internal int? PictureBulletId { get; }
