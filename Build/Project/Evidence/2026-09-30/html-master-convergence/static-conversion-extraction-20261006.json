@@ -1,6 +1,6 @@
 {
   "base": "d32b576f495fe962ff497b4af22c408590e14d25",
-  "selectedCheckpoint": "e6b2ff24c2478d343d36249649b833f207e875c8",
+  "selectedCheckpoint": "11f736a242e1895a42d2c86aed5e21babc28a60e",
   "scope": "Static HTML renderer and canonical conversion jobs over released retained providers; no interactive runtime or worker graph. Accepted current master owner behavior is preserved through explicit three-way reconciliation.",
   "implementation": [
     "print, screen-media and screen-snapshot profiles through HtmlConversionDocument/HtmlRenderRequest and Tool",
@@ -235,9 +235,9 @@
       "sha256": "d550fa37b274cfdf79a803a8de86e3d4b730ca904739c61c33e0e84a76e68647"
     }
   ],
-  "qualifiedProductSource": "743e796c7136ccd02e57180b1e117ec187b5002a",
+  "qualifiedProductSource": "828d615435e9fa3fb4f484bf45f1dcc4052f37e4",
   "prerequisiteImageNormalizationSource": "9d25575e4c23ddf9b455319e371958b97bd31e30",
-  "qualificationCaveat": "Current local source, four-target packs and fresh .NET8/.NET10 consumers are qualified for selected static profiles. Current supported-platform CI, delayed feedback and merge remain required; broader timing, H10 and manual accessibility are separate open criteria.",
+  "qualificationCaveat": "Current local normal source, full two-framework owners, frozen API/Tool/static output and project-reference machine profiles are qualified. Current-head three-platform packages/native consumers, CI and delayed feedback remain required; prior packed graphs are not current proof. Broader timing/H10/manual accessibility/runtime criteria remain open.",
   "finalEvidenceReceipts": [
     {
       "path": "Ignore/StaticConversionExtractionQualification/final-pdf-743e796c7/net10.0.trx",
@@ -2440,5 +2440,228 @@
       "reconciliation": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-geometry-reconciliation.json",
       "scope": "Managed PDF/SVG/raster route geometry and independent source-browser reference; only expected coordinates/region position changed after verified selected-font inline SVG descent. Original pixel minima, baseline tolerances, visual limits, supplied fonts and source fixture unchanged. Shipping owner code unchanged."
     }
+  },
+  "acceptedMasterControlsConvergence20261007": {
+    "acceptedMaster": "22dd0d7e8a5d14e16519e4039283eef764ee4128",
+    "qualifiedProductSource": "828d615435e9fa3fb4f484bf45f1dcc4052f37e4",
+    "finalTestSource": "11f736a242e1895a42d2c86aed5e21babc28a60e",
+    "combinedSource": "205e47a500fa4d947fdbd94798dc30ef390cd755",
+    "selectedOwnerTrees": {
+      "OfficeIMO.Core": "f3518b991519aaeaa4c6188f829300ff7b7079bc",
+      "OfficeIMO.Tool.Tests": "5a0774a6a0cb9423b2e4327adba061928bef78d2",
+      "OfficeIMO.Html.Core": "2797c2dd624332e175463f53a786fe14c76b4baa",
+      "OfficeIMO.Html.Rtf": "07c7dde93d963cade84c69450b9407bd2f660d11",
+      "OfficeIMO.Html.AngleSharp": "87e7bdc9dbf6d14c1f52fd1edc40ad585c965e65",
+      "OfficeIMO.Html": "3cc43065f96a814dfe5b222015022efec07a510d",
+      "OfficeIMO.Html.Pdf": "b341ea71213d6250fa013685b078d696f04f6ad1",
+      "OfficeIMO.Pdf": "dac799c56db11a48b4e48a9550954be25cd903bc",
+      "OfficeIMO.Mhtml": "50a4a1d06360614bfad22cd705418a397675dbfc",
+      "OfficeIMO.Tool": "1e2f22c7abb332786d7108cfc7f12f1074df82fb",
+      "OfficeIMO.Html.Tests": "08fcae7cc9b1f8a19c2a88f3506e52ccb2b06a31",
+      "OfficeIMO.Drawing.Tests": "31241653e6e34b143d03f0c97c308c4213cf102f",
+      "OfficeIMO.Pdf.Tests": "2a061b01c56f857fc0023420749b03ab835a2af8"
+    },
+    "resolvedOwners": [
+      "styled native button descendants and intrinsic auto width",
+      "physical and logical authored zero-padding retained by shared logical-to-physical cascade",
+      "glyph-frame clipping separated from page and authored clips",
+      "accepted reverse PDF semantic projection retained"
+    ],
+    "riskReview": {
+      "freshFullReadOnly": "accepted_master_button_clip_review",
+      "targetedConfirmationUsed": true,
+      "physicalP2": "Reproduced and fixed at de14f557098e6297c536dce3a3a1703799ce6d34",
+      "logicalSiblingP2": "Reproduced and fixed at 828d615435e9fa3fb4f484bf45f1dcc4052f37e4 using the existing shared cascade",
+      "knownUnresolvedP0P2": [],
+      "newPublicApiOrRuntimeDependency": false,
+      "noExtraShaReview": true
+    },
+    "logicalPadding": {
+      "beforeOfficeSize": [
+        94,
+        34
+      ],
+      "independentBrowserSize": [
+        82,
+        26
+      ],
+      "finalOfficeSize": [
+        82,
+        26
+      ],
+      "receipt": "accepted-master-22dd0d7e8/logical-padding-primary-closure.json"
+    },
+    "frameworkProof": [
+      {
+        "suite": "combined-full-html-net10.0",
+        "passed": 4856,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-html-net8.0",
+        "passed": 4856,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-pdf-net10.0",
+        "passed": 9392,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-pdf-net8.0",
+        "passed": 9392,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-drawing-net10.0",
+        "passed": 3693,
+        "failed": 0,
+        "skipped": 4,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-drawing-net8.0",
+        "passed": 3693,
+        "failed": 0,
+        "skipped": 4,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-tool-net10.0",
+        "passed": 287,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-tool-net8.0",
+        "passed": 287,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      }
+    ],
+    "normalStandardAndApiToolBuilds": [
+      "combined-standard-html",
+      "combined-standard-html.pdf",
+      "combined-standard-pdf",
+      "combined-standard-core",
+      "combined-api-build",
+      "combined-tool-build"
+    ],
+    "h4": "accepted-master-22dd0d7e8/current-h4-framework-proof.json",
+    "observerCorrection": "The Drawing SVG font test observes public exported font-family values through accepted viewport groups. Shipping sources are unchanged after 828; only that test changes at 11f. Original failure is retained.",
+    "frozenRoutes": {
+      "routes": 9,
+      "pages": 97,
+      "apiToolBytesAndIndependentRawTextEqual": true,
+      "baselinePerPageRawTextDecodedImagesLinkTargetsReportsPreserved": true,
+      "allHasLossRetained": true,
+      "pixelIdenticalPages": 76,
+      "changedPages": 21,
+      "changedPageSheetsInspected": 6,
+      "maxChangedPixelFraction": 0.0005380286629788455,
+      "classification": "Small glyph/card-label clipping paint differences and Chesapeake native search-control icon placement. All changed page pairs inspected; no content loss or layout displacement observed. No browser parity claim.",
+      "receipt": "corpus-clean-11f736a24/independent-comparison.json"
+    },
+    "staticCorpus": {
+      "cases": 18,
+      "pdfs": 36,
+      "pageCountsTokensFormulaRolesAttachmentsUriTargetsPreserved": true,
+      "allScreenTextHashesEqual": true,
+      "scenePngPairsPixelEqual": true,
+      "pdfPagePaintPairs": 46,
+      "pdfPagePaintPairsPixelEqual": 42,
+      "changedPdfPaint": "Four pairs, 15 pixels each around math glyph edges. Paired enlarged crops inspected; no layout movement observed.",
+      "receipt": "static-clean-11f736a24/independent-static-comparison.json"
+    },
+    "machineProfiles": {
+      "checks": 5,
+      "allPass": true,
+      "actualChecks": [
+        {
+          "label": "a3b",
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 1999,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-a3b",
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 2013,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-ua1",
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 553,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "unlinked-ua1",
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 530,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "formula-free-ua1",
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 531,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        }
+      ],
+      "scope": "Normal current project-reference graph; new hosted package/native proof remains pending. Standalone UA1 with formula attachment remains rejected."
+    },
+    "combinedComparison": {
+      "source": "205e47a500fa4d947fdbd94798dc30ef390cd755",
+      "schema": 2,
+      "cases": 2,
+      "pages": 3,
+      "normalBuildAndRunExitZero": true,
+      "receipt": "convergence/wrap-up-audit-20261006/accepted-master-final-comparison"
+    },
+    "freshHostedGate": "Pending consolidated final-head CI, all3OS nineteen-package/private-feed/loaded-owner receipts, native Windows consumers and delayed complete feedback. Older successful hosted graphs do not qualify this graph.",
+    "originalFailuresRetained": true,
+    "evidenceRoot": "Ignore/StaticConversionExtractionQualification/accepted-master-22dd0d7e8",
+    "remaining": [
+      "current-head CI/packages and complete delayed feedback",
+      "authorized merge, concrete merge-owner reconciliation, qualified feature/html-engine synchronization",
+      "proof-preserving temporary worktree and local branch removal"
+    ],
+    "broaderLimits": "Historical candidate/control timing failures, wider H10/native/manual accessibility/all-intent and runtime acceptance remain open. No performance or universal extraction claim.",
+    "canonicalReceiptSha256": "ef6e5061aee0b524449867e9ba8f9b3253f8645864936f2a7b99f1e5a02619c9"
   }
 }
