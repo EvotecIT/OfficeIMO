@@ -1,4 +1,4 @@
-import { checkAbort, withAbort, inputRows, pause } from "./iteration.js";
+import { checkAbort, withAbort, inputRows, pause, taskYieldDue } from "./iteration.js";
 import { OfficeIMOError } from "./errors.js";
 
 /** Writes must resolve only after the sink accepts bytes. Ownership stays with the caller. */
@@ -47,7 +47,6 @@ export class BlobByteSink implements ByteSink {
 /** Bounded UTF-8 batches, preserving surrogate pairs across append boundaries. */
 export class ChunkedTextSink {
   private text = "";
-  private deadline = performance.now() + 8;
   private readonly encoder = new TextEncoder();
   constructor(private readonly sink: ByteSink, private readonly signal?: AbortSignal, readonly chunkSize = 32768) {
     if (!Number.isInteger(chunkSize) || chunkSize < 2) throw new RangeError("Text chunk size must be at least 2.");
@@ -55,7 +54,7 @@ export class ChunkedTextSink {
   append(value: string): boolean {
     checkAbort(this.signal);
     this.text += value;
-    return this.text.length >= this.chunkSize || performance.now() >= this.deadline;
+    return this.text.length >= this.chunkSize || taskYieldDue();
   }
   /** Flush full text, keeping a trailing high surrogate until the next append. */
   async flush(final = false): Promise<void> {
@@ -67,7 +66,7 @@ export class ChunkedTextSink {
       const bytes = this.encoder.encode(this.text.slice(0, end));
       this.text = this.text.slice(end);
       await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
-      if (performance.now() >= this.deadline) { await pause(); this.deadline = performance.now() + 8; }
+      if (taskYieldDue()) await pause();
       checkAbort(this.signal);
     }
   }

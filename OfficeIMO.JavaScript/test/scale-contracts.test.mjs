@@ -28,8 +28,11 @@ test("XLSX emits rows before input completes, awaits its sink and finishes seque
   let produced = 0, release, blocked;
   const waiting = new Promise(resolve => { blocked = resolve; });
   const gate = new Promise(resolve => { release = resolve; });
+  const decoder = new TextDecoder();
+  let held = false;
   const sink = { async write(bytes) {
-    if (chunks.length === 1) { blocked(); await gate; }
+    // Hold actual row output, rather than a ZIP header whose flush timing can vary.
+    if (!held && decoder.decode(bytes).includes('r="A2"')) { held = true; blocked(); await gate; }
     chunks.push(new Uint8Array(bytes));
   } };
   const book = new Workbook({ sink, compression: "store" });

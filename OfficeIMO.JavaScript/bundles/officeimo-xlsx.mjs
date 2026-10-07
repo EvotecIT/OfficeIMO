@@ -56,17 +56,37 @@ async function* inputRows(input, signal) {
         }
     }
 }
+let taskDeadline;
+const taskBudgetMs = 16;
+/** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
+function taskYieldDue() {
+    const now = performance.now();
+    taskDeadline ??= now + taskBudgetMs;
+    return now >= taskDeadline;
+}
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
-    if (typeof MessageChannel === "function")
-        return new Promise(resolve => {
-            const channel = new MessageChannel();
-            channel.port1.onmessage = () => { channel.port1.close(); channel.port2.close(); resolve(); };
+    return new Promise(resolve => {
+        let done = false, channel;
+        const finish = () => {
+            if (done)
+                return;
+            done = true;
+            clearTimeout(timer);
+            channel?.port1.close();
+            channel?.port2.close();
+            taskDeadline = performance.now() + taskBudgetMs;
+            resolve();
+        };
+        const timer = setTimeout(finish, 0);
+        if (typeof MessageChannel === "function") {
+            channel = new MessageChannel();
+            channel.port1.onmessage = finish;
             channel.port2.postMessage(undefined);
-        });
-    return new Promise(resolve => setTimeout(resolve, 0));
+        }
+    });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -92,7 +112,7 @@ return _exports;
 })();
 
 const _m4 = (() => {
-const { checkAbort, withAbort, inputRows, pause } = _m2;
+const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m2;
 
 const { OfficeIMOError } = _m3;
 
@@ -150,7 +170,6 @@ class ChunkedTextSink {
     signal;
     chunkSize;
     text = "";
-    deadline = performance.now() + 8;
     encoder = new TextEncoder();
     constructor(sink, signal, chunkSize = 32768) {
         this.sink = sink;
@@ -162,7 +181,7 @@ class ChunkedTextSink {
     append(value) {
         checkAbort(this.signal);
         this.text += value;
-        return this.text.length >= this.chunkSize || performance.now() >= this.deadline;
+        return this.text.length >= this.chunkSize || taskYieldDue();
     }
     /** Flush full text, keeping a trailing high surrogate until the next append. */
     async flush(final = false) {
@@ -176,10 +195,8 @@ class ChunkedTextSink {
             const bytes = this.encoder.encode(this.text.slice(0, end));
             this.text = this.text.slice(end);
             await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
-            if (performance.now() >= this.deadline) {
+            if (taskYieldDue())
                 await pause();
-                this.deadline = performance.now() + 8;
-            }
             checkAbort(this.signal);
         }
     }

@@ -50,7 +50,7 @@ internal static class DataTablesComparisonSession {
                     } else if (operation == "run") {
                         if (session is null) throw new InvalidOperationException("Prepare the browser first.");
                         bool profile = command.TryGetProperty("profile", out var requestedProfile) && requestedProfile.GetBoolean();
-                        if (profile && spec.GetProperty("browser").GetString() != "Chromium") throw new ArgumentException("CPU profiling requires Chromium.");
+                        if (profile && !string.Equals(spec.GetProperty("browser").GetString(), "Chromium", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("CPU profiling requires Chromium.");
                         var profiler = profile ? await session.Page.Context.NewCDPSessionAsync(session.Page) : null;
                         try {
                             if (profiler is not null) { await profiler.SendAsync("Profiler.enable"); await profiler.SendAsync("Profiler.start"); }

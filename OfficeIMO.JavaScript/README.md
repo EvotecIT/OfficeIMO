@@ -462,7 +462,7 @@ const blob = bytes.toBlob("text/plain;charset=utf-8");
 console.log(detectFeatures().deflateRaw, blob.size);
 ```
 
-A `ByteSink` implements `write(Uint8Array): void | Promise<void>`. It must accept the bytes before resolving. `BlobByteSink` copies input buffers, so callers can reuse them. `ChunkedTextSink` emits bounded UTF-8 batches and preserves surrogate pairs at append/chunk boundaries. It yields after roughly 8 ms of encoding work; a caller can still supply one large source string. `writeBytes` connects a byte iterable to a sink.
+A `ByteSink` implements `write(Uint8Array): void | Promise<void>`. It must accept the bytes before resolving. `BlobByteSink` copies input buffers, so callers can reuse them. `ChunkedTextSink` emits bounded UTF-8 batches and preserves surrogate pairs at append/chunk boundaries. Text buffering and grid projection share a cooperative yield after roughly 16 ms of work; a caller can still supply one large source string or a slow synchronous callback. `writeBytes` connects a byte iterable to a sink.
 
 Choose CSV for a values-only exchange and XLSX when readers need typed dates/numbers, report layout, highlighting, filtering or formulas. Blob helpers suit downloads whose completed file fits in memory. For large exports, pass a destination to `writeCsvTo` or `writeXlsxTo`, consume a paged async source and await each write; a host-owned worker can keep generation away from the page. The writers yield between batches so page events and cancellation can run. Source getters, formatters and destination callbacks still run in the caller's context and should finish promptly.
 

@@ -1,4 +1,4 @@
-import { checkAbort, pause } from "../../core/iteration.js";
+import { checkAbort, pause, taskYieldDue } from "../../core/iteration.js";
 import { ExportBudget } from "../../core/limits.js";
 import type { Column, ExportValue } from "../../core/index.js";
 import { array, call, indexes, member } from "./api.js";
@@ -82,7 +82,6 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
     consumed = true; return iterate();
   } };
   async function* iterate(): AsyncGenerator<readonly ExportValue[]> {
-    let yieldedAt = performance.now();
     for (let first = 0; first < count; first += batchSize) {
       checkAbort(signal);
       let batch: ExportValue[][];
@@ -130,7 +129,7 @@ export function createDataTablesExport(host: DataTablesHost, table: DataTablesAp
         }
       }
       for (const row of batch) { checkAbort(signal); yield row; }
-      if (performance.now() - yieldedAt >= 8) { await pause(); checkAbort(signal); yieldedAt = performance.now(); }
+      if (taskYieldDue()) { await pause(); checkAbort(signal); }
     }
   }
   function project(input: unknown, rowIndex: number, column: number, rowOrdinal: number): ExportValue {
