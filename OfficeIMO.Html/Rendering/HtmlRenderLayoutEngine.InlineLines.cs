@@ -51,12 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
             if (!HasReplacedImage) {
-                // An inherited short line height may deliberately be smaller than
-                // a child's em. Its glyph overflow belongs to the face metrics,
-                // rather than enlarging the flow line to the em before placement.
-                if (Segments.Count > 0 && HasMixedTextSizes(Segments[0].Run.Style)
-                    && !Segments.Any(segment => segment.Run.AtomicBlock == null
-                        && segment.Run.Style.Font.Size > segment.Run.Style.LineHeight)) {
+                if (Segments.Count > 0 && HasMixedTextSizes(Segments[0].Run.Style)) {
                     double textBaseline = 0D;
                     double textDescent = 0D;
                     foreach (InlineSegment segment in Segments) {
