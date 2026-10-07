@@ -352,29 +352,19 @@
   },
   "next": "settle font and decoration PRs; remediate shared compliance setup separately; adopt exact accepted owners deliberately and preserve proof before removing temporary worktrees",
   "remainingFooterCriterion": {
-    "retainedObservation": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-provider-forks/Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/next-footer-placement-criterion.json",
-    "capturedLineWrapping": "matching heading and paragraph lines; equivalent families/weights/line-heights",
-    "visualObservation": "final96dpi captured footer and browser PDF renders inspected side by side; vertical placement and LIVE badge paint differences remain",
-    "confirmedAdditionalProductDefect": false,
-    "nextIndependentControl": {
-      "viewport": [
-        816,
-        900
-      ],
-      "sameCapturedFontBytes": true,
-      "pageMargins": 0,
-      "cases": [
-        "heading/paragraph alone",
-        "same blocks after preceding logo with explicit used height",
-        "captured normal-flow margins and heading/paragraph keeps"
-      ],
-      "checks": [
-        "source labels once",
-        "captured wrapping",
-        "independent PDF text/ink placement",
-        "exact links/content across frozen profiles"
-      ]
+    "status": "Partial classification, no whole-footer acceptance",
+    "observationRoot": "Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/footer-placement-20261008",
+    "controls": {
+      "resetHeadingParagraph": "Matching scene/DOM box origins and wraps. Independent PDF ink still differs by about 1\u20132 CSS px.",
+      "precedingBlockLogo": "53.94px logo + 16px margin shifts both text blocks by 69.94 CSS px; browser 69.9375px.",
+      "implicitMargins": "Document UA heading/paragraph defaults intentionally differ from browser defaults; existing public style mode contract retained.",
+      "authoredMarginsAndFlow": "Authored 1em heading/paragraph margins and explicit 1.2 body line height preserve spacing. Remaining inline-logo placement delta 0.615 CSS px misses predeclared strict quantization; normal baseline/ink acceptance remains open.",
+      "liveBadge": "Two isolated alias controls reproduce missing nonempty generated inline-block border/padding/background: Office red pixels 0 vs Chromium 2195/2194. Canonical renderer fix in separate fix/html-generated-inline-boxes; not adopted."
     },
-    "measurementBoundary": "Captured font families/numeric weights/line-height are retained. DOM client rectangles and Office scene paint coordinates are different measurement contracts; their Y delta alone does not establish a defect. Compare independent PDF ink/text bounds and a minimal preceding-logo/block-spacing control before any further patch."
+    "sourceContract": "Captured @font-face dm-mono differs from requested DM Mono. Matched alias control changes only alias and retains same font bytes. Alias mismatch is not a product font defect.",
+    "limits": [
+      "Raw PDF geometric whitespace retained. Exact source visible characters and native links agree; no global extractor equivalence claim.",
+      "No stylesheet-default rewrite, typography tolerance relaxation, browser/manual-accessibility or whole-footer parity."
+    ]
   }
 }
