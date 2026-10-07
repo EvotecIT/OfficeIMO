@@ -1745,7 +1745,7 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="PrintPreview.Alignment.BottomRight" xml:space="preserve"><value>En bas à droite</value></data>
   <data name="Conversion.Package.Picker" xml:space="preserve"><value>Choisir un paquet de document Apple</value></data>
   <data name="AnnotationSelection.Count" xml:space="preserve"><value>Annotations sélectionnées sur la page {1} : {0}</value></data>
-  <data name="AnnotationSelection.Help" xml:space="preserve"><value>Shift-click pour ajouter ou retirer des annotations sur plusieurs pages. Tracez une sélection depuis une zone vide sur les pages visibles pour en sélectionner plusieurs. Les groupes sur une même page sont enregistrés dans le PDF. Utilisez les flèches pour parcourir, Space pour sélectionner, Shift+Space pour ajouter et Ctrl+arrows pour déplacer. Redimensionnez les annotations individuellement.</value></data>
+  <data name="AnnotationSelection.Help" xml:space="preserve"><value>Shift+clic pour ajouter ou retirer des annotations sur plusieurs pages. Tracez une sélection depuis une zone vide sur les pages visibles pour en sélectionner plusieurs. Les groupes sur une même page sont enregistrés dans le PDF. Utilisez les flèches pour parcourir, Space pour sélectionner, Shift+Space pour ajouter et Ctrl+flèches pour déplacer. Redimensionnez les annotations individuellement.</value></data>
   <data name="AnnotationSelection.Group" xml:space="preserve"><value>Grouper</value></data>
   <data name="AnnotationSelection.Ungroup" xml:space="preserve"><value>Dégrouper</value></data>
   <data name="AnnotationSelection.Duplicate" xml:space="preserve"><value>Dupliquer</value></data>
