@@ -9,13 +9,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfRunSpacingReviewTests {
-    [Fact]
-    public void SpacedLiteralTokenTextKeepsItsIdentityBesideAGenuinePageField() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LiteralTokenTextKeepsItsIdentityBesideAGenuinePageField(bool spaced) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Main");
         foreach (string literal in new[] { "{page}", "{pages}", "{documentpages}" }) {
             WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph(literal);
-            paragraph.Spacing = 20;
+            if (spaced) paragraph.Spacing = 20;
         }
         WordParagraph mixed = document.HeaderDefaultOrCreate.AddParagraph("{page}");
         mixed.Spacing = 20;
