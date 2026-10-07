@@ -215,8 +215,7 @@ internal static partial class PdfRedactionVerification {
             residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>(),
             appliedImageMatches,
             options.CancellationToken)
-            .Where(static match => match.Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
-                match.Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation)
+            .Where(static match => match.RequiresRemoval)
             .ToArray();
         foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in unverifiedResidualMatches
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
@@ -303,7 +302,9 @@ internal static partial class PdfRedactionVerification {
             cancellationToken.ThrowIfCancellationRequested();
             PdfRedactionArea area = areas[areaIndex];
             if (area.PageNumber < 1 || area.PageNumber > document.Pages.Count) continue;
-            IReadOnlyList<PdfTextSpan> spans = document.Pages[area.PageNumber - 1].GetTextSpansIncludingHiddenOptionalContent();
+            IReadOnlyList<PdfTextSpan> spans = area.RequiresGlyphRewrite
+                ? document.Pages[area.PageNumber - 1].GetGlyphTextSpans(includeHiddenOptionalContent: true, cancellationToken: cancellationToken)
+                : document.Pages[area.PageNumber - 1].GetTextSpansIncludingHiddenOptionalContent();
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 if ((spanIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(spans[spanIndex], area)) return true;

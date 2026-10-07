@@ -191,10 +191,16 @@ public sealed partial class PdfReadPage {
         return GetTextSpans(_includeArtifactText, cancellationToken);
     }
 
+    // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
+    internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        GetTextSpans(_includeArtifactText, cancellationToken, includeHiddenOptionalContent, preserveGlyphText: true);
+
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
         System.Threading.CancellationToken cancellationToken,
-        bool includeHiddenOptionalContent = false) {
+        bool includeHiddenOptionalContent = false,
+        bool preserveGlyphText = false) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -222,6 +228,7 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 pageHeight,
                 includeArtifactText: includeArtifactText,
+                preserveGlyphText: preserveGlyphText,
                 includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
@@ -903,7 +910,8 @@ public sealed partial class PdfReadPage {
         Action<int>? onTextSpan = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
-        TextContentParser.MarkedContentState? inheritedActualTextState = null) {
+        TextContentParser.MarkedContentState? inheritedActualTextState = null,
+        bool preserveGlyphText = false) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1008,6 +1016,7 @@ public sealed partial class PdfReadPage {
             initialTextRenderingMode: initialTextRenderingMode,
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
+            preserveGlyphText: preserveGlyphText,
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
@@ -1149,7 +1158,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
                     initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
                     inheritedActualTextState: inheritedActualTextState ??
-                        (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var formActualText) ? formActualText : null));
+                        (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var formActualText) ? formActualText : null),
+                    preserveGlyphText: preserveGlyphText);
             } finally {
                 activeForms.Remove(formStream);
             }

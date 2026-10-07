@@ -154,7 +154,8 @@ public sealed class PdfRedactionPlan {
             int pageNumber = pageIndex + 1;
             PdfRedactionArea[] pageAreas = reviewedAreas.Where(area => area.PageNumber == pageNumber).ToArray();
             PdfReadPage page = document.Pages[pageIndex];
-            IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
+            IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
+                ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent();
             result[pageIndex] = CreateTextObjectScopes(page, spans, pageAreas)
                 .Where(static scope => scope.HasReviewedIntersection)
                 .ToArray();
@@ -178,7 +179,8 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfRedactionTextObjectScope> reviewedTextObjectScopes,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
+        IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
+            ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent();
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
         PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(page, spans, pageAreas);
         int[] matchedScopeIndices = MatchReviewedTextObjectScopes(reviewedTextObjectScopes, currentTextObjectScopes);

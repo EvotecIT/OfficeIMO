@@ -352,6 +352,8 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             int nativeCount = 0;
             if (request.Recipe.DetectionMode != PdfRedactionDetectionMode.OcrOnly) {
                 PdfRedactionPlan nativePlan = document.Redactions.Search(search);
+                if (!nativePlan.IsReviewable) throw new RedactionWorkflowException($"Native search for rule '{rule.Name}' is blocked: " +
+                    string.Join(", ", nativePlan.Findings.Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error).Select(static finding => finding.Code)));
                 foreach (PdfRedactionArea area in nativePlan.Areas) {
                     AddCandidate(new[] { area.WithPolicies(rule.ContentScope, rule.AppearanceMode) }, new CandidateOrigin("native", rule.Name, rule.ContentScope, rule.AppearanceMode, null, null, null, null));
                 }
@@ -398,7 +400,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static PdfRedactionSearchOptions BuildSearchOptions(PdfRedactionRecipe recipe, PdfRedactionRule rule, int maximumCandidates, CancellationToken cancellationToken) {
-        var search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates, CancellationToken = cancellationToken };
+        var search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, TextSelection = rule.TextSelection, ContentScope = rule.ContentScope, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates, CancellationToken = cancellationToken };
         switch (rule.Kind) {
             case PdfRedactionRuleKind.Literal:
                 search.AddLiteral(rule.Value!);
@@ -469,6 +471,10 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             if (rule is null || !Enum.IsDefined(rule.Kind)) throw new ArgumentException("Recipe rules require known kinds.");
             ValidateRecipeName(rule.Name, "rule", names);
             if (!Enum.IsDefined(rule.ContentScope) || !Enum.IsDefined(rule.AppearanceMode)) throw new ArgumentException("Recipe rules require known content and appearance policies.");
+            if (!Enum.IsDefined(rule.TextSelection)) throw new ArgumentException("Recipe rules require a known text selection policy.");
+            if (rule.TextSelection == PdfRedactionTextSelection.MatchedGlyphs &&
+                (request.Recipe.DetectionMode != PdfRedactionDetectionMode.NativeOnly || rule.Kind is not (PdfRedactionRuleKind.Literal or PdfRedactionRuleKind.Regex)))
+                throw new ArgumentException("MatchedGlyphs requires a Literal or Regex rule and NativeOnly detection.");
             if (rule.Kind != PdfRedactionRuleKind.RedactAnnotations && string.IsNullOrWhiteSpace(rule.Value)) throw new ArgumentException("Literal, Regex, FormField, and LogicalKind rules require non-empty values.");
             if (rule.Kind == PdfRedactionRuleKind.RedactAnnotations && !string.IsNullOrEmpty(rule.Value)) throw new ArgumentException("RedactAnnotations does not accept a value.");
             ruleCharacters += rule.Name.Length + rule.Kind.ToString().Length + (rule.Value?.Length ?? 0);

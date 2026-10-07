@@ -41,14 +41,15 @@ public sealed class PdfRedactionEvidenceReport {
         PdfRedactionVerificationReport verification) {
         ReviewedPlan = reviewedPlan;
         OutputSha256 = outputSha256;
-        ResidualMatches = residualMatches;
+        ResidualMatches = residualMatches.Where(static match => match.RequiresRemoval).ToArray();
         Verification = verification;
         AffectedPageNumbers = reviewedPlan.Areas
             .Select(static area => area.PageNumber)
             .Distinct()
             .OrderBy(static pageNumber => pageNumber)
             .ToArray();
-        Items = BuildItems(reviewedPlan.Matches, residualMatches, inconclusiveMatches, verification.IsVerified);
+        Items = BuildItems(reviewedPlan.Matches.Where(static match => match.RequiresRemoval).ToArray(),
+            ResidualMatches, inconclusiveMatches, verification.IsVerified);
     }
 
     /// <summary>Reviewed plan bound to the exact source bytes that were rewritten.</summary>
@@ -66,10 +67,10 @@ public sealed class PdfRedactionEvidenceReport {
     /// <summary>One-based page numbers affected by the reviewed areas, suitable for targeted preview rendering.</summary>
     public IReadOnlyList<int> AffectedPageNumbers { get; }
 
-    /// <summary>Per-planned-item outcomes established from the rewritten artifact.</summary>
+    /// <summary>Outcomes for planned removals. Underlay intersections preserved by TextOnly are excluded.</summary>
     public IReadOnlyList<PdfRedactionEvidenceItem> Items { get; }
 
-    /// <summary>Content still intersecting reviewed areas in the rewritten PDF.</summary>
+    /// <summary>Content required to be removed that still intersects reviewed areas in the rewritten PDF.</summary>
     public IReadOnlyList<PdfRedactionMatch> ResidualMatches { get; }
 
     /// <summary>Marker, stream, rendering, external-validator, page-identity, and residual-content checks.</summary>
@@ -93,13 +94,13 @@ public sealed class PdfRedactionEvidenceReport {
         : $"PDF redaction evidence is not complete: {ResidualCount} residual and {InconclusiveCount} inconclusive reviewed item(s). {Verification.Summary}";
 
     private static PdfRedactionEvidenceItem[] BuildItems(
-        IReadOnlyList<PdfRedactionMatch> reviewedMatches,
+        PdfRedactionMatch[] reviewedMatches,
         IReadOnlyList<PdfRedactionMatch> residualMatches,
         IReadOnlyList<PdfRedactionMatch> inconclusiveMatches,
         bool verificationPassed) {
-        var items = new PdfRedactionEvidenceItem[reviewedMatches.Count];
+        var items = new PdfRedactionEvidenceItem[reviewedMatches.Length];
         var remainingResiduals = residualMatches.ToList();
-        for (int i = 0; i < reviewedMatches.Count; i++) {
+        for (int i = 0; i < reviewedMatches.Length; i++) {
             PdfRedactionMatch reviewed = reviewedMatches[i];
             int residualIndex = remainingResiduals.FindIndex(candidate => SameReviewedItem(candidate, reviewed));
             PdfRedactionMatch[] residual = residualIndex >= 0

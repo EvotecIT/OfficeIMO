@@ -1571,7 +1571,37 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
-Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. Search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+
+Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging
+to literal or regular-expression occurrences. This uses the same native text flows,
+wrapped-line matching, and table boundaries as located text search. `ContentScope`
+controls the generated areas independently; choose `TextOnly` to preserve artwork
+and images beneath the selected text:
+
+```csharp
+var search = new PdfRedactionSearchOptions {
+    TextSelection = PdfRedactionTextSelection.MatchedGlyphs,
+    ContentScope = PdfRedactionContentScope.TextOnly
+}.AddLiteral("Account: 123-45-6789");
+PdfRedactionPlan precise = source.Redactions.Search(search);
+// Present precise.Areas and any blocking precise.Findings before applying it.
+PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(precise);
+result.ThrowIfUnverified();
+```
+
+Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
+unsupported clipping or glyph evidence, and areas that intersect unselected text
+(including tightly spaced lines whose conservative glyph bounds overlap).
+Inspect `IsReviewable` and `Findings`: a blocked selection cannot be applied, even
+when other criteria matched safely. Its reviewed areas never fall back to complete
+text-object removal. Ordinary `Apply(plan)` also verifies preservation for these
+areas before returning output. Regex criteria must select non-empty source text;
+logical-kind criteria require complete-block selection. Glyph geometry remains the
+reader's positioned width model, rather than an exact glyph-outline guarantee.
+Complete logical blocks and `TextAndUnderlay` remain the search defaults.
+Evidence for `TextOnly` includes text and annotation removals; preserved image and
+vector underlays remain visible in the plan without being counted as removals.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
 
