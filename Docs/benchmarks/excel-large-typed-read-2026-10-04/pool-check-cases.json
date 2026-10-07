@@ -1,0 +1,29 @@
+{
+  "Large-25000-AllRows": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Large-25000-FirstRow": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Typed65K": {
+    "Library": "Excel",
+    "Class": "MarkPflug65KXlsxBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Properties": {}
+  }
+}

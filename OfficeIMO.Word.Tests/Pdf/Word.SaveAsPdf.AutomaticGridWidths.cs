@@ -45,13 +45,16 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(20, 1)]
-    [InlineData(45, 3)]
-    public void SaveAsPdf_AutomaticNoWrapCellWrapsOnlyWhenItsTextExceedsThePage(int characterCount, int expectedLines) {
+    [InlineData(20, 2, WordTableWidthUnit.Dxa)]
+    [InlineData(45, 3, WordTableWidthUnit.Dxa)]
+    [InlineData(20, 1, WordTableWidthUnit.Auto)]
+    [InlineData(45, 3, WordTableWidthUnit.Auto)]
+    public void SaveAsPdf_AutomaticNoWrapCellUsesPreferredWidthType(int characterCount, int expectedLines, WordTableWidthUnit widthType) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutomaticWidthControl(document, 2400);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.WrapText = false;
+        cell.WidthType = widthType;
         cell.Paragraphs[0].Text = "WidthMarker0 " + new string('W', characterCount);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));

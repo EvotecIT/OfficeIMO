@@ -1,0 +1,123 @@
+{
+  "BaselineSource": "6d36a99c4f6e2d0fe36cc56fe40fc4f45c3d9577",
+  "CandidateSource": "d16c7d2ce38710c0314a6a21deeb063f4470ac7e",
+  "BaselineExcelSha256": "B2A78CE55AFD5BE7D70171F67C608BF2E98D955959EBF9577A3229E9443F6898",
+  "CandidateExcelSha256": "203D497961E09EF0AC3292C35054DFBF1303059C299C76F538E2BB40CBABF14D",
+  "MeasuredBenchmarkSha256": "F73266D703B21C75014BEABFC9E8573434790C92B0FCADD49969D01AE423FF50",
+  "Harness": "Identical benchmark assemblies and comparison dependencies in both snapshots; only the Excel product assembly differs.",
+  "Native": {
+    "Runtime": "10.0.12",
+    "SDK": "10.0.112",
+    "BenchmarkDotNet": "0.15.8",
+    "Affinity": "0xFFFF",
+    "Priority": "Normal",
+    "Outliers": "Retained",
+    "Small": {
+      "Cases": 22,
+      "Warmups": 24,
+      "Iterations": 12,
+      "Operations": 4
+    },
+    "Large": {
+      "Cases": 8,
+      "Warmups": 5,
+      "Iterations": 5,
+      "Operations": 1
+    },
+    "AllCasesComplete": true
+  },
+  "Rotated": {
+    "Owner": "PowerForge Invoke-BenchmarkSuite",
+    "Scenarios": 7,
+    "Masks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "Priority": "Normal",
+    "Warmups": 12,
+    "Iterations": 24,
+    "Operations": 4,
+    "Samples": 672,
+    "Failed": 0,
+    "Outliers": "Retained"
+  },
+  "Tests": [
+    {
+      "File": "excel-full-numeric-net10.trx",
+      "Total": 5245,
+      "Passed": 5240,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "B52CEFFB9376DB83BDCCB7CFF63D94879ECADA7AE528287535BB6E3E0D1EEDF3"
+    },
+    {
+      "File": "excel-numeric-net472.trx",
+      "Total": 603,
+      "Passed": 603,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "E98D6160CCAB9B993E9A00C3D4679006CA262794E4C9FF765D94AE16C412BC40"
+    },
+    {
+      "File": "excel-numeric-net8.trx",
+      "Total": 608,
+      "Passed": 608,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "5E493942F3426707B15E8F5417E80AA4B0CA3936C0803D9328920F2B1217D930"
+    },
+    {
+      "File": "_EVOMAGIC_2026-10-04_17_12_04.trx",
+      "Total": 608,
+      "Passed": 608,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "148732B89E2A87239076AC55096CA248296166F04D0C3C7946EA9E00A457366C"
+    }
+  ],
+  "FocusedFilter": "(FullyQualifiedName~Reader|FullyQualifiedName~ReadRange|FullyQualifiedName~SharedString)&Category!=Performance",
+  "FullFilter": "Category!=Performance",
+  "Linux": "Fresh Ubuntu 24.04/WSL source build on .NET 10.0.12 / SDK 10.0.112, 608 focused tests passed. Correctness evidence, not native-Linux timing.",
+  "Builds": [
+    "OfficeIMO.Excel netstandard2.0: zero warnings and errors",
+    "OfficeIMO.Excel.Benchmarks net8.0 and net10.0: zero warnings and errors"
+  ],
+  "Review": {
+    "IndependentReadOnlyPass": true,
+    "ActionableFindings": 0,
+    "Scope": "Numeric XML conversion, complete text/CDATA reading, empty-value advancement, shared-string helpers, affected callers, tests and benchmark equivalence",
+    "Fingerprint": {
+      "Base": "6d36a99c4f6e2d0fe36cc56fe40fc4f45c3d9577",
+      "PatchSha256": "00D1ED943FFFC1F702C2DA94294170B19850D870C2A88AB62D552687B39AD1CE",
+      "NewFiles": [
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.XmlText.cs",
+          "Sha256": "BEEA7F5947102797D690C713639BB7CECC44D0689270A1E09CE774415ACDDAC4"
+        },
+        {
+          "Path": "OfficeIMO.Excel.Tests/Excel.Reader.DecimalXmlValues.cs",
+          "Sha256": "AE7FB4B5C950C4E83A0DAD92A7F30F1FC0C8B148D4D3F7CC5E5145E48C3F7A4C"
+        },
+        {
+          "Path": "OfficeIMO.Excel.Tests/Excel.Reader.XmlValueText.cs",
+          "Sha256": "22A6E0F4B28D758CEE3C309B086D93EC8B6590DA6E831E0BE600CC070C383F81"
+        },
+        {
+          "Path": "OfficeIMO.Excel.Benchmarks/ExcelNumericXmlReadBenchmarks.cs",
+          "Sha256": "FFA99ABD11B96909C0342F22F6ED9AE7BD19A60392105FD83D386013B2A9D8E7"
+        }
+      ]
+    }
+  },
+  "ReproducedBaselineDefects": [
+    "Empty <v/> with cached formula results disabled did not advance and hung the focused baseline test; the owned testhost was stopped.",
+    "Split text and CDATA truncated values: baseline split-text tests failed four cases and passed one."
+  ],
+  "QualificationLimits": [
+    "Host contention and processor-group sensitivity prevent a portable throughput claim. Unfavorable native and rotated observations remain retained.",
+    "Allocation is not retained or peak memory.",
+    "The pre-existing implicit-row coordinate gap remains open.",
+    "The first large launch produced no measurements because relative paths resolved in the BDN worker directory; the corrected run uses absolute paths."
+  ],
+  "SkippedCountSource": "TRX UnitTestResult outcomes, not the VSTest summary notExecuted counter."
+}

@@ -1,0 +1,11 @@
+{
+  "Excel-ValuesCopy-2500": {
+    "Method": "ValuesCopy",
+    "Properties": {
+      "RowCount": 2500
+    },
+    "Class": "ExcelWorksheetCopyBenchmarks",
+    "Library": "Excel",
+    "Setup": "Setup"
+  }
+}

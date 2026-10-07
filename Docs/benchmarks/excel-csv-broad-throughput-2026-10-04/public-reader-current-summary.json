@@ -1,0 +1,246 @@
+{
+  "Observations": 36,
+  "RetainedMeasurements": 864,
+  "Comparisons": [
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-1000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 3.77765,
+      "PeerMedianMs": 1.9074,
+      "OfficeToPeerMedianRatio": 1.980523225332914,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-1000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 3.77765,
+      "PeerMedianMs": 2.5998,
+      "OfficeToPeerMedianRatio": 1.4530540810831603,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-1000000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 2031.29875,
+      "PeerMedianMs": 243.79315,
+      "OfficeToPeerMedianRatio": 8.332058345363683,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-1000000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 2031.29875,
+      "PeerMedianMs": 831.04025,
+      "OfficeToPeerMedianRatio": 2.444284437486632,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-25000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 46.039950000000005,
+      "PeerMedianMs": 7.65775,
+      "OfficeToPeerMedianRatio": 6.012203323430512,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-25000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 46.039950000000005,
+      "PeerMedianMs": 22.07085,
+      "OfficeToPeerMedianRatio": 2.086007108924215,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-250000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 496.54740000000004,
+      "PeerMedianMs": 62.185550000000006,
+      "OfficeToPeerMedianRatio": 7.984932190838546,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 65535,
+      "Scenario": "Rows-250000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 496.54740000000004,
+      "PeerMedianMs": 210.41555,
+      "OfficeToPeerMedianRatio": 2.3598417512393928,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-1000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 3.89905,
+      "PeerMedianMs": 1.9256,
+      "OfficeToPeerMedianRatio": 2.024849397590361,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-1000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 3.89905,
+      "PeerMedianMs": 2.63705,
+      "OfficeToPeerMedianRatio": 1.4785650632335374,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-1000000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 2072.9152,
+      "PeerMedianMs": 251.11305,
+      "OfficeToPeerMedianRatio": 8.254908297278854,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-1000000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 2072.9152,
+      "PeerMedianMs": 833.31515,
+      "OfficeToPeerMedianRatio": 2.487552518395951,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-25000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 46.6881,
+      "PeerMedianMs": 7.806749999999999,
+      "OfficeToPeerMedianRatio": 5.980478432126045,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-25000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 46.6881,
+      "PeerMedianMs": 22.307299999999998,
+      "OfficeToPeerMedianRatio": 2.0929516346666786,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-250000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 480.7356,
+      "PeerMedianMs": 62.808499999999995,
+      "OfficeToPeerMedianRatio": 7.653989507789551,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "Windows",
+      "Placement": 4294901760,
+      "Scenario": "Rows-250000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 480.7356,
+      "PeerMedianMs": 202.13875000000002,
+      "OfficeToPeerMedianRatio": 2.378245635732881,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-1000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 4.17065,
+      "PeerMedianMs": 2.4059999999999997,
+      "OfficeToPeerMedianRatio": 1.7334372402327518,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-1000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 4.17065,
+      "PeerMedianMs": 3.27555,
+      "OfficeToPeerMedianRatio": 1.2732670849170369,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-1000000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 1756.67425,
+      "PeerMedianMs": 258.51014999999995,
+      "OfficeToPeerMedianRatio": 6.795378247237102,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-1000000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 1756.67425,
+      "PeerMedianMs": 799.83665,
+      "OfficeToPeerMedianRatio": 2.1962912677232285,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-25000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 45.582049999999995,
+      "PeerMedianMs": 8.665949999999999,
+      "OfficeToPeerMedianRatio": 5.259902261148518,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-25000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 45.582049999999995,
+      "PeerMedianMs": 21.70455,
+      "OfficeToPeerMedianRatio": 2.100114952855507,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-250000",
+      "Peer": "ExcelReaderNet",
+      "OfficeMedianMs": 455.6056,
+      "PeerMedianMs": 66.0111,
+      "OfficeToPeerMedianRatio": 6.901954368280486,
+      "SamplesPerEngine": 24
+    },
+    {
+      "Host": "macOS",
+      "Placement": "OS scheduled",
+      "Scenario": "Rows-250000",
+      "Peer": "Sylvan",
+      "OfficeMedianMs": 455.6056,
+      "PeerMedianMs": 201.5479,
+      "OfficeToPeerMedianRatio": 2.2605326078813026,
+      "SamplesPerEngine": 24
+    }
+  ]
+}

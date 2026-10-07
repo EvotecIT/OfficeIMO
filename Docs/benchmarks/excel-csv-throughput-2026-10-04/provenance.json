@@ -1,0 +1,111 @@
+{
+  "Date": "2026-10-04",
+  "Baseline": "dfb5753794bbbe6cbb1a71c8e5d6fe83f4ec4f07",
+  "InitialCandidate": "82df6ee4a5c1fccd583496033e7cf503c44c8e61",
+  "TypedBatchCorrection": "28464d9e3f0bc38e0a1f7908625a12e5d58a8c2a",
+  "FinalCandidate": "fe9daeb03098217473946affc1b8109714edc49f",
+  "InitialPatch": "0c0eb6838f7ee29070caa3df9dcefbf2b1d865c0",
+  "CPU": "AMD Ryzen 9 9950X3D2",
+  "Cores": 16,
+  "LogicalProcessors": 32,
+  "L3Domains": [
+    {
+      "MiB": 96,
+      "Mask": "0xFFFF"
+    },
+    {
+      "MiB": 96,
+      "Mask": "0xFFFF0000"
+    }
+  ],
+  "OS": "Windows 11 10.0.26300.9457",
+  "SDK": "10.0.112",
+  "Runtime": ".NET 10.0.12",
+  "Priority": "Normal",
+  "PowerPlan": "High performance",
+  "TimingQualification": "Host contention observed at 100% and 73% total CPU. Preserve all samples. Timing is diagnostic until interpreted alongside identical-version controls; allocation is warm managed bytes, not retained or peak memory.",
+  "Packages": {
+    "SylvanDataExcel": "0.5.8",
+    "ExcelReaderNET": "3.0.1",
+    "BenchmarkDotNet": "0.15.8",
+    "SylvanDataCsv": "1.4.4",
+    "CsvHelper": "33.1.0",
+    "Sep": "0.17.0",
+    "PSPublishModule": "3.0.154.2",
+    "SpreadCheetah": "1.28.0"
+  },
+  "FixtureSource": "MarkPflug/Benchmarks@5e1113a1195bed985c10788a6b89caf551663bb1",
+  "CsvSha256": "AC959F43CF1077B71D310E6E49E3C168BA63A448F1855D45F44E734273EBA490",
+  "XlsxSha256": "0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8",
+  "SharedStringFixture": "Synthetic 256-row Open XML package with default worksheet namespace; every cell and count validated by OfficeIMO and Sylvan before timing. Same candidate benchmark assembly installed in both Excel snapshots.",
+  "WarmLargeExcelReadProbe": {
+    "MeasuredScans": 32,
+    "BaselineBytes": 91567,
+    "Affinity": "0xFFFF",
+    "CandidateBytes": 91529,
+    "Warmups": 32,
+    "Qualification": "Current-thread warm allocation diagnostic, not a replacement for the higher native MemoryDiagnoser observation"
+  },
+  "AssemblyHashes": [
+    {
+      "Snapshot": "baseline-csv",
+      "Assembly": "OfficeIMO.CSV.dll",
+      "Sha256": "90A6489F4A68167D82C999F526F08AA250F7B39252F64366A46B017C0890BE82"
+    },
+    {
+      "Snapshot": "baseline-csv",
+      "Assembly": "OfficeIMO.CSV.Benchmarks.dll",
+      "Sha256": "B724E870ECB53FE16D01B797BE3397B75F36D802E854B2FC4D6101948E50521A"
+    },
+    {
+      "Snapshot": "candidate-csv",
+      "Assembly": "OfficeIMO.CSV.dll",
+      "Sha256": "174284C587D0F7AE45B363649915273A021713D0D2185FF349062E236DCCCFC1"
+    },
+    {
+      "Snapshot": "candidate-csv",
+      "Assembly": "OfficeIMO.CSV.Benchmarks.dll",
+      "Sha256": "E0048B2669D0BCCA7ED21363EC1C9995B42E6D2D127ACF2EEADED0F4CF2ED056"
+    },
+    {
+      "Snapshot": "final-csv",
+      "Assembly": "OfficeIMO.CSV.dll",
+      "Sha256": "EEDDA6AF2298B1F4FE3DE6388EAE0B3FE515A3E714385ECE9B451E9AFA2DF4EC"
+    },
+    {
+      "Snapshot": "final-csv",
+      "Assembly": "OfficeIMO.CSV.Benchmarks.dll",
+      "Sha256": "AF1D7A7A6BB704862EBA6EDEB2273C9052AA8AD261CA5C553FE7CA5F1793DAE3"
+    },
+    {
+      "Snapshot": "qualified-csv",
+      "Assembly": "OfficeIMO.CSV.dll",
+      "Sha256": "1B537C55C6635BC5ACB101B02E150389E73585BEAAF8BAA6BD0DB2D88774ED37"
+    },
+    {
+      "Snapshot": "qualified-csv",
+      "Assembly": "OfficeIMO.CSV.Benchmarks.dll",
+      "Sha256": "9486EC6E3603C440802A1C9E6F734A73077558F495CCB050B5DA6B931FFE901B"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "Assembly": "OfficeIMO.Excel.dll",
+      "Sha256": "734D29F8B2BE8F274E104F1BB57E07DD65E4657815193EF668793015CDEEFACE"
+    },
+    {
+      "Snapshot": "baseline-excel",
+      "Assembly": "OfficeIMO.Excel.Benchmarks.dll",
+      "Sha256": "C3F471BD093152B5B4C1C28B1B9277FE461E657E40020B25EE7FB0E193CF83A2"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "Assembly": "OfficeIMO.Excel.dll",
+      "Sha256": "33B5814A9B959FA525686590DF73D06EBCC4B659EF0183CFC25DBF751F0B4125"
+    },
+    {
+      "Snapshot": "candidate-excel",
+      "Assembly": "OfficeIMO.Excel.Benchmarks.dll",
+      "Sha256": "C3F471BD093152B5B4C1C28B1B9277FE461E657E40020B25EE7FB0E193CF83A2"
+    }
+  ]
+}

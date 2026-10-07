@@ -2,7 +2,6 @@ using System.Data.Common;
 using Apache.Arrow;
 using BenchmarkDotNet.Attributes;
 using ExcelReader.Arrow;
-using ExcelReader.Core.Enums;
 using ExcelReader.Core.Reader;
 using OfficeIMO.Benchmarks;
 using OfficeIMO.Data.Arrow;
@@ -110,7 +109,11 @@ public class ExcelArrowConversionBenchmarks {
         ConvertOfficeIMO(inferSchema: true, batchSize: MarkPflug65KFixture.ExpectedRows);
 
     public ArrowConversionObservation ExcelReaderNet_InferredSchema() {
+#if NET10_0_OR_GREATER
+        using IExcelRowReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+#else
         using IExcelRowReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
+#endif
         ExcelColumnSchema[] schema = ExcelReaderApi.InferSchema(reader, headerRow: 1, SchemaSampleRows);
         using RecordBatch batch = reader.ToArrowRecordBatch(schema, headerRow: 1);
         _excelReaderInferredSchemaDescription ??= DescribeSchema(batch.Schema);
@@ -179,7 +182,11 @@ public class ExcelArrowConversionBenchmarks {
     }
 
     private ArrowConversionObservation ConvertExcelReader(ExcelColumnSchema[] schema) {
+#if NET10_0_OR_GREATER
+        using IExcelRowReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
+#else
         using IExcelRowReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
+#endif
         using RecordBatch batch = reader.ToArrowRecordBatch(schema, headerRow: 1);
         return Observe(batch, batches: 1);
     }

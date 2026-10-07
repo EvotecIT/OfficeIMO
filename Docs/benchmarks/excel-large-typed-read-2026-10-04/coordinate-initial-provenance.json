@@ -1,0 +1,103 @@
+{
+  "BaselineSource": "4c73bdcf356a1150eaf2c491345a8ac01a11d8b9",
+  "CandidateSource": "6a533b30859485579b2c003a2ed231e9a4f0cf8a",
+  "BaselineExcelSha256": "203D497961E09EF0AC3292C35054DFBF1303059C299C76F538E2BB40CBABF14D",
+  "CandidateExcelSha256": "C27FF61A0A2272E1FC6FE37FF94FB7FDCF81406E8AC6B3299AB43C024987F919",
+  "MeasuredBenchmarkSha256": "F73266D703B21C75014BEABFC9E8573434790C92B0FCADD49969D01AE423FF50",
+  "Harness": "Identical benchmark assemblies and comparison dependencies; only the Excel product assembly differs.",
+  "Native": {
+    "Runtime": "10.0.12",
+    "SDK": "10.0.112",
+    "BenchmarkDotNet": "0.15.8",
+    "Affinity": "0xFFFF",
+    "Priority": "Normal",
+    "Outliers": "Retained",
+    "Small": {
+      "Operations": 4,
+      "Iterations": 12,
+      "Cases": 30,
+      "Warmups": 24
+    },
+    "Large": {
+      "Operations": 1,
+      "Iterations": 5,
+      "Cases": 8,
+      "Warmups": 5
+    },
+    "AllCasesComplete": true
+  },
+  "Rotated": {
+    "Owner": "PowerForge Invoke-BenchmarkSuite",
+    "Masks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "Priority": "Normal",
+    "Outliers": "Retained",
+    "Small": {
+      "Scenarios": 15,
+      "Failed": 0,
+      "Iterations": 24,
+      "Operations": 4,
+      "Samples": 1440,
+      "Warmups": 12
+    },
+    "Large": {
+      "Scenarios": 4,
+      "Failed": 0,
+      "Iterations": 12,
+      "Operations": 1,
+      "Samples": 192,
+      "Warmups": 3
+    }
+  },
+  "Tests": [
+    {
+      "File": "excel-full-attributes-net10.trx",
+      "Total": 5251,
+      "Passed": 5246,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "7941DF2FAFA31AEBF7E33CF989B48BBE8F4CC855137A39E75BD4533C4D622D88"
+    },
+    {
+      "File": "coordinate-contracts-net10.trx",
+      "Total": 9,
+      "Passed": 9,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "867F61A4CC1974CA9F7400BF093380FFA12C8863B6C0D01B790BA9FF25C47AD0"
+    }
+  ],
+  "TestScope": "Full Windows .NET 10 non-performance suite before three additional diagnostic cases; all nine coordinate contract cases pass afterward. Other runtime qualification is deferred to the revised candidate.",
+  "Review": {
+    "IndependentReadOnlyPass": true,
+    "ActionableFindings": 0,
+    "Scope": "Coordinate parsing, XmlReader advancement, span lifetime, diagnostics, A1 contracts, affected callers, tests, API and dependency boundaries",
+    "Fingerprint": {
+      "Base": "4c73bdcf356a1150eaf2c491345a8ac01a11d8b9",
+      "PatchSha256": "B10602189FBD4D65CC16C6B2A906988A068DC6110DECF3B01C4B680F8409367C",
+      "NewFiles": [
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.XmlCoordinates.cs",
+          "Sha256": "BCC26D66D76AC98BCFA5D2A8E1D1C99A6863EA8B54265151C6A2048AD3CE78BC"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/Helpers/A1.CellReferenceParsing.cs",
+          "Sha256": "D4C13510AAE3AB97DE82B38496E9D7852AABE945F32D13A9358D0F07517102D9"
+        },
+        {
+          "Path": "OfficeIMO.Excel.Tests/Excel.Reader.XmlCoordinates.cs",
+          "Sha256": "F93D2491A5A2F47D621F57884BE405B2B5EDE38219064F2BBADD85AD6975F27C"
+        }
+      ]
+    }
+  },
+  "Decision": "Allocation improvement is established, but the initial helper is held for throughput remediation. Rotated runs on both processor groups reproduce slower first-row opening; this checkpoint does not qualify overall throughput.",
+  "QualificationLimits": [
+    "Host contention and processor-group sensitivity limit portable timing claims. All slower observations remain retained.",
+    "The 65K corpus again shows warm-pool allocation variance; do not attribute its native difference to this change.",
+    "Allocation is not retained or peak memory.",
+    "The pre-existing implicit-row coordinate gap remains open."
+  ]
+}

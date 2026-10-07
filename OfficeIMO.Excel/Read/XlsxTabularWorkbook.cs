@@ -112,7 +112,8 @@ namespace OfficeIMO.Excel {
                 _prefetchedParts.BeginPrefetch(
                     _prefetchedSheetPartName,
                     MaximumPrefetchedWorksheetBytes,
-                    options.CancellationToken);
+                    options.CancellationToken,
+                    ExcelSheetReader.CanBufferUtf8WorksheetPrefix);
             }
             int maximumPartBytes = options.MaxInputBytes > int.MaxValue
                 ? int.MaxValue

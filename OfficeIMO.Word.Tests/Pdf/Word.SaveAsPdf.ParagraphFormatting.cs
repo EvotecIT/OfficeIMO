@@ -1021,7 +1021,7 @@ namespace OfficeIMO.Tests {
             directOverride._run.RunProperties.Color = new Color { Val = "0000FF" };
             directOverride._run.RunProperties.FontSize = new FontSize { Val = "20" };
 
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) }, modifiers: null)!;
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(WordPdfConverterExtensions).GetNestedType("NativeNoteNumbering", BindingFlags.NonPublic)! }, modifiers: null)!;
             var runs = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
             PdfTextRun run = Assert.Single(runs);
             var overrideRuns = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { directOverride, null }));
@@ -1237,7 +1237,7 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = document.AddParagraph("Native document default font");
             paragraph.SetStyleId(styleId);
 
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) }, modifiers: null)!;
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(WordPdfConverterExtensions).GetNestedType("NativeNoteNumbering", BindingFlags.NonPublic)! }, modifiers: null)!;
             var runs = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
             PdfTextRun run = Assert.Single(runs);
 
@@ -2106,9 +2106,10 @@ namespace OfficeIMO.Tests {
 
                 if (includeBlankParagraph) {
                     WordParagraph blank = document.AddParagraph();
-                    blank.FontSize = 20;
                     blank.LineSpacingBeforePoints = blankSpacingBefore;
                     blank.LineSpacingAfterPoints = 0;
+                    blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
+                        new ParagraphMarkRunProperties(new FontSize { Val = "40" });
                 }
 
                 WordParagraph after = document.AddParagraph(afterMarker);

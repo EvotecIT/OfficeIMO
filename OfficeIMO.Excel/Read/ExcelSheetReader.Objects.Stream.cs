@@ -41,9 +41,13 @@ namespace OfficeIMO.Excel {
                 if (RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
                     return ReadObjectsStreamXmlFast<T>(a1Range, r1, c1, r2, c2, cols, ct);
                 }
+
+                return ReadObjectsStreamBufferedIterator<T>(a1Range, r1, c1, r2, c2, cols, ct);
             }
 
-            return ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct);
+            return RowsAreSortedWithinRange(r1, r2, ct)
+                ? ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct)
+                : ReadObjectsStreamBufferedIterator<T>(a1Range, r1, c1, r2, c2, cols, ct);
         }
 
         private bool CanUseTypedObjectXmlReader() {
@@ -58,123 +62,16 @@ namespace OfficeIMO.Excel {
             int c2,
             int cols,
             CancellationToken ct) where T : new() {
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
-            RewindWorksheetStream(stream);
-            using var reader = OpenWorksheetXmlReader(stream);
-            bool canCancel = ct.CanBeCanceled;
-            TypedPropertyBinding<T>?[]? bindings = null;
-            bool canTrackMappedColumns = false;
-            ulong mappedColumns = 0;
-            int nextRowIndex = 1;
-            int nextDataRow = r1 + 1;
-            Dictionary<int, T>? pendingRows = null;
-            bool checkedSortedGap = false;
-            bool useSortedGapStreaming = false;
-
-            while (reader.Read()) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
+            if (!RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                foreach (T item in ReadObjectsStreamBufferedIterator<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
+                    yield return item;
                 }
-
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
-                    continue;
-                }
-
-                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
-                if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
-                }
-
-                nextRowIndex = rowIndex + 1;
-                if (rowIndex < r1 || rowIndex > r2) {
-                    if (rowIndex > r2 && nextDataRow > r2) {
-                        break;
-                    }
-
-                    SkipXmlElement(reader, "row");
-                    continue;
-                }
-
-                if (rowIndex == r1) {
-                    object?[] headerValues = ReadXmlRowValues(reader, rowIndex, c1, c2, cols, ct);
-                    var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
-                    bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
-                    canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
-                    continue;
-                }
-
-                if (bindings == null) {
-                    foreach (var item in ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
-                        yield return item;
-                    }
-
-                    yield break;
-                }
-
-                if (!canTrackMappedColumns) {
-                    canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
-                }
-
-                var target = new T();
-                ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, target, ct);
-                if (rowIndex == nextDataRow) {
-                    yield return target;
-                    nextDataRow++;
-
-                    while (TryRemovePendingRow(pendingRows, nextDataRow, out var pending)) {
-                        yield return pending;
-                        nextDataRow++;
-                    }
-                } else if (rowIndex > nextDataRow) {
-                    if (!checkedSortedGap) {
-                        checkedSortedGap = true;
-                        useSortedGapStreaming = RowsAreSortedWithinRangeXmlFast(r1, r2, ct);
-                    }
-
-                    if (useSortedGapStreaming) {
-                        while (nextDataRow < rowIndex && nextDataRow <= r2) {
-                            if (canCancel && ((nextDataRow - r1) & 1023) == 0) {
-                                ct.ThrowIfCancellationRequested();
-                            }
-
-                            yield return new T();
-                            nextDataRow++;
-                        }
-
-                        yield return target;
-                        nextDataRow = rowIndex + 1;
-                        continue;
-                    }
-
-                    pendingRows ??= new Dictionary<int, T>();
-                    AddPendingTypedRow(pendingRows, rowIndex, target);
-                }
+                yield break;
             }
 
-            bindings ??= CreateTypedHeaderBindingsFromMissingRow<T>(a1Range, cols);
-            while (nextDataRow <= r2) {
-                if (canCancel && ((nextDataRow - r1) & 1023) == 0) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                if (TryRemovePendingRow(pendingRows, nextDataRow, out var pending)) {
-                    yield return pending;
-                } else {
-                    yield return new T();
-                }
-
-                nextDataRow++;
+            foreach (T item in ReadObjectsStreamXmlFast<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
+                yield return item;
             }
-        }
-
-        private static bool TryRemovePendingRow<T>(Dictionary<int, T>? pendingRows, int rowIndex, out T pending) {
-            if (pendingRows != null && pendingRows.TryGetValue(rowIndex, out pending!)) {
-                pendingRows.Remove(rowIndex);
-                return true;
-            }
-
-            pending = default!;
-            return false;
         }
 
         private void AddPendingTypedRow<T>(Dictionary<int, T> pendingRows, int rowIndex, T row) {
@@ -228,17 +125,13 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawHeader && assignedRowCount == dataRows) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -348,9 +241,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;

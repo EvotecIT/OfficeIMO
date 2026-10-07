@@ -1,0 +1,69 @@
+{
+  "Large-25000-FirstRow": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Large-25000-AllRows": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Large-250000-FirstRow": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Large-250000-AllRows": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "AllRows"
+    }
+  },
+  "Large-1000000-FirstRow": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Large-1000000-AllRows": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "AllRows"
+    }
+  },
+  "Typed65K": {
+    "Library": "Excel",
+    "Class": "MarkPflug65KXlsxBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Properties": {}
+  }
+}

@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
     internal sealed partial class SharedStringCache {
         internal const int Utf8CacheSlotCount = 256;
         internal const int MaximumCachedUtf8ItemBytes = 4 * 1024;
+        private const int MaximumRetainedRunTextCapacity = 64 * 1024;
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
         private readonly Lazy<SharedStringTablePart?> _part;
@@ -104,6 +105,7 @@ namespace OfficeIMO.Excel {
             var table = part.SharedStringTable;
             var list = new List<string>(GetBoundedCapacity(table.UniqueCount?.Value, table.Count?.Value));
             long totalCharacters = 0;
+            StringBuilder? runTextBuffer = null;
             foreach (var item in table.Elements<SharedStringItem>()) {
                 CheckCancellation(list.Count);
                 EnsureCanAddSharedString(list);
@@ -111,7 +113,7 @@ namespace OfficeIMO.Excel {
                 if (item.Text?.Text != null) {
                     value = item.Text.Text;
                 } else if (item.HasChildren) {
-                    value = GetRunText(item, _maxSharedStringItemCharacters);
+                    value = GetRunText(item, _maxSharedStringItemCharacters, ref runTextBuffer);
                 } else {
                     value = string.Empty;
                 }
@@ -135,6 +137,7 @@ namespace OfficeIMO.Excel {
         private bool TryLoadItemsXmlFast(Stream stream, out List<string> items) {
             items = new List<string>();
             long totalCharacters = 0;
+            StringBuilder? runTextBuffer = null;
 
             try {
                 using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(SharedStringXmlReaderSettings));
@@ -163,7 +166,8 @@ namespace OfficeIMO.Excel {
                         string value = ReadSharedStringItemXml(
                             reader,
                             _maxSharedStringItemCharacters,
-                            _cancellationToken);
+                            _cancellationToken,
+                            ref runTextBuffer);
                         ValidateSharedStringText(value, ref totalCharacters);
                         items.Add(value);
                     }
@@ -198,7 +202,8 @@ namespace OfficeIMO.Excel {
         private static string ReadSharedStringItemXml(
             XmlReader reader,
             int maxItemCharacters,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            ref StringBuilder? runTextBuffer) {
             if (reader.IsEmptyElement) {
                 return string.Empty;
             }
@@ -260,7 +265,8 @@ namespace OfficeIMO.Excel {
                     first = text;
                 } else {
                     EnsureItemCharacterBudget(first.Length, text.Length, maxItemCharacters);
-                    builder = new StringBuilder(first.Length + text.Length);
+                    builder = runTextBuffer ??= new StringBuilder(first.Length + text.Length);
+                    builder.Clear();
                     builder.Append(first);
                     builder.Append(text);
                 }
@@ -268,7 +274,7 @@ namespace OfficeIMO.Excel {
                 hasNode = true;
             }
 
-            return builder?.ToString() ?? first ?? string.Empty;
+            return CompleteRunText(builder, first, ref runTextBuffer);
         }
 
         private void CheckCancellation(int iteration) {
@@ -278,10 +284,11 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string GetRunText(OpenXmlElement parent) {
-            return GetRunText(parent, int.MaxValue);
+            StringBuilder? runTextBuffer = null;
+            return GetRunText(parent, int.MaxValue, ref runTextBuffer);
         }
 
-        private static string GetRunText(OpenXmlElement parent, int maxItemCharacters) {
+        private static string GetRunText(OpenXmlElement parent, int maxItemCharacters, ref StringBuilder? runTextBuffer) {
             string? first = null;
             StringBuilder? builder = null;
 
@@ -295,13 +302,22 @@ namespace OfficeIMO.Excel {
                     first = text;
                 } else {
                     EnsureItemCharacterBudget(first.Length, text.Length, maxItemCharacters);
-                    builder = new StringBuilder(first.Length + text.Length);
+                    builder = runTextBuffer ??= new StringBuilder(first.Length + text.Length);
+                    builder.Clear();
                     builder.Append(first);
                     builder.Append(text);
                 }
             }
 
-            return builder?.ToString() ?? first ?? string.Empty;
+            return CompleteRunText(builder, first, ref runTextBuffer);
+        }
+
+        // The buffer belongs to one table load, not the cache or individual items.
+        // Keep each resulting string independent and avoid retaining an unusually large run.
+        private static string CompleteRunText(StringBuilder? builder, string? first, ref StringBuilder? runTextBuffer) {
+            string value = builder?.ToString() ?? first ?? string.Empty;
+            if (runTextBuffer?.Capacity > MaximumRetainedRunTextCapacity) runTextBuffer = null;
+            return value;
         }
 
         public string? Get(int index) {

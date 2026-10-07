@@ -19,10 +19,10 @@ namespace OfficeIMO.Excel {
                 bool sawRowAfterRange = false;
                 int previous = 0;
                 int nextRowIndex = 1;
-                int rowCount = lastRow - firstRow + 1;
-                int rowsSeen = 0;
 
-                while (reader.Read()) {
+                bool advanceReader = true;
+                while (!advanceReader || reader.Read()) {
+                    advanceReader = true;
                     if (canCancel) {
                         token.ThrowIfCancellationRequested();
                     }
@@ -31,24 +31,16 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, token);
                     }
 
                     nextRowIndex = rowIndex + 1;
-                    if (rowIndex < firstRow) {
-                        SkipXmlElement(reader, "row");
-                        continue;
-                    }
-
-                    if (rowIndex > lastRow) {
-                        if (rowsSeen == rowCount) {
-                            return true;
-                        }
-
-                        sawRowAfterRange = true;
-                        SkipXmlElement(reader, "row");
+                    if (rowIndex < firstRow || rowIndex > lastRow) {
+                        if (rowIndex > lastRow) sawRowAfterRange = true;
+                        reader.Skip();
+                        advanceReader = false;
                         continue;
                     }
 
@@ -62,8 +54,8 @@ namespace OfficeIMO.Excel {
 
                     previous = rowIndex;
                     hasPrevious = true;
-                    rowsSeen++;
-                    SkipXmlElement(reader, "row");
+                    reader.Skip();
+                    advanceReader = false;
                 }
 
                 return true;
@@ -83,10 +75,8 @@ namespace OfficeIMO.Excel {
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
-            int rowCount = lastRow - firstRow + 1;
-            int rowsSeen = 0;
 
-            foreach (var row in data.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(data.Elements<Row>(), token)) {
                 if (canCancel) {
                     token.ThrowIfCancellationRequested();
                 }
@@ -94,10 +84,6 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
-                    if (rowsSeen == rowCount) {
-                        return true;
-                    }
-
                     sawRowAfterRange = true;
                     continue;
                 }
@@ -111,7 +97,6 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
-                rowsSeen++;
             }
 
             return true;
@@ -122,8 +107,6 @@ namespace OfficeIMO.Excel {
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
-            int rowCount = lastRow - firstRow + 1;
-            int rowsSeen = 0;
 
             foreach (var row in EnumerateWorksheetRows(token)) {
                 if (canCancel) {
@@ -133,10 +116,6 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
-                    if (rowsSeen == rowCount) {
-                        return true;
-                    }
-
                     sawRowAfterRange = true;
                     continue;
                 }
@@ -150,7 +129,6 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
-                rowsSeen++;
             }
 
             return true;

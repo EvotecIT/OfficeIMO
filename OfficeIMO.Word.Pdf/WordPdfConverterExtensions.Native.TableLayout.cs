@@ -47,6 +47,21 @@ namespace OfficeIMO.Word.Pdf {
             List<double?> derivedMinimums = layout.ColumnWidths
                 .Select(width => (double?)(tableWidth * width / gridWidth * minimumScale))
                 .ToList();
+            if (style.AutoFitWidthUsesContentMinimum) {
+                // Only absolute cell preferences reserve the authored grid width.
+                // Automatic cells share the remaining width according to content.
+                var hasAbsolutePreference = new bool[derivedMinimums.Count];
+                foreach (var cell in EnumerateNativeTableCells(layout)) {
+                    if (cell.Cell.WidthType != WordTableWidthUnit.Dxa || cell.Cell.Width.GetValueOrDefault() <= 0)
+                        continue;
+                    for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < hasAbsolutePreference.Length; column++)
+                        hasAbsolutePreference[column] = true;
+                }
+                for (int column = 0; column < derivedMinimums.Count; column++) {
+                    if (!hasAbsolutePreference[column])
+                        derivedMinimums[column] = null;
+                }
+            }
             if (style.ColumnMinWidthPoints == null || style.ColumnMinWidthPoints.Count == 0) {
                 style.ColumnMinWidthPoints = derivedMinimums;
                 return;
@@ -141,14 +156,16 @@ namespace OfficeIMO.Word.Pdf {
                 style.CellSpacing = cellSpacing.Value;
             }
 
-            double? maxWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
+            double? preferredWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
                 GetNativeTablePreferredWidth(tableStyleDefaults.PreferredWidth, contentWidth);
-            if (maxWidth.HasValue) {
-                style.MaxWidth = maxWidth.Value;
+            if (preferredWidth.HasValue && !style.AutoFitColumns) {
+                style.MaxWidth = preferredWidth.Value;
                 style.PreserveWidth = true;
             } else {
-                double? preferredWidth = GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
+                preferredWidth ??= GetNativeAutoFitGridPreferredWidth(properties, layout, contentWidth, style.CellSpacing);
                 if (preferredWidth.HasValue) {
+                    // An automatic table's preferred width can grow to fit an
+                    // unbreakable cell; it is not a clipping boundary.
                     style.PreferredWidth = preferredWidth.Value;
                     // Positive spacing receives its independent perimeter and
                     // final cell-grid minimums after cell formatting is applied.
@@ -320,20 +337,19 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style, bool preserveConfiguredFallbackPadding, NativeTableStyleDefaults tableStyleDefaults) {
+            if (!preserveConfiguredFallbackPadding) {
+                // Standard Word cell margins apply to each missing side. A
+                // partial table declaration must not lose the horizontal inset.
+                style.CellPaddingTop ??= 0D;
+                style.CellPaddingBottom ??= 0D;
+                style.CellPaddingLeft ??= 5.4D;
+                style.CellPaddingRight ??= 5.4D;
+            }
+            if (tableStyleDefaults.CellPadding != null) {
+                ApplyNativeResolvedTableCellPadding(style, tableStyleDefaults.CellPadding);
+            }
             W.TableCellMarginDefault? margins = table._tableProperties?.TableCellMarginDefault;
             if (margins == null) {
-                if (tableStyleDefaults.CellPadding != null) {
-                    ApplyNativeResolvedTableCellPadding(style, tableStyleDefaults.CellPadding);
-                }
-
-                if (!preserveConfiguredFallbackPadding) {
-                    // Word's Normal Table defaults have no vertical cell margin.
-                    // PDF's presentation padding inflates dense Word rows enough
-                    // to move following content to another page.
-                    style.CellPaddingTop ??= 0D;
-                    style.CellPaddingBottom ??= 0D;
-                }
-
                 return;
             }
 
@@ -348,14 +364,10 @@ namespace OfficeIMO.Word.Pdf {
 
             if (top.HasValue) {
                 style.CellPaddingTop = top.Value;
-            } else if (!preserveConfiguredFallbackPadding) {
-                style.CellPaddingTop = 0D;
             }
 
             if (bottom.HasValue) {
                 style.CellPaddingBottom = bottom.Value;
-            } else if (!preserveConfiguredFallbackPadding) {
-                style.CellPaddingBottom = 0D;
             }
 
             if (left.HasValue) {

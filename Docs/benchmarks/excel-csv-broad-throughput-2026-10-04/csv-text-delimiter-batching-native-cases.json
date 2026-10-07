@@ -1,0 +1,142 @@
+{
+  "File-ShortAscii-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "ShortAscii",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-ShortAscii-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "ShortAscii",
+      "QuoteMode": "Always"
+    }
+  },
+  "File-ShortUnicode-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "ShortUnicode",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-ShortUnicode-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "ShortUnicode",
+      "QuoteMode": "Always"
+    }
+  },
+  "File-DenseJson-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "DenseJson",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-DenseJson-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "DenseJson",
+      "QuoteMode": "Always"
+    }
+  },
+  "File-QuoteRuns-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "QuoteRuns",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-QuoteRuns-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "QuoteRuns",
+      "QuoteMode": "Always"
+    }
+  },
+  "File-LongNotes-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "LongNotes",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-LongNotes-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "LongNotes",
+      "QuoteMode": "Always"
+    }
+  },
+  "File-TypedValues-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "TypedValues",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-TypedValues-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "TypedValues",
+      "QuoteMode": "Always"
+    }
+  },
+  "File-MixedJson25K-AsNeeded": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "MixedJson25K",
+      "QuoteMode": "AsNeeded"
+    }
+  },
+  "File-MixedJson25K-Always": {
+    "Library": "CSV",
+    "Class": "CsvFileWriteBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "Shape": "MixedJson25K",
+      "QuoteMode": "Always"
+    }
+  }
+}

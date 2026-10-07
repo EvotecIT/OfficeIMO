@@ -1,0 +1,115 @@
+{
+  "Observations": 36,
+  "RetainedMeasurements": 1728,
+  "OperationsPerSample": 4,
+  "Comparisons": [
+    {
+      "Host": "Windows",
+      "Case": "File-LongNotes-AsNeeded",
+      "BeforeMedianMs": 4.8298125,
+      "ControlMedianMs": 4.8590125,
+      "AfterMedianMs": 4.5116125,
+      "ControlBeforeRatio": 1.006045783350803,
+      "AfterBeforeRatio": 0.93411752526625
+    },
+    {
+      "Host": "Windows",
+      "Case": "File-MixedJson25K-AsNeeded",
+      "BeforeMedianMs": 7.4601,
+      "ControlMedianMs": 7.54455,
+      "AfterMedianMs": 7.4963999999999995,
+      "ControlBeforeRatio": 1.0113202235894962,
+      "AfterBeforeRatio": 1.0048658865162665
+    },
+    {
+      "Host": "Windows",
+      "Case": "File-ShortAscii-Always",
+      "BeforeMedianMs": 0.751625,
+      "ControlMedianMs": 0.7317625000000001,
+      "AfterMedianMs": 0.7701625000000001,
+      "ControlBeforeRatio": 0.9735739231664727,
+      "AfterBeforeRatio": 1.0246632296690505
+    },
+    {
+      "Host": "Windows",
+      "Case": "File-ShortAscii-AsNeeded",
+      "BeforeMedianMs": 0.7672375,
+      "ControlMedianMs": 0.79235,
+      "AfterMedianMs": 0.78155,
+      "ControlBeforeRatio": 1.03273106437055,
+      "AfterBeforeRatio": 1.0186545887029765
+    },
+    {
+      "Host": "Windows",
+      "Case": "File-ShortUnicode-Always",
+      "BeforeMedianMs": 0.7541875,
+      "ControlMedianMs": 0.88225,
+      "AfterMedianMs": 0.8413375,
+      "ControlBeforeRatio": 1.169801939172951,
+      "AfterBeforeRatio": 1.1155548189276538
+    },
+    {
+      "Host": "Windows",
+      "Case": "File-ShortUnicode-AsNeeded",
+      "BeforeMedianMs": 0.8252375000000001,
+      "ControlMedianMs": 0.885375,
+      "AfterMedianMs": 0.8921,
+      "ControlBeforeRatio": 1.072872960814311,
+      "AfterBeforeRatio": 1.0810221299928808
+    },
+    {
+      "Host": "macOS",
+      "Case": "File-LongNotes-AsNeeded",
+      "BeforeMedianMs": 6.4712,
+      "ControlMedianMs": 6.3778625,
+      "AfterMedianMs": 6.135187500000001,
+      "ControlBeforeRatio": 0.9855764773148721,
+      "AfterBeforeRatio": 0.9480757046606504
+    },
+    {
+      "Host": "macOS",
+      "Case": "File-MixedJson25K-AsNeeded",
+      "BeforeMedianMs": 9.9655,
+      "ControlMedianMs": 9.4128375,
+      "AfterMedianMs": 9.910074999999999,
+      "ControlBeforeRatio": 0.9445424213536702,
+      "AfterBeforeRatio": 0.9944383121770105
+    },
+    {
+      "Host": "macOS",
+      "Case": "File-ShortAscii-Always",
+      "BeforeMedianMs": 1.3740125,
+      "ControlMedianMs": 1.110375,
+      "AfterMedianMs": 1.1321625000000002,
+      "ControlBeforeRatio": 0.8081258358275487,
+      "AfterBeforeRatio": 0.8239826784690825
+    },
+    {
+      "Host": "macOS",
+      "Case": "File-ShortAscii-AsNeeded",
+      "BeforeMedianMs": 1.3938375,
+      "ControlMedianMs": 1.0228375,
+      "AfterMedianMs": 1.1995375,
+      "ControlBeforeRatio": 0.7338283695194023,
+      "AfterBeforeRatio": 0.8606006797779511
+    },
+    {
+      "Host": "macOS",
+      "Case": "File-ShortUnicode-Always",
+      "BeforeMedianMs": 1.5737999999999999,
+      "ControlMedianMs": 1.2899375000000002,
+      "AfterMedianMs": 1.33215,
+      "ControlBeforeRatio": 0.8196324183504895,
+      "AfterBeforeRatio": 0.8464544414792223
+    },
+    {
+      "Host": "macOS",
+      "Case": "File-ShortUnicode-AsNeeded",
+      "BeforeMedianMs": 1.5223624999999998,
+      "ControlMedianMs": 1.5000875,
+      "AfterMedianMs": 1.3462999999999998,
+      "ControlBeforeRatio": 0.9853681366954323,
+      "AfterBeforeRatio": 0.8843491612543004
+    }
+  ]
+}

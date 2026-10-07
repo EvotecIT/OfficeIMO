@@ -62,7 +62,8 @@ namespace OfficeIMO.Word.Pdf {
             string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
             if (int.TryParse(markSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints) && halfPoints > 0)
                 return halfPoints / 2D;
-            return Math.Max(ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, tableRunStyleDefaults),
+            // With no visible text, hidden run sizes cannot enlarge the mark's line.
+            return Math.Max(styleDefaults.FontSize ?? nativeDefaults.FontSize,
                 tableRunStyleDefaults.FontSize ?? 0D);
         }
     }

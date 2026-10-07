@@ -487,7 +487,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int length = textValue.Length;
             if (runs.Count > 0) {
                 LegacyDocWritableRun previous = runs[runs.Count - 1];
-                if (previous.EndCharacter == start && previous.Formatting.Equals(formatting)) {
+                if (previous.EndCharacter == start && previous.Formatting.HasSameEncoding(formatting)) {
                     runs[runs.Count - 1] = previous.Extend(length);
                     return;
                 }
