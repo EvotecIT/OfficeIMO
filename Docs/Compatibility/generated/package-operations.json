@@ -16422,7 +16422,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Structure.HeadersFooters::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".docm",".docx",".dotm",".dotx"],
-      "limitation":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "limitation":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Structure.MainStory:modern-to-legacy",
@@ -16926,7 +16926,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Structure.HeadersFooters::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "limitation":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Structure.MainStory:new-legacy-write",
@@ -17388,7 +17388,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Structure.HeadersFooters::legacy-import",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "limitation":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Structure.MainStory:legacy-import",
@@ -17850,7 +17850,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Structure.HeadersFooters::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "limitation":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Structure.MainStory:legacy-round-trip-edit",
@@ -18312,7 +18312,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Structure.HeadersFooters::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "limitation":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Structure.MainStory:legacy-round-trip-preserve",
@@ -18774,7 +18774,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Structure.HeadersFooters::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Text, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset."
+      "limitation":"Text, supported tables and nesting, fields, links, bookmarks, content controls, and inline pictures are supported within the documented story subset. Tables use the same native formatting limits as the main story."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Structure.MainStory:legacy-to-modern",
