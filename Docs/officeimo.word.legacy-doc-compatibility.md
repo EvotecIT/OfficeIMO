@@ -61,6 +61,7 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Paragraphs, runs, tabs, line/page/column breaks | Projected |
 | Common character and paragraph formatting | Projected |
 | Built-in and custom paragraph styles | Projected |
+| Supported list definitions, marker formatting, starts and instance restarts | Projected; missing, malformed or unsupported definitions report numbering loss |
 | Simple and supported nested tables | Projected |
 | Sections, page setup, headers, and footers | Projected, including supported tables in default, first-page, and even-page stories |
 | Bookmarks and supported internal/external hyperlinks | Projected |
@@ -81,6 +82,8 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
 
 Default, first-page, and even-page headers and footers retain supported tables as editable rows and cells, alongside ordinary story paragraphs. Their tables use the same width, merge, border, palette-shading, nesting, and formatting limits as body tables. Hyperlinks and inline pictures resolve against the containing header or footer part, including pictures within supported nested tables.
+
+Lists retain supported native numbering formats, marker text, alignment, suffixes, paragraph/run formatting, abstract starting values and per-instance start or formatting overrides. An explicit instance restart takes precedence over the abstract start. Native definitions contain level 0 alone or all nine levels; starts range from 0 through 32,767 and instance IDs from 1 through 32,767. Sparse instance IDs keep their paragraph references. Linked numbering styles, picture bullets, unsupported level properties and references to absent instances or levels raise `NotSupportedException` before output is committed. Missing or malformed binary list tables produce a `Numbering` entry in `LegacyDocUnsupportedFeatures`; review that loss before explicitly allowing output.
 
 Supported nested tables retain their cell boundaries, multiple paragraphs per cell, widths and row/cell settings. Native output containing nested tables declares the Word 2000 binary format so Microsoft Word interprets the nested grid. Documents without nested tables retain the Word 97 format declaration.
 

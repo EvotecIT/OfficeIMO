@@ -201,6 +201,8 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
 - Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.
 
+Native `.doc` lists retain supported numbering definitions, marker formatting, abstract starts and per-instance restarts through the normal load/save API. Missing or malformed native list definitions appear in `LegacyDocUnsupportedFeatures` as `Numbering` losses and block normal saving. The [DOC compatibility contract](../Docs/officeimo.word.legacy-doc-compatibility.md) describes supported levels and numbering limits.
+
 Advanced drawing, structured comparison, field evaluation, and evidence boundaries are documented in [Word advanced editing and evidence contracts](../Docs/officeimo.word-advanced-contracts.md). The contracts distinguish persisted drawing geometry from desktop Word layout, detected relocation from native move revisions, and supported legacy DOC writing from arbitrary DOC authoring.
 
 For untrusted files, capability preflight, binary DOC/XLS/XLSB loss policies,

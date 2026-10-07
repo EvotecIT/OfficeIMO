@@ -641,6 +641,13 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
+                    WordList list = document.AddList(WordListStyle.Numbered);
+                    list.Numbering.Levels[2].StartNumberingValue = 12;
+                    list.Numbering.Levels[2].LevelText = "%3.";
+                    document._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+                        .Elements<AbstractNum>().Last().Elements<Level>().ElementAt(2).NumberingFormat = new NumberingFormat { Val = NumberFormatValues.Decimal };
+                    document._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+                        .Elements<NumberingInstance>().Last().NumberID = 9;
                     var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
                     style.Append(new StyleName { Val = "Native DOC Numbered Style" });
                     style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
@@ -670,6 +677,8 @@ namespace OfficeIMO.Tests {
 
                 Numbering numbering = reloaded._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
                 Assert.Contains(numbering.Elements<NumberingInstance>(), instance => instance.NumberID?.Value == 9);
+                Assert.Equal("12.", WordDocumentTraversal.BuildListMarkers(reloaded)[paragraph].Marker);
+                Assert.Empty(reloaded.ValidateDocument());
             } finally {
                 DeleteIfExists(docPath);
             }
