@@ -61,8 +61,8 @@ or resolving a type library.
 
 Modules with source changes are rewritten without compiled prefixes. Writes clear
 project compilation state and `__SRP_` caches so Office rebuilds them. Source uses
-CRLF and the project's code page with strict character checks. Windows-1252 is
-built in; other code pages must be available in the application's runtime or its
+CRLF and the project's code page with strict character checks. Windows-1250 and
+Windows-1252 are built in; other code pages must be available in the application's runtime or its
 already registered encoding provider. The writer uses token-compressed chunks
 and adapts their length for incompressible source, preserving the source bytes
 without inserting padding. Reading existing raw chunks and unchanged-byte

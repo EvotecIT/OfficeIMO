@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Reads reusable, non-executing metadata from an Office VBA compound project.</summary>
-    internal static class OfficeVbaProjectInspector {
+    internal static partial class OfficeVbaProjectInspector {
         private static readonly HashSet<string> InfrastructureStreams = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "dir",
             "_VBA_PROJECT",
