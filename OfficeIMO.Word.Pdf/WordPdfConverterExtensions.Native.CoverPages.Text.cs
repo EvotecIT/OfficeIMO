@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string ResolveNativeVmlRunText(WordDocument document, W.Run run, W.Text textElement) {
-            string text = textElement.Text;
+            string text = WordParagraph.ReadVisibleText(textElement);
             string value = ResolveNativeBuiltInPropertyPlaceholders(document, text);
             string? propertyValue = GetNativeBuiltInPropertyValue(document, GetNativeVmlRunSdtProperties(textElement, run));
             if (!string.IsNullOrWhiteSpace(propertyValue) &&

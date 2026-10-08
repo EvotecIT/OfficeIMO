@@ -255,7 +255,7 @@ public sealed class WordConversionFieldVisibilityTests {
         hyperlink.RemoveAllChildren();
         hyperlink.Append(
             new SdtRun(new SdtContentRun(new Run(new Text("Linked")))),
-            new Run(new Text(" tail")));
+            new Run(new Text(" tail") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
 
         WordParagraph[] runs = paragraph.GetRuns().ToArray();
         Assert.Equal(new[] { "Prefix ", "Linked", " tail" }, runs.Select(run => run.Text));
