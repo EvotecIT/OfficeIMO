@@ -43,6 +43,29 @@ public sealed class OfficeVbaStreamInspectionTests {
     }
 
     [Fact]
+    public void StreamInspectionDoesNotChargeSignatureTranscriptsToTheSourceBudget() {
+        var project = OfficeVbaProject.Create("Inventory");
+        project.AddRegisteredReference("Library", new Guid("11111111-2222-3333-4444-555555555555"), path: new string('x', 4000));
+        var streams = ReadStreams(project.Write().GetBytes());
+        Assert.True(OfficeVbaCompression.TryDecompress(streams["VBA/dir"], 20000, out byte[] directory, out _));
+        var inspection = OfficeVbaProjectInspector.Inspect(streams, directory.Length);
+        Assert.Null(inspection.Limitation); Assert.Single(inspection.References);
+        Assert.NotNull(OfficeVbaProjectInspector.Inspect(streams, directory.Length - 1).Limitation);
+    }
+
+    [Fact]
+    public void StreamInspectionRetainsInventoryForAnOverexpandedModuleChunk() {
+        var project = OfficeVbaProject.Create("Inventory");
+        project.AddModule("Helpers", "'original");
+        var streams = ReadStreams(project.Write().GetBytes());
+        streams["VBA/Helpers"] = new byte[] { 1, 4, 0xb0, 2, 0x41, 0xfc, 0x0f, 0x42 };
+        var inspection = OfficeVbaProjectInspector.Inspect(streams, 20000);
+        Assert.Null(inspection.Limitation);
+        var module = Assert.Single(inspection.Modules);
+        Assert.Equal("Helpers", module.Name); Assert.Null(module.Source); Assert.Contains("4096", module.Limitation);
+    }
+
+    [Fact]
     public void Windows1250SourceCanBeCreatedReadAndEditedWithStrictCharacterChecks() {
         const string text = "' Zażółć gęślą jaźń\r\n";
         var project = OfficeVbaProject.Create("Polish", 1250);

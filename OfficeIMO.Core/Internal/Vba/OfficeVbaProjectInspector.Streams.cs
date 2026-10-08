@@ -12,7 +12,7 @@ internal static partial class OfficeVbaProjectInspector {
         if (maximumExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
         if (!streams.TryGetValue("VBA/dir", out byte[]? compressed)) return new OfficeVbaInspection("The project has no VBA directory stream.");
         if (!OfficeVbaCompression.TryDecompress(compressed, maximumExpandedBytes, out byte[] directory, out string detail)
-            || !OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, maximumExpandedBytes, out var model, out detail) || model == null)
+            || !OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, maximumExpandedBytes, out var model, out detail, includeSignatureTranscripts: false) || model == null)
             return new OfficeVbaInspection(detail);
         int remaining = maximumExpandedBytes - directory.Length;
         var modules = new List<OfficeVbaModuleInspection>();
