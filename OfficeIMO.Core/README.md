@@ -77,8 +77,10 @@ Document adapters retain a bounded recovery snapshot of the existing VBA payload
 and child parts while applying an update. `OfficeVbaWriteOptions.MaximumRecoveryBytes`
 controls that separate limit, which defaults to 64 MiB; `MaximumProjectBytes`
 continues to bound the new output, so a smaller replacement can replace a larger
-existing project. Recoverable storage failures restore the prior payload and
-child parts. If the backing storage also prevents restoration, the adapter throws
+existing project. Media data-part references in that VBA subgraph are rejected
+before mutation. Recoverable storage failures restore the prior payload and
+child parts, including Word's final named-module removal. If the backing storage
+also prevents restoration or cleanup, the adapter throws
 an `AggregateException` containing both failures; discard that document instance.
 
 Word, Excel, and PowerPoint expose `ReadVbaProject()` and
