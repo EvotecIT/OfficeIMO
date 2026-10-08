@@ -17,6 +17,35 @@ public sealed class AccessNativeSafetyTests {
         }
         throw new InvalidOperationException("The independently produced fixture field was not found.");
     }
+    [Theory]
+    [InlineData("LvProp", "Type", "TypX")]
+    [InlineData("Attribute", "ObjectId", "ObjectIX")]
+    [InlineData("szRelationship", "grbit", "grbix")]
+    [InlineData("ComplexID", "ComplexID", "ComplexIX")]
+    public void RequiredSystemCatalogFieldsCannotBecomeEmptyDecodedInventories(string marker, string field, string replacement) {
+        byte[] bytes = Source(); int start = Definition(bytes, marker) * 4096;
+        int count = U16(bytes, start + 45), indexes = I32(bytes, start + 51), position = start + 63 + indexes * 12 + count * 25;
+        bool changed = false;
+        for (int i = 0; i < count; i++) {
+            int length = U16(bytes, position); position += 2;
+            if (Encoding.Unicode.GetString(bytes, position, length).Equals(field, StringComparison.OrdinalIgnoreCase)) {
+                byte[] name = Encoding.Unicode.GetBytes(replacement); Assert.Equal(length, name.Length); Array.Copy(name, 0, bytes, position, length); changed = true;
+            }
+            position += length;
+        }
+        Assert.True(changed); using var input = new MemoryStream(bytes);
+        var error = Assert.Throws<InvalidDataException>(() => AccessDocument.Load(input)); Assert.Contains("required field", error.Message);
+    }
+    [Fact]
+    public void UnknownPropertiesRetainBytesAndProduceNamedProfileMappingLoss() {
+        byte[] bytes = Source(); int changed = 0;
+        for (int i = 0; i < bytes.Length - 3; i++) if (bytes[i] == 'M' && bytes[i + 1] == 'R' && bytes[i + 2] == '2' && bytes[i + 3] == 0) { bytes[i] = (byte)'X'; changed++; }
+        Assert.True(changed > 0); using var input = new MemoryStream(bytes); using var document = AccessDocument.Load(input);
+        var table = document.Tables["Scalars"]; Assert.NotNull(table.NativeProperties); Assert.Equal((byte)'X', table.NativeProperties!.GetBytes()[0]);
+        Assert.Contains(table.Diagnostics, x => x.Code == "access.properties.opaque");
+        Assert.Contains(document.AssessSave("target.mdb").Diagnostics, x => x.Code == "access.conversion.loss.opaque-properties" && x.ObjectId == table.Id);
+        using var rows = table.OpenDataReader(); Assert.True(rows.Read()); Assert.Equal(int.MaxValue, rows["Whole"]);
+    }
     [Fact]
     public void CyclicAndTruncatedDefinitionChainsRejectBeforeUserDataRead() {
         byte[] cyclic = Source(); int definition = Definition(cyclic, "Precise") * 4096;

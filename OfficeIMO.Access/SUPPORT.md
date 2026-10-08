@@ -35,7 +35,7 @@ The A02/A03 reader uses one schema and `DbDataReader` API for MDB and ACCDB. Req
 | Dates and identities | Ordinary Date/Time including pre-epoch/leap dates, GUID and extended Date/Time with persisted scale 0–7; dates have unspecified timezone |
 | Field presentation | Rich-text markup, hyperlink strings and lookup properties/keys retained without rendering, navigation or value substitution |
 | Complex values | Multivalued text and attachments retain parent key, typed backing schema/rows and exact encoded content; attachment decode checks the native envelope, zlib checksum and expansion limit. Other backing structures expose native rows without claiming a qualified convenience interpretation |
-| Queries | Exact native records and parameter inventory; qualified simple single-table SELECT (including wildcard/expressions) and two-part UNION reconstruction. Other shapes keep `HasSql=false` and diagnostics; no SQL is executed |
+| Queries | Exact native records and parameter inventory; qualified simple single-table SELECT (including wildcard/expressions) and two-part UNION reconstruction. Sized parameters, external-source qualifiers and other unqualified shapes keep `HasSql=false` and diagnostics; no SQL is executed |
 | Calculated/unknown fields | Exact `AccessOpaqueValue`, expression metadata and column diagnostics; no evaluation or silent coercion |
 | Security metadata | Catalog owner SID bytes and system permission records are inspectable; no authentication, permission enforcement or security-policy changes |
 
@@ -54,8 +54,9 @@ Readers expose deterministic schema before the first row and support `DataTable.
 | Large Number to Jet or ACE 12/14 | `access.conversion.loss.large-number` |
 | Date/Time Extended to profiles other than ACE 17 | `access.conversion.loss.extended-date` |
 | Calculated field to Jet or ACE 12 | `access.conversion.loss.calculated` |
+| Opaque property metadata to a different family/profile without a qualified mapping | `access.conversion.loss.opaque-properties` |
 
-Unsupported property maps, calculated values and application carriers stay exact opaque metadata or explicitly undecoded. The unavailable writer blocks persistence and preservation claims for these definitions, including unknown properties whose semantic conversion is not established.
+Unsupported property maps, calculated values and application carriers stay exact opaque metadata or explicitly undecoded. Opaque property mappings are diagnosed when the target family/profile changes. The unavailable writer blocks persistence and preservation claims for these definitions.
 
 ## Reusable owners
 

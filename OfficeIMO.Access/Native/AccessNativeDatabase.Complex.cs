@@ -3,12 +3,13 @@ namespace OfficeIMO.Access;
 internal sealed partial class AccessNativeDatabase {
     private void LoadComplexDefinitions(CancellationToken cancellation) {
         if (!_tables.TryGetValue("MSysComplexColumns", out var metadata)) return;
+        RequireFields(metadata, "ComplexID", "ConceptualTableID", "FlatTableID", "ComplexTypeObjectID", "ColumnName");
         var definitions = new Dictionary<int, (int Table, int Flat, int Type, string? Column)>();
         using (var rows = new AccessNativeRowCursor(metadata, cancellation, rowLimit: MaxCatalogObjects)) while (rows.Read(cancellation)) {
-            int id = Convert.ToInt32(Field(metadata, rows, "ComplexID", cancellation));
+            int id = Convert.ToInt32(RequiredField(metadata, rows, "ComplexID", cancellation));
             if (definitions.ContainsKey(id) || definitions.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access complex definitions are ambiguous or exceed their limit.");
-            definitions.Add(id, (Convert.ToInt32(Field(metadata, rows, "ConceptualTableID", cancellation)), Convert.ToInt32(Field(metadata, rows, "FlatTableID", cancellation)),
-                Convert.ToInt32(Field(metadata, rows, "ComplexTypeObjectID", cancellation)), Field(metadata, rows, "ColumnName", cancellation) as string));
+            definitions.Add(id, (Convert.ToInt32(RequiredField(metadata, rows, "ConceptualTableID", cancellation)), Convert.ToInt32(RequiredField(metadata, rows, "FlatTableID", cancellation)),
+                Convert.ToInt32(RequiredField(metadata, rows, "ComplexTypeObjectID", cancellation)), RequiredField(metadata, rows, "ColumnName", cancellation) as string));
         }
         foreach (var table in _tables.Values.ToArray()) foreach (var column in table.Columns.Where(x => x.Type == 18)) {
             cancellation.ThrowIfCancellationRequested();

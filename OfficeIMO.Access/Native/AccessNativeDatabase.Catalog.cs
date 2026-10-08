@@ -8,14 +8,15 @@ internal sealed partial class AccessNativeDatabase {
     private readonly List<NativeCatalogRecord> _catalog = new List<NativeCatalogRecord>();
     internal void LoadCatalog(CancellationToken cancellation) {
         var catalog = Definition(2, "MSysObjects", cancellation);
+        RequireFields(catalog, "Id", "Name", "Type", "Flags");
         using (var rows = new AccessNativeRowCursor(catalog, cancellation, rowLimit: MaxCatalogObjects)) {
             while (rows.Read(cancellation)) {
                 if (_catalog.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access catalog exceeds MaxCatalogObjects.");
                 var record = new NativeCatalogRecord {
-                    Id = Convert.ToInt32(Field(catalog, rows, "Id", cancellation)),
+                    Id = Convert.ToInt32(RequiredField(catalog, rows, "Id", cancellation)),
                     Name = Field(catalog, rows, "Name", cancellation) as string ?? throw new InvalidDataException("Native Access catalog name is missing."),
-                    Type = Convert.ToInt32(Field(catalog, rows, "Type", cancellation)),
-                    Flags = Convert.ToInt32(Field(catalog, rows, "Flags", cancellation)),
+                    Type = Convert.ToInt32(RequiredField(catalog, rows, "Type", cancellation)),
+                    Flags = Convert.ToInt32(RequiredField(catalog, rows, "Flags", cancellation)),
                     Properties = Field(catalog, rows, "LvProp", cancellation) as byte[],
                     Source = Field(catalog, rows, "Database", cancellation) as string,
                     ForeignTable = Field(catalog, rows, "ForeignName", cancellation) as string,
@@ -63,7 +64,8 @@ internal sealed partial class AccessNativeDatabase {
     private AccessTable Model(AccessNativeTable definition, bool system) {
         var table = new AccessTable(_document, definition.Name) { NativeTable = definition, IsSystem = system }; definition.Model = table;
         foreach (var native in definition.Columns) {
-            var column = new AccessColumn(table, native.Name, DataType(native), native.Type == 10 ? native.Size / 2 : (int?)null) {
+            AccessDataType dataType = DataType(native);
+            var column = new AccessColumn(table, native.Name, dataType, dataType == AccessDataType.ShortText ? native.Size / 2 : (int?)null) {
                 IsAutoNumber = (native.Flags & 0x44) != 0, IsHyperlink = (native.Flags & 0x80) != 0, IsCalculated = native.Calculated,
                 Precision = native.Type == 16 ? native.Precision : (int?)null, Scale = native.Type == 16 ? native.Scale : (int?)null
             };
@@ -81,8 +83,15 @@ internal sealed partial class AccessNativeDatabase {
         int ordinal = table.Columns.FindIndex(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, name));
         return ordinal < 0 ? null : rows.GetValue(ordinal, cancellation);
     }
+    private static void RequireFields(AccessNativeTable table, params string[] names) {
+        foreach (string name in names) if (!table.Columns.Any(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, name)))
+            throw new InvalidDataException($"Native Access system table '{table.Name}' is missing required field '{name}'.");
+    }
+    private static object RequiredField(AccessNativeTable table, IAccessRowCursor rows, string name, CancellationToken cancellation) =>
+        Field(table, rows, name, cancellation) ?? throw new InvalidDataException($"Native Access system field '{table.Name}.{name}' is missing or null.");
     private void LoadRelationships(CancellationToken cancellation) {
         if (_tables.TryGetValue("MSysRelationships", out var definition)) {
+            RequireFields(definition, "szRelationship", "szReferencedObject", "szReferencedColumn", "szObject", "szColumn", "icolumn", "ccolumn", "grbit");
             var records = new Dictionary<string, List<NativeRelationshipField>>(StringComparer.OrdinalIgnoreCase);
             using (var rows = new AccessNativeRowCursor(definition, cancellation, rowLimit: checked((long)MaxCatalogObjects * 10))) while (rows.Read(cancellation)) {
                 string name = (string?)Field(definition, rows, "szRelationship", cancellation) ?? throw new InvalidDataException("Native Access relationship has no name.");
@@ -91,8 +100,8 @@ internal sealed partial class AccessNativeDatabase {
                 fields.Add(new NativeRelationshipField {
                     ParentTable = (string?)Field(definition, rows, "szReferencedObject", cancellation), ParentColumn = (string?)Field(definition, rows, "szReferencedColumn", cancellation),
                     ChildTable = (string?)Field(definition, rows, "szObject", cancellation), ChildColumn = (string?)Field(definition, rows, "szColumn", cancellation),
-                    Ordinal = Convert.ToInt32(Field(definition, rows, "icolumn", cancellation)), Count = Convert.ToInt32(Field(definition, rows, "ccolumn", cancellation)),
-                    Flags = Convert.ToInt32(Field(definition, rows, "grbit", cancellation))
+                    Ordinal = Convert.ToInt32(RequiredField(definition, rows, "icolumn", cancellation)), Count = Convert.ToInt32(RequiredField(definition, rows, "ccolumn", cancellation)),
+                    Flags = Convert.ToInt32(RequiredField(definition, rows, "grbit", cancellation))
                 });
             }
             foreach (var pair in records) {

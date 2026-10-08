@@ -14,7 +14,7 @@ Native read, in-memory modeling and persistence have separate qualification boun
 | `native.query.records.read` | Yes | Exact inert query records and typed parameter inventory. Simple single-table SELECT and two-part UNION SQL reconstruction is qualified; other query SQL remains explicitly unavailable. |
 | `native.create` | No | Template-free catalog/allocation/index/relationship writing is not qualified. |
 | `native.edit` | No | Native editing and opaque preservation are not qualified. |
-| `native.convert` | No | Known complex-field, rich-text, BigInt and extended-date target losses are diagnosed. Native conversion and persistence remain unavailable. |
+| `native.convert` | No | Known complex-field, rich-text, BigInt, extended-date and unqualified opaque-property target mappings are diagnosed. Native conversion and persistence remain unavailable. |
 | `application.objects.read` | No | Forms, reports and action macros are NotDecoded for native input. |
 | `application.objects.write` | No | No native form/report/macro/module writer is qualified. |
 | `vba.inspect` | No | Access-specific VBA storage and signature carriers are not decoded. |

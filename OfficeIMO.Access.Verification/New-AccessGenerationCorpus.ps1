@@ -9,7 +9,7 @@ function Get-LegacyObservation([string] $Path) {
     try {
         $source=$oracle.OpenDatabase($Path,$false,$true); $rows=$source.OpenRecordset('Legacy',4)
         $values=[ordered]@{}; foreach($name in @('Id','Label','Notes','Link','Occurred')){$values[$name]=$rows.Fields.Item($name).Value}
-        $queries=[ordered]@{}; foreach($name in @('LegacyNames','LegacyRawUnion','LegacyStarExpression','LegacyGrouped')){
+        $queries=[ordered]@{}; foreach($name in @('LegacyNames','LegacyRawUnion','LegacyStarExpression','LegacyGrouped','LegacySizedParameter','LegacyQualifiedSource')){
             $query=$source.QueryDefs.Item($name); try{$queries[$name]=$query.SQL}finally{[Runtime.InteropServices.Marshal]::FinalReleaseComObject($query)|Out-Null}
         }
         return [ordered]@{consumer='DAO independent read-only reopen'; values=$values; queries=$queries}
@@ -36,6 +36,8 @@ try {
                 $query=$db.CreateQueryDef('LegacyRawUnion','SELECT Id FROM Legacy UNION ALL SELECT Id FROM Legacy;'); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query)|Out-Null
                 $query=$db.CreateQueryDef('LegacyStarExpression','SELECT *, Id+1 AS NextId FROM Legacy;'); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query)|Out-Null
                 $query=$db.CreateQueryDef('LegacyGrouped','SELECT Label, Count(*) AS Total FROM Legacy GROUP BY Label;'); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query)|Out-Null
+                $query=$db.CreateQueryDef('LegacySizedParameter','PARAMETERS selectedName Text(8); SELECT Id FROM Legacy WHERE Label=selectedName;'); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query)|Out-Null
+                $query=$db.CreateQueryDef('LegacyQualifiedSource','SELECT Id FROM Legacy IN '+[char]34+$path+[char]34+';'); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query)|Out-Null
                 $connect=$db.CreateTableDef('LocalLink'); $connect.Connect=';DATABASE='+$path; $connect.SourceTableName='Legacy'; $db.TableDefs.Append($connect); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($connect)|Out-Null
                 $protected=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../OfficeIMO.Access.Tests/Fixtures/Profiles/password-jet4.mdb'))
                 $connect=$db.CreateTableDef('CredentialLink'); $connect.Connect=';DATABASE='+$protected+';PWD=Fixture123'; $connect.SourceTableName='Probe'; $connect.Attributes=131072; $db.TableDefs.Append($connect); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($connect)|Out-Null
@@ -73,12 +75,13 @@ try {
     $path=Join-Path $root 'calculated-ace14.accdb'; $db=$engine.CreateDatabase($path,';LANGID=0x0409;CP=1252',128)
     try {
         $table=$db.CreateTableDef('Calculated'); $id=$table.CreateField('Id',4); $table.Fields.Append($id)
-        $value=$table.CreateField('Value',4); $value.Expression='[Id]+1'; $table.Fields.Append($value); $db.TableDefs.Append($table)
-        foreach($item in @($id,$value,$table)){[Runtime.InteropServices.Marshal]::FinalReleaseComObject($item)|Out-Null}
+        $value=$table.CreateField('Value',4); $value.Expression='[Id]+1'; $table.Fields.Append($value)
+        $text=$table.CreateField('TextValue',10,80); $text.Expression='"Value-" & [Id]'; $table.Fields.Append($text); $db.TableDefs.Append($table)
+        foreach($item in @($id,$value,$text,$table)){[Runtime.InteropServices.Marshal]::FinalReleaseComObject($item)|Out-Null}
         $db.Execute('INSERT INTO Calculated (Id) VALUES (41)',128)
     }finally{$db.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($db)|Out-Null}
     $db=$engine.OpenDatabase($path,$false,$true)
-    try{$rs=$db.OpenRecordset('Calculated',4); try{$calculated=[ordered]@{id=$rs.Fields.Item('Id').Value;value=$rs.Fields.Item('Value').Value}}finally{$rs.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($rs)|Out-Null}}finally{$db.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($db)|Out-Null}
+    try{$rs=$db.OpenRecordset('Calculated',4); try{$calculated=[ordered]@{id=$rs.Fields.Item('Id').Value;value=$rs.Fields.Item('Value').Value;text=$rs.Fields.Item('TextValue').Value}}finally{$rs.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($rs)|Out-Null}}finally{$db.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($db)|Out-Null}
     $manifest.files+=[ordered]@{path='calculated-ace14.accdb'; sha256=(Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant(); length=(Get-Item -LiteralPath $path).Length; headerVersion=[int]([IO.File]::ReadAllBytes($path))[20]; daoObservation=$calculated; nativeContract='Exact calculated representation and expression metadata; OfficeIMO does not evaluate it'}
 }finally{if($app){$app.Quit(2); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($app)|Out-Null}; if($engine){[Runtime.InteropServices.Marshal]::FinalReleaseComObject($engine)|Out-Null}}
 $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $root 'manifest.json') -Encoding utf8

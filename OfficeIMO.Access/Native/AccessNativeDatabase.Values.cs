@@ -25,8 +25,8 @@ internal sealed partial class AccessNativeDatabase {
                 catch (ArgumentException exception) { throw new InvalidDataException("Native Access date is outside its supported range.", exception); }
             case 9: case 17: return bytes.ToArray();
             case 10: { string value = Text(bytes); return column.RedactConnection ? RedactConnection(value)! : value; }
-            case 11: return LongValue(bytes, cancellation, limit);
-            case 12: { string value = Text(LongValue(bytes, cancellation, limit)); return column.RedactConnection ? RedactConnection(value)! : value; }
+            case 11: return LongValue(bytes, cancellation, maximumBytes);
+            case 12: { string value = Text(LongValue(bytes, cancellation, maximumBytes)); return column.RedactConnection ? RedactConnection(value)! : value; }
             case 15: return new Guid(bytes.ToArray());
             case 19: return I64(bytes, 0);
             case 16: return Numeric(column, bytes);

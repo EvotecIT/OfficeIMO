@@ -107,6 +107,12 @@ public sealed partial class AccessDocument {
         if (jet != (target == AccessFileFormat.Mdb)) throw new ArgumentException("The Access target profile and file family disagree.", nameof(options));
         var diagnostics = new List<AccessDiagnostic> { new AccessDiagnostic("access.native-write.unsupported", "Template-free native Access writing is not qualified. No output is produced.") };
         if (target != Format) diagnostics.Add(new AccessDiagnostic("access.conversion.unsupported", "MDB/ACCDB conversion and persistence codecs are unavailable. Feature-loss diagnostics do not enable output."));
+        if (target != Format || profile != Profile) {
+            if (Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)))
+                diagnostics.Add(new AccessDiagnostic("access.conversion.loss.opaque-properties", "The target has no qualified mapping for this database's opaque property metadata; preservation cannot be assumed.", Id));
+            foreach (var table in Tables) if (table.Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)) || table.Columns.Any(x => x.Properties.Values.Any(value => value is AccessOpaqueValue)))
+                diagnostics.Add(new AccessDiagnostic("access.conversion.loss.opaque-properties", "The target has no qualified mapping for this table's opaque property metadata; preservation cannot be assumed.", table.Id));
+        }
         foreach (var table in Tables) foreach (var column in table.Columns) {
             string? feature = target == AccessFileFormat.Mdb && column.DataType == AccessDataType.Complex ? "complex." + (column.ComplexDefinition?.Kind.ToString().ToLowerInvariant() ?? "unknown")
                 : column.DataType == AccessDataType.Int64 && (jet || profile == AccessFormatProfile.Ace12 || profile == AccessFormatProfile.Ace14) ? "large-number"

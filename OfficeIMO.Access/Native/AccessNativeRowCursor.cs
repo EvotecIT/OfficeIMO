@@ -107,7 +107,7 @@ internal sealed class AccessNativeRow {
         var payload = Payload(column);
         if (column.Type == 11) return new AccessNativeLongValueStream(_table.Database, payload, cancellation);
         if (payload.Length > _table.Database.MaxValueBytes) throw new InvalidDataException("Native Access binary value exceeds MaxValueBytes.");
-        return new MemoryStream(payload.ToArray(), writable: false);
+        return new OfficeIMO.Core.Internal.OfficeDocumentReadStream(new MemoryStream(payload.ToArray(), writable: false), _table.Database.Document.EnsureNotDisposed, cancellation);
     }
     internal object? Value(int ordinal, CancellationToken cancellation) {
         ValidateOrdinal(ordinal); cancellation.ThrowIfCancellationRequested(); if (_decoded[ordinal]) return _values[ordinal];

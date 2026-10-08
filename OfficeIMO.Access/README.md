@@ -87,7 +87,7 @@ foreach (AccessTable table in source.Tables.Where(x => x.IsLinked)) {
 }
 ```
 
-Saved queries are inert. SQL reconstruction covers the qualified simple single-table SELECT and two-part UNION shapes; `HasSql` is false for other shapes and `Sql` then throws. `NativeRecords` retains all query attributes and exact record bytes, including unsupported definitions. Original expressions and typed parameters remain available without execution.
+Saved queries are inert. SQL reconstruction covers the qualified simple single-table SELECT and two-part UNION shapes. Sized parameters, external-source qualifiers and other unqualified shapes have `HasSql` false and `Sql` then throws. `NativeRecords` retains all query attributes and exact record bytes, including unsupported definitions. Original expressions and typed parameters remain available without execution.
 
 Ordinary linked-table views and the `MSysObjects.Connect` reader redact credential fields. Explicit raw catalog-row access can contain sensitive native data; callers control whether to inspect or export those bytes.
 

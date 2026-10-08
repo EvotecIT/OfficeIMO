@@ -133,6 +133,11 @@ public sealed class AccessNativeReaderTests {
         Assert.Equal("SELECT Id+1 AS [NextId], *\nFROM [Legacy];", document.Queries["LegacyStarExpression"].Sql);
         var grouped = document.Queries["LegacyGrouped"]; Assert.False(grouped.HasSql);
         Assert.NotEmpty(grouped.NativeRecords); Assert.Throws<NotSupportedException>(() => grouped.Sql);
+        var sized = document.Queries["LegacySizedParameter"]; Assert.False(sized.HasSql);
+        Assert.Contains(sized.NativeRecords, x => x.Attribute == 2 && x.Extra == 8);
+        Assert.Throws<NotSupportedException>(() => sized.Sql);
+        var qualified = document.Queries["LegacyQualifiedSource"]; Assert.False(qualified.HasSql);
+        Assert.Contains(qualified.NativeRecords, x => x.Attribute == 4 && x.Name1 != null || x.Attribute == 5 && x.Expression != null);
         var link = document.Tables["LocalLink"]; Assert.True(link.IsLinked); Assert.Equal("Legacy", link.LinkedTable!.ForeignTableName);
         Assert.Equal(AccessCatalogStatus.NotDecoded, link.Columns.CatalogStatus);
         Assert.Throws<NotSupportedException>(() => link.OpenDataReader()); Assert.Throws<NotSupportedException>(() => link.RowCount);
@@ -173,6 +178,48 @@ public sealed class AccessNativeReaderTests {
         using var rows = table.OpenDataReader(); Assert.True(rows.Read()); Assert.Equal(41, rows["Id"]);
         var opaque = Assert.IsType<AccessOpaqueValue>(rows["Value"]); Assert.NotEmpty(opaque.GetBytes());
         var bytes = opaque.GetBytes(); bytes[0] ^= 255; Assert.NotEqual(bytes[0], opaque.GetBytes()[0]);
+        Assert.True(table.Columns["TextValue"].IsCalculated);
+        Assert.IsType<AccessOpaqueValue>(rows["TextValue"]);
+        Assert.Contains(table.Columns["TextValue"].Diagnostics, x => x.Code == "access.value.opaque.calculated");
+    }
+    [Fact]
+    public void UserPayloadsAndRepeatedReadersUseValueBudgetWithoutConsumingMetadataBudget() {
+        using var document = AccessDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Readers/values-ace.accdb"),
+            new AccessLoadOptions { MaxMetadataBytes = 20000, MaxValueBytes = 100000 });
+        for (int iteration = 0; iteration < 3; iteration++) {
+            using var rows = document.Tables["Scalars"].OpenDataReader(); Assert.True(rows.Read());
+            Assert.Equal(20000, Assert.IsType<byte[]>(rows["Payload"]).Length);
+            Assert.Equal(string.Concat(Enumerable.Repeat("<div>Ł🙂 native long text</div>", 500)), rows["Notes"]);
+            using var structured = document.Tables["Structured"].OpenDataReader(); Assert.True(structured.Read());
+            var attachment = Assert.Single(((AccessComplexValue)structured["Files"]).EnumerateAttachments());
+            Assert.Equal(256, attachment.GetBytes().Length);
+        }
+    }
+    [Fact]
+    public void AllDocumentStreamsObserveDisposalAndOriginatingCancellation() {
+        using var cancellation = new CancellationTokenSource();
+        using var document = AccessDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Readers/values-ace.accdb"));
+        using var rows = document.Tables["Scalars"].OpenDataReader(cancellation.Token); Assert.True(rows.Read());
+        using var small = rows.GetStream(rows.GetOrdinal("FixedBinary")); using var large = rows.GetStream(rows.GetOrdinal("Payload"));
+        using var children = document.Tables["Structured"].OpenDataReader(cancellation.Token); Assert.True(children.Read());
+        var attachment = Assert.Single(((AccessComplexValue)children["Files"]).EnumerateAttachments(cancellation.Token)); using var file = attachment.OpenRead();
+        Assert.True(small.ReadByte() >= 0); Assert.True(large.ReadByte() >= 0); Assert.True(file.ReadByte() >= 0);
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => small.ReadByte()); Assert.ThrowsAny<OperationCanceledException>(() => large.ReadByte()); Assert.ThrowsAny<OperationCanceledException>(() => file.ReadByte());
+        document.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => small.ReadByte()); Assert.Throws<ObjectDisposedException>(() => large.ReadByte()); Assert.Throws<ObjectDisposedException>(() => file.ReadByte());
+
+        using var model = AccessDocument.Create(); var table = model.Tables.Add("Binary"); table.Columns.Add("Data", AccessDataType.Binary);
+        table.AppendRow(new AccessRowValues { ["Data"] = new byte[] { 1, 2 } }); using var modeledRows = table.OpenDataReader(); Assert.True(modeledRows.Read());
+        using var modeledStream = modeledRows.GetStream(0); model.Dispose(); Assert.Throws<ObjectDisposedException>(() => modeledStream.ReadByte());
+    }
+    [Fact]
+    public void ExtendedDateTimeModelValuesKeepClrPrecisionAndTargetLoss() {
+        using var model = AccessDocument.Create(); var table = model.Tables.Add("Modern"); table.Columns.Add("Occurred", AccessDataType.ExtendedDateTime);
+        DateTime value = new DateTime(2, 1, 2, 3, 4, 5).AddTicks(1234567);
+        table.AppendRow(new AccessRowValues { ["Occurred"] = value });
+        using (var reader = table.OpenDataReader()) { Assert.Equal(typeof(DateTime), reader.GetFieldType(0)); Assert.True(reader.Read()); Assert.Equal(value, reader.GetDateTime(0)); }
+        Assert.Contains(model.AssessSave("target.accdb").Diagnostics, x => x.Code == "access.conversion.loss.extended-date");
     }
     [Theory]
     [InlineData("jet4.mdb")]

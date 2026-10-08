@@ -141,7 +141,7 @@ public sealed class AccessColumn : AccessNamedObject {
             AccessDataType.LongText => value is string,
             AccessDataType.Currency => value is decimal amount && amount >= -922337203685477.5808m && amount <= 922337203685477.5807m && decimal.Round(amount, 4) == amount,
             AccessDataType.Double => value is double number && !double.IsNaN(number) && !double.IsInfinity(number),
-            AccessDataType.DateTime => value is DateTime,
+            AccessDataType.DateTime or AccessDataType.ExtendedDateTime => value is DateTime,
             AccessDataType.Boolean => value is bool,
             AccessDataType.Guid => value is Guid,
             AccessDataType.Binary => value is byte[], AccessDataType.Byte => value is byte,

@@ -46,5 +46,7 @@ public sealed class AccessAttachment {
         linked.Token.ThrowIfCancellationRequested(); return Slice(content, headerLength, length - headerLength).ToArray();
     }
     /// <summary>Opens a caller-owned read-only stream over decoded file bytes. No filesystem path is resolved.</summary>
-    public Stream OpenRead(CancellationToken cancellationToken = default) => new MemoryStream(GetBytes(cancellationToken), writable: false);
+    public Stream OpenRead(CancellationToken cancellationToken = default) =>
+        new OfficeDocumentReadStream(new MemoryStream(GetBytes(cancellationToken), writable: false),
+            () => { _table.Database.Document.EnsureNotDisposed(); _cancellation.ThrowIfCancellationRequested(); }, cancellationToken);
 }

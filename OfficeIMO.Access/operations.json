@@ -49,7 +49,7 @@
     {
       "operation": "native.convert",
       "supported": false,
-      "boundary": "Known complex-field, rich-text, BigInt and extended-date target losses are diagnosed. Native conversion and persistence remain unavailable."
+      "boundary": "Known complex-field, rich-text, BigInt, extended-date and unqualified opaque-property target mappings are diagnosed. Native conversion and persistence remain unavailable."
     },
     {
       "operation": "application.objects.read",

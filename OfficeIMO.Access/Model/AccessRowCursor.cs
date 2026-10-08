@@ -19,7 +19,10 @@ internal sealed class AccessModeledRowCursor : IAccessRowCursor {
     private Dictionary<string, object?> Current => _position >= 0 && _position < _table.Rows.Count ? _table.Rows[_position] : throw new InvalidOperationException("Call Read before accessing a current row.");
     public bool IsSpecified(int ordinal) => Current.ContainsKey(_table.Columns[ordinal].Name);
     public bool IsNull(int ordinal) => !Current.TryGetValue(_table.Columns[ordinal].Name, out var value) || value == null;
-    public Stream OpenBinary(int ordinal, CancellationToken cancellation) { cancellation.ThrowIfCancellationRequested(); return new MemoryStream((byte[])AccessTable.CopyValue(GetValue(ordinal, cancellation))!, writable: false); }
+    public Stream OpenBinary(int ordinal, CancellationToken cancellation) {
+        cancellation.ThrowIfCancellationRequested();
+        return new OfficeIMO.Core.Internal.OfficeDocumentReadStream(new MemoryStream((byte[])AccessTable.CopyValue(GetValue(ordinal, cancellation))!, writable: false), _table.Document.EnsureNotDisposed, cancellation);
+    }
     public object? GetValue(int ordinal, CancellationToken cancellation) { cancellation.ThrowIfCancellationRequested(); return Current.TryGetValue(_table.Columns[ordinal].Name, out object? value) ? value : null; }
     public void Dispose() { }
 }

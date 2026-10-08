@@ -24,7 +24,7 @@ public static class AccessCapabilities {
         new AccessOperationCapability("native.query.records.read", true, "Exact inert query records and typed parameter inventory. Simple single-table SELECT and two-part UNION SQL reconstruction is qualified; other query SQL remains explicitly unavailable."),
         new AccessOperationCapability("native.create", false, "Template-free catalog/allocation/index/relationship writing is not qualified."),
         new AccessOperationCapability("native.edit", false, "Native editing and opaque preservation are not qualified."),
-        new AccessOperationCapability("native.convert", false, "Known complex-field, rich-text, BigInt and extended-date target losses are diagnosed. Native conversion and persistence remain unavailable."),
+        new AccessOperationCapability("native.convert", false, "Known complex-field, rich-text, BigInt, extended-date and unqualified opaque-property target mappings are diagnosed. Native conversion and persistence remain unavailable."),
         new AccessOperationCapability("application.objects.read", false, "Forms, reports and action macros are NotDecoded for native input."),
         new AccessOperationCapability("application.objects.write", false, "No native form/report/macro/module writer is qualified."),
         new AccessOperationCapability("vba.inspect", false, "Access-specific VBA storage and signature carriers are not decoded."),

@@ -6,11 +6,12 @@ internal sealed partial class AccessNativeDatabase {
     private void LoadQueries(CancellationToken cancellation) {
         var records = new Dictionary<int, List<AccessQueryRecord>>();
         if (_tables.TryGetValue("MSysQueries", out var table)) {
+            RequireFields(table, "ObjectId", "Attribute", "Name1", "Name2", "Expression", "Flag", "LvExtra", "Order");
             using var rows = new AccessNativeRowCursor(table, cancellation, rowLimit: MaxCatalogObjects);
             while (rows.Read(cancellation)) {
-                int id = Convert.ToInt32(Field(table, rows, "ObjectId", cancellation));
+                int id = Convert.ToInt32(RequiredField(table, rows, "ObjectId", cancellation));
                 if (!records.TryGetValue(id, out var definitions)) records.Add(id, definitions = new List<AccessQueryRecord>());
-                definitions.Add(new AccessQueryRecord(Convert.ToByte(Field(table, rows, "Attribute", cancellation)), Field(table, rows, "Name1", cancellation) as string,
+                definitions.Add(new AccessQueryRecord(Convert.ToByte(RequiredField(table, rows, "Attribute", cancellation)), Field(table, rows, "Name1", cancellation) as string,
                     Field(table, rows, "Name2", cancellation) as string, Field(table, rows, "Expression", cancellation) as string,
                     Field(table, rows, "Flag", cancellation) as short?, Field(table, rows, "LvExtra", cancellation) as int?, Field(table, rows, "Order", cancellation) as byte[], rows.Current.NativeBytes()));
             }
@@ -42,11 +43,11 @@ internal sealed partial class AccessNativeDatabase {
         }
         if (kind != 0 || records.Any(x => x.Attribute == 4 || x.Attribute == 7 || x.Attribute == 9 || x.Attribute == 10 || x.Attribute == 1 || x.Attribute != 0 && x.Attribute != 255 && x.Attribute != 2 && x.Attribute != 3 && x.Attribute != 5 && x.Attribute != 6 && x.Attribute != 8 && x.Attribute != 11)) return null;
         var flagRows = records.Where(x => x.Attribute == 3).ToArray(); if (flagRows.Length > 1 || flagRows.Length == 1 && (flagRows[0].Flag.GetValueOrDefault() & ~1) != 0) return null;
-        var tables = records.Where(x => x.Attribute == 5).ToArray(); if (tables.Length != 1 || tables[0].Name1 == null) return null;
+        var tables = records.Where(x => x.Attribute == 5).ToArray(); if (tables.Length != 1 || tables[0].Name1 == null || tables[0].Expression != null) return null;
         var parameters = records.Where(x => x.Attribute == 2).ToArray(); var sql = new StringBuilder();
         if (parameters.Length != 0) {
             var declarations = new List<string>();
-            foreach (var parameter in parameters) { string? type = ParameterType(parameter.Flag ?? 0); if (type == null || parameter.Name1 == null) return null; declarations.Add(Identifier(parameter.Name1) + " " + type); }
+            foreach (var parameter in parameters) { string? type = ParameterType(parameter.Flag ?? 0); if (type == null || parameter.Name1 == null || parameter.Extra.GetValueOrDefault() != 0) return null; declarations.Add(Identifier(parameter.Name1) + " " + type); }
             sql.Append("PARAMETERS ").Append(string.Join(", ", declarations)).Append(";\n");
         }
         var columns = records.Where(x => x.Attribute == 6).ToArray();
