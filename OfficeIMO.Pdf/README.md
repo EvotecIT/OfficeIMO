@@ -1126,8 +1126,9 @@ If shown text lacks that mapping,
 extraction throws `NotSupportedException` and redaction planning reports an error
 instead of interpreting the character codes as WinAnsi text. Supply a PDF with
 an explicit Unicode map before using those text operations. Logical extraction
-still uses explicit `ActualText` and excludes artifacts by default. Unused font
-resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain
+still uses explicit `ActualText` and excludes artifacts by default. Redaction
+review requires mappings for painted text even under `ActualText` or artifacts.
+Unused font resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain
 their current behavior and editability limits.
 
 Text extraction excludes PDF artifact marked content by default, which is the

@@ -354,7 +354,8 @@ internal static partial class TextContentParser {
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         MarkedContentState? inheritedActualTextState = null,
         Action<int, MarkedContentState>? onActualTextForm = null,
-        bool preserveGlyphText = false) {
+        bool preserveGlyphText = false,
+        bool requireMappedText = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -947,8 +948,13 @@ internal static partial class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
+            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
+            bool isHidden = HasActiveHiddenContent();
             PdfUnsupportedTextMappingException? unsupportedMapping = null;
             string DecodeRun(byte[] value, int? maximumCharacters = null, bool probe = false) {
+                if (unsupportedMapping is not null) return string.Empty;
                 int remaining = maximumCharacters ?? textOutputBudget.GetRemainingDecodedTextCharacters();
                 if (remaining == 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
@@ -957,7 +963,8 @@ internal static partial class TextContentParser {
                     return decodeWithFontWithinLimit != null
                         ? decodeWithFontWithinLimit(font, value, remaining)
                         : decodeWithFont(font, value);
-                } catch (PdfUnsupportedTextMappingException error) when (probe || useLogicalTextFilters) {
+                } catch (PdfUnsupportedTextMappingException error) when (probe ||
+                    (useLogicalTextFilters && !requireMappedText && (isArtifact || isHidden || actualTextState is not null))) {
                     // Width probes may supply only a prefix of a composite code. Logical
                     // extraction can also use ActualText or exclude this decoration.
                     if (!probe) unsupportedMapping ??= error;
@@ -990,6 +997,7 @@ internal static partial class TextContentParser {
             bool usedWholeDecodedText = false;
             bool usedVisualEncoding = false;
             for (int idx = 0; idx < bytes.Length;) {
+                cancellationCheck?.Invoke();
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
                 int remainingGlyphCharacters = textOutputBudget.GetRemainingDecodedTextCharacters() - decodedGlyphCharacters;
@@ -1047,14 +1055,7 @@ internal static partial class TextContentParser {
                 decodedGlyphLogicalTexts.Clear();
                 usedWholeDecodedText = true;
             }
-            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
             bool replaceInvisibleAnchor = false;
-            bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
-            bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
-            bool isHidden = HasActiveHiddenContent();
-            if (unsupportedMapping is not null && !isArtifact && !isHidden && actualTextState is null) {
-                throw unsupportedMapping;
-            }
             bool usesVisibleFill = UsesFillTextPaint(textRenderingMode) && !fillColorSpace.SuppressesPaint;
             bool usesVisibleStroke = UsesStrokeTextPaint(textRenderingMode) && !strokeColorSpace.SuppressesPaint;
             bool isVisibleText = usesVisibleFill || usesVisibleStroke;
