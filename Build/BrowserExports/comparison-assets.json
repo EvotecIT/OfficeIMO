@@ -7,6 +7,8 @@
       "buttons": "3.2.6",
       "select": "3.1.3",
       "colReorder": "2.1.2",
+      "pdfMake": "0.2.7",
+      "pdfScript": "pdfmake-0.2.7.js",
       "scripts": [
         "jquery-3.7.1.js",
         "datatables-2.3.7.js",
@@ -22,6 +24,8 @@
       "buttons": "4.1.2",
       "select": "4.1.1",
       "colReorder": "3.1.2",
+      "pdfMake": "0.3.11",
+      "pdfScript": "pdfmake-0.3.11.js",
       "scripts": [
         "datatables-3.1.3.js",
         "buttons-4.1.2.js",
@@ -32,6 +36,16 @@
     }
   },
   "assets": [
+    {
+      "name": "pdfmake-0.2.7.js",
+      "url": "https://cdn.jsdelivr.net/npm/pdfmake@0.2.7/build/pdfmake.min.js",
+      "sha256": "21af5bb8ba1561f9f99d4125aa6d3cd08fa6d2351eaf4ec8d1097e69ecc00828"
+    },
+    {
+      "name": "pdfmake-0.3.11.js",
+      "url": "https://cdn.jsdelivr.net/npm/pdfmake@0.3.11/build/pdfmake.min.js",
+      "sha256": "faaee53f8dcf48b0934553665809d8180e20e435b654f633df2f18f9dbdeaa88"
+    },
     {
       "name": "jquery-3.7.1.js",
       "url": "https://code.jquery.com/jquery-3.7.1.min.js",

@@ -32,12 +32,14 @@ export class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 export function assertScalar(value: unknown): asserts value is CellValue {
-  if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date) return;
+  const kind = typeof value;
+  if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date) return;
   if (typeof (value as { then?: unknown }).then === "function") void Promise.resolve(value).catch(() => {});
   throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }
 export type ExportValue = CellValue | ExportCell;
 /** @internal Validate selected values before a destination interprets presentation. */
 export function assertExportValue(value: unknown): asserts value is ExportValue {
-  if (!(value instanceof ExportCell)) assertScalar(value);
+  if (value !== null && typeof value === "object" && value instanceof ExportCell) return;
+  assertScalar(value);
 }

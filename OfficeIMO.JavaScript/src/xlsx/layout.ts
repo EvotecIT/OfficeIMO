@@ -56,7 +56,7 @@ export class ReportLayout {
     this.headings = headings; this.merges = this.regions.references;
     const sizing = options.autoSize;
     this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
-    if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000) throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
+    if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 1048576) throw new RangeError("Width sampling must use from 0 through 1,048,576 rows within its buffer budgets.");
     const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
     if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || min > max || max > 255) throw new RangeError("Width bounds must satisfy 0 <= minWidth <= maxWidth <= 255.");
     this.widths = columns.map(c => c.width ?? (sizing ? Math.max(min, Math.min(max, c.header.length + 2)) : undefined));

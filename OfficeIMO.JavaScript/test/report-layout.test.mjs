@@ -8,6 +8,16 @@ import { readZip } from "./zip-reader.mjs";
 import * as standaloneXlsx from "../bundles/officeimo-xlsx.mjs";
 import * as standaloneCsv from "../bundles/officeimo-csv.mjs";
 
+test("an explicit Excel width sample includes late rows within declared buffer budgets", async () => {
+  const rows = Array.from({ length: 10001 }, (_, row) => [row === 10000 ? "A late value with a much wider display" : "short"]);
+  const book = new Workbook({ compression: "store", limits: { maxBufferedCells: rows.length, maxBufferedCharacters: 1500000 } });
+  const sheet = book.addWorksheet("Sample", { columns: [{ header: "Value" }], autoSize: { sampleRows: rows.length, minWidth: 6, maxWidth: 54 } });
+  await sheet.addRows(rows);
+  const zip = await readZip(await book.toBlob()), xml = zip.get("xl/worksheets/sheet1.xml").content;
+  assert.match(xml, new RegExp('width="' + (rows.at(-1)[0].length + 2) + '"'));
+  assert.ok(xml.includes(rows.at(-1)[0])); assert.equal(sheet.rowCount, rows.length);
+});
+
 const columns = [
   { header: "Name", key: "name", groups: ["Identity"], width: 24 },
   { header: "Amount", key: "amount", groups: ["Metrics", "Money"], type: "number", format: "0.00" },
@@ -60,7 +70,7 @@ test("oversized Unicode is preserved in ordered safe chunks and linked without e
   if (process.env.OFFICEIMO_REPORT_FIXTURES) await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/preserved.xlsx", new Uint8Array(await blob.arrayBuffer()));
 });
 test("layout bounds and preservation ceilings fail visibly without a partial Blob", async () => {
-  assert.throws(() => new Workbook().addWorksheet("Bad", { columns, autoSize: { sampleRows: 10001 } }), RangeError);
+  assert.throws(() => new Workbook().addWorksheet("Bad", { columns, autoSize: { sampleRows: 1048577 } }), RangeError);
   assert.throws(() => new Workbook().addWorksheet("Bad", { columns, footer: { totals: { unknown: "sum" } } }), TypeError);
   for (const options of [{ oversizedText: "preserve", limits: { maxOverflowCharacters: 32767 } }, { oversizedText: "preserve", limits: { maxHyperlinks: 0 } }, { oversizedText: "preserve", limits: { maxSheets: 1 } }]) {
     const book = new Workbook(options);

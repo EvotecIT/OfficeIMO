@@ -77,8 +77,77 @@ async function* inputRows(input, signal) {
         }
     }
 }
+const rowConsumers = new WeakMap();
+/** @internal Keep bounded pages as ordinary async rows, with direct batch consumption for owned writers. */
+function rowsFromBatches(batches) {
+    let consumed = false;
+    const claim = () => { if (consumed)
+        throw new TypeError("A row source can be consumed only once."); consumed = true; };
+    const rows = { [Symbol.asyncIterator]() { claim(); return iterate(); } };
+    async function* iterate() { for await (const batch of inputRows(batches))
+        yield* batch; }
+    rowConsumers.set(rows, (signal, accept) => {
+        claim();
+        return consumeRows(batches, signal, batch => consumeRows(batch, signal, accept));
+    });
+    return rows;
+}
+/** @internal Concatenate headings, body and footer without another per-row async delegation. */
+function concatRows(...sources) {
+    const rows = { async *[Symbol.asyncIterator]() { for (const source of sources)
+            yield* source; } };
+    rowConsumers.set(rows, async (signal, accept) => { for (const source of sources)
+        await consumeRows(source, signal, accept); });
+    return rows;
+}
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+async function consumeRows(input, signal, accept) {
+    checkAbort(signal);
+    const consume = rowConsumers.get(input);
+    if (consume)
+        return consume(signal, accept);
+    const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
+    if (!iterator)
+        throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+    let done = false;
+    try {
+        while (true) {
+            checkAbort(signal);
+            let item = iterator.next();
+            const next = item;
+            if (typeof next?.then === "function")
+                item = await withAbort(next, signal);
+            checkAbort(signal);
+            const result = item;
+            if (result.done) {
+                done = true;
+                return;
+            }
+            let value = result.value;
+            if (typeof value?.then === "function")
+                value = await withAbort(value, signal);
+            checkAbort(signal);
+            const pending = accept(value);
+            if (pending !== undefined)
+                await withAbort(pending, signal);
+        }
+    }
+    finally {
+        if (!done && iterator.return) {
+            // Any exit before exhaustion is a producer/consumer failure or cancellation.
+            // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+            try {
+                void Promise.resolve(iterator.return()).catch(() => { });
+            }
+            catch { /* Preserve the original failure. */ }
+        }
+    }
+}
 let taskDeadline;
-const taskBudgetMs = 16;
+const taskBudgetMs = 32;
+/** @internal Start a new write phase without carrying an idle operation's expired deadline. */
+function beginTask() { taskDeadline = performance.now() + taskBudgetMs; }
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
 function taskYieldDue() {
     const now = performance.now();
@@ -87,32 +156,26 @@ function taskYieldDue() {
 }
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
+    const scheduler = globalThis.scheduler;
+    // A normal-priority task keeps the export progressing beside a busy host.
+    // It has no boosted continuation; due input and cancellation can still run.
+    if (typeof scheduler?.postTask === "function")
+        return scheduler.postTask(() => {
+            taskDeadline = performance.now() + taskBudgetMs;
+        }, { priority: "user-visible" });
     return new Promise(resolve => {
-        let done = false, channel;
-        const finish = () => {
-            if (done)
-                return;
-            done = true;
-            clearTimeout(timer);
-            channel?.port1.close();
-            channel?.port2.close();
+        setTimeout(function finish() {
             taskDeadline = performance.now() + taskBudgetMs;
             resolve();
-        };
-        const timer = setTimeout(finish, 0);
-        if (typeof MessageChannel === "function") {
-            channel = new MessageChannel();
-            channel.port1.onmessage = finish;
-            channel.port2.postMessage(undefined);
-        }
+        }, 0);
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, rowsFromBatches: rowsFromBatches, concatRows: concatRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
 const _m3 = (() => {
-const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m4;
+const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
 
@@ -206,11 +269,14 @@ class ChunkedTextSink {
 }
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 async function writeBytes(source, sink, signal) {
-    for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+    await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
         if (!(bytes instanceof Uint8Array))
             throw new TypeError("Byte sources must yield Uint8Array chunks.");
-        await withAbort(Promise.resolve(sink.write(bytes)), signal);
-    }
+        const pending = sink.write(bytes);
+        if (taskYieldDue())
+            return Promise.resolve(pending).then(() => { checkAbort(signal); return pause(); });
+        return pending;
+    });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
 return _exports;
@@ -237,7 +303,8 @@ class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
-    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+    const kind = typeof value;
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -245,8 +312,9 @@ function assertScalar(value) {
 }
 /** @internal Validate selected values before a destination interprets presentation. */
 function assertExportValue(value) {
-    if (!(value instanceof ExportCell))
-        assertScalar(value);
+    if (value !== null && typeof value === "object" && value instanceof ExportCell)
+        return;
+    assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
@@ -447,7 +515,7 @@ const _m6 = (() => {
 
 const { EntryWriter, zipSize } = _m7;
 
-const { checkAbort, withAbort, pause } = _m4;
+const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
 
@@ -647,7 +715,7 @@ class ZipWriter {
         try {
             for (let i = 0; i < this.central.length; i++) {
                 await this.emit(this.central[i]);
-                if (i % 256 === 255)
+                if (i % 256 === 255 && taskYieldDue())
                     await pause();
             }
             const end = header(0x06054b50, 22);
@@ -1087,6 +1155,10 @@ class ExportBudget {
     cell(value, reservedCharacters) {
         if (reservedCharacters !== undefined)
             this.release(1, reservedCharacters);
+        // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
+        // when neither emitted-cell nor text totals are observable by a resource cap.
+        if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined)
+            return;
         this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
         this.check("maxTextCharacters", this.text + this.reservedText + length);
@@ -1892,8 +1964,8 @@ class ReportLayout {
         this.merges = this.regions.references;
         const sizing = options.autoSize;
         this.sampleRows = sizing ? sizing.sampleRows ?? Math.min(100, Math.floor(maximumSampleCells / Math.max(1, columns.length))) : 0;
-        if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 10000)
-            throw new RangeError("Width sampling must use from 0 through 10,000 rows.");
+        if (!Number.isInteger(this.sampleRows) || this.sampleRows < 0 || this.sampleRows > 1048576)
+            throw new RangeError("Width sampling must use from 0 through 1,048,576 rows within its buffer budgets.");
         const min = sizing?.minWidth ?? 8, max = sizing?.maxWidth ?? 60;
         if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || min > max || max > 255)
             throw new RangeError("Width bounds must satisfy 0 <= minWidth <= maxWidth <= 255.");
@@ -2137,7 +2209,7 @@ return _exports;
 })();
 
 const _m19 = (() => {
-const { checkAbort, inputRows } = _m4;
+const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
 
@@ -2406,10 +2478,53 @@ class Worksheet {
             yield this.cell(values[i], i, number, header, rowStyle, context, rowStyles, footer, title);
         yield '</row>';
     }
-    async writeRow(values, number, header, footer = false, title = false) {
-        for (const chunk of this.rowXml(values, number, header, footer, title))
-            if (this.buffer.append(chunk))
-                await this.buffer.flush();
+    writeRow(values, number, header, footer = false, title = false) {
+        const chunks = this.rowXml(values, number, header, footer, title);
+        const append = () => {
+            while (true) {
+                const next = chunks.next();
+                if (next.done)
+                    return;
+                if (this.buffer.append(next.value))
+                    return this.buffer.flush().then(append);
+            }
+        };
+        return append();
+    }
+    async sampleRow(values) {
+        if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
+            throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
+        const encoded = [];
+        let chunks = 0;
+        for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
+            if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
+                if (this.options.autoSize?.sampleRows !== undefined)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
+                // Resume this serialized row so callbacks, totals and links run only once.
+                this.layout.sample(values);
+                await this.start();
+                for (const retained of encoded)
+                    if (this.buffer.append(retained))
+                        await this.buffer.flush();
+                encoded.length = 0;
+            }
+            if (this.started) {
+                if (this.buffer.append(chunk))
+                    await this.buffer.flush();
+            }
+            else {
+                this.pendingCharacters += chunk.length;
+                encoded.push(chunk);
+            }
+            if (!this.started && (++chunks & 127) === 0 && taskYieldDue()) {
+                await pause();
+                checkAbort(this.book.settings.signal);
+            }
+        }
+        if (!this.started) {
+            this.layout.sample(values);
+            this.pending.push(encoded);
+        }
     }
     reserveLayout() {
         if (this.reservedLayout)
@@ -2488,56 +2603,28 @@ class Worksheet {
             if (!this.layout.sampleRows)
                 await this.start();
             let checkpoint = performance.now();
-            for await (const row of inputRows(rows, this.book.settings.signal)) {
+            const progress = () => { if (performance.now() - checkpoint >= 50) {
+                this.progress();
+                checkpoint = performance.now();
+            } };
+            const completed = () => {
+                this.count++;
+                if (!this.started && this.pending.length >= this.layout.sampleRows)
+                    return this.start().then(progress);
+                if (!this.started && taskYieldDue())
+                    return pause().then(() => { checkAbort(this.book.settings.signal); progress(); });
+                progress();
+            };
+            await consumeRows(rows, this.book.settings.signal, row => {
                 if (this.count + this.headerRows + (this.options.footer ? 1 : 0) >= 1048576)
                     throw new RangeError("Excel supports at most 1,048,576 rows including headers and footers; split the sheet.");
                 this.book.budget.row(this.count + 1);
                 if (!this.columns.length)
                     throw new RangeError("Declare columns before adding rows.");
                 const values = this.project(row, this.count);
-                if (!this.started) {
-                    if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
-                        throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
-                    const encoded = [];
-                    for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
-                        if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
-                            if (this.options.autoSize?.sampleRows !== undefined)
-                                throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
-                            // Automatic sizing can finish early. Continue this same serialized row so
-                            // custom writers, presentation callbacks, totals and links run only once.
-                            this.layout.sample(values);
-                            await this.start();
-                            for (const retained of encoded)
-                                if (this.buffer.append(retained))
-                                    await this.buffer.flush();
-                            encoded.length = 0;
-                        }
-                        if (this.started) {
-                            if (this.buffer.append(chunk))
-                                await this.buffer.flush();
-                        }
-                        else {
-                            this.pendingCharacters += chunk.length;
-                            encoded.push(chunk);
-                        }
-                    }
-                    if (!this.started) {
-                        this.layout.sample(values);
-                        this.pending.push(encoded);
-                    }
-                    this.count++;
-                    if (!this.started && this.pending.length >= this.layout.sampleRows)
-                        await this.start();
-                }
-                else {
-                    await this.writeRow(values, this.count + this.headerRows + 1, false);
-                    this.count++;
-                }
-                if (performance.now() - checkpoint >= 50) {
-                    this.progress();
-                    checkpoint = performance.now();
-                }
-            }
+                const pending = !this.started ? this.sampleRow(values) : this.writeRow(values, this.count + this.headerRows + 1, false);
+                return pending ? pending.then(completed) : completed();
+            });
             if (this.buffer)
                 await this.buffer.flush();
             this.progress();
@@ -2794,7 +2881,7 @@ return _exports;
 })();
 
 const _m13 = (() => {
-const { checkAbort } = _m4;
+const { beginTask, checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
 
@@ -2874,6 +2961,8 @@ class Workbook {
         for (const writer of Object.values(this.writers))
             if (typeof writer !== "function")
                 throw new TypeError("Cell value writers must be functions.");
+        // One write phase covers every worksheet and incremental append in this book.
+        beginTask();
         this.package = new OpcPackage({ compression, invalidCharacterPolicy: policy, ...(options.signal ? { signal: options.signal } : {}),
             ...(options.sink ? { sink: options.sink } : {}), ...(options.limits?.maxOutputBytes === undefined ? {} : { maxOutputBytes: options.limits.maxOutputBytes }) });
         // Property dates and app settings are captured before an asynchronous export begins.
@@ -3209,7 +3298,7 @@ return _exports;
 })();
 
 const _m30 = (() => {
-const { checkAbort, inputRows, withAbort } = _m4;
+const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
@@ -3252,6 +3341,7 @@ async function writeCsvTo(rows, destination, configuration) {
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
+    beginTask();
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
@@ -3277,31 +3367,39 @@ async function write(rows, sink, options) {
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
-    async function record(values, header = false) {
-        const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
-        const snapshot = hasFormatters ? Object.freeze(columns.map((_, i) => resolved(values[i]))) : undefined;
-        for (let i = 0; i < columns.length; i++) {
+    const resolved = (value) => value !== null && typeof value === "object" && value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+    function record(values, header = false, first = 0, snapshot) {
+        if (!header && hasFormatters && first === 0)
+            snapshot = Object.freeze(columns.map((_, i) => resolved(values[i])));
+        let text = "";
+        for (let i = first; i < columns.length; i++) {
+            checkAbort(signal);
             const column = columns[i];
             const raw = resolved(values[i]);
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
-            if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
-                await buffer.flush();
+            checkAbort(signal);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+            if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
+                if (buffer.append(text))
+                    return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+                text = "";
+            }
         }
-        if (buffer.append(lineEnding)) {
-            await buffer.flush();
-            options.onProgress?.({ phase: "rows", rows: count });
-        }
+        if (buffer.append(text + lineEnding))
+            return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
     }
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
-    for await (const row of inputRows(rows, signal)) {
+    await consumeRows(rows, signal, row => {
         budget.row(count + 1);
-        await record(project(row, count));
+        const pending = record(project(row, count));
+        if (pending)
+            return pending.then(() => { count++; });
         count++;
-    }
+    });
     await buffer.close();
     options.onProgress?.({ phase: "complete", rows: count, bytes });
     checkAbort(signal);
@@ -3643,7 +3741,7 @@ const _m40 = (() => {
 const { align4, checksum } = _m39;
 
 /** Preserve glyph IDs and complete composite dependencies, as in OfficeIMO.Pdf's native subsetter. */
-function subsetTrueType(font, requested) {
+function subsetTrueType(font, requested, characters) {
     const glyphs = new Set([0, ...requested]), glyfTable = font.table("glyf"), queue = [...glyphs];
     const dependencies = new Map();
     for (let i = 0; i < queue.length; i++) {
@@ -3714,8 +3812,9 @@ function subsetTrueType(font, requested) {
     for (let i = 0; i < offsets.length; i++)
         locaView.setUint32(i * 4, offsets[i]);
     const retained = new Set(["OS/2", "cmap", "cvt ", "fpgm", "gasp", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post", "prep"]);
+    const cmap = subsetCmap(characters), hmtx = subsetMetrics(font, glyphs);
     const tables = [...font.tables].filter(([tag]) => retained.has(tag)).sort(([a], [b]) => a < b ? -1 : 1).map(([tag, table]) => {
-        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : font.bytes.slice(table.offset, table.offset + table.length);
+        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : tag === "cmap" ? cmap : tag === "hmtx" ? hmtx : font.bytes.slice(table.offset, table.offset + table.length);
         if (tag === "head") {
             const view = new DataView(bytes.buffer);
             view.setUint32(8, 0);
@@ -3745,6 +3844,48 @@ function subsetTrueType(font, requested) {
     });
     view.setUint32(head + 8, (0xb1b0afba - checksum(output)) >>> 0);
     return output;
+}
+/** Keep original glyph IDs, advance widths and bearings for every selected/composite glyph.
+ * Empty glyph slots have no outline; their unused metrics need not inflate the compressed subset. */
+function subsetMetrics(font, glyphs) {
+    const metrics = font.u16(font.table("hhea").offset + 34), table = font.table("hmtx");
+    const result = new Uint8Array(metrics * 4 + (font.glyphCount - metrics) * 2);
+    for (const glyph of glyphs) {
+        const first = glyph < metrics ? glyph * 4 : metrics * 4 + (glyph - metrics) * 2, length = glyph < metrics ? 4 : 2;
+        result.set(font.bytes.subarray(table.offset + first, table.offset + first + length), first);
+        if (glyph >= metrics) {
+            // Trailing short records share the final full record's advance width.
+            const advance = (metrics - 1) * 4;
+            result.set(font.bytes.subarray(table.offset + advance, table.offset + advance + 2), advance);
+        }
+    }
+    return result;
+}
+/** One Unicode format-12 map covers BMP and supplementary scalars without retaining unused coverage. */
+function subsetCmap(characters) {
+    const entries = [...characters].sort(([a], [b]) => a - b), groups = [];
+    for (const [scalar, glyph] of entries) {
+        const previous = groups.at(-1);
+        if (previous && scalar === previous.last + 1 && glyph === previous.glyph + scalar - previous.first)
+            previous.last = scalar;
+        else
+            groups.push({ first: scalar, last: scalar, glyph });
+    }
+    const result = new Uint8Array(12 + 16 + groups.length * 12), view = new DataView(result.buffer);
+    view.setUint16(2, 1);
+    view.setUint16(4, 3);
+    view.setUint16(6, 10);
+    view.setUint32(8, 12);
+    view.setUint16(12, 12);
+    view.setUint32(16, result.length - 12);
+    view.setUint32(24, groups.length);
+    groups.forEach((group, i) => {
+        const p = 28 + i * 12;
+        view.setUint32(p, group.first);
+        view.setUint32(p + 4, group.last);
+        view.setUint32(p + 8, group.glyph);
+    });
+    return result;
 }
 const _exports = Object.freeze({ subsetTrueType: subsetTrueType });
 return _exports;
@@ -3922,7 +4063,7 @@ class TrueTypeFont extends FontReader {
         }
         return 0;
     }
-    subset(glyphs) { return this.canSubset ? subsetTrueType(this, glyphs) : this.bytes; }
+    subset(glyphs, characters) { return this.canSubset ? subsetTrueType(this, glyphs, characters) : this.bytes; }
 }
 const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
@@ -4387,7 +4528,7 @@ class PdfFontResource {
         const program = this.program, entries = [...this.mappings], glyphs = new Set(entries.map(([, m]) => m.glyph));
         const fontName = (program.canSubset ? "OIMOAA+" : "") + "OfficeIMOFont" + this.index;
         const file = objects.reserve(), descriptor = objects.reserve(), cidFont = objects.reserve(), map = objects.reserve(), unicode = objects.reserve();
-        const subset = program.subset(glyphs);
+        const subset = program.subset(glyphs, new Map(entries.map(([scalar, mapping]) => [scalar, mapping.glyph])));
         await objects.stream(file, subset, "/Length1 " + subset.length, compression);
         await objects.object(descriptor, "<< /Type /FontDescriptor /FontName /" + fontName + " /Flags 32 /FontBBox [" + program.bbox.map(pdfNumber).join(" ") +
             "] /ItalicAngle 0 /Ascent " + pdfNumber(program.ascent) + " /Descent " + pdfNumber(program.descent) + " /CapHeight " + pdfNumber(program.ascent) + " /StemV 80 /FontFile2 " + file + " 0 R >>");
@@ -4869,7 +5010,7 @@ return _exports;
 const _m32 = (() => {
 const { BlobByteSink, withDestination } = _m3;
 
-const { checkAbort, inputRows, pause, taskYieldDue } = _m4;
+const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m4;
 
 const { createRowProjector } = _m20;
 
@@ -4896,6 +5037,7 @@ async function writePdf(rows, configuration) {
 }
 async function writePdfTo(rows, destination, configuration) {
     const prepared = settings(configuration), { options, budget } = prepared;
+    beginTask();
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
         const objects = new PdfObjects(sink, options.signal, options.limits?.maxOutputBytes), root = objects.reserve(), parent = objects.reserve(), resources = objects.reserve(), info = objects.reserve();
@@ -4905,18 +5047,20 @@ async function writePdfTo(rows, destination, configuration) {
         await objects.text("%PDF-1.7\n");
         await objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
         await pages.start();
-        for await (const row of inputRows(rows, options.signal)) {
-            budget.row(count + 1);
-            const values = project(row, count);
-            await pages.row(layout.data(values, count));
+        const completed = () => {
             count++;
             if (count % 256 === 0) {
                 options.onProgress?.({ phase: "rows", rows: count, bytes: objects.bytes });
                 if (taskYieldDue())
-                    await pause();
+                    return pause().then(() => { checkAbort(options.signal); });
             }
             checkAbort(options.signal);
-        }
+        };
+        await consumeRows(rows, options.signal, row => {
+            budget.row(count + 1);
+            const values = project(row, count);
+            return pages.row(layout.data(values, count)).then(completed);
+        });
         const footer = layout.footer(count);
         if (footer) {
             if (options.footer?.rows)

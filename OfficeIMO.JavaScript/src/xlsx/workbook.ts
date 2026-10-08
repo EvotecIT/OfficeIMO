@@ -1,4 +1,4 @@
-import { checkAbort } from "../core/iteration.js";
+import { beginTask, checkAbort } from "../core/iteration.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { ChunkedTextSink } from "../core/sinks.js";
 import { ExportBudget } from "../core/limits.js";
@@ -60,6 +60,8 @@ export class Workbook {
     this.settings = Object.freeze({ ...options, ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}), dateMode, compression, invalidCharacterPolicy: policy });
     this.writers = Object.freeze({ ...options.cellValueWriters });
     for (const writer of Object.values(this.writers)) if (typeof writer !== "function") throw new TypeError("Cell value writers must be functions.");
+    // One write phase covers every worksheet and incremental append in this book.
+    beginTask();
     this.package = new OpcPackage({ compression, invalidCharacterPolicy: policy, ...(options.signal ? { signal: options.signal } : {}),
       ...(options.sink ? { sink: options.sink } : {}), ...(options.limits?.maxOutputBytes === undefined ? {} : { maxOutputBytes: options.limits.maxOutputBytes }) });
     // Property dates and app settings are captured before an asynchronous export begins.
