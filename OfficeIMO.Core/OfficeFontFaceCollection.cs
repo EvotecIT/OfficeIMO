@@ -474,16 +474,15 @@ public sealed partial class OfficeFontFaceCollection {
     /// <summary>
     /// Resolves the scoped face that covers the supplied text for the requested CSS/Office family
     /// list and style. This uses the same unicode-range and fallback rules as measurement and
-    /// rendering.
+    /// rendering, requesting weight 400 for regular text or 700 for bold text with the
+    /// corresponding upright or italic slant.
     /// </summary>
     public bool TryResolveFaceForText(
         string? text,
         string? familyNames,
         OfficeFontStyle style,
         out OfficeFontFace? face) {
-        face = null;
-        if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(familyNames)) return false;
-        ResolveForText(text!, familyNames, style, out face);
+        face = string.IsNullOrEmpty(text) ? null : ResolveStyledFaceForText(text!, familyNames, style);
         return face != null;
     }
 
@@ -534,65 +533,15 @@ public sealed partial class OfficeFontFaceCollection {
         return false;
     }
 
-    internal IOfficeFontProgram? Resolve(string? familyNames, OfficeFontStyle style) {
-        return Resolve(familyNames, style, out _);
-    }
-
-    internal IOfficeFontProgram? Resolve(string? familyNames, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
-        resolvedStyle = OfficeFontStyle.Regular;
-        if (string.IsNullOrEmpty(familyNames) || _faces.Count == 0) {
-            return null;
-        }
-
-        OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
-        foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
-            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
-                OfficeFontFace? mathFace = ResolveMathematicalFace(null, family, style);
-                if (mathFace != null) { resolvedStyle = mathFace.Style; return mathFace.ParsedFont; }
-                continue;
-            }
-            OfficeFontFace? regular = null;
-            OfficeFontFace? first = null;
-            for (int index = _faces.Count - 1; index >= 0; index--) {
-                OfficeFontFace face = _faces[index];
-                if (!MatchesFamily(face, family)) {
-                    continue;
-                }
-
-                first ??= face;
-                if (face.Style == normalizedStyle) {
-                    resolvedStyle = face.Style;
-                    return face.ParsedFont;
-                }
-
-                if (face.Style == OfficeFontStyle.Regular) {
-                    regular = face;
-                }
-            }
-
-            if (regular != null) {
-                resolvedStyle = regular.Style;
-                return regular.ParsedFont;
-            }
-
-            if (first != null) {
-                resolvedStyle = first.Style;
-                return first.ParsedFont;
-            }
-        }
-
-        return null;
-    }
-
     internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
-        IOfficeFontProgram? font = ResolveForText(text, familyNames, style, out OfficeFontFace? face);
+        OfficeFontFace? face = ResolveStyledFaceForText(text, familyNames, style);
         resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
-        return font;
+        return face?.Program;
     }
 
     internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style,
         double fontSize, out OfficeFontStyle resolvedStyle) {
-        ResolveForText(text, familyNames, style, out OfficeFontFace? face);
+        OfficeFontFace? face = ResolveStyledFaceForText(text, familyNames, style);
         resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
         return face?.ForOpticalSize(fontSize).Program;
     }
@@ -620,36 +569,18 @@ public sealed partial class OfficeFontFaceCollection {
         return fontSize.HasValue ? face.ForOpticalSize(fontSize.Value).Program : face.ParsedFont;
     }
 
-    private IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontFace? resolvedFace) {
-        resolvedFace = null;
+    private OfficeFontFace? ResolveStyledFaceForText(string text, string? familyNames, OfficeFontStyle style) {
         if (string.IsNullOrEmpty(familyNames) || _faces.Count == 0) return null;
-
-        OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
+        OfficeFontFaceDescriptor requested = OfficeFontFaceDescriptor.FromStyle(style);
+        // A style lookup remains local to its supplied families. Callers such as
+        // substitution diagnostics attribute the result to the family being probed.
+        // Fallback-run planning supplies explicit resource families for rendering.
         foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
-            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
-                OfficeFontFace? mathFace = ResolveMathematicalFace(text, family, style);
-                if (mathFace != null) { resolvedFace = mathFace; return mathFace.ParsedFont; }
-                continue;
+            foreach ((OfficeFontFace face, _) in ResolveFamilyCandidates(family, requested)) {
+                bool explicitResource = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+                if (CoversPlannedText(face, text, requireUnicodeRange: !explicitResource)) return face;
             }
-            OfficeFontFace? exact = null;
-            OfficeFontFace? regular = null;
-            OfficeFontFace? first = null;
-            for (int index = _faces.Count - 1; index >= 0; index--) {
-                OfficeFontFace face = _faces[index];
-                bool explicitlySelected = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
-                if (!MatchesFamily(face, family)
-                    || !CoversPlannedText(face, text, requireUnicodeRange: !explicitlySelected)) continue;
-                first ??= face;
-                if (face.Style == normalizedStyle) exact ??= face;
-                if (face.Style == OfficeFontStyle.Regular) regular ??= face;
-            }
-
-            OfficeFontFace? preferred = exact ?? regular ?? first;
-            if (preferred == null) continue;
-            resolvedFace = preferred;
-            return preferred.ParsedFont;
         }
-
         return null;
     }
 
