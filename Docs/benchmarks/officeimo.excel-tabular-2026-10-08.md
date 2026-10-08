@@ -27,7 +27,7 @@ OfficeIMO's original typed method uses ordinary typed getters with caller model 
 
 ## Methodology, identities and reliability
 
-The host is Windows 26300.9457 with an AMD Ryzen 9 9950X3D, .NET 10.0.12, SDK 10.0.112 and BenchmarkDotNet 0.15.8. Two recorded affinity domains use masks 65,535 (0xFFFF) and 4,294,901,760 (0xFFFF0000), with High process priority. These are two domains on one host, not independent machines. All outliers remain retained with DontRemove.
+The host is Windows 26300.9457 with an AMD Ryzen 9 9950X3D2, .NET 10.0.12, SDK 10.0.112 and BenchmarkDotNet 0.15.8. Two recorded affinity domains use masks 65,535 (0xFFFF) and 4,294,901,760 (0xFFFF0000), with High process priority. These are two domains on one host, not independent machines. All outliers remain retained with DontRemove.
 
 | Job family | Launches | Warmups | Measurements | Sizing |
 | --- | ---: | ---: | ---: | --- |

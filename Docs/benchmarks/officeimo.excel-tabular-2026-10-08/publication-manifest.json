@@ -35,8 +35,8 @@
   "files": [
     {
       "path": "officeimo.excel-tabular-2026-10-08.md",
-      "bytes": 33365,
-      "sha256": "440B8C4C312854CF35C5D7D1020C817172A7B1D98C2514F97CB088E8F1E916DF"
+      "bytes": 33366,
+      "sha256": "142AF324EB7345EE1BA8AD4146C39B038C3154F0EFF2A37AD130507A4840EA2D"
     },
     {
       "path": "officeimo.excel-tabular-2026-10-08/manifests/archive-members.json",
@@ -85,8 +85,8 @@
     },
     {
       "path": "officeimo.excel-tabular-2026-10-08/README.md",
-      "bytes": 2752,
-      "sha256": "C62AC99694B46D0CEE72D0D4A6393DEED4F27AB56DBA57F045A53B4BB0CA6384"
+      "bytes": 2979,
+      "sha256": "D7F3D9F6E2BE1CD3A22D9FD62E0AFAF9538E7BC44E7995DDB2E0E188831DFAC2"
     },
     {
       "path": "officeimo.excel-tabular-2026-10-08/results-historical-exploratory.csv",
@@ -150,7 +150,7 @@
     }
   ],
   "fileCountExcludingThisManifestAndChecksums": 23,
-  "logicalBytesExcludingThisManifestAndChecksums": 20429828,
+  "logicalBytesExcludingThisManifestAndChecksums": 20430056.0,
   "originalPreparationManifest": {
     "path": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-preparation\\final-preparation-manifest.json",
     "bytes": 330468,
@@ -162,5 +162,18 @@
   "builds": 0,
   "tests": 0,
   "timings": 0,
-  "externalActions": 0
+  "externalActions": 0,
+  "editorialRevisions": [
+    {
+      "atUtc": "2026-10-08T22:30:04.1618222Z",
+      "path": "officeimo.excel-tabular-2026-10-08.md",
+      "reason": "Restore exact native CPU model caption AMD Ryzen9 9950X3D2, confirmed against live Win32_Processor and retained BDN records",
+      "previousArchivedReportSha256": "440B8C4C312854CF35C5D7D1020C817172A7B1D98C2514F97CB088E8F1E916DF",
+      "currentReportSha256": "142AF324EB7345EE1BA8AD4146C39B038C3154F0EFF2A37AD130507A4840EA2D",
+      "archivedDerivedSnapshotRetained": true,
+      "rawArchiveAndAll1230MemberHashesUnchanged": true,
+      "timingsStatisticsInputsUnchanged": true,
+      "readabilityAuditScope": "Archived pre-caption report; current one-character hardware caption and README revision disclosure inspected by coordinator"
+    }
+  ]
 }

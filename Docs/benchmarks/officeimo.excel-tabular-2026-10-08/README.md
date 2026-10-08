@@ -15,3 +15,6 @@ Extract raw-packets.zip into a new empty task-owned directory. Check each extrac
 Raw files remain byte-identical to their original native sources. Cold allocation belongs to a subsequent MemoryDiagnoser diagnostic invocation, while timing targets first mapping/layout after Setup. The significant domain1 concurrent testhost CPU observation limits cold ranking reliability. Exact warnings and endpoint process snapshots remain in the original native context/logs.
 
 The isolated suite and owner commits identify reproduction inputs and contracts; source/package/saved selectors remain distinct. Later source integration or package qualification does not relabel this measured830951 snapshot. This packet does not claim a package release or a universal winner.
+The archive includes the derived report snapshot used when it was assembled.
+Editorial corrections to the sibling report are recorded in publication-manifest.json;
+they do not change captured results or raw member hashes.
