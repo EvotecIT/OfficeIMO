@@ -294,6 +294,14 @@
           "System.IO.Packaging": "[10.0.8, )"
         }
       },
+      "officeimo.visio.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Visio": "[3.4.4, )"
+        }
+      },
       "officeimo.word": {
         "type": "Project",
         "dependencies": {
@@ -347,6 +355,7 @@
           "OfficeIMO.Reader.Ocr": "[3.4.4, )",
           "OfficeIMO.Rtf.Pdf": "[3.4.4, )",
           "OfficeIMO.Visio": "[3.4.4, )",
+          "OfficeIMO.Visio.Pdf": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )",
           "OfficeIMO.Word.Html": "[3.4.4, )",
           "OfficeIMO.Word.Pdf": "[3.4.4, )",
