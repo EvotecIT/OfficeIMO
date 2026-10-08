@@ -2226,6 +2226,9 @@ namespace OfficeIMO.Word {
                 case LegacyDocTabStopAlignment.Bar:
                     value = TabStopValues.Bar;
                     return true;
+                case LegacyDocTabStopAlignment.Number:
+                    value = TabStopValues.Number;
+                    return true;
                 case LegacyDocTabStopAlignment.Clear:
                     value = TabStopValues.Clear;
                     return true;
