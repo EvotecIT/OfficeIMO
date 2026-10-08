@@ -20,7 +20,10 @@ public sealed partial class OfficeImageMetadata {
                     if (entry.Tag.Id == 33723) metadata.IptcProfile = profile;
                     continue;
                 }
-                metadata.SetExifValue(entry.Tag, entry.Value, token);
+                // The parser has validated this field's bounds and type. TIFF ASCII can
+                // contain string lists and parsed arrays can be empty; neither is a new
+                // user edit. Own the exact encoding instead of revalidating it as one.
+                metadata._changes[entry.Tag] = new OfficeExifValue(entry, source.Bytes, source.Little);
                 // MakerNotes can contain TIFF-relative private pointers. Retain their original entry
                 // in same-container edits, and refuse implicit relocation in a profile export.
                 if (directory.Key == OfficeExifDirectory.Exif && entry.Tag.Id == 37500) metadata._tiffOpaqueOffsets.Add(entry.Tag);
@@ -47,22 +50,22 @@ public sealed partial class OfficeImageMetadata {
         }
         if (preserveDensity) {
             GetExifResolution(metadata, out double x, out double y, out ushort unit);
-            var xResolution = new OfficeRational(checked((uint)Math.Round(x * 1000D)), 1000);
-            var yResolution = new OfficeRational(checked((uint)Math.Round(y * 1000D)), 1000);
-            target[OfficeExifTag.XResolution] = new OfficeExifValue(OfficeExifTag.XResolution, xResolution);
-            target[OfficeExifTag.YResolution] = new OfficeExifValue(OfficeExifTag.YResolution, yResolution);
+            target[OfficeExifTag.XResolution] = TiffResolutionValue(OfficeExifTag.XResolution, x);
+            target[OfficeExifTag.YResolution] = TiffResolutionValue(OfficeExifTag.YResolution, y);
             target[OfficeExifTag.ResolutionUnit] = new OfficeExifValue(OfficeExifTag.ResolutionUnit, unit);
         }
         AddProfile(700, OfficeExifDataType.Byte, metadata._xmp);
         AddProfile(34675, OfficeExifDataType.Undefined, metadata._icc);
-        AddProfile(33723, OfficeExifDataType.Long, metadata._iptc);
+        AddProfile(33723, OfficeExifDataType.Byte, metadata._iptc);
         var original = new Dictionary<OfficeExifTag, OfficeExifProfileCodec.Field>();
         foreach (OfficeExifProfileCodec.Directory directory in source.Directories.Values) foreach (OfficeExifProfileCodec.Field entry in directory.Fields) {
             token.ThrowIfCancellationRequested();
             if (IsStructural(entry.Tag.Id)) continue;
             if (original.ContainsKey(entry.Tag)) throw new FormatException("Duplicate TIFF metadata tags cannot be edited safely.");
             original.Add(entry.Tag, entry);
-            if (!target.ContainsKey(entry.Tag)) removed.Add(entry.Tag);
+            // TIFF orientation controls rendered pixels. Omitting or clearing Exif must
+            // retain it without reencoding pixels; an explicit field removal still applies.
+            if (!target.ContainsKey(entry.Tag) && (!entry.Tag.Equals(OfficeExifTag.Orientation) || metadata._removed.Contains(entry.Tag))) removed.Add(entry.Tag);
         }
         foreach (KeyValuePair<OfficeExifTag, OfficeExifValue> replacement in target) {
             if (original.TryGetValue(replacement.Key, out OfficeExifProfileCodec.Field? previous) && previous.Tag.DataType == replacement.Value.DataType && SameValue(previous.Value, replacement.Value.Value, token)) continue;
@@ -100,13 +103,16 @@ public sealed partial class OfficeImageMetadata {
 
         void AddProfile(ushort id, OfficeExifDataType type, byte[]? bytes) {
             if (bytes == null) return;
-            object value = bytes;
-            if (type == OfficeExifDataType.Long) {
-                var words = new uint[(bytes.Length + 3) / 4];
-                for (int i = 0; i < bytes.Length; i++) { if ((i & 4095) == 0) token.ThrowIfCancellationRequested(); words[i / 4] |= (uint)bytes[i] << (8 * (source.Little ? i % 4 : 3 - i % 4)); }
-                value = words;
+            var tag = new OfficeExifTag(id, type); target[tag] = new OfficeExifValue(tag, bytes);
+        }
+        OfficeExifValue TiffResolutionValue(OfficeExifTag tag, double density) {
+            if (target.TryGetValue(tag, out OfficeExifValue? value)) return GetResolutionValue(tag, density, value);
+            // Clearing Exif does not author density. Preserve the original exact
+            // rational when the effective native value still matches it.
+            if (source.Directories.TryGetValue(OfficeExifDirectory.Image, out OfficeExifProfileCodec.Directory? image)) foreach (OfficeExifProfileCodec.Field field in image.Fields) {
+                if (field.Tag.Equals(tag)) return GetResolutionValue(tag, density, new OfficeExifValue(field, source.Bytes, source.Little, copyEncoding: false));
             }
-            var tag = new OfficeExifTag(id, type); target[tag] = new OfficeExifValue(tag, value);
+            return GetResolutionValue(tag, density, null);
         }
     }
 

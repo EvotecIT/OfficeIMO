@@ -6,10 +6,16 @@ public sealed partial class OfficeImageMetadata {
     private static byte[]? EncodeDensityExif(OfficeImageMetadata metadata, System.Threading.CancellationToken token) {
         OfficeImageMetadata copy = metadata.Clone();
         GetExifResolution(metadata, out double x, out double y, out ushort unit);
-        copy.SetExifValue(OfficeExifTag.XResolution, new OfficeRational(checked((uint)Math.Round(x * 1000D)), 1000));
-        copy.SetExifValue(OfficeExifTag.YResolution, new OfficeRational(checked((uint)Math.Round(y * 1000D)), 1000));
+        copy._changes[OfficeExifTag.XResolution] = GetResolutionValue(OfficeExifTag.XResolution, x, metadata.GetExifValue(OfficeExifTag.XResolution));
+        copy._changes[OfficeExifTag.YResolution] = GetResolutionValue(OfficeExifTag.YResolution, y, metadata.GetExifValue(OfficeExifTag.YResolution));
+        copy._removed.Remove(OfficeExifTag.XResolution); copy._removed.Remove(OfficeExifTag.YResolution);
         copy.SetExifValue(OfficeExifTag.ResolutionUnit, unit);
         return copy.EncodeExifProfile(token);
+    }
+
+    private static OfficeExifValue GetResolutionValue(OfficeExifTag tag, double density, OfficeExifValue? existing) {
+        if (existing?.Value is OfficeRational rational && rational.Numerator != 0 && rational.Denominator != 0 && rational.ToDouble() == density) return existing;
+        return new OfficeExifValue(tag, OfficeUnsignedRational.FromPositiveDouble(density));
     }
 
     private static bool HasJpegJfif(byte[] input) {

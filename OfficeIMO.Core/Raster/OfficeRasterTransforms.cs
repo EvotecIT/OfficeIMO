@@ -81,7 +81,11 @@ public static class OfficeRasterTransforms {
         if (Math.Abs(x) > 1E6 || Math.Abs(y) > 1E6) {
             throw new ArgumentOutOfRangeException(nameof(degreesX), "The skew angle approaches a singular transform.");
         }
-        return new OfficeTransform(1, y, x, 1, 0, 0);
+        var transform = new OfficeTransform(1, y, x, 1, 0, 0);
+        if (!transform.TryInvert(out _)) {
+            throw new ArgumentOutOfRangeException(nameof(degreesX), "The combined skew angles produce a singular transform.");
+        }
+        return transform;
     }
 
     /// <summary>Applies an EXIF orientation value, including mirrored orientations.</summary>

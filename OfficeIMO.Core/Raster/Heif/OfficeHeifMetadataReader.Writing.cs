@@ -103,12 +103,15 @@ public static partial class OfficeHeifMetadataReader {
             if (!TryValidateWriterExtentOwnership(data, itemLocationBox.Value, item.ItemId, extent)) {
                 return false;
             }
-            if (xmp != null && System.Text.Encoding.UTF8.GetByteCount(xmp) > OfficeExifProfileCodec.MaximumProfileBytes) {
-                return false;
+            if (xmp != null) {
+                ReserveBytes(checked(xmp.Length * 2L + 24L));
+                if (StrictXmpUtf8.GetByteCount(xmp) > OfficeExifProfileCodec.MaximumProfileBytes) {
+                    return false;
+                }
             }
             byte[] xmpItemData = xmp is null
                 ? Array.Empty<byte>()
-                : System.Text.Encoding.UTF8.GetBytes(xmp);
+                : StrictXmpUtf8.GetBytes(xmp);
 
             return TryWriteItemData(data, item, extent, out result, xmpItemData);
         }

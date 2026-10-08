@@ -131,8 +131,15 @@ public sealed class OfficeRasterEncodingOptions {
             case OfficeImageExportFormat.Tiff:
                 dpiX = _hasExplicitDpiX ? _dpiX : resolved.Tiff.Resolution?.PhysicalDpiX ?? resolved.Tiff.DpiX;
                 dpiY = _hasExplicitDpiY ? _dpiY : resolved.Tiff.Resolution?.PhysicalDpiY ?? resolved.Tiff.DpiY;
-                resolved.Tiff.DpiX = dpiX * scaleRatio;
-                resolved.Tiff.DpiY = dpiY * scaleRatio;
+                // Native-derived values belong to Resolution, whose rational storage
+                // bounds differ from authored legacy DPI. Keep them out of DpiX/Y;
+                // explicitly assigned shared axes still use the legacy validation.
+                if (_hasExplicitDpiX || resolved.Tiff.Resolution == null) {
+                    resolved.Tiff.DpiX = dpiX * scaleRatio;
+                }
+                if (_hasExplicitDpiY || resolved.Tiff.Resolution == null) {
+                    resolved.Tiff.DpiY = dpiY * scaleRatio;
+                }
                 if (resolved.Tiff.Resolution != null) {
                     OfficeImageResolution native = resolved.Tiff.Resolution;
                     resolved.Tiff.Resolution = _hasExplicitDpiX || _hasExplicitDpiY
@@ -161,8 +168,9 @@ public sealed class OfficeRasterEncodingOptions {
 
         resolved._dpiX = dpiX * scaleRatio;
         resolved._dpiY = dpiY * scaleRatio;
-        resolved._hasExplicitDpiX = true;
-        resolved._hasExplicitDpiY = true;
+        // Derived format DPI is a resolved value, not a new caller assignment.
+        // Preserve the cloned provenance so nested export/streaming resolution
+        // does not turn native TIFF density or aspect ratio into an inch override.
         return resolved;
     }
 }

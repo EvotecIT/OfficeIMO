@@ -8,7 +8,7 @@ public sealed partial class OfficeImageMetadata {
         get {
             long bytes = _exif?.RetainedManagedBytes ?? 0L;
             bytes = checked(bytes + (_xmp?.LongLength ?? 0L) + (_icc?.LongLength ?? 0L) + (_iptc?.LongLength ?? 0L));
-            foreach (OfficeExifValue value in _changes.Values) bytes = checked(bytes + value.EncodedByteLength * 2L + 128L);
+            foreach (OfficeExifValue value in _changes.Values) bytes = checked(bytes + value.RetainedByteLength + 128L);
             return bytes;
         }
     }

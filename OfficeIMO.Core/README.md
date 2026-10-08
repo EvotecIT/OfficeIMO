@@ -612,7 +612,7 @@ metadata.SetExifValue(OfficeExifTag.Software, "Photo workflow");
 metadata.SetExifValue(OfficeExifTag.ExposureTime, new OfficeRational(1, 125));
 metadata.RemoveExifValue(OfficeExifTag.GPSLatitude);
 metadata.RemoveExifValue(OfficeExifTag.GPSLongitude);
-File.WriteAllBytes("annotated.jpg", OfficeImageMetadata.Apply(original, metadata));
+OfficeImageFileWriter.WriteAllBytes("annotated.jpg", OfficeImageMetadata.Apply(original, metadata));
 
 OfficeImageMetadataRemovalResult removal = OfficeImageMetadata.Remove(
     original, OfficeImageMetadataProfileKinds.Exif | OfficeImageMetadataProfileKinds.Xmp);
@@ -620,11 +620,13 @@ Console.WriteLine($"Found {removal.PresentProfiles}; removed {removal.RemovedPro
 File.WriteAllBytes("private.jpg", removal.EncodedBytes);
 ```
 
-Metadata replacement preserves JPEG entropy data, PNG image chunks, WebP image payloads, and TIFF raster encoding fields. TIFF replacement edits the primary image and retains page links; profile removal visits every page. TIFF metadata operations limit the aggregate strip, tile, and JPEG-interchange pixel references across reachable directories to 65,535. The alias check includes child directories and rejects edits that would erase pixel data. GIF supports XMP and ICC application profiles, while BMP supports V5 ICC profiles and physical density. Removing profile families from PBM/PGM/PPM or TGA returns the validated image unchanged because those formats have no defined carriers for these profile families. Unsupported carriers fail explicitly. ICC metadata edits preserve profile bytes; they do not transform pixel colors.
+Metadata replacement preserves JPEG entropy data, PNG image chunks, WebP image payloads, and TIFF raster encoding fields. TIFF replacement edits the primary image and retains page links; profile removal visits every page. Clearing or removing TIFF Exif retains each page's rendering orientation because changing it would change displayed pixels. The remaining orientation is exposed by `GetExifValue` and can make `HasExifProfile` true; use an explicit `SetExifValue` or `RemoveExifValue` to change that rendering field. TIFF metadata operations limit the aggregate strip, tile, and JPEG-interchange pixel references across reachable directories to 65,535. The alias check includes child directories and rejects edits that would erase pixel data. GIF supports XMP and ICC application profiles, while BMP supports V5 ICC profiles and physical density. Removing profile families from PBM/PGM/PPM or TGA returns the validated image unchanged because those formats have no defined carriers for these profile families. Unsupported carriers fail explicitly. ICC metadata edits preserve profile bytes; they do not transform pixel colors.
 
-Resolution values retain native aspect-ratio, pixels-per-inch, pixels-per-centimeter, or pixels-per-meter units when the container can represent them. `PhysicalDpiX` and `PhysicalDpiY` convert physical units to DPI and return null for an aspect ratio. JPEG, WebP, and TIFF normalize meter-based density to centimeters. JPEG replacement updates JFIF density, creates that carrier when absent, and synchronizes density in an existing Exif profile. GIF has an aspect-ratio field and no physical-density field: lossless edits require `AspectRatio`, while `PrepareForEncoding` projects resolution to that unit for GIF. Its ratio is rounded to the GIF field's representable increments. TIFF-relative opaque maker notes require the original TIFF container for lossless preservation; `RequiresOriginalTiffContainer` reports that constraint. Exporting those notes to another container requires explicitly removing or replacing the note. Superseded Exif values are erased when their storage is exclusive; aliased ranges that would erase another field or image pixels are rejected.
+`OfficeImageMetadata` validates complete BMP storage before reading or editing it, including palettes, row data, RLE commands, embedded JPEG/PNG payloads, and V5 color-profile ranges. Metadata operations accept supported BMP storage layouts independently of the managed pixel decoder's narrower format support. TIFF IPTC writes use byte-typed fields to preserve exact profile lengths and trailing zero bytes.
 
-Use `ParseExifProfile` and `EncodeExifProfile` for metadata-only workflows. They accept and return classic TIFF Exif bytes without JPEG framing, and parsing also accepts the JPEG Exif prefix. Both have cancellation-token overloads. `Clone` preserves independent edits and the original-container constraints. Metadata rewriting bounds retained inputs, profiles, stream backing growth, and the final encoded array against the Core managed working-set limit. Malformed ICC profiles are rejected before replacement. C2PA removal uses the canonical carrier inspector and retains malformed or conflicting carriers rather than treating unrelated bytes as a removable manifest.
+Resolution values retain native aspect-ratio, pixels-per-inch, pixels-per-centimeter, or pixels-per-meter units when the container can represent them. `PhysicalDpiX` and `PhysicalDpiY` convert physical units to DPI and return null for an aspect ratio. JPEG, WebP, and TIFF normalize meter-based density to centimeters. TIFF encoder overloads preserve native units and aspect ratios unless the caller explicitly sets shared DPI. TIFF metadata edits retain exact rational density fields when the effective native values are unchanged. Authored TIFF/Exif rational density remains positive and accurate within one part in a trillion, or is rejected before output; its encoded numerator and denominator may differ from earlier output. JPEG replacement updates JFIF density, creates that carrier when absent, and synchronizes density in an existing Exif profile. GIF has an aspect-ratio field and no physical-density field: lossless edits require `AspectRatio`, while `PrepareForEncoding` projects resolution to that unit for GIF. Its ratio is rounded to the GIF field's representable increments. TIFF-relative opaque maker notes require the original TIFF container for lossless preservation; `RequiresOriginalTiffContainer` reports that constraint. Exporting those notes to another container requires explicitly removing or replacing the note. Superseded Exif values are erased when their storage is exclusive; aliased ranges that would erase another field or image pixels are rejected.
+
+Use `ParseExifProfile` and `EncodeExifProfile` for metadata-only workflows. They accept and return classic TIFF Exif bytes without JPEG framing, and parsing also accepts the JPEG Exif prefix. Parsed TIFF fields preserve their original representations, including NUL-separated ASCII strings and zero-count arrays, through unrelated edits and profile export. `SetExifValue` validates new edits and requires ASCII text without embedded NULs and nonempty typed arrays. Both profile methods have cancellation-token overloads. `Clone` preserves independent edits and the original-container constraints. Metadata rewriting bounds retained inputs, profiles, stream backing growth, and the final encoded array against the Core managed working-set limit. Malformed ICC profiles are rejected before replacement. C2PA removal uses the canonical carrier inspector and retains malformed or conflicting carriers rather than treating unrelated bytes as a removable manifest.
 
 When re-encoding pixels into another format, call `PrepareForEncoding(destinationFormat, out omittedProfiles)` before `Apply`. The returned copy contains supported profile families and reports what the destination cannot carry. For example, JPEG IPTC IIM metadata is omitted when producing PNG, while Exif, XMP, and ICC are retained. This explicit projection leaves the source metadata intact; lossless replacement still rejects unsupported profiles.
 
@@ -662,12 +664,32 @@ visible through the info and presence APIs. Their payload reads and writes, incl
 clearing, return `false`; independent edits to another family leave their bytes unchanged.
 Core does not provide a HEIF decryption or content-decoding fallback.
 
+XMP reads reject malformed UTF-8, and XMP writes reject strings containing unpaired UTF-16
+surrogates. Independent EXIF edits preserve an unreadable XMP sibling as bytes. A valid new
+XMP packet can replace a malformed existing packet through the direct writer API.
+
 Input and output are bounded to 128 MiB, individual metadata/property payloads to 16 MiB,
 declared item collections to 4,096 entries, and parser work to 65,536 records. Operations
-include known caller stream backing in the managed working-set budget and observe
+include known caller stream backing and supplied XMP strings in the managed working-set budget and observe
 cancellation during parsing and preparation. Rejection or cancellation during
-preparation leaves source bytes and an existing output file untouched; the final file write
-is synchronous. This metadata API does not provide HEIF pixel decoding or encoding.
+preparation leaves source bytes and an existing output file untouched. File writers stage
+the complete output beside the destination and atomically replace it, so a failed staging
+write preserves the existing file. This metadata API does not provide HEIF pixel decoding or encoding.
+
+### Save encoded image files atomically
+
+Use `OfficeImageFileWriter.WriteAllBytes(path, encodedImage, cancellationToken)` or
+`WriteAllBytesAsync` to save completed encoded bytes. Both stage output in the destination
+directory, then create or atomically replace the final file. They reuse Core's shared file
+commit owner and fail explicitly if atomic replacement is unsupported. Staging failures
+and cancellation observed before commit preserve an existing destination; failed staging
+files are removed when the filesystem permits cleanup.
+
+The byte array is borrowed without cloning or parsing. Keep it unchanged until the method
+or returned task completes. The writer observes cancellation during staging and immediately
+before commit. Once final replacement begins, it can finish even if cancellation is requested.
+These methods save already encoded bytes; they do not validate image formats or promise
+power-loss durability.
 
 ### Optimize encoded images for a placement
 

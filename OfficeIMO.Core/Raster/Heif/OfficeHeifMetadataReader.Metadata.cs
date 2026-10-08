@@ -4,12 +4,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeHeifMetadataReader {
     private sealed partial class Parser {
+        private static readonly UTF8Encoding StrictXmpUtf8 = new UTF8Encoding(false, true);
+
         internal bool TryReadExifProfile(byte[] data, out OfficeImageMetadata? profile) {
             profile = null;
 
@@ -117,7 +120,7 @@ public static partial class OfficeHeifMetadataReader {
             }
 
             ReserveBytes(itemData!.LongLength * 2L + 24L);
-            xmp = System.Text.Encoding.UTF8.GetString(itemData!);
+            xmp = StrictXmpUtf8.GetString(itemData!);
             return true;
         }
 

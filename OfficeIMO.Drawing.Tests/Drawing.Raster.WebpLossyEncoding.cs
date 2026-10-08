@@ -159,7 +159,9 @@ public sealed class DrawingWebpLossyEncodingTests {
         OfficeWebpEncodingMode mode, bool fixedBuffer) {
         var image = new OfficeRasterImage(1, 1, OfficeColor.White);
         var options = new OfficeWebpEncodeOptions { Mode = mode };
-        byte[] encoded = OfficeWebpCodec.Encode(image, options, CancellationToken.None);
+        using var expectedStream = new MemoryStream();
+        OfficeWebpCodec.EncodeTo(image, expectedStream, options);
+        byte[] encoded = expectedStream.ToArray();
         byte[] prefix = { 11, 22, 33, 44 };
         foreach (bool generic in new[] { false, true }) {
             using MemoryStream stream = fixedBuffer
@@ -192,8 +194,9 @@ public sealed class DrawingWebpLossyEncodingTests {
     public void CallerOwnedBackingDoesNotReserveAnUnrequestedFinalCopy(OfficeWebpEncodingMode mode) {
         const int capacity = 1024 * 1024;
         var image = new OfficeRasterImage(1, 1, OfficeColor.White);
-        byte[] encoded = OfficeWebpCodec.Encode(image,
-            new OfficeWebpEncodeOptions { Mode = mode }, CancellationToken.None);
+        using var expectedStream = new MemoryStream();
+        OfficeWebpCodec.EncodeTo(image, expectedStream, new OfficeWebpEncodeOptions { Mode = mode });
+        byte[] encoded = expectedStream.ToArray();
         foreach (bool generic in new[] { false, true }) {
             using var stream = new MemoryStream(capacity);
             stream.SetLength(capacity);

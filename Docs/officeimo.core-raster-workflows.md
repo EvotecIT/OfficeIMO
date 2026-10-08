@@ -91,7 +91,7 @@ if (OfficeHeifMetadataReader.TryReadExifProfile(heif, out OfficeImageMetadata? e
     exif.SetExifValue(OfficeExifTag.Software, "Photo workflow");
     if (OfficeHeifMetadataReader.TryWriteExifProfile(heif, exif, out byte[]? edited,
             cancellationToken)) {
-        File.WriteAllBytes("annotated.heic", edited!);
+        OfficeImageFileWriter.WriteAllBytes("annotated.heic", edited!, cancellationToken);
     }
 }
 ```
@@ -110,13 +110,37 @@ shared extents before erasing old bytes, leaves unrequested metadata families un
 places replacement data in a framed `mdat` box. Pass null to clear an existing profile;
 missing items are not created. Byte-array writers return owned bytes and never mutate the
 source. File writers prepare the complete output first, so rejection and cancellation during
-preparation leave an existing output file untouched. The final filesystem write is synchronous.
+preparation leave an existing output file untouched. File writers stage complete output beside
+the destination and atomically commit it, preserving the existing file if a staging write fails.
 
 The policy bounds encoded input/output to 128 MiB, individual metadata and property payloads
 to 16 MiB, declared item collections to 4,096 entries, and parser work to 65,536 records.
 Parser collections, copied payloads, retained EXIF input, known caller stream backing, and prepared output are accounted
 against Core's 256 MiB managed working-set limit. Cancellation is observed during structure
 scanning, payload copies, and rewrite preparation.
+
+XMP reads reject malformed UTF-8, and writes reject unpaired UTF-16 surrogates instead of
+replacing invalid text. Independent EXIF edits preserve malformed XMP bytes. A valid new
+packet can replace malformed XMP through the direct writer.
+The writer includes the caller's UTF-16 packet storage in its managed working-set budget.
+
+## Save complete encoded output
+
+`OfficeImageFileWriter` saves completed encoded bytes through Core's shared atomic file
+commit owner. It creates missing parent directories, stages in the destination directory,
+and atomically creates or replaces the output:
+
+```csharp
+OfficeImageFileWriter.WriteAllBytes("preview.png", firstFramePng, cancellationToken);
+await OfficeImageFileWriter.WriteAllBytesAsync("difference.png", differencePng, cancellationToken);
+```
+
+Both methods borrow the supplied byte array; keep it unchanged until completion. They do
+not clone, parse, or impose format limits on already encoded data. Failed staging and
+cancellation observed before commit preserve an existing destination, and failed staging
+files are cleaned up when the filesystem permits it. Unsupported atomic replacement fails
+explicitly. The final replacement can complete if cancellation arrives after commit begins.
+Atomic publication protects readers from partial output; it does not promise power-loss durability.
 
 ## Failure and cancellation
 

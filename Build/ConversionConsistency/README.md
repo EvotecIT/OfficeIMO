@@ -2,6 +2,12 @@
 
 This tool compares the native PDF and image exports of authored documents. It checks every expected page, required text, physical dimensions, diagnostics, selected text baselines and color regions. PNG, SVG, JPEG, TIFF and WebP are included. Poppler renders saved PDFs independently; Chromium renders SVG before its pixels are compared with the direct PNG export.
 
+Each of those five image formats is required for every expected page. Capture,
+bundle export and verification share an explicit format set, so adding an image
+export enum value does not change this comparison contract. Other formats are
+outside the suite's full-page pixel and geometry checks: PBM is monochrome and
+ICO has icon-size limits. Their codec tests cover those separate contracts.
+
 Suites supply a regular font through `fontPath` and may supply `boldFontPath`
 for authored bold text. The report suite supplies both faces. The bundle records
 both font hashes; font substitution remains a failing diagnostic.
@@ -59,4 +65,4 @@ The default pixel allowance is 2% with a mean channel error of 3. The dense repo
 
 These limits are stored per case. Reduced PDF coverage requires an explicit explanation. A passing result means the declared checks passed; it does not establish complete format fidelity or interchangeable Word, Excel, and HTML layouts.
 
-The workflow uploads the evidence for review. The negative checks verify that missing labels, missing or altered image files, duplicate pages, and invalid CLI options cannot produce a successful result.
+The workflow uploads the evidence for review. The negative checks verify that missing labels, missing or altered image files, a missing whole image format, duplicate pages, and invalid CLI options cannot produce a successful result.

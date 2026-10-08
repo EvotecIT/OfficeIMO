@@ -140,7 +140,7 @@ internal static class OfficeExifProfileCodec {
             output.Position = output.Length;
             foreach (KeyValuePair<OfficeExifTag, OfficeExifValue> change in changes) {
                 if (change.Key.Directory != kind) continue;
-                byte[] payload = EncodeValue(change.Key.DataType, change.Value.Value, little, out uint count, cancellationToken);
+                byte[] payload = change.Value.EncodeValue(little, out uint count, cancellationToken);
                 byte[] entry = MakeEntry(change.Key.Id, (ushort)change.Key.DataType, count, little);
                 if (payload.Length <= 4) Buffer.BlockCopy(payload, 0, entry, 8, payload.Length);
                 else { Align(output); Write(entry, 8, (uint)output.Length, 4, little); output.Write(payload, 0, payload.Length); }

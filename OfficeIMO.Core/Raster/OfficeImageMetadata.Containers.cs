@@ -75,7 +75,7 @@ public sealed partial class OfficeImageMetadata {
             OfficeImageFormat.Png => RewritePng(working, null, cancellationToken, profileKinds, out present, retainedInput),
             OfficeImageFormat.Webp => RewriteWebp(working, null, cancellationToken, profileKinds, out present, retainedInput),
             OfficeImageFormat.Tiff => RemoveTiffProfiles(working, profileKinds, cancellationToken, out present, retainedInput),
-            OfficeImageFormat.Bmp => RewriteBmp(working, null, profileKinds, out present, retainedInput),
+            OfficeImageFormat.Bmp => RewriteBmp(working, null, profileKinds, cancellationToken, out present, retainedInput),
             OfficeImageFormat.Gif => RewriteGif(working, null, profileKinds, cancellationToken, out present, retainedInput),
             OfficeImageFormat.PortableMap or OfficeImageFormat.Tga => CloneWithoutProfiles(working, info.Format, cancellationToken, out present),
             _ => throw new NotSupportedException("Lossless profile removal is not supported for this image container.")

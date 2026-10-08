@@ -9,13 +9,13 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
-    /// <remarks>The destination remains open after encoding.</remarks>
+    /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
     public static void EncodeTo(OfficeRasterImage image, Stream destination) {
         EncodeStreaming(image, destination, includeResolutionMetadata: false, 96D, 96D, CancellationToken.None);
     }
 
     /// <summary>Encodes an RGBA image with Exif resolution metadata directly to a writable stream.</summary>
-    /// <remarks>The destination remains open after encoding.</remarks>
+    /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
     public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,

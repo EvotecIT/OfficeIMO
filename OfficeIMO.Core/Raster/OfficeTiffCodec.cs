@@ -45,7 +45,7 @@ public sealed class OfficeTiffEncodeOptions {
     public double DpiY { get; set; } = 96D;
 
     /// <summary>Optional native resolution values used instead of physical DPI when writing resolution tags.</summary>
-    /// <remarks>The same override applies to every encoded TIFF page. A null override retains the existing DPI behavior. Meter-based values are represented as centimeters; aspect ratios use TIFF ResolutionUnit 1.</remarks>
+    /// <remarks>The same override applies to every encoded TIFF page. A null override retains the existing DPI behavior. Meter-based values are represented as centimeters; aspect ratios use TIFF ResolutionUnit 1. Native values must fit positive unsigned rational storage within one part in a trillion; unsupported values are rejected before output.</remarks>
     public OfficeImageResolution? Resolution { get; set; }
 
     /// <summary>Writes TIFF XResolution, YResolution, and ResolutionUnit tags.</summary>
@@ -259,8 +259,10 @@ public static partial class OfficeTiffCodec {
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         GetEncodingResolution(options, out double x, out double y, out _);
-        ValidateDpi(x, nameof(options.Resolution));
-        ValidateDpi(y, nameof(options.Resolution));
+        if (options.WriteResolution) {
+            OfficeUnsignedRational.FromPositiveDouble(x, nameof(options.Resolution));
+            OfficeUnsignedRational.FromPositiveDouble(y, nameof(options.Resolution));
+        }
     }
 
     private static void GetEncodingResolution(OfficeTiffEncodeOptions options, out double x, out double y, out int unit) {
@@ -753,10 +755,9 @@ public static partial class OfficeTiffCodec {
     }
 
     private static void WriteRational(byte[] output, int offset, double value) {
-        const int denominator = 1000;
-        int numerator = checked((int)Math.Round(value * denominator));
-        WriteUInt32(output, offset, numerator);
-        WriteUInt32(output, offset + 4, denominator);
+        OfficeRational rational = OfficeUnsignedRational.FromPositiveDouble(value);
+        WriteUInt32(output, offset, unchecked((int)rational.Numerator));
+        WriteUInt32(output, offset + 4, unchecked((int)rational.Denominator));
     }
 
     private static void WriteUInt16(byte[] output, int offset, int value) {

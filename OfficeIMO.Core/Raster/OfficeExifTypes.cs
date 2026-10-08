@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -150,12 +151,50 @@ public readonly struct OfficeSignedRational {
 /// <summary>An immutable typed Exif field snapshot.</summary>
 public sealed class OfficeExifValue {
     private readonly object _value;
+    private readonly byte[]? _parsedEncoding;
+    private readonly int _parsedOffset;
+    private readonly int _parsedLength;
+    private readonly uint _parsedCount;
+    private readonly bool _parsedLittleEndian;
     internal OfficeExifValue(OfficeExifTag tag, object value) { Tag = tag; _value = value is Array array ? array.Clone() : value; }
+    /// <summary>Owns a validated parsed field without applying the stricter rules for new user edits.</summary>
+    internal OfficeExifValue(OfficeExifProfileCodec.Field field, byte[] source, bool littleEndian, bool copyEncoding = true) : this(field.Tag, field.Value) {
+        _parsedLength = field.ValueLength;
+        if (copyEncoding) {
+            _parsedEncoding = new byte[field.ValueLength];
+            Buffer.BlockCopy(source, field.ValueOffset, _parsedEncoding, 0, _parsedLength);
+        } else {
+            // Classic Exif profiles already own immutable bounded bytes. Borrow those
+            // bytes instead of allocating another payload for each value enumeration.
+            _parsedEncoding = source;
+            _parsedOffset = field.ValueOffset;
+        }
+        _parsedCount = field.Count;
+        _parsedLittleEndian = littleEndian;
+    }
     /// <summary>The field identity.</summary>
     public OfficeExifTag Tag { get; }
     /// <summary>The TIFF representation.</summary>
     public OfficeExifDataType DataType => Tag.DataType;
     /// <summary>The scalar, text, or typed array value. Arrays are copied.</summary>
     public object Value => _value is Array array ? array.Clone() : _value;
-    internal long EncodedByteLength => _value is string text ? text.Length + 1L : _value is Array array ? array.LongLength * OfficeExifProfileCodec.Size((int)DataType) : OfficeExifProfileCodec.Size((int)DataType);
+    internal long EncodedByteLength => _parsedEncoding != null ? _parsedLength : (_value is string text ? text.Length + 1L : _value is Array array ? array.LongLength * OfficeExifProfileCodec.Size((int)DataType) : OfficeExifProfileCodec.Size((int)DataType));
+    internal long RetainedByteLength => checked(EncodedByteLength * 2L + (_parsedEncoding?.LongLength ?? 0L));
+    /// <summary>Preserves parsed counts, ASCII string lists, and numeric bits while adapting byte order when a field is relocated.</summary>
+    internal byte[] EncodeValue(bool littleEndian, out uint count, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        if (_parsedEncoding == null) return OfficeExifProfileCodec.EncodeValue(DataType, _value, littleEndian, out count, token);
+        count = _parsedCount;
+        byte[] encoded = new byte[_parsedLength];
+        Buffer.BlockCopy(_parsedEncoding, _parsedOffset, encoded, 0, encoded.Length);
+        int wordBytes = DataType == OfficeExifDataType.Rational || DataType == OfficeExifDataType.SignedRational ? 4 : OfficeExifProfileCodec.Size((int)DataType);
+        if (_parsedLittleEndian != littleEndian && wordBytes > 1) {
+            for (int at = 0; at < encoded.Length; at += wordBytes) {
+                if ((at & 4095) == 0) token.ThrowIfCancellationRequested();
+                Array.Reverse(encoded, at, wordBytes);
+            }
+        }
+        token.ThrowIfCancellationRequested();
+        return encoded;
+    }
 }

@@ -62,7 +62,7 @@ public sealed partial class OfficeImageMetadata {
             var seen = new HashSet<OfficeExifTag>();
             if (_exif != null) foreach (OfficeExifProfileCodec.Directory directory in _exif.Directories.Values) foreach (OfficeExifProfileCodec.Field entry in directory.Fields) {
                 if (IsStructural(entry.Tag.Id) || _removed.Contains(entry.Tag) || !seen.Add(entry.Tag)) continue;
-                result.Add(_changes.TryGetValue(entry.Tag, out OfficeExifValue? changed) ? changed : new OfficeExifValue(entry.Tag, entry.Value));
+                result.Add(_changes.TryGetValue(entry.Tag, out OfficeExifValue? changed) ? changed : new OfficeExifValue(entry, _exif.Bytes, _exif.Little, copyEncoding: false));
             }
             foreach (KeyValuePair<OfficeExifTag, OfficeExifValue> change in _changes) if (seen.Add(change.Key)) result.Add(change.Value);
             result.Sort((left, right) => left.Tag.Directory == right.Tag.Directory ? left.Tag.Id.CompareTo(right.Tag.Id) : left.Tag.Directory.CompareTo(right.Tag.Directory));
@@ -91,6 +91,7 @@ public sealed partial class OfficeImageMetadata {
         _changes.Remove(tag); _removed.Add(tag); _tiffOpaqueOffsets.Remove(tag); return present;
     }
     /// <summary>Removes the entire Exif profile, including opaque and thumbnail data.</summary>
+    /// <remarks>When subsequently applied to a TIFF, its original rendering orientation is retained unless explicitly removed with <see cref="RemoveExifValue"/> after clearing the profile.</remarks>
     public void ClearExif() { _exif = null; _changes.Clear(); _removed.Clear(); _tiffOpaqueOffsets.Clear(); }
     /// <summary>Returns a classic TIFF profile containing the current edits, or null when Exif is absent.</summary>
     /// <remarks>Unedited data retains its original offsets. Edited values are erased from obsolete storage when ranges are exclusive; overlapping values are rejected.</remarks>
@@ -150,7 +151,7 @@ public sealed partial class OfficeImageMetadata {
         if (info.Format == OfficeImageFormat.Png) ReadPngProfiles(encodedBytes, metadata, cancellationToken);
         if (info.Format == OfficeImageFormat.Webp) ReadWebpProfiles(encodedBytes, metadata, cancellationToken);
         if (info.Format == OfficeImageFormat.Tiff) ReadTiffProfiles(encodedBytes, metadata, cancellationToken);
-        if (info.Format == OfficeImageFormat.Bmp) ReadBmpProfiles(encodedBytes, metadata);
+        if (info.Format == OfficeImageFormat.Bmp) ReadBmpProfiles(encodedBytes, metadata, cancellationToken);
         if (info.Format == OfficeImageFormat.Gif) ReadGifProfiles(encodedBytes, metadata, cancellationToken);
         ReadNativeResolution(encodedBytes, info.Format, metadata, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -173,7 +174,7 @@ public sealed partial class OfficeImageMetadata {
             OfficeImageFormat.Png => RewritePng(encodedBytes, metadata, cancellationToken),
             OfficeImageFormat.Webp => RewriteWebp(encodedBytes, metadata, cancellationToken),
             OfficeImageFormat.Tiff => RewriteTiff(encodedBytes, metadata, cancellationToken),
-            OfficeImageFormat.Bmp => RewriteBmp(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, out _),
+            OfficeImageFormat.Bmp => RewriteBmp(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, cancellationToken, out _),
             OfficeImageFormat.Gif => RewriteGif(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, cancellationToken, out _),
             _ => throw new NotSupportedException("The image container does not support lossless replacement of these profile families.")
         };

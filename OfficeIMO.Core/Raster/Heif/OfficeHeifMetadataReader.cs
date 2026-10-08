@@ -17,6 +17,9 @@ namespace OfficeIMO.Drawing;
 /// Protected items and XMP items declaring a content encoding remain discoverable, but their
 /// payload reads and writes (including clearing) are unsupported. Stream reads include known
 /// caller-owned memory backing in the operation's managed working-set budget.
+/// XMP writes also account for the supplied UTF-16 string in that budget.
+/// XMP reads reject malformed UTF-8, and writes reject strings containing unpaired UTF-16
+/// surrogates. A valid new packet can replace an existing malformed requested payload.
 /// </remarks>
 public static partial class OfficeHeifMetadataReader {
     /// <summary>Reads container brands, primary image properties, items, locations and references.</summary>
@@ -117,7 +120,7 @@ public static partial class OfficeHeifMetadataReader {
         HasXmpItem(ReadFile(filePath, cancellationToken), cancellationToken);
 
     /// <summary>Replaces or clears an existing writable EXIF item in a file.</summary>
-    /// <remarks>Rejection and cancellation during preparation leave the output file untouched. The final filesystem write is synchronous.</remarks>
+    /// <remarks>Stages complete output beside the destination and atomically commits it. Rejection, staging failure, and cancellation before commit preserve the destination. Unsupported atomic replacement fails explicitly.</remarks>
     public static bool TryWriteExifProfile(string filePath, string outputPath, OfficeImageMetadata? profile, CancellationToken cancellationToken = default) {
         if (!TryWriteExifProfile(ReadFile(filePath, cancellationToken), profile, out byte[]? output, cancellationToken)) {
             return false;
@@ -127,7 +130,7 @@ public static partial class OfficeHeifMetadataReader {
     }
 
     /// <summary>Replaces or clears an existing writable XMP item in a file.</summary>
-    /// <remarks>Rejection and cancellation during preparation leave the output file untouched. The final filesystem write is synchronous.</remarks>
+    /// <remarks>Stages complete output beside the destination and atomically commits it. Rejection, staging failure, and cancellation before commit preserve the destination. Unsupported atomic replacement fails explicitly.</remarks>
     public static bool TryWriteXmp(string filePath, string outputPath, string? xmp, CancellationToken cancellationToken = default) {
         if (!TryWriteXmp(ReadFile(filePath, cancellationToken), xmp, out byte[]? output, cancellationToken)) {
             return false;
@@ -169,12 +172,7 @@ public static partial class OfficeHeifMetadataReader {
     }
 
     private static void WriteFile(string path, byte[] data, CancellationToken token) {
-        token.ThrowIfCancellationRequested();
-        string? parent = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(parent)) {
-            Directory.CreateDirectory(parent);
-        }
-        File.WriteAllBytes(path, data);
+        OfficeImageFileWriter.WriteAllBytes(path, data, token);
     }
 
     private sealed partial class Parser {

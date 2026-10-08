@@ -5,7 +5,6 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeImageMetadata {
-    private const uint BitmapProfileLinked = 0x4C494E4B;
     private const uint BitmapProfileEmbedded = 0x4D424544;
 
     private static byte[] CloneWithoutProfiles(byte[] input, OfficeImageFormat format, CancellationToken token, out OfficeImageMetadataProfileKinds present) {
@@ -41,8 +40,8 @@ public sealed partial class OfficeImageMetadata {
         return output;
     }
 
-    private static void ReadBmpProfiles(byte[] input, OfficeImageMetadata metadata) {
-        if (input.Length < 54) return;
+    private static void ReadBmpProfiles(byte[] input, OfficeImageMetadata metadata, CancellationToken token) {
+        if (!OfficeBmpStructureValidator.TryValidate(input, token, out OfficeBmpStructureValidator.Layout layout, checked(metadata.RetainedProfileBytes * 2L))) throw new FormatException("The BMP storage is malformed, incomplete, or exceeds the working-set limit.");
         int header = checked((int)OfficeExifProfileCodec.Read(input, 14, 4, true));
         if (header >= 40) {
             int x = unchecked((int)OfficeExifProfileCodec.Read(input, 38, 4, true));
@@ -53,19 +52,20 @@ public sealed partial class OfficeImageMetadata {
                 metadata.ResolutionUnits = OfficeImageResolutionUnit.PixelsPerMeter;
             }
         }
-        if (TryGetBmpProfile(input, out int offset, out int length, out bool embedded) && embedded) metadata.IccProfile = Slice(input, offset, length);
+        if (layout.ProfileLength != 0 && layout.EmbeddedProfile) metadata.IccProfile = Slice(input, layout.ProfileOffset, layout.ProfileLength);
     }
 
-    private static byte[] RewriteBmp(byte[] input, OfficeImageMetadata? metadata, OfficeImageMetadataProfileKinds replace, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
+    private static byte[] RewriteBmp(byte[] input, OfficeImageMetadata? metadata, OfficeImageMetadataProfileKinds replace, CancellationToken token, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
         present = OfficeImageMetadataProfileKinds.None;
+        if (!OfficeBmpStructureValidator.TryValidate(input, token, out OfficeBmpStructureValidator.Layout layout, checked(additionallyRetainedBytes + (metadata?.RetainedProfileBytes ?? 0L)))) throw new FormatException("The BMP storage is malformed, incomplete, or exceeds the working-set limit.");
         if (metadata != null && (metadata.HasExifProfile || metadata._xmp != null || metadata._iptc != null)) throw new NotSupportedException("BMP supports ICC color profiles and density; Exif, XMP, and IPTC IIM profiles have no standard BMP carrier.");
         if (checked(input.LongLength * (metadata?._icc != null ? 3L : 2L) + additionallyRetainedBytes + (metadata?.RetainedProfileBytes ?? 0L) * 2L + 256L) > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentException("Metadata rewriting exceeds the managed working-set limit.");
         byte[] output = (byte[])input.Clone();
         int header = checked((int)OfficeExifProfileCodec.Read(input, 14, 4, true));
-        if (TryGetBmpProfile(input, out int profileOffset, out int profileLength, out _)) {
+        if (layout.ProfileLength != 0) {
             present = OfficeImageMetadataProfileKinds.Icc;
             if ((replace & OfficeImageMetadataProfileKinds.Icc) != 0) {
-                Array.Clear(output, profileOffset, profileLength);
+                Array.Clear(output, layout.ProfileOffset, layout.ProfileLength);
                 OfficeExifProfileCodec.Write(output, 14 + 56, 0x73524742, 4, true);
                 OfficeExifProfileCodec.Write(output, 14 + 112, 0, 4, true);
                 OfficeExifProfileCodec.Write(output, 14 + 116, 0, 4, true);
@@ -106,27 +106,4 @@ public sealed partial class OfficeImageMetadata {
         return expanded;
     }
 
-    private static bool TryGetBmpProfile(byte[] input, out int offset, out int length, out bool embedded) {
-        offset = 0;
-        length = 0;
-        embedded = false;
-        if (input.Length < 138 || OfficeExifProfileCodec.Read(input, 14, 4, true) != 124) return false;
-        uint kind = (uint)OfficeExifProfileCodec.Read(input, 70, 4, true);
-        if (kind != BitmapProfileEmbedded && kind != BitmapProfileLinked) return false;
-        long start = 14L + (long)OfficeExifProfileCodec.Read(input, 126, 4, true);
-        long size = (long)OfficeExifProfileCodec.Read(input, 130, 4, true);
-        long pixels = (long)OfficeExifProfileCodec.Read(input, 10, 4, true);
-        long pixelBytes = (long)OfficeExifProfileCodec.Read(input, 34, 4, true);
-        if (pixelBytes == 0) {
-            long width = (long)OfficeExifProfileCodec.Read(input, 18, 4, true);
-            int height = unchecked((int)OfficeExifProfileCodec.Read(input, 22, 4, true));
-            long bits = (long)OfficeExifProfileCodec.Read(input, 28, 2, true);
-            pixelBytes = checked(((width * bits + 31) / 32) * 4 * Math.Abs((long)height));
-        }
-        if (start < 138 || size <= 0 || size > OfficeExifProfileCodec.MaximumProfileBytes || start + size > input.Length || start < pixels + pixelBytes && start + size > pixels) throw new FormatException("BMP color-profile range is invalid or overlaps pixels.");
-        offset = checked((int)start);
-        length = checked((int)size);
-        embedded = kind == BitmapProfileEmbedded;
-        return true;
-    }
 }

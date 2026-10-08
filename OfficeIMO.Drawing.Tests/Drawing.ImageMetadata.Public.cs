@@ -322,7 +322,11 @@ public sealed class PublicImageMetadataTests {
         Assert.Equal(metadata.XmpProfile, read.XmpProfile);
         OfficeImageMetadataRemovalResult removal = OfficeImageMetadata.Remove(encoded, OfficeImageMetadataProfileKinds.Exif);
         Assert.Equal(OfficeImageMetadataProfileKinds.Exif, removal.RemovedProfiles);
-        Assert.Null(OfficeImageMetadata.Read(removal.EncodedBytes).ExifProfile);
+        if (format == OfficeImageExportFormat.Tiff) {
+            OfficeImageMetadata tiffRemaining = OfficeImageMetadata.Read(removal.EncodedBytes);
+            Assert.Equal((ushort)1, tiffRemaining.GetExifValue(OfficeExifTag.Orientation)!.Value);
+            Assert.Single(tiffRemaining.ExifValues);
+        } else Assert.Null(OfficeImageMetadata.Read(removal.EncodedBytes).ExifProfile);
         Assert.Equal(metadata.XmpProfile, OfficeImageMetadata.Read(removal.EncodedBytes).XmpProfile);
         Assert.True(OfficeRasterImageDecoder.TryDecode(removal.EncodedBytes, out OfficeRasterImage? stripped));
         Assert.Equal(before.GetPixels(), stripped!.GetPixels());
@@ -396,7 +400,9 @@ public sealed class PublicImageMetadataTests {
         Assert.Equal(annotated, OfficeImageMetadata.Remove(annotated, OfficeImageMetadataProfileKinds.None).EncodedBytes);
         byte[] stripped = OfficeImageMetadata.Remove(edited, OfficeImageMetadataProfileKinds.Exif).EncodedBytes;
         Assert.DoesNotContain("private maker payload", Encoding.ASCII.GetString(stripped)); Assert.DoesNotContain("Private creator", Encoding.ASCII.GetString(stripped));
-        Assert.False(OfficeImageMetadata.Read(stripped).HasExifProfile); Assert.Equal(metadata.XmpProfile, OfficeImageMetadata.Read(stripped).XmpProfile);
+        OfficeImageMetadata remaining = OfficeImageMetadata.Read(stripped);
+        Assert.Single(remaining.ExifValues); Assert.Equal((ushort)1, remaining.GetExifValue(OfficeExifTag.Orientation)!.Value);
+        Assert.Equal(metadata.XmpProfile, remaining.XmpProfile);
         Assert.True(OfficeRasterContainerInspector.TryInspect(stripped, out OfficeRasterContainerInfo? pages)); Assert.Equal(2, pages!.Count);
         for (int index = 0; index < 2; index++) { var options = new OfficeRasterDecodeOptions { FrameIndex = index }; Assert.True(OfficeRasterImageDecoder.TryDecode(annotated, options, out OfficeRasterImage? before, out _)); Assert.True(OfficeRasterImageDecoder.TryDecode(stripped, options, out OfficeRasterImage? after, out _)); Assert.Equal(before!.GetPixels(), after!.GetPixels()); }
     }

@@ -11,18 +11,22 @@ public static partial class OfficeWebpCodec {
     /// <summary>Encodes an image with an explicit lossless or lossy WebP compression mode.</summary>
     /// <remarks>Lossy mode preserves alpha exactly and supports dimensions from 1 through 16,383 pixels.</remarks>
     public static byte[] Encode(OfficeRasterImage image, OfficeWebpEncodeOptions options) {
-        ValidateWebpOptions(options);
-        if (options.Mode == OfficeWebpEncodingMode.Lossless && options.RetainedManagedBytes == 0L) {
-            return options.WritePhysicalResolution
-                ? Encode(image, options.DpiX, options.DpiY) : Encode(image);
-        }
         return Encode(image, options, CancellationToken.None);
     }
 
     /// <summary>Encodes an image with cancellation and an explicit WebP compression mode.</summary>
+    /// <remarks>Lossless byte-array overloads use the same deterministic compressed-or-literal selection.</remarks>
     public static byte[] Encode(OfficeRasterImage image, OfficeWebpEncodeOptions options, CancellationToken cancellationToken) {
-        using var destination = new MemoryStream();
         ValidateWebpOptions(options);
+        if (options.Mode == OfficeWebpEncodingMode.Lossless) {
+            if (options.WritePhysicalResolution) {
+                ValidateDpi(options.DpiX, nameof(options.DpiX));
+                ValidateDpi(options.DpiY, nameof(options.DpiY));
+            }
+            return EncodeCore(image, options.WritePhysicalResolution, options.DpiX, options.DpiY,
+                cancellationToken, options.RetainedManagedBytes);
+        }
+        using var destination = new MemoryStream();
         EncodeTo(image, destination, options,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
@@ -32,7 +36,7 @@ public static partial class OfficeWebpCodec {
     }
 
     /// <summary>Encodes WebP to a caller-owned writable stream.</summary>
-    /// <remarks>The destination remains open. Lossy mode buffers bounded VP8 partitions before writing its RIFF container.</remarks>
+    /// <remarks>The destination remains open. Direct lossless stream encoding uses literal VP8L. Lossy mode buffers bounded VP8 partitions before writing its RIFF container.</remarks>
     public static void EncodeTo(OfficeRasterImage image, Stream destination, OfficeWebpEncodeOptions options,
         CancellationToken cancellationToken = default) {
         ValidateWebpOptions(options);

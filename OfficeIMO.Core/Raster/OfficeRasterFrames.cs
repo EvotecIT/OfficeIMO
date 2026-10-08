@@ -39,7 +39,7 @@ public sealed class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame> {
 
     /// <summary>Maps every frame into a new sequence, preserving duration and playback count.</summary>
     /// <remarks>
-    /// The complete source and planned result buffers must fit a combined 256 MiB retained-memory
+    /// The complete source, planned result buffers and caller-declared retained storage must fit a combined 256 MiB retained-memory
     /// budget. Planning and validation finish before any mapper call. The mapper must return the
     /// planned dimensions and should leave its input unchanged so failures cannot partially alter
     /// the source sequence. Temporary memory allocated by arbitrary callbacks is the callback's
@@ -48,12 +48,17 @@ public sealed class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame> {
     /// <param name="transform">Operation returning an image for each source frame.</param>
     /// <param name="outputSize">Result dimensions, evaluated before mapping; omitted for operations that preserve dimensions.</param>
     /// <param name="cancellationToken">Observes cancellation during planning and between frames. Callbacks can also observe this token.</param>
+    /// <param name="additionalRetainedBytes">Nonnegative bytes retained alongside the source and result, such as an auxiliary image used by every callback. Callers account for this storage before mapping begins.</param>
     /// <returns>A complete new sequence. Failure or cancellation does not publish a partial sequence.</returns>
     public OfficeRasterFrames Transform(Func<OfficeRasterImage, OfficeRasterImage> transform,
         Func<OfficeRasterImage, (int Width, int Height)>? outputSize = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default, long additionalRetainedBytes = 0) {
         if (transform == null) throw new ArgumentNullException(nameof(transform));
+        if (additionalRetainedBytes < 0) throw new ArgumentOutOfRangeException(nameof(additionalRetainedBytes));
         cancellationToken.ThrowIfCancellationRequested();
+        if (additionalRetainedBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+            throw new ArgumentException("The additional retained storage exceeds the aggregate retained-memory limit.", nameof(additionalRetainedBytes));
+        }
         var sizes = new (int Width, int Height)[Count];
         long sourcePixels = 0, resultPixels = 0;
         for (int index = 0; index < Count; index++) {
@@ -64,7 +69,7 @@ public sealed class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame> {
             sourcePixels += (long)source.Width * source.Height;
             resultPixels += pixels;
             if (resultPixels > OfficeRasterGuards.MaximumPixels ||
-                (sourcePixels + resultPixels) * 4L + Count * 192L + 65536L > OfficeRasterGuards.MaximumDecodedBytes) {
+                (sourcePixels + resultPixels) * 4L + Count * 192L + 65536L > OfficeRasterGuards.MaximumDecodedBytes - additionalRetainedBytes) {
                 throw new ArgumentException("The transformed frame sequence exceeds the aggregate retained-memory limit.", nameof(outputSize));
             }
             sizes[index] = size;
