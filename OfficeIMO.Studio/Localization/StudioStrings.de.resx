@@ -5487,4 +5487,48 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="AnnotationSelection.CrossPageCount" xml:space="preserve"><value>Ausgewählte Anmerkungen: {0} auf {1} Seiten</value></data>
   <data name="AnnotationSelection.SamePageGroups" xml:space="preserve"><value>Gespeicherte PDF-Gruppen erfordern Anmerkungen auf derselben Seite. Verschieben, Duplizieren, Löschen und Anordnen funktionieren weiterhin über mehrere Seiten.</value></data>
   <data name="AnnotationSelection.Instruction" xml:space="preserve"><value>Anmerkungen auswählen. Mit Shift-click über mehrere Seiten hinzufügen; einen leeren Seitenbereich ziehen, um mehrere auszuwählen.</value></data>
+  <data name="Panes.Split" xml:space="preserve"><value>Unabhängige Bereiche</value></data>
+  <data name="Panes.Help" xml:space="preserve"><value>Jeder Bereich behält seine Seite, Vergrößerung und Anordnung. Bearbeitungsbefehle gelten für den aktiven Bereich.</value></data>
+  <data name="Panes.Switch" xml:space="preserve"><value>Aktiven Bereich wechseln (F6)</value></data>
+  <data name="Panes.Close" xml:space="preserve"><value>Bereich schließen</value></data>
+  <data name="Panes.Document" xml:space="preserve"><value>Dokument in diesem Bereich</value></data>
+  <data name="Panes.Activate" xml:space="preserve"><value>Bereich aktivieren</value></data>
+  <data name="Comparison.ExpectedRange" xml:space="preserve"><value>Seiten im aktuellen Dokument</value></data>
+  <data name="Comparison.ActualRange" xml:space="preserve"><value>Seiten im Vergleichsdokument</value></data>
+  <data name="Comparison.RangeHint" xml:space="preserve"><value>Alle Seiten oder z. B. 5-8,last</value></data>
+  <data name="Comparison.RangeDescription" xml:space="preserve"><value>Bis zu 100 ausgewählte Seiten je Dokument, der Reihenfolge nach gepaart. Keine Erkennung semantischer Änderungen oder verschobener Seiten.</value></data>
+  <data name="Comparison.ExportReport" xml:space="preserve"><value>Bericht exportieren</value></data>
+  <data name="Comparison.ReportSaved" xml:space="preserve"><value>Der eigenständige Vergleichsbericht wurde gespeichert. Beide Quell-PDFs sind unverändert.</value></data>
+  <data name="Comparison.SelectedSummary" xml:space="preserve"><value>Seitenpaare: {0:N0}; abweichende Paare: {1:N0}; Seiten ohne Partner: {2:N0}. Paarung in der ausgewählten Reihenfolge.</value></data>
+  <data name="FormOcr.Title" xml:space="preserve"><value>Werte vorhandener Formularfelder erkennen</value></data>
+  <data name="FormOcr.StartHint" xml:space="preserve"><value>Erkennen Sie sichtbaren Text in vorhandenen Feldern. Wenden Sie aktuelle Entwürfe zuerst an. Die OCR-Sprachen folgen dem OCR-Arbeitsbereich; die Erkennung erstellt keine Felder und speichert das Dokument nicht.</value></data>
+  <data name="FormOcr.Recognize" xml:space="preserve"><value>Formularwerte erkennen</value></data>
+  <data name="FormOcr.Apply" xml:space="preserve"><value>Akzeptierte Werte anwenden</value></data>
+  <data name="FormOcr.Cancel" xml:space="preserve"><value>Erkennung abbrechen / Prüfung schließen</value></data>
+  <data name="FormOcr.ReviewHint" xml:space="preserve"><value>Vergleichen Sie jeden Vorschlag mit der erfassten Quelle. Korrigieren Sie den Wert und akzeptieren Sie ihn ausdrücklich. Das Anwenden ändert den aktuellen Arbeitsbereich; speichern Sie eine Kopie, um die Originaldatei zu erhalten.</value></data>
+  <data name="FormOcr.NoProposals" xml:space="preserve"><value>Kein Text wurde sichtbaren vorhandenen Formularfeldern zugeordnet. Füllen Sie die Felder manuell aus oder passen Sie die OCR-Sprache und Quelle an.</value></data>
+  <data name="FormOcr.Stale" xml:space="preserve"><value>Das Dokument hat sich nach der Erkennung geändert. Erkennen Sie es erneut, bevor Sie Werte anwenden.</value></data>
+  <data name="FormOcr.ChooseProposal" xml:space="preserve"><value>Erkanntes Feld auswählen</value></data>
+  <data name="FormOcr.CorrectedValue" xml:space="preserve"><value>Geprüfter Feldwert</value></data>
+  <data name="FormOcr.AcceptValue" xml:space="preserve"><value>Ich habe diesen Wert geprüft und akzeptiere ihn</value></data>
+  <data name="FormOcr.SourcePreview" xml:space="preserve"><value>Erfasste Quellseite</value></data>
+  <data name="FormOcr.Diagnostics" xml:space="preserve"><value>Erkennungsdiagnose</value></data>
+  <data name="FormOcr.Evidence" xml:space="preserve"><value>Seite {0} · Konfidenz {1:P0}</value></data>
+  <data name="FormOcr.Unsupported" xml:space="preserve"><value>Dieses Feld ist schreibgeschützt oder hat nicht unterstützte Einschränkungen. Füllen Sie es in einer geprüften Formularanwendung aus.</value></data>
+  <data name="FormOcr.Ambiguous" xml:space="preserve"><value>Widersprüchliche Feld- oder Widget-Zuordnungen. Korrigieren Sie den Wert vor dem Akzeptieren.</value></data>
+  <data name="FormOcr.LowConfidence" xml:space="preserve"><value>Geringe Konfidenz. Prüfen Sie die Originalseite und korrigieren Sie den Wert vor dem Akzeptieren.</value></data>
+  <data name="FormOcr.Summary" xml:space="preserve"><value>Akzeptierte Werte: {0} von {1}. Prüfen Sie jeden Wert vor dem Anwenden.</value></data>
+  <data name="FormOcr.ChooseLanguage" xml:space="preserve"><value>Wählen Sie zuerst eine OCR-Sprache im OCR-Arbeitsbereich aus.</value></data>
+  <data name="FormOcr.Constraint.ReadOnly" xml:space="preserve"><value>Dieses Feld ist schreibgeschützt.</value></data>
+  <data name="FormOcr.Constraint.UnsupportedField" xml:space="preserve"><value>Dieses Feld akzeptiert keinen interaktiven Wert.</value></data>
+  <data name="FormOcr.Constraint.MultipleValues" xml:space="preserve"><value>Dieses Feld akzeptiert einen Wert.</value></data>
+  <data name="FormOcr.Constraint.MaximumLength" xml:space="preserve"><value>Der Wert überschreitet die maximale Feldlänge.</value></data>
+  <data name="FormOcr.Constraint.RequiredValue" xml:space="preserve"><value>Dieses Pflichtfeld ist leer. Sie können es speichern und später ausfüllen.</value></data>
+  <data name="FormOcr.Constraint.NoToggleToOff" xml:space="preserve"><value>Wählen Sie eine andere Option; diese Optionsgruppe kann nicht geleert werden.</value></data>
+  <data name="FormOcr.Constraint.UnknownChoice" xml:space="preserve"><value>Wählen Sie einen angebotenen Feldwert.</value></data>
+  <data name="FormOcr.Constraint.NumericValue" xml:space="preserve"><value>Geben Sie eine Zahl mit den für das Feld festgelegten Dezimal- und Gruppentrennzeichen ein.</value></data>
+  <data name="FormOcr.Constraint.NumericPrecision" xml:space="preserve"><value>Die Zahl hat zu viele Dezimalstellen für dieses Prüfungsformat.</value></data>
+  <data name="FormOcr.Constraint.NumericRange" xml:space="preserve"><value>Die Zahl liegt außerhalb des festgelegten Feldbereichs.</value></data>
+  <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve"><value>Dieses Feld hat Skripteinschränkungen, die nicht sicher geprüft werden können. Verwenden Sie eine geprüfte Formularanwendung.</value></data>
+  <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Die Anzeige entspricht mehreren Optionen. Geben Sie den genauen Exportwert ein.</value></data>
 </root>
