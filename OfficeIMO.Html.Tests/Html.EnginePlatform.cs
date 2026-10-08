@@ -153,8 +153,10 @@ public partial class Html {
 
     [Fact]
     public void HtmlSupportMatrix_CheckedInArtifactMatchesExecutableContracts() {
-        string outputPath = Path.Combine(FindRepositoryRoot(), "Docs", "officeimo.html-support-matrix.md");
+        string outputPath = Path.Combine(AppContext.BaseDirectory, "Docs", "officeimo.html-support-matrix.md");
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX"), "1", StringComparison.Ordinal)) {
+            outputPath = Environment.GetEnvironmentVariable("OFFICEIMO_HTML_SUPPORT_MATRIX_OUTPUT")
+                ?? throw new InvalidOperationException("Run Build/Export-HtmlSupportMatrix.ps1 to select the generated source path.");
             HtmlSupportMatrixWriter.WriteMarkdown(outputPath);
         }
 
@@ -1901,14 +1903,4 @@ public partial class Html {
         Assert.InRange(figureScore.Metrics["figure-signatures"], 0D, 0.99D);
     }
 
-    private static string FindRepositoryRoot() {
-        for (DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent) {
-            if (File.Exists(Path.Combine(directory.FullName, "Directory.Build.props"))
-                && Directory.Exists(Path.Combine(directory.FullName, "OfficeIMO.Html"))) {
-                return directory.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
 }

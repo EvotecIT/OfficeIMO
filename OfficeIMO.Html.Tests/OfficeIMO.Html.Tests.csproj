@@ -68,6 +68,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\Docs\officeimo.html-support-matrix.md" Link="Docs\officeimo.html-support-matrix.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\**" Link="Documents\Html\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\WebpAlpha\alpha-gradient.webp" Link="Images\alpha-gradient.webp" CopyToOutputDirectory="PreserveNewest" />
