@@ -90,11 +90,13 @@ public partial class PdfRedactionApplierTests {
         Assert.DoesNotContain("(   ) Tj", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Apply_AreaRedactionFailsClosedForTextObjectsWithoutKnownGeometry() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Apply_RemovesWhitespaceGlyphsAndPreservesStateOnlyTextObjects(bool exactRegion) {
         const string content =
             "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET\n" +
-            "BT\n% unlocatable-outside-target\nET";
+            "BT\n/F1 18 Tf 22 TL\nET";
         var objects = new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
@@ -103,40 +105,18 @@ public partial class PdfRedactionApplierTests {
             BuildStreamObject(5, Encoding.ASCII.GetBytes(content))
         };
         byte[] source = BuildPdf(objects, rootObjectNumber: 1);
-        var area = new PdfRedactionArea(1, 45, 40, 80, 35, "unmatched-text");
+        PdfRedactionArea area = exactRegion
+            ? Assert.Single(PdfRedactionRegion.Polygon(1, new[] {
+                new PdfRedactionPoint(45, 40), new PdfRedactionPoint(125, 40),
+                new PdfRedactionPoint(125, 75), new PdfRedactionPoint(45, 75)
+            }, "exact-unmatched-text").Areas)
+            : new PdfRedactionArea(1, 45, 40, 80, 35, "unmatched-text");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string rewritten = PdfEncoding.Latin1GetString(redacted);
 
         Assert.DoesNotContain("(   ) Tj", rewritten, StringComparison.Ordinal);
-        Assert.DoesNotContain("unlocatable-outside-target", rewritten, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Apply_ExactRegionFailsClosedForTextObjectsWithoutKnownGeometry() {
-        const string content =
-            "BT\n/F1 12 Tf\n50 60 Td\n(   ) Tj\nET\n" +
-            "BT\n% unlocatable-outside-exact-target\nET";
-        var objects = new[] {
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
-            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
-            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
-            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
-            BuildStreamObject(5, Encoding.ASCII.GetBytes(content))
-        };
-        byte[] source = BuildPdf(objects, rootObjectNumber: 1);
-        PdfRedactionArea area = Assert.Single(PdfRedactionRegion.Polygon(1, new[] {
-            new PdfRedactionPoint(45, 40),
-            new PdfRedactionPoint(125, 40),
-            new PdfRedactionPoint(125, 75),
-            new PdfRedactionPoint(45, 75)
-        }, "exact-unmatched-text").Areas);
-
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
-        string rewritten = PdfEncoding.Latin1GetString(redacted);
-
-        Assert.DoesNotContain("(   ) Tj", rewritten, StringComparison.Ordinal);
-        Assert.DoesNotContain("unlocatable-outside-exact-target", rewritten, StringComparison.Ordinal);
+        Assert.Contains("/F1 18 Tf 22 TL", rewritten, StringComparison.Ordinal);
     }
 
     [Fact]

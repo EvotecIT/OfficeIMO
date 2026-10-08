@@ -1,12 +1,57 @@
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
+using PdfDocument = OfficeIMO.Pdf.PdfDocument;
+using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioAccessibilityContractTests {
+    [Fact]
+    public async Task RedactionMarksAnnounceMatchedContentAndTheirPage() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-redaction-accessibility-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string source = Path.Combine(root, "source.pdf");
+            PdfDocument.Create(compose => {
+                for (int page = 0; page < 2; page++) {
+                    compose.Page(body => body.Content(content => content.Item(item => item.Paragraph(text => text.Text("Private account")))));
+                }
+            }).Save(source);
+            using HeadlessUnitTestSession session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                MainWindow window = new MainWindow { Width = 1280, Height = 900 };
+                try {
+                    window.Show();
+                    await window.TabHost.OpenDocumentAsync(source);
+                    window.ViewModel.ShowProtectModeCommand.Execute(null);
+                    window.ViewModel.RedactionSearchText = "Private account";
+                    await window.ViewModel.SearchRedactionsCommand.ExecuteAsync(null);
+                    window.UpdateLayout();
+                    RedactionInspectorView inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
+                    ListBox marks = Assert.Single(inspector.GetVisualDescendants().OfType<ListBox>());
+                    Assert.Equal(2, window.ViewModel.RedactionMarks.Count);
+                    for (int index = 0; index < 2; index++) {
+                        ListBoxItem row = Assert.IsType<ListBoxItem>(marks.ContainerFromIndex(index));
+                        string name = ControlAutomationPeer.CreatePeerForElement(row)!.GetName();
+                        Assert.StartsWith($"Page {index + 1}:", name, StringComparison.Ordinal);
+                        Assert.Contains("Private account", name, StringComparison.Ordinal);
+                        CheckBox include = Assert.Single(row.GetVisualDescendants().OfType<CheckBox>());
+                        Assert.Equal($"Include page {index + 1}", ControlAutomationPeer.CreatePeerForElement(include)!.GetName());
+                    }
+                } finally {
+                    foreach (StudioDocumentTabViewModel tab in window.TabHost.Tabs.ToArray()) tab.Document.CompletePreparedClose();
+                    window.Close();
+                }
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, true); }
+    }
+
     [Fact]
     public async Task PdfPageCanvasExposesDocumentTextThroughAutomationTree() {
         using var session = TestAppBuilder.StartSession();

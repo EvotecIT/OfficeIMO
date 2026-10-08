@@ -852,17 +852,17 @@ internal static partial class PdfRedactionApplier {
             PdfRedactionArea area = areas[i];
             PdfRedactionGeometry? geometry = area.ExactGeometry;
             if (geometry is null) {
-                content.Rectangle(area.X, area.Y, area.Width, area.Height).FillPath();
+                content.Rectangle(area.X, area.Y, area.Width, area.Height, preciseCoordinates: true).FillPath();
             } else if (geometry.Kind == PdfRedactionRegionKind.Freehand) {
-                content.LineWidth(geometry.StrokeWidth)
+                content.LineWidth(geometry.StrokeWidth, preciseCoordinates: true)
                     .LineCap(1)
-                    .MoveTo(geometry.Points[0].X, geometry.Points[0].Y)
-                    .LineTo(geometry.Points[1].X, geometry.Points[1].Y)
+                    .MoveTo(geometry.Points[0].X, geometry.Points[0].Y, preciseCoordinates: true)
+                    .LineTo(geometry.Points[1].X, geometry.Points[1].Y, preciseCoordinates: true)
                     .StrokePath();
             } else {
-                content.MoveTo(geometry.Points[0].X, geometry.Points[0].Y);
+                content.MoveTo(geometry.Points[0].X, geometry.Points[0].Y, preciseCoordinates: true);
                 for (int point = 1; point < geometry.Points.Count; point++) {
-                    content.LineTo(geometry.Points[point].X, geometry.Points[point].Y);
+                    content.LineTo(geometry.Points[point].X, geometry.Points[point].Y, preciseCoordinates: true);
                 }
                 content.ClosePath().FillPath();
             }

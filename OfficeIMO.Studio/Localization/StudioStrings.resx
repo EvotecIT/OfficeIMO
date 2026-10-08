@@ -1802,6 +1802,7 @@
   <data name="Redaction.FindMarks" xml:space="preserve"><value>Find and add marks</value></data>
   <data name="Redaction.Marks" xml:space="preserve"><value>Pending redaction marks</value></data>
   <data name="Redaction.Include" xml:space="preserve"><value>Include page</value></data>
+  <data name="Redaction.IncludePage" xml:space="preserve"><value>Include page {0}</value></data>
   <data name="Redaction.Reason" xml:space="preserve"><value>Reason for redaction</value></data>
   <data name="Redaction.RemoveMark" xml:space="preserve"><value>Remove selected mark</value></data>
   <data name="Redaction.ReviewImpact" xml:space="preserve"><value>Review selected marks</value></data>
