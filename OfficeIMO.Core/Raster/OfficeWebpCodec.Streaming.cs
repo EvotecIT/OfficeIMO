@@ -8,14 +8,15 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {
+    private const int LiteralStreamBufferSize = 16 * 1024;
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
-    /// <remarks>The destination remains open after encoding.</remarks>
+    /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
     public static void EncodeTo(OfficeRasterImage image, Stream destination) {
         EncodeStreaming(image, destination, includeResolutionMetadata: false, 96D, 96D, CancellationToken.None);
     }
 
     /// <summary>Encodes an RGBA image with Exif resolution metadata directly to a writable stream.</summary>
-    /// <remarks>The destination remains open after encoding.</remarks>
+    /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
     public static void EncodeTo(
         OfficeRasterImage image,
         Stream destination,
@@ -68,8 +69,11 @@ public static partial class OfficeWebpCodec {
         double dpiX,
         double dpiY,
         CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
+        long additionalRetainedManagedBytes = 0L,
+        bool materializeOutput = false) {
         if (image == null) throw new ArgumentNullException(nameof(image));
+        if (additionalRetainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(additionalRetainedManagedBytes));
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
@@ -90,12 +94,16 @@ public static partial class OfficeWebpCodec {
             throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
         }
         try {
-            long retainedOutputCopies = OfficeRasterOutput.TryGetMemoryStream(destination, out _) ? 2L : 0L;
+            long outputPeakBytes = OfficeRasterOutput.TryGetMemoryStream(destination, out MemoryStream? outputStream)
+                ? OfficeRasterOutput.GetMemoryStreamBlockWritePeakBytes(outputStream!, fileLength, materializeOutput,
+                    Math.Max(Math.Min(payloadLength - 1, LiteralStreamBufferSize), Math.Max(exif?.Length ?? 0, 8)),
+                    exif == null ? 20 : 38, 1, Math.Min(payloadLength - 1, LiteralStreamBufferSize))
+                : 0L;
             long peakBytes = checked(
-                pixels.LongLength + 24L +
-                retainedOutputCopies * (fileLength + 24L) +
+                additionalRetainedManagedBytes + pixels.LongLength + 24L +
+                outputPeakBytes +
                 (exif?.LongLength ?? 0L) + 24L +
-                16L * 1024L);
+                LiteralStreamBufferSize + 24L + (exif == null ? 20L : 38L + 8L + 24L) + 24L);
             if (peakBytes > OfficeRasterGuards.MaximumDecodedBytes) {
                 throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
             }
@@ -172,9 +180,8 @@ public static partial class OfficeWebpCodec {
     }
 
     private sealed class StreamLsbBitWriter : ILsbBitWriter, IDisposable {
-        private const int OutputBufferSize = 16 * 1024;
         private readonly Stream _destination;
-        private byte[]? _output = new byte[OutputBufferSize];
+        private byte[]? _output = new byte[LiteralStreamBufferSize];
         private int _outputCount;
         private ulong _buffer;
         private int _bitCount;

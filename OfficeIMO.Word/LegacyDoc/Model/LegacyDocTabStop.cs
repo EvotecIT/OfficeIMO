@@ -37,7 +37,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Right,
         Decimal,
         Bar,
-        Clear
+        Clear,
+        Number
     }
 
     internal enum LegacyDocTabStopLeader {

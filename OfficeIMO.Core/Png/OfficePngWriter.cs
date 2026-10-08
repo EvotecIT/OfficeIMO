@@ -20,7 +20,10 @@ public enum OfficePngCompression {
     /// <summary>
     /// Store scanlines in zlib blocks without deflate compression.
     /// </summary>
-    Stored
+    Stored,
+
+    /// <summary>Compress scanlines once using the platform's fastest deflate strategy.</summary>
+    Fastest
 }
 
 /// <summary>
@@ -75,7 +78,7 @@ public static partial class OfficePngWriter {
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         ValidateRgba(width, height, rgba);
 
-        if (options.Compression != OfficePngCompression.Optimal && options.Compression != OfficePngCompression.Stored) {
+        if (options.Compression != OfficePngCompression.Optimal && options.Compression != OfficePngCompression.Stored && options.Compression != OfficePngCompression.Fastest) {
             throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }
 
@@ -110,6 +113,7 @@ public static partial class OfficePngWriter {
 
         byte[] compressed = compression switch {
             OfficePngCompression.Optimal => DeflateZlib(scanlines),
+            OfficePngCompression.Fastest => DeflateZlib(scanlines, CompressionLevel.Fastest),
             OfficePngCompression.Stored => DeflateZlibStored(scanlines),
             _ => throw new ArgumentOutOfRangeException(nameof(compression))
         };
@@ -239,11 +243,11 @@ public static partial class OfficePngWriter {
         return ihdr;
     }
 
-    private static byte[] DeflateZlib(byte[] data) {
+    private static byte[] DeflateZlib(byte[] data, CompressionLevel level = CompressionLevel.Optimal) {
         using MemoryStream stream = new MemoryStream();
         stream.WriteByte(0x78);
         stream.WriteByte(0x9C);
-        using (DeflateStream deflate = new DeflateStream(stream, CompressionLevel.Optimal, leaveOpen: true)) {
+        using (DeflateStream deflate = new DeflateStream(stream, level, leaveOpen: true)) {
             deflate.Write(data, 0, data.Length);
         }
 

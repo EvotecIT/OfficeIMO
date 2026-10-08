@@ -197,6 +197,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsNumberOfPagesInstruction(instruction);
         }
 
+        /// <summary>Reads an editable section count, retaining switches even when the cached result is absent.</summary>
+        internal static bool TryReadSectionPages(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            return TryReadField(characters, startIndex, out instruction,
+                out resultStartIndex, out resultEndIndex, out fieldEndIndex, allowEmptyResult: true)
+                && IsInstruction(instruction.Trim(), "SECTIONPAGES");
+        }
+
         internal static bool TryReadDateTimeField(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
@@ -405,7 +418,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
-            out int fieldEndIndex) {
+            out int fieldEndIndex,
+            bool allowEmptyResult = false) {
             instruction = string.Empty;
             resultStartIndex = -1;
             resultEndIndex = -1;
@@ -418,10 +432,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             int separatorIndex = -1;
+            int emptyFieldEndIndex = -1;
             for (int index = startIndex + 1; index < characters.Count; index++) {
                 char character = characters[index].Character;
                 if (character == Separator) {
                     separatorIndex = index;
+                    break;
+                }
+
+                if (character == End && allowEmptyResult) {
+                    emptyFieldEndIndex = index;
                     break;
                 }
 
@@ -431,7 +451,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (separatorIndex < 0) {
-                return false;
+                if (emptyFieldEndIndex < 0) return false;
+                instruction = new string(characters.Skip(startIndex + 1)
+                    .Take(emptyFieldEndIndex - startIndex - 1).Select(character => character.Character).ToArray());
+                resultStartIndex = resultEndIndex = fieldEndIndex = emptyFieldEndIndex;
+                return true;
             }
 
             int endIndex = -1;
@@ -447,7 +471,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
             }
 
-            if (endIndex <= separatorIndex + 1) {
+            if (endIndex < separatorIndex + 1 || (!allowEmptyResult && endIndex == separatorIndex + 1)) {
                 return false;
             }
 

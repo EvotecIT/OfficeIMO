@@ -14,6 +14,8 @@ export interface PdfLimits extends ExportLimits {
   readonly maxRowLines?: number;
   readonly maxFontBytes?: number;
   readonly maxPageBytes?: number;
+  /** Actual link annotations, including repeated headings and continued cell fragments. */
+  readonly maxHyperlinks?: number;
 }
 export type PdfTotal = "sum" | "count" | "average" | "min" | "max";
 export interface PdfTableFooter {

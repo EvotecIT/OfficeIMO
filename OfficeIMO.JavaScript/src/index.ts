@@ -9,7 +9,7 @@ export { Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, wri
 export { writeCsv, writeCsvTo } from "./csv/index.js";
 export { writePdf, writePdfTo, PdfFont } from "./pdf/index.js";
 export { saveBlob, ExportCell } from "./core/index.js";
-export type { CellValue, Column, ColumnSettings, ColumnValueContext, Row, Rows, ExportValue, CellPresentation, ExportCellOptions, ExportLimits, ExportProgress, ExportResult, OutputDestination, ByteSink, StreamOptions, TableSpanCell, TableSpanRows } from "./core/index.js";
+export type { CellValue, Column, ColumnSettings, ColumnValueContext, Row, Rows, ExportValue, CellPresentation, ExportCellOptions, ExportLink, ExportLimits, ExportProgress, ExportResult, OutputDestination, ByteSink, StreamOptions, TableSpanCell, TableSpanRows } from "./core/index.js";
 export type { XlsxOptions, XlsxColumn, WorkbookOptions, SheetOptions } from "./xlsx/index.js";
 export type { CsvOptions, CsvColumn, CsvValueContext } from "./csv/index.js";
 export type { PdfOptions, PdfPageSize, PdfMargins, PdfFonts, PdfLimits, PdfTableFooter, PdfPageContext } from "./pdf/index.js";

@@ -1,0 +1,131 @@
+using OfficeIMO.Access;
+
+namespace OfficeIMO.Access.Tests {
+    public sealed class AccessCreationTests {
+        private static byte[] Save(AccessDocument document, AccessSaveOptions? options = null) { using MemoryStream output = new MemoryStream(); document.Save(output, options); Assert.True(output.CanWrite); return output.ToArray(); }
+
+        [Theory]
+        [InlineData(AccessFileFormat.Mdb, false)]
+        [InlineData(AccessFileFormat.Accdb, false)]
+        [InlineData(AccessFileFormat.Mdb, true)]
+        [InlineData(AccessFileFormat.Accdb, true)]
+        public void UserOwnerAndSidFieldsKeepTheirDeclaredStorage(AccessFileFormat format, bool variableMember) {
+            using AccessDocument database = AccessDocument.Create(new AccessCreateOptions { Format = format });
+            AccessTable table = database.Tables.Add("Items"); table.Columns.Add("Owner", AccessDataType.Int32); table.Columns.Add("SID", AccessDataType.Guid);
+            Guid sid = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef"); AccessRowValues row = new AccessRowValues { ["Owner"] = 123, ["SID"] = sid };
+            if (variableMember) { table.Columns.Add("Note", AccessDataType.ShortText); row["Note"] = "Separate variable payload"; }
+            table.AppendRow(row); database.AssessSave().RequireNoLoss();
+            using AccessDocument source = AccessDocument.Load(new MemoryStream(Save(database))); using AccessDataReader reader = source.Tables["Items"].OpenDataReader();
+            Assert.True(reader.Read()); Assert.Equal(123, reader["Owner"]); Assert.Equal(sid, reader["SID"]);
+            if (variableMember) Assert.Equal("Separate variable payload", reader["Note"]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CreatedStreamsFlushRewindAndReplaceWithoutClosing(bool associated) {
+            using FlushObservingStream destination = new FlushObservingStream(); destination.Write(new byte[100000], 0, 100000); destination.Position = 7;
+            using AccessDocument document = associated ? AccessDocument.Create(destination) : AccessDocument.Create();
+            if (associated) document.Save(); else document.Save(destination);
+            Assert.Equal(0, destination.Position); Assert.Equal(1, destination.FlushCalls); Assert.True(destination.CanWrite); Assert.True(destination.Length < 100000);
+            using AccessDocument source = AccessDocument.Load(destination); Assert.Empty(source.Tables);
+        }
+
+        private sealed class FlushObservingStream : MemoryStream {
+            internal int FlushCalls;
+            public override void Flush() { FlushCalls++; base.Flush(); }
+        }
+
+        [Theory]
+        [InlineData(AccessFileFormat.Mdb)]
+        [InlineData(AccessFileFormat.Accdb)]
+        public void NativeCreationPreservesSchemaValuesAndModelOmission(AccessFileFormat format) {
+            using AccessDocument document = AccessDocument.Create(new AccessCreateOptions { Format = format, DatabaseTitle = "Synthetic Ł🙂 database" });
+            AccessTable parent = document.Tables.Add("Parent Table"); parent.Columns.Add("Id", AccessDataType.Int32); parent.Indexes.AddPrimaryKey("PK_Parent", "Id"); parent.AppendRow(new AccessRowValues { ["Id"] = 3 });
+            AccessTable table = document.Tables.Add("Items_01"); table.Columns.AddAutoNumber("Id", 101); table.Columns.Add("ParentId", AccessDataType.Int32); table.Columns.Add("Unicode", AccessDataType.ShortText); table.Columns.Add("Memo", AccessDataType.LongText); table.Columns.Add("Blob", AccessDataType.Binary); table.Columns.AddDecimal("Number", 28, 9); table.Columns.Add("Flag", AccessDataType.Boolean); table.Columns.Add("Token", AccessDataType.Guid); table.Indexes.AddPrimaryKey("PK_Items", "Id");
+            document.Relationships.Add("ItemParents", parent.Columns["Id"], table.Columns["ParentId"]);
+            byte[] binary = Enumerable.Range(0, 20000).Select(i => (byte)(i % 251)).ToArray(); string memo = string.Concat(Enumerable.Repeat("Ł🙂 漢字\r\n", 2000)); Guid guid = Guid.NewGuid();
+            table.AppendRow(new AccessRowValues { ["ParentId"] = 3, ["Unicode"] = "Zażółć Ł🙂", ["Memo"] = memo, ["Blob"] = binary, ["Number"] = -1234567890123456789.123456789m, ["Token"] = guid });
+            byte[] bytes = Save(document);
+            using (AccessDataReader model = table.OpenDataReader()) { Assert.True(model.Read()); Assert.False(model.IsSpecified(0)); Assert.False(model.IsSpecified(6)); }
+            using AccessDocument source = AccessDocument.Load(new MemoryStream(bytes));
+            Assert.Equal(format, source.Format); Assert.Equal(2, source.Tables.Count); Assert.Single(source.Relationships);
+            Assert.Equal("Synthetic Ł🙂 database", source.Properties["AppTitle"]); Assert.Equal(1252, source.CodePage); Assert.Equal(1033, source.SortOrder);
+            AccessTable loaded = source.Tables["Items_01"]; Assert.True(loaded.Columns["Id"].IsAutoNumber); Assert.True(loaded.Indexes["PK_Items"].IsPrimaryKey); Assert.Equal(9, loaded.Columns["Number"].Scale);
+            using AccessDataReader rows = loaded.OpenDataReader(); Assert.True(rows.Read()); Assert.Equal(101, rows["Id"]); Assert.Equal("Zażółć Ł🙂", rows["Unicode"]); Assert.Equal(memo, rows["Memo"]); Assert.Equal(binary, (byte[])rows["Blob"]); Assert.Equal(-1234567890123456789.123456789m, rows["Number"]); Assert.Equal(false, rows["Flag"]); Assert.Equal(guid, rows["Token"]); Assert.False(rows.Read());
+            Assert.Equal(bytes, Save(document));
+        }
+
+        [Theory]
+        [InlineData(AccessFileFormat.Mdb)]
+        [InlineData(AccessFileFormat.Accdb)]
+        public void AllocationDefinitionChainsAndLongValueBoundariesRemainReadable(AccessFileFormat format) {
+            using AccessDocument document = AccessDocument.Create(new AccessCreateOptions { Format = format });
+            AccessTable wide = document.Tables.Add("Wide"); AccessRowValues wideRow = new AccessRowValues();
+            for (int i = 0; i < 255; i++) { string name = "Field" + i.ToString("D3"); wide.Columns.Add(name, AccessDataType.Byte); wideRow[name] = (byte)i; }
+            wide.AppendRow(wideRow);
+            AccessTable values = document.Tables.Add("Lengths"); values.Columns.Add("Id", AccessDataType.Int32); values.Columns.Add("Payload", AccessDataType.Binary); values.Indexes.AddPrimaryKey("PK_Lengths", "Id");
+            foreach (int length in new[] { 0, 1, 64, 65, 4072, 4076, 4077, 8144, 8145 }) values.AppendRow(new AccessRowValues { ["Id"] = length, ["Payload"] = Enumerable.Range(0, length).Select(i => (byte)(i % 251)).ToArray() });
+            AccessTable allocated = document.Tables.Add("Allocated"); allocated.Columns.Add("Id", AccessDataType.AutoNumber); allocated.Columns.Add("Padding", AccessDataType.ShortText, 255); allocated.Indexes.AddPrimaryKey("PK_Allocated", "Id");
+            for (int i = 0; i < 4200; i++) allocated.AppendRow(new AccessRowValues { ["Padding"] = new string('a', 255) });
+            byte[] bytes = Save(document); Assert.True(bytes.Length > 512 * 4096);
+            using AccessDocument source = AccessDocument.Load(new MemoryStream(bytes)); Assert.Equal(255, source.Tables["Wide"].Columns.Count); Assert.Equal(4200, source.Tables["Allocated"].RowCount);
+            using (AccessDataReader row = source.Tables["Wide"].OpenDataReader()) { Assert.True(row.Read()); Assert.Equal((byte)254, row["Field254"]); }
+            using (AccessDataReader rows = source.Tables["Lengths"].OpenDataReader()) while (rows.Read()) { int length = (int)rows["Id"]; Assert.Equal(Enumerable.Range(0, length).Select(i => (byte)(i % 251)), (byte[])rows["Payload"]); }
+            using AccessDataReader all = source.Tables["Allocated"].OpenDataReader(); int count = 0; while (all.Read()) { count++; Assert.Equal(count, all["Id"]); Assert.Equal(255, ((string)all["Padding"]).Length); } Assert.Equal(4200, count);
+        }
+
+        [Theory]
+        [InlineData("duplicate")]
+        [InlineData("foreign")]
+        [InlineData("unicode-key")]
+        [InlineData("null-boolean")]
+        [InlineData("decimal-scale")]
+        [InlineData("date-precision")]
+        [InlineData("row-limit")]
+        [InlineData("empty-index-type")]
+        [InlineData("unicode-name")]
+        [InlineData("unicode-value")]
+        [InlineData("text-collation-duplicate")]
+        public void UnsupportedOrLossyModelsFailBeforeDestinationChanges(string scenario) {
+            using AccessDocument document = AccessDocument.Create(); AccessTable table = document.Tables.Add("Items"); table.Columns.Add("Id", AccessDataType.Int32); table.Indexes.AddPrimaryKey("PK_Items", "Id");
+            switch (scenario) {
+                case "duplicate": table.AppendRow(new AccessRowValues { ["Id"] = 1 }); table.AppendRow(new AccessRowValues { ["Id"] = 1 }); break;
+                case "foreign":
+                    AccessTable parent = document.Tables.Add("Parents"); parent.Columns.Add("Id", AccessDataType.Int32); parent.Indexes.AddPrimaryKey("PK_Parents", "Id"); document.Relationships.Add("ParentItems", parent.Columns["Id"], table.Columns["Id"]); table.AppendRow(new AccessRowValues { ["Id"] = 1 }); break;
+                case "unicode-key": table.Columns.Add("Name", AccessDataType.ShortText); table.Indexes.AddUnique("UniqueName", "Name"); table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Name"] = "Ł🙂" }); break;
+                case "null-boolean": table.Columns.Add("Flag", AccessDataType.Boolean); table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Flag"] = null }); break;
+                case "decimal-scale": table.Columns.AddDecimal("Number", 6, 2); table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Number"] = 1.234m }); break;
+                case "date-precision": table.Columns.Add("Date", AccessDataType.DateTime); table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Date"] = new DateTime(2026, 1, 1).AddTicks(1) }); break;
+                case "row-limit":
+                    AccessRowValues row = new AccessRowValues { ["Id"] = 1 }; for (int i = 0; i < 8; i++) { string name = "Text" + i; table.Columns.Add(name, AccessDataType.ShortText, 255); row[name] = new string('a', 255); } table.AppendRow(row); break;
+                case "empty-index-type": table.Columns.Add("Wide", AccessDataType.Double); table.Indexes.Add("WideIndex", "Wide"); break;
+                case "unicode-name": table.Columns.Add("Bad\ud800", AccessDataType.Byte); break;
+                case "unicode-value": table.Columns.Add("Text", AccessDataType.ShortText); table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Text"] = "Bad\ud800" }); break;
+                case "text-collation-duplicate":
+                    table.Columns.Add("Text", AccessDataType.ShortText); table.Indexes.AddUnique("UniqueText", "Text");
+                    table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Text"] = "a b " }); table.AppendRow(new AccessRowValues { ["Id"] = 2, ["Text"] = "A B" }); break;
+            }
+            AccessSaveOptions options = new AccessSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+            Assert.Equal(AccessOperationStatus.Unsupported, document.AssessSave(options).Status);
+            using MemoryStream destination = new MemoryStream(new byte[] { 1, 2, 3 }, true); destination.Position = 1;
+            Assert.Throws<AccessOperationNotSupportedException>(() => document.Save(destination, options)); Assert.Equal(1, destination.Position); Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+            string root = Path.Combine(Path.GetTempPath(), "AccessCreationRejected-" + Guid.NewGuid().ToString("N"));
+            Assert.Throws<AccessOperationNotSupportedException>(() => document.Save(Path.Combine(root, "out.accdb"), options)); Assert.False(Directory.Exists(root));
+        }
+
+        [Fact]
+        public void AssessmentCacheInvalidationBudgetsAndCancellationProtectOutput() {
+            using AccessDocument document = AccessDocument.Create(); AccessTable table = document.Tables.Add("Items"); table.Columns.Add("Id", AccessDataType.AutoNumber); table.Indexes.AddPrimaryKey("PK_Items", "Id");
+            table.AppendRow(new AccessRowValues()); document.AssessSave().RequireNoLoss();
+            using (AccessUpdateScope update = document.BeginUpdate()) { table.AppendRow(new AccessRowValues()); }
+            table.AppendRow(new AccessRowValues());
+            using AccessDocument source = AccessDocument.Load(new MemoryStream(Save(document))); Assert.Equal(2, source.Tables["Items"].RowCount);
+            Assert.Equal(AccessOperationStatus.Unsupported, document.AssessSave(new AccessSaveOptions { MaxOutputBytes = 4096 }).Status);
+            using CancellationTokenSource assessmentCancellation = new CancellationTokenSource(); document.AssessSave(cancellationToken: assessmentCancellation.Token).RequireNoLoss(); assessmentCancellation.Cancel();
+            Assert.NotEmpty(Save(document)); // An old assessment token cannot cancel a later save.
+            using MemoryStream output = new MemoryStream(); output.WriteByte(42); output.Position = 0;
+            using CancellationTokenSource cancelled = new CancellationTokenSource(); cancelled.Cancel(); Assert.ThrowsAny<OperationCanceledException>(() => document.Save(output, cancellationToken: cancelled.Token)); Assert.Equal(new byte[] { 42 }, output.ToArray());
+        }
+    }
+}

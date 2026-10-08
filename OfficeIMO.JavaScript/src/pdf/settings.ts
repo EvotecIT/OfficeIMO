@@ -33,7 +33,7 @@ export interface PdfSettings {
   readonly margins: PdfMargins;
   readonly fontSize: number;
   readonly padding: number;
-  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes">>;
+  readonly limits: Required<Pick<PdfLimits, "maxPages" | "maxColumns" | "maxCellCharacters" | "maxRowLines" | "maxFontBytes" | "maxPageBytes" | "maxHyperlinks">>;
   readonly budget: ExportBudget;
 }
 export function settings(configuration: PdfOptions): PdfSettings {
@@ -54,7 +54,7 @@ export function settings(configuration: PdfOptions): PdfSettings {
     headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
     footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
   const budget = new ExportBudget(options.limits);
-  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024 };
+  const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000 };
   for (const key of Object.keys(limits) as (keyof typeof limits)[]) {
     const override = options.limits?.[key]; if (override !== undefined) limits[key] = override;
   }

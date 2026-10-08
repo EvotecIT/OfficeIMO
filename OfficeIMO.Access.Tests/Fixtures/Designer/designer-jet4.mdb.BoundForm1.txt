@@ -1,0 +1,123 @@
+Version =19
+VersionRequired =19
+Checksum =122771773
+Begin Form
+    DividingLines = NotDefault
+    AllowDesignChanges = NotDefault
+    DefaultView =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridY =10
+    Width =4800
+    DatasheetFontHeight =11
+    ItemSuffix =3
+    Right =26170
+    Bottom =11940
+    DatasheetGridlinesColor =15062992
+    RecSrcDt = Begin
+        0x25e56416f39be640
+    End
+    GUID = Begin
+        0x89b2bed59a1b194090364866b7fbe2ba
+    End
+    NameMap = Begin
+        0x0acc0e5500000000428f9e6695ebc548ad11684ba25b2887000000005ceb6416 ,
+        0xf39be640000000000000000043006f006e007400610063007400730000000000 ,
+        0x0000a2323b38b741374588cb8a067e363c4407000000428f9e6695ebc548ad11 ,
+        0x684ba25b288744006900730070006c00610079004e0061006d00650000000000 ,
+        0x0000d7273a0f73c345428acda4080df631a507000000428f9e6695ebc548ad11 ,
+        0x684ba25b2887470072006f007500700049006400000000000000edfc2d095337 ,
+        0x474e863269e3590b1cd50000000093f16416f39be64000000000000000004700 ,
+        0x72006f00750070007300000000000000a5c47eda0d52264aa2cc1f58c86e88f6 ,
+        0x07000000edfc2d095337474e863269e3590b1cd549006400000000000000e73a ,
+        0xf72ba784f4409120558e34777d2107000000edfc2d095337474e863269e3590b ,
+        0x1cd54c006100620065006c000000000000000000000000000000000000000000 ,
+        0x00000c000000050000000000000000000000000000000000
+    End
+    RecordSource ="Contacts"
+    Caption ="Synthetic form 1"
+    DatasheetFontName ="Calibri"
+    NoSaveCTIWhenDisabled =1
+    Begin
+        Begin Label
+            BackStyle =0
+            TextFontFamily =0
+            FontSize =11
+            BorderColor =16777215
+            ForeColor =13598509
+            FontName ="Aptos"
+        End
+        Begin TextBox
+            FELineBreak = NotDefault
+            TextFontFamily =0
+            BorderLineStyle =0
+            Width =1701
+            LabelX =-1701
+            FontSize =11
+            BorderColor =13750737
+            ForeColor =2102279
+            FontName ="Aptos"
+        End
+        Begin ComboBox
+            TextFontFamily =0
+            BorderLineStyle =0
+            Width =1701
+            LabelX =-1701
+            FontSize =11
+            BorderColor =13750737
+            ForeColor =2102279
+            FontName ="Aptos"
+        End
+        Begin Section
+            Height =3600
+            Name ="Detail"
+            GUID = Begin
+                0x6ca493a37085a44191fd21bbb0ced6a9
+            End
+            Begin
+                Begin Label
+                    OverlapFlags =85
+                    Left =120
+                    Top =120
+                    Width =3000
+                    Height =360
+                    Name ="Title1"
+                    Caption ="Caption 1"
+                    GUID = Begin
+                        0x6912a8f6a7505449a5208415084dcb0a
+                    End
+                End
+                Begin TextBox
+                    OverlapFlags =85
+                    IMESentenceMode =3
+                    Left =120
+                    Top =720
+                    Width =3000
+                    Height =360
+                    Name ="DisplayName1"
+                    ControlSource ="DisplayName"
+                    GUID = Begin
+                        0x13de2ffc29a97e4a93abe5be2b891d85
+                    End
+                End
+                Begin ComboBox
+                    OverlapFlags =85
+                    IMESentenceMode =3
+                    Left =120
+                    Top =1320
+                    Width =3000
+                    Height =360
+                    TabIndex =1
+                    ColumnInfo ="\"\";\"\";\"4\";\"4\""
+                    GUID = Begin
+                        0x4d96f363e3b8924c96b787e6b63d53d2
+                    End
+                    Name ="GroupChoice1"
+                    ControlSource ="GroupId"
+                    RowSourceType ="Table/Query"
+                    RowSource ="SELECT Id, Label FROM Groups; "
+                End
+            End
+        End
+    End
+End

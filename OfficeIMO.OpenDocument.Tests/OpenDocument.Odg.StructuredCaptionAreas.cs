@@ -29,8 +29,10 @@ public sealed partial class OpenDocumentOdgLineLabelTests {
         var metrics = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
         double stop = OdfLength.Centimeters(1.5).ToPoints();
         double bodyStart = OdfLength.Centimeters(.6).ToPoints();
-        double intrinsicWidth = Math.Max(stop - metrics.MeasureText("123", 10, "Arial") + metrics.MeasureText("123,45", 10, "Arial"),
-            bodyStart + metrics.MeasureText("A", 10, "Arial") + metrics.MeasureText("Next", 10, "Arial"));
+        double current = bodyStart + metrics.MeasureText("A", 10, "Arial");
+        // A character-aligned field cannot move backward over its preceding body.
+        double intrinsicWidth = Math.Max(Math.Max(current, stop - metrics.MeasureText("123", 10, "Arial")) + metrics.MeasureText("123,45", 10, "Arial"),
+            Math.Max(current, stop - metrics.MeasureText("Next", 10, "Arial")) + metrics.MeasureText("Next", 10, "Arial"));
         double angle = line ? Math.Atan2(.8, .6) : 0;
         string before = document.GetXml("content.xml").ToString();
         foreach (var read in RoundTrips(document)) {

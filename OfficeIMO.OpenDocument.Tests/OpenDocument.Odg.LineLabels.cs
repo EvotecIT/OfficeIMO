@@ -122,7 +122,7 @@ public sealed partial class OpenDocumentOdgLineLabelTests {
         Assert.Equal(Center(horizontalFrame).X, Center(verticalFrame).X, 6);
         Assert.Equal(Center(horizontalFrame).Y, Center(verticalFrame).Y, 6);
         Assert.Equal(8, horizontalFrame.Text.Height, 6); Assert.Equal(8, verticalFrame.Text.Height, 6);
-        int expected = Ink(horizontal), actual = Ink(vertical);
+        double expected = Ink(horizontal), actual = Ink(vertical);
         Assert.True(expected > 50);
         Assert.InRange(actual, expected - 2, expected + 2);
 
@@ -143,13 +143,14 @@ public sealed partial class OpenDocumentOdgLineLabelTests {
             return result.Value;
         }
 
-        static int Ink(OfficeDrawing drawing) {
-            var image = OfficeDrawingRasterRenderer.Render(drawing); int count = 0;
+        static double Ink(OfficeDrawing drawing) {
+            // Rotation interpolation spreads coverage over partially transparent edge pixels.
+            var image = OfficeDrawingRasterRenderer.Render(drawing); long alpha = 0;
             for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) {
                 OfficeColor pixel = image.GetPixel(x, y);
-                if (pixel.A > 0 && pixel.R > 200 && pixel.G < 50 && pixel.B < 50) count++;
+                if (pixel.A > 0 && pixel.R > 200 && pixel.G < 50 && pixel.B < 50) alpha += pixel.A;
             }
-            return count;
+            return alpha / 255D;
         }
     }
 
