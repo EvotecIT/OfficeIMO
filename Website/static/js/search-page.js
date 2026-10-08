@@ -75,11 +75,20 @@
     dialog.querySelector('[data-site-search-page-link]').href = '/search/?q=' + encodeURIComponent(response.query);
   }
 
+  function cancelSearch(panel) {
+    clearTimeout(panel.searchTimer);
+    panel.searchVersion = (panel.searchVersion || 0) + 1;
+    if (panel.searchController) {
+      panel.searchController.abort();
+      panel.searchController = null;
+      panel.querySelector('[data-site-search-meta]').textContent = 'Search canceled. Edit your query to search again.';
+    }
+  }
+
   async function search(panel, limit) {
-    if (panel.searchController) panel.searchController.abort();
-    panel.searchController = new AbortController();
+    cancelSearch(panel);
     var query = panel.querySelector('[data-search-page-input]').value.trim();
-    var version = panel.searchVersion = (panel.searchVersion || 0) + 1;
+    var version = panel.searchVersion;
     var meta = panel.querySelector('[data-site-search-meta]');
     panel.searchLimit = limit || 20;
     panel.querySelector('[data-site-search-more]').hidden = true;
@@ -95,6 +104,7 @@
       meta.textContent = 'Type at least two characters or choose a package.';
       return;
     }
+    panel.searchController = new AbortController();
     meta.textContent = 'Searching…';
     try {
       var response = await api.search({ query: query, limit: panel.searchLimit,
@@ -107,8 +117,13 @@
     } catch (error) {
       if (version !== panel.searchVersion) return;
       panel.querySelector('[data-search-page-results]').replaceChildren();
-      if (error.name === 'AbortError') return;
+      if (error.name === 'AbortError') {
+        meta.textContent = 'Search canceled. Edit your query to search again.';
+        return;
+      }
       meta.textContent = error.code === 'SEARCH_QUERY_TOO_BROAD' ? error.message : 'Search is unavailable. Please try again.';
+    } finally {
+      if (version === panel.searchVersion) panel.searchController = null;
     }
   }
 
@@ -130,9 +145,7 @@
     panel.querySelector('[data-search-page-input]').placeholder = 'Search methods, types, packages, or tasks…';
     panel.querySelector('[data-search-page-input]').addEventListener('focus', populatePackages, { once: true });
     panel.querySelector('[data-search-page-input]').addEventListener('input', function () {
-      if (panel.searchController) panel.searchController.abort();
-      panel.searchVersion = (panel.searchVersion || 0) + 1;
-      clearTimeout(panel.searchTimer);
+      cancelSearch(panel);
       panel.searchTimer = setTimeout(function () { search(panel); }, 150);
     });
     panel.addEventListener('keydown', function (event) {
@@ -164,7 +177,7 @@
   });
   dialog.querySelector('[data-site-search-close]').addEventListener('click', function () { dialog.close(); });
   dialog.addEventListener('close', function () {
-    if (dialogPanel.searchController) dialogPanel.searchController.abort();
+    cancelSearch(dialogPanel);
     if (opener && opener.isConnected) opener.focus();
   });
   window.addEventListener('message', function (event) {
@@ -184,7 +197,7 @@
   // WebMCP searches use the same visible UI without leaving the current page.
   api.renderVisibleResults = function (response) {
     var panel = pagePanel || dialogPanel;
-    panel.searchVersion = (panel.searchVersion || 0) + 1;
+    cancelSearch(panel);
     panel.querySelector('[data-search-page-input]').value = response.query;
     panel.querySelector('[data-search-package]').value = '';
     panel.querySelector('[data-search-kind]').value = '';
