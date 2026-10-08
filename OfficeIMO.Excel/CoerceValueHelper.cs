@@ -4,7 +4,7 @@ using System.Globalization;
 namespace OfficeIMO.Excel;
 
 internal static class CoerceValueHelper {
-    private const int SharedStringCharacterLimit = 32_767;
+    internal const int SharedStringCharacterLimit = 32_767;
 
     private static readonly CellValue EmptyStringTemplate = new(string.Empty);
     private static readonly CellValue TrueTemplate = new("1");

@@ -194,9 +194,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Text, text);
             }
 
-            return sourceCell != null || styleIndex != 0
-                ? new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Blank, null)
-                : null;
+            // An authored blank cell still carries worksheet shape, including a
+            // headerless tabular import containing only missing values.
+            return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Blank, null);
         }
 
         private static XlsbWriteCell ConvertFormulaCell(

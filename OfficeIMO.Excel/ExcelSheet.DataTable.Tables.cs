@@ -82,7 +82,8 @@ namespace OfficeIMO.Excel {
             string? tableName = null,
             ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = true,
-            CancellationToken ct = default) {
+            CancellationToken ct = default,
+            bool preserveMissingValues = true) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
@@ -97,7 +98,7 @@ namespace OfficeIMO.Excel {
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + columnCount - 1);
             string range = startRef + ":" + endRef;
 
-            if (!TryInsertTabularRowSourceForDeferredMaterialization(source, startRow, startColumn, includeHeaders, ct)) {
+            if (!TryInsertTabularRowSourceForDeferredMaterialization(source, startRow, startColumn, includeHeaders, ct, preserveMissingValues)) {
                 return string.Empty;
             }
 
