@@ -1128,6 +1128,12 @@ CID, so precise removal preserves neighboring text positions. Mapping data is
 loaded locally and lazily; no external executable or download is required. See
 [third-party notices](THIRD-PARTY-NOTICES.md) for source and license information.
 
+Managed previews of unembedded Adobe CJK faces use installed script-capable
+substitutes when available. No replacement fonts are bundled. Rendering retains
+the font-substitution diagnostic: readable text does not establish identical
+outlines, regional glyph forms or appearance. Supply matching fonts during
+`ToDrawing()` projection when a controlled rendering profile is required.
+
 An explicit `ToUnicode` map takes precedence and must cover every shown code;
 an incomplete advertised map is refused. Other named encodings, including vertical
 and half-width variants, require a usable `ToUnicode` map. If shown text lacks a supported mapping,

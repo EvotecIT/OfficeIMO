@@ -191,6 +191,7 @@ public sealed partial class OfficeTrueTypeFont {
 
         // Other platforms name faces after the family ("Arial Bold.ttf", "LiberationSans-Bold.ttf") or
         // keep them in one collection ("Helvetica.ttc").
+        foreach (string path in CandidateKnownFamilyPaths(key)) yield return path;
         foreach (string path in CandidateFontDirectoryPaths(key)) {
             yield return path;
         }

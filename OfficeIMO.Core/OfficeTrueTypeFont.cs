@@ -1240,6 +1240,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             yield break;
         }
         string key = NormalizeFontFamilyKey(family);
+        string[]? cjk = CjkSubstituteFamilies(key);
+        if (cjk != null) {
+            yield return family;
+            foreach (string candidate in cjk) yield return candidate;
+            yield break;
+        }
         if (key == "sansserif" || key == "sans") {
             yield return "Aptos";
             yield return "Calibri";
@@ -1303,6 +1309,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidateKnownFamilyPaths(string key) {
+        foreach (string path in CandidateCjkFamilyPaths(key)) yield return path;
         if (key == "sfns") yield return "/System/Library/Fonts/SFNS.ttf";
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows)) {
