@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
+using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -23,7 +24,19 @@ namespace OfficeIMO.Tests {
             byte[] docx = source.ToBytes();
             NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
             Assert.Contains("line breaks", error.Message, StringComparison.Ordinal);
-            Assert.Equal(docx, source.ToBytes());
+            using var expected = new ZipArchive(new MemoryStream(docx), ZipArchiveMode.Read);
+            using var actual = new ZipArchive(new MemoryStream(source.ToBytes()), ZipArchiveMode.Read);
+            Assert.Equal(expected.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal),
+                actual.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal));
+            foreach (ZipArchiveEntry entry in expected.Entries) {
+                using Stream expectedPart = entry.Open();
+                using Stream actualPart = actual.GetEntry(entry.FullName)!.Open();
+                using var expectedBytes = new MemoryStream();
+                using var actualBytes = new MemoryStream();
+                expectedPart.CopyTo(expectedBytes);
+                actualPart.CopyTo(actualBytes);
+                Assert.Equal(expectedBytes.ToArray(), actualBytes.ToArray());
+            }
             Assert.Empty(source.ValidateDocument());
         }
 
