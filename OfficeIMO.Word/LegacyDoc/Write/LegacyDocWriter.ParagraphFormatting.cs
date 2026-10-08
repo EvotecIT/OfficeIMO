@@ -403,6 +403,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             } else if (value == TabStopValues.Bar) {
                 alignment = LegacyDocTabStopAlignment.Bar;
                 return true;
+            } else if (value == TabStopValues.Number) {
+                alignment = LegacyDocTabStopAlignment.Number;
+                return true;
             } else if (value == TabStopValues.Clear) {
                 alignment = LegacyDocTabStopAlignment.Clear;
                 return true;

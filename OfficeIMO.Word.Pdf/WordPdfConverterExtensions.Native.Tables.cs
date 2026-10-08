@@ -63,7 +63,8 @@ namespace OfficeIMO.Word.Pdf {
                         tableColumnCount,
                         visualHeaderRowCount,
                         footerStartRowIndex);
-                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell, options);
+                    NativeTableCellEmbeddedContent embeddedContent = CreateNativeTableCellEmbeddedContent(cell, options,
+                        interactiveControls: nativeDefaults.RunningContentContext == null);
                     NativeCellText cellText = CreateNativeCellText(
                         cell,
                         footnoteNumbersById,

@@ -20,7 +20,7 @@ foreach (var report in conversion.SourceConversionReports)
         Console.WriteLine($"{finding.Code}: {finding.Message}");
 ```
 
-Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature.
+Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature. Supported binary DOC SECTIONPAGES fields retain their editable instruction and cached result during import; PDF header/footer fields use calculated section counts during pagination.
 
 ## Install
 
@@ -244,6 +244,7 @@ pdf.SaveAsWord(
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
+- Tables in headers and footers retain their cell widths, borders, paragraph flow and supported text direction. The selected default, first-page or even-page story controls body reservation using the authored distance from the page edge. PAGE, SECTIONPAGES and NUMPAGES fields retain their individual number styles and are calculated during pagination, including fields without cached results. Form controls remain static text in these stories.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
 - DrawingML groups of supported preset shapes retain nested child coordinates and scaling. Non-wrapping groups behind text preserve page- or margin-relative positions and paragraph-relative vertical anchors. Paragraph anchors follow pagination, columns, and floating-table clearance; list paragraphs retain both their marker and the group.
 
@@ -252,11 +253,15 @@ pdf.SaveAsWord(
 
 Section gutters reserve space at the left, right, or top of the body frame according to the document settings. Mirrored margins swap the left and right body margins on even visible page numbers, including section numbering restarts. Margin-relative shape groups follow that frame; page-relative groups retain their absolute coordinates. A top gutter uses the same horizontal margins on both page sides, matching Word. An explicit `WordToPdfOptions.Margins` replaces the authored margins, gutter, and mirroring.
 
+Header/footer stories containing tables or SECTIONPAGES fields use the shared bounded PDF flow engine. SECTIONPAGES counts physical pages in the section independently of visible numbering and restarts. Stories must fit on the physical page and leave a positive body frame; page breaks and other unbounded content cannot create pages from a header or footer. Exact text metrics, overflow in very short turned cells, floating table positioning and nested table frames remain subject to the native renderer's limits.
+
 For imported groups with unsupported DrawingML geometry, fixed-position export uses the document's VML fallback when available and reports `NativeShapeGroupVmlFallback`. Supported groups with other wrapping or anchor modes are placed in document flow with `NativeShapeGroupFlowed`; groups that cannot be rendered report `NativeShapeGroupUnsupported`. Arbitrary custom geometry, rotation, flips, foreground stacking, and exact text wrapping around groups remain limited.
 
 Next-page section starts create a new page. Odd/even starts use the continuing page number to insert a blank page when needed, then apply the new section's numbering restart. An odd/even start advances a conflicting restart to the next matching number. Next-page starts with an explicit restart also align the section start with that number's parity. Compatible continuous sections share a page. Embedded page breaks preserve text, run formatting, hyperlinks and explicit bookmark targets on both sides of the break, including consecutive blank pages. Fields spanning paragraphs retain their result visibility through page and column splits; hidden field instructions and their breaks do not create pages. A section mark without body content retains its editable formatting and anchors without adding a blank body line or an extra page. Column layout and changes in page geometry remain subject to the native layout engine's supported paths.
 
 Footnote and endnote reference labels preserve decimal, Roman and letter formats, starting numbers, continuous numbering and section restarts. Word's letter-note sequence continues as `aa`, `bb`, `cc` after `z`. A zero DOCX starting number displays `0` for decimal notes and a blank first label for Roman or letter notes, then continues at `1`, `i` or `a` in the selected case. The same label appears beside the reference and its note text. Footnote bodies follow their section in document flow. Endnote placement follows the document-wide setting: section-end notes follow their section, and document-end notes follow the final section, including notes referenced in earlier sections. An omitted document-wide position means document-end; section-level endnote positions are ignored as they are in Word. The existing `AddEndnoteProperties(position: ...)` methods update placement for the whole document, preserving section numbering during a position-only edit. `EndnoteSettings.Position` reports the effective document placement. Native DOC import and save preserve that setting. Physical bottom-of-page footnote placement remains approximated; page-based numbering restart reports `NativeNotePageRestartApproximated`. Other numbering formats use decimal labels and report `NativeNoteNumberFormatUnsupported`.
+
+For PDF export, a trailing manual page break honors `CompatibilitySettings.SplitPageBreakAndParagraphMark` in older Word layout. An enabled setting carries the paragraph mark's line height and after spacing onto the next page. Word 2013 compatibility mode ignores the stored setting. Native DOC import selects the legacy enabled behavior; its DOCX projection keeps the same layout. Text following the break continues in its existing paragraph without an extra mark line.
 
 ## What it imports
 
@@ -269,6 +274,18 @@ Footnote and endnote reference labels preserve decimal, Roman and letter formats
 - Per-operation import warnings through `PdfWordConversionResult.Report`. `HasLoss` and `RequireNoLoss()` use typed approximation, omission, and failure evidence even when a diagnostic is informational. The table-only profile reports visible text outside detected tables as `PdfTextContentNotImported` instead of treating an intentionally narrow extraction as lossless.
 
 ## Options and diagnostics
+
+Word export preserves source-significant leading and repeated spaces in paragraphs
+and table cells. When spaces reach the end of a line, their excess is discarded
+before the next word rather than creating additional blank lines. Trailing spaces
+do not shift centered or right-aligned text.
+
+The converter selects `PdfTextWhitespaceMode.Preserve` unless the supplied
+`PdfOptions` explicitly sets a whitespace policy. Set `TextWhitespaceMode` to
+`Collapse` to normalize flow spacing, or to `Preformatted` for literal spacing.
+The existing `PreserveTextWhitespace = true` setting selects `Preformatted` and
+an explicit `false` selects `Collapse`. Options are cloned before export, so the
+converter does not change the caller's settings.
 
 For a PDF whose page appearance matters more than editability, use visual pages:
 

@@ -8,6 +8,7 @@ import type { PdfSettings } from "./settings.js";
 import type { PdfTableLayout, PdfLayoutRow } from "./table-layout.js";
 import { wrapText, synchronousText } from "./text.js";
 import type { PdfFontResource } from "./font-resources.js";
+import { linkAnnotation } from "./annotations.js";
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 export class PdfPages {
@@ -15,6 +16,8 @@ export class PdfPages {
   private current = 0;
   private commands: string[] = [];
   private commandBytes = 0;
+  private annotations: string[] = [];
+  private hyperlinks = 0;
   private y = 0;
   private dataTop = 0;
   private readonly totalPages: number | undefined;
@@ -35,9 +38,12 @@ export class PdfPages {
     }
   }
   private add(command: string): void {
-    this.commandBytes += command.length;
-    if (this.commandBytes > this.settings.limits.maxPageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded.");
+    this.retainPageBytes(command.length);
     this.commands.push(command);
+  }
+  private retainPageBytes(length: number): void {
+    this.commandBytes += length;
+    if (this.commandBytes > this.settings.limits.maxPageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded.");
   }
   private rgb(hex: string): string {
     let rgb = this.colors.get(hex);
@@ -95,6 +101,13 @@ export class PdfPages {
       const x = this.layout.lefts[cell.first]!, cellHeight = cell.height ?? height;
       if (cell.style.background) this.add("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n");
       this.add("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n");
+      if (cell.link) {
+        if (++this.hyperlinks > this.settings.limits.maxHyperlinks) throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
+        const annotation = linkAnnotation(cell.link, x, this.y - cellHeight, cell.width, cellHeight,
+          this.settings.limits.maxPageBytes - this.commandBytes);
+        this.retainPageBytes(annotation.length);
+        this.annotations.push(annotation);
+      }
       for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
         const text = cell.lines[line]!, left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
         const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
@@ -137,9 +150,15 @@ export class PdfPages {
   private async finishPage(): Promise<void> {
     const contents = this.objects.reserve(), { page, options } = this.settings;
     await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
+    const annotations: number[] = [];
+    for (const annotation of this.annotations) {
+      const id = this.objects.reserve(); annotations.push(id);
+      await this.objects.object(id, annotation);
+    }
     await this.objects.object(this.current, "<< /Type /Page /Parent " + this.parent + " 0 R /MediaBox [0 0 " + pdfNumber(page.width) + " " + pdfNumber(page.height) +
-      "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R >>");
-    this.commands = []; this.commandBytes = 0;
+      "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R" +
+      (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
+    this.commands = []; this.annotations = []; this.commandBytes = 0;
     await this.objects.flush();
   }
   async finish(): Promise<void> {

@@ -80,9 +80,11 @@ internal static class OfficeVbaDirectoryCodec {
             while (reader.PeekId != 0x000F) {
                 int referenceStart = reader.Position;
                 byte[] nameRecord = Array.Empty<byte>();
+                byte[] ansiName = Array.Empty<byte>();
+                byte[] unicodeName = Array.Empty<byte>();
                 if (reader.PeekId == 0x0016) {
-                    if (!reader.TryReadSized(0x0016, out _, out byte[] nameAnsi, true)
-                        || !reader.TryReadSized(0x003E, out _, out byte[] nameUnicode, true)) {
+                    if (!reader.TryReadSized(0x0016, out ansiName, out byte[] nameAnsi, true)
+                        || !reader.TryReadSized(0x003E, out unicodeName, out byte[] nameUnicode, true)) {
                         detail = "The VBA directory has an invalid reference-name record.";
                         return false;
                     }
@@ -95,6 +97,8 @@ internal static class OfficeVbaDirectoryCodec {
                     return false;
                 }
                 reference.Serialized = reader.GetBytes(referenceStart, reader.Position - referenceStart);
+                reference.AnsiName = ansiName;
+                reference.UnicodeName = unicodeName;
                 parsed.References.Add(reference);
                 if (!v3.TryAppend(reference.V3Normalized)) {
                     detail = "The VBA V3 reference transcript exceeds the configured byte limit.";
@@ -145,6 +149,10 @@ internal static class OfficeVbaDirectoryCodec {
     }
 
     internal sealed class ReferenceModel {
+        internal byte[] AnsiName = Array.Empty<byte>();
+        internal byte[] UnicodeName = Array.Empty<byte>();
+        internal ushort Kind;
+        internal byte[] LibId = Array.Empty<byte>();
         internal byte[] Serialized = Array.Empty<byte>();
         internal byte[] LegacyNormalized = Array.Empty<byte>();
         internal byte[] V3Normalized = Array.Empty<byte>();
@@ -197,6 +205,7 @@ internal static class OfficeVbaDirectoryCodec {
                     || !TryReadReference(Array.Empty<byte>(), out ReferenceModel? nestedControl)
                     || nestedControl == null) return false;
                 model = new ReferenceModel {
+                    Kind = id, LibId = original,
                     V3Normalized = Concat(nameRecord, UInt16Bytes(id), originalLength, original,
                         nestedControl.V3Normalized)
                 };
@@ -209,6 +218,7 @@ internal static class OfficeVbaDirectoryCodec {
                     || !TryReadU32(out uint reserved1) || reserved1 != 0
                     || !TryReadU16(out ushort reserved2) || reserved2 != 0) return false;
                 model = new ReferenceModel {
+                    Kind = id, LibId = libid,
                     LegacyNormalized = new byte[] { 0x7B },
                     V3Normalized = Concat(nameRecord, UInt16Bytes(id), libidLength, WidenBytes(libid),
                         UInt32Bytes(reserved1), UInt16Bytes(reserved2))
@@ -223,6 +233,7 @@ internal static class OfficeVbaDirectoryCodec {
                 byte[] body = Concat(absoluteLength, absolute, relativeLength, relative,
                     UInt32Bytes(major), UInt16Bytes(minor));
                 model = new ReferenceModel {
+                    Kind = id, LibId = absolute,
                     LegacyNormalized = CopyUntilNull(body),
                     V3Normalized = Concat(nameRecord, UInt16Bytes(id), body)
                 };
@@ -246,6 +257,7 @@ internal static class OfficeVbaDirectoryCodec {
                     || !TryReadU16(out ushort reserved5) || reserved5 != 0
                     || !TryReadBytes(20, out byte[] typeLibAndCookie)) return false;
                 model = new ReferenceModel {
+                    Kind = id, LibId = extended,
                     V3Normalized = Concat(nameRecord, UInt16Bytes(id), twiddledLength, twiddled,
                         UInt32Bytes(reserved1), UInt16Bytes(reserved2), extendedName,
                         UInt16Bytes(extendedId), extendedLength, extended,
@@ -278,11 +290,9 @@ internal static class OfficeVbaDirectoryCodec {
             if (!TryReadFixedRecord(0x002B, out _)) return false;
             string streamName;
             try {
-                streamName = unicodeStream.Length > 0
-                    ? new UnicodeEncoding(false, false, true).GetString(unicodeStream).TrimEnd('\0')
-                    : OfficeVbaText.Decode(ansiStream, CodePage).TrimEnd('\0');
+                streamName = new UnicodeEncoding(false, false, true).GetString(unicodeStream);
             } catch (DecoderFallbackException) { return false; }
-            catch (NotSupportedException) { return false; }
+            if (streamName.Length == 0 || streamName.IndexOf('\0') >= 0) return false;
             uint textOffset = ReadUInt32(textOffsetBytes, 0);
             if (textOffset > int.MaxValue) return false;
             model = new ModuleModel {

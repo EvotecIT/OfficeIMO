@@ -9,12 +9,17 @@ import * as xlsxModule from "@evotecit/officeimo/xlsx";
 import * as csvModule from "@evotecit/officeimo/csv";
 import * as pdfModule from "@evotecit/officeimo/pdf";
 import * as dataTablesModule from "@evotecit/officeimo/integrations/datatables";
+import * as canopyModule from "@evotecit/officeimo/integrations/canopyx";
 
 for (const [namespace, module] of [[core, coreModule], [zip, zipModule], [xml, xmlModule], [opc, opcModule], [xlsx, xlsxModule], [csv, csvModule], [pdf, pdfModule]])
   for (const [key, value] of Object.entries(module)) assert.equal(namespace[key], value);
 assert.equal(globalThis.document, undefined);
 assert.equal(typeof dataTablesModule.createDataTablesExport, 'function');
 assert.equal(dataTablesModule.ExportCell, coreModule.ExportCell);
+assert.equal(canopyModule.ExportCell, coreModule.ExportCell);
+const canopyCapture = { request: { columns: [{ id: "Name", title: "Name", kind: "text" }], recordCount: 1, presentation: "text", values: "raw", timeZone: "utc", revision: "packed" },
+  async *rows() { yield { id: "r", cells: { Name: { value: "Packed", text: "Packed" } } }; } };
+assert.equal(await (await canopyModule.exportCanopy(canopyCapture, "csv", { unsupportedPresentation: "text" })).text(), "Name\r\nPacked\r\n");
 assert.equal(writeXlsx, xlsx.writeXlsx); assert.equal(writeXlsxTo, xlsx.writeXlsxTo);
 assert.equal(writePdf, pdf.writePdf);
 const packedPdf = await writePdf([{name:'Packed PDF'}],{columns:[{header:'Name',key:'name'}]});

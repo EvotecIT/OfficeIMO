@@ -7,12 +7,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private const string PageFieldInstruction = " PAGE   \\* MERGEFORMAT ";
         private const string NumberOfPagesFieldInstruction = " NUMPAGES   \\* MERGEFORMAT ";
+        private const string SectionPagesFieldInstruction = " SECTIONPAGES   \\* MERGEFORMAT ";
         private const string DateFieldInstruction = " DATE ";
         private const string TimeFieldInstruction = " TIME ";
         private const string CreateDateFieldInstruction = " CREATEDATE ";
         private const string SaveDateFieldInstruction = " SAVEDATE ";
         private const string PrintDateFieldInstruction = " PRINTDATE ";
-        private const string SupportedFieldNames = "PAGE, NUMPAGES, DATE, TIME, CREATEDATE, SAVEDATE, PRINTDATE, EQ, and document-property display fields";
+        private const string SupportedFieldNames = "PAGE, NUMPAGES, SECTIONPAGES, DATE, TIME, CREATEDATE, SAVEDATE, PRINTDATE, EQ, and document-property display fields";
 
         private static void AppendSupportedPageNumberField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFormatting formatting) {
             AppendSupportedField(text, runs, GetSupportedFieldInstruction(LegacyDocFieldKind.Page), "1", formatting);
@@ -261,6 +262,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return true;
             }
 
+            if (IsFieldInstruction(trimmed, "SECTIONPAGES")) {
+                fieldKind = LegacyDocFieldKind.SectionPages;
+                return true;
+            }
+
             if (IsFieldInstruction(trimmed, "DATE")) {
                 fieldKind = LegacyDocFieldKind.Date;
                 return true;
@@ -308,6 +314,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return fieldKind switch {
                 LegacyDocFieldKind.Page => PageFieldInstruction,
                 LegacyDocFieldKind.NumPages => NumberOfPagesFieldInstruction,
+                LegacyDocFieldKind.SectionPages => SectionPagesFieldInstruction,
                 LegacyDocFieldKind.Date => DateFieldInstruction,
                 LegacyDocFieldKind.Time => TimeFieldInstruction,
                 LegacyDocFieldKind.CreateDate => CreateDateFieldInstruction,
@@ -320,6 +327,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static string GetSupportedFieldResultText(LegacyDocFieldKind fieldKind, string resultText) {
+            if (fieldKind == LegacyDocFieldKind.SectionPages && string.IsNullOrEmpty(resultText)) return "1";
             return fieldKind == LegacyDocFieldKind.Page || fieldKind == LegacyDocFieldKind.NumPages
                 ? "1"
                 : resultText;

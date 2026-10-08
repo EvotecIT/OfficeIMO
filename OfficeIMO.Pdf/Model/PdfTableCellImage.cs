@@ -65,7 +65,9 @@ public sealed class PdfTableCellImage {
     public string? LinkContents { get; }
 
     private PdfTableCellImage(PdfTableCellImage source) {
-        _data = (byte[])source._data.Clone();
+        // Preparation owns this immutable snapshot; Data always returns a caller-owned copy.
+        // Cell/style snapshots can share its payload, just as they share the prepared stream.
+        _data = source._data;
         _preparedStream = source._preparedStream;
         Width = source.Width;
         Height = source.Height;

@@ -93,15 +93,15 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.PageBreak();
             }
 
-            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
             WordParagraph? currentChartRun = runs.FirstOrDefault(run =>
                 ReferenceEquals(run._run, paragraph._run) && run.Chart != null);
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
-            IReadOnlyList<W.SdtRun> checkboxControls = GetNativeCheckBoxControls(paragraph);
-            IReadOnlyList<W.SdtRun> formFieldControls = GetNativeFormFieldControls(paragraph);
+            IReadOnlyList<W.SdtRun> checkboxControls = nativeDefaults.RunningContentContext == null ? GetNativeCheckBoxControls(paragraph) : Array.Empty<W.SdtRun>();
+            IReadOnlyList<W.SdtRun> formFieldControls = nativeDefaults.RunningContentContext == null ? GetNativeFormFieldControls(paragraph) : Array.Empty<W.SdtRun>();
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
 
-            if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
+            if (nativeDefaults.RunningContentContext == null && !string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
                 pdf.Bookmark(paragraph.Bookmark!.Name!);
             }
 
@@ -136,6 +136,8 @@ namespace OfficeIMO.Word.Pdf {
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+            if (nativeDefaults.RunningContentContext != null && !hasEquationContent)
+                content = AppendNativeHeaderFooterFormControlText(string.Concat(runs.Select(run => run.Text)), paragraph) ?? string.Empty;
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
@@ -417,7 +419,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<PdfCore.PdfTableCellImage> Images,
             IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> InlineImages);
 
-        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options) {
+        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options, bool interactiveControls = true) {
             List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
             List<PdfCore.PdfTableCellFormField>? formFields = null;
             List<PdfCore.PdfTableCellImage>? images = null;
@@ -451,6 +453,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
+                if (!interactiveControls) continue;
                 foreach (W.SdtRun control in paragraph._paragraph.Descendants<W.SdtRun>()) {
                     if (IsNativeCheckBoxControl(control)) {
                         checkBoxes ??= new List<PdfCore.PdfTableCellCheckBox>();

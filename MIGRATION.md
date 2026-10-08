@@ -13,6 +13,19 @@ Use the typed `ReadVbaProject()` and
 `SetVbaProject(...)` workflow for explicit source changes and signature policy;
 use `RemoveMacros()` only when removing the entire project is intended.
 
+## PDF named composite font mappings
+
+Text extraction throws `NotSupportedException` when shown text uses a named
+composite encoding such as `UniJIS-UCS2-H` without a `ToUnicode` map covering its
+shown character codes. Explicit `ActualText` and default artifact exclusion
+retain their logical extraction behavior.
+Redaction search and planning return a non-reviewable plan with an error finding
+for the same input. Previous versions could interpret these character codes as
+WinAnsi and report misleading text or no matches. Redaction review also requires
+mappings for painted text under `ActualText` or artifacts. Supply a PDF with an explicit
+Unicode map, handle the extraction failure, and check `plan.IsReviewable` before
+applying redaction. Existing `Identity-H` and `Identity-V` behavior is unchanged.
+
 ## PDF mutation assessment cancellation
 
 Replace `pdf.AssessMutations(default)` with
@@ -60,6 +73,20 @@ This guide contains version-to-version changes that require application code, pa
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
+
+## Word content-control form locks
+
+`FillContentControlValues` rejects supplied values for content-locked controls
+before applying any form values. `ValidateContentControlValues` reports these
+targets as `WordContentControlFormIssueKind.LockedControl`. Remove locked fields
+from the supplied map to fill only editable fields; when validating a partial
+map, pass `requireAllControls: false`.
+
+Controls with `sdtLocked` remain fillable. That lock prevents deleting the
+control, while `contentLocked` and `sdtContentLocked` prevent content edits.
+Picture and repeating-section replacements also reject operations that would
+remove locked nested controls. Use direct control setters for intentional
+authoring changes that bypass form-fill safeguards.
 
 ## XPS radial focal points
 

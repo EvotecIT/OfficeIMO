@@ -1,4 +1,6 @@
 import { ExportCell } from "../core/presentation.js";
+import { copyExportLink } from "../core/links.js";
+import type { ExportLink } from "../core/links.js";
 import type { ExportValue, CellPresentation, TableSpanRows } from "../core/index.js";
 import { tableSpans } from "../internal/table-spans.js";
 import { createTotals } from "../internal/totals.js";
@@ -19,6 +21,7 @@ export interface PdfLayoutCell {
   readonly lineHeight: number;
   readonly rowSpan?: number;
   readonly height?: number;
+  readonly link?: Readonly<ExportLink>;
 }
 export interface PdfLayoutRow { readonly cells: readonly PdfLayoutCell[]; readonly lines: number; readonly lineHeight: number; readonly height: number; readonly structured?: boolean; }
 interface HeadingCell { readonly first: number; readonly span: number; readonly text: string; }
@@ -70,6 +73,7 @@ export class PdfTableLayout {
     const text = displayText(value, options, { rowIndex: row, columnIndex: first, column });
     budget.cell(text);
     return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
+      ...(value instanceof ExportCell && value.link ? { link: copyExportLink(value.link) } : {}),
       lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
   }
   private row(cells: readonly PdfLayoutCell[]): PdfLayoutRow {
@@ -89,7 +93,7 @@ export class PdfTableLayout {
     const cells = anchors.map(row => row.map(c => {
       const value = c.value instanceof ExportCell ? c.value : new ExportCell(c.value);
       const literal = new ExportCell(value.value, { text: displayText(value, literalOptions, { rowIndex: -1, columnIndex: c.first, column: literalOptions.columns[c.first]! }),
-        ...(value.presentation ? { presentation: value.presentation } : {}) });
+        ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
       return { ...this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan };
     }));
     const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * c.lineHeight + this.settings.padding * 2)));

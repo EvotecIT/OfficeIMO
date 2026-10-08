@@ -124,7 +124,7 @@ public static partial class OfficePngWriter {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
         OfficeRasterOutput.EnsureWritable(destination);
-        if (compression != OfficePngCompression.Optimal && compression != OfficePngCompression.Stored) {
+        if (compression != OfficePngCompression.Optimal && compression != OfficePngCompression.Stored && compression != OfficePngCompression.Fastest) {
             throw new ArgumentOutOfRangeException(nameof(compression));
         }
 
@@ -146,6 +146,9 @@ public static partial class OfficePngWriter {
             } else {
                 WriteOptimalZlib(idat, width, height, rgba, bilevel, rgb, cancellationToken, checkpointObserver);
             }
+        } else if (compression == OfficePngCompression.Fastest) {
+            var workspace = new PngFilteringWorkspace(width, bilevel: false, rgb: false);
+            WriteRgbaZlib(idat, height, rgba, workspace, adaptiveFiltering: false, cancellationToken, checkpointObserver, CompressionLevel.Fastest);
         } else {
             WriteStoredZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
         }
@@ -179,7 +182,8 @@ public static partial class OfficePngWriter {
     private static void WriteRgbaZlib(
         Stream destination, int height, byte[] rgba, PngFilteringWorkspace workspace,
         bool adaptiveFiltering, System.Threading.CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver,
+        CompressionLevel level = CompressionLevel.Optimal) {
         destination.WriteByte(0x78);
         destination.WriteByte(0x9C);
 
@@ -192,7 +196,7 @@ public static partial class OfficePngWriter {
         uint adlerA = 1;
         uint adlerB = 0;
 
-        using (var deflate = new DeflateStream(destination, CompressionLevel.Optimal, leaveOpen: true)) {
+        using (var deflate = new DeflateStream(destination, level, leaveOpen: true)) {
             for (int y = 0; y < height; y++) {
                 checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
                 cancellationToken.ThrowIfCancellationRequested();

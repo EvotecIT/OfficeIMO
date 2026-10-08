@@ -43,10 +43,19 @@ public sealed class OfficeRasterImage {
         return copy;
     }
 
-    internal static OfficeRasterImage FromRgba32(int width, int height, byte[] pixels) {
+    /// <summary>Creates an image from tightly packed, top-to-bottom RGBA bytes, copying the caller's buffer.</summary>
+    /// <remarks>The buffer must contain exactly four bytes per pixel. Subsequent caller changes do not affect the image.</remarks>
+    public static OfficeRasterImage FromRgba32(int width, int height, byte[] pixels) {
         ValidateRgba32Buffer(width, height, pixels);
+        OfficeRasterGuards.EnsureOutputPixels(width, height, "RGBA image dimensions exceed the managed image limit.");
+        if (pixels.LongLength * 2L + 64L * 1024L > OfficeRasterGuards.MaximumDecodedBytes) {
+            throw new ArgumentException("Copying the RGBA image exceeds the managed image working-set limit.", nameof(pixels));
+        }
         return new OfficeRasterImage(width, height, (byte[])pixels.Clone());
     }
+
+    /// <summary>Returns an independent image with the same dimensions and RGBA samples.</summary>
+    public OfficeRasterImage Clone() => FromRgba32(Width, Height, _pixels);
 
     /// <summary>Creates an image by taking ownership of a newly allocated decoder buffer.</summary>
     internal static OfficeRasterImage FromOwnedRgba32(int width, int height, byte[] pixels) {

@@ -5,6 +5,85 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
     public partial class PdfRedactionApplierTests {
+        [Theory]
+        [InlineData("12 0 0 12 72 720", 72D, 717D, 15D)]
+        [InlineData("12 0 3 8 72 720", 71.25D, 718D, 10D)]
+        public void PreciseSearchTransformsFontHeightAndShearFromTextSpace(string matrix, double left, double bottom, double height) {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 1 Tf " + matrix + " Tm (secret) Tj ET " +
+                "BT /F1 12 Tf 72 610 Td (Public summary) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            PdfRedactionArea area = Assert.Single(plan.Areas);
+            Assert.Equal(left, area.X, 5);
+            Assert.Equal(bottom, area.Y, 5);
+            Assert.Equal(height, area.Height, 5);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            Assert.Contains("Public summary", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            Assert.Equal(ReadGlyphEvidence(bytes).Where(glyph => glyph.Y < 650D), ReadGlyphEvidence(result.Pdf));
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
+        [Fact]
+        public void PreciseSearchPreservesStateOnlyTextObjectsAndUnselectedGlyphs() {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 14.4 TL ET " +
+                "BT 1 0 0 1 72 720 Tm /F1 20 Tf (Alpha secret Omega) Tj T* ET " +
+                "BT /F1 12 Tf ET BT 1 0 0 1 72 610 Tm (Public summary) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            Assert.Contains("Alpha", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            Assert.Contains("Omega", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            Assert.Contains("Public summary", result.ToDocument().Read().Text, StringComparison.Ordinal);
+            PdfRedactionArea area = Assert.Single(plan.Areas);
+            Assert.Equal(ReadGlyphEvidence(bytes).Where(glyph => glyph.Y < area.Y || glyph.X < Math.Round(area.X, 5) || glyph.X >= Math.Round(area.Right, 5)),
+                ReadGlyphEvidence(result.Pdf));
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
+        [Fact]
+        public void PreciseSearchJoinsTouchingTextShowsWithoutJoiningSeparateOccurrences() {
+            PdfDocument source = PdfDocument.Load(BuildTextContentRedactionSource(
+                "BT /F1 20 Tf 72 720 Td (Alpha ) Tj (secret) Tj ( account) Tj ( Omega secret account) Tj ET"));
+            PdfRedactionPlan search = source.Redactions.Search(PreciseOptions().AddLiteral("secret account"));
+            Assert.True(search.IsReviewable, DescribeFindings(search));
+            Assert.Collection(search.Areas, area => Assert.Equal(1, area.PageNumber), area => Assert.Equal(1, area.PageNumber));
+            PdfRedactionPlan selection = source.Redactions.Plan(new[] { search.Areas[0].WithLabel("Selected occurrence") });
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(selection);
+            Assert.True(result.Evidence.IsVerified);
+            string text = result.ToDocument().Read().Text;
+            Assert.Single(Regex.Matches(text, "secret account"));
+            Assert.Contains("Alpha", text, StringComparison.Ordinal);
+            Assert.Contains("Omega", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RelabelingPreciseAreasPreservesTheRemovalContract() {
+            byte[] bytes = BuildSingleTextObjectRedactionSource("(Alpha secret Omega) Tj");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionArea area = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("secret")).Areas);
+            PdfRedactionPlan relabeled = source.Redactions.Plan(new[] { area.WithLabel("Reviewed reason") });
+            Assert.Equal("Reviewed reason", Assert.Single(relabeled.Areas).Label);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(relabeled);
+            Assert.True(result.Evidence.IsVerified);
+            string text = result.ToDocument().Read().Text;
+            Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+            Assert.Contains("Alpha", text, StringComparison.Ordinal);
+            Assert.Contains("Omega", text, StringComparison.Ordinal);
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
         [Fact]
         public void PreciseSelectionBlocksIntersectingUnselectedHiddenLayerGlyphs() {
             const string content = "BT /F1 20 Tf 72 720 Td (secret) Tj ET " +

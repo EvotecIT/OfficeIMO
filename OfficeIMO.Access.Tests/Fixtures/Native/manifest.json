@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "producer": "OfficeIMO.Access.Verification native feasibility probe",
+  "seedUsed": false,
+  "consumer": "Microsoft DAO",
+  "consumerBuild": "16.0.20430.20092",
+  "engineVersion": "16.0",
+  "bitness": 64,
+  "license": "MIT (synthetic OfficeIMO fixtures)",
+  "proof": "Fresh managed page generation followed by independent DAO schema/index/relationship/value consumption",
+  "files": [
+    {
+      "path": "catalog-scaffold.mdb",
+      "headerVersion": 1,
+      "length": 122880,
+      "sha256": "44f2a063b40b5fa0ed5390c4b108e07faf15e2254f7c14d5811d910e18f2625f",
+      "expected": "catalog-scaffold.mdb.expected.json",
+      "expectedSha256": "bdc091184885416a385722a59222b1ba67a593ceda3507b203b46212b384290d",
+      "independentRowCount": 2,
+      "primaryIndexSeek": true,
+      "constraintRejections": [
+        {
+          "statement": "INSERT INTO Contacts (Id, GroupId) VALUES (1,1)",
+          "daoError": 3022,
+          "hresult": -2146825266,
+          "error": "The changes you requested to the table were not successful because they would create duplicate values in the index, primary key, or relationship. Change the data in the field or fields that contain duplicate data, remove the index, or redefine the index to permit duplicate entries and try again."
+        },
+        {
+          "statement": "INSERT INTO Contacts (Id, GroupId) VALUES (3,999)",
+          "daoError": 3201,
+          "hresult": -2146825087,
+          "error": "You cannot add or change a record because a related record is required in table 'Groups'."
+        }
+      ]
+    },
+    {
+      "path": "catalog-scaffold.accdb",
+      "headerVersion": 2,
+      "length": 122880,
+      "sha256": "53dc4c041a2b813ba03d5cc244d472fb3afbf7d7af08b025c9a29b5b3cbb2ed9",
+      "expected": "catalog-scaffold.accdb.expected.json",
+      "expectedSha256": "bdc091184885416a385722a59222b1ba67a593ceda3507b203b46212b384290d",
+      "independentRowCount": 2,
+      "primaryIndexSeek": true,
+      "constraintRejections": [
+        {
+          "statement": "INSERT INTO Contacts (Id, GroupId) VALUES (1,1)",
+          "daoError": 3022,
+          "hresult": -2146825266,
+          "error": "The changes you requested to the table were not successful because they would create duplicate values in the index, primary key, or relationship. Change the data in the field or fields that contain duplicate data, remove the index, or redefine the index to permit duplicate entries and try again."
+        },
+        {
+          "statement": "INSERT INTO Contacts (Id, GroupId) VALUES (3,999)",
+          "daoError": 3201,
+          "hresult": -2146825087,
+          "error": "You cannot add or change a record because a related record is required in table 'Groups'."
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Fixed unprotected Jet4/ACE12 scaffold and synthetic schema only; not a production Save codec",
+    "Restricted observed ASCII General legacy index keys",
+    "No modern complex system catalog, application-object carrier, encryption, signature or general edit qualification"
+  ]
+}
