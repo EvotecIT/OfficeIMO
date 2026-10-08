@@ -5,11 +5,22 @@ public static partial class HtmlComputedStyleEngine {
     private static readonly HashSet<string> LayoutDeclarationNames = new(StringComparer.Ordinal) {
         "grid-column", "grid-row", "grid-area", "grid-column-start", "grid-column-end", "grid-row-start", "grid-row-end",
         "grid-template-columns", "grid-template-rows", "grid-template-areas", "gap", "row-gap", "column-gap",
-        "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content"
+        "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content",
+        "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "text-decoration-thickness"
     };
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 
     private static string[]? GetDeferredLayoutShorthandLonghands(string propertyName) => propertyName.ToLowerInvariant() switch {
+        "margin" => MarginLonghands,
+        "padding" => PaddingLonghands,
+        "border" => BorderWidthLonghands.Concat(BorderStyleLonghands).Concat(BorderColorLonghands).ToArray(),
+        "border-width" => BorderWidthLonghands,
+        "border-style" => BorderStyleLonghands,
+        "border-color" => BorderColorLonghands,
+        "border-top" => new[] { "border-top-width", "border-top-style", "border-top-color" },
+        "border-right" => new[] { "border-right-width", "border-right-style", "border-right-color" },
+        "border-bottom" => new[] { "border-bottom-width", "border-bottom-style", "border-bottom-color" },
+        "border-left" => new[] { "border-left-width", "border-left-style", "border-left-color" },
         "gap" => GapLonghands,
         "grid-column" => GridColumnLonghands,
         "grid-row" => GridRowLonghands,
@@ -17,6 +28,7 @@ public static partial class HtmlComputedStyleEngine {
         "place-items" => PlaceItemsLonghands,
         "place-self" => PlaceSelfLonghands,
         "place-content" => PlaceContentLonghands,
+        "text-decoration" => TextDecorationLonghands,
         _ => null
     };
 
@@ -51,7 +63,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static void ResolveDeferredLayoutLonghands(Dictionary<string, string> properties, IReadOnlyDictionary<string, string> deferred,
-        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset,
+        IReadOnlyDictionary<string, string>? parentProperties, ISet<string> inherited, ISet<string> reset, ISet<string> specified,
         bool enforceResolutionLimits) {
         foreach (KeyValuePair<string, string> pending in deferred) {
             string value = "unset";
@@ -67,10 +79,17 @@ public static partial class HtmlComputedStyleEngine {
             if (resolved.HasValue) {
                 properties[pending.Key] = resolved.Value;
                 reset.Remove(pending.Key);
-                if (resolved.InheritsComputedValue) inherited.Add(pending.Key); else inherited.Remove(pending.Key);
+                if (resolved.InheritsComputedValue) {
+                    inherited.Add(pending.Key);
+                    specified.Remove(pending.Key);
+                } else {
+                    inherited.Remove(pending.Key);
+                    specified.Add(pending.Key);
+                }
             } else {
                 properties.Remove(pending.Key);
                 inherited.Remove(pending.Key);
+                specified.Remove(pending.Key);
                 reset.Add(pending.Key);
             }
         }

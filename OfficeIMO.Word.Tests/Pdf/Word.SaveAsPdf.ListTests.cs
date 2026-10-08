@@ -783,8 +783,8 @@ namespace OfficeIMO.Tests {
                 "RightJustifiedMarkerBody");
 
             Assert.True(
-                right.MarkerX > left.MarkerX + 20D,
-                $"Expected right-justified marker X ({right.MarkerX}) to move inside the marker column compared to left-justified marker X ({left.MarkerX}).");
+                right.MarkerX < left.MarkerX - 5D,
+                $"Expected the right-justified marker to end at the same hanging-indent anchor where the left-justified marker begins. Left x: {left.MarkerX}; right x: {right.MarkerX}.");
             Assert.InRange(Math.Abs(right.TextX - left.TextX), 0D, 1.5D);
         }
 

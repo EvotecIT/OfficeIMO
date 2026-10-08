@@ -16,6 +16,12 @@ public static partial class OfficeDrawingRasterRenderer {
 
     /// <summary>Renders a drawing with an optional external image codec.</summary>
     public static OfficeRasterImage Render(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return RenderCore(drawing, options, options.Scale, options.Scale);
+    }
+
+    private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
+        double scaleX, double scaleY, OfficeRasterExportPlan? allocationPlan = null) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
@@ -31,18 +37,19 @@ public static partial class OfficeDrawingRasterRenderer {
             throw new ArgumentOutOfRangeException(nameof(options.MaximumRasterPixels), "Maximum raster pixels must be positive.");
         }
 
-        _ = OfficeRasterExportPlanner.Resolve(
-            drawing.Width,
-            drawing.Height,
+        bool uniform = scaleX == scale && scaleY == scale;
+        OfficeRasterExportPlan plan = allocationPlan ?? OfficeRasterExportPlanner.Resolve(
+            uniform ? drawing.Width : drawing.Width * scaleX,
+            uniform ? drawing.Height : drawing.Height * scaleY,
             OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
-                Scale = scale,
+                Scale = uniform ? scale : 1D,
                 MaximumRasterPixels = options.MaximumRasterPixels,
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
 
-        int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
-        int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
+        int width = plan.Limit.PixelWidth;
+        int height = plan.Limit.PixelHeight;
         OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
@@ -54,6 +61,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
         canvas.FontMetricScale = scale;
+        canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)

@@ -19,6 +19,10 @@ public sealed class PdfListStyle {
     private double? _spacingAfter;
     private double? _itemSpacing;
 
+    // Word numbering aligns marker ink at the hanging-indent anchor. Ordinary
+    // PDF lists continue to align within their reserved marker column.
+    internal bool MarkerAlignsAtIndent { get; set; }
+
     /// <summary>List font size in points. When null the writer uses the current default font size.</summary>
     public double? FontSize {
         get => _fontSize;
@@ -145,6 +149,7 @@ public sealed class PdfListStyle {
             LeftIndent = LeftIndent,
             MarkerGap = MarkerGap,
             MarkerWidth = MarkerWidth,
+            MarkerAlignsAtIndent = MarkerAlignsAtIndent,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             ItemSpacing = ItemSpacing,

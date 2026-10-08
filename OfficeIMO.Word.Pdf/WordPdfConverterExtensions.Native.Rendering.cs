@@ -110,10 +110,11 @@ namespace OfficeIMO.Word.Pdf {
                 if (marker is { Marker.Length: > 0 }) {
                     PdfCore.PdfParagraphStyle markerStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
                     ApplyNativeInlineListIndent(paragraph, markerStyle);
+                    ApplyNativeInlineListMarkerAlignment(paragraph, marker.Value.Marker, markerStyle, nativeDefaults, nativeFontMap);
                     markerStyle.SpacingAfter = 0D;
                     pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker,
                         Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), footnoteNumbersById, options, nativeDefaults, nativeFontMap,
-                        inlineMarkerColumnWidth: Math.Max(0D, -markerStyle.FirstLineIndent)),
+                        inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, marker.Value.Marker, markerStyle, nativeDefaults, nativeFontMap)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
                 }
                 foreach (WordTextBox ownedTextBox in textBoxes) {
@@ -127,7 +128,10 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
             bool inlineListMarker = marker is { Marker.Length: > 0 };
-            if (inlineListMarker) ApplyNativeInlineListIndent(paragraph, style);
+            if (inlineListMarker) {
+                ApplyNativeInlineListIndent(paragraph, style);
+                ApplyNativeInlineListMarkerAlignment(paragraph, marker!.Value.Marker, style, nativeDefaults, nativeFontMap);
+            }
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
@@ -234,7 +238,7 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphStyle = JoinNativeAdjacentParagraphShading(nextParagraph, paragraphStyle, panelStyle, nativeDefaults);
                 pdf.PanelParagraph(builder => {
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
-                        inlineMarkerColumnWidth: inlineListMarker ? Math.Max(0D, -paragraphStyle.FirstLineIndent) : null);
+                        inlineMarkerColumnWidth: inlineListMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, paragraphStyle, nativeDefaults, nativeFontMap) : null);
                 }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
@@ -254,7 +258,7 @@ namespace OfficeIMO.Word.Pdf {
             if (needsAnchorLine || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
                 pdf.Paragraph(builder => {
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
-                        inlineMarkerColumnWidth: inlineListMarker ? Math.Max(0D, -paragraphStyle.FirstLineIndent) : null);
+                        inlineMarkerColumnWidth: inlineListMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, paragraphStyle, nativeDefaults, nativeFontMap) : null);
                 }, align, defaultColor, paragraphStyle);
             }
 
@@ -608,25 +612,34 @@ namespace OfficeIMO.Word.Pdf {
                 bool useAlignedMarkerColumn = false;
                 if (markerInfo.HasValue) {
                     NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-                    if (inlineMarkerColumnWidth.HasValue &&
+                    PdfCore.PdfTextRun measuredMarker = CreateNativeListMarkerTextRun(marker.Value.Marker,
+                        paragraph, textStyle, nativeFontMap, includeSuffix: false);
+                    if (inlineMarkerColumnWidth.HasValue && nativeFontMap.MeasureText(measuredMarker) is { } measuredWidth) {
+                        trailingMarkerOffset = markerInfo.Value.LevelSuffix switch {
+                            WordListLevelSuffix.Nothing => 0D,
+                            WordListLevelSuffix.Space => ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap),
+                            _ => Math.Max(0D, inlineMarkerColumnWidth.Value - measuredWidth)
+                        };
+                        useAlignedMarkerColumn = true;
+                    } else if (inlineMarkerColumnWidth.HasValue &&
                         (markerInfo.Value.LevelJustification == WordListLevelAlignment.Right ||
                          markerInfo.Value.LevelJustification == WordListLevelAlignment.Center)) {
                         double markerFontSize = markerInfo.Value.MarkerFontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
-                        NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.TextSpacing);
+                        NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
                         double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize, markerSpacing);
                         double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, inlineMarkerColumnWidth.Value));
                         leadingMarkerOffset = markerInfo.Value.LevelJustification == WordListLevelAlignment.Right
                             ? Math.Max(0D, markerColumnWidth - markerWidth)
                             : Math.Max(0D, (markerColumnWidth - markerWidth) / 2D);
                         double suffixWidth = markerInfo.Value.LevelSuffix == WordListLevelSuffix.Space
-                            ? EstimateNativeListMarkerWidth(" ", markerFontSize, markerSpacing)
+                            ? ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap)
                             : 0D;
                         trailingMarkerOffset = Math.Max(0D, markerColumnWidth - leadingMarkerOffset - markerWidth) + suffixWidth;
                         useAlignedMarkerColumn = true;
                         AddNativeInlineListMarkerSpacer(builder, leadingMarkerOffset);
                     }
                     ApplyNativeTextStyle(builder, textStyle);
-                    NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.TextSpacing);
+                    NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
                     builder.HorizontalTextScaling(resolvedMarkerSpacing.WidthPercentage ?? 100D);
                     builder.CharacterSpacing(resolvedMarkerSpacing.CharacterSpacing ?? 0D);
                     builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);
@@ -838,12 +851,15 @@ namespace OfficeIMO.Word.Pdf {
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
                     PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
-                    if (getMarker(paragraph) != null) ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+                    if (getMarker(paragraph) is { } paragraphMarker) {
+                        ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+                        ApplyNativeInlineListMarkerAlignment(paragraph, paragraphMarker.Marker, paragraphStyle, nativeDefaults, nativeFontMap);
+                    }
                     paragraphStyle.SpacingBefore = 0D;
                     paragraphStyle.SpacingAfter = 0D;
                     contentBuilder.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
                         runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
-                        inlineMarkerColumnWidth: Math.Max(0D, -paragraphStyle.FirstLineIndent)),
+                        inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, getMarker(paragraph)?.Marker ?? string.Empty, paragraphStyle, nativeDefaults, nativeFontMap)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: paragraphStyle);
                 }
             }, style);

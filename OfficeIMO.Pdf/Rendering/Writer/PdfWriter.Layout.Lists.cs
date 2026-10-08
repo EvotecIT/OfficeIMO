@@ -85,7 +85,7 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(style, currentOpts);
 
             var markers = new string[block.RichItems.Count];
-            double estimatedMarkerWidth = EstimateSimpleTextWidthForOptions(
+            double estimatedMarkerWidth = style?.MarkerAlignsAtIndent == true ? 0D : EstimateSimpleTextWidthForOptions(
                 block.GetWidestDefaultMarker(),
                 markerFont,
                 markerNamedFont,
@@ -152,6 +152,23 @@ internal static partial class PdfWriter {
                 spacingBefore,
                 style?.GetSpacingAfter(itemSpacing) ?? itemSpacing,
                 items);
+        }
+
+        private (double X, double Width, PdfAlign Align) GetListMarkerPlacement(
+            PreparedListLayout prepared, PreparedListItem item) {
+            double x = prepared.ListLeftIndent + item.FirstLineOffset;
+            PdfAlign align = prepared.Block.GetMarkerAlign(prepared.Style);
+            if (prepared.Style?.MarkerAlignsAtIndent != true)
+                return (x, prepared.MarkerWidth, align);
+
+            double width = EstimateSimpleTextWidthForOptions(item.Marker, prepared.MarkerFont,
+                prepared.MarkerNamedFont, prepared.MarkerSize, currentOpts);
+            x -= align switch {
+                PdfAlign.Right => width,
+                PdfAlign.Center => width / 2D,
+                _ => 0D
+            };
+            return (x, width, PdfAlign.Left);
         }
 
         private static double MeasurePreparedListHeight(PreparedListLayout prepared) {
