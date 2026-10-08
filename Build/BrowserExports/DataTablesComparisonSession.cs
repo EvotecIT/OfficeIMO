@@ -115,7 +115,7 @@ internal static class DataTablesComparisonSession {
                         string hash; using (Stream file = File.OpenRead(path)) hash = Convert.ToHexString(SHA256.HashData(file)).ToLowerInvariant();
                         result = new { proof, conformance = new { passed = schemaErrors.Length == 0, stylesErrors = schemaErrors }, sha256 = hash, browserVersion = session.Browser?.Version, asset = BrowserAssets.DataTablesScript.HashedFileName };
                         if (format == "pdf" && command.TryGetProperty("keep", out var keep) && keep.GetBoolean())
-                            File.Move(path, Path.Combine(evidence, $"qualified-{spec.GetProperty("stack").GetString()}-{spec.GetProperty("browser").GetString()}-{measurement.GetProperty("lane").GetString()}-{spec.GetProperty("rows").GetInt32()}-{spec.GetProperty("columns").GetInt32()}.pdf"), true);
+                            File.Move(path, Path.Combine(evidence, $"qualified-{spec.GetProperty("stack").GetString()}-{spec.GetProperty("browser").GetString()}-{measurement.GetProperty("lane").GetString()}-{spec.GetProperty("rows").GetInt32()}-{spec.GetProperty("columns").GetInt32()}-{hash}.pdf"), true);
                         else File.Delete(path);
                     } else throw new ArgumentException("Unknown comparison command.");
                     Console.WriteLine(JsonSerializer.Serialize(new { ok = true, result }));
