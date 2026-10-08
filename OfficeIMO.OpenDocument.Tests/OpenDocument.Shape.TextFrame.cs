@@ -130,7 +130,7 @@ public sealed class OpenDocumentShapeTextFrameTests {
         string[] before = XmlState(reopened); var result = reopened.Pages[0].ToDrawing();
         Assert.Empty(result.Value.Elements.OfType<OfficeDrawingRichText>());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Status == OdfConversionMappingStatus.Skipped &&
-            mapping.Message != null && mapping.Message.Contains("padding", StringComparison.Ordinal));
+            mapping.Message != null && mapping.Message.IndexOf("padding", StringComparison.Ordinal) >= 0);
         Assert.Throws<OdfConversionLossException>(() => reopened.Pages[0].ToDrawing(OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported));
         Assert.Equal(before, XmlState(reopened));
         actual.TextPadding = null; Assert.Null(actual.TextPadding);
@@ -382,7 +382,7 @@ public sealed class OpenDocumentShapeTextFrameTests {
         string[] before = XmlState(reopened); var result = reopened.Pages[0].ToDrawing();
         Assert.Empty(result.Value.Elements.OfType<OfficeDrawingRichText>());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Status == OdfConversionMappingStatus.Skipped &&
-            mapping.Message != null && mapping.Message.Contains("vertical alignment", StringComparison.Ordinal));
+            mapping.Message != null && mapping.Message.IndexOf("vertical alignment", StringComparison.Ordinal) >= 0);
         Assert.Throws<OdfConversionLossException>(() => reopened.Pages[0].ToDrawing(OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported));
         Assert.Equal(before, XmlState(reopened));
     }

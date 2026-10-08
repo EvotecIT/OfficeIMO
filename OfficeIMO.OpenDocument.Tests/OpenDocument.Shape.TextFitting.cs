@@ -205,7 +205,7 @@ public sealed class OpenDocumentShapeTextFittingTests {
         var text = Assert.Single(result.Value.Elements.OfType<OfficeDrawingRichText>());
         Assert.Equal("END_MARKER", text.PlainText); Assert.Equal(mode == OdfTextFitMode.ShrinkToFit, text.ShrinkToFit);
         AssertClipped(document, result.Report);
-        Assert.DoesNotContain(SvgText(result.Value), element => element.Value.Contains("END_MARKER", StringComparison.Ordinal));
+        Assert.DoesNotContain(SvgText(result.Value), element => element.Value.IndexOf("END_MARKER", StringComparison.Ordinal) >= 0);
         Assert.Equal(before, XmlState(document));
     }
 
@@ -223,7 +223,7 @@ public sealed class OpenDocumentShapeTextFittingTests {
         var text = Assert.Single(result.Value.Elements.OfType<OfficeDrawingRichText>());
         Assert.Equal("END_MARKER", text.PlainText); Assert.False(text.ShrinkToFit);
         AssertClipped(document, result.Report);
-        Assert.DoesNotContain(SvgText(result.Value), element => element.Value.Contains("END_MARKER", StringComparison.Ordinal));
+        Assert.DoesNotContain(SvgText(result.Value), element => element.Value.IndexOf("END_MARKER", StringComparison.Ordinal) >= 0);
         Assert.Equal(before, XmlState(document));
     }
 

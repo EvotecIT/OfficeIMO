@@ -18,7 +18,7 @@ public class OpenDocumentOdgMarkerTrimmingTests {
         var shaft = Assert.Single(result.Value.Elements.OfType<OfficeDrawingShape>()).Shape;
         double consumed = width*1.5*(center ? .5 : 1), trim = consumed - width/15;
         Assert.Equal(trim, shaft.PathCommands[0].Point.X, 8);
-        Assert.Equal(120 - trim, shaft.PathCommands[^1].Point.X, 8);
+        Assert.Equal(120 - trim, shaft.PathCommands[shaft.PathCommands.Count - 1].Point.X, 8);
         Assert.Equal(strokeWidth, shaft.StrokeWidth);
         Assert.Equal(2, result.Value.Elements.OfType<OfficeDrawingEffectGroup>().Count());
         Assert.Equal(120, line.X2.ToPoints() - line.X1.ToPoints(), 8); // Projection never edits the source route.
@@ -51,7 +51,7 @@ public class OpenDocumentOdgMarkerTrimmingTests {
         document.Styles.FindMarker("Arrow")!.Geometry = new OdfMarkerGeometry(new OdfViewBox(0, 0, 20, 30), "M10 0L0 30L10 15L20 30Z");
         var shaft = Assert.Single(page.ToDrawing().Value.Elements.OfType<OfficeDrawingShape>()).Shape;
         Assert.Equal(15 - 20D/15, shaft.PathCommands[0].Point.X, 8);
-        Assert.Equal(120 - 15 + 20D/15, shaft.PathCommands[^1].Point.X, 8);
+        Assert.Equal(120 - 15 + 20D/15, shaft.PathCommands[shaft.PathCommands.Count - 1].Point.X, 8);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class OpenDocumentOdgMarkerTrimmingTests {
         line.EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "marker-end-width", " ");
         string before = document.GetXml("content.xml").ToString(); var result = page.ToDrawing();
         var shaft = Assert.Single(result.Value.Elements.OfType<OfficeDrawingShape>()).Shape;
-        Assert.Equal(30 - 20D/15, shaft.PathCommands[0].Point.X, 8); Assert.Equal(120, shaft.PathCommands[^1].Point.X, 8);
+        Assert.Equal(30 - 20D/15, shaft.PathCommands[0].Point.X, 8); Assert.Equal(120, shaft.PathCommands[shaft.PathCommands.Count - 1].Point.X, 8);
         Assert.Single(result.Value.Elements.OfType<OfficeDrawingEffectGroup>()); Assert.True(result.Report.HasSkippedOrUnsupported);
         Assert.Equal(before, document.GetXml("content.xml").ToString());
     }
@@ -81,8 +81,8 @@ public class OpenDocumentOdgMarkerTrimmingTests {
         path.StrokeEndMarkerName = "Arrow"; path.StrokeEndMarkerWidth = P(20);
         string before = document.GetXml("content.xml").ToString(); var result = page.ToDrawing();
         var shaft = Assert.Single(result.Value.Elements.OfType<OfficeDrawingShape>()).Shape;
-        Assert.Null(shaft.FillColor); Assert.Equal(OfficePathCommandKind.QuadraticBezierTo, shaft.PathCommands[^1].Kind);
-        Assert.InRange(shaft.PathCommands[^1].Point.X, 69, 73);
+        Assert.Null(shaft.FillColor); Assert.Equal(OfficePathCommandKind.QuadraticBezierTo, shaft.PathCommands[shaft.PathCommands.Count - 1].Kind);
+        Assert.InRange(shaft.PathCommands[shaft.PathCommands.Count - 1].Point.X, 69, 73);
         Assert.Equal(OdfConversionMappingStatus.Converted, Assert.Single(result.Report.ForFeature("shape:" + path.Name + ":inactive-fill")).Status);
         Assert.Equal(before, document.GetXml("content.xml").ToString());
         Assert.Contains("Q", OfficeDrawingSvgExporter.ToSvg(page.ToDrawing().Value));
