@@ -3,9 +3,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderStyleResolver {
     private void ApplyTableDefaults(IElement element, HtmlComputedStyle computed, HtmlRenderBoxStyle? parent, HtmlRenderBoxStyle style) {
         string tag = element.LocalName.ToLowerInvariant();
-        if (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser
-            && tag == "table"
-            && !HasAuthoredValue(computed, "box-sizing")) style.BorderBox = true;
+        if (tag == "table" && !HasAuthoredValue(computed, "box-sizing")) style.BorderBox = true;
         string alignment = computed.GetValue("vertical-align").Trim().ToLowerInvariant();
         style.TableVerticalAlignment = computed.IsInheritedValue("vertical-align")
             ? parent?.TableVerticalAlignment ?? "baseline"

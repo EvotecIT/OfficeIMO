@@ -113,14 +113,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double horizontalInsets = IsFormControlElement(item.TagName) && !IsInputType(item.Element, "image")
             ? CreateFormControlStyle(item.Element, style).HorizontalInsets
             : style.HorizontalInsets;
-        // LayoutTable treats explicit width as the used border-box width even with content-box sizing.
-        bool table = string.Equals(item.TagName, "table", StringComparison.OrdinalIgnoreCase);
-        style.ExplicitWidth = style.BorderBox || table
+        style.ExplicitWidth = style.BorderBox
             ? targetBoxWidth
             : Math.Max(0.01D, targetBoxWidth - horizontalInsets);
-        if (table) {
-            // Flex sizing has already applied these bounds to the border-box width.
-            // Applying them again in LayoutTable would subtract padding a second time.
+        if (string.Equals(item.TagName, "table", StringComparison.OrdinalIgnoreCase)) {
+            // Flex sizing has already applied these bounds to the allocated border box.
+            // LayoutTable consumes that allocation in the effective box-sizing coordinates.
             style.MinWidth = null;
             style.MaxWidth = null;
         }
