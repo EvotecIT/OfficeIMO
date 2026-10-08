@@ -65,6 +65,8 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
             Assert.Equal(
                 compressed.ConversionEvidence!.FidelityDiagnostics.Select(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location)),
                 evidence.FidelityDiagnostics.Select(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location)));
+            foreach (var finding in evidence.FidelityDiagnostics)
+                Assert.Single(failed.Diagnostics, d => d.Code == finding.Code && d.Message == finding.Message);
             Assert.Equal(originalSource, File.ReadAllBytes(input));
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
