@@ -11,10 +11,18 @@ namespace OfficeIMO.Tests {
         public void GenericInstalledAliasesDoNotFailStrictExportAsNamedSubstitutions(string family) {
             const string text = "OfficeIMO";
             var fonts = new OfficeFontFaceCollection();
-            Assert.Null(fonts.CreateSubstitutionDiagnostic(text, family));
+            OfficeImageExportDiagnostic? direct = fonts.CreateSubstitutionDiagnostic(text, family);
+            OfficeTrueTypeFont? platform = OfficeTrueTypeFont.TryLoadFontFamilyForText(
+                family, OfficeFontFaceDescriptor.Regular, text, out _);
+            if (platform != null) Assert.Null(direct);
+            else {
+                Assert.NotNull(direct);
+                Assert.Throws<OfficeImageExportPolicyException>(() =>
+                    new OfficeImageExportPolicy { RequireNoLoss = true }.EnsureAccepted(new[] { direct! }));
+            }
 
-            // Installed availability is platform-dependent; the direct generic-family
-            // contract above also applies when no corresponding font is installed.
+            // Installed CFF math can be registered even where the direct TrueType
+            // fallback is unavailable. Both paths preserve their actual diagnostics.
             if (!fonts.TryAddInstalledFamily(family, OfficeFontFaceDescriptor.Regular,
                     128 * 1024 * 1024, System.Threading.CancellationToken.None, out _, out _)) return;
 

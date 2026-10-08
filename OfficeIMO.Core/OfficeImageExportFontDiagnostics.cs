@@ -43,7 +43,8 @@ public static class OfficeImageExportFontDiagnostics {
             OfficeTrueTypeFont? platform = OfficeTrueTypeFont.TryLoadFontFamilyForText(
                 family, requestedStyle, text!, out OfficeFontStyle platformStyle);
             if (platform != null) {
-                bool matchesFamily = platform.MatchesFamilyName(family);
+                bool matchesFamily = OfficeSystemFontFamilyAliases.IsSystemUi(family) ||
+                    OfficeSystemFontFamilyAliases.IsMath(family) || platform.MatchesFamilyName(family);
                 if (index == 0 && platformStyle == requestedStyle && matchesFamily) return null;
                 return CreateDiagnostic(
                     families[0],
@@ -171,7 +172,6 @@ public static class OfficeImageExportFontDiagnostics {
     }
 
     private static bool IsGenericFamily(string family) {
-        if (OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family)) return true;
         string normalized = family.Replace("-", string.Empty).Replace(" ", string.Empty);
         return string.Equals(normalized, "serif", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(normalized, "sans", StringComparison.OrdinalIgnoreCase) ||
