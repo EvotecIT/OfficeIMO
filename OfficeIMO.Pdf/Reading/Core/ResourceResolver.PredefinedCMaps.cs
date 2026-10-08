@@ -20,14 +20,13 @@ internal static partial class ResourceResolver {
         return PdfPredefinedCMap.Find(encoding.Name, ReadString("Registry") ?? string.Empty, ReadString("Ordering") ?? string.Empty);
     }
 
-    private static double SumPredefinedCidWidths(byte[] bytes, CidWidthMap? widths, Lazy<PdfPredefinedCMap> predefined) {
+    private static double SumPredefinedCidWidths(byte[] bytes, CidWidthMap? widths, Lazy<PdfPredefinedCMap> predefined, PdfFontResource font) {
         if (bytes == null || bytes.Length < 2 || bytes.Length % 2 != 0) return 0D;
         double sum = 0D;
         PdfPredefinedCMap mapping = predefined.Value;
         for (int index = 0; index < bytes.Length; index += 2) {
-            if (!mapping.TryGetCid(bytes, index, out ushort cid)) return 0D;
-            sum += widths != null && widths.Widths.TryGetValue(cid, out double width)
-                ? width : widths?.DefaultWidth1000 ?? 1000D;
+            if (!mapping.TryGetPaintedCid(bytes, index, out ushort cid)) throw new PdfUnsupportedTextMappingException(font);
+            sum += widths?.GetWidth(cid) ?? 1000D;
         }
         return sum;
     }

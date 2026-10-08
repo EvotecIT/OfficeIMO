@@ -4,9 +4,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
-    private const int MaxCidWidthEntries = 65536;
-    private const int MaxCidWidthRangeEntries = 4096;
-
     public static Dictionary<string, PdfFontResource> GetFontsForPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
         var dict = GetInheritedDictionary(page, "Resources", objects);
         return GetFontsForResources(dict, objects);
@@ -116,7 +113,7 @@ internal static partial class ResourceResolver {
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
                 if (fontResource.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined) {
                     TryBuildCidWidthMap(fontVal, objects, out CidWidthMap? widths);
-                    map[kv.Key] = bytes => SumPredefinedCidWidths(bytes, widths, predefined);
+                    map[kv.Key] = bytes => SumPredefinedCidWidths(bytes, widths, predefined, fontResource);
                     continue;
                 }
                 if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
@@ -154,67 +151,6 @@ internal static partial class ResourceResolver {
             int code = bytes[i];
             int idx = code - firstChar;
             if (idx >= 0 && idx < widths.Length) sum += widths[idx]; else sum += 500.0;
-        }
-        return sum;
-    }
-
-    private sealed class CidWidthMap {
-        public double DefaultWidth1000 { get; }
-        public Dictionary<int, double> Widths { get; }
-        public CidWidthMap(double dw, Dictionary<int, double> map) { DefaultWidth1000 = dw; Widths = map; }
-    }
-
-    private static bool TryBuildCidWidthMap(PdfDictionary type0Font, Dictionary<int, PdfIndirectObject> objects, out CidWidthMap? map) {
-        map = null;
-        if (!type0Font.Items.TryGetValue("DescendantFonts", out var dfObj)) return false;
-        var dfArr = ResolveArray(dfObj, objects);
-        if (dfArr is null || dfArr.Items.Count == 0) return false;
-        var desc = ResolveDict(dfArr.Items[0], objects);
-        if (desc is null) return false;
-        double dw = (desc.Get<PdfNumber>("DW")?.Value) ?? 1000.0;
-        var widthsObj = desc.Items.TryGetValue("W", out var w) ? w : null;
-        var wArr = ResolveArray(widthsObj, objects);
-        var dict = new Dictionary<int, double>();
-        if (wArr is not null) {
-            // Parse sequences: <startCid> [w1 w2 ...] | <startCid> <endCid> <w>
-            for (int i = 0; i < wArr.Items.Count; i++) {
-                var startObj = wArr.Items[i] as PdfNumber; if (startObj is null) break;
-                int startCid = (int)startObj.Value; i++;
-                if (i >= wArr.Items.Count) break;
-                var next = wArr.Items[i];
-                if (next is PdfArray list) {
-                    int count = System.Math.Min(list.Items.Count, MaxCidWidthEntries - dict.Count);
-                    for (int j = 0; j < count; j++) {
-                        if (list.Items[j] is PdfNumber wn) dict[startCid + j] = wn.Value; else dict[startCid + j] = dw;
-                    }
-                } else if (next is PdfNumber endCidNum) {
-                    int endCid = (int)endCidNum.Value; i++;
-                    if (i >= wArr.Items.Count) break;
-                    var wNum = wArr.Items[i] as PdfNumber; double wv = wNum?.Value ?? dw;
-                    int rangeLength = endCid >= startCid ? endCid - startCid + 1 : 0;
-                    if (rangeLength <= 0) continue;
-
-                    int count = System.Math.Min(rangeLength, MaxCidWidthRangeEntries);
-                    count = System.Math.Min(count, MaxCidWidthEntries - dict.Count);
-                    for (int offset = 0; offset < count; offset++) dict[startCid + offset] = wv;
-                }
-
-                if (dict.Count >= MaxCidWidthEntries) {
-                    break;
-                }
-            }
-        }
-        map = new CidWidthMap(dw, dict); return true;
-    }
-
-    private static double SumWidthsCid(byte[] bytes, CidWidthMap map) {
-        if (bytes == null || bytes.Length == 0) return 0.0;
-        double sum = 0.0;
-        // Assume Identity-H two-byte big-endian CIDs (common). If odd length, ignore trailing byte.
-        for (int i = 0; i + 1 < bytes.Length; i += 2) {
-            int cid = (bytes[i] << 8) | bytes[i + 1];
-            if (!map.Widths.TryGetValue(cid, out var w)) w = map.DefaultWidth1000;
-            sum += w;
         }
         return sum;
     }

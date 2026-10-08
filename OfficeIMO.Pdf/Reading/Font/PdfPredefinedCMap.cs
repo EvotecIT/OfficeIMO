@@ -39,6 +39,16 @@ internal sealed class PdfPredefinedCMap {
         return cid != 0;
     }
 
+    /// <summary>Resolves a valid painted code, including the encoding's default CID 0.</summary>
+    internal bool TryGetPaintedCid(byte[] bytes, int offset, out ushort cid) {
+        cid = 0;
+        if (offset < 0 || offset + 1 >= bytes.Length) return false;
+        int code = (bytes[offset] << 8) | bytes[offset + 1];
+        if (code is >= 0xD800 and <= 0xDFFF) return false;
+        cid = _cids[code];
+        return true;
+    }
+
     /// <summary>Decodes every painted code through both authoritative maps, refusing incomplete coverage.</summary>
     internal bool TryDecode(byte[] bytes, int maximumCharacters, out string decoded) {
         decoded = string.Empty;
@@ -52,34 +62,29 @@ internal sealed class PdfPredefinedCMap {
         return _unicode.TryMapBytes(cidBytes, maximumCharacters, out decoded);
     }
 
-    /// <summary>Checks painted-code coverage independently of an explicit ToUnicode override.</summary>
-    internal bool CanMapCodes(byte[] bytes) {
-        if (bytes.Length % 2 != 0) return false;
-        for (int index = 0; index < bytes.Length; index += 2) {
-            if (!TryGetCid(bytes, index, out _)) return false;
-        }
-        return true;
-    }
-
     private static PdfPredefinedCMap Load(string encoding, string ordering) {
         ushort[] cids = new ushort[65536];
         using (Stream data = OpenResource(encoding))
         using (StreamReader reader = new StreamReader(data, Encoding.ASCII)) {
             bool inRange = false;
+            bool notdefRange = false;
             string? line;
             while ((line = reader.ReadLine()) != null) {
-                if (line.EndsWith(" begincidrange", StringComparison.Ordinal)) { inRange = true; continue; }
-                if (line == "endcidrange") { inRange = false; continue; }
+                if (line.EndsWith(" begincidrange", StringComparison.Ordinal)) { inRange = true; notdefRange = false; continue; }
+                if (line.EndsWith(" beginnotdefrange", StringComparison.Ordinal)) { inRange = true; notdefRange = true; continue; }
+                if (line is "endcidrange" or "endnotdefrange") { inRange = false; continue; }
                 if (!inRange) continue;
                 string[] values = line.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
                 if (values.Length != 3) throw new InvalidDataException("Invalid embedded Adobe CID range.");
                 int first = ParseHexCode(values[0]);
                 int last = ParseHexCode(values[1]);
                 int cid = int.Parse(values[2], CultureInfo.InvariantCulture);
-                if (first > last || cid <= 0 || (long)cid + last - first > ushort.MaxValue) {
+                if (first > last || cid <= 0 || (long)cid + (notdefRange ? 0 : last - first) > ushort.MaxValue) {
                     throw new InvalidDataException("Invalid embedded Adobe CID range bounds.");
                 }
-                for (int code = first; code <= last; code++) cids[code] = (ushort)(cid + code - first);
+                for (int code = first; code <= last; code++) {
+                    if (!notdefRange || cids[code] == 0) cids[code] = (ushort)(cid + (notdefRange ? 0 : code - first));
+                }
             }
         }
         using Stream unicodeData = OpenResource("Adobe-" + ordering + "-UCS2");

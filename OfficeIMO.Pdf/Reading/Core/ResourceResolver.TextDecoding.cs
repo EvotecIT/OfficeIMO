@@ -57,9 +57,6 @@ internal static partial class ResourceResolver {
 
     private static string DecodeNamedComposite(PdfFontResource font, byte[] bytes, int maximumCharacters) {
         if (bytes.Length == 0) return string.Empty;
-        if (font.PredefinedCMap is Lazy<PdfPredefinedCMap> known && !known.Value.CanMapCodes(bytes)) {
-            throw new PdfUnsupportedTextMappingException(font);
-        }
         if (font.HasToUnicode) {
             if (font.CMap != null && font.CMap.TryMapBytes(bytes, maximumCharacters, out string mapped)) return mapped;
         } else if (font.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined &&
