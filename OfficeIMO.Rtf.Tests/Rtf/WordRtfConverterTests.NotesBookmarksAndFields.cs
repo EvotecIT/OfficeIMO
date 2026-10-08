@@ -266,7 +266,7 @@ public partial class WordRtfConverterTests {
     }
 
     private static Run TextRun(string text) {
-        return new Run(new Text(text));
+        return new Run(new Text(text) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve });
     }
 
     private static byte[] CreateOnePixelPng() {
