@@ -178,7 +178,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence;
-            if (failedConversionEvidence != null) AddConversionDiagnostics(failedConversionEvidence, diagnostics);
+            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
+                AddConversionDiagnostics(failedConversionEvidence, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "WorkflowFailed",
                 ex.Message,

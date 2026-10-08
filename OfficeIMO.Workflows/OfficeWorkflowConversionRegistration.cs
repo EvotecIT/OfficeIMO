@@ -4,10 +4,14 @@ namespace OfficeIMO.Workflows;
 
 // Carries an owning converter's evidence across the runner's structured failure boundary.
 internal sealed class WorkflowConversionFailureException : InvalidOperationException {
-    internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence)
-        : base(cause.Message, cause) => Evidence = evidence;
+    internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence, bool diagnosticsAdded = false)
+        : base(cause.Message, cause) {
+        Evidence = evidence;
+        DiagnosticsAdded = diagnosticsAdded;
+    }
 
     internal OfficeWorkflowConversionEvidence Evidence { get; }
+    internal bool DiagnosticsAdded { get; }
 }
 
 /// <summary>Converts a captured input into a bounded output stream. Streams remain owned by the runner.</summary>

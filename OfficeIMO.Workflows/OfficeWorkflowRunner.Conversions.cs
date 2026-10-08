@@ -279,23 +279,28 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new NotSupportedException("The conversion route '" + route.Id + "' is not implemented by the local runner.");
         }
 
-        if (settings.CompressPdfOutput) {
-            PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
-            compression.KeepOriginalWhenNotSmaller = true;
-            compression.CancellationToken = cancellationToken;
-            compression.MaximumOutputBytes = maximumOutputBytes;
-            PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
-            if (!optimized.PreservationReport.IsPreserved) throw new InvalidOperationException("PDF compression did not preserve the converted document.");
-            bytes = optimized.Bytes;
-            diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
-                OfficeWorkflowDiagnosticSeverity.Information, "convert"));
-        }
-        if (deferredEncryption != null) {
-            PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(bytes, deferredEncryption,
-                maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
-            if (!encrypted.PreservationReport.IsPreserved)
-                throw new InvalidOperationException("PDF encryption did not preserve the converted document.");
-            bytes = encrypted.Pdf;
+        try {
+            if (settings.CompressPdfOutput) {
+                PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
+                compression.KeepOriginalWhenNotSmaller = true;
+                compression.CancellationToken = cancellationToken;
+                compression.MaximumOutputBytes = maximumOutputBytes;
+                PdfOptimizationActionResult optimized = PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Optimization.Apply(compression);
+                if (!optimized.PreservationReport.IsPreserved) throw new InvalidOperationException("PDF compression did not preserve the converted document.");
+                bytes = optimized.Bytes;
+                diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
+                    OfficeWorkflowDiagnosticSeverity.Information, "convert"));
+            }
+            if (deferredEncryption != null) {
+                PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(bytes, deferredEncryption,
+                    maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+                if (!encrypted.PreservationReport.IsPreserved)
+                    throw new InvalidOperationException("PDF encryption did not preserve the converted document.");
+                bytes = encrypted.Pdf;
+            }
+        } catch (Exception exception) when (evidence != null && exception is not WorkflowConversionFailureException and not OperationCanceledException
+            and not OutOfMemoryException and not StackOverflowException) {
+            throw new WorkflowConversionFailureException(exception, evidence, diagnosticsAdded: true);
         }
 
         diagnostics.Add(new OfficeWorkflowDiagnostic(
