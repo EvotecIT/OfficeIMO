@@ -3,12 +3,8 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private readonly record struct RunningContentMaterializationKey(PdfRunningContent Content,
-        int PageNumber, int TotalPages, int DocumentPageNumber, int DocumentPages, int SectionPageNumber, int SectionPages,
-        double ContentWidth, double PageWidth, double PageHeight, PdfPageNumberStyle PageNumberStyle);
-
     private sealed partial class LayoutContext {
-        private readonly Dictionary<RunningContentMaterializationKey, IReadOnlyList<IPdfBlock>> runningMaterializations;
+        private readonly RunningContentImageAssets runningAssets;
         private readonly IReadOnlyList<PageNumberInfo>? previousRunningPages;
         private readonly int previousDocumentPages;
         private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
@@ -35,21 +31,12 @@ internal static partial class PdfWriter {
         }
 
         private IReadOnlyList<IPdfBlock> MaterializeRunningContent(PdfRunningContent content, PdfRunningContentContext context) {
-            var key = new RunningContentMaterializationKey(content,
-                content.UsesPageContext ? context.PageNumber : 0,
-                content.UsesPageContext ? context.TotalPages : 0,
-                content.UsesPageContext ? context.DocumentPageNumber : 0,
-                content.UsesPageContext ? context.DocumentPages : 0,
-                content.UsesPageContext ? context.SectionPageNumber : 0,
-                content.UsesPageContext ? context.SectionPages : 0,
-                context.ContentWidth, context.PageWidth, context.PageHeight, context.PageNumberStyle);
-            if (!runningMaterializations.TryGetValue(key, out IReadOnlyList<IPdfBlock>? blocks)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                blocks = content.Materialize(context)
-                    ?? throw new InvalidOperationException("Running PDF content materialization returned null.");
-                runningMaterializations.Add(key, blocks);
-            }
-            return blocks;
+            cancellationToken.ThrowIfCancellationRequested();
+            // Static definitions already own their blocks. Dynamic stories are needed only
+            // while measuring/rendering this page; retaining their graphs across pages and
+            // stabilization passes multiplies document assets by the page count.
+            return content.Materialize(context)
+                ?? throw new InvalidOperationException("Running PDF content materialization returned null.");
         }
 
         private void PrepareAndRenderRunningContents() {
@@ -112,7 +99,10 @@ internal static partial class PdfWriter {
             story.y = start;
             story.currentVisiblePageNumber = currentVisiblePageNumber;
             story.currentPageGroupId = currentPageGroupId;
+            int firstImage = currentPage!.Images.Count;
             story.ProcessBlocks(blocks);
+            for (int index = firstImage; index < currentPage.Images.Count; index++)
+                runningAssets.Share(currentPage.Images[index], cancellationToken);
             if (story.y < start - height - .001D)
                 throw new InvalidOperationException("Running PDF content exceeded its measured frame.");
             if (story.behindTextCanvases.Count > 0) {
