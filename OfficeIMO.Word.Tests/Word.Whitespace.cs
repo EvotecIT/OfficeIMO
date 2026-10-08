@@ -28,27 +28,36 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(" \t", false, false)]
-    [InlineData(" \t", true, false)]
-    [InlineData("Before \t", false, false)]
-    [InlineData("Before \t", true, false)]
-    [InlineData(" \t", false, true)]
-    [InlineData(" \t", true, true)]
-    [InlineData("Before \t", false, true)]
-    [InlineData("Before \t", true, true)]
-    public void ParagraphText_IgnoredXmlEdgesDoNotMovePageOrColumnBreaks(string prefix, bool column, bool replace) {
+    [InlineData(" \t", false, false, false)]
+    [InlineData(" \t", true, false, false)]
+    [InlineData("Before \t", false, false, false)]
+    [InlineData("Before \t", true, false, false)]
+    [InlineData(" \t", false, true, false)]
+    [InlineData(" \t", true, true, false)]
+    [InlineData("Before \t", false, true, false)]
+    [InlineData("Before \t", true, true, false)]
+    [InlineData(" \t", false, false, true)]
+    [InlineData(" \t", true, false, true)]
+    [InlineData("Before \t", false, false, true)]
+    [InlineData("Before \t", true, false, true)]
+    [InlineData(" \t", false, true, true)]
+    [InlineData(" \t", true, true, true)]
+    [InlineData("Before \t", false, true, true)]
+    [InlineData("Before \t", true, true, true)]
+    public void ParagraphText_IgnoredXmlEdgesDoNotMovePageOrColumnBreaks(string prefix, bool column, bool replace, bool wrapping) {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("seed");
         W.Run run = paragraph._run!;
         run.RemoveAllChildren();
         W.BreakValues breakType = column ? W.BreakValues.Column : W.BreakValues.Page;
         run.Append(new W.Text(prefix), new W.Break { Type = breakType }, new W.Text(" After "));
-        string before = prefix.Trim(' ', '\t') + "\u2028After";
+        if (wrapping) run.InsertBefore(new W.Break(), run.Elements<W.Break>().Single());
+        string before = prefix.Trim(' ', '\t') + (wrapping ? "\n" : "") + "\u2028After";
         Assert.Equal(before, paragraph.Text);
         if (replace) Assert.Equal(1, document.FindAndReplace("After", "Updated", StringComparison.Ordinal));
         else paragraph.Text = paragraph.Text;
         Assert.Equal(replace ? before.Replace("After", "Updated") : before, paragraph.Text);
-        Assert.Equal(breakType, Assert.Single(run.Elements<W.Break>()).Type!.Value);
+        Assert.Equal(breakType, Assert.Single(run.Elements<W.Break>(), value => value.Type?.Value == breakType).Type!.Value);
     }
 
     [Theory]

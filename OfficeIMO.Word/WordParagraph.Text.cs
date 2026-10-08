@@ -163,6 +163,7 @@ namespace OfficeIMO.Word {
                             case Break breakNode:
                                 if (IsTextWrappingBreak(breakNode)) {
                                     breakNode.Remove();
+                                    contentNodesEncountered++;
                                 } else {
                                     preservedBreaks.Add((contentNodesEncountered, breakNode));
                                     breakNode.Remove();
@@ -245,6 +246,8 @@ namespace OfficeIMO.Word {
 
                     if (endsWithTextWrappingBreak) {
                         run.Append(new Break());
+                        emittedContentCount++;
+                        AppendPreservedBreaksForContentIndex(emittedContentCount);
                     }
                 }
 
