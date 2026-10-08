@@ -4862,6 +4862,8 @@ class PdfPages {
             return;
         checkAbort(this.settings.options.signal);
         const text = synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+        if (!text)
+            return;
         this.settings.budget.cell(text);
         const font = this.layout.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
         this.text(lines[0].text, font, this.settings.fontSize, x, y);
@@ -4893,9 +4895,9 @@ class PdfPages {
             this.add("q 1 0 0 1 " + pdfNumber(x + line.width) + " " + pdfNumber(y) + " cm /TotalPages Do Q\n");
         }
         if (this.references.length === 1) {
-            if (options.title !== undefined)
+            if (options.title)
                 await this.paragraph(options.title, { bold: true }, fontSize * 1.5, false);
-            if (options.messageTop !== undefined)
+            if (options.messageTop)
                 await this.paragraph(options.messageTop, {}, fontSize, false);
         }
         const headers = tableHeadings ? this.layout.headers() : [], headerHeight = headers.reduce((n, h) => n + h.height, 0);
@@ -5060,7 +5062,7 @@ async function writePdfTo(rows, destination, configuration) {
             else
                 await pages.row(footer[0]);
         }
-        if (options.messageBottom !== undefined)
+        if (options.messageBottom)
             await pages.paragraph(options.messageBottom);
         await pages.finish();
         for (const font of fonts.resources)

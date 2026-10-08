@@ -77,6 +77,18 @@ test("PDF resource policies fail explicitly without truncation and async callbac
   await assert.rejects(writePdf([["Hello", 1]], { columns, pageSize: {width:80,height:200} }), /narrow/);
 });
 
+test("empty report metadata preserves direct PDF layout and the data cell budget", async () => {
+  const options = { columns, fonts: { regular }, compression: false, pageNumbers: false, limits: { maxCells: 4 } };
+  const rows = [["Hello", 1]], baseline = await inspectPdf(await writePdf(rows, options));
+  for (const metadata of [{ title: "" }, { messageTop: "" }, { messageBottom: "" }, { pageHeader: "" }, { pageFooter: "" },
+    { pageHeader: () => "" }, { pageFooter: () => "" }, { title: "", messageTop: "", messageBottom: "", pageHeader: "", pageFooter: "" }]) {
+    const report = await inspectPdf(await writePdf(rows, { ...options, ...metadata }));
+    assert.deepEqual(report.pages.map(page => page.content), baseline.pages.map(page => page.content));
+  }
+  for (const key of ["title", "messageTop", "messageBottom", "pageHeader", "pageFooter"])
+    await assert.rejects(writePdf(rows, { ...options, [key]: "Visible metadata" }), /maxCells/);
+});
+
 test("PDF cancellation returns a pending source and releases a hung sink's stream lock", async () => {
   const sourceAbort = new AbortController(); let returned = 0;
   const source = { [Symbol.asyncIterator]() { return { next() { setTimeout(() => sourceAbort.abort(Error("source abort")), 0); return new Promise(() => {}); }, return() { returned++; return Promise.resolve({done:true}); } }; } };
