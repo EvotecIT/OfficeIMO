@@ -1,0 +1,241 @@
+{
+  "schema": 1,
+  "observedUtc": "2026-10-08T01:44:03.719003+00:00",
+  "source": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+  "base": "50fcc300f5156facd3e99093329e7a100371a7bc",
+  "milestone": "H10ReferenceSystemsGeneratedInlineBoxes",
+  "publication": {
+    "url": "https://github.com/EvotecIT/OfficeIMO/pull/2937",
+    "state": "OPEN",
+    "delayedCurrentHeadGate": "pending"
+  },
+  "contract": [
+    "Nonempty generated inline-block has its own box and inner text formatting context",
+    "Origin/ancestor paint effects preserve all ordinary and generated text",
+    "Replaced children retain inherited orientation/resolution without duplicating box paint",
+    "Shared stylesheet retention validates supported image-orientation/image-resolution keywords"
+  ],
+  "tests": {
+    "focused": 79,
+    "fullHtml": {
+      "net8.0": 5082,
+      "net10.0": 5082
+    },
+    "H4": 8,
+    "normalStandardBuild": "zero warnings/errors"
+  },
+  "packages": {
+    "count": 6,
+    "frameworks": [
+      "net472",
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ],
+    "publicConsumers": [
+      "net8.0",
+      "net10.0"
+    ],
+    "receipt": "../OfficeIMO-html-generated-inline-boxes/Ignore/GeneratedInlineBoxQualification/packages-final/package-receipt.json",
+    "CoreExternalRuntimeDependencies": 0,
+    "nativeWindowsNet472": "current PR lane required; Mac crossbuild is separate"
+  },
+  "review": {
+    "reviewContract": "Generated inline-box paint, inner text preparation and replaced child box ownership",
+    "initialFullReview": "three P1/P2 findings reproduced in primary tests",
+    "targetedConfirmation": "initial mechanisms confirmed; one image-inheritance remediation P2 reported",
+    "closure": "79 focused cases and full HTML5082 per framework pass; normal six-package four-target graph and two public consumers pass; final four-profile and independent badge paint inspected",
+    "productFit": "Existing canonical Html renderer helpers; no public API or runtime dependency changes",
+    "pending": [],
+    "base": "50fcc300f5156facd3e99093329e7a100371a7bc",
+    "patch": "d1d414b12293422126d4850d18f8752e14d9bd2f",
+    "focusedReceipt": "generated-css-image-focused/generated-css-image-focused.trx",
+    "source": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+    "updatedUtc": "2026-10-08T00:51:58.161792+00:00",
+    "finalArtifactReceipt": "final-reference-comparison/comparison.json",
+    "finalBadgeReceipt": "final-badge-observations-bd100b2f2.json",
+    "visualInspection": {
+      "utc": "2026-10-08T01:37:19.575961+00:00",
+      "fourChangedProfileRegions": "all viewed; only LIVE badge text/box in final page of each profile",
+      "capturedAndMatchedControl": "print sheets viewed; screen observations retained",
+      "limitations": [
+        "Not exact browser geometry/typography parity",
+        "Reader and raw extraction order/whitespace changed locally; raw diffs retained",
+        "Historical platform timing and native accessibility not qualified"
+      ]
+    }
+  },
+  "fourProfiles": {
+    "sourceSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+    "results": [
+      {
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "beforeSha256": "1f96cf358ee7ae89177ce3b90458d22a9c17873bd51871c9959da886bcff70a7",
+        "afterSha256": "220711019ec7eb3faa1fe0147f8b8a234161153c672090003f95e74edb1cbe64",
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "reportsExact": true,
+          "readerNonWhitespaceCharsEqual": true,
+          "rawPopplerPerPageNonWhitespaceCharsEqual": true,
+          "decodedImagesExact": true
+        },
+        "observedExtractionEquality": {
+          "readerTextExact": false,
+          "rawPopplerPerPageExact": false
+        },
+        "imageCount": 17,
+        "pixelIdenticalPages": 8,
+        "changedPages": [
+          9
+        ],
+        "finalDiagnostics": "retained in raw qualification comparison; exact report equality asserted"
+      },
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "beforeSha256": "7add9c0452d4d426032528a3c21a2d6a3d1414f7d142a439d4d6ac5e7808d3c4",
+        "afterSha256": "a410295026fe61b960848faabcf23d407180230ee0cd997d6c395eb53ada74bc",
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "reportsExact": true,
+          "readerNonWhitespaceCharsEqual": true,
+          "rawPopplerPerPageNonWhitespaceCharsEqual": true,
+          "decodedImagesExact": true
+        },
+        "observedExtractionEquality": {
+          "readerTextExact": false,
+          "rawPopplerPerPageExact": false
+        },
+        "imageCount": 17,
+        "pixelIdenticalPages": 9,
+        "changedPages": [
+          10
+        ],
+        "finalDiagnostics": "retained in raw qualification comparison; exact report equality asserted"
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "beforeSha256": "c6b42f81f11bfd5cd277d89258feb8bbde237c56a0fb841868cc799e445ee810",
+        "afterSha256": "311d1ba8125d8bc1d669649bf3fddc0298bd1f76810d6ef9f9d07fe0f3b0b4f2",
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "reportsExact": true,
+          "readerNonWhitespaceCharsEqual": true,
+          "rawPopplerPerPageNonWhitespaceCharsEqual": true,
+          "decodedImagesExact": true
+        },
+        "observedExtractionEquality": {
+          "readerTextExact": false,
+          "rawPopplerPerPageExact": false
+        },
+        "imageCount": 17,
+        "pixelIdenticalPages": 11,
+        "changedPages": [
+          12
+        ],
+        "finalDiagnostics": "retained in raw qualification comparison; exact report equality asserted"
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "beforeSha256": "95b5cf90cf2dd47be60f6079968a039a0d3674060d800c7e132cb0ef928f89c8",
+        "afterSha256": "0eda9dbfdbe92c8722d011a4f2d390f579bc860c2fcfa68269e0d86b46311f16",
+        "checks": {
+          "pagesEqual": true,
+          "linksExact": true,
+          "reportsExact": true,
+          "readerNonWhitespaceCharsEqual": true,
+          "rawPopplerPerPageNonWhitespaceCharsEqual": true,
+          "decodedImagesExact": true
+        },
+        "observedExtractionEquality": {
+          "readerTextExact": false,
+          "rawPopplerPerPageExact": false
+        },
+        "imageCount": 30,
+        "pixelIdenticalPages": 7,
+        "changedPages": [
+          8
+        ],
+        "finalDiagnostics": "retained in raw qualification comparison; exact report equality asserted"
+      }
+    ],
+    "totalPages": 39,
+    "pixelIdenticalPages": 35,
+    "paintDifference": "only30x13pixel72dpi badge region on final page of each profile",
+    "rawAndReaderDiffsRetained": true,
+    "textContract": "per-page visible-character multisets preserved; exact whitespace/order equality not claimed"
+  },
+  "badgeControl": {
+    "capturedAndMatchedFonts": "original independent browserPDFs retained",
+    "final": [
+      {
+        "case": "captured",
+        "profile": "print",
+        "redPixels": {
+          "office": 2350,
+          "browser": 2166
+        },
+        "uris": [
+          "https://plus.nasa.gov/",
+          "https://plus.nasa.gov/"
+        ],
+        "sourceCharacterMultisetPreserved": true
+      },
+      {
+        "case": "captured",
+        "profile": "screen",
+        "redPixels": {
+          "office": 2350,
+          "browser": 2166
+        },
+        "uris": [
+          "https://plus.nasa.gov/",
+          "https://plus.nasa.gov/"
+        ],
+        "sourceCharacterMultisetPreserved": true
+      },
+      {
+        "case": "matched",
+        "profile": "print",
+        "redPixels": {
+          "office": 2338,
+          "browser": 2152
+        },
+        "uris": [
+          "https://plus.nasa.gov/",
+          "https://plus.nasa.gov/"
+        ],
+        "sourceCharacterMultisetPreserved": true
+      },
+      {
+        "case": "matched",
+        "profile": "screen",
+        "redPixels": {
+          "office": 2338,
+          "browser": 2152
+        },
+        "uris": [
+          "https://plus.nasa.gov/",
+          "https://plus.nasa.gov/"
+        ],
+        "sourceCharacterMultisetPreserved": true
+      }
+    ]
+  },
+  "limits": [
+    "No whole-footer/browser/manual accessibility/performance parity claim",
+    "Document-UA margins and0.615CSSpxinline-logo baseline difference classified separately",
+    "Captured font aliases and exact typography/paint remain profile-specific"
+  ],
+  "retained": {
+    "qualification": "../OfficeIMO-html-generated-inline-boxes/Ignore/GeneratedInlineBoxQualification",
+    "independentControls": "Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/footer-placement-20261008"
+  },
+  "next": "settle exact-head CI/delayed feedback, preserve proof, adopt accepted owner and remove only merged dedicated checkout"
+}

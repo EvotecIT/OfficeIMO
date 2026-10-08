@@ -2,7 +2,7 @@
   "schema": 1,
   "observedUtc": "2026-10-07T21:26:54.732855+00:00",
   "milestone": "H10 Reference Systems footer typography independent control and shared font lookup",
-  "status": "focused Core candidate locally qualified and published; hosted gates and accepted-source adoption remain; whole footer appearance open",
+  "status": "Focused numeric font owner merged; recovered/rebuilt evidence scope explicit; remaining footer appearance and engine integration qualification separate",
   "source": "6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
   "base": "4467d2f09dd1cab22797adb8d89f9d7e50b78f91",
   "engineBefore": "c41702c55427cfbfb32fd5b2debbea06a2bac11e",
@@ -15,7 +15,9 @@
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2933",
     "branch": "fix/font-face-style-selection",
     "head": "6822d067ece8f0cc6d179dcfcff71b7683e4d13c",
-    "adoptedIntoEngine": false
+    "adoptedIntoEngine": false,
+    "state": "MERGED",
+    "mergeCommit": "95e2949e9a475bdb1b3cfa3cd92e876f3d295c3a"
   },
   "contract": {
     "defect": "style-based regular or bold selection preferred registration order among numeric faces sharing a coarse style; text could select weight200 instead of available400",
@@ -328,7 +330,8 @@
   "retained": {
     "fontPrEvidence": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-font-face-style-selection/Ignore/FontStyleSelectionQualification",
     "engineFooterEvidence": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-provider-forks/Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007",
-    "feedsAndFailuresPreserved": true
+    "feedsAndFailuresPreserved": true,
+    "recoveryArchive": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-font-style-95e2949e9/evidence.zip"
   },
   "storage": {
     "finalCleanup": [
@@ -366,5 +369,42 @@
       "Raw PDF geometric whitespace retained. Exact source visible characters and native links agree; no global extractor equivalence claim.",
       "No stylesheet-default rewrite, typography tolerance relaxation, browser/manual-accessibility or whole-footer parity."
     ]
+  },
+  "cleanupIncident20261008": {
+    "cause": "worktree removal followed a failed preservation preflight without checking its result",
+    "sourceAndGitHistory": "preserved; exact6822 checkout restored for recovery",
+    "lostOriginalIgnoredArtifacts": [
+      "raw full/focused TRX files",
+      "original complete logs",
+      "original private package archive bytes"
+    ],
+    "originalEvidenceStillPresent": [
+      "canonical counts/source/package/DLL hashes",
+      "independent browser/font/profile controls and39PDF pages",
+      "native task history"
+    ],
+    "recovery": "original consumer/runner source and82historical output records recovered; fresh two-framework7-case regressions and two public packed consumers pass; all four rebuilt DLL hashes match original, package archive hash differs",
+    "archive": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-font-style-95e2949e9/evidence.zip",
+    "archiveSha256": "2987ef13be68ebf1c91814644ba113efdd4deb4219266d771918f83dc18d895d",
+    "archiveLogicalBytes": 14736651,
+    "cleanup": "archive checked in independent read, clean/nohandles/merge ancestry verified, restored worktree/local branch removed without force",
+    "originalRawArtifactsRecovered": false
+  },
+  "engineAdoption20261008": {
+    "source": "6212489a6eb554e5e55a259d891f30845d151ab5",
+    "affectedSourceAndRegressionBlobsExactToAcceptedHead": true,
+    "qualification": {
+      "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-font-engine-6212489a6/qualification-receipt.json",
+      "Drawing": 7,
+      "HTMLFontAndH4": 262,
+      "H4": 8,
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "normalStandard": "zero warnings/errors",
+      "additionalFrozenProfileReplay": "next clean evidence checkpoint"
+    },
+    "largerMasterMerge": false
   }
 }
