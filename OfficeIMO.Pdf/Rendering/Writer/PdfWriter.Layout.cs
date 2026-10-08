@@ -137,20 +137,29 @@ internal static partial class PdfWriter {
         IReadOnlyList<SectionBlock> sections = Array.Empty<SectionBlock>();
         IReadOnlyDictionary<string, int>? pageNumbers = null;
         var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
+        var runningAssets = new RunningContentImageAssets();
+        IReadOnlyList<PageNumberInfo>? previousRunningPages = null;
+        int previousDocumentPages = 1;
         LayoutResult result = null!;
         for (int pass = 0; pass < 5; pass++) {
             cancellationToken.ThrowIfCancellationRequested();
             result?.Dispose();
-            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations, cancellationToken);
+            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations,
+                runningAssets: runningAssets, previousRunningPages: previousRunningPages,
+                previousDocumentPages: previousDocumentPages, cancellationToken: cancellationToken);
             result = context.Layout(blockList);
-            if (!result.HasTableOfContents) {
+            IReadOnlyList<PageNumberInfo> runningPages = BuildPageNumberInfos(result.Pages);
+            bool runningStable = RunningContentContextsMatch(result, runningPages);
+            previousRunningPages = runningPages;
+            previousDocumentPages = result.Pages.Count;
+            if (!result.HasTableOfContents && runningStable) {
                 ApplySectionReferences(result);
                 return result;
             }
 
             IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
             IReadOnlyList<SectionBlock> resolvedSections = result.SectionDefinitions;
-            if (pageNumbers != null &&
+            if (pageNumbers != null && runningStable &&
                 SectionPageNumbersEqual(pageNumbers, resolved) &&
                 SectionDefinitionsEqual(sections, resolvedSections)) {
                 ApplySectionReferences(result);
@@ -161,8 +170,11 @@ internal static partial class PdfWriter {
             sections = resolvedSections;
         }
 
+        bool hasDynamicRunningContent = result?.Pages.Any(page => page.HasDynamicRunningContent) == true;
         result?.Dispose();
-        throw new InvalidOperationException("Generated table of contents did not stabilize within five layout passes.");
+        throw new InvalidOperationException(hasDynamicRunningContent
+            ? "Running PDF content did not stabilize within five layout passes."
+            : "Generated table of contents did not stabilize within five layout passes.");
     }
 
     private static bool SectionDefinitionsEqual(IReadOnlyList<SectionBlock> left, IReadOnlyList<SectionBlock> right) {

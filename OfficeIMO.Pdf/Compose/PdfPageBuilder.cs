@@ -342,7 +342,7 @@ public sealed class PdfPageBuilder {
     /// <summary>Adds foreground page content at absolute top-left page coordinates.</summary>
     public PdfPageBuilder Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Defines the header layout and content.</summary>
-    public PdfPageBuilder Header(System.Action<PdfHeaderBuilder> build) { Guard.NotNull(build, nameof(build)); var h = new PdfHeaderBuilder(Options); build(h); return this; }
+    public PdfPageBuilder Header(System.Action<PdfHeaderBuilder> build) { Guard.NotNull(build, nameof(build)); var h = new PdfHeaderBuilder(_doc, Options); build(h); return this; }
     /// <summary>Defines the footer layout and content.</summary>
-    public PdfPageBuilder Footer(System.Action<PdfFooterBuilder> build) { Guard.NotNull(build, nameof(build)); var f = new PdfFooterBuilder(Options); build(f); return this; }
+    public PdfPageBuilder Footer(System.Action<PdfFooterBuilder> build) { Guard.NotNull(build, nameof(build)); var f = new PdfFooterBuilder(_doc, Options); build(f); return this; }
 }
