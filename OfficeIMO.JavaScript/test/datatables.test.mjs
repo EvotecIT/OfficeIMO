@@ -271,6 +271,79 @@ test("PDF button metadata inherits omitted values and clears explicit native nul
   assert.deepEqual(defaults, { title: "Default title", messageTop: "Default above", messageBottom: "Default below", compression: false });
 });
 
+test("PDF button clears native metadata resolved to null and retains other defaults", async () => {
+  const { host, table } = fixture(); let delivered, failure;
+  const defaults = { title: "Default title", messageTop: "Default above", messageBottom: "Default below", compression: false };
+  table.buttons.exportInfo = options => ({ filename: "Export", title: typeof options.title === "function" ? options.title() : options.title,
+    messageTop: options.messageTop === "*" ? null : options.messageTop, messageBottom: options.messageBottom === "*" ? null : options.messageBottom });
+  registerDataTablesButtons(host, { pdf: defaults, save: file => { delivered = file; }, onError: error => { failure = error; } });
+  for (const key of ["title", "messageTop", "messageBottom"]) {
+    delivered = undefined; failure = undefined;
+    const configured = key === "title" ? () => null : "*";
+    await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { [key]: configured }, resolve));
+    assert.equal(failure, undefined); assert.ok(delivered);
+    const text = (await inspectPdf(delivered)).text;
+    for (const name of Object.keys(defaults).filter(name => name !== "compression")) assert.equal(text.includes(defaults[name]), name !== key);
+    assert.ok(text.includes("first")); assert.ok(text.includes("second"));
+  }
+  table.buttons.exportInfo = () => ({ filename: "Export", title: 42, messageTop: 42, messageBottom: 42 });
+  for (const key of ["title", "messageTop", "messageBottom"]) {
+    delivered = undefined; failure = undefined;
+    await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { [key]: () => 42 }, resolve));
+    assert.ok(failure instanceof TypeError); assert.match(failure.message, /must resolve to text/); assert.equal(delivered, undefined);
+  }
+});
+
+test("PDF button empty metadata consumes neither paragraph space nor cell budget", async () => {
+  const { host, table } = fixture({ grouped: false }); let delivered, failure;
+  registerDataTablesButtons(host, { pdf: { title: "Default title", messageTop: "Default above", messageBottom: "Default below", pageNumbers: false, compression: false },
+    limits: { maxCells: 4 }, save: file => { delivered = file; }, onError: error => { failure = error; } });
+  await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null,
+    { title: "", messageTop: "", messageBottom: "", header: false, footer: false }, resolve));
+  assert.equal(failure, undefined); assert.ok(delivered);
+  const empty = await inspectPdf(delivered);
+  const absent = await inspectPdf(await exportDataTable(host, table, "pdf", { includeFooter: false,
+    pdf: { includeHeader: false, pageNumbers: false, compression: false }, limits: { maxCells: 4 } }));
+  assert.equal(empty.text, absent.text); assert.equal(empty.pages[0].body, absent.pages[0].body);
+});
+
+test("PDF suppressed and replacement headers do not validate unused source spans", async () => {
+  const { host, table } = fixture(); const native = table.buttons.exportData;
+  table.buttons.exportData = options => {
+    const data = native(options);
+    data.headerStructure = Array.from({ length: 17 }, () => [{ title: "Unused", colspan: 1, rowspan: 1 }, { title: "Unused", colspan: 1, rowspan: 1 }]);
+    data.footerStructure = [[{ title: "Totals", colspan: 1, rowspan: 2 }, { title: "20", colspan: 1, rowspan: 1 }], [null, { title: "Approved", colspan: 1, rowspan: 1 }]];
+    return data;
+  };
+  await assert.rejects(exportDataTable(host, table, "pdf"), /through 16/);
+  for (const pdf of [{ includeHeader: false }, { headerRows: [[{ value: "Replacement" }, { value: "Value" }]] }]) {
+    const text = (await inspectPdf(await exportDataTable(host, table, "pdf", { pdf: { ...pdf, compression: false } }))).text;
+    for (const expected of ["first", "second", "Totals", "20", "Approved"]) assert.ok(text.includes(expected), expected);
+    assert.ok(!text.includes("Unused"));
+    assert.equal(text.includes("Replacement"), pdf.headerRows !== undefined);
+  }
+  let delivered, failure;
+  registerDataTablesButtons(host, { save: blob => { delivered = blob; }, onError: error => { failure = error; } });
+  await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { header: false }, resolve));
+  assert.equal(failure, undefined); assert.ok(delivered);
+  assert.ok((await inspectPdf(delivered)).text.includes("Approved"));
+});
+
+test("PDF replacement footer does not validate unused source footer spans", async () => {
+  const { host, table } = fixture(); const native = table.buttons.exportData;
+  table.buttons.exportData = options => {
+    const data = native(options);
+    data.footerStructure = Array.from({ length: 17 }, () => [{ title: "Unused footer", colspan: 1, rowspan: 1 }, { title: "Unused footer", colspan: 1, rowspan: 1 }]);
+    return data;
+  };
+  await assert.rejects(exportDataTable(host, table, "pdf"), /through 16/);
+  const text = (await inspectPdf(await exportDataTable(host, table, "pdf", { pdf: { compression: false, footer: { values: ["Replacement footer", 42] } } }))).text;
+  for (const expected of ["Metrics", "first", "second", "Replacement footer", "42"]) assert.ok(text.includes(expected), expected);
+  assert.ok(!text.includes("Unused footer"));
+  const omitted = (await inspectPdf(await exportDataTable(host, table, "pdf", { includeFooter: false, pdf: { compression: false } }))).text;
+  assert.ok(omitted.includes("Metrics")); assert.ok(!omitted.includes("Unused footer"));
+});
+
 test("PDF preserves DataTables vertical headers, blank spans and multiple footer rows", async () => {
   const { host, table } = fixture(); const native = table.buttons.exportData;
   table.buttons.exportData = options => {
