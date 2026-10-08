@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.OpenDocument.Odg.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The Draw PDF bridge is qualified through managed conversion tests and packed .NET consumers; no complete-bridge NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Xps'
         classification = 'managed-cross-platform'
         evidence = 'XPS/OpenXPS lifecycle and rendering are qualified through managed .NET tests; no dedicated NativeAOT qualification host is claimed.'
