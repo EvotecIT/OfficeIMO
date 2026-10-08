@@ -16,7 +16,7 @@ public sealed partial class OfficeFontFaceCollection {
         cancellationToken.ThrowIfCancellationRequested();
         if (OfficeSystemFontFamilyAliases.IsMath(familyName)) return TryAddInstalledMathematicalFamily(
             requested, maximumDecodedBytes, maximumSourceBytes, cancellationToken, out decodedBytes, out error);
-        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamily(familyName, requested.ToStyle(), out OfficeFontStyle resolvedStyle);
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText(familyName, requested, null, out _);
         cancellationToken.ThrowIfCancellationRequested();
         if (font == null) return false;
         bool nativeSelection = FontProgramProvider == null && FontVariationResolver == null;
@@ -25,6 +25,8 @@ public sealed partial class OfficeFontFaceCollection {
             string aliasResource = registered.Descriptor == OfficeFontFaceDescriptor.Regular
                 ? familyName : CreateResourceFamilyName(familyName, registered.Descriptor, registered.UnicodeRanges);
             OfficeFontFace alias = registered.CreateAlias(familyName, aliasResource);
+            alias.InstalledSubstituteFamily = font.MatchesFamilyName(familyName)
+                ? null : font.DisplayName ?? "installed substitute";
             int index = _faces.FindLastIndex(face => face.FamilyName == familyName && face.ResourceFamilyName == aliasResource);
             if (index >= 0) _faces[index] = alias;
             else _faces.Add(alias);
@@ -51,7 +53,7 @@ public sealed partial class OfficeFontFaceCollection {
         cancellationToken.ThrowIfCancellationRequested();
         // Static faces retain the style they actually supply; variable wght faces select
         // the requested weight through the existing descriptor-aware loading contract.
-        OfficeFontFaceDescriptor descriptor = OfficeFontFaceDescriptor.FromStyle(resolvedStyle);
+        OfficeFontFaceDescriptor descriptor = font.FaceDescriptor;
         OfficeOpenTypeReader? reader = OfficeOpenTypeReader.TryCreate(data);
         bool variable = reader != null && reader.TryGetTable("fvar", out _, out _);
         if (variable) descriptor = new OfficeFontFaceDescriptor(requested.Weight, descriptor.StretchPercent, descriptor.Slant);
@@ -60,9 +62,11 @@ public sealed partial class OfficeFontFaceCollection {
         if (!TryAddCore(familyName, data, descriptor.ToStyle(), descriptor, OfficeFontUnicodeRangeSet.All,
                 resourceFamily, maximumDecodedBytes, out decodedBytes, out error,
                 applyDescriptorWeight: variable, useOwnedDataSnapshot: shareData)) return false;
+        OfficeFontFace registeredFace = _faces.FindLast(face =>
+            face.FamilyName == familyName && face.ResourceFamilyName == resourceFamily)!;
+        registeredFace.InstalledSubstituteFamily = font.MatchesFamilyName(familyName)
+            ? null : font.DisplayName ?? "installed substitute";
         if (nativeSelection) {
-            OfficeFontFace registeredFace = _faces.FindLast(face =>
-                face.FamilyName == familyName && face.ResourceFamilyName == resourceFamily)!;
             _installedFamilySources[sourceKey] = registeredFace;
             _installedSourceFaces[font.Fingerprint] = registeredFace;
         }

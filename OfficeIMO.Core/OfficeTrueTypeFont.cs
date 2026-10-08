@@ -1187,16 +1187,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
-            foreach (string path in CandidateFamilyPaths(family)) {
-                OfficeTrueTypeFont? font = TryLoad(path, null, family);
-                if (font == null) {
-                    font = TryLoad(path);
-                }
-
-                if (font != null && font.HasFamilyKey(NormalizeFontFamilyKey(family))
-                    && font.HasGlyphs("OfficeIMO 0123456789")) {
-                    return new FontFamilyResolution(font, path);
-                }
+            foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, OfficeFontFaceDescriptor.Regular)) {
+                if (resolved.Font!.HasGlyphs("OfficeIMO 0123456789")) return resolved;
             }
         }
 
