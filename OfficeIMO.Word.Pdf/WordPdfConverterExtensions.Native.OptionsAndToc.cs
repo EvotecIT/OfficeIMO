@@ -18,6 +18,9 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+            if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
+                pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
+            }
             pdfOptions.UseContentStreamCompressionByDefault();
             if (options != null) {
                 pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Word.Pdf");

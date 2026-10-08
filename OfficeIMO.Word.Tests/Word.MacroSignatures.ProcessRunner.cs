@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 "> \"" + childStartedPath + "\" echo started\r\n" +
                 ":wait_for_release\r\n" +
                 "if not exist \"" + releaseChildPath + "\" (\r\n" +
-                "  ping -n 2 127.0.0.1 >nul\r\n" +
+                "  " + WindowsPingCommand(2) + " >nul\r\n" +
                 "  goto wait_for_release\r\n" +
                 ")\r\n" +
                 "> \"" + childSurvivedPath + "\" echo survived\r\n");
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 "@echo off\r\n" +
                 "start \"\" /b \"" + commandInterpreter + "\" /d /s /c call \"" + childScriptPath + "\"\r\n" +
                 "> \"" + wrapperStartedPath + "\" echo started\r\n" +
-                "ping -n 30 127.0.0.1 >nul\r\n");
+                WindowsPingCommand(30) + " >nul\r\n");
             var invocation = new WordMacroProjectToolInvocation(
                 commandInterpreter,
                 new[] { "/d", "/s", "/c", "call", wrapperScriptPath });
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
             string commandInterpreter = Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe";
             File.WriteAllText(childScriptPath,
                 "@echo off\r\n" +
-                "ping -n 3 127.0.0.1 >nul\r\n" +
+                WindowsPingCommand(3) + " >nul\r\n" +
                 "> \"" + childSurvivedPath + "\" echo survived\r\n");
             File.WriteAllText(wrapperScriptPath,
                 "@echo off\r\n" +
@@ -138,16 +138,22 @@ namespace OfficeIMO.Tests {
                 "A signing descendant survived after its wrapper exited and the launch-time Job Object closed.");
         }
 
-        private static WordMacroProjectToolInvocation CreateLongRunningChildProcess() {
+        private WordMacroProjectToolInvocation CreateLongRunningChildProcess() {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                string scriptPath = Path.Combine(_directoryWithFiles, "macro-tool-long-running.cmd");
+                File.WriteAllText(scriptPath, "@echo off\r\n" + WindowsPingCommand(30) + "\r\n");
                 return new WordMacroProjectToolInvocation(
                     Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe",
-                    new[] { "/d", "/s", "/c", "ping -n 30 127.0.0.1" });
+                    new[] { "/d", "/s", "/c", "call", scriptPath });
             }
             return new WordMacroProjectToolInvocation(
                 "/bin/sh",
                 new[] { "-c", "sleep 30 & wait" });
         }
+
+        private static string WindowsPingCommand(int count) =>
+            "\"" + Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "ping.exe")
+            + "\" -n " + count + " 127.0.0.1";
 
         private sealed class ChunkOnlyTextReader : TextReader {
             private int _remaining;

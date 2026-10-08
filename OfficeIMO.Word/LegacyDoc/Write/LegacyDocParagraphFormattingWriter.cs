@@ -488,13 +488,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AddTabStopsSprm(List<byte> grpprl, IReadOnlyList<LegacyDocTabStop> tabStops) {
             var clearTabStops = tabStops
                 .Where(tabStop => tabStop.Alignment == LegacyDocTabStopAlignment.Clear)
+                .OrderBy(tabStop => tabStop.PositionTwips)
                 .ToArray();
             var addedTabStops = tabStops
                 .Where(tabStop => tabStop.Alignment != LegacyDocTabStopAlignment.Clear)
+                .OrderBy(tabStop => tabStop.PositionTwips)
                 .ToArray();
 
-            if (clearTabStops.Length > byte.MaxValue || addedTabStops.Length > byte.MaxValue) {
-                throw new NotSupportedException("Native DOC saving cannot write more than 255 tab stops in one paragraph.");
+            if (clearTabStops.Length > 64 || addedTabStops.Length > 64) {
+                throw new NotSupportedException("Native DOC saving cannot write more than 64 added or cleared tab stops in one paragraph.");
             }
 
             var operand = new List<byte>(2 + (clearTabStops.Length * 2) + (addedTabStops.Length * 3));
@@ -536,6 +538,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     return true;
                 case LegacyDocTabStopAlignment.Bar:
                     value = 4;
+                    return true;
+                case LegacyDocTabStopAlignment.Number:
+                    value = 6;
                     return true;
                 default:
                     value = 0;

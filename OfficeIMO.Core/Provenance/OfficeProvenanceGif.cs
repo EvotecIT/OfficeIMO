@@ -7,7 +7,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
-internal static class OfficeProvenanceGif {
+internal static partial class OfficeProvenanceGif {
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         Walk(data, options, context, output: null, removalOptions: null, changes: null, out _);
     }
@@ -44,6 +44,7 @@ internal static class OfficeProvenanceGif {
         int entryCount = 0;
         int nextRawTrailer = -2;
         while (offset < data.Length) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             ReserveEntry(ref entryCount, options.MaxContainerEntries);
             int blockStart = offset;
             byte introducer = data[offset++];
@@ -63,7 +64,7 @@ internal static class OfficeProvenanceGif {
                 }
                 if (offset >= data.Length) throw new InvalidDataException("GIF image data is truncated.");
                 offset++; // LZW minimum code size.
-                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _, options.CancellationToken);
                 output?.Write(data, blockStart, offset - blockStart);
                 continue;
             }
@@ -102,9 +103,9 @@ internal static class OfficeProvenanceGif {
                     continue;
                 }
                 offset = SkipSubBlocks(data, offset, isC2paApplication ? options.MaxManifestBytes : options.MaxAssetBytes,
-                    ref entryCount, options.MaxContainerEntries, out int payloadLength);
+                    ref entryCount, options.MaxContainerEntries, out int payloadLength, options.CancellationToken);
                 if (isC2paApplication) {
-                    byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength);
+                    byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength, options.CancellationToken);
                     bool valid = c2paApplicationCount == 1 && validStructure && isGif89a && OfficeC2paManifestStore.IsValid(
                         manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                     string location = $"GIF/C2PA_GIF@{blockStart}";
@@ -118,7 +119,7 @@ internal static class OfficeProvenanceGif {
                     output?.Write(data, blockStart, offset - blockStart);
                 }
             } else {
-                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _, options.CancellationToken);
                 output?.Write(data, blockStart, offset - blockStart);
             }
         }
@@ -139,10 +140,11 @@ internal static class OfficeProvenanceGif {
         int nextRawTrailer = -2;
         bool foundImage = false;
         while (offset < data.Length) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             ReserveEntry(ref entryCount, options.MaxContainerEntries);
             byte introducer = data[offset++];
             if (introducer == 0x3B) {
-                validStructure = offset == data.Length && foundImage && OfficeGifReader.TryValidateAllFrames(data);
+                validStructure = offset == data.Length && foundImage && OfficeGifReader.TryValidateAllFrames(data, options.CancellationToken);
                 return count;
             }
             if (introducer == 0x2C) {
@@ -156,7 +158,7 @@ internal static class OfficeProvenanceGif {
                 }
                 if (offset >= data.Length) throw new InvalidDataException("GIF image data is truncated.");
                 offset++;
-                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _, options.CancellationToken);
                 foundImage = true;
                 continue;
             }
@@ -181,9 +183,9 @@ internal static class OfficeProvenanceGif {
                     continue;
                 }
                 offset = SkipSubBlocks(data, offset, isC2paApplication ? options.MaxManifestBytes : options.MaxAssetBytes,
-                    ref entryCount, options.MaxContainerEntries, out _);
+                    ref entryCount, options.MaxContainerEntries, out _, options.CancellationToken);
             } else {
-                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _, options.CancellationToken);
             }
         }
         throw new InvalidDataException("GIF does not contain a trailer.");
@@ -209,9 +211,10 @@ internal static class OfficeProvenanceGif {
         long maximumPayload,
         ref int entryCount,
         int maximumEntries,
-        out int payloadLength) {
+        out int payloadLength, CancellationToken cancellationToken = default) {
         long total = 0;
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             ReserveEntry(ref entryCount, maximumEntries);
             if (offset >= data.Length) throw new InvalidDataException("GIF data sub-blocks are truncated.");
             int length = data[offset++];
@@ -234,10 +237,11 @@ internal static class OfficeProvenanceGif {
         entryCount++;
     }
 
-    private static byte[] CollectSubBlocks(byte[] data, int offset, int payloadLength) {
+    private static byte[] CollectSubBlocks(byte[] data, int offset, int payloadLength, CancellationToken cancellationToken = default) {
         byte[] result = new byte[payloadLength];
         int target = 0;
         while (target < result.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int length = data[offset++];
             Buffer.BlockCopy(data, offset, result, target, length);
             offset += length;

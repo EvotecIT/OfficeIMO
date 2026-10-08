@@ -112,15 +112,18 @@ internal static class OfficeTiffStructureValidator {
         byte[] bytes,
         int offset,
         int count,
-        params int[] offsetLengthOwnerTriples) {
+        params int[] offsetLengthOwnerTriples) => TryValidateExclusiveWritableRanges(bytes, offset, count, CancellationToken.None, offsetLengthOwnerTriples);
+
+    internal static bool TryValidateExclusiveWritableRanges(byte[] bytes, int offset, int count, CancellationToken cancellationToken, params int[] offsetLengthOwnerTriples) {
         if (offsetLengthOwnerTriples == null || offsetLengthOwnerTriples.Length % 3 != 0 ||
-            !TryValidate(bytes, offset, count)) return false;
+            !TryValidate(bytes, offset, count, cancellationToken)) return false;
 
         bool littleEndian = bytes[offset] == (byte)'I';
         int rangeCount = offsetLengthOwnerTriples.Length / 3;
         var ownerReferences = new int[rangeCount];
         var inlineOwners = new bool[rangeCount];
         for (int range = 0; range < rangeCount; range++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int rangeOffset = offsetLengthOwnerTriples[range * 3];
             int rangeLength = offsetLengthOwnerTriples[range * 3 + 1];
             int ownerEntryOffset = offsetLengthOwnerTriples[range * 3 + 2];
@@ -145,6 +148,7 @@ internal static class OfficeTiffStructureValidator {
         var visited = new HashSet<int>();
         pending.Push((int)ReadUInt32(bytes, offset + 4, littleEndian));
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int relativeIfd = pending.Pop();
             if (!visited.Add(relativeIfd)) return false;
             int absoluteIfd = offset + relativeIfd;
@@ -162,6 +166,7 @@ internal static class OfficeTiffStructureValidator {
 
             int entryOffset = absoluteIfd + 2;
             for (int index = 0; index < entryCount; index++, entryOffset += 12) {
+                if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                 ushort tag = ReadUInt16(bytes, entryOffset, littleEndian);
                 ushort type = ReadUInt16(bytes, entryOffset + 2, littleEndian);
                 uint valueCount = ReadUInt32(bytes, entryOffset + 4, littleEndian);
@@ -185,6 +190,7 @@ internal static class OfficeTiffStructureValidator {
                         ? entryOffset + 8
                         : offset + (int)ReadUInt32(bytes, entryOffset + 8, littleEndian);
                     for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+                        if ((valueIndex & 255U) == 0U) cancellationToken.ThrowIfCancellationRequested();
                         uint nestedIfd = ReadUInt32(bytes, valuesOffset + (int)valueIndex * 4, littleEndian);
                         if (nestedIfd != 0) pending.Push((int)nestedIfd);
                     }

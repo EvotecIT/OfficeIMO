@@ -3,6 +3,7 @@
   "RootPath": "..",
   "ExpectedVersion": "3.4.X",
   "ExpectedVersionMap": {
+    "OfficeIMO.Access": "3.4.X",
     "OfficeIMO.Adf": "3.4.X",
     "OfficeIMO.AI": "3.4.X",
     "OfficeIMO.AI.IntelligenceX": "3.4.X",
