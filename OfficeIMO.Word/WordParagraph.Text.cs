@@ -58,6 +58,8 @@ namespace OfficeIMO.Word {
         /// breaks—are represented using the Unicode line separator character (<c>'\u2028'</c>) so that text
         /// operations (for example find/replace) can preserve their positions. When the text is modified those
         /// breaks are re-inserted at their original locations.
+        /// Imported text nodes honor <c>xml:space</c>: insignificant XML whitespace at either edge
+        /// is omitted unless the node declares <c>preserve</c>. Reading text preserves source XML.
         /// </summary>
         public string Text {
             get {
@@ -375,19 +377,19 @@ namespace OfficeIMO.Word {
 
         internal static string ReadVisibleText(OpenXmlElement element) {
             if (element is Text text) {
-                return text.Text;
+                return ReadWordprocessingText(text);
             }
 
             if (element is Run run && !IsHiddenCommentReferenceRun(run)) {
                 OpenXmlElementList children = run.ChildElements;
                 if (children.Count == 1 && children[0] is Text onlyText) {
-                    return onlyText.Text;
+                    return ReadWordprocessingText(onlyText);
                 }
 
                 if (children.Count == 2 &&
                     children[0] is RunProperties &&
                     children[1] is Text formattedText) {
-                    return formattedText.Text;
+                    return ReadWordprocessingText(formattedText);
                 }
             }
 
@@ -403,7 +405,7 @@ namespace OfficeIMO.Word {
                 case Run run when IsHiddenCommentReferenceRun(run):
                     return;
                 case Text text:
-                    builder.Append(text.Text);
+                    builder.Append(ReadWordprocessingText(text));
                     return;
                 case M.Text mathText:
                     builder.Append(mathText.Text);
