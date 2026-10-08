@@ -4,7 +4,7 @@
 * text=auto
 
 # Access producer exports and expected-value captures have manifest-bound bytes.
-OfficeIMO.Access.Tests/Fixtures/** -text
+OfficeIMO.Access.Tests/Fixtures/** -text -whitespace
 OfficeIMO.Access.Tests/Fixtures/**/*.mdb -diff
 OfficeIMO.Access.Tests/Fixtures/**/*.accdb -diff
 OfficeIMO.Access.Tests/Fixtures/**/*.pdf -diff
