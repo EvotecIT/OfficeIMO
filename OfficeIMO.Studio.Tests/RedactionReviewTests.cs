@@ -9,6 +9,46 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class RedactionReviewTests {
     [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 90)]
+    [InlineData(true, 270)]
+    public async Task PreciseSearchReviewPreservesNeighborsAndExcludedOccurrences(bool regex, int rotation) {
+        using var files = new TestFiles();
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800)
+            .Content(content => content.Item(item => item.Paragraph(text => text.Text("Before private account 123 and private account 456 after"))))));
+        if (rotation != 0) document = document.Pages.Rotate(rotation, 1);
+        byte[] source = document.ToBytes();
+        await File.WriteAllBytesAsync(files.Input, source);
+        using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
+            pickSavePdf: _ => Task.FromResult<string?>(files.Output));
+        await model.OpenDocumentAsync(files.Input);
+        model.RedactionSearchMatchedTextOnly = true;
+        model.RedactionSearchPreserveUnderlay = true;
+        model.RedactionSearchRegex = regex;
+        model.RedactionSearchText = regex ? "private account [0-9]{3}" : "private account";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(2, model.RedactionMarks.Count);
+        model.RedactionMarks[0].Reason = "Reviewed personal information";
+        model.RedactionMarks[1].IsIncluded = false;
+        await model.ReviewRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.CanApplyReviewedRedactions, model.PendingRedactionSummary);
+        await model.ApplyPendingRedactionCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        string text = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output)).Read().Text;
+        Assert.Contains("Before", text, StringComparison.Ordinal);
+        Assert.Contains("and", text, StringComparison.Ordinal);
+        Assert.Contains("private account 456 after", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("private account 123", text, StringComparison.Ordinal);
+        if (!regex) Assert.Contains("123", text, StringComparison.Ordinal);
+        Assert.Equal(source, await File.ReadAllBytesAsync(files.Input));
+        Assert.True(model.LastRedactionSummary!.IsVerified);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SelectedSearchMarksProduceVerifiedCopyAndContentFreeReport(bool sanitize) {

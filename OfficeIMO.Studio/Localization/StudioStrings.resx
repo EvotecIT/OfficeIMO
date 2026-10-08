@@ -1787,7 +1787,10 @@
   <data name="Redaction.CopySaved" xml:space="preserve"><value>Saved the verified PDF copy. Its evidence report is ready to export.</value></data>
   <data name="Redaction.SelectPages" xml:space="preserve"><value>Select at least one page in the page organizer.</value></data>
   <data name="Redaction.TooManyMarks" xml:space="preserve"><value>A review can contain at most 2,000 marks. Narrow the search or remove some marks.</value></data>
-  <data name="Redaction.SearchResult" xml:space="preserve"><value>Found {0:N0} matching line(s). Review the marked areas before applying.</value></data>
+  <data name="Redaction.SearchResult" xml:space="preserve"><value>Found {0:N0} matching area(s). Review the marked areas before applying.</value></data>
+  <data name="Redaction.MatchedTextOnly" xml:space="preserve"><value>Only matched text</value></data>
+  <data name="Redaction.PreserveUnderlay" xml:space="preserve"><value>Keep artwork underneath</value></data>
+  <data name="Redaction.PreciseSearchScope" xml:space="preserve"><value>Search marks only the matched text. Unsupported glyph mappings are refused. Options apply to new search marks.</value></data>
   <data name="Redaction.PendingSummary" xml:space="preserve"><value>{0:N0} of {1:N0} marks selected. Review their impact before applying.</value></data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve"><value>Reviewed {0:N0} areas across {1:N0} pages: {2:N0} text, {3:N0} image, {4:N0} annotation and {5:N0} vector matches.</value></data>
   <data name="Redaction.SearchText" xml:space="preserve"><value>Text or pattern to find</value></data>

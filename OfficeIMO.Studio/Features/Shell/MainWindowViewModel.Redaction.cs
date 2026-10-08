@@ -16,6 +16,10 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty] private bool _redactionSearchRegex;
     [ObservableProperty] private bool _redactionSearchMatchCase;
     [ObservableProperty] private bool _redactionSearchSelectedPagesOnly;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RedactionSearchScopeDescription))]
+    private bool _redactionSearchMatchedTextOnly;
+    [ObservableProperty] private bool _redactionSearchPreserveUnderlay;
     [ObservableProperty] private PdfRedactionMarkViewModel? _selectedRedactionMark;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRedactionEvidence))]
@@ -31,6 +35,9 @@ public sealed partial class MainWindowViewModel {
     public bool CanApplyReviewedRedactions => _pendingRedactionPlan is { IsReviewable: true } && CanReviewRedactions;
     public bool HasRedactionEvidence => LastRedactionSummary is not null;
     public bool CanExportRedactionEvidence => LastRedactionCopyPath is not null && HasRedactionEvidence;
+    public string RedactionSearchScopeDescription => RedactionSearchMatchedTextOnly
+        ? _localizer.GetOrDefault("Redaction.PreciseSearchScope", "Search marks only the matched text. Unsupported glyph mappings are refused. Options apply to new search marks.")
+        : _localizer.GetOrDefault("Redaction.SearchScope", "Search marks each matching line, including surrounding text on that line. Inspect the highlighted areas before applying.");
 
     [RelayCommand]
     private async Task SaveVerifiedRedactionCopyAsync(CancellationToken cancellationToken) {
@@ -74,6 +81,10 @@ public sealed partial class MainWindowViewModel {
         string text = RedactionSearchText;
         bool regex = RedactionSearchRegex;
         bool matchCase = RedactionSearchMatchCase;
+        PdfRedactionTextSelection textSelection = RedactionSearchMatchedTextOnly
+            ? PdfRedactionTextSelection.MatchedGlyphs : PdfRedactionTextSelection.LogicalBlocks;
+        PdfRedactionContentScope contentScope = RedactionSearchPreserveUnderlay
+            ? PdfRedactionContentScope.TextOnly : PdfRedactionContentScope.TextAndUnderlay;
         int[]? pages = RedactionSearchSelectedPagesOnly
             ? OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray() : null;
         if (pages is { Length: 0 }) {
@@ -82,7 +93,7 @@ public sealed partial class MainWindowViewModel {
         }
         IReadOnlyList<PdfRedactionCandidate>? marks = null;
         bool succeeded = await RunStandaloneAsync(async token => {
-            marks = await workspace.SearchRedactionMarksAsync(text, regex, matchCase, pages, token).ConfigureAwait(true);
+            marks = await workspace.SearchRedactionMarksAsync(text, regex, matchCase, pages, token, textSelection, contentScope).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || marks is null || generation != _redactionPlanGeneration ||
             !ReferenceEquals(_workspace, workspace) || revision != workspace.Revision) return;
@@ -96,7 +107,7 @@ public sealed partial class MainWindowViewModel {
             new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height), mark.Description), update: false);
         InvalidateReviewedRedactions();
         if (marks.Count > 0) RedactionSearchExpanded = false;
-        OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching line(s). Review the marked areas before applying.", marks.Count);
+        OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching area(s). Review the marked areas before applying.", marks.Count);
     }
 
     private void AddRedactionMark(PdfRedactionMarkViewModel mark, bool update = true) {
@@ -147,8 +158,7 @@ public sealed partial class MainWindowViewModel {
             return;
         }
         PdfRedactionArea[] areas = RedactionMarks.Where(mark => mark.IsIncluded)
-            .Select(mark => new PdfRedactionArea(mark.Area.PageNumber, mark.Area.X, mark.Area.Y,
-                mark.Area.Width, mark.Area.Height, mark.Reason.Trim(), mark.Area.ContentScope, mark.Area.AppearanceMode)).ToArray();
+            .Select(mark => mark.Area.WithLabel(mark.Reason.Trim())).ToArray();
         PdfRedactionPlan? plan = null;
         bool succeeded = await RunStandaloneAsync(async token => {
             plan = await workspace.PlanRedactionsAsync(areas, token).ConfigureAwait(true);
