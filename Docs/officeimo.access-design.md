@@ -1,6 +1,6 @@
 # OfficeIMO.Access design
 
-This is the proposed architecture and API contract for `OfficeIMO.Access`. The package is not implemented. Ordered delivery work and acceptance criteria live only in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
+This is the architecture and API direction for `OfficeIMO.Access`. The typed model, document lifecycle, operation assessment and bounded header inspection foundation are implemented; its current contract and qualification limits live in [Access support](../OfficeIMO.Access/SUPPORT.md). Native catalog decoding and writing remain open. Ordered delivery work and acceptance criteria live only in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
 
 The product goal is to create, read, inspect, edit, preserve, and write Access files through one typed document model. Tables and rows are part of that model alongside saved queries, relationships, forms, reports, action macros, VBA modules, resources, and application metadata. Reading database rows alone does not satisfy this goal.
 
@@ -17,7 +17,7 @@ The product goal is to create, read, inspect, edit, preserve, and write Access f
 | CLI, MCP, Workflows and Studio | Existing hosts | Map inputs and present engine results; do not implement Access parsing or database execution in hosts |
 | Build, packaging, signing and publication | PowerForge/PSPublishModule | Follow the repository's release/version bindings and package qualification |
 
-The proposed native package depends on `OfficeIMO.Core` and qualified existing shared primitives. It introduces no external runtime dependency by default. ACE/Jet installation, Office COM automation, Java, native database utilities, and a general SQL execution engine are outside that dependency graph. Third-party engines may be isolated independent validation tools after license and artifact-boundary checks. Adding one to shipped code remains an explicit product/dependency decision.
+The native package depends on `OfficeIMO.Core` and qualified existing shared primitives. It introduces no external runtime dependency by default. ACE/Jet installation, Office COM automation, Java, native database utilities, and a general SQL execution engine are outside that dependency graph. Third-party engines may be isolated independent validation tools after license and artifact-boundary checks. Adding one to shipped code remains an explicit product/dependency decision.
 
 Access file storage must be decoded through generation-specific database codecs. Existing ZIP/OPC and compound-file support is reusable only where the embedded structure actually uses it. Finding a VBA stream does not establish that the whole database is an Open XML package or compound document.
 
@@ -52,7 +52,7 @@ A thin `AsFluent()` surface may compose these operations after the typed API is 
 
 ## Lifecycle and API direction
 
-The following signatures and example are design sketches, not runnable current APIs. A01 freezes names and overloads through compiling public-consumer examples after A00 resolves the native profile and ownership questions.
+The [package README](../OfficeIMO.Access/README.md) and executable verification consumer define the implemented foundation API. The following example illustrates the intended native persistence and reading workflow; its save and native table-reading operations remain unsupported until their codec milestones are qualified.
 
 ```csharp
 using OfficeIMO;
@@ -120,7 +120,7 @@ Start with `OfficeIMO.Access`, `OfficeIMO.Access.Tests` and an executable public
 
 Add optional `OfficeIMO.Reader.Access` and conversion/rendering adapters only for delivered workflows. Base `OfficeIMO.Access` must remain installable without Word/Excel/PDF, DbaClientX, ACE or comparison tools. A DbaClientX provider or bridge uses a narrow data boundary and proves its package graph separately; it reuses the Access native owner if it needs native decoding. It must not force all DbaClientX providers into an Access document install.
 
-The package README owns implemented public examples; `OfficeIMO.Access/SUPPORT.md` owns the qualified format/operation matrix and feasibility outcomes once A00 establishes them. Feed existing compatibility, conversion and operation catalogs from that source. Keep the roadmap as the only backlog and this document as architecture, not an implementation journal.
+The package README owns implemented public examples; `OfficeIMO.Access/SUPPORT.md` owns the qualified format/operation matrix and feasibility outcomes. Feed existing compatibility, conversion and operation catalogs from that source. Keep the roadmap as the only backlog and this document as architecture, not an implementation journal.
 
 ## Qualification contract
 

@@ -26,6 +26,9 @@ try {
             $db.Execute("INSERT INTO Contacts (GroupId, DisplayName, Amount, CreatedAt, Active) VALUES (1, '', -1.25, NULL, False)", 128)
             $query = $db.CreateQueryDef('ContactsByGroup', 'PARAMETERS selectedGroup Long; SELECT Id, DisplayName FROM Contacts WHERE GroupId = selectedGroup ORDER BY Id;')
             [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query) | Out-Null
+            $db.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($db) | Out-Null
+            $db = $engine.OpenDatabase($path, $false, $true)
+            # Observe persisted definitions after an independent read-only reopen, not authored expectations.
             $tables = @()
             foreach ($table in $db.TableDefs) {
                 if ($table.Name.StartsWith('MSys')) { continue }
@@ -45,9 +48,17 @@ try {
                         $rs.MoveNext()
                     }
                 } finally { $rs.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($rs) | Out-Null }
-                $tables += [ordered]@{name=$table.Name;columns=$columns;rows=$rows}
+                $indexes = @($table.Indexes | ForEach-Object {
+                    [ordered]@{name=$_.Name;primary=[bool]$_.Primary;unique=[bool]$_.Unique;foreign=[bool]$_.Foreign;ignoreNulls=[bool]$_.IgnoreNulls;required=[bool]$_.Required;fields=@($_.Fields | ForEach-Object { [ordered]@{name=$_.Name;attributes=[int]$_.Attributes} })}
+                })
+                $tables += [ordered]@{name=$table.Name;columns=$columns;indexes=$indexes;rows=$rows}
             }
-            $export = [ordered]@{tables=$tables;query=[ordered]@{name='ContactsByGroup';sql=$db.QueryDefs.Item('ContactsByGroup').SQL};relationship=[ordered]@{name='FK_Contacts_Groups';parent='Groups.Id';child='Contacts.GroupId'}}
+            $relationships = @($db.Relations | Where-Object { -not $_.Name.StartsWith('MSys') } | ForEach-Object {
+                [ordered]@{name=$_.Name;parentTable=$_.Table;childTable=$_.ForeignTable;attributes=[int]$_.Attributes;fields=@($_.Fields | ForEach-Object { [ordered]@{parentColumn=$_.Name;childColumn=$_.ForeignName} })}
+            })
+            $query = $db.QueryDefs.Item('ContactsByGroup')
+            try { $export = [ordered]@{observation='DAO read-only reopen';tables=$tables;query=[ordered]@{name=$query.Name;sql=$query.SQL};relationships=$relationships} }
+            finally { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($query) | Out-Null }
             $exportPath = Join-Path $root ($profile.Name + '.expected.json')
             $export | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $exportPath -Encoding utf8
         } finally { if ($db) { $db.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($db) | Out-Null } }

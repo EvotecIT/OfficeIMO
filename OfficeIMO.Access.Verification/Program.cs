@@ -3,6 +3,11 @@ using System.Text.Json;
 using OfficeIMO;
 using OfficeIMO.Access;
 
+if (args.Length == 2 && args[0] == "--bootstrap") {
+    OfficeIMO.Access.Verification.NativeBootstrapProbe.Generate(args[1]);
+    Console.WriteLine("Generated a fixed native catalog/table probe without seed files. Run the independent DAO qualification route.");
+    return;
+}
 if (args.Length == 2 && args[0] == "--catalog") {
     string directory = Path.GetFullPath(args[1]);
     Directory.CreateDirectory(directory);
@@ -27,6 +32,12 @@ using (AccessUpdateScope edit = database.BeginUpdate()) {
 }
 using (AccessDataReader reader = contacts.OpenDataReader()) {
     if (!reader.Read() || reader.GetString(1) != "Ada" || reader.IsSpecified(0)) throw new InvalidDataException("Model row contract failed.");
+}
+// Exercise the actual provider-neutral DbDataReader consumer boundary.
+using (var table = new System.Data.DataTable()) {
+    using AccessDataReader reader = contacts.OpenDataReader();
+    table.Load(reader);
+    if (table.Rows.Count != 1 || (string)table.Rows[0]["Name"] != "Ada") throw new InvalidDataException("DataTable.Load reader interoperability failed.");
 }
 database.Queries.Add("Names", "SELECT Name FROM Contacts;");
 Console.WriteLine(database.Queries["Names"].Sql);

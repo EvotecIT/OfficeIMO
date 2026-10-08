@@ -1,4 +1,5 @@
 {
+  "observation": "DAO read-only reopen",
   "tables": [
     {
       "name": "Contacts",
@@ -53,6 +54,36 @@
           "attributes": 2
         }
       ],
+      "indexes": [
+        {
+          "name": "FK_Contacts_Groups",
+          "primary": false,
+          "unique": false,
+          "foreign": true,
+          "ignoreNulls": false,
+          "required": false,
+          "fields": [
+            {
+              "name": "GroupId",
+              "attributes": 0
+            }
+          ]
+        },
+        {
+          "name": "PK_Contacts",
+          "primary": true,
+          "unique": true,
+          "foreign": false,
+          "ignoreNulls": false,
+          "required": true,
+          "fields": [
+            {
+              "name": "Id",
+              "attributes": 0
+            }
+          ]
+        }
+      ],
       "rows": [
         {
           "Id": 1,
@@ -92,6 +123,22 @@
           "attributes": 2
         }
       ],
+      "indexes": [
+        {
+          "name": "PK_Groups",
+          "primary": true,
+          "unique": true,
+          "foreign": false,
+          "ignoreNulls": false,
+          "required": true,
+          "fields": [
+            {
+              "name": "Id",
+              "attributes": 0
+            }
+          ]
+        }
+      ],
       "rows": [
         {
           "Id": 1,
@@ -104,9 +151,18 @@
     "name": "ContactsByGroup",
     "sql": "PARAMETERS selectedGroup Long;\r\nSELECT Id, DisplayName\r\nFROM Contacts\r\nWHERE GroupId = selectedGroup\r\nORDER BY Id;\r\n"
   },
-  "relationship": {
-    "name": "FK_Contacts_Groups",
-    "parent": "Groups.Id",
-    "child": "Contacts.GroupId"
-  }
+  "relationships": [
+    {
+      "name": "FK_Contacts_Groups",
+      "parentTable": "Groups",
+      "childTable": "Contacts",
+      "attributes": 0,
+      "fields": [
+        {
+          "parentColumn": "Id",
+          "childColumn": "GroupId"
+        }
+      ]
+    }
+  ]
 }

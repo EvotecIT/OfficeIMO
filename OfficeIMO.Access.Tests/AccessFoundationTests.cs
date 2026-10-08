@@ -15,6 +15,12 @@ public sealed class AccessFoundationTests {
     [InlineData("ace12.accdb", AccessFormatProfile.Ace12, AccessFileFormat.Accdb)]
     [InlineData("Application/objects-jet4.mdb", AccessFormatProfile.Jet4, AccessFileFormat.Mdb)]
     [InlineData("Application/objects-ace12.accdb", AccessFormatProfile.Ace12, AccessFileFormat.Accdb)]
+    [InlineData("Profiles/password-jet4.mdb", AccessFormatProfile.Jet4, AccessFileFormat.Mdb)]
+    [InlineData("Profiles/password-ace.accdb", AccessFormatProfile.Ace14, AccessFileFormat.Accdb)]
+    [InlineData("Profiles/large-number.accdb", AccessFormatProfile.Ace16, AccessFileFormat.Accdb)]
+    [InlineData("Profiles/extended-date.accdb", AccessFormatProfile.Ace17, AccessFileFormat.Accdb)]
+    [InlineData("Native/catalog-scaffold.mdb", AccessFormatProfile.Jet4, AccessFileFormat.Mdb)]
+    [InlineData("Native/catalog-scaffold.accdb", AccessFormatProfile.Ace12, AccessFileFormat.Accdb)]
     public async Task IndependentNativeFixturesHaveBoundedInertHeaderEvidence(string name, AccessFormatProfile profile, AccessFileFormat format) {
         byte[] bytes = File.ReadAllBytes(Fixture(name));
         using var stream = new MemoryStream(bytes); stream.Position = 17;

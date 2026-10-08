@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "producer": "Microsoft DAO",
+  "producerBuild": "16.0.20430.20092",
   "engineVersion": "16.0",
   "bitness": 64,
   "license": "MIT (synthetic OfficeIMO fixtures)",
@@ -11,9 +12,9 @@
       "profile": "jet4",
       "headerVersion": 1,
       "length": 126976,
-      "sha256": "98d035dde148429aef5a3389f5e4f49b28abd6dfcdd754559b1e27d8fb13896d",
+      "sha256": "b31fba9340c3411724dadeb94963d4794f614c29f5e5d24577bfc78e623a8e88",
       "expected": "jet4.expected.json",
-      "expectedSha256": "a6c9d4085d6b9959aa031e1a184f2f51040250d87c3537bc1672be7ed578a3e4",
+      "expectedSha256": "6decc0fd3ef3388e3d932c61c24508f8fd3fbdab012b358bd4c4b565396c7356",
       "independentRowCount": 2,
       "limitations": [
         "No application objects",
@@ -26,9 +27,9 @@
       "profile": "ace12",
       "headerVersion": 2,
       "length": 221184,
-      "sha256": "e047a86ca7390829ab15da360a127bfe1ce486728fe7ff3294d1b0ae32d4bf85",
+      "sha256": "826bf299ca5a87306c544f73679c325bf0b8550647a9a72241e8a2a069762e86",
       "expected": "ace12.expected.json",
-      "expectedSha256": "a6c9d4085d6b9959aa031e1a184f2f51040250d87c3537bc1672be7ed578a3e4",
+      "expectedSha256": "6decc0fd3ef3388e3d932c61c24508f8fd3fbdab012b358bd4c4b565396c7356",
       "independentRowCount": 2,
       "limitations": [
         "No application objects",
@@ -36,6 +37,5 @@
         "Modern ACE feature upgrades not exercised"
       ]
     }
-  ],
-  "producerBuild": "Microsoft Access 16.0.20430.20092 (64-bit); DAO 16.0"
+  ]
 }

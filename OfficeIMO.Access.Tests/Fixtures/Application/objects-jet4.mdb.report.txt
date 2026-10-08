@@ -17,10 +17,10 @@ Begin Report
     Bottom =11940
     DatasheetGridlinesColor =15062992
     RecSrcDt = Begin
-        0xbfb54edeed9be640
+        0x7cef348fee9be640
     End
     GUID = Begin
-        0xab4b55a30573f84bb3620ef99a784659
+        0xef29de3a28d21c41922079ff875a5bca
     End
     NameMap = Begin
         0x0acc0e5500000000000000000000000000000000000000000c00000005000000 ,
@@ -33,7 +33,7 @@ Begin Report
         0x010000006801000000000000a10700000100000001000000
     End
     PrtDevMode = Begin
-        0x000000003a02000096a1cfc43a020000709014bd3a020000f0c21f583a020000 ,
+        0x00000000b301000096a18f6db30100002013006db30100001055f164b3010000 ,
         0x010403069c005814032d0100010009009a0b3408640001000f00580202000100 ,
         0x5802030001004134000000000000000000000000000000001a00000000000000 ,
         0x0000000000000000000000000000000000000000010000000000000001000000 ,
@@ -221,7 +221,7 @@ Begin Report
             Height =1134
             Name ="PageHeaderSection"
             GUID = Begin
-                0x4f04ba42df94de439c0afa9e74602e80
+                0xc39d11e743c97641bf67027815e6fd0a
             End
         End
         Begin Section
@@ -229,7 +229,7 @@ Begin Report
             Height =5952
             Name ="Detail"
             GUID = Begin
-                0xe4020ff6df50fc499f25f3c77d6e7283
+                0x608f1d6e6ec5de4fb3fd297360f6766d
             End
             Begin
                 Begin Label
@@ -240,7 +240,7 @@ Begin Report
                     Name ="Label0"
                     Caption ="Synthetic report output"
                     GUID = Begin
-                        0xf885e1a9211db0489c07abae1c23bb3d
+                        0x2523f9228b6b0d43b98c2603bed22e3f
                     End
                 End
             End
@@ -249,7 +249,7 @@ Begin Report
             Height =1134
             Name ="PageFooterSection"
             GUID = Begin
-                0x2cd0f4f51ee5ec4db667568da5029034
+                0x13ffac6f79817544995e65f845086948
             End
         End
     End

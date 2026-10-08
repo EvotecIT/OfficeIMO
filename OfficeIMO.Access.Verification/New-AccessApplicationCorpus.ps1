@@ -50,8 +50,9 @@ try {
                 $application.SaveAsText(5, 'FixtureModule', $moduleExport)
                 $objectResults += [ordered]@{kind='vba-module';name='FixtureModule';status='produced-inert';export=[IO.Path]::GetFileName($moduleExport);exportSha256=(Get-FileHash -LiteralPath $moduleExport).Hash.ToLowerInvariant()}
             } catch { $objectResults += [ordered]@{kind='vba-module';status='failed';error=$_.Exception.Message} }
-            $macroText = Join-Path $root 'FixtureMacro.xml'
-            '<UserInterfaceMacro MinimumClientDesignVersion="14.0.0000.0000" xmlns="http://schemas.microsoft.com/office/accessservices/2009/11/application"><Statements><Action Name="StopMacro" /></Statements></UserInterfaceMacro>' | Set-Content -LiteralPath $macroText -Encoding utf8
+            $macroText = Join-Path $root 'FixtureMacro.txt'
+            # SaveAsText's macro envelope is distinct from clipboard XML. Import an inert StopMacro definition; never run it.
+            @('Version =196611', 'ColumnsShown =0', 'Begin', '    Action ="StopMacro"', 'End') | Set-Content -LiteralPath $macroText -Encoding ascii
             try {
                 $application.LoadFromText(4, 'FixtureMacro', $macroText)
                 $macroExport = Join-Path $root ($profile.Name + '.macro.txt')
@@ -64,7 +65,7 @@ try {
                 $objectResults += [ordered]@{kind='report-output';status='exported';export=[IO.Path]::GetFileName($pdf);exportSha256=(Get-FileHash -LiteralPath $pdf).Hash.ToLowerInvariant()}
             } catch { $objectResults += [ordered]@{kind='report-output';status='failed';error=$_.Exception.Message} }
         } finally { $application.CloseCurrentDatabase() }
-        $results += [ordered]@{path=$profile.Name;sha256=(Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant();objects=$objectResults;limitations=@('Independent producer only; no OfficeIMO native object codec proof', 'Action macro import result must be assessed separately', 'VBA signature and password variants not exercised')}
+        $results += [ordered]@{path=$profile.Name;sha256=(Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant();objects=$objectResults;limitations=@('Independent producer only; no OfficeIMO native object codec proof', 'Inert StopMacro only; no general action-macro semantics or execution proof', 'VBA signature and password variants not exercised')}
     }
 } finally {
     if ($application) { $application.Quit(2); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($application) | Out-Null }

@@ -8,7 +8,7 @@ Detection and in-memory modeling are separate from native decoding and writing.
 | `model.create` | Yes | New Jet4/ACE12-targeted in-memory model; no native output. |
 | `model.edit` | Yes | Typed tables, columns, primary-key definitions, relationships, inert query text and rows; rollback and read leases. |
 | `model.rows.read` | Yes | Forward-only DbDataReader over modeled rows; omitted values remain distinguishable from explicit nulls. |
-| `native.header.inspect` | Yes | Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12 fixtures; other generations recognized, not independently qualified. |
+| `native.header.inspect` | Yes | Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12/ACE14/ACE16/ACE17 fixtures; Jet3 recognized without producer qualification. Protection and feature values are not decoded. |
 | `native.catalog.read` | No | No native table, query, relationship or application catalog decoding. Loaded collections are NotDecoded. |
 | `native.rows.read` | No | Native Jet/ACE row codecs are not qualified. |
 | `native.create` | No | Template-free catalog/allocation/index/relationship writing is not qualified. |

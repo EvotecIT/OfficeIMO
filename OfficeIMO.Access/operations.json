@@ -19,7 +19,7 @@
     {
       "operation": "native.header.inspect",
       "supported": true,
-      "boundary": "Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12 fixtures; other generations recognized, not independently qualified."
+      "boundary": "Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12/ACE14/ACE16/ACE17 fixtures; Jet3 recognized without producer qualification. Protection and feature values are not decoded."
     },
     {
       "operation": "native.catalog.read",
