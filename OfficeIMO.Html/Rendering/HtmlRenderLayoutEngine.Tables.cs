@@ -66,6 +66,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
+        // Continuation painting may omit earlier body rows, but their intrinsic
+        // contributions still constrain the columns of the same source table.
+        var sizingRows = new List<IElement>(headerRows.Count + bodyRows.Count + footerRows.Count);
+        sizingRows.AddRange(headerRows);
+        sizingRows.AddRange(bodyRows);
+        sizingRows.AddRange(footerRows);
         IElement? continuationRow = FindOwningTableRow(table, continuationTarget);
         int skippedBodyRows = 0;
         if (continuationRow != null) {
@@ -81,7 +87,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         rows.AddRange(headerRows);
         rows.AddRange(bodyRows);
         rows.AddRange(footerRows);
-        int rowColumnCount = DetermineColumnCount(rows, table);
+        int rowColumnCount = DetermineColumnCount(sizingRows, table);
         TableCaptionLayout? caption;
         double topCaptionHeight;
         double bottomCaptionHeight;
@@ -121,7 +127,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double captionMinimumWidth = Math.Max(0D,
             MeasureTableCaptionMinimumWidth(table, contentWidth, style)
             - style.HorizontalInsets - horizontalSpacing * (columnCount + 1));
-        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, rowStyles, table, columnCount, trackWidth, captionMinimumWidth, style, depth, out double usedTrackWidth);
+        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(sizingRows, rowStyles, table, columnCount, trackWidth, captionMinimumWidth, style, depth, out double usedTrackWidth);
         if (!style.ExplicitWidth.HasValue && style.TableLayout != "fixed") {
             contentWidth = usedTrackWidth + horizontalSpacing * (columnCount + 1);
             tableWidth = contentWidth + style.HorizontalInsets;

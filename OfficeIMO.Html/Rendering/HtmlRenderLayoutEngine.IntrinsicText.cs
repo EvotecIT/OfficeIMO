@@ -259,8 +259,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
                 && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
                 && childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
-                // Its width is measured separately, but it still separates text
-                // on either side into distinct block lines.
+                // Do not flatten nested table cells into surrounding text. A
+                // definite table contributes its declared outer box once.
+                result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
+                double width = ResolveBoxWidth(availableSize, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+                result.Add(IntrinsicTextRun.Replaced(width, childStyle));
                 result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }
