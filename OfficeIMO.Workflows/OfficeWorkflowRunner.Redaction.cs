@@ -400,7 +400,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static PdfRedactionSearchOptions BuildSearchOptions(PdfRedactionRecipe recipe, PdfRedactionRule rule, int maximumCandidates, CancellationToken cancellationToken) {
-        var search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, TextSelection = rule.TextSelection, ContentScope = rule.ContentScope, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates, CancellationToken = cancellationToken };
+        PdfRedactionSearchOptions search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, TextSelection = rule.TextSelection, ContentScope = rule.ContentScope, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates, CancellationToken = cancellationToken };
         switch (rule.Kind) {
             case PdfRedactionRuleKind.Literal:
                 search.AddLiteral(rule.Value!);
