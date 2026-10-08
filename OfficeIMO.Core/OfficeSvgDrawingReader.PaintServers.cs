@@ -118,7 +118,7 @@ public static partial class OfficeSvgDrawingReader {
                         definition.Y1.Value,
                         definition.X2.Value,
                         definition.Y2.Value,
-                        definition.Stops).WithColorInterpolation(definition.ColorInterpolation));
+                        definition.Stops).WithColorInterpolation(definition.ColorInterpolation).WithSeparateAlphaInterpolation());
                 } else {
                     paint = new SvgResolvedPaint(new OfficeRadialGradient(
                         definition.X1.Value,
@@ -127,7 +127,7 @@ public static partial class OfficeSvgDrawingReader {
                         definition.X2.Value,
                         definition.Y2.Value,
                         definition.Radius2.Value,
-                        definition.Stops).WithColorInterpolation(definition.ColorInterpolation));
+                        definition.Stops).WithColorInterpolation(definition.ColorInterpolation).WithSeparateAlphaInterpolation());
                 }
                 return true;
             } catch (ArgumentException) {
@@ -519,7 +519,7 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeLinearGradient field = OfficeLinearGradient.CreateImported(
                         first.X, first.Y, second.X, second.Y, Stops).TransformCoordinates(coordinates);
                     if (!TryCreateLinearSpread(field.StartX, field.StartY, field.EndX, field.EndY, out linear)) return false;
-                    linear = linear!.WithColorInterpolation(ColorInterpolation);
+                    linear = linear!.WithColorInterpolation(ColorInterpolation).WithSeparateAlphaInterpolation();
                     return true;
                 }
                 double diagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
@@ -542,7 +542,7 @@ public static partial class OfficeSvgDrawingReader {
                     radial = radial.WithFirstIntersection();
                 }
                 if (!TryCreateRadialSpread(radial, shape, out radial)) return false;
-                radial = radial!.WithColorInterpolation(ColorInterpolation);
+                radial = radial!.WithColorInterpolation(ColorInterpolation).WithSeparateAlphaInterpolation();
                 return true;
             } catch (ArgumentException) {
                 return false;
