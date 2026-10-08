@@ -20,7 +20,10 @@ public sealed class StudioAccessibilityContractTests {
             string source = Path.Combine(root, "source.pdf");
             PdfDocument.Create(compose => {
                 for (int page = 0; page < 2; page++) {
-                    compose.Page(body => body.Content(content => content.Item(item => item.Paragraph(text => text.Text("Private account")))));
+                    compose.Page(body => body.Content(content => {
+                        content.Item(item => item.Paragraph(text => text.Text("Private account one")));
+                        content.Item(item => item.Paragraph(text => text.Text("Private account two")));
+                    }));
                 }
             }).Save(source);
             using HeadlessUnitTestSession session = TestAppBuilder.StartSession();
@@ -30,7 +33,8 @@ public sealed class StudioAccessibilityContractTests {
                     window.Show();
                     await window.TabHost.OpenDocumentAsync(source);
                     window.ViewModel.ShowProtectModeCommand.Execute(null);
-                    window.ViewModel.RedactionSearchText = "Private account";
+                    window.ViewModel.RedactionSearchText = "Private account (one|two)";
+                    window.ViewModel.RedactionSearchRegex = true;
                     await window.ViewModel.SearchRedactionsCommand.ExecuteAsync(null);
                     window.UpdateLayout();
                     Expander[] sections = window.GetVisualDescendants().OfType<Expander>()
@@ -44,15 +48,19 @@ public sealed class StudioAccessibilityContractTests {
                     }
                     RedactionInspectorView inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
                     ListBox marks = Assert.Single(inspector.GetVisualDescendants().OfType<ListBox>());
-                    Assert.Equal(2, window.ViewModel.RedactionMarks.Count);
-                    for (int index = 0; index < 2; index++) {
+                    Assert.Equal(4, window.ViewModel.RedactionMarks.Count);
+                    var includeNames = new List<string>();
+                    for (int index = 0; index < 4; index++) {
                         ListBoxItem row = Assert.IsType<ListBoxItem>(marks.ContainerFromIndex(index));
                         string name = ControlAutomationPeer.CreatePeerForElement(row)!.GetName();
-                        Assert.StartsWith($"Page {index + 1}:", name, StringComparison.Ordinal);
+                        Assert.StartsWith($"Page {index / 2 + 1}:", name, StringComparison.Ordinal);
                         Assert.Contains("Private account", name, StringComparison.Ordinal);
                         CheckBox include = Assert.Single(row.GetVisualDescendants().OfType<CheckBox>());
-                        Assert.Equal($"Include page {index + 1}", ControlAutomationPeer.CreatePeerForElement(include)!.GetName());
+                        string includeName = ControlAutomationPeer.CreatePeerForElement(include)!.GetName();
+                        Assert.Equal($"Include page {index / 2 + 1}: {window.ViewModel.RedactionMarks[index].Description}", includeName);
+                        includeNames.Add(includeName);
                     }
+                    Assert.Equal(4, includeNames.Distinct(StringComparer.Ordinal).Count());
                 } finally {
                     foreach (StudioDocumentTabViewModel tab in window.TabHost.Tabs.ToArray()) tab.Document.CompletePreparedClose();
                     window.Close();

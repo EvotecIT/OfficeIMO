@@ -93,7 +93,7 @@ public class PdfIndirectObjectSerializationTests {
         byte[] serialized = PdfPageExtractor.SerializeObject(dictionary, context);
 
         Assert.Equal(
-            "<< /Ordinary /Value /Space#20Key /Hash#23Value /Unicode#C5#81 /Slash#2FValue /Emoji#F0#9F#98#80 /Caf#C3#A9 /Integer -42 /Real 1.235 /Reference 42 0 R >>\n",
+            "<< /Ordinary /Value /Space#20Key /Hash#23Value /Unicode#C5#81 /Slash#2FValue /Emoji#F0#9F#98#80 /Caf#C3#A9 /Integer -42 /Real 1.23456 /Reference 42 0 R >>\n",
             PdfEncoding.Latin1GetString(serialized));
         Assert.Equal("Unicode\u0141", PdfSyntax.DecodeName("Unicode#C5#81"));
         Assert.Equal("Emoji\U0001F600", PdfSyntax.DecodeName("Emoji#F0#9F#98#80"));
