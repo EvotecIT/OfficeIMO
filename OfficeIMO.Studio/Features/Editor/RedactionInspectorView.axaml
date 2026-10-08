@@ -19,7 +19,9 @@
         <CheckBox Content="{loc:Loc Redaction.Regex}" IsChecked="{Binding RedactionSearchRegex}" />
         <CheckBox Content="{loc:Loc Redaction.MatchCase}" IsChecked="{Binding RedactionSearchMatchCase}" />
         <CheckBox Content="{loc:Loc Redaction.SelectedPagesOnly}" IsChecked="{Binding RedactionSearchSelectedPagesOnly}" />
-        <TextBlock Classes="muted" Text="{loc:Loc Redaction.SearchScope}" TextWrapping="Wrap" />
+        <CheckBox AutomationProperties.AutomationId="RedactionMatchedTextOnly" Content="{loc:Loc Redaction.MatchedTextOnly}" IsChecked="{Binding RedactionSearchMatchedTextOnly}" />
+        <CheckBox AutomationProperties.AutomationId="RedactionPreserveUnderlay" Content="{loc:Loc Redaction.PreserveUnderlay}" IsChecked="{Binding RedactionSearchPreserveUnderlay}" />
+        <TextBlock Classes="muted" Text="{Binding RedactionSearchScopeDescription}" TextWrapping="Wrap" />
         <Button Classes="tool" Content="{loc:Loc Redaction.FindMarks}" Command="{Binding SearchRedactionsCommand}" IsEnabled="{Binding CanRedact}" />
       </StackPanel>
     </Expander>

@@ -6,6 +6,38 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf {
     public partial class PdfRedactionApplierTests {
         [Fact]
+        public void PreciseSearchJoinsTouchingTextShowsWithoutJoiningSeparateOccurrences() {
+            PdfDocument source = PdfDocument.Load(BuildTextContentRedactionSource(
+                "BT /F1 20 Tf 72 720 Td (Alpha ) Tj (secret) Tj ( account) Tj ( Omega secret account) Tj ET"));
+            PdfRedactionPlan search = source.Redactions.Search(PreciseOptions().AddLiteral("secret account"));
+            Assert.True(search.IsReviewable, DescribeFindings(search));
+            Assert.Collection(search.Areas, area => Assert.Equal(1, area.PageNumber), area => Assert.Equal(1, area.PageNumber));
+            PdfRedactionPlan selection = source.Redactions.Plan(new[] { search.Areas[0].WithLabel("Selected occurrence") });
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(selection);
+            Assert.True(result.Evidence.IsVerified);
+            string text = result.ToDocument().Read().Text;
+            Assert.Single(Regex.Matches(text, "secret account"));
+            Assert.Contains("Alpha", text, StringComparison.Ordinal);
+            Assert.Contains("Omega", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RelabelingPreciseAreasPreservesTheRemovalContract() {
+            byte[] bytes = BuildSingleTextObjectRedactionSource("(Alpha secret Omega) Tj");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionArea area = Assert.Single(source.Redactions.Search(PreciseOptions().AddLiteral("secret")).Areas);
+            PdfRedactionPlan relabeled = source.Redactions.Plan(new[] { area.WithLabel("Reviewed reason") });
+            Assert.Equal("Reviewed reason", Assert.Single(relabeled.Areas).Label);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(relabeled);
+            Assert.True(result.Evidence.IsVerified);
+            string text = result.ToDocument().Read().Text;
+            Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+            Assert.Contains("Alpha", text, StringComparison.Ordinal);
+            Assert.Contains("Omega", text, StringComparison.Ordinal);
+            Assert.Equal(bytes, source.ToBytes());
+        }
+
+        [Fact]
         public void PreciseSelectionBlocksIntersectingUnselectedHiddenLayerGlyphs() {
             const string content = "BT /F1 20 Tf 72 720 Td (secret) Tj ET " +
                 "/OC /Layer BDC BT /F1 20 Tf 72 720 Td (private) Tj ET EMC";
