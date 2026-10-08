@@ -1069,9 +1069,9 @@
   <data name="Comparison.Added" xml:space="preserve"><value>Uniquement dans la comparaison</value></data>
   <data name="Comparison.Removed" xml:space="preserve"><value>Uniquement dans le document actuel</value></data>
   <data name="Comparison.Match" xml:space="preserve"><value>Aucune différence de rendu trouvée.</value></data>
-  <data name="Comparison.ChangedCount" xml:space="preserve"><value>Pages différentes : {0:N0}. Les pixels rouges montrent les modifications d'apparence ; les pages sont associées par numéro.</value></data>
+  <data name="Comparison.ChangedCount" xml:space="preserve"><value>Pages différentes : {0:N0}. Les pixels rouges montrent les modifications d’apparence ; les pages sont appariées dans l’ordre de sélection.</value></data>
   <data name="Comparison.Cancelled" xml:space="preserve"><value>Comparaison annulée.</value></data>
-  <data name="Comparison.Ready" xml:space="preserve"><value>Comparer le document actuel à ce PDF. Les pages sont associées par numéro.</value></data>
+  <data name="Comparison.Ready" xml:space="preserve"><value>Comparer le document actuel à ce PDF. Les pages sont appariées dans l’ordre de sélection.</value></data>
   <data name="Comparison.PageLimit" xml:space="preserve"><value>La comparaison est limitée à 100 pages par document. Extrayez une plage plus petite pour l'examiner.</value></data>
   <data name="PrintPreview.Resolution" xml:space="preserve"><value>Résolution matricielle (DPI)</value></data>
   <data name="PrintPreview.Printer" xml:space="preserve"><value>File d'impression</value></data>

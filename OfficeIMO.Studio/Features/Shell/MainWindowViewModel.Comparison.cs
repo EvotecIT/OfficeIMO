@@ -108,7 +108,7 @@ public sealed partial class MainWindowViewModel {
                 ? _localizer.FormatOrDefault("Comparison.SelectedSummary", "{0:N0} paired pages; {1:N0} differing pairs; {2:N0} unmatched. Selections pair in order.",
                     report.Pages.Count, report.Pages.Count(page => !page.IsMatch), report.UnmatchedExpectedPageNumbers.Count + report.UnmatchedActualPageNumbers.Count)
                 : report.IsMatch ? ComparisonText("Match", "No rendered differences found.")
-                : _localizer.FormatOrDefault("Comparison.ChangedCount", "{0:N0} page(s) differ. Red pixels show appearance changes; pages are paired by page number.", differences.Count);
+                : _localizer.FormatOrDefault("Comparison.ChangedCount", "{0:N0} page(s) differ. Red pixels show appearance changes; pages are paired in selection order.", differences.Count);
             OnPropertyChanged(nameof(CanExportComparisonReport));
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
             if (ReferenceEquals(_comparisonReportCancellation, operation)) ComparisonSummary = ComparisonText("Cancelled", "Comparison cancelled.");
@@ -162,7 +162,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanExportComparisonReport));
         SelectedComparisonDifference = null;
         ComparisonDifferences = [];
-        ComparisonSummary = ComparisonText("Ready", "Compare the current document with this PDF. Pages are paired by page number.");
+        ComparisonSummary = ComparisonText("Ready", "Compare the current document with this PDF. Pages are paired in selection order.");
     }
     private string ComparisonText(string key, string fallback) => _localizer.GetOrDefault("Comparison." + key, fallback);
 }

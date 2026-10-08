@@ -17,13 +17,14 @@ public sealed class PdfVisualSelectedComparisonTests {
         Assert.Equal(new[] { 150, 2 }, report.Pages.Select(page => page.ActualPageNumber));
         Assert.Equal(new[] { 149 }, report.UnmatchedExpectedPageNumbers); Assert.Empty(report.UnmatchedActualPageNumbers);
         Assert.False(report.IsMatch); Assert.True(report.IsSelectedScope);
-        Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expected)).ToLowerInvariant(), report.ExpectedSha256);
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        Assert.Equal(BitConverter.ToString(sha.ComputeHash(expected)).Replace("-", string.Empty).ToLowerInvariant(), report.ExpectedSha256);
         string html = report.ToHtmlGallery("<Review & report>", 2_000_000);
         Assert.Contains("&lt;Review &amp; report&gt;", html); Assert.Contains("#pair-0", html);
         Assert.Contains("Expected 149 / actual 150", html); Assert.Contains("150 total pages; selected: 149,2,149", html);
         Assert.Contains("Expected page 149 has no selected actual partner", html);
         Assert.Contains("does not detect semantic changes or moved pages", html);
-        Assert.Equal(6, html.Split("data:image/png;base64,").Length - 1);
+        Assert.Equal(6, html.Split(new[] { "data:image/png;base64," }, StringSplitOptions.None).Length - 1);
     }
 
     [Fact]

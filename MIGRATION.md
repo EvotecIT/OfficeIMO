@@ -19,6 +19,15 @@ Replace `pdf.AssessMutations(default)` with
 the positional `default` literal ambiguous. Parameterless calls and calls with
 an explicit operation collection retain their existing behavior.
 
+## PDF inputs without readable objects
+
+Lenient typed reading throws `PdfParseException` with code `NoIndirectObjects`
+when an input contains no recoverable indirect objects. Reject these inputs
+instead of treating their former empty page collection as an opened PDF.
+`PdfDocument.Load` still captures the source lazily; call `Read`, `Inspect`, or
+`InspectForViewing` to require a typed read. `Preflight` retains read blockers,
+and zero-page catalogs and recoverable object fragments keep their existing behavior.
+
 ## EPUB XHTML image export
 
 Image export parses retained `application/xhtml+xml` chapters as XML. Repair malformed

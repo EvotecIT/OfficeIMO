@@ -3184,13 +3184,13 @@
     <value>Nie znaleziono różnic w renderowaniu.</value>
   </data>
   <data name="Comparison.ChangedCount" xml:space="preserve">
-    <value>Liczba różniących się stron: {0:N0}. Czerwone piksele wskazują zmiany wyglądu; strony są parowane według numeru.</value>
+    <value>Liczba różniących się stron: {0:N0}. Czerwone piksele wskazują zmiany wyglądu; strony są parowane w kolejności wyboru.</value>
   </data>
   <data name="Comparison.Cancelled" xml:space="preserve">
     <value>Anulowano porównanie.</value>
   </data>
   <data name="Comparison.Ready" xml:space="preserve">
-    <value>Porównaj bieżący dokument z tym PDF. Strony są parowane według numeru.</value>
+    <value>Porównaj bieżący dokument z tym PDF. Strony są parowane w kolejności wyboru.</value>
   </data>
   <data name="Comparison.PageLimit" xml:space="preserve">
     <value>Porównanie jest ograniczone do 100 stron na dokument. Wyodrębnij mniejszy zakres do przeglądu.</value>

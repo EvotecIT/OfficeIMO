@@ -119,11 +119,12 @@ public sealed partial class PdfDocument {
     /// Reports read and rewrite capabilities for this PDF.
     /// </summary>
     public PdfDocumentPreflight Preflight(PdfLoadOptions? options = null) {
-        var snapshot = GetReadSnapshot(options);
-        return PdfInspector.Preflight(
-            snapshot.Bytes,
-            snapshot.Options,
-            () => snapshot.Document);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
+        byte[] bytes = GetBytesForOperation();
+        Func<PdfReadDocument>? readDocumentFactory = GetOpenedReadDocumentFactory(effectiveOptions);
+        return readDocumentFactory is null
+            ? PdfInspector.Preflight(bytes, effectiveOptions)
+            : PdfInspector.Preflight(bytes, effectiveOptions, readDocumentFactory);
     }
 
     /// <summary>Chooses a full-rewrite, append-only, or blocked path for an existing-document mutation.</summary>

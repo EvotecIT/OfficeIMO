@@ -421,6 +421,7 @@ The server exposes:
 - `officeimo_pdf_ocr_providers` — provider ids registered by the server host
 - `officeimo_pdf_ocr` — searchable copy through a registered provider
 - `officeimo_pdf_print_plan` — bounded sheet geometry without printer submission
+- `officeimo_pdf_compare` — selected-page rendered comparison saved as a standalone HTML report
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
 

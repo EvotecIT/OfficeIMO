@@ -11,7 +11,7 @@ internal static partial class PdfAnnotationEditor {
             clone.Items["NM"] = new PdfStringObj(Guid.NewGuid().ToString("N"));
             // A copy is a new review item, not a reply or a recorded decision on the original.
             clone.Items.Remove("IRT"); clone.Items.Remove("RT"); clone.Items.Remove("State"); clone.Items.Remove("StateModel");
-            clone.Items.Remove("StructParent"); clone.Items.Remove("Popup");
+            clone.Items.Remove("Popup");
             objects[number] = new PdfIndirectObject(number, 0, clone);
             copies[original] = number;
             var offset = offsets[annotation.PageNumber!.Value];
@@ -56,6 +56,8 @@ internal static partial class PdfAnnotationEditor {
     private static PdfDictionary CopyAnnotationDictionary(PdfDictionary source) {
         var copy = new PdfDictionary();
         foreach (var entry in source.Items) copy.Items[entry.Key] = entry.Value;
+        // New annotations have no ParentTree entry; preserve tagged identities only on the originals.
+        copy.Items.Remove("StructParent");
         return copy;
     }
 

@@ -56,6 +56,7 @@ public sealed class ComparisonRangeReportTests {
                 // An editable scope is a live input: changing it invalidates the existing gallery and navigation evidence.
                 model.ComparisonActualRange = "109";
                 Assert.False(model.CanExportComparisonReport); Assert.Empty(model.ComparisonDifferences);
+                window.UpdateLayout(); Capture(window, "comparison-ready-" + culture + "-" + width + (dark ? "-dark" : "-light"));
             } finally {
                 window.Close(); Application.Current.RequestedThemeVariant = previous;
                 StudioLocalization.Configure(previousLocalizer);

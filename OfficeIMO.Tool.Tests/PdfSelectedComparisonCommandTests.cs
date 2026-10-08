@@ -41,9 +41,12 @@ public sealed class PdfSelectedComparisonCommandTests {
             Assert.True(result.StructuredContent!.Value.GetRawText().Length <= 1000);
             Assert.DoesNotContain("data:image", Text(result));
             Assert.Contains("Unmatched actual page 1", File.ReadAllText(mcp));
-            string alias = Path.Combine(root, "source-alias.html"); File.CreateSymbolicLink(alias, second);
-            arguments["outputPath"] = alias; arguments["overwrite"] = true;
-            Assert.True((await client.CallToolAsync("officeimo_pdf_compare", arguments, cancellationToken: timeout.Token)).IsError);
+            if (!OperatingSystem.IsWindows()) {
+                // Windows symbolic-link creation requires separate host privilege.
+                string alias = Path.Combine(root, "source-alias.html"); File.CreateSymbolicLink(alias, second);
+                arguments["outputPath"] = alias; arguments["overwrite"] = true;
+                Assert.True((await client.CallToolAsync("officeimo_pdf_compare", arguments, cancellationToken: timeout.Token)).IsError);
+            }
             Assert.Equal(before, File.ReadAllBytes(first)); Assert.Equal(before, File.ReadAllBytes(second));
             PdfDocument.Create(document => document.Page(page => page.Size(160, 190))).Save(second);
             string stale = Path.Combine(root, "stale.html"); arguments["outputPath"] = stale;

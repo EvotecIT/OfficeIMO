@@ -179,6 +179,9 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         }
         Grid.SetColumnSpan(NavigationPane, pagesGrid ? 2 : 1);
         bool independent = Panes?.IsSplit == true && _document?.IsComparisonOpen != true;
+        // Pages mode expands the organizer through the reader column. Its hidden readers
+        // must not leave an opaque, hit-testable host over organizer thumbnails and actions.
+        ReaderHost.IsVisible = !pagesGrid && _document?.HasDocument == true;
         ReaderCanvas.IsVisible = !independent && !pagesGrid && _document?.HasDocument == true;
         IndependentPanes.IsVisible = independent && !pagesGrid && _document?.HasDocument == true;
         NavigationToggle.IsEnabled = !pagesGrid;

@@ -636,7 +636,7 @@
         </Border>
       </Grid>
 
-      <Grid Grid.Column="1" RowDefinitions="Auto,*" Background="{DynamicResource StudioCanvasBrush}">
+      <Grid x:Name="ReaderHost" Grid.Column="1" IsVisible="False" RowDefinitions="Auto,*" Background="{DynamicResource StudioCanvasBrush}">
         <!-- Scanned pages cannot be searched, selected or cited until they have a text layer. -->
         <Border x:Name="OcrPrompt" Classes="floating" IsVisible="{Binding ShowOcrPrompt}"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,12" Padding="12,8,6,8" MaxWidth="620">

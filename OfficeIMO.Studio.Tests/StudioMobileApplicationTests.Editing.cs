@@ -44,7 +44,7 @@ public sealed partial class StudioMobileApplicationTests {
                     Assert.True(pages.Bounds.Height >= 100, $"Page viewport is only {pages.Bounds.Height} points high.");
                     double pagesBottom = pages.TranslatePoint(new Point(0, pages.Bounds.Height), window)!.Value.Y;
                     Assert.True(actions.TranslatePoint(default, window)!.Value.Y >= pagesBottom);
-                    Click(window, view, document.MoveSelectedUpCommand);
+                    Click(window, view, document.MoveSelectedUpCommand, requireHitTarget: true);
                     await document.MoveSelectedUpCommand.ExecutionTask!;
                     Assert.True(document.IsDirty);
                     Click(window, view.FindControl<Button>("ShortDocumentsButton")!); Layout(window);
@@ -195,7 +195,7 @@ public sealed partial class StudioMobileApplicationTests {
                         Assert.InRange(corner.X, 0, window.Bounds.Width - button.Bounds.Width);
                         Assert.InRange(corner.Y, 0, window.Bounds.Height - button.Bounds.Height);
                     }
-                    Click(window, view, document.MoveSelectedToCommand);
+                    Click(window, view, document.MoveSelectedToCommand, requireHitTarget: true);
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
                     while (view.FindControl<ContentControl>("DialogContent")!.Content is not PageMoveDialogContent)
                         await Task.Delay(10, timeout.Token);

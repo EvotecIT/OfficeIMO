@@ -56,6 +56,8 @@ public sealed class PdfFormOcrReview {
     /// <remarks>Foreign proposals, stale bytes, unsupported constraints, invalid values and cancellation fail before output.
     /// Low-confidence or ambiguous evidence must be resolved by the human supplying the accepted value. An empty acceptance
     /// returns a source copy. Existing mutation planning enforces encryption, certification and field locks.
+    /// Reviewed values share the character budget on each physical widget page; repeated widgets for one field
+    /// on the same page count once, and a shared field counts on every page containing its widgets.
     /// Append-only filling retains the original byte prefix and generates updated normal appearance streams.</remarks>
     public PdfDocument Apply(PdfDocument currentDocument,
         IReadOnlyDictionary<PdfFormOcrProposal, PdfFormFieldValue> acceptedValues, CancellationToken cancellationToken = default) {
@@ -65,15 +67,22 @@ public sealed class PdfFormOcrReview {
         if (!_sourceBytes.SequenceEqual(currentDocument.ToBytes(cancellationToken)))
             throw new InvalidOperationException("The document changed after recognition. Recognize the current document again.");
         var values = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal);
-        long characters = 0;
+        var charactersByPage = new Dictionary<int, long>();
         foreach (var pair in acceptedValues) {
             cancellationToken.ThrowIfCancellationRequested();
             Guard.NotNull(pair.Value, nameof(acceptedValues));
-            characters += pair.Value.Values.Sum(value => (long)value.Length);
-            if (characters > _options.MaxOcrTextCharactersPerPage)
-                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, _options.MaxOcrTextCharactersPerPage, characters);
             var assessment = Assess(pair.Key, pair.Value);
             if (assessment.HasErrors) throw new ArgumentException(string.Join(" ", assessment.Issues.Where(issue => issue.IsError).Select(issue => issue.Message)), nameof(acceptedValues));
+            long fieldCharacters = pair.Value.Values.Sum(value => (long)value.Length);
+            foreach (int pageNumber in pair.Key.Field.Widgets.Where(widget => widget.PageNumber.HasValue)
+                .Select(widget => widget.PageNumber!.Value).Distinct()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                charactersByPage.TryGetValue(pageNumber, out long characters);
+                characters += fieldCharacters;
+                if (characters > _options.MaxOcrTextCharactersPerPage)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, _options.MaxOcrTextCharactersPerPage, characters);
+                charactersByPage[pageNumber] = characters;
+            }
             values.Add(pair.Key.Field.Name!, PdfFormFieldValue.FromValues(pair.Value.Values));
         }
         if (values.Count == 0) return PdfDocument.Load(_sourceBytes, _source.ReadOptions);

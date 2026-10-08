@@ -568,6 +568,11 @@ The unified API intentionally narrows the public surface around the fluent
 - Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`, `Preflight`,
   `Analyze`, compliance, and manipulation work. The source snapshot and canonical
   parse are cached for that document.
+- Typed reading rejects input with no readable indirect objects. Lenient parsing
+  reports `PdfParseException.Code == "NoIndirectObjects"` for empty, plain-text,
+  or unrecoverable header-only input. `Load` retains its lazy snapshot behavior;
+  `Preflight` and artifact snapshots still retain diagnostic and source-identity
+  evidence. Zero-page catalogs and recoverable object fragments remain readable.
 - Use `PdfDocument.Analyze(...)` when a workflow needs the combined health,
   rewrite-safety, diagnostics, optimization, signature, repair, and compliance
   view.

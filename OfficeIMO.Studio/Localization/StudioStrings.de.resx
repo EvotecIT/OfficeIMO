@@ -3184,13 +3184,13 @@
     <value>Keine Unterschiede in der gerenderten Darstellung gefunden.</value>
   </data>
   <data name="Comparison.ChangedCount" xml:space="preserve">
-    <value>Abweichende Seiten: {0:N0}. Rote Pixel zeigen Änderungen im Erscheinungsbild; Seiten werden nach Seitennummer zugeordnet.</value>
+    <value>Abweichende Seiten: {0:N0}. Rote Pixel zeigen Änderungen im Erscheinungsbild; Seiten werden in der ausgewählten Reihenfolge gepaart.</value>
   </data>
   <data name="Comparison.Cancelled" xml:space="preserve">
     <value>Vergleich abgebrochen.</value>
   </data>
   <data name="Comparison.Ready" xml:space="preserve">
-    <value>Vergleichen Sie das aktuelle Dokument mit dieser PDF. Seiten werden nach Seitennummer zugeordnet.</value>
+    <value>Vergleichen Sie das aktuelle Dokument mit dieser PDF. Seiten werden in der ausgewählten Reihenfolge gepaart.</value>
   </data>
   <data name="Comparison.PageLimit" xml:space="preserve">
     <value>Der Vergleich ist auf 100 Seiten pro Dokument begrenzt. Extrahieren Sie einen kleineren Bereich zur Prüfung.</value>

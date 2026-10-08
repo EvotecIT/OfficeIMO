@@ -153,6 +153,61 @@ public sealed class PdfAnnotationBatchTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TaggedPopupCopiesReceiveNewIdentityWithoutChangingOriginalTaggingOrReplies(bool visual) {
+        string[] values = {
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 8 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> /Contents 4 0 R /Annots [5 0 R 6 0 R 7 0 R] >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Type /Annot /Subtype /Text /NM (tagged-owner) /Rect [20 20 60 60] /Contents (original comment) /Popup 6 0 R /StructParent 0 >>",
+            "<< /Type /Annot /Subtype /Popup /NM (tagged-popup) /Rect [60 60 160 160] /Parent 5 0 R /P 3 0 R /Open true /StructParent 1 >>",
+            "<< /Type /Annot /Subtype /Text /NM (reply) /Rect [80 80 100 100] /Contents (retained reply) /IRT 5 0 R /RT /R >>",
+            "<< /Type /StructTreeRoot /K [9 0 R 10 0 R] /ParentTree 11 0 R /ParentTreeNextKey 2 >>",
+            "<< /Type /StructElem /S /Annot /P 8 0 R /Pg 3 0 R /K << /Type /OBJR /Obj 5 0 R /Pg 3 0 R >> >>",
+            "<< /Type /StructElem /S /Annot /P 8 0 R /Pg 3 0 R /K << /Type /OBJR /Obj 6 0 R /Pg 3 0 R >> >>",
+            "<< /Nums [0 9 0 R 1 10 0 R] >>",
+            "<< /Title (Tagged popup copy fixture) >>"
+        };
+        byte[] original = PdfPageExtractor.Assemble(values.Select((value, index) => PdfPageExtractor.WrapObject(index + 1,
+            Encoding.ASCII.GetBytes(value))).ToList(), 1, 12, PdfFileVersion.Pdf17);
+        var source = PdfDocument.Load(original);
+
+        var result = (visual ? source.Annotations.CopyManyVisual(new[] { 5 }, 10, 15) :
+            source.Annotations.CopyMany(new[] { 5 }, 10, 15)).ToDocument();
+
+        var annotations = result.Inspect().Annotations;
+        Assert.Equal(5, annotations.Count);
+        var copiedOwner = Assert.Single(annotations, annotation => annotation.Subtype == "Text" && annotation.Name != "tagged-owner" && annotation.Name != "reply");
+        var copiedPopup = Assert.Single(annotations, annotation => annotation.Subtype == "Popup" && annotation.Name != "tagged-popup");
+        var (objects, _) = PdfSyntax.ParseObjects(result.ToBytes());
+        var owner = (PdfDictionary)objects[copiedOwner.ObjectNumber!.Value].Value;
+        var popup = (PdfDictionary)objects[copiedPopup.ObjectNumber!.Value].Value;
+        Assert.False(owner.Items.ContainsKey("StructParent"));
+        Assert.False(popup.Items.ContainsKey("StructParent"));
+        Assert.Equal(copiedPopup.ObjectNumber, owner.Get<PdfReference>("Popup")!.ObjectNumber);
+        Assert.Equal(copiedOwner.ObjectNumber, popup.Get<PdfReference>("Parent")!.ObjectNumber);
+        Assert.Equal(owner.Get<PdfReference>("P")!.ObjectNumber, popup.Get<PdfReference>("P")!.ObjectNumber);
+        Assert.True(popup.Get<PdfBoolean>("Open")!.Value);
+        Assert.Equal(0, ((PdfDictionary)objects[annotations.Single(annotation => annotation.Name == "tagged-owner").ObjectNumber!.Value].Value).Get<PdfNumber>("StructParent")!.Value);
+        Assert.Equal(1, ((PdfDictionary)objects[annotations.Single(annotation => annotation.Name == "tagged-popup").ObjectNumber!.Value].Value).Get<PdfNumber>("StructParent")!.Value);
+        Assert.Equal(annotations.Single(annotation => annotation.Name == "tagged-owner").ObjectNumber,
+            Assert.Single(annotations, annotation => annotation.Review?.IsReply == true).Review!.InReplyToObjectNumber);
+        var structure = objects.Values.Select(item => item.Value).OfType<PdfDictionary>().Single(dictionary => dictionary.Get<PdfName>("Type")?.Name == "StructTreeRoot");
+        var parentTree = (PdfDictionary)PdfObjectLookup.Resolve(objects, structure.Items["ParentTree"])!;
+        var entries = parentTree.Get<PdfArray>("Nums")!.Items;
+        Assert.Equal(4, entries.Count);
+        for (int index = 0; index < 2; index++) {
+            Assert.Equal(index, ((PdfNumber)entries[index * 2]).Value);
+            var element = (PdfDictionary)PdfObjectLookup.Resolve(objects, entries[index * 2 + 1])!;
+            Assert.Equal(annotations.Single(annotation => annotation.Name == (index == 0 ? "tagged-owner" : "tagged-popup")).ObjectNumber,
+                element.Get<PdfDictionary>("K")!.Get<PdfReference>("Obj")!.ObjectNumber);
+        }
+        Assert.Equal(original, source.ToBytes());
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(true, true)]
@@ -166,7 +221,7 @@ public sealed class PdfAnnotationBatchTests {
         int[] numbers = PdfInspector.Inspect(encrypted, ownerOptions).Annotations.Select(annotation => annotation.ObjectNumber!.Value).ToArray();
 
         var annotations = PdfDocument.Load(encrypted, userOptions).Annotations;
-        Assert.Equal(numbers.Order(), annotations.GetForEditing().Select(annotation => annotation.ObjectNumber!.Value).Order());
+        Assert.Equal(numbers.OrderBy(static number => number), annotations.GetForEditing().Select(annotation => annotation.ObjectNumber!.Value).OrderBy(static number => number));
         var interactions = annotations.GetEditingInteractions(1);
         Assert.NotEmpty(interactions.Regions);
         Assert.Empty(interactions.TextRegions);

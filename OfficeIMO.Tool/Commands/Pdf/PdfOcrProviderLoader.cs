@@ -51,6 +51,7 @@ internal static class PdfOcrProviderLoader {
             _resolver = new AssemblyDependencyResolver(path);
             _directory = Path.GetDirectoryName(path)!;
         }
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The separately deployed provider dependencies are not part of the trimmed application graph; NativeAOT is rejected before this context is created.")]
         protected override Assembly? Load(AssemblyName assemblyName) {
             if (assemblyName.Name == typeof(IOcrEngine).Assembly.GetName().Name) return typeof(IOcrEngine).Assembly;
             Assembly? shared = Default.Assemblies.FirstOrDefault(assembly => assembly.FullName == assemblyName.FullName);

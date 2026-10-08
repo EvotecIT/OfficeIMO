@@ -138,6 +138,20 @@ public sealed class PdfAutomationCommandTests {
     }
 
     [Fact]
+    public void ProviderDiscoveryWithLongEscapedIdsHonorsTheMinimumReportBudget() {
+        using var scope = new DirectoryScope();
+        var catalog = new OcrEngineCatalog();
+        for (int i = 0; i < 30; i++) catalog.Register(new DiscoveryProvider(i.ToString("D2") + new string('é', 254)));
+        var service = new OfficeImoAgentService(new AgentPathPolicy([scope.Root]), pdfOcrCatalog: catalog);
+        var result = service.PdfOcrProviders(512);
+        Assert.Equal(30, result.ProviderCount);
+        Assert.Empty(result.ProviderIds);
+        Assert.True(result.Truncated);
+        Assert.True(AgentJson.Serialize(result).Length <= 512);
+        Assert.Throws<AgentUsageException>(() => service.PdfOcrProviders(511));
+    }
+
+    [Fact]
     public async Task ProviderFactoryAccessErrorsDoNotExposePrivateMessagesThroughMcp() {
         using var scope = new DirectoryScope();
         string source = scope.File("source.pdf"), destination = scope.File("copy.pdf"); CreatePdf(source, 1);
@@ -167,6 +181,12 @@ public sealed class PdfAutomationCommandTests {
         public string Id => "refusing"; public string DisplayName => "Refusing fixture";
         public OcrEngineCapabilities Capabilities => new();
         public IOcrEngine Create(IReadOnlyDictionary<string, string> options) => throw new UnauthorizedAccessException("private-provider-message");
+    }
+    private sealed class DiscoveryProvider(string id) : IOcrEngineProvider {
+        public string Id => id;
+        public string DisplayName => "Discovery fixture";
+        public OcrEngineCapabilities Capabilities => new();
+        public IOcrEngine Create(IReadOnlyDictionary<string, string> options) => throw new InvalidOperationException("Discovery does not execute a provider.");
     }
     internal static void CreatePdf(string path, int count) => PdfDocument.Create(d => {
         for (int index = 1; index <= count; index++) { int page = index;

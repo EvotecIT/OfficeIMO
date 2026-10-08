@@ -133,14 +133,19 @@ public sealed partial class StudioMobileApplicationTests {
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static void Click(Window window, Control scope, System.Windows.Input.ICommand command) =>
-        Click(window, scope.GetVisualDescendants().OfType<Button>().First(button => ReferenceEquals(button.Command, command) && button.IsEffectivelyVisible));
+    private static void Click(Window window, Control scope, System.Windows.Input.ICommand command, bool requireHitTarget = false) =>
+        Click(window, scope.GetVisualDescendants().OfType<Button>().First(button => ReferenceEquals(button.Command, command) && button.IsEffectivelyVisible), requireHitTarget);
 
-    private static void Click(Window window, Button button) {
+    private static void Click(Window window, Button button, bool requireHitTarget = false) {
         Assert.True(button.IsEffectivelyEnabled);
         Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
         Assert.InRange(point.X, 0, window.Bounds.Width);
         Assert.InRange(point.Y, 0, window.Bounds.Height);
+        if (requireHitTarget) {
+            var target = window.InputHitTest(point) as Visual;
+            Assert.True(ReferenceEquals(target, button) || target?.GetVisualAncestors().Contains(button) == true,
+                $"Button {Avalonia.Automation.AutomationProperties.GetName(button)} at {point} is obscured by {target}.");
+        }
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);
     }
