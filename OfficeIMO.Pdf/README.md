@@ -1636,6 +1636,13 @@ PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(precise);
 result.ThrowIfUnverified();
 ```
 
+Touching native text fragments from the same match and baseline share one reviewed
+rectangle. Wrapped lines and separated fragments remain separate areas. When editing
+a review reason, use `area.WithLabel(reason)` to retain its exact geometry and
+precise removal policy; constructing a new rectangle from its bounds loses that
+evidence. After checking the search plan's `IsReviewable` and `Findings`, pass the
+selected, relabeled areas to `source.Redactions.Plan(...)` for a fresh impact review.
+
 Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
 unsupported clipping or glyph evidence, and areas that intersect unselected text
 (including hidden layers and tightly spaced lines whose conservative glyph bounds overlap).
