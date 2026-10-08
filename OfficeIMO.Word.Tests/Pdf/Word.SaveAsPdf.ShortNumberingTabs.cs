@@ -146,4 +146,48 @@ public sealed class PdfShortNumberingTabTests {
     private static PdfPigDocument OpenPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
         IncludePageNumbers = false, FontFamily = "Courier"
     }));
+
+    [Theory]
+    [InlineData(false, "same-story")]
+    [InlineData(true, "same-story")]
+    [InlineData(false, "first-variant")]
+    [InlineData(true, "first-variant")]
+    [InlineData(false, "even-variant")]
+    [InlineData(true, "even-variant")]
+    [InlineData(false, "numbered-first-line")]
+    [InlineData(true, "numbered-first-line")]
+    [InlineData(false, "unnumbered-first-line")]
+    [InlineData(true, "unnumbered-first-line")]
+    public void NumberedRunningFamiliesKeepBoundedExportForEveryParagraphTextFrame(bool footer, string route) {
+        using WordDocument document = WordDocument.Create();
+        WordHeaderFooter normal = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordList list = normal.AddList(WordListStyle.Custom);
+        list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        list.Numbering.Levels[0].IndentationLeft = 720;
+        list.Numbering.Levels[0].IndentationHanging = 360;
+        WordParagraph numbered = list.AddItem("RUNNING");
+        WordHeaderFooter siblingStory = normal;
+        if (route == "first-variant") {
+            document.Sections[0].DifferentFirstPage = true;
+            siblingStory = footer ? document.FooterFirstOrCreate : document.HeaderFirstOrCreate;
+        } else if (route == "even-variant") {
+            document.Sections[0].DifferentOddAndEvenPages = true;
+            siblingStory = footer ? document.FooterEvenOrCreate : document.HeaderEvenOrCreate;
+        }
+        WordParagraph paragraph = route == "numbered-first-line" ? numbered : siblingStory.AddParagraph("SIBLING");
+        paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        paragraph._paragraph.ParagraphProperties.Indentation = route.EndsWith("first-line", StringComparison.Ordinal)
+            ? new Indentation { Left = route == "numbered-first-line" ? "720" : "0", FirstLine = "2000" }
+            : new Indentation { Left = "1440" };
+        document.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); document.AddParagraph("BODY");
+        Assert.Empty(document.ValidateDocument());
+        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(200D, 300D),
+            Margins = OfficeIMO.Pdf.PageMargins.Uniform(72D)
+        });
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes,
+            new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        Assert.Contains("RUNNING", text); Assert.Contains("BODY", text);
+        if (route != "numbered-first-line") Assert.Contains("SIBLING", text);
+    }
 }
