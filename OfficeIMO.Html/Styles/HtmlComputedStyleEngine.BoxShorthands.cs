@@ -96,6 +96,9 @@ public static partial class HtmlComputedStyleEngine {
         ISet<string> specified) {
 
         foreach (string shorthand in CascadeShorthands) {
+            // CSS-wide inheritance copies each computed longhand independently.
+            // The parent's retained shorthand can precede later longhand overrides.
+            if (inherited.Contains(shorthand)) continue;
             if (!properties.TryGetValue(shorthand, out string? value)
                 || !TryExpandCascadeShorthand(shorthand, value, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
                 continue;
