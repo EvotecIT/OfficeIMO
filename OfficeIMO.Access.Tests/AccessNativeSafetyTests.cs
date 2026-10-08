@@ -80,7 +80,7 @@ namespace OfficeIMO.Access.Tests {
             Assert.True(MakePropertyOpaque(bytes, property, owner == "table") > 0);
             using MemoryStream input = new MemoryStream(bytes); using AccessDocument document = AccessDocument.Load(input); AccessTable table = document.Tables["Legacy"];
             IReadOnlyDictionary<string, object?> properties = owner == "database" ? document.Properties : owner == "table" ? table.Properties : table.Columns["Link"].Properties;
-            Assert.Equal(99, Assert.IsType<AccessOpaqueValue>(properties[property]).NativeType);
+            Assert.Equal(99u, Assert.IsType<AccessOpaqueValue>(properties[property]).NativeType);
             Assert.Empty(document.Diagnostics); Assert.Empty(table.Diagnostics); Assert.NotNull(document.NativeProperties); Assert.NotNull(table.NativeProperties);
             Guid identity = owner == "database" ? document.Id : table.Id;
             Assert.Contains(document.AssessSave("target.accdb").Diagnostics, x => x.Code == "access.conversion.loss.opaque-properties" && x.ObjectId == identity);

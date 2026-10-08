@@ -91,7 +91,7 @@ namespace OfficeIMO.Access {
     public sealed class AccessDesignerProperty {
         internal AccessDesignerProperty(uint id, ushort code, uint type, uint width, byte[] bytes, object? value) {
             NativeId = id; NativeCode = code; NativeType = type; NativeDefaultWidth = width;
-            Payload = new AccessOpaqueValue(unchecked((byte)type), bytes, "Exact designer property payload."); Value = value;
+            Payload = new AccessOpaqueValue(type, bytes, "Exact designer property payload."); Value = value;
         }
         /// <summary>Native record identity, used by base/delta representations.</summary>
         public uint NativeId { get; }

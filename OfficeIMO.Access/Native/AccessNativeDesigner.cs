@@ -45,11 +45,11 @@ namespace OfficeIMO.Access {
                     6 when bytes.Length == 4 => BitConverter.ToSingle(bytes, 0),
                     7 when bytes.Length == 8 => F64(bytes, 0),
                     10 or 12 when (bytes.Length & 1) == 0 && bytes.Length > 0 => new System.Text.UnicodeEncoding(false, false, true).GetString(bytes).TrimEnd('\0'),
-                    _ => new AccessOpaqueValue(unchecked((byte)type), bytes, "Unknown or implicit-default native designer property remains uninterpreted.")
+                    _ => new AccessOpaqueValue(type, bytes, "Unknown or implicit-default native designer property remains uninterpreted.")
                 };
             }
             catch (System.Text.DecoderFallbackException) {
-                return new AccessOpaqueValue(unchecked((byte)type), bytes, "The native designer text is not valid UTF-16; its property remains uninterpreted.");
+                return new AccessOpaqueValue(type, bytes, "The native designer text is not valid UTF-16; its property remains uninterpreted.");
             }
         }
     }

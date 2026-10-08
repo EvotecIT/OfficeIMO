@@ -8,13 +8,18 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Core.Internal {
     /// <summary>Reads reusable, non-executing metadata from an Office VBA compound project.</summary>
     internal static class OfficeVbaProjectInspector {
-        /// <summary>Inspects project-relative streams supplied by a document storage adapter. No compiled code is loaded.</summary>
+        /// <summary>Inspects project-relative streams without executing code. Encoded processing is bounded by the supplied stream bytes, separately from the expansion limit.</summary>
         internal static OfficeVbaInspection Inspect(IReadOnlyDictionary<string, byte[]> streams, int maximumExpandedBytes, CancellationToken cancellationToken = default) {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (maximumExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
             cancellationToken.ThrowIfCancellationRequested();
             int remaining = maximumExpandedBytes;
             if (!streams.TryGetValue("VBA/dir", out byte[]? compressed)) return new OfficeVbaInspection("The project has no VBA directory stream.");
+            long encodedRemaining = -compressed.Length;
+            foreach (byte[] stream in streams.Values) {
+                cancellationToken.ThrowIfCancellationRequested();
+                encodedRemaining += stream.Length;
+            }
             if (!OfficeVbaProjectCanonicalizer.TryDecompress(compressed, ref remaining, out byte[] directory, out string detail, cancellationToken)
                 || !OfficeVbaProjectCanonicalizer.DirectoryModel.TryParse(directory, maximumExpandedBytes, out OfficeVbaProjectCanonicalizer.DirectoryModel? model, out detail) || model == null)
                 return new OfficeVbaInspection(detail);
@@ -27,7 +32,10 @@ namespace OfficeIMO.Core.Internal {
                 if (!streams.TryGetValue("VBA/" + module.StreamName, out byte[]? bytes)) limitation = "The declared module stream is missing.";
                 else if (module.TextOffset < 0 || module.TextOffset >= bytes.Length) limitation = "The module has no qualified source container at its recorded offset.";
                 else if (remaining == 0) limitation = "The expanded MS-OVBA project exceeds the configured byte limit; this module remains opaque.";
+                else if (bytes.Length - module.TextOffset > encodedRemaining) limitation = "The MS-OVBA project exceeds its encoded input byte limit; this module remains opaque.";
                 else {
+                    // Charge each attempt before copying, including immediate failures and repeated declarations.
+                    encodedRemaining -= bytes.Length - module.TextOffset;
                     byte[] container = new byte[bytes.Length - module.TextOffset]; Array.Copy(bytes, module.TextOffset, container, 0, container.Length);
                     if (!OfficeVbaProjectCanonicalizer.TryDecompress(container, ref remaining, out byte[] expanded, out detail, cancellationToken)) limitation = detail;
                     else {

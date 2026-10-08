@@ -200,5 +200,26 @@ namespace OfficeIMO.Access.Tests {
             }
             Assert.True(match >= 0); return match;
         }
+
+        [Theory]
+        [InlineData(0x100u)]
+        [InlineData(uint.MaxValue)]
+        public void UnknownDesignerPropertyRetainsItsFullNativeTypeAndPayload(uint nativeType) {
+            byte[] bytes = File.ReadAllBytes(Fixture("Designer/designer-ace12.accdb"));
+            byte[] caption = System.Text.Encoding.Unicode.GetBytes("Synthetic form 1");
+            int match = FindUniquePayload(bytes, caption);
+            // A designer property stores its four-byte type twelve bytes before its payload.
+            int typeOffset = match - 12;
+            for (int index = 0; index < 4; index++) bytes[typeOffset + index] = (byte)(nativeType >> (index * 8));
+            using MemoryStream input = new MemoryStream(bytes);
+            using AccessDocument document = AccessDocument.Load(input);
+            AccessDesignerProperty property = Assert.Single(document.Forms["BoundForm1"].Definition!.Properties, x => x.NativeType == nativeType);
+            Assert.Equal(nativeType, property.Payload.NativeType);
+            AccessOpaqueValue value = Assert.IsType<AccessOpaqueValue>(property.Value);
+            Assert.Equal(nativeType, value.NativeType); Assert.Equal(caption, value.GetBytes());
+            Assert.Equal(caption, property.Payload.GetBytes());
+            using MemoryStream output = new MemoryStream(); document.Save(output);
+            Assert.Equal(bytes, output.ToArray());
+        }
     }
 }

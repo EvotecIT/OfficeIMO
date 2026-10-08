@@ -45,7 +45,7 @@ namespace OfficeIMO.Security.Tests {
         }
 
         [Fact]
-        public void RepeatedMalformedStreamReferencesCannotReuseTheExpansionAllowance() {
+        public void RepeatedMalformedReferencesRespectBothAllowancesAndRetainLaterSource() {
             byte[] directory = Directory("Broken", "Broken", "Broken", "Later");
             Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
                 ["VBA/dir"] = Literal(directory),
@@ -54,9 +54,10 @@ namespace OfficeIMO.Security.Tests {
             };
             OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 64);
             Assert.Equal(4, result.Modules.Count);
-            Assert.All(result.Modules, module => Assert.Null(module.Source));
-            Assert.Contains("byte limit", result.Modules[2].Limitation);
-            Assert.Contains("byte limit", result.Modules[3].Limitation);
+            for (int index = 0; index < 3; index++) Assert.Null(result.Modules[index].Source);
+            Assert.Contains("encoded input byte limit", result.Modules[1].Limitation);
+            Assert.Contains("encoded input byte limit", result.Modules[2].Limitation);
+            Assert.Equal("OK", result.Modules[3].Source);
         }
 
         [Fact]
@@ -98,6 +99,21 @@ namespace OfficeIMO.Security.Tests {
             OfficeVbaInspection bounded = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
             Assert.Equal(2, bounded.Modules.Count);
             Assert.Null(bounded.Modules[1].Source); Assert.Contains("byte limit", bounded.Modules[1].Limitation);
+        }
+
+        [Fact]
+        public void ImmediateMalformedReferencesCannotReuseTheEncodedInputAllowance() {
+            byte[] directory = Directory("Broken", "Broken", "Later");
+            Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
+                ["VBA/dir"] = Literal(directory),
+                ["VBA/Broken"] = new byte[1024], // Invalid signature; no bytes expand.
+                ["VBA/Later"] = Literal(Encoding.ASCII.GetBytes("OK"))
+            };
+            OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
+            Assert.Null(result.Limitation); Assert.Equal(3, result.Modules.Count);
+            Assert.Null(result.Modules[0].Source); Assert.Contains("signature", result.Modules[0].Limitation);
+            Assert.Null(result.Modules[1].Source); Assert.Contains("encoded input byte limit", result.Modules[1].Limitation);
+            Assert.Equal("OK", result.Modules[2].Source);
         }
 
         private static byte[] Directory(params string[] names) => Directory(1252, names);
