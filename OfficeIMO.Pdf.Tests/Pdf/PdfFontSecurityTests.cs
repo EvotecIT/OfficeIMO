@@ -111,7 +111,7 @@ endbfchar
     }
 
     [Fact]
-    public void ResourceResolver_CapsCidWidthRangeExpansion() {
+    public void ResourceResolver_BoundsOversizedWidthRangesWithoutTruncatingValidCids() {
         var page = new PdfDictionary();
         var resources = new PdfDictionary();
         var fontDictionary = new PdfDictionary();
@@ -136,7 +136,8 @@ endbfchar
 
         Func<byte[], double> provider = Assert.Contains("F1", providers);
         Assert.Equal(250, provider(new byte[] { 0x00, 0x01 }));
-        Assert.Equal(1000, provider(new byte[] { 0x13, 0x87 }));
+        Assert.Equal(250, provider(new byte[] { 0x13, 0x87 }));
+        Assert.Equal(250, provider(new byte[] { 0xFF, 0xFF }));
     }
 
     [Fact]
