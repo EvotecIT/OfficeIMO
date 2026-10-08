@@ -17,11 +17,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);
-        // CSS table width describes the used table border box. Normal block widths
-        // describe the content box unless box-sizing changes that contract.
-        if (style.ExplicitWidth.HasValue && !style.BorderBox) {
-            tableWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
-        }
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
         ReportUnsupportedTableValues(table, style);
         List<IElement> sourceRows = table.QuerySelectorAll("tr").Where(row => BelongsToTable(row, table)).ToList();

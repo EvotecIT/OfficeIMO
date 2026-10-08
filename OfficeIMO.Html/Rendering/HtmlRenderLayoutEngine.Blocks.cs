@@ -979,11 +979,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = IsReplacedImageElement(element)
             ? ResolveReplacedImageBoxWidth(element, style)
             : ResolveBoxWidth(availableWidth, style);
-        if (element.LocalName.Equals("table", StringComparison.OrdinalIgnoreCase)
-            && style.ExplicitWidth.HasValue && !style.BorderBox) {
-            // A table's declared width is its border box; LayoutTable uses the same adjustment.
-            boxWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        }
         double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth);
         if (freeSpace <= 0D) return style;
 

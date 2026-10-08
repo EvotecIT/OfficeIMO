@@ -318,7 +318,6 @@ internal sealed partial class HtmlRenderStyleResolver {
             if (!HasAuthoredValue(physicalComputed, "margin-right")) style.MarginRightAuto = true;
         }
         ApplyDimensions(element, physicalComputed, containingWidth, fontSize, parent, style, !pseudoElement);
-        if (style.Display != "none") ReportUnsupportedIntrinsicDimensions(element, physicalComputed);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(element, computed, style, pseudoElement);
         if (style.OutlineColorInvert) {
@@ -328,6 +327,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
+        ReportUnsupportedIntrinsicDimensions(element, physicalComputed, style, parent, pseudoElement);
         ApplyFlex(computed, containingWidth, fontSize, style);
         if (style.Display == "flex"
             && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)
