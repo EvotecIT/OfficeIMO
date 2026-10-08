@@ -321,7 +321,7 @@ internal static partial class PdfWriter {
                 int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                 int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
                 double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
-                int visibleLineCount = cell.TextRotation != 0 ? 1 : LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, tableStyle.PreservePartialCellLines);
+                int visibleLineCount = cell.TextRotation != 0 ? (sourceStartLine == 0 ? 1 : 0) : LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, tableStyle.PreservePartialCellLines);
                 double verticalOffset = 0;
                 double visibleTextHeight = 0D;
                 if (visibleLineCount > 0) {
@@ -381,7 +381,7 @@ internal static partial class PdfWriter {
                             paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
                             xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts, cellFont);
                     if (cell.TextRotation != 0)
-                            RenderOrientedTableCellContent(cell, tableStyle, rowIndex, c, contentFrame, xi, state.Y, cellWidth, cellHeight, cellFont, rowSize, rowLeading, 1D, paragraph, markedStructureType, markedContentId);
+                        RenderOrientedTableCellContent(cell, tableStyle, rowIndex, c, contentFrame, xi, state.Y, cellWidth, cellHeight, cellFont, rowSize, rowLeading, table.RowRunFontSizeScales[rowIndex], paragraph, markedStructureType, markedContentId, includeCellObjects: !suppressCellObjects);
                         else
                             WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - textClipBleed, textClipWidth, cellHeight + (textClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths, baselineFont: cellFont);
                 }
@@ -396,7 +396,7 @@ internal static partial class PdfWriter {
                     }
                 }
 
-                if (HasCellLinkTarget(linkUri, linkDestinationName)) {
+                if (HasCellLinkTarget(linkUri, linkDestinationName) && (cell.TextRotation == 0 || sourceStartLine == 0)) {
                     double linkCellHeight = sourceStartLine == 0 && cell.RowSpan > 1
                         ? GetTableCellHeight(table.RowHeights, rowIndex, cell.RowSpan, columnTableRowGap)
                         : cellHeight;

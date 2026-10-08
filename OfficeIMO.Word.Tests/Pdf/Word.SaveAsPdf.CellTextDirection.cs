@@ -8,6 +8,42 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(WordTextDirection.TopToBottomRightToLeft)]
+    [InlineData(WordTextDirection.BottomToTopLeftToRight)]
+    public void SaveAsPdf_AutomaticTurnedGridWithoutPreferredWidthsUsesVisibleRunLineBox(WordTextDirection direction) {
+        double first = AutomaticTurnedGridWidth(direction, 6);
+        double second = AutomaticTurnedGridWidth(direction, 24);
+        Assert.InRange(first, 18D, 30D);
+        Assert.Equal(first, second, 3);
+    }
+
+    private static double AutomaticTurnedGridWidth(WordTextDirection direction, int markSize) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
+        table.LayoutMode = WordTableLayoutMode.AutoFit;
+        table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Auto, Width = "0" };
+        table.GridColumnWidth = new List<int> { 0 };
+        table.Rows[0].Height = 2400;
+        WordTableCell cell = table.Rows[0].Cells[0];
+        cell.WidthType = WordTableWidthUnit.Auto; cell.Width = 0;
+        cell.TextDirection = direction;
+        WordParagraph paragraph = cell.Paragraphs[0];
+        paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
+            new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+        var page = Assert.Single(pdf.GetPages());
+        var frame = Assert.Single(page.Paths.Where(path => path.IsStroked)
+            .Select(path => path.GetBoundingRectangle()).Where(bounds => bounds.HasValue)
+            .Select(bounds => bounds!.Value));
+        var firstLetter = page.Letters.First(letter => letter.Value == "A");
+        Assert.InRange(firstLetter.StartBaseLine.X, frame.Left, frame.Right);
+        return frame.Width;
+    }
+
+    [Theory]
     [InlineData(WordTextDirection.LeftToRightTopToBottom, 0)]
     [InlineData(WordTextDirection.TopToBottomRightToLeft, -1)]
     [InlineData(WordTextDirection.BottomToTopLeftToRight, 1)]

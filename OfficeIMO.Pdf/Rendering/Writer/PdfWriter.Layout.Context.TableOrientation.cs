@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
         private void RenderOrientedTableCellContent(TableCellLayout cell, PdfTableStyle style, int row, int column,
             TableCellContentFrame frame, double cellX, double cellTop, double cellWidth, double cellHeight,
             PdfStandardFont font, double fontSize, double leading, double runFontSizeScale, RichParagraphBlock paragraph,
-            string structureType, int? markedContentId) {
+            string structureType, int? markedContentId, bool includeCellObjects = true) {
             bool clockwise = cell.TextRotation < 0;
             double physicalLeft = GetTableCellPaddingLeft(style, row, column);
             double physicalRight = GetTableCellPaddingRight(style, row, column);
@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
                         lineAlignments: SliceTableCellLineAlignments(layout, 0, count),
                         lineXOffsets: SliceTableCellLineXOffsets(layout, 0, count),
                         lineWidths: SliceTableCellLineWidths(layout, 0, count, width), baselineFont: font);
-                    if (objectsHeight > 0D)
+                    if (includeCellObjects && objectsHeight > 0D)
                         RenderTableCellObjects(currentPage!, cell, MapCellAlignment(paragraph.Align), left, width,
                             frame.Width - top - offset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap),
                             pageImage => WriteTableCellViewportImage(pageImage, null));

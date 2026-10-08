@@ -173,6 +173,13 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            if (style.AutoFitColumns && style.CellSpacing <= 0D && IsNativeTableAutoFitToContents(properties)) {
+                // A valid automatic grid can contain only zero/automatic widths.
+                // Its physical content minimum still determines the table frame.
+                style.AutoFitWidthUsesContentMinimum = true;
+                style.PreserveWidth = true;
+            }
+
             double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
                 GetNativeTableLeftIndent(properties?.TableIndentation) ??
                 tableStyleDefaults.LeftIndent;

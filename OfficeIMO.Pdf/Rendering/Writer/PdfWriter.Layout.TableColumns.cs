@@ -49,11 +49,13 @@ internal static partial class PdfWriter {
         int columnCount,
         double columnGap) {
         double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
-        if (!style.PreferredWidth.HasValue) {
+        if (!style.PreferredWidth.HasValue && !style.AutoFitWidthUsesContentMinimum) {
             return availableWidth;
         }
 
-        double preferredWidth = Math.Min(availableWidth, style.PreferredWidth.Value);
+        // An imported automatic grid with no authored width grows from its
+        // content minimum. Generic PDF tables retain their page-width default.
+        double preferredWidth = style.PreferredWidth.HasValue ? Math.Min(availableWidth, style.PreferredWidth.Value) : 0D;
         double measuredContentWidth = 0D;
         if (!style.AutoFitWidthUsesContentMinimum && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
             measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());

@@ -154,6 +154,7 @@ internal static partial class PdfWriter {
                     var rowHeights = new double[tb2.Rows.Count];
                     var rowLeadings = new double[tb2.Rows.Count];
                     var rowSizes = new double[tb2.Rows.Count];
+                    var rowRunFontSizeScales = new double[tb2.Rows.Count];
                     var rowBold = new bool[tb2.Rows.Count];
                     var textLayouts = new TableTextLayoutReuse(currentOpts);
                     for (int ri = 0; ri < tb2.Rows.Count; ri++) {
@@ -164,6 +165,7 @@ internal static partial class PdfWriter {
                         double runFontSizeScale = sizing.RunFontSizeScale;
                         double rowLeading = GetTableLeading(style, rowSize);
                         rowSizes[ri] = rowSize;
+                        rowRunFontSizeScales[ri] = runFontSizeScale;
                         rowLeadings[ri] = rowLeading;
                         rowBold[ri] = rowUsesBold;
                         rowLines[ri] = new TableCellTextLayout[cols];
@@ -211,7 +213,7 @@ internal static partial class PdfWriter {
                         }
                     }
 
-                    items.Add(new ColTable { Block = tb2, Style = style, Columns = cols, ColumnWidths = colPixel, RowLines = rowLines, RowLineCounts = rowLineCounts, RowHeights = rowHeights, RowLeadings = rowLeadings, RowSizes = rowSizes, RowBold = rowBold, Width = tableWidth, Size = size, HeaderRowCount = headerRowCount, RepeatHeaderRowCount = repeatHeaderRowCount, FooterStartRowIndex = footerStartRowIndex, CaptionRuns = captionRuns, CaptionLines = captionLines, CaptionLineHeights = captionLineHeights, CaptionLeading = captionLeading, CaptionHeight = captionHeight });
+                    items.Add(new ColTable { Block = tb2, Style = style, Columns = cols, ColumnWidths = colPixel, RowLines = rowLines, RowLineCounts = rowLineCounts, RowHeights = rowHeights, RowLeadings = rowLeadings, RowSizes = rowSizes, RowRunFontSizeScales = rowRunFontSizeScales, RowBold = rowBold, Width = tableWidth, Size = size, HeaderRowCount = headerRowCount, RepeatHeaderRowCount = repeatHeaderRowCount, FooterStartRowIndex = footerStartRowIndex, CaptionRuns = captionRuns, CaptionLines = captionLines, CaptionLineHeights = captionLineHeights, CaptionLeading = captionLeading, CaptionHeight = captionHeight });
                 } else if (cb is HorizontalRuleBlock hr2) {
                     items.Add(new ColRule { Block = hr2 });
                 } else if (cb is ImageBlock ib2) {
