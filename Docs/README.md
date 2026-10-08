@@ -20,6 +20,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Native OCR quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) — independently labelled forms and scans, bounded retries, confidence false passes, source hashes, and platform scorecards.
 - [Real-world and PDF quality corpus evidence](officeimo.real-world-corpus-evidence.md) — bounded external discovery, strict provenance-bound PDF scorecards, multilingual native/OCR reconstruction measurements, deterministic sampling, isolation, and interpretation limits.
 - [Excel benchmark notes](officeimo.excel.benchmark-notes.md) — reproducible comparison-suite execution and provenance.
+- [Windows .NET 10 tabular measurements](benchmarks/officeimo.excel-tabular-2026-10-08.md) — validated workbook and CSV reads/writes, shared-string first-row latency, mapping, Arrow, and ADO.NET workloads with captured artifact and input identities.
 - [Image engine benchmarks](../OfficeIMO.Drawing.Benchmarks/README.md) — validated identification, decode, encode, resize, and placement-optimization workloads, with isolated opt-in library comparisons.
 
 ## Current product contracts

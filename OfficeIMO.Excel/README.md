@@ -86,6 +86,11 @@ Performance claims use validated outputs and record the workload, package versio
 
 Use the [benchmark website](https://officeimo.com/benchmarks/) for dated comparison snapshots and their recorded environments. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
 
+The [opt-in tabular comparison suite](../Benchmarks/ExcelReaderTyped/README.md)
+covers typed and raw reads, shared strings, native workbook writes, real-data
+files, CSV, Arrow, and ADO.NET consumers. It validates every field and records
+API differences separately from equivalent-work comparisons.
+
 ## Examples
 
 The quick start covers the smallest workbook. These examples show common read, write, reporting, and automation workflows that belong in `OfficeIMO.Excel`.
@@ -298,13 +303,15 @@ workbook must be inspected, edited, or saved again. CSV provides the same typed
 and ordered-parallel row-mapping contracts through the separate
 `OfficeIMO.CSV` package.
 
-Native XLSX data-reader opening qualifies the complete selected worksheet before
-row delivery. When that worksheet references shared strings, opening also
-materializes the complete workbook shared-string table and checks its XML and
-item/count/character limits, including later items unused by that worksheet.
-`HasHeaderRow = false` does not skip this work. First-row latency therefore
-includes more than reading the first record; the reader exposes no option to
-replace these checks with the XML count attributes or a partial table load.
+For indexed native XLSX reads, `OpenDataReader` qualifies the complete selected
+worksheet before returning. Its first shared-string cell, when present, causes
+the opening scan to load the complete workbook shared-string table, checking XML
+and item/count/character limits, including later unused items. This occurs before
+the caller's first `Read` or value getter, even with `HasHeaderRow = false`.
+First-row latency includes this opening work; the reader exposes no option to
+replace it with XML count attributes or a partial shared-string table load.
+See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
+for the first-row and full-scan evidence boundaries.
 
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:
