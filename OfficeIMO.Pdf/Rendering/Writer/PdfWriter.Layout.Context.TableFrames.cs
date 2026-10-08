@@ -25,6 +25,7 @@ internal static partial class PdfWriter {
             ValidatePanelStyle(style, outerWidth);
             PdfTableStyle placement = tableStyle.Clone();
             placement.LeftIndent = container.FrameTableIndent;
+            placement.HorizontalOffset = container.FrameTableHorizontalOffset;
             return (ResolveTableX(table.Align, placement, parentLeft, parentWidth, outerWidth), outerWidth, contentWidth);
         }
 

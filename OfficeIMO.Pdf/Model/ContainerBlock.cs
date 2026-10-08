@@ -14,6 +14,7 @@ internal sealed class ContainerBlock : IPdfBlock {
 
     internal TableBlock? FrameTable { get; }
     internal double FrameTableIndent { get; }
+    internal double FrameTableHorizontalOffset { get; }
     internal PdfCellBorder? FrameTableBorder { get; }
     internal double FrameTableBorderInset { get; }
     internal double FrameTableContinuationBottomPadding { get; }
@@ -23,6 +24,7 @@ internal sealed class ContainerBlock : IPdfBlock {
         PdfTableStyle source = table.Style!;
         PdfTableBorderFrame frame = source.BorderFrame!;
         FrameTableIndent = source.LeftIndent;
+        FrameTableHorizontalOffset = source.HorizontalOffset;
         FrameTableBorder = frame.Border?.Clone();
         FrameTableBorderInset = frame.HorizontalInset;
         FrameTableContinuationBottomPadding = frame.Spacing / 2D +
@@ -45,6 +47,7 @@ internal sealed class ContainerBlock : IPdfBlock {
         PdfTableStyle innerStyle = source.Clone();
         innerStyle.BorderFrame = null;
         innerStyle.LeftIndent = 0D;
+        innerStyle.HorizontalOffset = 0D;
         innerStyle.SpacingBefore = innerStyle.SpacingAfter = 0D;
         innerStyle.KeepTogether = innerStyle.KeepWithNext = false;
         FrameTable = new TableBlock(table.Cells.Select(row => row.ToArray()), table.Align, innerStyle);
