@@ -31,6 +31,11 @@ public partial class ExcelDocument {
                 || !string.IsNullOrEmpty(workbookName) && sheetNames.Contains(workbookName, StringComparer.OrdinalIgnoreCase)) {
                 throw new ArgumentException("Excel workbook and sheet code names must be unique.", nameof(project));
             }
+            if (project.Modules.Any(module => module.Kind != OfficeVbaModuleKind.Document
+                && (sheetNames.Contains(module.Name, StringComparer.OrdinalIgnoreCase)
+                    || string.Equals(module.Name, workbookName, StringComparison.OrdinalIgnoreCase)))) {
+                throw new ArgumentException("A non-document VBA module name collides with an existing Excel host code name.", nameof(project));
+            }
             foreach (OfficeVbaModule module in project.Modules.Where(module => module.Kind == OfficeVbaModuleKind.Document)) {
                 string? identity = OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source);
                 if (string.Equals(identity, "0{00020819-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) {
