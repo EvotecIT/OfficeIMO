@@ -57,7 +57,7 @@ public sealed partial class OfficeVbaProject {
             throw new InvalidDataException("A VBA project must contain PROJECT and VBA/dir streams.");
         }
         if (!OfficeVbaCompression.TryDecompress(compressedDirectory, options.MaximumExpandedBytes, out byte[] directoryBytes, out string detail)
-            || !DirectoryModel.TryParse(directoryBytes, options.MaximumExpandedBytes, out DirectoryModel? directory, out detail)
+            || !DirectoryModel.TryParse(directoryBytes, options.MaximumExpandedBytes, out DirectoryModel? directory, out detail, includeSignatureTranscripts: false)
             || directory == null) throw new InvalidDataException(detail);
         var project = new OfficeVbaProject(bytes, compound, directory, OfficeVbaText.Decode(projectText, directory.CodePage));
         project.IsProtected = OfficeVbaProjectText.IsProtected(project._projectText);
