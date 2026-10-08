@@ -1,0 +1,187 @@
+{
+  "schema": 1,
+  "sourceCommit": "5fc4362568114a0b05e7e16221d1156d2bc79369",
+  "foundationCommit": "975c74d4b25a852baff8e70b949211ee5b27e155",
+  "sdk": "10.0.303",
+  "sourceHashes": {
+    "OfficeIMO.Html.Tests/Html.Rendering.IntrinsicDimensions.cs": "be25885dc623f2ecceadedb2a007f2fc86f3befe2b822a9231d37a12e9bac54c",
+    "OfficeIMO.Html.Tests/Html.Rendering.Tables.Geometry.cs": "c006906e071acbe1e16312f580104dadf195e9cd2396c5741dbec796d0d87651",
+    "OfficeIMO.Html.Tests/Html.Rendering.Tables.ReviewRegressions.cs": "033a1d14b1ee5428d74ca456d74695c458bd4f75d70195ac7768208263297c55",
+    "OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs": "3d365ff08b4588197647ebc8bdf634d34f6157e1daa3a79c4e6e3ed0add60019",
+    "OfficeIMO.Html/Diagnostics/HtmlDiagnosticCatalog.cs": "58637380536f8d12128d4b28ff20cbec4f9e84128bb1096ce6f64a54bc687267",
+    "OfficeIMO.Html/README.md": "b6fa93f42dcd5d9340b28041ac6a04723168f655a18d5e7743d385727a1add0e",
+    "OfficeIMO.Html/Rendering/HtmlRenderBoxStyle.cs": "290c5a654e0073693046a4db92f66cb34bde042eb447c2c426d147db689c610d",
+    "OfficeIMO.Html/Rendering/HtmlRenderIntrinsicWidth.cs": "0f0c43b6d86e20eb9d8bb1f310b5f24f57cb35cb95bf9d206e6d1e81a91fab00",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.Inline.cs": "05a90ff8b297453ba6123454989ff2ac21faac4ae19b0b680211cff6b0982f98",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Blocks.cs": "e52c8bc9d47b58f10eccf693242e673ad0f1c4a07f847272fc6fd6798567c56d",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Grid.Intrinsic.cs": "2726d680c1b87424dda2e8475d350001dad0dd3ea5244556d8cb8cde97b4180b",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.IntrinsicText.cs": "fc88893e4db7eb648b101df667248368db1c682d2e9573cf0a74428044dc8ec1",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.IntrinsicWidths.cs": "819dcf151933e95f227c2534f93d2af139bcf3ea3d9a994ed11a0319906b7f3c",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs": "3049be0347a1ae95b702f164d6fcfbc86691b7530efa3c867cade93596229610",
+    "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.DimensionDiagnostics.cs": "568f970bf0805dc6dcf54ce4a1a416853c95dcf1fc416d9bbf1814d1b3d146d6",
+    "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.IntrinsicWidths.cs": "8fb85595ed44db287cb31757656b0aad9fda9172b8cdddc7faaf4a838207dd7e",
+    "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs": "bfafd9bc02593a235982666ae7ac3573d8cde4346349ab200aaee5d93a7666c0"
+  },
+  "contract": [
+    "Horizontal normal-flow ordinary block and inline-block width/min-width/max-width support min-content, max-content, fit-content and absolute fit-content lengths.",
+    "Nested authored constraints, cyclic descendant percentages, numeric edges, signed block/inline-block margins, logical aliases and auto margins use the shared layout owner.",
+    "Unqualified roots, specialized/replaced descendants, intrinsic heights, percentage fit-content functions and ordinary inline horizontal box edges preserve source/property-specific loss."
+  ],
+  "gates": {
+    "net10-full": {
+      "passed": 5135,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "results/bounded-closure-net10.trx",
+      "sourceCommit": "5fc4362568114a0b05e7e16221d1156d2bc79369"
+    },
+    "net10-focused": {
+      "passed": 314,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "results/bounded-focused-net10.trx",
+      "sourceCommit": "5fc4362568114a0b05e7e16221d1156d2bc79369"
+    },
+    "net8-full": {
+      "passed": 5135,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "results/bounded-closure-net8.trx",
+      "sourceCommit": "5fc4362568114a0b05e7e16221d1156d2bc79369"
+    },
+    "netstandard2-owner-graph": {
+      "result": "passed",
+      "warnings": 0,
+      "errors": 0,
+      "sourceCommit": "5fc4362568114a0b05e7e16221d1156d2bc79369",
+      "log": "netstandard-final.log"
+    }
+  },
+  "review": {
+    "fullReadOnlyCandidate": "75d8ccc1ce28c072e428047a7a881513268fbbcc",
+    "confirmedClasses": [
+      "Cyclic atomic percentages used a definite ancestor reference.",
+      "Auto atomic wrappers dropped nested authored widths.",
+      "display:contents contributed phantom box edges."
+    ],
+    "namedPageCandidate": "Not reproduced; explicit paged mode passes before and after. Shared entry-point guard is preventive coverage.",
+    "targetedConfirmationCandidate": "b4e1e1489ab43833893fbc5c5a7806c28657aba0",
+    "targetedFinding": "Negative absolute terms in cyclic margins were floored by the non-negative length parser. Canonical signed margin parsing fixes admitted block/inline-block paths.",
+    "finalBoundary": "Primary rendered inspection exposed missing ordinary inline edge advances. Those descendants now retain explicit intrinsic-size loss instead of claiming the measurement-only result is qualified. Final correction has focused primary proof; no second full review loop."
+  },
+  "renderedEvidence": {
+    "basic": {
+      "caseCount": 11,
+      "scratchRelative": "bounded-artifacts",
+      "strictLossPolicy": "RequireNoLoss",
+      "inspected": [
+        "retained raster",
+        "SVG in native browser on byte-identical predecessor",
+        "independent Poppler PDF raster on byte-identical predecessor"
+      ],
+      "artifacts": {
+        "results.json": "8a3deab79efb1278e8d30ad6774b4ef03e09a369fb763143f8d18e895f3c2c2e",
+        "scene.svg": "1b871fc0ad4877519c162a21a0d7d4ed2ffd62a67ad34b5245e8a1fb4e3488f0",
+        "source.html": "85a7d6ec5b9dfb94e7052c5895f5582320203b40c4492bd464666547ea6bd1c6",
+        "scene.pdf": "191cdf9e560c682bee0211bb66334f89d7a52d6af8f311a2c244c483126b367a",
+        "scene.png": "85293d046a8c5b4a75763e35beef6f669e924ea4b179621deee3e3714671a038",
+        "pdf-page.png": "4ea469d60d25846e41689b954257fe4f41d467928ff35ce81c23864144e11d25"
+      }
+    },
+    "signedMargins": {
+      "caseCount": 8,
+      "scratchRelative": "bounded-signed-artifacts",
+      "expectedWidths": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "observedWidths": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "nativeSource": "signed-margin-repro.html first eight cases",
+      "nativeBrowserWidths": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "strictLossPolicy": "RequireNoLoss",
+      "inspected": [
+        "native browser",
+        "retained PNG",
+        "independent Poppler PDF raster"
+      ]
+    },
+    "nativeBoundary": "The browser does not accept fit-content(70px) as an ordinary width function; that case uses the specification and numeric box-sizing controls, not a browser width oracle."
+  },
+  "specifications": [
+    "https://www.w3.org/TR/css-sizing-3/#box-sizing",
+    "https://www.w3.org/TR/css-sizing-3/#cyclic-percentage-contribution",
+    "https://www.w3.org/TR/css-sizing-4/#sizing-values"
+  ],
+  "reproduction": {
+    "test": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f <net8.0|net10.0> --filter Category!=Performance --artifacts-path <mounted-task-artifacts> --disable-build-servers -m:1",
+    "compatibility": "dotnet build OfficeIMO.Html/OfficeIMO.Html.csproj -c Release -f netstandard2.0 --artifacts-path <mounted-task-artifacts> --disable-build-servers -m:1",
+    "generatedContract": "HtmlSupportMatrixWriter; Build/Export-HtmlSupportMatrix.ps1 is the repository entry point.",
+    "externalArtifactFixtures": "For relocated test output, copied repository Assets, the test-project root marker, VisualBaselines, portable converter font fixtures and generated Docs were provided in the task graph. These were fixture copies, not production dependency changes."
+  },
+  "boundaries": [
+    "Local macOS source and in-process artifact qualification; Windows/Linux, packed consumers and performance evidence are separate gates.",
+    "Current master replay needs preceding independent correctness slices. The integration branch is a checkpoint, not a merged or published release.",
+    "Retained static providers remain unchanged. Upstream parser adoption is a separate maintenance dependency.",
+    "Ordinary inline horizontal edge advance/layout remains open roadmap work; unsupported intrinsic contexts retain strict-loss rejection."
+  ],
+  "evidenceLocation": {
+    "task": "01a11a92-00a5-7873-aa1a-7bffe37b27b9",
+    "scratchRelative": "html-intrinsic-sizing",
+    "retained": "Compact source/probe, native geometry, before/final rendered artifacts, compressed test receipts and logs.",
+    "rawResultsArchive": {
+      "path": "test-receipts.zip",
+      "sha256": "f4b05efb6a2658cf9009661d9721200503d16fe7eefb4c032a17652c4ad2628c",
+      "receipts": 18
+    }
+  },
+  "generatedContract": {
+    "catalogCommit": "5fc4362568114a0b05e7e16221d1156d2bc79369",
+    "outputSha256": "22188a1b935a82bb612626ff7f1f39e69bb6389e08d8f7d6986eed098c2c6974",
+    "fullNet10ContractCheck": "passed"
+  },
+  "historicalValidation": [
+    "Original implementation had 20 focused failures at the foundation control.",
+    "Full review reproduced cyclic atomic, display:contents and nested auto-atomic defects before remediation.",
+    "The earlier NET10 broad run had a stale copied generated matrix failure; regenerated source and copied fixture corrected it. Both final full suites include the generated contract check.",
+    "The superseded inline signed-edge experiment passed measurement checks but rendered incorrect atomic wrapping. It is not part of the final admitted contract.",
+    "Three pre-existing xUnit2031 analyzer warnings appear in test builds; the netstandard owner graph has no warnings."
+  ],
+  "assemblyHashes": {
+    "OfficeIMO.Html.dll": "e2ed6f9a519049dcabd7d7ff3c55dac7049ebe18d54b2197baa15ebfe2d61865",
+    "OfficeIMO.Html.Core.dll": "26238c03c62b4a5b35f09f641b17fc444f622eb2a1eeb7ab68caa2e97b824b3d",
+    "OfficeIMO.Html.AngleSharp.dll": "5f0f3153e073564d695f97bd9251742fcb615326c46cbce8b39c4188ac800037",
+    "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+  },
+  "masterReplay": {
+    "controlCommit": "66fcf1289ef4c43551bc391a0110f7dabf40a304",
+    "sliceCandidate": "75d8ccc1ce28c072e428047a7a881513268fbbcc",
+    "result": "Direct patch replay does not apply; preceding resource, selector, CSS-preservation and table-geometry changes require coherent current-master slices. No master files were overwritten.",
+    "receipt": "master-replay-check.log",
+    "boundary": "This earlier control is not current-head master qualification for the final sizing slice."
+  },
+  "observedUtc": "2026-10-08T19:35:48.277005+00:00"
+}
