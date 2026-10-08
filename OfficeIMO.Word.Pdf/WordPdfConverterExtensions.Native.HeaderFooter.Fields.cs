@@ -12,7 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool TryBuildNativeHeaderFooterParagraphText(WordParagraph paragraph, out string? text, out PdfCore.PdfPageNumberStyle? pageNumberStyle, List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild)>? serializedRuns = null) {
+        private static bool TryBuildNativeHeaderFooterParagraphText(WordParagraph paragraph, out string? text, out PdfCore.PdfPageNumberStyle? pageNumberStyle, List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? serializedRuns = null) {
             text = null;
             pageNumberStyle = null;
             if (paragraph._paragraph == null) {
@@ -102,14 +102,13 @@ namespace OfficeIMO.Word.Pdf {
                         state.CollectingFieldCode = true;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
-                        state.PendingToken = null;
                     } else if (fieldCharType == W.FieldCharValues.Separate) {
                         if (TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(), out string? token, out PdfCore.PdfPageNumberStyle? style)) {
-                            bool visibleResult = HasVisibleNativeHeaderFooterFieldResult(fieldChar, state.Paragraph);
-                            state.PendingToken = visibleResult ? token : null;
+                            bool visibleResult = TryGetVisibleNativeHeaderFooterFieldResult(fieldChar, state.Paragraph, out W.Run? resultRun);
                             if (visibleResult) {
                                 builder.Append(token);
                                 MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
+                                state.SerializedRuns?.Add((resultRun!, token!, true, null, style));
                             }
                             hasFieldToken = true;
                             state.SkippingFieldResult = true;
@@ -120,7 +119,6 @@ namespace OfficeIMO.Word.Pdf {
                         state.CollectingFieldCode = false;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
-                        state.PendingToken = null;
                     }
 
                     continue;
@@ -135,12 +133,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (state.CollectingFieldCode || state.SkippingFieldResult) {
-                    if (state.SkippingFieldResult && child is W.Text) {
-                        if (state.PendingToken != null && !hidden) {
-                            state.SerializedRuns?.Add((run, state.PendingToken, true, null));
-                            state.PendingToken = null;
-                        }
-                    }
+                    // A recognized field token is emitted at its separator. Cached text is skipped.
                     continue;
                 }
 
@@ -148,17 +141,17 @@ namespace OfficeIMO.Word.Pdf {
                 if (child is W.Text text) {
                     string visibleText = ApplyNativeTextTransform(WordParagraph.ReadVisibleText(text), sourceRun, state.Paragraph);
                     builder.Append(visibleText);
-                    state.SerializedRuns?.Add((run, visibleText, false, child));
+                    state.SerializedRuns?.Add((run, visibleText, false, child, null));
                 } else if (child is W.TabChar) {
                     builder.Append('\t');
-                    state.SerializedRuns?.Add((run, "\t", false, child));
+                    state.SerializedRuns?.Add((run, "\t", false, child, null));
                 } else if (child is W.Break) {
                     builder.AppendLine();
-                    state.SerializedRuns?.Add((run, Environment.NewLine, false, child));
+                    state.SerializedRuns?.Add((run, Environment.NewLine, false, child, null));
                 } else if (child is W.Drawing or W.Picture or DocumentFormat.OpenXml.AlternateContent) {
                     string drawingText = WordParagraph.ReadVisibleText(child);
                     builder.Append(drawingText);
-                    state.SerializedRuns?.Add((run, drawingText, false, child));
+                    state.SerializedRuns?.Add((run, drawingText, false, child, null));
                 }
             }
         }
@@ -170,7 +163,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfPageNumberStyle? style, NativeHeaderFooterFieldState state,
             ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles) {
             builder.Append(token);
-            if (run != null) state.SerializedRuns?.Add((run, token, true, null));
+            state.SerializedRuns?.Add((run ?? new W.Run(), token, true, null, style));
             MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
         }
 
@@ -300,8 +293,7 @@ namespace OfficeIMO.Word.Pdf {
             public WordParagraph Paragraph { get; set; } = null!;
             public bool CollectingFieldCode { get; set; }
             public bool SkippingFieldResult { get; set; }
-            public List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild)>? SerializedRuns { get; set; }
-            public string? PendingToken { get; set; }
+            public List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? SerializedRuns { get; set; }
             public StringBuilder FieldCode { get; } = new StringBuilder();
         }
 

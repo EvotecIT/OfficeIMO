@@ -538,11 +538,13 @@ namespace OfficeIMO.Word.Pdf {
 
         private static List<PdfCore.PdfTextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, NativeNoteNumbering? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
             var result = new List<PdfCore.PdfTextRun>();
-            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+            if (nativeDefaults.RunningContentContext != null && !hasEquationContent)
+                content = AppendNativeHeaderFooterFormControlText(string.Concat(runs.Select(run => run.Text)), paragraph) ?? string.Empty;
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool hasInlineImages = inlineImages != null && runs.Any(run =>
                 !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateImages().Any(image =>

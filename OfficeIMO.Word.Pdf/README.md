@@ -244,6 +244,7 @@ pdf.SaveAsWord(
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
+- Tables in headers and footers retain their cell widths, borders, paragraph flow and supported text direction. The selected default, first-page or even-page story controls body reservation using the authored distance from the page edge. PAGE, SECTIONPAGES and NUMPAGES fields retain their individual number styles and are calculated during pagination, including fields without cached results. Form controls remain static text in these stories.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
 - DrawingML groups of supported preset shapes retain nested child coordinates and scaling. Non-wrapping groups behind text preserve page- or margin-relative positions and paragraph-relative vertical anchors. Paragraph anchors follow pagination, columns, and floating-table clearance; list paragraphs retain both their marker and the group.
 
@@ -251,6 +252,8 @@ pdf.SaveAsWord(
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 Section gutters reserve space at the left, right, or top of the body frame according to the document settings. Mirrored margins swap the left and right body margins on even visible page numbers, including section numbering restarts. Margin-relative shape groups follow that frame; page-relative groups retain their absolute coordinates. A top gutter uses the same horizontal margins on both page sides, matching Word. An explicit `WordToPdfOptions.Margins` replaces the authored margins, gutter, and mirroring.
+
+Header/footer table stories use the shared bounded PDF flow engine. Stories must fit on the physical page and leave a positive body frame; page breaks and other unbounded content cannot create pages from a header or footer. Exact text metrics, overflow in very short turned cells, floating table positioning and nested table frames remain subject to the native renderer's limits.
 
 For imported groups with unsupported DrawingML geometry, fixed-position export uses the document's VML fallback when available and reports `NativeShapeGroupVmlFallback`. Supported groups with other wrapping or anchor modes are placed in document flow with `NativeShapeGroupFlowed`; groups that cannot be rendered report `NativeShapeGroupUnsupported`. Arbitrary custom geometry, rotation, flips, foreground stacking, and exact text wrapping around groups remain limited.
 

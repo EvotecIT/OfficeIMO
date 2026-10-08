@@ -152,6 +152,8 @@ internal static partial class PdfWriter {
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
+            public PdfRunningContentContext? RunningContentContext { get; set; }
+            public bool HasDynamicRunningContent { get; set; }
         }
 
         public string ReadContent(PdfPageContentHandle handle) => _contentStore.Read(handle);

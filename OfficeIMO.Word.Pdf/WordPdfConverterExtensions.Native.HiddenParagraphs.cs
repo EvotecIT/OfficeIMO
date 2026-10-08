@@ -36,7 +36,7 @@ public static partial class WordPdfConverterExtensions {
         // Seed rich line measurement with the smallest visible source font, just
         // as an ordinary rich paragraph does. Hidden marks and preceding large
         // runs must not enlarge later wrapped or explicitly broken lines.
-        List<WordParagraph> visibleParagraphs = paragraphs.Where(paragraph => GetNativeRuns(paragraph).Any(run =>
+        List<WordParagraph> visibleParagraphs = paragraphs.Where(paragraph => GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext).Any(run =>
             IsNativeRenderableTextRun(run, paragraph))).ToList();
         if (visibleParagraphs.Count > 0) {
             style.FontSize = visibleParagraphs.Min(paragraph => ResolveNativeParagraphLayoutFontSize(paragraph,
@@ -53,11 +53,12 @@ public static partial class WordPdfConverterExtensions {
         foreach (WordParagraph paragraph in paragraphs) {
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "joined body paragraph",
                 mapsCheckBoxes: false, mapsFormFields: false, mapsPictureControls: false, mapsRepeatingSections: false);
-            if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) pdf.Bookmark(paragraph.Bookmark!.Name!);
+            if (nativeDefaults.RunningContentContext == null && !string.IsNullOrEmpty(paragraph.Bookmark?.Name))
+                pdf.Bookmark(paragraph.Bookmark!.Name!);
         }
         bool hasNoteReferences = paragraphs.Any(paragraph => GetNativeParagraphFootnoteNumbers(paragraph,
-            GetNativeRuns(paragraph), Array.Empty<int>(), footnoteNumbersById).Count > 0);
-        if (!hasNoteReferences && !paragraphs.Any(paragraph => GetNativeRuns(paragraph).Any(run =>
+            GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext), Array.Empty<int>(), footnoteNumbersById).Count > 0);
+        if (!hasNoteReferences && !paragraphs.Any(paragraph => GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext).Any(run =>
                 IsNativeRenderableTextRun(run, paragraph) ||
                 (IsNativeTextWrappingBreak(run) && !IsNativeHiddenTextRun(run, paragraph))))) {
             RenderNativeEmptyParagraph(pdf, last, style, nativeDefaults, nativeFontMap);
@@ -66,10 +67,11 @@ public static partial class WordPdfConverterExtensions {
         }
         pdf.Paragraph(builder => {
             foreach (WordParagraph paragraph in paragraphs) {
-                List<WordParagraph> runs = GetNativeRuns(paragraph);
+                List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
                 bool hasRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph) ||
                     (IsNativeTextWrappingBreak(run) && !IsNativeHiddenTextRun(run, paragraph)));
                 string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+                if (nativeDefaults.RunningContentContext != null) content = string.Concat(runs.Select(run => run.Text));
                 string renderContent = hasRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                 AddNativeParagraphContent(builder, paragraph, null, runs, hasRuns, renderContent,
                     GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById),
@@ -97,7 +99,7 @@ public static partial class WordPdfConverterExtensions {
         if (CreateNativeParagraphPanelStyle(paragraph, style) != null ||
             CreateNativeTopBorderRuleStyle(paragraph, style) != null ||
             CreateNativeBottomBorderRuleStyle(paragraph, style) != null) return false;
-        foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+        foreach (WordParagraph run in GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext)) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
             IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> children = run._visibleRunSourceChildren ?? run._run!.ChildElements;
             if (children.OfType<W.Break>().Any(boundary => boundary.Type?.Value == W.BreakValues.Page ||

@@ -7,6 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext : IDisposable {
         private StringBuilder sb = new StringBuilder();
         private readonly PdfPageContentStore pageContents;
+        private readonly bool ownsPageContents;
+        private readonly bool isRunningContent;
         private bool pageContentsTransferred;
         private readonly System.Collections.Generic.List<LayoutResult.Page> pages = new System.Collections.Generic.List<LayoutResult.Page>();
         private readonly System.Collections.Generic.Stack<PdfOptions> optionsStack = new System.Collections.Generic.Stack<PdfOptions>();
@@ -26,6 +28,7 @@ internal static partial class PdfWriter {
         private PdfOptions currentPageBaseOptions;
         private readonly Dictionary<PdfOptions, PdfOptions> mirroredPageOptions = new();
         private readonly HashSet<int> emittedPageGroups = new();
+        private readonly Dictionary<int, int> emittedPageGroupCounts = new();
         private int previousVisiblePageNumber;
         private int currentVisiblePageNumber;
         private int currentPageGroupId;
@@ -55,13 +58,23 @@ internal static partial class PdfWriter {
             System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null,
             System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null,
             System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null,
+            PdfPageContentStore? sharedPageContents = null,
+            bool isRunningContent = false,
+            Dictionary<RunningContentMaterializationKey, IReadOnlyList<IPdfBlock>>? runningMaterializations = null,
+            IReadOnlyList<PageNumberInfo>? previousRunningPages = null,
+            int previousDocumentPages = 1,
             System.Threading.CancellationToken cancellationToken = default) {
             currentOpts = options;
             currentPageBaseOptions = options;
             this.cancellationToken = cancellationToken;
             maximumGeneratedPages = options.MaxGeneratedPages;
-            pageContents = new PdfPageContentStore(options.PageContentMemoryLimitBytes);
-            emitGeneratedStructure = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
+            pageContents = sharedPageContents ?? new PdfPageContentStore(options.PageContentMemoryLimitBytes);
+            ownsPageContents = sharedPageContents == null;
+            this.isRunningContent = isRunningContent;
+            this.runningMaterializations = runningMaterializations ?? new();
+            this.previousRunningPages = previousRunningPages;
+            this.previousDocumentPages = previousDocumentPages;
+            emitGeneratedStructure = !isRunningContent && options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
             sectionDefinitions = sections ?? System.Array.Empty<SectionBlock>();
             sectionPageNumbers = resolvedSectionPages ?? new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.Ordinal);
             deferredMaterializations = materializations ?? new System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>();
@@ -74,7 +87,9 @@ internal static partial class PdfWriter {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlocks(blocks);
                 cancellationToken.ThrowIfCancellationRequested();
-                FlushPage(pageDirty || HasCurrentPageNonContentObjects());
+                bool forceRunningPage = pages.Count == 0 && currentPageBaseOptions.HasAnyRunningContent;
+                if (forceRunningPage) EnsurePage();
+                FlushPage(forceRunningPage || pageDirty || HasCurrentPageNonContentObjects());
 
                 var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
                 foreach (var p in pages) result.Pages.Add(p);
@@ -83,16 +98,17 @@ internal static partial class PdfWriter {
                 pageContentsTransferred = true;
                 return result;
             } catch {
-                pageContents.Dispose();
+                if (ownsPageContents) pageContents.Dispose();
                 throw;
             }
         }
 
         public void Dispose() {
-            if (!pageContentsTransferred) pageContents.Dispose();
+            if (ownsPageContents && !pageContentsTransferred) pageContents.Dispose();
         }
 
         private void StartPage(PdfOptions options) {
+            if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
             options.Validate();
             int? effectiveMaximumPages = maximumGeneratedPages is int documentMaximum
                 ? options.MaxGeneratedPages is int pageMaximum ? System.Math.Min(documentMaximum, pageMaximum) : documentMaximum
@@ -122,6 +138,7 @@ internal static partial class PdfWriter {
             sb.Clear();
             behindTextCanvases.Clear();
             pageDirty = false;
+            PrepareAndRenderRunningContents();
             for (int i = 0; i < activeLayers.Count; i++) {
                 BeginLayerContent(activeLayers[i]);
             }
@@ -183,6 +200,8 @@ internal static partial class PdfWriter {
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
             emittedPageGroups.Add(currentPage.PageGroupId);
+            emittedPageGroupCounts.TryGetValue(currentPage.PageGroupId, out int groupCount);
+            emittedPageGroupCounts[currentPage.PageGroupId] = groupCount + 1;
             previousVisiblePageNumber = currentVisiblePageNumber;
             currentPage = null;
             // Reuse the buffer across pages (content already captured above) instead of re-growing a new
@@ -193,6 +212,7 @@ internal static partial class PdfWriter {
 
         private void NewPage(bool preserveEmptyPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
             if (activeColumnFlow != null) {
                 AdvanceColumnFrame(forcePhysicalPage: false, preserveEmptyPage);
                 return;
