@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(selection);
             Assert.True(result.Evidence.IsVerified);
             string text = result.ToDocument().Read().Text;
-            Assert.Equal(1, Regex.Matches(text, "secret account").Count);
+            Assert.Single(Regex.Matches(text, "secret account"));
             Assert.Contains("Alpha", text, StringComparison.Ordinal);
             Assert.Contains("Omega", text, StringComparison.Ordinal);
         }

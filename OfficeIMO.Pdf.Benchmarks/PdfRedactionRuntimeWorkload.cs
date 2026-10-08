@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf.Benchmarks {
     public sealed class PdfRedactionRuntimeWorkload {
         private readonly byte[] _input;
         private readonly string _pattern;
+        private readonly bool _validateSyntheticNeighbors;
         private PdfRedactionPlan? _plan;
         private PdfRedactionApplyResult? _result;
 
@@ -22,6 +23,7 @@ namespace OfficeIMO.Pdf.Benchmarks {
             if (rotation != 0) document = document.Pages.Rotate(rotation, Enumerable.Range(1, pages).ToArray());
             _input = document.ToBytes();
             _pattern = @"private account [0-9]{3}";
+            _validateSyntheticNeighbors = true;
             ExpectedPages = pages;
             SourceSha256 = Convert.ToHexString(SHA256.HashData(_input));
         }
@@ -70,7 +72,7 @@ namespace OfficeIMO.Pdf.Benchmarks {
             foreach (PdfReadPage page in read.Pages) {
                 string text = page.ExtractText();
                 if (expression.IsMatch(text)) throw new InvalidDataException("Selected text survives.");
-                if (_pattern == @"private account [0-9]{3}" &&
+                if (_validateSyntheticNeighbors &&
                     (!text.Contains("Before", StringComparison.Ordinal) || !text.Contains("after page", StringComparison.Ordinal))) {
                     throw new InvalidDataException("Neighboring text was removed.");
                 }
