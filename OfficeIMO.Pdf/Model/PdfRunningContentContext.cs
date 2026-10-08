@@ -3,13 +3,14 @@ namespace OfficeIMO.Pdf;
 /// <summary>Read-only page information used to compose bounded running header or footer content.</summary>
 public sealed class PdfRunningContentContext {
     internal PdfRunningContentContext(int pageNumber, int totalPages, int documentPageNumber,
-        int documentPages, int sectionPageNumber, double contentWidth, double pageWidth, double pageHeight,
+        int documentPages, int sectionPageNumber, int sectionPages, double contentWidth, double pageWidth, double pageHeight,
         PdfPageNumberStyle pageNumberStyle) {
         PageNumber = pageNumber;
         TotalPages = totalPages;
         DocumentPageNumber = documentPageNumber;
         DocumentPages = documentPages;
         SectionPageNumber = sectionPageNumber;
+        SectionPages = sectionPages;
         ContentWidth = contentWidth;
         PageWidth = pageWidth;
         PageHeight = pageHeight;
@@ -26,6 +27,8 @@ public sealed class PdfRunningContentContext {
     public int DocumentPages { get; }
     /// <summary>Current one-based physical page within its page group.</summary>
     public int SectionPageNumber { get; }
+    /// <summary>Physical page count in the current page group, independent of visible numbering and restarts.</summary>
+    public int SectionPages { get; }
     /// <summary>Width of the page's content frame in points, including mirrored margins.</summary>
     public double ContentWidth { get; }
     /// <summary>Physical page width in points.</summary>

@@ -219,7 +219,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (string.Equals(fieldType, "SECTIONPAGES", StringComparison.OrdinalIgnoreCase)) {
-                token = "{pages}";
+                token = "{sectionpages}";
                 style = MapNativePageNumberFieldStyle(trimmed);
                 return true;
             }

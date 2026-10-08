@@ -6,18 +6,22 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
-    private static bool HasNativeRunningTable(WordHeaderFooter? story) => story != null &&
-        story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any());
+    private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
+        (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
+        story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
+            ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())
+            .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
+                .Any(item => item.IsField && item.Text == "{sectionpages}")));
 
     private static bool UsesNativeRunningHeader(WordSection section) =>
-        HasNativeRunningTable(section.Header?.Default) ||
-        (section.DifferentFirstPage && HasNativeRunningTable(section.Header?.First)) ||
-        (section.DocumentOddEvenSettingEnabled && HasNativeRunningTable(section.Header?.Even));
+        RequiresNativeRunningStory(section.Header?.Default) ||
+        (section.DifferentFirstPage && RequiresNativeRunningStory(section.Header?.First)) ||
+        (section.DocumentOddEvenSettingEnabled && RequiresNativeRunningStory(section.Header?.Even));
 
     private static bool UsesNativeRunningFooter(WordSection section) =>
-        HasNativeRunningTable(section.Footer?.Default) ||
-        (section.DifferentFirstPage && HasNativeRunningTable(section.Footer?.First)) ||
-        (section.DocumentOddEvenSettingEnabled && HasNativeRunningTable(section.Footer?.Even));
+        RequiresNativeRunningStory(section.Footer?.Default) ||
+        (section.DifferentFirstPage && RequiresNativeRunningStory(section.Footer?.First)) ||
+        (section.DocumentOddEvenSettingEnabled && RequiresNativeRunningStory(section.Footer?.Even));
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordToPdfOptions? options, NativeFontMap fontMap,
@@ -100,5 +104,6 @@ public static partial class WordPdfConverterExtensions {
     private static string FormatNativeRunningPageTokens(string text, PdfCore.PdfRunningContentContext context, PdfCore.PdfPageNumberStyle? style) =>
         text.Replace("{page}", context.FormatPageNumber(context.PageNumber, style))
             .Replace("{pages}", context.FormatPageNumber(context.TotalPages, style))
+            .Replace("{sectionpages}", context.FormatPageNumber(context.SectionPages, style))
             .Replace("{documentpages}", context.FormatPageNumber(context.DocumentPages, style));
 }

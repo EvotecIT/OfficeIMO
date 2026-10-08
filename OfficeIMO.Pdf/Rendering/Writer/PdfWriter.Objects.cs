@@ -399,11 +399,13 @@ internal static partial class PdfWriter {
         public int VariantPageNumber { get; }
         public int PageNumber { get; }
         public int TotalPages { get; }
+        public int SectionPages { get; }
 
-        public PageNumberInfo(int variantPageNumber, int pageNumber, int totalPages) {
+        public PageNumberInfo(int variantPageNumber, int pageNumber, int totalPages, int sectionPages) {
             VariantPageNumber = variantPageNumber;
             PageNumber = pageNumber;
             TotalPages = totalPages;
+            SectionPages = sectionPages;
         }
     }
 

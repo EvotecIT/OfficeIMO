@@ -133,4 +133,45 @@ public partial class Word {
             Assert.DoesNotContain("999", pdf.GetPage(index).Text);
         }
     }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public void RunningHeaderFooterSectionCountsAreIndependentOfVisibleNumbering(bool footer, bool table, bool continuingSections) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        void AddStory(int sectionIndex, string label) {
+            WordHeaderFooter story = footer ? RequireSectionFooter(document, sectionIndex, W.HeaderFooterValues.Default)
+                : RequireSectionHeader(document, sectionIndex, W.HeaderFooterValues.Default);
+            WordParagraph paragraph = table
+                ? CreateRunningStoryTable(story, label, 24, WordTextDirection.LeftToRightTopToBottom).Rows[0].Cells[0].Paragraphs[0]
+                : story.AddParagraph(label);
+            foreach (string field in new[] { "PAGE", "SECTIONPAGES", "NUMPAGES" }) {
+                paragraph._paragraph.Append(new W.Run(new W.Text("/")),
+                    new W.SimpleField(new W.Run(new W.Text("999"))) { Instruction = " " + field + " " });
+            }
+        }
+        if (!continuingSections) document.Sections[0].AddPageNumbering(5, WordNumberFormat.Decimal);
+        AddStory(0, "First");
+        document.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); document.AddParagraph("BODY");
+        if (continuingSections) {
+            WordSection second = document.AddSection();
+            AddStory(1, "Second");
+            second.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); second.AddParagraph("BODY");
+        }
+        Assert.Empty(document.ValidateDocument());
+        using var pdf = OpenJoinedParagraphPdf(document);
+        Assert.Equal(continuingSections ? 4 : 2, pdf.NumberOfPages);
+        for (int page = 1; page <= pdf.NumberOfPages; page++) {
+            string label = page <= 2 ? "First" : "Second";
+            int visible = continuingSections ? page : page + 4;
+            Assert.Contains($"{label}/{visible}/2/{pdf.NumberOfPages}", pdf.GetPage(page).Text);
+            Assert.DoesNotContain("999", pdf.GetPage(page).Text);
+        }
+    }
 }

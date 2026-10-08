@@ -74,6 +74,32 @@ public sealed class PdfRunningContentTests {
         Assert.InRange(bodyTops[0] - bodyTops[2], 95.99, 96.01);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Physical_section_counts_are_independent_of_visible_numbering_sequences(bool continuingSections) {
+        var document = PdfDocument.Create(Options());
+        void AddSection(string label, int? start) => document.Section(section => {
+            if (start.HasValue) section.PageNumberStart(start.Value);
+            section.Header(header => header.Content(context => content => content.Paragraph(paragraph =>
+                paragraph.Text($"{label}/{context.PageNumber}/{context.TotalPages}/{context.SectionPageNumber}/{context.SectionPages}/{context.DocumentPages}")), 18));
+            section.Footer(footer => footer.Text("Legacy {page}/{pages}"));
+            section.Content(content => content.Paragraph(paragraph => paragraph.Text("BODY"))
+                .PageBreak().Paragraph(paragraph => paragraph.Text("BODY")));
+        });
+        AddSection("First", continuingSections ? null : 5);
+        if (continuingSections) AddSection("Second", null);
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(continuingSections ? 4 : 2, pdf.NumberOfPages);
+        for (int page = 1; page <= pdf.NumberOfPages; page++) {
+            int visible = continuingSections ? page : page + 4;
+            int total = continuingSections ? 4 : 6;
+            string label = page <= 2 ? "First" : "Second";
+            Assert.Contains($"{label}/{visible}/{total}/{(page - 1) % 2 + 1}/2/{pdf.NumberOfPages}", pdf.GetPage(page).Text);
+            Assert.Contains($"Legacy {visible}/{total}", pdf.GetPage(page).Text);
+        }
+    }
+
     [Fact]
     public void Header_only_document_renders_one_page_and_later_text_replaces_rich_content() {
         var document = PdfDocument.Create(Options());

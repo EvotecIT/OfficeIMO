@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private readonly record struct RunningContentMaterializationKey(PdfRunningContent Content,
-        int PageNumber, int TotalPages, int DocumentPageNumber, int DocumentPages, int SectionPageNumber,
+        int PageNumber, int TotalPages, int DocumentPageNumber, int DocumentPages, int SectionPageNumber, int SectionPages,
         double ContentWidth, double PageWidth, double PageHeight, PdfPageNumberStyle PageNumberStyle);
 
     private sealed partial class LayoutContext {
@@ -27,8 +27,10 @@ internal static partial class PdfWriter {
             int sectionPage = groupCount + 1;
             int total = previousRunningPages != null && pages.Count < previousRunningPages.Count
                 ? previousRunningPages[pages.Count].TotalPages : Math.Max(1, currentVisiblePageNumber);
+            int sectionPages = previousRunningPages != null && pages.Count < previousRunningPages.Count
+                ? previousRunningPages[pages.Count].SectionPages : sectionPage;
             return new PdfRunningContentContext(currentVisiblePageNumber, total, pages.Count + 1,
-                Math.Max(1, previousDocumentPages), sectionPage, width, currentOpts.PageWidth, currentOpts.PageHeight,
+                Math.Max(1, previousDocumentPages), sectionPage, sectionPages, width, currentOpts.PageWidth, currentOpts.PageHeight,
                 currentOpts.PageNumberStyle);
         }
 
@@ -39,6 +41,7 @@ internal static partial class PdfWriter {
                 content.UsesPageContext ? context.DocumentPageNumber : 0,
                 content.UsesPageContext ? context.DocumentPages : 0,
                 content.UsesPageContext ? context.SectionPageNumber : 0,
+                content.UsesPageContext ? context.SectionPages : 0,
                 context.ContentWidth, context.PageWidth, context.PageHeight, context.PageNumberStyle);
             if (!runningMaterializations.TryGetValue(key, out IReadOnlyList<IPdfBlock>? blocks)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -136,7 +139,7 @@ internal static partial class PdfWriter {
             PageNumberInfo info = infos[index];
             if (context.PageNumber != info.PageNumber || context.TotalPages != info.TotalPages ||
                 context.DocumentPages != result.Pages.Count || context.DocumentPageNumber != index + 1 ||
-                context.SectionPageNumber != info.VariantPageNumber) return false;
+                context.SectionPageNumber != info.VariantPageNumber || context.SectionPages != info.SectionPages) return false;
         }
         return true;
     }
