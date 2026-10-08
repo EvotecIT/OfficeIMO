@@ -199,6 +199,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
+            ApplyNativeUnspacedTableRowMargins(table, layout, style);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
