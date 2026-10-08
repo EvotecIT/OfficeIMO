@@ -403,7 +403,12 @@
         "net10.0"
       ],
       "normalStandard": "zero warnings/errors",
-      "additionalFrozenProfileReplay": "next clean evidence checkpoint"
+      "additionalFrozenProfileReplay": {
+        "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-font-engine-6212489a6/profiles-clean-8c8a4bc9d/comparison-receipt.json",
+        "checkpoint": "8c8a4bc9dbe9459b1137df7ef81c3a92edcea49d",
+        "allFourPdfBytesEqual": true,
+        "all39Pages": "per-page reader text/images/URI/paint byte-identical to acceptedb597baseline; rawPoppler evidence reused only by exactbyteidentity"
+      }
     },
     "largerMasterMerge": false
   }

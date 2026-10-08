@@ -349,5 +349,13 @@
       "latestHeadCI": "queued/running; not yet qualified",
       "dependency": "accept shared setup fix, then deliberately update downstream heads and recheck their own exact-head proof"
     }
+  },
+  "acceptedJavaSetup20261008": {
+    "merge": "aec41fc6ded84b819471827c3e4fad34e5f1776f",
+    "exactWorkflowCherryPick": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
+    "productSourceUnchanged": true,
+    "workflowBlobExact": true,
+    "newHeadCIAndDelayedFeedback": "pending; never rerun exhausted old proof run",
+    "initialFeedback": "complete pages0unresolved;queued/running andno failure in immediate snapshot"
   }
 }

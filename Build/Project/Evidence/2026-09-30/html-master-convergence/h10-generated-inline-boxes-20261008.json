@@ -7,7 +7,14 @@
   "publication": {
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2937",
     "state": "OPEN",
-    "delayedCurrentHeadGate": "pending"
+    "delayedCurrentHeadGate": "pending",
+    "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+    "initialCompleteFeedback": {
+      "threads": 0,
+      "unresolved": 0,
+      "CI": "queued/running; no failure at initialsnapshot",
+      "snapshot": "Ignore/H10ReferenceAppearanceQualification-20261007/generated-inline-publication-immediate.log"
+    }
   },
   "contract": [
     "Nonempty generated inline-block has its own box and inner text formatting context",
@@ -237,5 +244,11 @@
     "qualification": "../OfficeIMO-html-generated-inline-boxes/Ignore/GeneratedInlineBoxQualification",
     "independentControls": "Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/footer-placement-20261008"
   },
-  "next": "settle exact-head CI/delayed feedback, preserve proof, adopt accepted owner and remove only merged dedicated checkout"
+  "next": "settle exact-head CI/delayed feedback, preserve proof, adopt accepted owner and remove only merged dedicated checkout",
+  "storage20261008": {
+    "finishCleanupVerifiedTargets": 143,
+    "logicalBytesRemoved": 3239388617,
+    "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/finish-cleanup-storage-summary-20261008.json",
+    "pendingPrQualificationLogicalBytes": 110087094
+  }
 }
