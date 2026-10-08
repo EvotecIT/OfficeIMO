@@ -273,6 +273,18 @@ Footnote and endnote reference labels preserve decimal, Roman and letter formats
 
 ## Options and diagnostics
 
+Word export preserves source-significant leading and repeated spaces in paragraphs
+and table cells. When spaces reach the end of a line, their excess is discarded
+before the next word rather than creating additional blank lines. Trailing spaces
+do not shift centered or right-aligned text.
+
+The converter selects `PdfTextWhitespaceMode.Preserve` unless the supplied
+`PdfOptions` explicitly sets a whitespace policy. Set `TextWhitespaceMode` to
+`Collapse` to normalize flow spacing, or to `Preformatted` for literal spacing.
+The existing `PreserveTextWhitespace = true` setting selects `Preformatted` and
+an explicit `false` selects `Collapse`. Options are cloned before export, so the
+converter does not change the caller's settings.
+
 For a PDF whose page appearance matters more than editability, use visual pages:
 
 ```csharp

@@ -7,5 +7,5 @@ public sealed partial class PdfOptions {
 
     /// <summary>Distinguishes implicit defaults from explicitly assigned values used by adapter inheritance.</summary>
     internal string CheckpointExplicitSettings => string.Join(",", _hasExplicitDefaultFont, _hasExplicitHeaderFont,
-        _hasExplicitFooterFont, _hasExplicitPageNumberStart, _hasExplicitDefaultTableStyle);
+        _hasExplicitFooterFont, _hasExplicitPageNumberStart, _hasExplicitDefaultTableStyle, _hasExplicitTextWhitespaceConfiguration);
 }
