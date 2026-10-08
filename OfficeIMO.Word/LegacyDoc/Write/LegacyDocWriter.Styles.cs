@@ -54,6 +54,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
             paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
+            MaterializeParagraphStyleThemeFonts(paragraphStyles, mainPart);
             MaterializeDocumentDefaultSpacing(paragraphStyles, styles);
             MaterializeDocumentDefaultCharacterScale(paragraphStyles, styles);
 

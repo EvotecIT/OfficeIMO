@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -5,6 +6,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeDocumentDefaults(string? FontFamily, string? Language, double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
+            public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
@@ -31,10 +33,11 @@ namespace OfficeIMO.Word.Pdf {
                     defaultTabStopWidth);
             }
 
-            string? fontFamily = ResolveNativeRunFontsFamily(document, defaults
+            NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, defaults
                 .GetFirstChild<W.RunPropertiesDefault>()?
                 .GetFirstChild<W.RunPropertiesBaseStyle>()?
                 .GetFirstChild<W.RunFonts>());
+            string? fontFamily = fontFamilies.Primary;
             string? language = GetNativeDocumentLanguage(document, defaults);
             // Word treats an existing docDefaults with no declared size as 10pt.
             // OfficeIMO-created documents explicitly declare 11pt and retain it.
@@ -58,6 +61,7 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.WidowControl>()) ?? NativeDocumentDefaults.WordDefault.ParagraphWidowControl;
             W.RunPropertiesBaseStyle? defaultRuns = defaults.GetFirstChild<W.RunPropertiesDefault>()?.GetFirstChild<W.RunPropertiesBaseStyle>();
             return new NativeDocumentDefaults(fontFamily, language, fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth) {
+                FontFamilies = fontFamilies,
                 ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns),
                 TextSpacing = default(NativeTextSpacing).Merge(defaultRuns),
                 LineSpacing = ReadNativeLineSpacing(spacing)

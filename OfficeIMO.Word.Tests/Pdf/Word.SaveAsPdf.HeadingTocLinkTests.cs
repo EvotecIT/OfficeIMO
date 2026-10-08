@@ -356,18 +356,13 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeadingThemeFont.docx");
 
             using WordDocument document = WordDocument.Create(docPath);
-            WordParagraph heading = document.AddParagraph("Native heading theme font").SetStyle(WordParagraphStyles.Heading3);
-            document.Save();
-
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
-                "ResolveNativeParagraphStyleFontFamily",
-                BindingFlags.NonPublic | BindingFlags.Static)!;
-            string? familyName = Assert.IsType<string>(method.Invoke(null, new object?[] {
-                document,
-                heading.StyleId
+            document.AddParagraph("Native heading theme font").SetStyle(WordParagraphStyles.Heading3);
+            document._wordprocessingDocument.MainDocumentPart!.ThemePart!.Theme!.ThemeElements!.FontScheme!
+                .MajorFont!.LatinFont!.Typeface = "Times New Roman";
+            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+                IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             }));
-
-            Assert.False(string.IsNullOrWhiteSpace(familyName));
+            Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

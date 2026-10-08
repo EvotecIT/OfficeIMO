@@ -421,6 +421,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static string? ReadSupportedRunFontFamily(RunFonts runFonts) {
+            runFonts = ResolveNativeThemeRunFonts(runFonts);
             string? ascii = NormalizeFontFamily(runFonts.Ascii?.Value);
             string? highAnsi = NormalizeFontFamily(runFonts.HighAnsi?.Value);
             string? eastAsia = NormalizeFontFamily(runFonts.EastAsia?.Value);

@@ -419,6 +419,7 @@ public static partial class OfficeDocumentReadResultJson {
             text = block.Text,
             level = block.Level,
             marker = block.Marker,
+            listIndex = block.ListIndex,
             location = ProjectLocation(block.Location),
             recognition = block.Recognition,
             region = ProjectRegion(block.Region)
