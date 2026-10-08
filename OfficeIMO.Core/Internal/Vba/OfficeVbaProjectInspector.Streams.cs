@@ -15,7 +15,13 @@ namespace OfficeIMO.Core.Internal {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (maximumExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
             cancellationToken.ThrowIfCancellationRequested();
-            try { return InspectMetadata(streams, maximumExpandedBytes, cancellationToken); }
+            Dictionary<string, byte[]> streamIndex = new Dictionary<string, byte[]>(streams.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, byte[]> stream in streams) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (streamIndex.ContainsKey(stream.Key)) return new OfficeVbaInspection("The VBA storage repeats a stream path.");
+                streamIndex.Add(stream.Key, stream.Value);
+            }
+            try { return InspectMetadata(streamIndex, maximumExpandedBytes, cancellationToken); }
             catch (Exception exception) when (exception is NotSupportedException || exception is DecoderFallbackException) {
                 return new OfficeVbaInspection("The project code page is unavailable or its metadata text is invalid.");
             }

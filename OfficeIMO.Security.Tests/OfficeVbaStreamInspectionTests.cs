@@ -4,6 +4,43 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Security.Tests;
 
 public sealed class OfficeVbaStreamInspectionTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void StreamInspectionMatchesNativePathsWithAnyDictionaryComparer(bool changeDirectoryCase, bool changeModuleCase) {
+        var project = OfficeVbaProject.Create("Inventory");
+        project.AddModule("Helpers", "'source\r\n");
+        project.AddRegisteredReference("Office", new Guid("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52"), 2, 8);
+        var streams = ReadStreams(project.Write().GetBytes()).ToDictionary(
+            pair => pair.Key == "VBA/dir" && changeDirectoryCase ? "vBa/DiR"
+                : pair.Key == "VBA/Helpers" && changeModuleCase ? "vBa/hElPeRs" : pair.Key,
+            pair => pair.Value, StringComparer.Ordinal);
+
+        var inspection = OfficeVbaProjectInspector.Inspect(streams, 20000);
+
+        Assert.Null(inspection.Limitation);
+        Assert.Equal("Inventory", inspection.Name);
+        Assert.Equal(project.GetModule("Helpers").Source, Assert.Single(inspection.Modules).Source);
+        Assert.Equal("Office", Assert.Single(inspection.References).Name);
+    }
+
+    [Theory]
+    [InlineData("VBA/dir", "vba/DIR")]
+    [InlineData("VBA/Helpers", "vba/HELPERS")]
+    public void StreamInspectionRejectsAmbiguousCaseAliases(string canonicalPath, string alias) {
+        var project = OfficeVbaProject.Create();
+        project.AddModule("Helpers", "'source\r\n");
+        var streams = ReadStreams(project.Write().GetBytes()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        streams.Add(alias, streams[canonicalPath]);
+
+        var inspection = OfficeVbaProjectInspector.Inspect(streams, 20000);
+
+        Assert.Contains("repeats a stream path", inspection.Limitation);
+        Assert.Empty(inspection.Modules);
+    }
+
     [Fact]
     public void StreamInspectionRetainsDeclaredModulesWhenSourceIsMissing() {
         var project = OfficeVbaProject.Create("Inventory");
