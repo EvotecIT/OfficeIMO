@@ -172,11 +172,13 @@ public sealed partial class OfficeVbaProject {
     }
 
     /// <summary>Adds a registered type-library reference without installing or executing that library.</summary>
+    /// <remarks>Major and minor versions must each be between 0 and 65535, as required by the native reference format.</remarks>
     public void AddRegisteredReference(string name, Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string path = "") {
         EnsureEditable();
         OfficeVbaText.ValidateIdentifier(name, 128);
         if (typeLibraryId == Guid.Empty) throw new ArgumentException("A type library identity is required.", nameof(typeLibraryId));
-        if (majorVersion < 0 || minorVersion < 0) throw new ArgumentOutOfRangeException(nameof(majorVersion));
+        if (majorVersion < 0 || majorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(majorVersion));
+        if (minorVersion < 0 || minorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(minorVersion));
         if (path == null || path.IndexOfAny(new[] { '#', '\r', '\n', '\0' }) >= 0) throw new ArgumentException("The type-library path cannot contain reference separators.", nameof(path));
         string identity = typeLibraryId.ToString("B").ToUpperInvariant();
         if (_references.Any(reference => reference.LibraryId?.IndexOf(identity, StringComparison.OrdinalIgnoreCase) >= 0)) return;
@@ -206,6 +208,9 @@ public sealed partial class OfficeVbaProject {
             || name.StartsWith("__SRP_", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("The module name is reserved for VBA project infrastructure.", nameof(name));
         if (_modules.Any(module => module != except && string.Equals(module.Directory.StreamName, name, StringComparison.OrdinalIgnoreCase)
             && module.Name == module.OriginalName && !module.IsNew)) throw new ArgumentException("A module stream with this identity already exists.", nameof(name));
+        if (_compound.Entries.Any(entry => entry.IsStorage && string.Equals(entry.Path, "VBA/" + name, StringComparison.OrdinalIgnoreCase))) {
+            throw new ArgumentException("The module name collides with a preserved project storage.", nameof(name));
+        }
         if (_compound.Streams.ContainsKey("VBA/" + name)
             && !_directory.Modules.Any(module => string.Equals(module.StreamName, name, StringComparison.OrdinalIgnoreCase))) {
             throw new ArgumentException("The module name collides with an opaque project stream.", nameof(name));
