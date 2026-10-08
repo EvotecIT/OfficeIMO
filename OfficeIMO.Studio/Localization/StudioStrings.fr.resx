@@ -969,7 +969,11 @@
   <data name="Redaction.CopySaved" xml:space="preserve"><value>Copie PDF vérifiée enregistrée. Son rapport de vérification peut être exporté.</value></data>
   <data name="Redaction.SelectPages" xml:space="preserve"><value>Sélectionnez au moins une page dans l'organisateur de pages.</value></data>
   <data name="Redaction.TooManyMarks" xml:space="preserve"><value>Un examen peut contenir 2 000 marques au maximum. Limitez la recherche ou retirez des marques.</value></data>
-  <data name="Redaction.SearchResult" xml:space="preserve"><value>Lignes correspondantes trouvées : {0:N0}. Examinez les zones marquées avant d'appliquer.</value></data>
+  <data name="Redaction.MatchedTextOnly" xml:space="preserve"><value>Uniquement le texte correspondant</value></data>
+  <data name="Redaction.PreserveUnderlay" xml:space="preserve"><value>Conserver les éléments graphiques sous le texte</value></data>
+  <data name="Redaction.PreciseSearchScope" xml:space="preserve"><value>La recherche marque uniquement le texte correspondant. Les correspondances de glyphes non prises en charge sont refusées. Les options s'appliquent aux nouvelles marques de recherche.</value></data>
+  <data name="Redaction.SearchPolicyConflict" xml:space="preserve"><value>Cette zone chevauche une marque avec des options de caviardage différentes. Supprimez la marque sélectionnée et ajoutez à nouveau la zone pour utiliser les nouvelles options, puis vérifiez.</value></data>
+  <data name="Redaction.SearchResult" xml:space="preserve"><value>Zones correspondantes trouvées : {0:N0}. Examinez les zones marquées avant d'appliquer.</value></data>
   <data name="Redaction.PendingSummary" xml:space="preserve"><value>Marques sélectionnées : {0:N0} sur {1:N0}. Examinez leur impact avant d'appliquer.</value></data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve"><value>Examen de {0:N0} zones sur {1:N0} pages : correspondances de texte : {2:N0}, d'images : {3:N0}, d'annotations : {4:N0} et de vecteurs : {5:N0}.</value></data>
   <data name="Redaction.SearchText" xml:space="preserve"><value>Texte ou motif à rechercher</value></data>

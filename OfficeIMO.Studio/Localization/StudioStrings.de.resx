@@ -2883,8 +2883,20 @@
   <data name="Redaction.TooManyMarks" xml:space="preserve">
     <value>Eine Prüfung kann höchstens 2.000 Markierungen enthalten. Begrenzen Sie die Suche oder entfernen Sie einige Markierungen.</value>
   </data>
+  <data name="Redaction.MatchedTextOnly" xml:space="preserve">
+    <value>Nur übereinstimmender Text</value>
+  </data>
+  <data name="Redaction.PreserveUnderlay" xml:space="preserve">
+    <value>Darunterliegende Grafiken beibehalten</value>
+  </data>
+  <data name="Redaction.PreciseSearchScope" xml:space="preserve">
+    <value>Die Suche markiert nur den übereinstimmenden Text. Nicht unterstützte Glyphenzuordnungen werden abgelehnt. Die Optionen gelten für neue Suchmarkierungen.</value>
+  </data>
+  <data name="Redaction.SearchPolicyConflict" xml:space="preserve">
+    <value>Dieser Bereich überlappt eine Markierung mit anderen Schwärzungsoptionen. Entfernen Sie die ausgewählte Markierung und fügen Sie den Bereich erneut hinzu, um die neuen Optionen zu verwenden. Prüfen Sie das Ergebnis anschließend.</value>
+  </data>
   <data name="Redaction.SearchResult" xml:space="preserve">
-    <value>Passende Zeilen gefunden: {0:N0}. Prüfen Sie die markierten Bereiche vor dem Anwenden.</value>
+    <value>Passende Bereiche gefunden: {0:N0}. Prüfen Sie die markierten Bereiche vor dem Anwenden.</value>
   </data>
   <data name="Redaction.PendingSummary" xml:space="preserve">
     <value>{0:N0} von {1:N0} Markierungen ausgewählt. Prüfen Sie ihre Auswirkungen vor dem Anwenden.</value>

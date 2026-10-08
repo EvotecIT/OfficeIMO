@@ -2883,8 +2883,20 @@
   <data name="Redaction.TooManyMarks" xml:space="preserve">
     <value>Przegląd może zawierać najwyżej 2 000 oznaczeń. Ogranicz wyszukiwanie lub usuń część oznaczeń.</value>
   </data>
+  <data name="Redaction.MatchedTextOnly" xml:space="preserve">
+    <value>Tylko pasujący tekst</value>
+  </data>
+  <data name="Redaction.PreserveUnderlay" xml:space="preserve">
+    <value>Zachowaj grafikę pod tekstem</value>
+  </data>
+  <data name="Redaction.PreciseSearchScope" xml:space="preserve">
+    <value>Wyszukiwanie oznacza tylko pasujący tekst. Nieobsługiwane mapowania glifów są odrzucane. Opcje dotyczą nowych oznaczeń wyników wyszukiwania.</value>
+  </data>
+  <data name="Redaction.SearchPolicyConflict" xml:space="preserve">
+    <value>Ten obszar nakłada się na oznaczenie z innymi opcjami usunięcia treści. Usuń wybrane oznaczenie i ponownie dodaj obszar, aby użyć nowych opcji, a następnie sprawdź wynik.</value>
+  </data>
   <data name="Redaction.SearchResult" xml:space="preserve">
-    <value>Liczba pasujących wierszy: {0:N0}. Przed zastosowaniem sprawdź oznaczone obszary.</value>
+    <value>Liczba pasujących obszarów: {0:N0}. Przed zastosowaniem sprawdź oznaczone obszary.</value>
   </data>
   <data name="Redaction.PendingSummary" xml:space="preserve">
     <value>Wybrane oznaczenia: {0:N0} z {1:N0}. Przed zastosowaniem sprawdź ich skutki.</value>
