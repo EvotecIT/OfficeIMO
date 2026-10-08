@@ -20,6 +20,10 @@ The adapter maps slide size and order, hidden slides, text boxes, ordered mixed 
 
 The report also identifies authored handout masters and slide-show settings, non-text placeholder roles, custom placeholder prompts and extensions, speaker-note placeholder appearance and text formatting, authored presentation thumbnails, run hyperlink flags, shape accessibility metadata, ODP custom shows, and typed ODP table-cell values that this conversion subset cannot retain.
 
+Raster picture crops use the embedded pixel dimensions and horizontal and vertical resolution recognized by the shared image reader, with 96 DPI when resolution is absent. JPEG crop geometry uses JFIF density; without physical JFIF density it uses 96 DPI on both axes, even when Exif stores resolution. JPEG crop lengths calculated from Exif resolution have not been validated. Resizing the picture frame preserves the selected source region.
+
+Negative crop offsets, collapsed source regions, malformed crop values, cropped vector images, and unavailable intrinsic dimensions remain explicit conversion losses. For image formats supported by the PowerPoint image model, these crops are omitted while the image bytes and frame bounds are retained. Crops that collapse after rounding to either format's stored precision are also omitted.
+
 ## Dependency footprint
 
 - **External:** None.

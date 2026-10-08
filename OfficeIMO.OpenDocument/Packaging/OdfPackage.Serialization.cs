@@ -42,6 +42,7 @@ internal sealed partial class OdfPackage {
     // Save preparation changes versions, manifests and signatures. Independent outputs
     // must not apply those changes to the document associated with the source file.
     internal OdfPackage CloneForSerialization(OdfCompatibilityProfile profile = OdfCompatibilityProfile.PreserveSource) {
+        EnsureGradientAnglesSurviveVersionChange(ResolveOutputVersion(profile));
         bool rewriteXmlVersions = ResolveOutputVersion(profile) != Version;
         var clone = new OdfPackage(Kind, Version, _loadOptions) {
             _entryGraphChanged = _entryGraphChanged,

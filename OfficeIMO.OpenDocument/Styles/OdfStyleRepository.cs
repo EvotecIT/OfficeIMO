@@ -1,7 +1,7 @@
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Indexes and creates named and automatic ODF styles without detaching them from package XML.</summary>
-public sealed class OdfStyleRepository {
+public sealed partial class OdfStyleRepository {
     private readonly OdfDocument _document;
     private readonly object _indexLock = new object();
     private LookupIndex? _lookupIndex;
@@ -50,6 +50,7 @@ public sealed class OdfStyleRepository {
     /// <summary>Creates a common named style in <c>styles.xml</c>.</summary>
     public OdfStyle CreateNamed(string name, OdfStyleFamily family, string? parentStyleName = null) {
         ValidateStyleName(name);
+        if (!string.IsNullOrWhiteSpace(parentStyleName)) ValidateStyleName(parentStyleName!);
         if (Find(family, name) != null) throw new InvalidOperationException($"A {family} style named '{name}' already exists.");
         XElement container = GetContainer("styles.xml", OdfNamespaces.Office + "styles");
         XElement element = CreateStyleElement(name, family, parentStyleName);
@@ -65,6 +66,7 @@ public sealed class OdfStyleRepository {
     }
 
     private OdfStyle CreateAutomaticIn(string partPath, OdfStyleFamily family, string prefix, string? parentStyleName) {
+        if (!string.IsNullOrWhiteSpace(parentStyleName)) ValidateStyleName(parentStyleName!);
         if (string.IsNullOrWhiteSpace(prefix)) prefix = "of";
         string normalized = new string(prefix.Where(character => char.IsLetterOrDigit(character) || character == '_' || character == '-').ToArray());
         if (normalized.Length == 0 || !char.IsLetter(normalized[0])) normalized = "of" + normalized;
@@ -92,19 +94,17 @@ public sealed class OdfStyleRepository {
     public IReadOnlyList<OdfStyle> Resolve(OdfStyle style) {
         if (style == null) throw new ArgumentNullException(nameof(style));
         var result = new List<OdfStyle>();
-        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<XElement>();
         OdfStyle? current = style;
         while (current != null) {
-            string key = FamilyToken(current.Family) + ":" + current.Name;
-            if (!visited.Add(key)) {
+            if (!visited.Add(current.Element)) {
                 _document.AddDiagnostic(new OdfDiagnostic("ODF203", OdfDiagnosticSeverity.Warning,
                     $"Style parent cycle detected at '{current.Name}'.", current.PartPath));
                 break;
             }
             result.Add(current);
-            current = string.IsNullOrEmpty(current.ParentStyleName) ? null : current.IsAutomatic
-                ? FindInPart(current.Family, current.ParentStyleName!, current.PartPath)
-                : FindNamed(current.Family, current.ParentStyleName!);
+            // ODF parents are common styles even when an automatic style has the same name.
+            current = string.IsNullOrEmpty(current.ParentStyleName) ? null : FindNamed(current.Family, current.ParentStyleName!);
         }
         return result;
     }
@@ -194,6 +194,14 @@ public sealed class OdfStyleRepository {
         if (!ReferenceEquals(owner.Document, document)) return false;
         int references = document.Descendants()
             .Count(element => string.Equals((string?)element.Attribute(styleAttribute), styleName, StringComparison.Ordinal));
+        if (family == OdfStyleFamily.Paragraph && styleAttribute != OdfNamespaces.Draw + "text-style-name") {
+            references += document.Descendants().Count(element => string.Equals(
+                (string?)element.Attribute(OdfNamespaces.Draw + "text-style-name"), styleName, StringComparison.Ordinal));
+        }
+        if (family == OdfStyleFamily.Paragraph && styleAttribute != OdfNamespaces.Text + "style-name") {
+            references += document.Descendants().Count(element => string.Equals(
+                (string?)element.Attribute(OdfNamespaces.Text + "style-name"), styleName, StringComparison.Ordinal));
+        }
         if (family == OdfStyleFamily.TableCell) {
             references += document.Descendants()
                 .Count(element => (element.Name == OdfNamespaces.Table + "table-row" ||
@@ -207,7 +215,8 @@ public sealed class OdfStyleRepository {
     private OdfStyle? FindAutomaticInPart(OdfStyleFamily family, string name, string partPath) =>
         GetLookupIndex().Automatic.TryGetValue((partPath, family, name), out OdfStyle? style) ? style : null;
 
-    private OdfStyle? FindNamed(OdfStyleFamily family, string name) =>
+    /// <summary>Finds a common style without admitting an automatic style with the same name.</summary>
+    internal OdfStyle? FindNamed(OdfStyleFamily family, string name) =>
         GetLookupIndex().Named.TryGetValue((family, name), out OdfStyle? style) ? style : null;
 
     private LookupIndex GetLookupIndex() {
@@ -314,8 +323,7 @@ public sealed class OdfStyleRepository {
         XElement root = xml.Root ?? throw new InvalidDataException($"OpenDocument part '{partPath}' has no root element.");
         XElement? container = root.Element(name);
         if (container == null) {
-            container = new XElement(name);
-            root.Add(container);
+            container = OdfXmlContainers.Ensure(root, name);
             _document.MarkPartDirty(partPath);
         }
         return container;
@@ -331,7 +339,9 @@ public sealed class OdfStyleRepository {
         return element;
     }
 
-    private static void ValidateStyleName(string name) {
+    internal static void ValidateStyleName(string name) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Style name cannot be empty.", nameof(name));
+        try { XmlConvert.VerifyNCName(name); }
+        catch (XmlException exception) { throw new ArgumentException("Style names must be XML NCNames.", nameof(name), exception); }
     }
 }

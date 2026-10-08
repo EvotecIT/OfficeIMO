@@ -25,7 +25,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "rtf-pdf", "txt-pdf", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "rtf-pdf", "txt-pdf", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -235,7 +235,7 @@ public sealed class OfficeWorkflowRunnerTests {
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
-        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Message.Contains("while it was being serialized", StringComparison.Ordinal));
         Assert.False(File.Exists(output));

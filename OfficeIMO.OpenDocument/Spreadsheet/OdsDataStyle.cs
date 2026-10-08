@@ -19,9 +19,10 @@ public sealed class OdsDataStyle {
     /// <summary>Maximum number of characters supported by an Excel custom number-format code.</summary>
     public const int MaximumExcelNumberFormatCodeLength = 255;
 
-    internal OdsDataStyle(XElement element, OdsDataStyleKind kind) { Element = element; Kind = kind; }
+    private readonly OdfDataStyle _definition;
+    internal OdsDataStyle(OdfDataStyle definition, OdsDataStyleKind kind) { _definition = definition; Kind = kind; }
     /// <summary>Style name referenced by a cell style.</summary>
-    public string Name => (string?)Element.Attribute(OdfNamespaces.Style + "name") ?? string.Empty;
+    public string Name => _definition.Name;
     /// <summary>Data style kind.</summary>
     public OdsDataStyleKind Kind { get; }
     /// <summary>Configured decimal places, or zero when the style has no decimal number component.</summary>
@@ -90,7 +91,7 @@ public sealed class OdsDataStyle {
         return true;
     }
 
-    internal XElement Element { get; }
+    internal XElement Element => _definition.Element;
 
     private bool TryBuildNumericComponent(out string number) {
         number = string.Empty;
@@ -250,7 +251,7 @@ public sealed partial class OdsDocument {
                 foreach (XElement container in root?.Elements().Where(element =>
                              element.Name == OdfNamespaces.Office + "automatic-styles" || element.Name == OdfNamespaces.Office + "styles") ?? Enumerable.Empty<XElement>()) {
                     foreach (XElement element in container.Elements()) {
-                        if (TryGetKind(element.Name, out OdsDataStyleKind kind)) result.Add(new OdsDataStyle(element, kind));
+                        if (TryGetKind(element.Name, out OdsDataStyleKind kind)) result.Add(new OdsDataStyle(new OdfDataStyle(this, element), kind));
                     }
                 }
             }
@@ -325,7 +326,7 @@ public sealed partial class OdsDocument {
         }
         var element = new XElement(elementName, new XAttribute(OdfNamespaces.Style + "name", name), children);
         container.Add(element); MarkPartDirty("content.xml");
-        return new OdsDataStyle(element, kind);
+        return new OdsDataStyle(new OdfDataStyle(this, element), kind);
     }
 
     private static bool TryGetKind(XName name, out OdsDataStyleKind kind) {

@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.OpenDocument.Odg.Pdf\OfficeIMO.OpenDocument.Odg.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />

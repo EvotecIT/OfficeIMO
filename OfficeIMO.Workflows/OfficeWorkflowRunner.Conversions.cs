@@ -17,38 +17,36 @@ using OfficeIMO.Xps;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
-    private const long MaximumOpenXmlPartCharacters = 10L * 1024L * 1024L;
-
     private static OfficePackageSecurityOptions CreateOpenXmlPackageSecurity(OfficeWorkflowLimits limits) {
         OfficePackageSecurityOptions security = OfficePackageSecurityOptions.SecureDefaults;
         security.MaxPackageBytes = limits.MaximumInputBytes;
-        security.MaxXmlCharactersInPart = MaximumOpenXmlPartCharacters;
+        security.MaxXmlCharactersInPart = limits.MaximumXmlCharactersInPart;
         return security;
     }
 
-    private static OfficeOpenXmlLoadSettings CreateOpenXmlLoadSettings() => new() {
-        MaxCharactersInPart = MaximumOpenXmlPartCharacters
+    private static OfficeOpenXmlLoadSettings CreateOpenXmlLoadSettings(OfficeWorkflowLimits limits) => new() {
+        MaxCharactersInPart = limits.MaximumXmlCharactersInPart
     };
 
     private static WordLoadOptions CreateWordLoadOptions(OfficeWorkflowLimits limits) => new() {
         AccessMode = DocumentAccessMode.ReadOnly,
         MaxInputBytes = limits.MaximumInputBytes,
         PackageSecurity = CreateOpenXmlPackageSecurity(limits),
-        OpenSettings = CreateOpenXmlLoadSettings()
+        OpenSettings = CreateOpenXmlLoadSettings(limits)
     };
 
     private static ExcelLoadOptions CreateExcelLoadOptions(OfficeWorkflowLimits limits) => new() {
         AccessMode = DocumentAccessMode.ReadOnly,
         MaxInputBytes = limits.MaximumInputBytes,
         PackageSecurity = CreateOpenXmlPackageSecurity(limits),
-        OpenSettings = CreateOpenXmlLoadSettings()
+        OpenSettings = CreateOpenXmlLoadSettings(limits)
     };
 
     private static PowerPointLoadOptions CreatePowerPointLoadOptions(OfficeWorkflowLimits limits) => new() {
         AccessMode = DocumentAccessMode.ReadOnly,
         MaxInputBytes = limits.MaximumInputBytes,
         PackageSecurity = CreateOpenXmlPackageSecurity(limits),
-        OpenSettings = CreateOpenXmlLoadSettings()
+        OpenSettings = CreateOpenXmlLoadSettings(limits)
     };
 
     private static OperationArtifact Convert(
@@ -85,7 +83,13 @@ public sealed partial class OfficeWorkflowRunner {
         long maximumOutputBytes = request.Limits.MaximumOutputBytes;
         byte[] bytes;
         bool hasLoss = false;
+        OfficeWorkflowConversionEvidence? evidence = null;
         switch (route.Id) {
+            case "odg-pdf": {
+                (bytes, evidence) = ConvertDraw(request, input, settings, diagnostics, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
             case "xps-pdf": {
                 var limits = new XpsReadOptions();
                 limits.MaximumInputBytes = (int)Math.Min(limits.MaximumInputBytes, request.Limits.MaximumInputBytes);
@@ -310,7 +314,7 @@ public sealed partial class OfficeWorkflowRunner {
         string summary = hasLoss
             ? route.Label + " completed with fidelity warnings; review the structured diagnostics."
             : route.Label + " completed and the output reopened successfully.";
-        return new OperationArtifact(bytes, summary, null);
+        return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);
     }
 
     private static string DecodeHtmlInput(byte[] input, CancellationToken cancellationToken) {

@@ -167,8 +167,14 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-xml")) {
+                Visio.LegacyXml.Example_LegacyXml(Path.Combine(folderPath, "VisioXml"));
+                return;
+            }
+
             if (HasArgument(args, "--opendocument")) {
                 OpenDocument.OpenDocumentMilestones.Example(folderPath);
+                OpenDocument.DrawDocument.Example(Path.Combine(folderPath, "Draw"));
                 return;
             }
 

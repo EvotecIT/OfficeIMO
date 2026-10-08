@@ -62,7 +62,7 @@ public sealed class ReaderInstanceAdapterTests {
             reader.GetCapabilities(),
             item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
         Assert.Equal(
-            new[] { ".vsdm", ".vsdx", ".vssm", ".vssx", ".vstm", ".vstx" },
+            new[] { ".vdx", ".vsdm", ".vsdx", ".vssm", ".vssx", ".vstm", ".vstx", ".vsx", ".vtx" },
             capability.Extensions);
     }
 
