@@ -99,6 +99,20 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
 
     /// <summary>Creates a failed save result from an exception captured by a wrapper or adapter.</summary>
     public static PdfSaveResult FromFailure(string? outputPath, Exception exception) {
+        return CreateFailure(outputPath, exception, null);
+    }
+
+    /// <summary>Creates a failed save result while retaining the source-stage report that caused the failure.</summary>
+    /// <remarks>The source report precedes the PDF-stage report in <see cref="ConversionReports"/>.</remarks>
+    public static PdfSaveResult FromFailure(string? outputPath, Exception exception, IOfficeConversionReport sourceConversionReport) {
+        Guard.NotNull(sourceConversionReport, nameof(sourceConversionReport));
+        return CreateFailure(outputPath, exception, new[] { sourceConversionReport });
+    }
+
+    private static PdfSaveResult CreateFailure(
+        string? outputPath,
+        Exception exception,
+        IReadOnlyList<IOfficeConversionReport>? sourceConversionReports) {
         Guard.NotNull(exception, nameof(exception));
         IReadOnlyList<string> diagnostics = PdfOutputDiagnostics.BuildExceptionDiagnostics(exception);
         return new PdfSaveResult(
@@ -106,7 +120,8 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
             0,
             diagnostics,
             exception,
-            pipeline: PdfPipelineReport.FailedOutput("Save", exception));
+            pipeline: PdfPipelineReport.FailedOutput("Save", exception),
+            sourceConversionReports: sourceConversionReports);
     }
 
     internal static PdfSaveResult Success(

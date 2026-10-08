@@ -212,7 +212,11 @@ broader scripts or reproducible font selection.
 
 Drawing text preserves numeric font descriptors when the matching faces are registered in
 `PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
-font program. Drawing strokes support native linear and radial gradient shading through their
+font program. Foreground text and inherited underline/strikethrough paint use `OfficeColor.A`;
+an explicit decoration color uses its own alpha. Foreground transparency preserves logical text,
+placement and run backgrounds. Fully transparent glyphs remain searchable in the PDF.
+
+Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
@@ -2342,6 +2346,7 @@ The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-s
 
 - `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
 - Source-format adapters map their document models onto the neutral `OfficeDocumentModel`; PDF projection remains owned by this package.
+- Neutral-model raster assets retain their aspect ratio and scale down to the configured page content area. Source diagnostics keep their severity and an explicit `lossKind` attribute (`None`, `Approximation`, `Omission` or `Failure`) in the PDF report; absent or invalid categories use the severity default, and errors remain failures.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 
 ## Repository validation

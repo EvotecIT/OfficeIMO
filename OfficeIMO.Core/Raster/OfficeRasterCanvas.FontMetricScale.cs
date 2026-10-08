@@ -12,6 +12,8 @@ public sealed partial class OfficeRasterCanvas {
             if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(value));
             _fontMetricScale = value;
             _scaledMetricFonts?.Clear();
+            _textMeasurementCache?.Clear();
+            _textLineInkBoundsCache?.Clear();
         }
     }
 

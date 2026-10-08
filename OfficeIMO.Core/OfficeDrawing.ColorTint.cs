@@ -33,17 +33,23 @@ public sealed partial class OfficeDrawing {
                 var runs = new List<OfficeRichTextRun>(richText.Runs.Count);
                 for (int runIndex = 0; runIndex < richText.Runs.Count; runIndex++) {
                     OfficeRichTextRun run = richText.Runs[runIndex];
-                    runs.Add(new OfficeRichTextRun(
-                        run.Text, run.FontSize, WithTint(run.Color, tint), run.Bold, run.Italic, run.Underline,
-                        run.FontFamily, run.Strikethrough,
-                        run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null,
-                        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent));
+                    runs.Add(TintRichTextRun(run, tint));
+                }
+                var paragraphs = new List<OfficeRichTextParagraph>(richText.Paragraphs.Count);
+                foreach (OfficeRichTextParagraph paragraph in richText.Paragraphs) {
+                    var paragraphRuns = new List<OfficeRichTextRun>(paragraph.Runs.Count);
+                    foreach (OfficeRichTextRun run in paragraph.Runs) paragraphRuns.Add(TintRichTextRun(run, tint));
+                    paragraphs.Add((paragraph.Label == null
+                        ? new OfficeRichTextParagraph(paragraphRuns, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
+                        : new OfficeRichTextParagraph(paragraphRuns, paragraph.Label.WithRun(TintRichTextRun(paragraph.Label.Run, tint)), paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)).WithTabStops(TintTabStops(paragraph.TabStops, tint)));
                 }
                 replacement = new OfficeDrawingRichText(
                     runs, richText.X, richText.Y, richText.Width, richText.Height, richText.Alignment,
                     richText.LineHeight, richText.VerticalAlignment, richText.RotationDegrees,
                     richText.RotationCenterX, richText.RotationCenterY, richText.WrapText, richText.ShrinkToFit,
-                    richText.FlipHorizontal, richText.FlipVertical, richText.Padding, richText.ParagraphIndent);
+                    richText.FlipHorizontal, richText.FlipVertical, richText.Padding, richText.ParagraphIndent)
+                    .WithParagraphs(paragraphs).WithTextAreaAlignment(richText.TextAreaAlignment);
+                ((OfficeDrawingRichText)replacement).NormalizeHorizontalPaint = richText.NormalizeHorizontalPaint;
             } else if (current is OfficeDrawingGroup group) {
                 OfficeDrawing child = group.InnerDrawing.Clone();
                 child.ApplyColorTint(tint);
@@ -79,4 +85,21 @@ public sealed partial class OfficeDrawing {
 
     private static OfficeColor WithTint(OfficeColor source, OfficeColor tint) =>
         OfficeColor.FromRgba(tint.R, tint.G, tint.B, source.A);
+
+    private static OfficeTextTabStops? TintTabStops(OfficeTextTabStops? tabs, OfficeColor tint) {
+        if (tabs == null) return null;
+        var stops = new List<OfficeTextTabStop>(tabs.Stops.Count);
+        foreach (OfficeTextTabStop stop in tabs.Stops) {
+            OfficeTextTabLineLeader? leader = stop.LineLeader;
+            if (leader?.Color is { } color) leader = new OfficeTextTabLineLeader(leader.Style, leader.DoubleLine,
+                leader.WidthPoints, leader.WidthFontFraction, WithTint(color, tint));
+            stops.Add(stop.WithLineLeader(leader).WithLeaderStyle(stop.LeaderStyle?.Tint(tint)));
+        }
+        return new OfficeTextTabStops(stops, tabs.DefaultInterval, tabs.Origin).WithParagraphAlignment(tabs.AlignWithParagraph);
+    }
+
+    private static OfficeRichTextRun TintRichTextRun(OfficeRichTextRun run, OfficeColor tint) => new OfficeRichTextRun(
+        run.Text, run.FontSize, WithTint(run.Color, tint), run.Bold, run.Italic, run.Underline,
+        run.FontFamily, run.Strikethrough, run.BackgroundColor.HasValue ? WithTint(run.BackgroundColor.Value, tint) : null,
+        run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent) { LinkUri = run.LinkUri };
 }

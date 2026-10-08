@@ -706,7 +706,7 @@ public sealed partial class OfficeRasterCanvas {
             : InterpolateGradientStops(gradient.Stops, ratio, gradient.SpreadMode != OfficeGradientSpreadMode.Pad || gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius, gradient.ColorInterpolation);
     }
 
-    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
+    internal static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
         if (ratio <= stops[0].Offset) {
             return stops[0].Color;
         }
@@ -733,7 +733,7 @@ public sealed partial class OfficeRasterCanvas {
         return stops[stops.Count - 1].Color;
     }
 
-    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
+    internal static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
 
     private static byte InterpolateByte(byte start, byte end, double ratio) =>
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio))));

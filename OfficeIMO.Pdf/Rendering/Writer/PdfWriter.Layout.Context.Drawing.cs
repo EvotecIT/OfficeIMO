@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, OfficeDrawingTextMetrics? textMetrics = null) {
-            textMetrics ??= CreateDrawingTextMetrics(currentOpts);
+            textMetrics ??= CreateDrawingTextMetrics(currentOpts, cancellationToken);
             for (int i = 0; i < drawing.Elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeDrawingElement element = drawing.Elements[i];

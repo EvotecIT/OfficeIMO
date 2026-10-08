@@ -140,24 +140,10 @@ internal static partial class PdfWriter {
             return string.Empty;
         }
 
-        double Measure(string text) => MeasureRichText(text, segment.Font, segment.NamedFont,
-            segment.FontSize, segment.Baseline, options, segment.FeatureSettings,
-            segment.HorizontalTextScaling, segment.CharacterSpacing, segment.TextDirection, segment.FontMetricScale);
-        double glyphWidth = Measure(leaderGlyph);
-        if (glyphWidth <= 0 || gap <= glyphWidth * 3D) {
-            return string.Empty;
-        }
-
-        // Measure the repeated text as it will be painted, including intrinsic
-        // font tracking and shaping. Keep synthesis bounded even for a tiny advance.
-        int low = 3, high = MaxTabLeaderGlyphCount, count = 0;
-        while (low <= high) {
-            int candidate = low + (high - low) / 2;
-            if (Measure(new string(leaderGlyph[0], candidate)) <= gap) {
-                count = candidate;
-                low = candidate + 1;
-            } else high = candidate - 1;
-        }
-        return new string(leaderGlyph[0], count);
+        return OfficeIMO.Drawing.OfficeTextTabLeaderLayout.Create(leaderGlyph, gap, MaxTabLeaderGlyphCount,
+            value => MeasureRichText(value, segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
+                options, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing,
+                segment.TextDirection, segment.FontMetricScale), System.Threading.CancellationToken.None,
+            minimumGapGlyphs: 3).Text ?? string.Empty;
     }
 }

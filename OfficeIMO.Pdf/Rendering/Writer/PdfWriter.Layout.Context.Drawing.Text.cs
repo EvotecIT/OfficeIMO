@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
                 text.FlipVertical,
                 text.Padding,
                 text.ParagraphIndent);
-            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, textMetrics, text.DecorationColor, text.Color ?? OfficeColor.Black);
+            DrawDrawingRichTextAt(richText, originX, originTopY - priorScript.BaselineOffset, textMetrics, text.DecorationColor);
         }
 
         private void DrawDrawingPositionedText(OfficeDrawingText text, double originX, double originTopY,
@@ -89,8 +89,7 @@ internal static partial class PdfWriter {
             OfficeTextDirection positionedDirection = text.TextDirection == OfficeTextDirection.TopToBottom
                 ? OfficeTextDirection.Auto
                 : text.TextDirection;
-            void Paint() => WithDrawingTextOpacity(text.Color, text.DecorationColor, PaintContent);
-            void PaintContent() {
+            void Paint() {
                 double baseline = frameTopY - text.Font.Size - text.BaselineOffset;
                 string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
                 foreach (string value in lines) {
@@ -106,7 +105,7 @@ internal static partial class PdfWriter {
                         .WithFeatureSettings(text.FeatureSettings)
                         .WithTextDirection(positionedDirection);
                     WriteDrawingPositionedRun(run, x, baseline, advance, frameX, frameTopY - text.Height, text.Width, text.Height,
-                        clipToFrame: text.ClipToFrame);
+                        text.Color ?? OfficeColor.Black, text.DecorationColor, clipToFrame: text.ClipToFrame);
                     baseline -= text.LineHeight ?? text.Font.Size * 1.2D;
                 }
             }
@@ -118,14 +117,10 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null, OfficeColor? textColor = null) {
+        private void DrawDrawingRichTextAt(OfficeDrawingRichText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics, OfficeColor? decorationColor = null) {
             if (text.Runs.Count == 0 || string.IsNullOrEmpty(text.PlainText)) return;
 
-            void DrawContent() {
-                void Paint() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
-                if (textColor.HasValue) WithDrawingTextOpacity(textColor, decorationColor, Paint);
-                else Paint();
-            }
+            void DrawContent() => DrawDrawingRichTextCore(text, originX + text.X, originTopY - text.Y, textMetrics, decorationColor);
             if (text.HasFrameTransform) {
                 OfficeTransform pageTransform = ToTopLeftPageTransform(
                     text.CreateFrameTransform().CreateDestinationTransform(),
@@ -145,7 +140,14 @@ internal static partial class PdfWriter {
             double height = text.Height - text.Padding.Vertical;
             if (width <= 0D || height <= 0D) return;
 
-            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, width, height, textMetrics.MeasureText, measurePaint: textMetrics.MeasurePaintBounds);
+            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithMetrics(text, width, height, textMetrics);
+            double clipX = contentX, clipWidth = width;
+            if (!text.WrapText && text.Paragraphs.Count > 0) {
+                var paint = OfficeDrawingTextLayout.HorizontalPaintEnvelope(layout, textMetrics.MeasureHorizontalPaintBounds);
+                double left = Math.Min(0D, paint.Left), right = Math.Max(width, paint.Right);
+                clipX += left;
+                clipWidth = right - left;
+            }
             double lineTop = OfficeTextPlacement.ResolveTop(0D, height, layout.Height, text.VerticalAlignment) + layout.ContentOffsetY;
             for (int index = 0; index < layout.Lines.Count; index++) {
                 OfficeRichTextLine line = layout.Lines[index];
@@ -181,41 +183,43 @@ internal static partial class PdfWriter {
             void Paint(OfficeRichTextSegment segment, string value, double x, double baseline, double advance) {
                 double size = OfficeTextBlockRenderer.ResolveRichTextRenderedFontSize(segment);
                 double renderedBaseline = OfficeTextBlockRenderer.ResolveRichTextRenderedBaseline(segment, baseline);
+                if (segment.TabLinePaint is { } leader) {
+                    var content = new ContentStreamBuilder(sb).SaveState()
+                        .Rectangle(clipX, contentTopY - height, clipWidth, height).ClipPath().EndPath();
+                    DrawShapeGeometryAt(leader.ToShape(), x + leader.Left, contentTopY - renderedBaseline - leader.Bottom);
+                    content.RestoreState();
+                }
+                if (value.Length == 0) return;
                 var run = new PdfTextRun(value, segment.Bold, segment.Underline, ToPdfColor(segment.Color),
                     segment.Italic, segment.Strikethrough, size, ResolveDrawingTextFont(segment.FontFamily),
                     linkUri: segment.LinkUri, backgroundColor: ToPdfColor(segment.BackgroundColor),
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
                     strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
-                    contentX, contentTopY - height, width, height);
-            }
-        }
-
-        // Set glyph/decorative alpha inside any transformed transparency Form. Its
-        // isolated group resets alpha; setting it on the caller dims the whole group.
-        private void WithDrawingTextOpacity(OfficeColor? color, OfficeColor? decorationColor, Action paint) {
-            OfficeColor fill = color ?? OfficeColor.Black;
-            string? state = EnsureGraphicsState(fill.A / 255D, (decorationColor ?? fill).A / 255D);
-            if (state != null) new ContentStreamBuilder(sb).SaveState().GraphicsState(state);
-            try {
-                paint();
-            } finally {
-                if (state != null) new ContentStreamBuilder(sb).RestoreState();
+                    clipX, contentTopY - height, clipWidth, height, segment.Color, decorationColor);
             }
         }
 
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
-            double clipX, double clipY, double clipWidth, double clipHeight, bool clipToFrame = true) {
+            double clipX, double clipY, double clipWidth, double clipHeight, OfficeColor foregroundColor,
+            OfficeColor? decorationColor, bool clipToFrame = true) {
             double size = run.FontSize ?? currentOpts.DefaultFontSize;
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
             double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);
             double scale = actualWidth > 0D && advance > 0D ? advance / actualWidth : 1D;
+            // Apply glyph and decoration alpha inside transformed paint, independently
+            // of run backgrounds and the containing transparency group.
+            string? foregroundState = EnsureGraphicsState(foregroundColor.A / 255D, 1D);
+            string? decorationState = run.Underline || run.Strike
+                ? EnsureGraphicsState(1D, (decorationColor ?? foregroundColor).A / 255D)
+                : null;
             void Paint() {
                 WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, PdfAlign.Left, null),
                     line.Lines, line.LineHeights, currentOpts, baseline, size, size * 1.2D,
                     currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
                     clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren,
+                    foregroundGraphicsState: foregroundState, decorationGraphicsState: decorationState,
                     clipToFrame: clipToFrame);
             }
             if (Math.Abs(scale - 1D) > 0.000001D) {

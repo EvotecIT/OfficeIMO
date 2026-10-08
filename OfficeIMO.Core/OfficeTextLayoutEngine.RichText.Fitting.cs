@@ -12,6 +12,7 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, OfficeFontStyle, double> measure, bool wrap,
         double minimumFontSize, OfficeTextParagraphIndent paragraphIndent, CancellationToken cancellationToken,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint,
         out double appliedScale) {
         double availableHeight = NormalizeNonNegative(height);
         bool Fits(IReadOnlyList<OfficeRichTextRun> candidate, double scale) {
@@ -19,33 +20,31 @@ public static partial class OfficeTextLayoutEngine {
                 double.MaxValue, lineHeightFactor, measure, wrap, OfficeTextOverflowBehavior.Clip,
                 paragraphIndent.Scale(scale), inputTruncated: false, cancellationToken);
             return !measured.Clipped && measured.Width <= width + 0.01D
-                && OfficeDrawingTextLayout.RequiredFrameHeight(measured, measurePaint) <= availableHeight + 0.01D;
+                && OfficeDrawingTextLayout.RequiredFrameHeight(measured, measurePaint, measureSegmentPaint) <= availableHeight + .000001D;
         }
 
-        if (Fits(runs, 1D)) {
-            appliedScale = 1D;
-            return runs;
-        }
         double maxFontSize = ResolveMaxRichTextFontSize(runs);
         double minFontSize = Math.Min(maxFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
-        double low = minFontSize / Math.Max(maxFontSize, 1D);
-        IReadOnlyList<OfficeRichTextRun> best = ScaleRichTextRuns(runs, low, cancellationToken);
-        if (!Fits(best, low)) {
-            appliedScale = low;
-            return best;
-        }
+        appliedScale = ResolveFrameFitScale(minFontSize / Math.Max(maxFontSize, 1D),
+            scale => Fits(scale == 1D ? runs : ScaleRichTextRuns(runs, scale, cancellationToken), scale), cancellationToken);
+        return appliedScale == 1D ? runs : ScaleRichTextRuns(runs, appliedScale, cancellationToken);
+    }
 
+    // Both inline and paragraph layout use the same bounded frame-fitting search.
+    internal static double ResolveFrameFitScale(double minimumScale, Func<double, bool> fits,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (fits(1D)) return 1D;
+        double low = minimumScale;
+        if (!fits(low)) return low;
         double high = 1D;
         for (int iteration = 0; iteration < 12; iteration++) {
             cancellationToken.ThrowIfCancellationRequested();
             double candidateScale = (low + high) / 2D;
-            IReadOnlyList<OfficeRichTextRun> candidate = ScaleRichTextRuns(runs, candidateScale, cancellationToken);
-            if (Fits(candidate, candidateScale)) {
+            if (fits(candidateScale)) {
                 low = candidateScale;
-                best = candidate;
             } else high = candidateScale;
         }
-        appliedScale = low;
-        return best;
+        return low;
     }
 }

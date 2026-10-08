@@ -204,7 +204,30 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextParagraphIndent? paragraphIndent = null,
         CancellationToken cancellationToken = default,
         bool shrinkToHeight = false,
-        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null) {
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null,
+        bool hardBreakStartsParagraph = true, OfficeTextTabStops? tabStops = null,
+        OfficeTextTabLeaderLayout.Budget? leaderBudget = null) =>
+        LayoutStyledRichTextBlockWithPaint(runs, maxWidth, maxHeight, lineHeightFactor, measure, wrap, shrinkToFit,
+            minimumFontSize, overflowBehavior, paragraphIndent, cancellationToken, shrinkToHeight, measurePaint,
+            hardBreakStartsParagraph, tabStops, leaderBudget);
+
+    internal static OfficeRichTextBlockLayout LayoutStyledRichTextBlockWithPaint(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, string?, OfficeFontStyle, double> measure,
+        bool wrap,
+        bool shrinkToFit = false,
+        double minimumFontSize = 1D,
+        OfficeTextOverflowBehavior overflowBehavior = OfficeTextOverflowBehavior.Ellipsis,
+        OfficeTextParagraphIndent? paragraphIndent = null,
+        CancellationToken cancellationToken = default,
+        bool shrinkToHeight = false,
+        Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null,
+        bool hardBreakStartsParagraph = true, OfficeTextTabStops? tabStops = null,
+        OfficeTextTabLeaderLayout.Budget? leaderBudget = null,
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
@@ -221,7 +244,7 @@ public static partial class OfficeTextLayoutEngine {
         if (shrinkToFit && shrinkToHeight) {
             normalizedRuns = FitRichTextRunsToFrame(normalizedRuns, width, maxHeight,
                 lineHeightFactor, measure, wrap, minimumFontSize,
-                effectiveParagraphIndent, cancellationToken, measurePaint, out double appliedScale);
+                effectiveParagraphIndent, cancellationToken, measurePaint, measureSegmentPaint, out double appliedScale);
             effectiveParagraphIndent = effectiveParagraphIndent.Scale(appliedScale);
         } else if (shrinkToFit && !wrap) {
             double unwrappedWidth = MeasureMaxUnwrappedRichTextWidth(
@@ -248,7 +271,8 @@ public static partial class OfficeTextLayoutEngine {
             overflowBehavior,
             effectiveParagraphIndent,
             inputTruncated,
-            cancellationToken);
+            cancellationToken,
+            hardBreakStartsParagraph, tabStops, leaderBudget);
     }
 
     private static OfficeRichTextBlockLayout LayoutRichTextBlockCore(
@@ -261,7 +285,9 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent paragraphIndent,
         bool inputTruncated,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool hardBreakStartsParagraph = true, OfficeTextTabStops? tabStops = null,
+        OfficeTextTabLeaderLayout.Budget? leaderBudget = null) {
         cancellationToken.ThrowIfCancellationRequested();
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
@@ -278,7 +304,11 @@ public static partial class OfficeTextLayoutEngine {
         bool clipped = inputTruncated;
         bool processingStopped = false;
 
-        foreach (RichTextToken token in CreateRichTextTokens(runs, cancellationToken)) {
+        IReadOnlyList<RichTextToken>? tabTokens = tabStops == null ? null : new List<RichTextToken>(CreateRichTextTokens(runs, cancellationToken, preserveTabs: true));
+        int tokenIndex = 0;
+        leaderBudget ??= new OfficeTextTabLeaderLayout.Budget();
+        foreach (RichTextToken token in (IEnumerable<RichTextToken>?)tabTokens ?? CreateRichTextTokens(runs, cancellationToken)) {
+            int currentToken = tokenIndex++;
             cancellationToken.ThrowIfCancellationRequested();
             if (lines.Count >= MaximumLayoutLines) {
                 clipped = true;
@@ -292,8 +322,8 @@ public static partial class OfficeTextLayoutEngine {
                     break;
                 }
                 currentParagraphIndent = token.Run.ParagraphIndent ?? paragraphIndent;
-                builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
-                atParagraphStart = true;
+                builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: hardBreakStartsParagraph));
+                atParagraphStart = hardBreakStartsParagraph;
                 continue;
             }
 
@@ -302,7 +332,26 @@ public static partial class OfficeTextLayoutEngine {
                 builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: true));
             }
 
-            if (token.IsWhitespace && builder.IsEmpty) {
+            if (token.IsTab && tabStops != null) {
+                double advance = ResolveTabAdvance(tabStops, builder.OffsetX + builder.Width, tabTokens!, currentToken, measure, cancellationToken, out OfficeTextTabStop? selectedStop);
+                double room = Math.Max(0, width - builder.OffsetX - builder.Width);
+                if (double.IsInfinity(advance) || advance > room) {
+                    clipped = true;
+                    if (wrap && !builder.IsEmpty) {
+                        if (!AddRichTextLine(lines, builder)) { processingStopped = true; break; }
+                        builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: false));
+                        advance = ResolveTabAdvance(tabStops, builder.OffsetX, tabTokens!, currentToken, measure, cancellationToken, out selectedStop);
+                        room = Math.Max(0, width - builder.OffsetX);
+                    }
+                    if (double.IsInfinity(advance) || advance > room) advance = 0;
+                }
+                bool leaderLimited = builder.AddTabAdvance(token.Run, advance, selectedStop, leaderBudget, cancellationToken);
+                clipped |= leaderLimited && leaderBudget.ReportClipping;
+                atParagraphStart = false;
+                continue;
+            }
+
+            if (token.IsWhitespace && builder.IsEmpty && tabStops == null) {
                 continue;
             }
 
@@ -352,7 +401,9 @@ public static partial class OfficeTextLayoutEngine {
         ApplyRichTextLineHeights(lines, lineFactor, maxFontSize);
         lineHeight = ResolveMaximumRichTextLineHeight(lines, lineHeight);
 
-        if (!wrap && lines.Count > 0 && lines[0].OffsetX + lines[0].Width > width + 0.01D) {
+        bool clippedByOtherCauses = clipped;
+        bool unwrappedWidthOverflow = !wrap && lines.Count > 0 && lines[0].OffsetX + lines[0].Width > width + 0.01D;
+        if (unwrappedWidthOverflow) {
             if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
                 lines[0] = TrimRichTextLineToWidthWithEllipsis(lines[0], Math.Max(0D, width - lines[0].OffsetX), measure);
             }
@@ -362,11 +413,15 @@ public static partial class OfficeTextLayoutEngine {
 
         if (ClipRichTextLinesToHeight(lines, height, width, measure, overflowBehavior)) {
             clipped = true;
+            clippedByOtherCauses = true;
         }
 
         double blockWidth = MeasureMaxRichTextLineWidth(lines);
         double blockHeight = MeasureRichTextBlockHeight(lines, lineHeight);
-        return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped);
+        return new OfficeRichTextBlockLayout(lines, lineHeight, blockWidth, blockHeight, clipped) {
+            OnlyUnwrappedWidthOverflow = unwrappedWidthOverflow && !clippedByOtherCauses &&
+                overflowBehavior == OfficeTextOverflowBehavior.Clip
+        };
     }
 
     private static bool AddBrokenRichTextToken(

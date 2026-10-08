@@ -10,7 +10,7 @@ public static class OfficeImageExportFontDiagnostics {
     private const int MaximumDiagnosticDepth = 64;
     /// <summary>
     /// Reports when the renderer cannot use the first requested font family/style and must select
-    /// a later family or the managed stroke fallback.
+    /// a later family or another font fallback.
     /// </summary>
     public static OfficeImageExportDiagnostic? CreateSubstitutionDiagnostic(
         this OfficeFontFaceCollection fonts,
@@ -57,7 +57,7 @@ public static class OfficeImageExportFontDiagnostics {
             OfficeImageExportDiagnosticSeverity.Warning,
             OfficeImageExportDiagnosticCodes.FontSubstituted,
             "Font family '" + families[0] +
-            "' could not be resolved with glyph coverage for this text; the dependency-free managed stroke fallback was used.",
+            "' could not be resolved with glyph coverage for this text; output uses font fallback.",
             source,
             OfficeConversionLossKind.Approximation);
     }

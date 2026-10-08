@@ -78,6 +78,26 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
     /// <summary>Styled text runs in paint order.</summary>
     public IReadOnlyList<OfficeRichTextRun> Runs { get; }
 
+    /// <summary>Independent paragraphs, or an empty collection for the original single-format run profile.</summary>
+    public IReadOnlyList<OfficeRichTextParagraph> Paragraphs => _paragraphs;
+    private IReadOnlyList<OfficeRichTextParagraph> _paragraphs = Array.Empty<OfficeRichTextParagraph>();
+
+    internal OfficeDrawingRichText WithParagraphs(IReadOnlyList<OfficeRichTextParagraph> paragraphs) {
+        _paragraphs = new ReadOnlyCollection<OfficeRichTextParagraph>(new List<OfficeRichTextParagraph>(paragraphs));
+        return this;
+    }
+
+    /// <summary>Horizontal placement of the measured paragraph area inside the padded frame.</summary>
+    /// <remarks>The original run-only profile retains full-width layout. Paragraph wrapping uses the frame width before the measured area is placed; unwrapped areas may extend beyond either frame edge.</remarks>
+    public OfficeTextAreaAlignment TextAreaAlignment { get; private set; } = OfficeTextAreaAlignment.FullWidth;
+
+    /// <summary>Preserves the paragraph area policy while constructing or copying a drawing text frame.</summary>
+    internal OfficeDrawingRichText WithTextAreaAlignment(OfficeTextAreaAlignment alignment) {
+        if (!Enum.IsDefined(typeof(OfficeTextAreaAlignment), alignment)) throw new ArgumentOutOfRangeException(nameof(alignment));
+        TextAreaAlignment = alignment;
+        return this;
+    }
+
     /// <summary>Plain text formed by concatenating all runs.</summary>
     public string PlainText { get; }
 
@@ -142,7 +162,13 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
     public OfficeImageFrameTransform CreateFrameTransform() => new OfficeImageFrameTransform(RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
 
     /// <summary>Creates a detached copy of this positioned rich text box.</summary>
-    public OfficeDrawingRichText Clone() => new OfficeDrawingRichText(Runs, X, Y, Width, Height, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, FlipHorizontal, FlipVertical, Padding, ParagraphIndent);
+    public OfficeDrawingRichText Clone() => new OfficeDrawingRichText(Runs, X, Y, Width, Height, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, FlipHorizontal, FlipVertical, Padding, ParagraphIndent) {
+        NormalizeHorizontalPaint = NormalizeHorizontalPaint
+    }.WithParagraphs(Paragraphs).WithTextAreaAlignment(TextAreaAlignment);
+
+    // Used by qualified measured frame growth. Renderers reserve horizontal ink
+    // insets before alignment; ordinary authored fixed frames keep their placement.
+    internal bool NormalizeHorizontalPaint { get; set; }
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

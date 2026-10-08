@@ -111,6 +111,11 @@ Face matching follows CSS ordering within the requested family. Missing faces us
 matching face and existing fallback policy. Simulated bold paints its combined outline once,
 preserving the requested opacity.
 
+Raster font selection checks glyph coverage before using its default font. When no selected font
+can paint the text, the managed stroke fallback keeps basic text and common list markers visible:
+`•`, `◆`, `■`, `□`, `❖`, `➢` and `✔`. Other unsupported characters use a placeholder. Register a font
+with the required glyphs when the document needs broader script coverage or exact typography.
+
 ## Prepare scanned images
 
 `OfficeScanProcessor` in `OfficeIMO.Drawing` prepares a separately owned raster for OCR. It supports explicit quarter-turns, manual straightening, confidence-filtered deskew, local paper-brightness normalization, black and white levels, gamma, grayscale or bilevel output, and proportional downsampling:
@@ -757,6 +762,88 @@ if (report.HasIssues) {
     }
 }
 ```
+
+### Render paragraphs with independent formatting
+
+`AddRichTextParagraphs` keeps paragraph alignment, margins, indentation and line spacing in one text frame. SVG, raster and PDF measure the paragraphs at render time with the drawing's configured fonts.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var drawing = new OfficeDrawing(300, 160).AddRichTextParagraphs(new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Invoice ", 16, OfficeColor.Black),
+        new OfficeRichTextRun("approved", 16, OfficeColor.Parse("#167A36"), bold: true)
+    }, OfficeTextAlignment.Center, lineHeight: 24),
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Ready for payment", 12, OfficeColor.Black)
+    }, margins: new OfficeTextPadding(8, 6, 8, 0), lineHeightFactor: 1.4)
+}, 10, 10, 280, 140, padding: new OfficeTextPadding(6, 6, 6, 6));
+```
+
+Absolute `lineHeight` applies to every visual line; `lineHeightFactor` scales each line's text extent. Choose one or leave both unset for the shared default. Hard line breaks continue the paragraph's indentation; a new paragraph restarts it. Adjacent vertical margins are added. The method snapshots caller collections and rejects inputs beyond 100,000 UTF-16 characters or 4,096 runs, counting paragraph separators. Layout omits paragraphs whose horizontal margins consume the frame, then continues with later paragraphs. Lines beyond the frame height are omitted; condensed line spacing can let glyph ink extend outside the line box. It does not infer native document auto-sizing.
+
+The overload with `OfficeTextAreaAlignment` positions the whole paragraph block independently of paragraph alignment. `FullWidth` preserves the default frame width. `Left`, `Center` and `Right` use the widest measured line, including paragraph margins, and anchor that intrinsic area inside the padded frame. Shorter lines keep their paragraph alignment within it. Wrapping is measured once at the authored frame width; anchoring retains those line breaks. With `wrapText: false`, an oversized centered or right area can extend beyond either side of the frame.
+
+```csharp
+var anchored = new OfficeDrawing(300, 100).AddRichTextParagraphs(new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Longer heading\nShort", 12, OfficeColor.Black)
+    }, OfficeTextAlignment.Right)
+}, 10, 10, 280, 80, OfficeTextAreaAlignment.Center, wrapText: false,
+    padding: new OfficeTextPadding(12, 4, 9, 4));
+```
+
+Use `OfficeTextParagraphLabel` to style and position a list label independently of its body:
+
+```csharp
+var label = OfficeTextParagraphLabel.InBox(
+    new OfficeRichTextRun("1.", 12, OfficeColor.Black),
+    position: 0, minimumWidth: 24, alignment: OfficeTextAlignment.Right,
+    minimumDistance: 4);
+var item = new OfficeRichTextParagraph(
+    new[] { new OfficeRichTextRun("A body that can wrap", 12, OfficeColor.Black) },
+    label, margins: new OfficeTextPadding(24, 0, 0, 0));
+```
+
+`InBox` expands a minimum-width label box when necessary. `AtPosition` aligns at an anchor and follows the label with a declared text position, one measured space, or no separator. Labels appear once on the first line, including items with empty body text, and contribute to automatic line height and shared character/run limits. Wrapped body text uses the paragraph's continuation indentation. A label that exceeds the content rectangle's right edge or right margin is omitted as a whole and marks the layout as clipped; logical text and body insets remain intact. Positions are measured from the text frame's content rectangle before render scaling; native tab-stop selection is the caller's responsibility.
+
+Use `WithTabStops` to position tabbed fields with the same measurements in SVG, raster and PDF:
+
+```csharp
+var prices = new OfficeRichTextParagraph(new[] {
+    new OfficeRichTextRun("Item\t123.45", 12, OfficeColor.Black)
+}).WithTabStops(new OfficeTextTabStops(new[] {
+    new OfficeTextTabStop(180, OfficeTextTabAlignment.Character, ".").WithLeader(".")
+}, defaultInterval: 36));
+```
+
+Stops support left, center, right and character alignment. Field measurement extends to the next tab or hard break across styled runs; an absent delimiter aligns the field's end. An aligned field that would overlap preceding content consumes its stop with zero advance. Default stops repeat on the interval grid beyond the last explicit stop. Positions are relative to the paragraph's inner left margin; `origin` changes that reference point. Leading and consecutive tabs advance normally, and hard breaks reset the line position.
+
+Tabbed lines keep their fixed grid by default. Use `WithParagraphAlignment()` on the tab settings to move each tabbed line as a whole with the paragraph's center or right alignment; `AlignWithParagraph` reports this choice. Field alignment within the line is preserved, and tabbed lines are never justified. Pass `false` to restore the fixed grid. Plain lines retain paragraph alignment with either setting.
+
+Soft wraps use continuation indentation; a tab beyond the frame marks layout as clipped and retains the following text without an unbounded gap. Paragraphs without tab settings retain legacy space expansion. Settings snapshot at most 256 unique stops and survive scaling, scene cloning and tinting; logical text retains the tab characters.
+
+`WithLeader` returns an independent stop that repeats one non-control Unicode scalar in its measured gap. Pass `null` to remove it; whitespace leaves a blank gap. Leader paint uses the tab run's font and formatting, measures the complete repeated run, and retains the following field's anchor. Scaling and frame fitting retain the leader. A text-frame layout generates at most 100,000 UTF-16 characters of leader paint across all paragraphs; exhausting that budget marks clipping while retaining spacing and body text. Frame fitting does not shrink body text merely because leader paint reaches this limit. The logical model contains the original tabs; SVG, raster and PDF paint the generated glyphs.
+
+Use `WithLeaderStyle` for separate textual formatting:
+
+```csharp
+var styledStop = new OfficeTextTabStop(180).WithLeader(".").WithLeaderStyle(
+    new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5, color: OfficeColor.Blue, italic: true));
+```
+
+Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSizePoints` overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
+
+Use `WithLineLeader` for vector paint that adds no characters to extracted text:
+
+```csharp
+var ruledStop = new OfficeTextTabStop(180).WithLineLeader(
+    new OfficeTextTabLineLeader(OfficeTextTabLineLeaderStyle.DotDash,
+        doubleLine: true, widthPoints: 0.75, color: OfficeColor.Blue));
+```
+
+Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `widthPoints` follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
 
 Affine effect groups contribute their transformed child bounds, not the dimensions
 of their temporary rendering buffers. Empty groups do not create overflow findings.

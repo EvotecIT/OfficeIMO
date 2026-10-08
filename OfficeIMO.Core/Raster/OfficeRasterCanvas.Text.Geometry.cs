@@ -87,6 +87,9 @@ public sealed partial class OfficeRasterCanvas {
         return Math.Max(1D, (height - font.LineHeight(size)) / 2D);
     }
 
+    private static double ResolveRasterTextLineOutlineTop(IOfficeFontProgram font, double size, double top) =>
+        top + size * .84D - ResolveRasterBaseline(font, size);
+
     private static double ResolveRasterBaseline(IOfficeFontProgram font, double size) {
         double lineHeight = font.LineHeight(size);
         double baseline = font is IOfficeFontBaselineMetrics metrics ? metrics.BaselineOffset(size) : lineHeight * 0.8D;
