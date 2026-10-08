@@ -8,6 +8,53 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("hyperlink", "body")]
+    [InlineData("hyperlink", "header")]
+    [InlineData("sdt", "body")]
+    [InlineData("sdt", "header")]
+    [InlineData("nested", "body")]
+    [InlineData("nested", "header")]
+    public void MixedTextBoxWrappedEquationsRetainSelectedSiblings(string wrapper, string scope) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        WordParagraph paragraph = scope == "body" ? document.AddParagraph("PREFIX")
+            : document.HeaderDefaultOrCreate.AddParagraph("PREFIX");
+        paragraph.AddText(string.Empty).AddTextBox("BOX", WordImageTextWrapping.Square);
+        W.Run boxRun = paragraph._paragraph.Elements<W.Run>().Last();
+        boxRun.Remove();
+        var children = new DocumentFormat.OpenXml.OpenXmlElement[] {
+            new W.Run(new W.RunProperties(new W.FontSize { Val = "28" }), new W.Text("LINKSTART")),
+            new DocumentFormat.OpenXml.Math.OfficeMath(new DocumentFormat.OpenXml.Math.Run(new DocumentFormat.OpenXml.Math.Text("MATH"))),
+            boxRun, new W.Run(new W.Text("LINKEND"))
+        };
+        DocumentFormat.OpenXml.OpenXmlElement content = wrapper == "hyperlink"
+            ? new W.Hyperlink(children) { Anchor = "equation_target" }
+            : new W.SdtRun(new W.SdtProperties(new W.SdtId { Val = 2078 }), new W.SdtContentRun(children));
+        if (wrapper == "nested") content = new W.Hyperlink(content) { Anchor = "equation_target" };
+        paragraph._paragraph.Append(content);
+        paragraph.AddText("ENDTEXT");
+        if (scope != "body") {
+            document.HeaderDefaultOrCreate.AddParagraph().AddField(WordFieldType.SectionPages);
+            document.AddParagraph("BODY");
+        }
+        document.AddParagraph("TARGET").AddBookmark("equation_target");
+        string original = paragraph._paragraph.OuterXml;
+        Assert.Empty(document.ValidateDocument());
+        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
+        string visible = string.Concat(letters.Select(letter => letter.Value));
+        int previous = -1;
+        foreach (string token in new[] { "PREFIX", "LINKSTART", "MATH", "BOX", "LINKEND", "ENDTEXT" }) {
+            Assert.Equal(1, visible.Split(new[] { token }, StringSplitOptions.None).Length - 1);
+            int position = visible.IndexOf(token, StringComparison.Ordinal);
+            Assert.True(position > previous, visible);
+            previous = position;
+        }
+        int mathIndex = visible.IndexOf("MATH", StringComparison.Ordinal);
+        Assert.All(letters.Skip(mathIndex).Take(4), letter => Assert.Equal(14D, letter.PointSize, precision: 3));
+        Assert.Equal(original, paragraph._paragraph.OuterXml);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void MixedTextBoxRetainsSiblingChartAndGroup(bool chart) {

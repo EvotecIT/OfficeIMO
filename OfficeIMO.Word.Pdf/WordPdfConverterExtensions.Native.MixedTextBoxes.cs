@@ -127,16 +127,12 @@ public static partial class WordPdfConverterExtensions {
         if (equations.Count == 0) return runs.ToList();
         var positions = paragraph._paragraph.Descendants().Select((element, index) => (element, index))
             .ToDictionary(item => item.element, item => item.index);
-        var topPositions = paragraph._paragraph.ChildElements.Select((element, index) => (element, index))
-            .ToDictionary(item => item.element, item => item.index);
         var ordered = new List<(int Position, WordParagraph Run)>();
         foreach (WordParagraph run in runs) {
-            OpenXmlElement? top = run._run;
-            while (top?.Parent != null && !ReferenceEquals(top.Parent, paragraph._paragraph)) top = top.Parent;
-            if (top != null && topPositions.TryGetValue(top, out int topIndex) &&
-                equations.Any(equation => equation.ContainsChildIndex(topIndex))) continue;
             foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
                 if (child is W.RunProperties) continue;
+                if (child.Ancestors().Prepend(child).Any(element =>
+                    equations.Any(equation => equation.Equation.IsBackingElement(element)))) continue;
                 int position = positions.TryGetValue(child, out int childPosition) ? childPosition
                     : run._run != null && positions.TryGetValue(run._run, out int runPosition) ? runPosition : int.MaxValue;
                 ordered.Add((position, CreateNativeRunContentView(run, new[] { child })));
@@ -148,8 +144,19 @@ public static partial class WordPdfConverterExtensions {
         foreach (var equation in equations) {
             var segment = segments.FirstOrDefault(item => ReferenceEquals(item.Equation, equation.Equation));
             if (segment == null || string.IsNullOrEmpty(equation.Equation.Text)) continue;
-            OpenXmlElement start = paragraph._paragraph.ChildElements[equation.StartChildIndex];
+            OpenXmlElement start = positions.OrderBy(item => item.Value)
+                .First(item => equation.Equation.IsBackingElement(item.Key)).Key;
             WordParagraph source = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+            if (source._run == null) {
+                // A wrapper-backed equation has no Wordprocessing run. Give
+                // its selected visible text a real run, retaining the wrapper's
+                // applicable formatting and hyperlink context without changing XML.
+                W.Run formattingRun = source._stdRun?.Descendants<W.Run>().FirstOrDefault()
+                    ?? source._hyperlink?.Descendants<W.Run>().FirstOrDefault() ?? new W.Run();
+                source = new WordParagraph(paragraph._document, paragraph._paragraph, formattingRun) {
+                    _hyperlink = source._hyperlink
+                };
+            }
             ordered.Add((positions[start], CreateNativeRunContentView(source, new OpenXmlElement[] {
                 new W.Text(equation.Equation.Text) { Space = SpaceProcessingModeValues.Preserve }
             })));
