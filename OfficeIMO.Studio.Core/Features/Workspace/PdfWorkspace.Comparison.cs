@@ -23,8 +23,11 @@ internal sealed partial class PdfWorkspace {
                 !string.Equals(await _storage.FingerprintAsync(comparisonPath, token).ConfigureAwait(false), report.ActualSha256, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("A source PDF changed after comparison. Open it again and compare before exporting.");
         }
-        string gallery = report.ToHtmlGallery("OfficeIMO document comparison", 96L * 1024 * 1024, cancellationToken);
-        byte[] bytes = new UTF8Encoding(false).GetBytes(gallery);
+        byte[] bytes = await RunNonDetachableCpuWorkAsync(() => {
+            string gallery = report.ToHtmlGallery("OfficeIMO document comparison", 96L * 1024 * 1024, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return new UTF8Encoding(false).GetBytes(gallery);
+        }, cancellationToken).ConfigureAwait(false);
         await WriteWorkspaceOutputAsync(destination, (stream, token) => stream.WriteAsync(bytes.AsMemory(), token).AsTask(),
             cancellationToken, VerifyAsync).ConfigureAwait(false);
     }
