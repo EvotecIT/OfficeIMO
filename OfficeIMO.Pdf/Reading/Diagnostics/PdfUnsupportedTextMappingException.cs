@@ -4,6 +4,6 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfUnsupportedTextMappingException : NotSupportedException {
     internal PdfUnsupportedTextMappingException(PdfFontResource font)
         : base("Composite font /" + font.ResourceName + " uses " + font.Encoding +
-            " without a usable ToUnicode mapping. Its text cannot be extracted or searched reliably.") {
+            " without a usable ToUnicode mapping for the shown character codes. Its text cannot be extracted or searched reliably.") {
     }
 }

@@ -2,8 +2,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font, int maxDecodedTextCharacters) {
-        if (RequiresUnsupportedCompositeMapping(font)) {
-            return bytes => bytes.Length == 0 ? string.Empty : throw new PdfUnsupportedTextMappingException(font);
+        if (UsesNamedCompositeEncoding(font)) {
+            return bytes => DecodeNamedComposite(font, bytes, maxDecodedTextCharacters);
         }
         // Prefer font-specific ToUnicode map when present
         if (font.HasToUnicode && font.CMap is not null) return bytes => font.CMap.MapBytes(bytes, maxDecodedTextCharacters);
@@ -28,8 +28,8 @@ internal static partial class ResourceResolver {
     }
 
     private static System.Func<byte[], int, string> BuildBudgetedDecoderForFont(PdfFontResource font) {
-        if (RequiresUnsupportedCompositeMapping(font)) {
-            return (bytes, _) => bytes.Length == 0 ? string.Empty : throw new PdfUnsupportedTextMappingException(font);
+        if (UsesNamedCompositeEncoding(font)) {
+            return (bytes, maximumCharacters) => DecodeNamedComposite(font, bytes, maximumCharacters);
         }
         if (font.HasToUnicode && font.CMap is not null) {
             return (bytes, maximumCharacters) => font.CMap.MapBytes(bytes, maximumCharacters);
@@ -50,11 +50,19 @@ internal static partial class ResourceResolver {
     // Named composite CMaps select CIDs, not single-byte WinAnsi characters. Identity
     // encodings retain the existing raw-CID rendering and editability paths.
     // Refuse only when text is shown, preserving unused resources and state-only objects.
-    private static bool RequiresUnsupportedCompositeMapping(PdfFontResource font) =>
+    private static bool UsesNamedCompositeEncoding(PdfFontResource font) =>
         string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal) &&
         !string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) &&
-        !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal) &&
-        (!font.HasToUnicode || font.CMap == null || font.CMap.MappingCount == 0);
+        !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal);
+
+    private static string DecodeNamedComposite(PdfFontResource font, byte[] bytes, int maximumCharacters) {
+        if (bytes.Length == 0) return string.Empty;
+        if (!font.HasToUnicode || font.CMap == null ||
+            !font.CMap.TryMapBytes(bytes, maximumCharacters, out string decoded)) {
+            throw new PdfUnsupportedTextMappingException(font);
+        }
+        return decoded;
+    }
 
     private static System.Func<byte[], int, string> BuildBudgetedBaseEncodingDecoder(string encoding) {
         if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {

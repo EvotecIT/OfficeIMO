@@ -947,20 +947,28 @@ internal static partial class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
-            string DecodeRun(byte[] value, int? maximumCharacters = null) {
+            PdfUnsupportedTextMappingException? unsupportedMapping = null;
+            string DecodeRun(byte[] value, int? maximumCharacters = null, bool probe = false) {
                 int remaining = maximumCharacters ?? textOutputBudget.GetRemainingDecodedTextCharacters();
                 if (remaining == 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
-                return decodeWithFontWithinLimit != null
-                    ? decodeWithFontWithinLimit(font, value, remaining)
-                    : decodeWithFont(font, value);
+                try {
+                    return decodeWithFontWithinLimit != null
+                        ? decodeWithFontWithinLimit(font, value, remaining)
+                        : decodeWithFont(font, value);
+                } catch (PdfUnsupportedTextMappingException error) when (probe || useLogicalTextFilters) {
+                    // Width probes may supply only a prefix of a composite code. Logical
+                    // extraction can also use ActualText or exclude this decoration.
+                    if (!probe) unsupportedMapping ??= error;
+                    return string.Empty;
+                }
             }
             // Detect 2-byte CIDs (Identity-H) vs single-byte
             bool twoByte = false;
             if (bytes.Length >= 2) {
-                string one = DecodeRun(new byte[] { bytes[0] });
-                string two = DecodeRun(new byte[] { bytes[0], bytes[1] });
+                string one = DecodeRun(new byte[] { bytes[0] }, probe: true);
+                string two = DecodeRun(new byte[] { bytes[0], bytes[1] }, probe: true);
                 double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
                 double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
                 double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
@@ -1044,6 +1052,9 @@ internal static partial class TextContentParser {
             bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
+            if (unsupportedMapping is not null && !isArtifact && !isHidden && actualTextState is null) {
+                throw unsupportedMapping;
+            }
             bool usesVisibleFill = UsesFillTextPaint(textRenderingMode) && !fillColorSpace.SuppressesPaint;
             bool usesVisibleStroke = UsesStrokeTextPaint(textRenderingMode) && !strokeColorSpace.SuppressesPaint;
             bool isVisibleText = usesVisibleFill || usesVisibleStroke;
