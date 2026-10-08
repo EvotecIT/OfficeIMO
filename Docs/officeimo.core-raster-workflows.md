@@ -232,6 +232,6 @@ Atomic publication protects readers from partial output; it does not promise pow
 
 ## Failure and cancellation
 
-Decode methods return `false` for unsupported, malformed, or over-budget input and propagate cancellation. Editing and encoding APIs reject unsupported dimensions, parameters, or resource requirements with an exception. Expensive pixel operations observe their cancellation token during work. A failed collection transformation returns no partial result, although a caller-supplied callback can still mutate the pixels it was given. Encoding to a caller-owned stream leaves it open and can leave partial output after cancellation or an I/O failure.
+`TryDecode` and `TryDecodeFrames` return `false` for unsupported, malformed, or over-budget input. `Decode` and `DecodeFrames` throw `InvalidDataException` when decoding fails. Both forms propagate cancellation. Editing and encoding APIs reject unsupported dimensions, parameters, or resource requirements with an exception. Expensive pixel operations observe their cancellation token during work. A failed collection transformation returns no partial result, although a caller-supplied callback can still mutate the pixels it was given. Encoding to a caller-owned stream leaves it open and can leave partial output after cancellation or an I/O failure.
 
 Core does not provide a native-code fallback for unsupported formats or modes. Metadata editing, format conversion, and frame-loss policy are explicit contracts; consult the Core README and each codec's options before changing an image's container.
