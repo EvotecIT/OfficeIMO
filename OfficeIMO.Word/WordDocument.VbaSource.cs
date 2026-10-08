@@ -16,8 +16,10 @@ public partial class WordDocument {
         if (project == null) throw new ArgumentNullException(nameof(project));
         options ??= new OfficeVbaWriteOptions();
         if (project.Modules.Any(module => module.Kind == OfficeVbaModuleKind.Document
-            && OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source)?.StartsWith("0{", StringComparison.Ordinal) == true)) {
-            throw new ArgumentException("A document module from a different Office host cannot be applied to Word.", nameof(project));
+            && !(OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source) is string identity
+                && identity.StartsWith("1Normal.", StringComparison.OrdinalIgnoreCase)
+                && identity.Length > "1Normal.".Length))) {
+            throw new ArgumentException("A Word document module requires a non-empty 1Normal. base identity.", nameof(project));
         }
         byte[] bytes = project.Write(options).GetBytes();
         if (!project.Modules.Any(module => module.Kind == OfficeVbaModuleKind.Document)) {

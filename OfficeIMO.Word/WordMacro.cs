@@ -142,7 +142,7 @@ namespace OfficeIMO.Word {
             }
             byte[] changed;
             int remaining;
-            if (compound.Streams.TryGetValue("VBA/dir", out byte[]? directory) && directory.Length > 0) {
+            if (OfficeVbaProjectInspector.TryReadDirectory(compound, out _)) {
                 OfficeVbaProject project = OfficeVbaProject.Load(data);
                 if (!project.Modules.Any(module => module.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
                 project.DeleteModule(name);
