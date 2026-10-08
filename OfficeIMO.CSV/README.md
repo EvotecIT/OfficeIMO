@@ -190,6 +190,30 @@ foreach (Person person in reader.RowsAs<Person>()) {
 The same automatic and explicit `RowsAs<T>` mappings work on both a materialized
 `CsvDocument` and a forward-only reader. The caller owns and disposes the reader.
 
+On .NET 8 and later, ordinary unquoted UTF-8 file and seekable-stream readers
+also support the optional `OfficeIMO.Data` borrowed-text capability:
+
+```csharp
+using OfficeIMO.Data;
+
+using var reader = CsvDocument.OpenDataReader("people.csv");
+while (reader.Read()) {
+    if (reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text)) {
+        ProcessUtf8Name(text);
+    } else {
+        ProcessName(reader.GetString(0));
+    }
+}
+```
+
+The successful span already contains normalized field text and requires no
+string allocation. Consume it before advancing, changing results, or closing
+the reader. Quoted fields, trimming, schema conversions, null markers, missing
+fields, and decoding replacements can return `false`; use ordinary getters in
+that case. A successful empty span represents an empty text field.
+Headerless streams use `HasHeaderRow = false`, retain the first data row, and
+derive generated column names and width from that record.
+
 On .NET 8 and later, use `RowsAsAsync<T>()` when the reader should advance through
 `DbDataReader.ReadAsync` and observe cancellation between rows:
 
@@ -385,12 +409,97 @@ Person[] people = CsvDocument.ReadTextRowsAsParallel<Person>(
 
 `CsvRecord`, and every span returned by it, is valid only during that factory
 call. Do not retain either one. Use `CsvRecord.IsMissing(ordinal)` when a short
-source row omitted a field and `CsvRecord.IsNull(ordinal)` when a present field
-matches `CsvLoadOptions.NullValue`; an omitted field is deliberately not also
-reported as null. The path falls back to correct sequential record access when
-selected CSV options or a record shape cannot use the span-batch parser.
+source row omitted a field and `CsvRecord.IsNull(ordinal)` to inspect a present
+field's null state. Without a schema, this identifies `CsvLoadOptions.NullValue`;
+schema converters and defaults follow the canonical reader's `IsDBNull` result.
+An omitted field is not also reported as null. The path falls back to correct
+sequential record access when selected CSV options or a record shape cannot use
+the span-batch parser.
 Parallel execution uses more working memory and thread-pool work; small or
 cheap rows may be faster through the ordinary sequential API.
+
+Use `AggregateTextRowsAsParallel` when the result is a total or another reduced
+state. It updates an accumulator directly from each borrowed `CsvRecord`, then
+merges completed partition states in source order. It does not create a projected
+result or array entry for every row:
+
+```csharp
+Totals totals = CsvDocument.AggregateTextRowsAsParallel(
+    csvText,
+    static () => new Totals(),
+    header => {
+        int units = header.GetOrdinal("Units");
+        return (ref Totals state, CsvRecord row) => {
+            state.Rows++;
+            state.Units += row.GetInt64(units);
+        };
+    },
+    static (left, right) => new Totals {
+        Rows = left.Rows + right.Rows,
+        Units = left.Units + right.Units
+    },
+    parallelOptions: new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    },
+    cancellationToken: cancellationToken);
+
+public struct Totals {
+    public long Rows;
+    public long Units;
+}
+```
+
+The factory creates a neutral state for the result and independent states for
+each partition. It can run concurrently, as can the record callback. Merge runs
+on the calling thread in source-partition order and must be associative because
+partition grouping can change with the worker and batch settings. Accumulator
+memory and resources belong to the caller; user states are never disposed by
+the reader. Keep borrowed records and spans inside the callback. Schema
+conversion and unsupported parsing settings retain the canonical sequential
+reader behavior. This API accepts decoded text; it does not load a file. All
+started workers finish before the operation returns or throws.
+
+Check `CsvRecord.IsNull` and `IsMissing` before non-nullable typed access.
+For example, without a schema, `NullValue = "-1"` marks that source text as null:
+`GetSpan` and `GetString` still expose `"-1"`, while `GetInt32` rejects the null
+field with `InvalidCastException`. Configured schema converters and defaults
+retain the canonical reader behavior. Original callback and factory failures
+propagate after the started workers finish; internal worker cancellation does
+not replace the original exception.
+
+`AggregateRowsAsParallelAsync` applies the same accumulator delegates to a file
+or stream with incremental asynchronous I/O on .NET 8 and later:
+
+```csharp
+Totals totals = await CsvDocument.AggregateRowsAsParallelAsync(
+    "large.csv",
+    static () => new Totals(),
+    header => {
+        int units = header.GetOrdinal("Units");
+        return (ref Totals state, CsvRecord row) => {
+            state.Rows++;
+            state.Units += row.GetInt64(units);
+        };
+    },
+    static (left, right) => new Totals {
+        Rows = left.Rows + right.Rows,
+        Units = left.Units + right.Units
+    },
+    parallelOptions: new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8,
+        BatchSize = 256
+    },
+    cancellationToken: cancellationToken);
+```
+
+The async parser materializes decoded field strings. Pooled batches retain
+their references and null/missing metadata while the source advances; the
+queue holds at most the configured degree of batches, with no mapped result
+per row. Explicit and inferred schema conversion uses asynchronous sequential
+consumption. The file overload closes its reader on success and failure. The
+stream overload starts at the current position and leaves the stream open.
+Callbacks have no thread affinity; completed states merge sequentially in
+source order, and all workers finish before return or failure.
 
 On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
 `RowsAs<T>`, `GetFieldValue<T>`, and `CsvColumnBuilder.AsDateOnly()` /
@@ -711,6 +820,43 @@ csv.WriteRows(new[] { "Name", "Count", "Active" }, projectedRows);
 
 Use `WriteTextRows` for arrays that are already culture-formatted; CSV escaping
 and row-width validation still apply.
+
+Use `CsvRowWriter.CreateStream` to write at a stream's current position. Its
+`leaveOpen` argument controls the supplied stream's lifetime; disposal completes
+any compression wrapper. `CompressionType.Auto` means no compression for a
+stream. `CreateFile` applies file encoding, compression, append, and no-clobber
+options.
+
+On .NET 8 and later, `WriteUtf8Row` accepts already-formatted UTF-8 fields:
+
+```csharp
+using OfficeIMO.CSV;
+using System.Text;
+
+using var output = new MemoryStream();
+using (var csv = CsvRowWriter.CreateStream(output, leaveOpen: true)) {
+    ReadOnlyMemory<byte>?[] row = {
+        Encoding.UTF8.GetBytes("Zażółć 🚀"),
+        ReadOnlyMemory<byte>.Empty,
+        null
+    };
+    csv.WriteUtf8Row(new[] { "Name", "EmptyText", "Missing" }, row);
+}
+byte[] encodedCsv = output.ToArray();
+```
+
+The writer consumes borrowed field memory before returning and validates every
+field before writing that row or its initial header. Invalid UTF-8 throws
+`DecoderFallbackException`. Null uses `CsvSaveOptions.NullValue`; empty memory
+is an empty text field. Quoting, formula escaping, delimiters, and newlines
+follow the ordinary text-row options. UTF-8 stream and file output without a BOM
+copies field bytes directly. A supplied `TextWriter`, another destination
+encoding, BOM output, or file append uses the text encoding path.
+
+After establishing the columns, use `WriteUtf8Row(values)` or the accessor
+overload `WriteUtf8Row(valueCount, state, valueAccessor)` for later rows. The
+accessor is called once per field and its returned memory is consumed before
+the method returns. Keep all returned field memory valid for the entire call.
 
 Parse text when a service receives CSV payloads without a temporary file:
 

@@ -21,8 +21,9 @@ public static partial class DbDataReaderArrowExtensions {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
         Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        bool[]? columnNullability = effectiveOptions.ValidateAndSnapshotColumnNullability(reader.FieldCount);
         ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
-        Schema schema = CreateSchema(reader, columns);
+        Schema schema = CreateSchema(reader, columns, columnNullability);
         return new DbDataReaderArrowArrayStream(
             reader,
             columns,
@@ -54,8 +55,9 @@ public static partial class DbDataReaderArrowExtensions {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
         Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        bool[]? columnNullability = effectiveOptions.ValidateAndSnapshotColumnNullability(reader.FieldCount);
         ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
-        Schema schema = CreateSchema(reader, columns);
+        Schema schema = CreateSchema(reader, columns, columnNullability);
         return ArrowCArrayStreamOwner.Export(new DbDataReaderArrowArrayStream(
             reader,
             columns,
