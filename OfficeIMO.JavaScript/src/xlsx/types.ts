@@ -1,4 +1,5 @@
-import type { Column, CellValue, StreamOptions } from "../core/index.js";
+import type { ColumnSettings, CellValue, StreamOptions } from "../core/index.js";
+import type { ProjectedColumn } from "../internal/columns.js";
 import type { ExportLimits } from "../core/limits.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { Compression } from "../zip/index.js";
@@ -12,12 +13,15 @@ import type { ConditionalFormat } from "./conditional-types.js";
 
 export type XlsxRow = readonly (ExportValue | Cell)[] | Readonly<Record<string, ExportValue | Cell>>;
 export type XlsxRows = Iterable<XlsxRow> | AsyncIterable<XlsxRow>;
-export interface CellWriterContext { readonly column: Column; readonly row: number; readonly columnIndex: number; readonly sheetName: string; }
+/** Advanced worksheet column with an optional style registered on its owning workbook. */
+interface XlsxColumnSettings extends ColumnSettings { readonly style?: number; }
+export type XlsxColumn<T = never> = ProjectedColumn<T, ExportValue | Cell> & XlsxColumnSettings;
+export interface CellWriterContext { readonly column: XlsxColumn; readonly rowIndex: number; readonly worksheetRow: number; readonly columnIndex: number; readonly sheetName: string; }
 /** Convert domain column values to plain values or styled Cells; raw XML is never accepted. */
 export type CellValueWriter = (value: CellValue, context: CellWriterContext) => ExportValue | Cell;
-/** One-based worksheet row number, including titles/headings; values follow the declared column order. */
-export interface RowStyleContext { readonly row: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
-export interface CellStyleContext extends RowStyleContext { readonly value: CellValue; readonly column: Column; readonly columnIndex: number; }
+/** Data indexes are zero-based. worksheetRow is the explicit one-based Excel coordinate. */
+export interface RowStyleContext { readonly rowIndex: number; readonly worksheetRow: number; readonly values: readonly CellValue[]; readonly sheetName: string; }
+export interface CellStyleContext extends RowStyleContext { readonly value: CellValue; readonly column: XlsxColumn; readonly columnIndex: number; }
 /** A real Excel table over this worksheet's header and data rows. Empty exports retain headers without a table part. */
 export interface TableOptions {
   readonly name?: string;
@@ -58,8 +62,8 @@ export interface WorkbookLimits extends ExportLimits {
   readonly maxDifferentialStyles?: number;
 }
 export interface XlsxExportResult { readonly rows: number; readonly sheets: number; readonly bytes: number; }
-export interface SheetOptions {
-  readonly columns?: readonly Column[];
+export interface SheetOptions<T = never> {
+  readonly columns?: readonly XlsxColumn<T>[];
   readonly includeHeader?: boolean;
   readonly freezeHeader?: boolean;
   readonly autoFilter?: boolean;
@@ -88,7 +92,7 @@ export interface SheetOptions {
 }
 /** A single merged report title above grouped/leaf headings. Print repetition includes headings only. */
 export interface ReportTitle { readonly text: string; readonly style?: CellStyle; readonly height?: number; }
-/** Widths use a bounded leading sample and an approximate character count, not font measurement. */
+/** Widths use a bounded leading sample and an approximate character count. Automatic sampling stops within buffer budgets; an explicit sampleRows fails when its sample exceeds them. */
 export interface AutoSizeOptions { readonly sampleRows?: number; readonly minWidth?: number; readonly maxWidth?: number; }
 export type TotalOperation = "sum" | "count" | "average" | "min" | "max";
 export interface FooterOptions {

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { writeFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { createWorkbook, ExportCell, Cell } from "../dist/xlsx/index.js";
+import { Workbook, ExportCell, Cell } from "../dist/xlsx/index.js";
 import { writeCsv } from "../dist/csv/index.js";
 import { readZip } from "./zip-reader.mjs";
 import * as standaloneXlsx from "../bundles/officeimo-xlsx.mjs";
@@ -20,7 +20,7 @@ test("standalone module assemblies share resolved cells across independently loa
 });
 test("resolved presentation preserves typed values and supports explicit CSV raw/display modes", async () => {
   const value = new ExportCell(12.5, { text: "=display", presentation: { background: "FF0000", bold: true } });
-  const book = createWorkbook(), sheet = book.addSheet("Values", { columns: [{ header: "Amount", type: "number", format: "0.00" }] });
+  const book = new Workbook(), sheet = book.addWorksheet("Values", { columns: [{ header: "Amount", type: "number", format: "0.00" }] });
   await sheet.addRows([[value]]);
   const zip = await readZip(await book.toBlob());
   assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<c r="A2" s="\d+"><v>12.5<\/v>/);
@@ -29,8 +29,8 @@ test("resolved presentation preserves typed values and supports explicit CSV raw
   assert.equal(await (await writeCsv([[value]], { columns: [{ header: "Amount" }], valueMode: "display" })).text(), "Amount\r\n'=display\r\n");
 });
 test("grouped report headings, cached totals, bounded sizes and print settings form a coherent table", async () => {
-  const book = createWorkbook({ dateMode: "utc" });
-  const sheet = book.addSheet("Report's _x0041_", { columns, table: { name: "ReportData" }, freezeHeader: true, freezeColumns: 1,
+  const book = new Workbook({ dateMode: "utc" });
+  const sheet = book.addWorksheet("Report's _x0041_", { columns, table: { name: "ReportData" }, freezeHeader: true, freezeColumns: 1,
     autoSize: { sampleRows: 2, minWidth: 8, maxWidth: 30 }, footer: { values: ["Totals"], totals: { amount: "sum", count: "average" }, style: { font: { bold: true }, fill: { color: "D9E1F2" } } },
     print: { repeatHeaders: true, header: "Report & data", footer: "Measured totals", paper: "A4", orientation: "landscape" } });
   await sheet.addRows([{ name: "first", amount: new ExportCell(12.5, { text: "12.50 USD", presentation: { background: "E2F0D9" } }), count: 2, date: new Date("2026-10-06T00:00:00Z") }]);
@@ -49,7 +49,7 @@ test("grouped report headings, cached totals, bounded sizes and print settings f
 });
 test("oversized Unicode is preserved in ordered safe chunks and linked without external relationships", async () => {
   const text = "a".repeat(32766) + "🧪" + "Łódź\r\nשלום_x0041_".repeat(2500);
-  const book = createWorkbook({ oversizedText: "preserve" }), sheet = book.addSheet("Text overflow", { columns: [{ header: "Text" }] });
+  const book = new Workbook({ oversizedText: "preserve" }), sheet = book.addWorksheet("Text overflow", { columns: [{ header: "Text" }] });
   await sheet.addRows([[text]]); const blob = await book.toBlob(), zip = await readZip(blob);
   const main = zip.get("xl/worksheets/sheet1.xml").content, overflow = zip.get("xl/worksheets/sheet2.xml").content;
   assert.match(main, /location="&apos;Text overflow \(2\)&apos;!D2"/); assert.match(main, /Full text:/);
@@ -60,18 +60,18 @@ test("oversized Unicode is preserved in ordered safe chunks and linked without e
   if (process.env.OFFICEIMO_REPORT_FIXTURES) await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/preserved.xlsx", new Uint8Array(await blob.arrayBuffer()));
 });
 test("layout bounds and preservation ceilings fail visibly without a partial Blob", async () => {
-  assert.throws(() => createWorkbook().addSheet("Bad", { columns, autoSize: { sampleRows: 10001 } }), RangeError);
-  assert.throws(() => createWorkbook().addSheet("Bad", { columns, footer: { totals: { unknown: "sum" } } }), TypeError);
+  assert.throws(() => new Workbook().addWorksheet("Bad", { columns, autoSize: { sampleRows: 10001 } }), RangeError);
+  assert.throws(() => new Workbook().addWorksheet("Bad", { columns, footer: { totals: { unknown: "sum" } } }), TypeError);
   for (const options of [{ oversizedText: "preserve", limits: { maxOverflowCharacters: 32767 } }, { oversizedText: "preserve", limits: { maxHyperlinks: 0 } }, { oversizedText: "preserve", limits: { maxSheets: 1 } }]) {
-    const book = createWorkbook(options);
-    await assert.rejects(book.addSheet("Long", { columns: [{ header: "Text" }] }).addRows([["x".repeat(32768)]]), { code: "RESOURCE_LIMIT" });
+    const book = new Workbook(options);
+    await assert.rejects(book.addWorksheet("Long", { columns: [{ header: "Text" }] }).addRows([["x".repeat(32768)]]), { code: "RESOURCE_LIMIT" });
     await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
   }
-  const book = createWorkbook({ limits: { maxBufferedCells: 1 } });
-  await assert.rejects(book.addSheet("Sample", { columns: [{ header: "A" }, { header: "B" }], autoSize: {} }).addRows([[1, 2]]), { code: "RESOURCE_LIMIT" });
+  const book = new Workbook({ limits: { maxBufferedCells: 1 } });
+  await assert.rejects(book.addWorksheet("Sample", { columns: [{ header: "A" }, { header: "B" }], autoSize: { sampleRows: 1 } }).addRows([[1, 2]]), { code: "RESOURCE_LIMIT" });
 });
 test("empty averages stay blank and footer keys do not traverse object prototypes", async () => {
-  const book = createWorkbook(), sheet = book.addSheet("Empty", { columns: [{ header: "Average", key: "average" }, { header: "toString" }], footer: { totals: { average: "average" } } });
+  const book = new Workbook(), sheet = book.addWorksheet("Empty", { columns: [{ header: "Average", key: "average" }, { header: "toString" }], footer: { totals: { average: "average" } } });
   const zip = await readZip(await book.toBlob()), xml = zip.get("xl/worksheets/sheet1.xml").content;
   assert.match(xml, /<c r="A2"[^>]*t="str"><f>&quot;&quot;<\/f><v><\/v>/); assert.match(xml, /<c r="B2"[^>]*\/>/);
   assert.equal(sheet.rowCount, 0);
@@ -81,15 +81,15 @@ test("sampling validates and budgets each row at ingress and calls converters on
   for (const limits of [{ maxCells: 2 }, { maxTextCharacters: 2 }]) {
     let produced = 0, returned = false;
     function* source() { try { for (let i = 0; i < 100; i++) { produced++; yield ["a"]; } } finally { returned = true; } }
-    const book = createWorkbook({ limits });
-    await assert.rejects(book.addSheet("Sample", { columns: [{ header: "A" }], autoSize: { sampleRows: 100 } }).addRows(source()), { code: "RESOURCE_LIMIT" });
+    const book = new Workbook({ limits });
+    await assert.rejects(book.addWorksheet("Sample", { columns: [{ header: "A" }], autoSize: { sampleRows: 100 } }).addRows(source()), { code: "RESOURCE_LIMIT" });
     assert.equal(produced, 2); assert.equal(returned, true); await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
   }
-  const invalid = createWorkbook();
-  await assert.rejects(invalid.addSheet("Invalid", { columns: [{ header: "A" }], autoSize: {} }).addRows([[{}]]), TypeError);
+  const invalid = new Workbook();
+  await assert.rejects(invalid.addWorksheet("Invalid", { columns: [{ header: "A" }], autoSize: {} }).addRows([[{}]]), TypeError);
   let calls = 0;
-  const book = createWorkbook({ cellValueWriters: { custom(value) { calls++; return value + 1; } } });
-  const sheet = book.addSheet("Once", { columns: [{ header: "A", type: "custom" }], autoSize: { sampleRows: 100 }, footer: { totals: { A: "sum" } } });
+  const book = new Workbook({ cellValueWriters: { custom(value) { calls++; return value + 1; } } });
+  const sheet = book.addWorksheet("Once", { columns: [{ header: "A", type: "custom" }], autoSize: { sampleRows: 100 }, footer: { totals: { A: "sum" } } });
   await sheet.addRows([[1], [2]]); await sheet.close(); await sheet.close();
   const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
   assert.equal(calls, 2); assert.match(xml, /<c r="A4"[^>]*><f>SUBTOTAL\(109,A2:A3\)<\/f><v>5<\/v>/);
@@ -97,20 +97,20 @@ test("sampling validates and budgets each row at ingress and calls converters on
 
 test("preservation, footer and Blob output limits reject while accepting source rows", async () => {
   for (const limits of [{ maxTextCharacters: 40000 }, { maxCells: 10 }, { maxRows: 1 }]) {
-    const book = createWorkbook({ oversizedText: "preserve", limits });
-    await assert.rejects(book.addSheet("Long", { columns: [{ header: "A" }], autoSize: {} }).addRows([["x".repeat(100000)]]), { code: "RESOURCE_LIMIT" });
+    const book = new Workbook({ oversizedText: "preserve", limits });
+    await assert.rejects(book.addWorksheet("Long", { columns: [{ header: "A" }], autoSize: {} }).addRows([["x".repeat(100000)]]), { code: "RESOURCE_LIMIT" });
     await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
   }
-  const footer = createWorkbook({ limits: { maxCells: 2 } });
-  await assert.rejects(footer.addSheet("Footer", { columns: [{ header: "A" }], autoSize: {}, footer: { values: ["End"] } }).addRows([[1]]), { code: "RESOURCE_LIMIT" });
+  const footer = new Workbook({ limits: { maxCells: 2 } });
+  await assert.rejects(footer.addWorksheet("Footer", { columns: [{ header: "A" }], autoSize: {}, footer: { values: ["End"] } }).addRows([[1]]), { code: "RESOURCE_LIMIT" });
   let produced = 0, returned = false;
   function* rows() { try { for (let i = 0; i < 1000; i++) { produced++; yield ["x".repeat(1000)]; } } finally { returned = true; } }
-  const bounded = createWorkbook({ compression: "store", limits: { maxOutputBytes: 10000 } });
-  await assert.rejects(bounded.addSheet("Bounded", { columns: [{ header: "A" }] }).addRows(rows()), { code: "RESOURCE_LIMIT" });
+  const bounded = new Workbook({ compression: "store", limits: { maxOutputBytes: 10000 } });
+  await assert.rejects(bounded.addWorksheet("Bounded", { columns: [{ header: "A" }] }).addRows(rows()), { code: "RESOURCE_LIMIT" });
   assert.ok(produced < 1000); assert.equal(returned, true);
   await assert.rejects(writeCsv([[null]], { columns: [{ header: "A" }], nullValue: "Unavailable", limits: { maxTextCharacters: 3 } }), { code: "RESOURCE_LIMIT" });
-  const preservedFooter = createWorkbook({ oversizedText: "preserve", limits: { maxTextCharacters: 140000 } });
-  await preservedFooter.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["x".repeat(100000)] } }).addRows([[1]]);
+  const preservedFooter = new Workbook({ oversizedText: "preserve", limits: { maxTextCharacters: 140000 } });
+  await preservedFooter.addWorksheet("Footer", { columns: [{ header: "A" }], footer: { values: ["x".repeat(100000)] } }).addRows([[1]]);
   const footerZip = await readZip(await preservedFooter.toBlob());
   assert.match(footerZip.get("xl/worksheets/sheet1.xml").content, /<hyperlink ref="A3" location=/);
   assert.match(footerZip.get("xl/worksheets/sheet2.xml").content, /<c r="E5"[^>]*><v>4<\/v>/);
@@ -118,8 +118,8 @@ test("preservation, footer and Blob output limits reject while accepting source 
 
 test("footer caches aggregate emitted date serials and numeric counts use General format", async () => {
   const operations = ["sum", "count", "average", "min", "max"];
-  const book = createWorkbook({ dateMode: "utc" });
-  const sheet = book.addSheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })).concat({ header: "Inferred" }),
+  const book = new Workbook({ dateMode: "utc" });
+  const sheet = book.addWorksheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })).concat({ header: "Inferred" }),
     autoSize: {}, table: { name: "DateTotals" }, footer: { totals: Object.fromEntries(operations.map(op => [op, op]).concat([["Inferred", "count"]])) } });
   await sheet.addRows([operations.map(() => new Date("2026-10-06T00:00:00Z")).concat(new ExportCell(new Date("2026-10-06T00:00:00Z"))),
     operations.map(() => new Date("2026-10-08T00:00:00Z")).concat(new Date("2026-10-08T00:00:00Z")),
@@ -134,28 +134,28 @@ test("footer caches aggregate emitted date serials and numeric counts use Genera
 
 test("count, min, max and average do not require a finite sum", async () => {
   const operations = ["count", "min", "max", "average"];
-  const book = createWorkbook(), sheet = book.addSheet("Large", { columns: operations.map(header => ({ header })), footer: { totals: Object.fromEntries(operations.map(op => [op, op])) } });
+  const book = new Workbook(), sheet = book.addWorksheet("Large", { columns: operations.map(header => ({ header })), footer: { totals: Object.fromEntries(operations.map(op => [op, op])) } });
   await sheet.addRows([operations.map(() => 1e308), operations.map(() => 1e308)]);
   const xml = (await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content;
   for (let i = 0; i < operations.length; i++) assert.match(xml, new RegExp('<c r="' + String.fromCharCode(65 + i) + '4"[^>]*><f>.*?<\\/f><v>' + (i ? '1e\\+308' : '2') + '<\\/v>'));
-  const mixed = createWorkbook(); await mixed.addSheet("Mixed", { columns: [{ header: "A" }], footer: { totals: { A: "average" } } }).addRows([[1e308], [-1e308]]);
+  const mixed = new Workbook(); await mixed.addWorksheet("Mixed", { columns: [{ header: "A" }], footer: { totals: { A: "average" } } }).addRows([[1e308], [-1e308]]);
   assert.match((await readZip(await mixed.toBlob())).get("xl/worksheets/sheet1.xml").content, /<v>0<\/v>/);
-  const sum = createWorkbook(); await assert.rejects(sum.addSheet("Sum", { columns: [{ header: "A" }], footer: { totals: { A: "sum" } } }).addRows([[1e308], [1e308]]), RangeError);
+  const sum = new Workbook(); await assert.rejects(sum.addWorksheet("Sum", { columns: [{ header: "A" }], footer: { totals: { A: "sum" } } }).addRows([[1e308], [1e308]]), RangeError);
 });
 
 test("hyperlinks may address explicit footer values but not rows after the footer", async () => {
-  const book = createWorkbook(), sheet = book.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["Details"] } });
+  const book = new Workbook(), sheet = book.addWorksheet("Footer", { columns: [{ header: "A" }], footer: { values: ["Details"] } });
   await sheet.addRows([[1]]); sheet.addHyperlink({ cell: "A3", target: "https://evotec.xyz" });
   const blob = await book.toBlob(); assert.match((await readZip(blob)).get("xl/worksheets/sheet1.xml").content, /<hyperlink ref="A3" r:id="link1"/);
   if (process.env.OFFICEIMO_REPORT_FIXTURES) await writeFile(process.env.OFFICEIMO_REPORT_FIXTURES + "/footer-link.xlsx", new Uint8Array(await blob.arrayBuffer()));
-  const invalid = createWorkbook(), other = invalid.addSheet("Footer", { columns: [{ header: "A" }], footer: { values: ["End"] } });
+  const invalid = new Workbook(), other = invalid.addWorksheet("Footer", { columns: [{ header: "A" }], footer: { values: ["End"] } });
   await other.addRows([[1]]); other.addHyperlink({ cell: "A4", target: "https://evotec.xyz" }); await assert.rejects(invalid.toBlob(), RangeError);
 });
 
 test("cancellation between appends and finalization preserves the original reason", async () => {
   for (const closed of [false, true]) for (const operation of ["finish", "toBlob"]) {
     const controller = new AbortController(), reason = new Error("between operations");
-    const book = createWorkbook({ signal: controller.signal }), sheet = book.addSheet("Cancel", { columns: [{ header: "A" }] });
+    const book = new Workbook({ signal: controller.signal }), sheet = book.addWorksheet("Cancel", { columns: [{ header: "A" }] });
     await sheet.addRows([["accepted"]]); if (closed) await sheet.close(); controller.abort(reason);
     await assert.rejects(book[operation](), error => error === reason);
     await assert.rejects(sheet.addRows([["later"]]), error => error === reason);
