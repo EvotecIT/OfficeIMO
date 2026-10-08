@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderBoxStyle {
+    internal bool IntrinsicWidthsResolved;
     internal HtmlRenderIntrinsicWidth? IntrinsicWidth;
     internal HtmlRenderIntrinsicWidth? IntrinsicMinWidth;
     internal HtmlRenderIntrinsicWidth? IntrinsicMaxWidth;

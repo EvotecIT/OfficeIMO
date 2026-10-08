@@ -352,6 +352,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool continuesThisBox = continuationTarget != null
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
+        // Page and continuation reflow can enter here with a fresh style,
+        // bypassing normal child placement and its auto-margin preparation.
+        if (style.HasIntrinsicWidths && !style.IntrinsicWidthsResolved) {
+            style = ResolveOrdinaryIntrinsicWidths(element, style, containingWidth, depth);
+            style = ResolveNormalFlowHorizontalAutoMargins(element, style, containingWidth);
+        }
         style = PrepareButtonChildStyle(element, style);
         if (UsesButtonChildLayout(element) && !style.ExplicitWidth.HasValue) {
             // A native button remains intrinsically sized with display:block.

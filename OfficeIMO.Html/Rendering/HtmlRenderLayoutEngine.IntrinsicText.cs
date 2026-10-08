@@ -253,6 +253,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             childStyle = PrepareButtonChildStyle(child, childStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
+            if (includeDescendantInsets && !IsReplacedImageElement(child) && !IsFormControlElement(child.LocalName)) {
+                childStyle = _styleResolver.ResolveIntrinsicMeasurementStyle(child, childStyle);
+            }
             if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
                 && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
                 && childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
@@ -271,23 +274,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || (IsFormControlElement(child.LocalName.ToLowerInvariant()) && !UsesButtonChildLayout(child));
             if (includeDescendantInsets && establishesLineBoundary && !isReplacedChild) {
                 HtmlRenderBoxStyle intrinsicStyle = childStyle;
-                if (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage
-                    || childStyle.MinWidthWithIndefiniteReference.HasValue) {
-                    // A percentage of this indefinite intrinsic width is cyclic.
-                    // Retain definite constraints, including absolute max-width.
-                    intrinsicStyle = childStyle.Clone();
-                    if (childStyle.ExplicitWidthUsesPercentage) {
-                        intrinsicStyle.ExplicitWidth = null;
-                        intrinsicStyle.ExplicitWidthUsesPercentage = false;
-                    }
-                    if (childStyle.MaxWidthUsesPercentage) {
-                        intrinsicStyle.MaxWidth = null;
-                        intrinsicStyle.MaxWidthUsesPercentage = false;
-                    }
-                    if (childStyle.MinWidthWithIndefiniteReference.HasValue) {
-                        intrinsicStyle.MinWidth = childStyle.MinWidthWithIndefiniteReference;
-                    }
-                }
                 IReadOnlyList<IntrinsicTextRun> childRuns = ResolveInFlowIntrinsicTextRuns(
                     new FlexItem(child, intrinsicStyle, 0), availableSize, depth + 1,
                     skipSizedNestedTables, includeDescendantInsets);
@@ -323,13 +309,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else if (childStyle.Display is "inline-block" or "inline-flex" or "inline-grid"
                 && child.LocalName != "math" && (!IsFormControlElement(child.LocalName) || UsesButtonChildLayout(child))) {
                 var atomic = new FlexItem(child, childStyle, 0);
-                (double Minimum, double Maximum) widths = ResolveGridContentContributions(atomic, availableSize, depth + 1);
+                (double Minimum, double Maximum) widths = ResolveGridContentContributions(atomic, availableSize, depth + 1, includeDescendantInsets);
                 result.Add(IntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));
             } else {
-                double leadingInset = includeDescendantInsets
+                double leadingInset = includeDescendantInsets && childStyle.Display != "contents"
                     ? Math.Max(0D, childStyle.BorderLeftWidth + childStyle.PaddingLeft + childStyle.MarginLeft)
                     : 0D;
-                double trailingInset = includeDescendantInsets
+                double trailingInset = includeDescendantInsets && childStyle.Display != "contents"
                     ? Math.Max(0D, childStyle.BorderRightWidth + childStyle.PaddingRight + childStyle.MarginRight)
                     : 0D;
                 if (leadingInset > 0D) result.Add(IntrinsicTextRun.InlineInset(leadingInset, childStyle));

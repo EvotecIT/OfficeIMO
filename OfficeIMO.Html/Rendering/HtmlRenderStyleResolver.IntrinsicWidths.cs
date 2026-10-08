@@ -47,6 +47,36 @@ internal sealed partial class HtmlRenderStyleResolver {
         return limit.HasValue ? new(HtmlRenderIntrinsicWidthKind.FitContent, limit.Value) : null;
     }
 
+    /// <summary>Removes cyclic references only for an ordinary descendant's intrinsic contribution.</summary>
+    internal HtmlRenderBoxStyle ResolveIntrinsicMeasurementStyle(IElement element, HtmlRenderBoxStyle style) {
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed);
+        HtmlComputedStyle? physical = computed == null ? null : PhysicalizeLogicalProperties(computed, style.WritingMode, style.Direction);
+        string leftPadding = physical?.GetValue("padding-left") ?? string.Empty;
+        string rightPadding = physical?.GetValue("padding-right") ?? string.Empty;
+        string leftMargin = physical?.GetValue("margin-left") ?? string.Empty;
+        string rightMargin = physical?.GetValue("margin-right") ?? string.Empty;
+        bool Cyclic(string value) => value.IndexOf('%') >= 0;
+        if (!style.ExplicitWidthUsesPercentage && !style.MaxWidthUsesPercentage && !style.MinWidthWithIndefiniteReference.HasValue
+            && !Cyclic(leftPadding) && !Cyclic(rightPadding) && !Cyclic(leftMargin) && !Cyclic(rightMargin)) return style;
+        HtmlRenderBoxStyle resolved = style.Clone();
+        // Preferred and maximum percentages use their initial values; minimum
+        // percentages and box edges retain their absolute part against zero.
+        if (style.ExplicitWidthUsesPercentage) {
+            resolved.ExplicitWidth = null;
+            resolved.ExplicitWidthUsesPercentage = false;
+        }
+        if (style.MaxWidthUsesPercentage) {
+            resolved.MaxWidth = null;
+            resolved.MaxWidthUsesPercentage = false;
+        }
+        if (style.MinWidthWithIndefiniteReference.HasValue) resolved.MinWidth = style.MinWidthWithIndefiniteReference;
+        if (Cyclic(leftPadding)) resolved.PaddingLeft = Math.Max(0D, ReadLength(leftPadding, null, 0D, style.Font.Size) ?? 0D);
+        if (Cyclic(rightPadding)) resolved.PaddingRight = Math.Max(0D, ReadLength(rightPadding, null, 0D, style.Font.Size) ?? 0D);
+        if (Cyclic(leftMargin)) resolved.MarginLeft = ReadLength(leftMargin, null, 0D, style.Font.Size) ?? 0D;
+        if (Cyclic(rightMargin)) resolved.MarginRight = ReadLength(rightMargin, null, 0D, style.Font.Size) ?? 0D;
+        return resolved;
+    }
+
     private bool HasSpecializedIntrinsicWidthContent(IElement element) {
         if (_specializedIntrinsicWidthContent.TryGetValue(element, out bool specialized)) return specialized;
         var pending = new Stack<IElement>(element.Children);
@@ -62,7 +92,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             string columns = computed?.GetValue("column-count") ?? string.Empty;
             string columnWidth = computed?.GetValue("column-width") ?? string.Empty;
             string container = computed?.GetValue("container-type") ?? string.Empty;
-            if (child.LocalName is "table" or "math" or "ruby"
+            if (child.LocalName is "table" or "math" or "ruby" or "img" or "svg" or "iframe"
+                or "input" or "textarea" or "select" or "button" or "progress" or "meter"
                 || display is "table" or "inline-table" or "flex" or "inline-flex" or "grid" or "inline-grid"
                 || display.StartsWith("table-", StringComparison.Ordinal)
                 || writingMode is "vertical-rl" or "vertical-lr"

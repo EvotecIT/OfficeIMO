@@ -5,7 +5,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>Resolves ordinary box constraints once, before margins and numeric layout.</summary>
     private HtmlRenderBoxStyle ResolveOrdinaryIntrinsicWidths(IElement element, HtmlRenderBoxStyle style, double availableWidth, int depth) {
-        if (!style.HasIntrinsicWidths) return style;
+        if (!style.HasIntrinsicWidths || style.IntrinsicWidthsResolved) return style;
         IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(
             new FlexItem(element, style, 0), availableWidth, depth, includeDescendantInsets: true);
         double minimum = runs.Count == 0 ? 0D : MeasureMinContentRuns(runs);
@@ -17,6 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style, double minimum, double maximum, double availableWidth, double? intrinsicAvailable = null) {
         if (!style.HasIntrinsicWidths) return style;
         HtmlRenderBoxStyle resolved = style.Clone();
+        resolved.IntrinsicWidthsResolved = true;
         double contentAvailable = intrinsicAvailable ?? Math.Max(0D,
             availableWidth - style.MarginLeft - style.MarginRight - style.HorizontalInsets);
         double Resolve(HtmlRenderIntrinsicWidth value) {

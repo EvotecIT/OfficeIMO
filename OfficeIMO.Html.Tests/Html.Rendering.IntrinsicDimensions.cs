@@ -132,6 +132,8 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("writing-mode:vertical-rl", "")]
     [InlineData("", "<table><tr><td>Cell</td></tr></table>")]
     [InlineData("", "<div style='display:grid'>Grid</div>")]
+    [InlineData("", "<svg width='10' height='10'><rect width='10' height='10'/></svg>")]
+    [InlineData("", "<input value='Text'>")]
     [InlineData("width:fit-content(50%)", "")]
     public void HtmlIntrinsicWidth_UnqualifiedContextsRetainPropertySpecificLoss(string declarations, string content) {
         string html = TableGeometrySource("<div id='sized' style='width:max-content;" + declarations + "'>"
@@ -142,6 +144,52 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains("width=", diagnostic.Detail);
         Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("max-width:10%", 90D)]
+    [InlineData("min-width:100%", 90D)]
+    [InlineData("width:150px;max-width:10%", 150D)]
+    [InlineData("min-width:calc(20px + 100%)", 90D)]
+    [InlineData("padding-left:10%", 90D)]
+    [InlineData("margin-left:10%", 90D)]
+    [InlineData("padding-inline-start:calc(10px + 10%)", 100D)]
+    public void HtmlIntrinsicWidth_AtomicCyclicPercentagesPreserveDefiniteParts(string declarations, double expected) {
+        string html = TableGeometrySource("<div style='width:300px'><div id='sized' style='width:max-content;background:lime'>"
+            + "<span style='display:inline-block;" + declarations + "'>" + IntrinsicWidthAtoms + "</span></div></div>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+
+        Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("div", "padding-left:10%", 90D)]
+    [InlineData("span", "margin-left:10%", 90D)]
+    [InlineData("span", "display:contents;padding:10px;border:2px solid black;margin:8px", 90D)]
+    [InlineData("span", "display:inline-block", 150D)]
+    public void HtmlIntrinsicWidth_DescendantEdgesAndAtomicNestedBoxesMatchTheirFormattingContext(string tag, string declarations, double expected) {
+        string inner = declarations == "display:inline-block" ? "<div style='width:150px'>" + IntrinsicWidthAtoms + "</div>" : IntrinsicWidthAtoms;
+        string html = TableGeometrySource("<div style='width:300px'><div id='sized' style='width:max-content;background:lime'><"
+            + tag + " style='" + declarations + "'>" + inner + "</" + tag + "></div></div>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+
+        Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void HtmlIntrinsicWidth_NamedPageReflowRetainsResolvedSizing() {
+        string html = TableGeometrySource("<style>@page{size:300px 100px;margin:0}@page narrow{size:200px 100px;margin:0}</style>"
+            + "<div style='height:100px'>Filler</div><div id='sized' style='page:narrow;width:max-content;background:lime'>"
+            + IntrinsicWidthAtoms + "</div>");
+        var options = TableGeometryOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.Equal(90D, TableGeometryShape(rendered, "div#sized").Width, 3);
+        rendered.RequireNoLoss();
     }
 
     private static HtmlRenderDocument RenderIntrinsicWidth(string declarations, double parentWidth) {
