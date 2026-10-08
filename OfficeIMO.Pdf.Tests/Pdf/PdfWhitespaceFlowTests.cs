@@ -185,6 +185,137 @@ public sealed class PdfWhitespaceFlowTests {
         for (int i = 0; i < a.Length; i++) Assert.InRange(Math.Abs(a[i].StartBaseLine.X - b[i].StartBaseLine.X), 0D, .02D);
     }
 
+    [Theory]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -10D, false)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -6.672D, false)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -5D, false)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -10D, false)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -6.672D, false)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -5D, false)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -10D, true)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -6.672D, true)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -5D, true)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -10D, true)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -6.672D, true)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -5D, true)]
+    public void MixedSignedSpacesPaintTheirTotalAdvance(PdfTextWhitespaceMode mode, double tracking, bool inline) {
+        var runs = new List<PdfTextRun> { PdfTextRun.Normal("A ", fontSize: 12D),
+            PdfTextRun.Normal(" ", fontSize: 12D).WithCharacterSpacing(tracking) };
+        if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
+        runs.Add(PdfTextRun.Normal("B", fontSize: 12D));
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(mode)).Paragraph(p => p.Runs(runs)).ToBytes());
+        var letters = pdf.GetPage(1).Letters.Where(l => l.Value is "A" or "B").ToArray();
+        Assert.Equal("AB", string.Concat(letters.Select(l => l.Value)));
+        Assert.InRange(Math.Abs(letters[1].StartBaseLine.X - letters[0].EndBaseLine.X
+            - 6.672D - tracking - (inline ? 10D : 0D)), 0D, .02D);
+        Assert.InRange(Math.Abs(letters[1].StartBaseLine.Y - letters[0].StartBaseLine.Y), 0D, .02D);
+    }
+
+    [Theory]
+    [InlineData(PdfTextWhitespaceMode.Preserve, false, false)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, true, false)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, false, true)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, true, true)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, false, false)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, true, false)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, false, true)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, true, true)]
+    public void ATabFollowedBySpaceRetainsItsStopAndLeader(PdfTextWhitespaceMode mode, bool explicitStop, bool inline) {
+        PdfOptions options = Options(mode);
+        PdfParagraphStyle style = options.DefaultParagraphStyle!;
+        if (explicitStop) style.AddTabStop(60D, leader: PdfTabLeaderStyle.Dots);
+        byte[] Render(bool space) {
+            var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
+            if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
+            runs.Add(PdfTextRun.Normal("B"));
+            return PdfDocument.Create(options).Paragraph(p => p.Runs(runs), style: style).ToBytes();
+        }
+        using var expected = PdfPigDocument.Open(Render(false));
+        using var actual = PdfPigDocument.Open(Render(true));
+        var a = actual.GetPage(1).Letters.First(l => l.Value == "B");
+        var b = expected.GetPage(1).Letters.First(l => l.Value == "B");
+        Assert.InRange(Math.Abs(a.StartBaseLine.X - b.StartBaseLine.X - 3.336D), 0D, .02D);
+        Assert.InRange(Math.Abs(a.StartBaseLine.Y - b.StartBaseLine.Y), 0D, .02D);
+        if (explicitStop) {
+            Assert.InRange(Math.Abs(b.StartBaseLine.X - 80D - (inline ? 10D : 0D)), 0D, .02D);
+            Assert.True(expected.GetPage(1).Letters.Count(l => l.Value == ".") > 0);
+            Assert.Equal(expected.GetPage(1).Letters.Count(l => l.Value == "."),
+                actual.GetPage(1).Letters.Count(l => l.Value == "."));
+        }
+    }
+
+    [Theory]
+    [InlineData(PdfTextWhitespaceMode.Preserve)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted)]
+    public void TabThenSpaceSurvivesChangedWidthColumnContinuation(PdfTextWhitespaceMode mode) {
+        PdfOptions options = Options(mode); options.PageWidth = 284D; options.PageHeight = 82D;
+        byte[] Render(bool space) => RenderCell(options, new[] {
+            PdfTextRun.Normal(string.Join("\n", Enumerable.Repeat("A\t" + (space ? " " : "") + "B", 12)))
+        }, true);
+        using var expected = PdfPigDocument.Open(Render(false));
+        using var actual = PdfPigDocument.Open(Render(true));
+        Assert.True(actual.NumberOfPages > 1);
+        Assert.Equal(expected.NumberOfPages, actual.NumberOfPages);
+        var a = actual.GetPages().SelectMany(p => p.Letters).Where(l => l.Value == "B").ToArray();
+        var b = expected.GetPages().SelectMany(p => p.Letters).Where(l => l.Value == "B").ToArray();
+        Assert.Equal(12, a.Length); Assert.Equal(b.Length, a.Length);
+        for (int i = 0; i < a.Length; i++) {
+            Assert.InRange(Math.Abs(a[i].StartBaseLine.X - b[i].StartBaseLine.X - 3.336D), 0D, .02D);
+            Assert.InRange(Math.Abs(a[i].StartBaseLine.Y - b[i].StartBaseLine.Y), 0D, .02D);
+        }
+    }
+
+    [Theory]
+    [InlineData(PdfTextWhitespaceMode.Preserve, PdfTabAlignment.Right, false, 0D)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, PdfTabAlignment.Center, false, 1.668D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, PdfTabAlignment.Right, false, 0D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, PdfTabAlignment.Center, false, 1.668D)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, PdfTabAlignment.Right, true, 0D)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, PdfTabAlignment.Center, true, 1.668D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, PdfTabAlignment.Right, true, 0D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, PdfTabAlignment.Center, true, 1.668D)]
+    public void BufferedTabUsesTheFollowingSpaceAndContentForAlignment(
+        PdfTextWhitespaceMode mode, PdfTabAlignment align, bool inline, double delta) {
+        PdfOptions options = Options(mode);
+        PdfParagraphStyle style = options.DefaultParagraphStyle!; style.AddTabStop(60D, align);
+        byte[] Render(bool space) {
+            var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
+            if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(10D, 8D)));
+            runs.Add(PdfTextRun.Normal("B"));
+            return PdfDocument.Create(options).Paragraph(p => p.Runs(runs), style: style).ToBytes();
+        }
+        using var expected = PdfPigDocument.Open(Render(false));
+        using var actual = PdfPigDocument.Open(Render(true));
+        var a = actual.GetPage(1).Letters.First(l => l.Value == "B");
+        var b = expected.GetPage(1).Letters.First(l => l.Value == "B");
+        Assert.True(Math.Abs(a.StartBaseLine.X - b.StartBaseLine.X - delta) <= .02D,
+            $"Buffered tab B={a.StartBaseLine.X}, bare tab B={b.StartBaseLine.X}, expected delta={delta}.");
+        Assert.InRange(Math.Abs(a.StartBaseLine.Y - b.StartBaseLine.Y), 0D, .02D);
+    }
+
+    [Theory]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -10D)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -6.672D)]
+    [InlineData(PdfTextWhitespaceMode.Preserve, -5D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -10D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -6.672D)]
+    [InlineData(PdfTextWhitespaceMode.Preformatted, -5D)]
+    public void MixedSignedSpacesSurviveChangedWidthColumnContinuation(PdfTextWhitespaceMode mode, double tracking) {
+        PdfOptions options = Options(mode); options.PageWidth = 284D; options.PageHeight = 82D;
+        var runs = Enumerable.Range(0, 12).SelectMany(_ => new[] {
+            PdfTextRun.Normal("A "), PdfTextRun.Normal(" ").WithCharacterSpacing(tracking), PdfTextRun.Normal("B\n")
+        }).ToArray();
+        using var pdf = PdfPigDocument.Open(RenderCell(options, runs, true));
+        Assert.True(pdf.NumberOfPages > 1);
+        var letters = pdf.GetPages().SelectMany(p => p.Letters).Where(l => l.Value is "A" or "B").ToArray();
+        Assert.Equal(24, letters.Length);
+        for (int i = 0; i < letters.Length; i += 2) {
+            Assert.Equal("A", letters[i].Value); Assert.Equal("B", letters[i + 1].Value);
+            Assert.InRange(Math.Abs(letters[i + 1].StartBaseLine.X - letters[i].EndBaseLine.X - 6.672D - tracking), 0D, .02D);
+            Assert.InRange(Math.Abs(letters[i + 1].StartBaseLine.Y - letters[i].StartBaseLine.Y), 0D, .02D);
+        }
+    }
+
     private static byte[] RenderCell(PdfOptions options, PdfTextRun[] runs, bool columns, double secondColumnWidth = 128D) {
         var cells = new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             fontSize: 12D, lineSpacing: PdfLineSpacing.Exactly(14.4D), widowControl: false) }) } };

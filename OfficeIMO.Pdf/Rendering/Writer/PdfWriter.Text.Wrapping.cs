@@ -40,6 +40,7 @@ internal static partial class PdfWriter {
         int pendingLeadingSpaceCount = 0;
         var pendingSpaceFragments = new List<PendingSpaceFragment>();
         RichSeg? currentSpaceStyle = null;
+        RichSeg? pendingTabSourceStyle = null;
         bool pendingLeadingSeparator = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         PdfColor? pendingLeadingDecorationColor = null;
@@ -186,7 +187,9 @@ internal static partial class PdfWriter {
         void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline) {
             PdfTabAlignment fallbackAlignment = pendingLeadingTabAlignment;
             PdfTabLeaderStyle fallbackLeader = pendingLeadingTabLeader;
-            PdfTabStop? explicitTabStop = ResolveNextExplicitTabStop();
+            // The separator already selected its stop. Measuring an inline
+            // object or moving its line must not consume the following stop.
+            PdfTabStop? explicitTabStop = pendingLeadingTabStop ?? ResolveNextExplicitTabStop();
             pendingLeadingTabAlignment = explicitTabStop?.Alignment ?? fallbackAlignment;
             pendingLeadingTabLeader = explicitTabStop?.Leader ?? fallbackLeader;
             pendingLeadingTabStop = explicitTabStop;
@@ -197,6 +200,7 @@ internal static partial class PdfWriter {
             pendingLeadingAdvance = 0;
             pendingLeadingSpaceCount = 0;
             pendingSpaceFragments.Clear();
+            pendingTabSourceStyle = null;
             pendingLeadingSeparator = false;
             pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingDecorationColor = null;
@@ -221,6 +225,10 @@ internal static partial class PdfWriter {
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
             pendingLeadingSeparator = true;
             if (!hadTab) {
+                if (preserveWhitespace && pendingLeadingIsTab && pendingTabSourceStyle != null)
+                    pendingSpaceFragments.Add(new PendingSpaceFragment(CreatePreservedTabFragment(
+                        pendingTabSourceStyle, pendingLeadingAdvance, pendingLeadingTabStop,
+                        pendingLeadingTabAlignment, pendingLeadingTabLeader)));
                 pendingLeadingAdvance = preserveWhitespace ? pendingLeadingAdvance + spaceW : spaceW;
                 pendingLeadingSpaceCount = preserveWhitespace ? pendingLeadingSpaceCount + 1 : 1;
                 if (preserveWhitespace && currentSpaceStyle != null) {
@@ -250,6 +258,21 @@ internal static partial class PdfWriter {
             pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingIsExpandable = false;
             pendingLeadingIsTab = true;
+            pendingTabSourceStyle = currentSpaceStyle;
+        }
+
+        void ResolveBufferedTab(double followingWidth, double spaceWidth, string followingText,
+            PdfStandardFont font, double size, PdfTextBaseline baseline) {
+            if (pendingSpaceFragments.Count == 0 || !pendingSpaceFragments[0].Style.LeadingIsTab) return;
+            PendingSpaceFragment fragment = pendingSpaceFragments[0];
+            RichSeg tab = fragment.Style;
+            double spaces = pendingLeadingAdvance - fragment.Advance;
+            double advance = CalculateTabAdvance(lineWidth, spaces + followingWidth, spaceWidth,
+                tab.LeadingTabAlignment, tabStopWidth, new string(' ', pendingLeadingSpaceCount) + followingText,
+                font, size, baseline, options, CurrentMaxWidth(), tab.LeadingTabStop, CurrentLineOriginOffset(),
+                currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+            pendingLeadingAdvance += advance - fragment.Advance;
+            fragment.Advance = advance;
         }
 
         void MarkCurrentLineHardBreak(RichSeg breakSegment) =>
@@ -322,6 +345,8 @@ internal static partial class PdfWriter {
                     currentMaxWidth = CurrentMaxWidth();
                 }
 
+                ResolveBufferedTab(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+
                 List<RichSeg> currentLine = lines[lines.Count - 1];
                 double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab || whitespaceMode == PdfTextWhitespaceMode.Preserve ? pendingLeadingAdvance : 0D;
                 if ((currentLine.Count > 0 || whitespaceMode == PdfTextWhitespaceMode.Preserve && leadingAdvance > 0D)
@@ -341,7 +366,8 @@ internal static partial class PdfWriter {
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
                 }
 
-                if (preserveWhitespace && !pendingLeadingIsTab && leadingAdvance != 0D) {
+                if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0
+                    && (leadingAdvance != 0D || pendingLeadingAdvance == 0D)) {
                     currentLine.AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, leadingAdvance));
                     lineWidth += leadingAdvance;
                     leadingAdvance = 0D;
@@ -401,6 +427,7 @@ internal static partial class PdfWriter {
                     continuation.Width > 0D && wordWidth <= maxWidthPts ? wordWidth : 0D);
                 if (whitespaceMode == PdfTextWhitespaceMode.Preserve && hadNewline && token.Length == 0 && !pendingLeadingIsTab)
                     ResetPendingLeading();
+                if (token.Length > 0) ResolveBufferedTab(wordWidth, spaceW, token, fontForRun, runFontSize, baseline);
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0 && (token.Length > 0 || hadNewline)) {
                     // Retain the originating runs, including clipped portions of literal
                     // spaces, so a later cell/column continuation can remeasure them.
