@@ -19,12 +19,9 @@ namespace OfficeIMO.Core.Internal {
                 return Array.Empty<string>();
             }
 
-            if (compoundFile.Streams.TryGetValue("VBA/dir", out byte[]? compressed)
-                && OfficeVbaCompression.TryDecompress(compressed, 64 * 1024 * 1024, out byte[] directory, out _)
-                && OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, 64 * 1024 * 1024, out var model, out _, includeSignatureTranscripts: false)
-                && model != null) {
+            if (TryReadDirectory(compoundFile, out OfficeVbaDirectoryCodec.DirectoryModel? model)) {
                 try {
-                    return model.Modules.Select(module => module.UnicodeName.Length > 0
+                    return model!.Modules.Select(module => module.UnicodeName.Length > 0
                         ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
                         : OfficeVbaText.Decode(module.AnsiName, model.CodePage))
                         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray();
@@ -40,6 +37,15 @@ namespace OfficeIMO.Core.Internal {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+        }
+
+        /// <summary>Checks directory structure before choosing metadata-based or opaque stream operations.</summary>
+        internal static bool TryReadDirectory(OfficeCompoundFile compoundFile, out OfficeVbaDirectoryCodec.DirectoryModel? model) {
+            model = null;
+            return compoundFile.Streams.TryGetValue("VBA/dir", out byte[]? compressed)
+                && OfficeVbaCompression.TryDecompress(compressed, 64 * 1024 * 1024, out byte[] directory, out _)
+                && OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, 64 * 1024 * 1024, out model, out _, includeSignatureTranscripts: false)
+                && model != null;
         }
 
         private static bool IsImmediateVbaStream(string path) {
