@@ -1,5 +1,6 @@
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
@@ -32,6 +33,15 @@ public sealed class StudioAccessibilityContractTests {
                     window.ViewModel.RedactionSearchText = "Private account";
                     await window.ViewModel.SearchRedactionsCommand.ExecuteAsync(null);
                     window.UpdateLayout();
+                    Expander[] sections = window.GetVisualDescendants().OfType<Expander>()
+                        .Where(section => section.Classes.Contains("accessibleSection")).ToArray();
+                    Assert.Equal(4, sections.Length);
+                    foreach (Expander section in sections) {
+                        TextBlock title = Assert.Single(Assert.IsType<StackPanel>(section.Header).Children.OfType<TextBlock>());
+                        ToggleButton header = Assert.Single(section.GetVisualDescendants().OfType<ToggleButton>(),
+                            button => button.TemplatedParent == section && button.Name == "ExpanderHeader");
+                        Assert.Equal(title.Text, ControlAutomationPeer.CreatePeerForElement(header)!.GetName());
+                    }
                     RedactionInspectorView inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
                     ListBox marks = Assert.Single(inspector.GetVisualDescendants().OfType<ListBox>());
                     Assert.Equal(2, window.ViewModel.RedactionMarks.Count);

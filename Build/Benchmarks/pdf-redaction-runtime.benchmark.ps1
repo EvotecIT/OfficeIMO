@@ -2,15 +2,17 @@ $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).
 $binaryRoot = Get-BenchmarkInput BinaryRoot (Join-Path $repositoryRoot 'OfficeIMO.Pdf.Benchmarks/bin/Release/net8.0')
 $pageCounts = Get-BenchmarkInput Pages 1, 25, 100 -Int
 $inputPath = Get-BenchmarkInput InputPath ''
-$pattern = Get-BenchmarkInput Pattern 'private account [0-9]{3}'
+$pattern = if ($inputPath) { Get-BenchmarkInput Pattern 'private account [0-9]{3}' } else { 'private account [0-9]{3}' }
 $specPath = Join-Path $PSScriptRoot 'pdf-redaction-runtime.benchmark.ps1'
 $workloads = @{}
 [void] [Reflection.Assembly]::LoadFrom((Join-Path $binaryRoot 'OfficeIMO.Pdf.Benchmarks.dll'))
 
 New-BenchmarkSuite 'officeimo-pdf-redaction-runtime' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 5 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
-    Add-BenchmarkMetadata Contract 'Precise regex search, relabeled review, apply and complete-stream/managed-render verification on immutable PDFs with one match per page. Input preparation and final saved-output readback are outside measurement. No UI rendering or cross-engine ranking.'
+    Add-BenchmarkMetadata Contract 'Precise regex search, relabeled review, apply and complete-stream/managed-render verification on immutable PDFs with exactly one reviewed area on each page. Input preparation and final saved-output readback are outside measurement. No UI rendering or cross-engine ranking.'
     Add-BenchmarkMetadata InputPolicy $(if ($inputPath) { 'Saved PDFs; input fingerprints recorded per case' } else { 'Generated synthetic PDFs; input fingerprints recorded per case' })
+    Add-BenchmarkMetadata SearchPattern $pattern
+    Add-BenchmarkMetadata SearchOptions 'Regex; MatchCase=true; MatchedGlyphs; TextOnly; CheckManagedRendering=true; RequireCompleteStreamInspection=true; FailOnUndecodablePdfStreams=true'
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
     Add-BenchmarkMetadata AffinityPolicy 'Inherited. Keep other builds idle; macOS processor placement is unqualified.'
     Add-BenchmarkMetadata WorkloadSha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Pdf.Benchmarks.dll') -Algorithm SHA256).Hash
