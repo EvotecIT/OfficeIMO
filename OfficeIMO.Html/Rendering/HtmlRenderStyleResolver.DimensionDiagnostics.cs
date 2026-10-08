@@ -14,6 +14,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             if (property.EndsWith("height", StringComparison.Ordinal)
                 && style.Display is "table-column" or "table-column-group") continue;
             string value = computed.GetValue(property).Trim();
+            if (property == "width" && style.IntrinsicWidth.HasValue
+                || property == "min-width" && style.IntrinsicMinWidth.HasValue
+                || property == "max-width" && style.IntrinsicMaxWidth.HasValue) continue;
             if (value.Equals("min-content", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("max-content", StringComparison.OrdinalIgnoreCase)
                 || value.Equals("fit-content", StringComparison.OrdinalIgnoreCase)

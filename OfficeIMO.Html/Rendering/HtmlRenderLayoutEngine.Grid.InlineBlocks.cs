@@ -11,15 +11,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.ExplicitWidthUsesPercentage = false;
             item.Style = style;
         }
-        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) {
+        if (!style.HasIntrinsicWidths && TryResolveDefiniteGridContribution(item, availableSize, out double definite)) {
             return new GridIntrinsicContributions(definite, definite);
         }
 
-        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth);
+        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth, includeDescendantInsets: style.HasIntrinsicWidths);
         double minimum = Math.Max(runs.Count == 0 ? 1D : MeasureMinContentRuns(runs),
             ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
         double maximum = Math.Max(runs.Count == 0 ? 1D : MeasureMaxContentRuns(runs),
             ResolveDescendantReplacedGridContribution(item, availableSize));
+        if (style.HasIntrinsicWidths) {
+            (double low, double high) = ResolveOrdinaryIntrinsicContributions(style, minimum, maximum, availableSize);
+            return new GridIntrinsicContributions(low, high);
+        }
         return new GridIntrinsicContributions(
             ResolveGridMeasuredContribution(style, minimum),
             ResolveGridMeasuredContribution(style, maximum));

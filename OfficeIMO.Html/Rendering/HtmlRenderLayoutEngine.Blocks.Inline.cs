@@ -13,10 +13,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
-        HtmlRenderBoxStyle blockStyle = BlockifyFlexItemStyle(inlineStyle);
-        double outerWidth = Math.Min(
-            Math.Max(1D, availableWidth),
-            ResolvePositionedOuterWidth(element, blockStyle, availableWidth, null, null, depth));
+        HtmlRenderBoxStyle blockStyle = BlockifyFlexItemStyle(ResolveOrdinaryIntrinsicWidths(element, inlineStyle, availableWidth, depth));
+        double outerWidth = ResolvePositionedOuterWidth(element, blockStyle, availableWidth, null, null, depth);
+        if (!blockStyle.HasIntrinsicWidths) outerWidth = Math.Min(Math.Max(1D, availableWidth), outerWidth);
         if (!blockStyle.ExplicitWidth.HasValue) {
             blockStyle = blockStyle.Clone();
             SetPositionedExplicitWidth(blockStyle, outerWidth);

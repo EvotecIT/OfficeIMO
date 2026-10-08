@@ -173,6 +173,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderBoxStyle unavoidedStyle = childStyle.Clone();
                     childStyle = AvoidActiveFloatsForFormattingContext(
                         unavoidedStyle, width, flowHeight, activeFloats);
+                    childStyle = ResolveOrdinaryIntrinsicWidths(element, childStyle, width, depth + 1);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     List<HtmlFloatExclusion>? childFloats = activeFloats != null
@@ -203,6 +204,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 childBlock.Height - childStyle.MarginTop - childStyle.MarginBottom);
                             HtmlRenderBoxStyle measuredStyle = AvoidActiveFloatsForFormattingContext(
                                 unavoidedStyle, width, flowHeight, activeFloats, measuredHeight);
+                            measuredStyle = ResolveOrdinaryIntrinsicWidths(element, measuredStyle, width, depth + 1);
                             measuredStyle = ResolveNormalFlowHorizontalAutoMargins(element, measuredStyle, width);
                             if (Math.Abs(measuredStyle.MarginTop - childStyle.MarginTop) <= 0.0001D
                                 && Math.Abs(measuredStyle.MarginLeft - childStyle.MarginLeft) <= 0.0001D

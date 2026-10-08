@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
+    private readonly System.Threading.CancellationToken _cancellationToken;
     private readonly double _rootFontSize;
     private readonly Dictionary<IElement, HashSet<string>> _reportedUnsupportedColors = new Dictionary<IElement, HashSet<string>>();
     private readonly HashSet<IElement> _reportedSmallCapsApproximations = new HashSet<IElement>();
@@ -17,10 +18,12 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double _activeContainerHeight = double.NaN;
     private bool _activeUprightVerticalText;
 
-    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics,
+        System.Threading.CancellationToken cancellationToken = default) {
         _computedStyles = computedStyles;
         _options = options;
         _diagnostics = diagnostics;
+        _cancellationToken = cancellationToken;
         _viewportWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
         _viewportHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
         _rootFontSize = options.DefaultFontSize;
@@ -327,7 +330,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
-        ReportUnsupportedIntrinsicDimensions(element, physicalComputed, style, parent, pseudoElement);
         ApplyFlex(computed, containingWidth, fontSize, style);
         if (style.Display == "flex"
             && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)
@@ -341,6 +343,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyPdfSemanticTag(computed.GetValue("-officeimo-pdf-tag-type"), style);
         ApplyBookmark(computed, style);
         style.StringSet = computed.GetValue("string-set").Trim();
+        CaptureIntrinsicWidths(element, physicalComputed, style, parent, pseudoElement, containingWidth, fontSize);
+        ReportUnsupportedIntrinsicDimensions(element, physicalComputed, style, parent, pseudoElement);
         return style;
     }
 

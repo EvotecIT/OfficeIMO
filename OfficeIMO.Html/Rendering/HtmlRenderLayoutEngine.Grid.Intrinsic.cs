@@ -108,13 +108,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth) {
         HtmlRenderBoxStyle style = item.Style;
-        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
-        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth);
+        if (!style.HasIntrinsicWidths && TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
+        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth, includeDescendantInsets: style.HasIntrinsicWidths);
         double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
         double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns),
             ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
         double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns), replaced);
-        return (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
+        return style.HasIntrinsicWidths ? ResolveOrdinaryIntrinsicContributions(style, minimum, maximum, availableSize)
+            : (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
     }
 
     private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize, bool minimum = false) {

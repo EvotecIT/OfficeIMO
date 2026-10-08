@@ -47,7 +47,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("display:inline-block", "block")]
     [InlineData("position:absolute", "block")]
     [InlineData("float:left", "block")]
     [InlineData("", "flex")]
@@ -112,9 +111,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("width")]
-    [InlineData("min-width")]
-    [InlineData("max-width")]
     [InlineData("height")]
     [InlineData("min-height")]
     [InlineData("max-height")]
@@ -129,19 +125,19 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("width:max-content;width:100px", false, 100D)]
-    [InlineData("width:100px;width:max-content", true, 600D)]
+    [InlineData("width:100px;width:max-content", false, 90D)]
     [InlineData("width:100px!important;width:max-content", false, 100D)]
-    [InlineData("width:max-content!important;width:100px", true, 600D)]
+    [InlineData("width:max-content!important;width:100px", false, 90D)]
     [InlineData("width:100px;width:bogus", false, 100D)]
     [InlineData("width:100px;width:-10px", false, 100D)]
     [InlineData("width:100px;width:fit-content(auto)", false, 100D)]
     [InlineData("width:100px;width:fit-content()", false, 100D)]
-    [InlineData("width:100px;width:fit-content(120px)", true, 600D)]
+    [InlineData("width:100px;width:fit-content(120px)", false, 90D)]
     [InlineData("width:100px;width:fit-content(calc(50px + 10%))", true, 600D)]
-    [InlineData("width:100px;width:var(--size);--size:max-content", true, 600D)]
+    [InlineData("width:100px;width:var(--size);--size:max-content", false, 90D)]
     [InlineData("width:100px;width:initial", false, 600D)]
     public void HtmlTableGeometry_StylesheetDimensionsPreserveCascadeAndRejectInvalidLaterValues(string declarations, bool loss, double width) {
-        string html = TableGeometrySource("<style>#sized{" + declarations + ";background:white}</style><div id='sized'>Text</div>");
+        string html = TableGeometrySource("<style>#sized{" + declarations + ";background:white}</style><div id='sized'>" + IntrinsicWidthAtoms + "</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(width, TableGeometryShape(rendered, "div#sized").Width, 3);

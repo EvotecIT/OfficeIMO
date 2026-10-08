@@ -216,10 +216,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("width", "min-content")]
-    [InlineData("width", "max-content")]
-    [InlineData("width", "fit-content")]
-    [InlineData("min-width", "max-content")]
     [InlineData("max-height", "min-content")]
     public void HtmlTableGeometry_IntrinsicBoxSizingFallbackCannotSatisfyNoLoss(string property, string value) {
         string html = TableGeometrySource("<style>.sized{--sizing:" + value + ";" + property + ":var(--sizing)}</style>"
@@ -242,9 +238,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
 
         Assert.Equal("div#intrinsic", diagnostic.Source);
-        Assert.Contains("width=max-content", diagnostic.Detail);
+        Assert.DoesNotContain("width=max-content", diagnostic.Detail);
         Assert.Contains("min-height=min-content", diagnostic.Detail);
-        Assert.Contains("max-width=fit-content(100px)", diagnostic.Detail);
+        Assert.DoesNotContain("max-width=fit-content(100px)", diagnostic.Detail);
         Assert.True(rendered.HasLoss);
     }
 

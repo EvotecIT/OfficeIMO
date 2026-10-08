@@ -3,6 +3,10 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderBoxStyle {
+    internal HtmlRenderIntrinsicWidth? IntrinsicWidth;
+    internal HtmlRenderIntrinsicWidth? IntrinsicMinWidth;
+    internal HtmlRenderIntrinsicWidth? IntrinsicMaxWidth;
+    internal bool HasIntrinsicWidths => IntrinsicWidth.HasValue || IntrinsicMinWidth.HasValue || IntrinsicMaxWidth.HasValue;
     internal string Display = "block";
     internal string TableVerticalAlignment = "baseline";
     internal string StringSet = string.Empty;

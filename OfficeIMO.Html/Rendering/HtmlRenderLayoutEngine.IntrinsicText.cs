@@ -291,9 +291,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 IReadOnlyList<IntrinsicTextRun> childRuns = ResolveInFlowIntrinsicTextRuns(
                     new FlexItem(child, intrinsicStyle, 0), availableSize, depth + 1,
                     skipSizedNestedTables, includeDescendantInsets);
-                double minimum = ResolveGridMeasuredContribution(intrinsicStyle, MeasureMinContentRuns(childRuns));
-                double maximum = ResolveGridMeasuredContribution(intrinsicStyle, MeasureMaxContentRuns(childRuns));
-                if (intrinsicStyle.ExplicitWidth.HasValue && !intrinsicStyle.ExplicitWidthUsesPercentage) {
+                double measuredMinimum = MeasureMinContentRuns(childRuns);
+                double measuredMaximum = MeasureMaxContentRuns(childRuns);
+                double minimum = ResolveGridMeasuredContribution(intrinsicStyle, measuredMinimum);
+                double maximum = ResolveGridMeasuredContribution(intrinsicStyle, measuredMaximum);
+                if (intrinsicStyle.HasIntrinsicWidths) {
+                    (minimum, maximum) = ResolveOrdinaryIntrinsicContributions(intrinsicStyle,
+                        measuredMinimum, measuredMaximum, availableSize);
+                } else if (intrinsicStyle.ExplicitWidth.HasValue && !intrinsicStyle.ExplicitWidthUsesPercentage) {
                     TryResolveDefiniteGridContribution(new FlexItem(child, intrinsicStyle, 0), availableSize, out double authored);
                     minimum = authored;
                     maximum = authored;
