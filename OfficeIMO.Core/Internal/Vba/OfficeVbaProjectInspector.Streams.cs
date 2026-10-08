@@ -10,6 +10,13 @@ internal static partial class OfficeVbaProjectInspector {
     internal static OfficeVbaInspection Inspect(IReadOnlyDictionary<string, byte[]> streams, int maximumExpandedBytes) {
         if (streams == null) throw new ArgumentNullException(nameof(streams));
         if (maximumExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
+        try { return InspectMetadata(streams, maximumExpandedBytes); }
+        catch (Exception exception) when (exception is NotSupportedException || exception is DecoderFallbackException) {
+            return new OfficeVbaInspection("The project code page is unavailable or its metadata text is invalid.");
+        }
+    }
+
+    private static OfficeVbaInspection InspectMetadata(IReadOnlyDictionary<string, byte[]> streams, int maximumExpandedBytes) {
         if (!streams.TryGetValue("VBA/dir", out byte[]? compressed)) return new OfficeVbaInspection("The project has no VBA directory stream.");
         if (!OfficeVbaCompression.TryDecompress(compressed, maximumExpandedBytes, out byte[] directory, out string detail)
             || !OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, maximumExpandedBytes, out var model, out detail, includeSignatureTranscripts: false) || model == null)
