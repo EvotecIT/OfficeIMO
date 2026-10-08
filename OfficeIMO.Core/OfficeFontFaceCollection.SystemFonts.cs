@@ -19,13 +19,14 @@ public sealed partial class OfficeFontFaceCollection {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText(familyName, requested, null, out _);
         cancellationToken.ThrowIfCancellationRequested();
         if (font == null) return false;
+        bool isGenericAlias = OfficeSystemFontFamilyAliases.IsSystemUi(familyName);
         bool nativeSelection = FontProgramProvider == null && FontVariationResolver == null;
         string sourceKey = font.Fingerprint + "#" + requested.Weight + "#" + requested.Slant;
         if (nativeSelection && _installedFamilySources.TryGetValue(sourceKey, out OfficeFontFace? registered)) {
             string aliasResource = registered.Descriptor == OfficeFontFaceDescriptor.Regular
                 ? familyName : CreateResourceFamilyName(familyName, registered.Descriptor, registered.UnicodeRanges);
             OfficeFontFace alias = registered.CreateAlias(familyName, aliasResource);
-            alias.InstalledSubstituteFamily = font.MatchesFamilyName(familyName)
+            alias.InstalledSubstituteFamily = isGenericAlias || font.MatchesFamilyName(familyName)
                 ? null : font.DisplayName ?? "installed substitute";
             int index = _faces.FindLastIndex(face => face.FamilyName == familyName && face.ResourceFamilyName == aliasResource);
             if (index >= 0) _faces[index] = alias;
@@ -64,7 +65,7 @@ public sealed partial class OfficeFontFaceCollection {
                 applyDescriptorWeight: variable, useOwnedDataSnapshot: shareData)) return false;
         OfficeFontFace registeredFace = _faces.FindLast(face =>
             face.FamilyName == familyName && face.ResourceFamilyName == resourceFamily)!;
-        registeredFace.InstalledSubstituteFamily = font.MatchesFamilyName(familyName)
+        registeredFace.InstalledSubstituteFamily = isGenericAlias || font.MatchesFamilyName(familyName)
             ? null : font.DisplayName ?? "installed substitute";
         if (nativeSelection) {
             _installedFamilySources[sourceKey] = registeredFace;

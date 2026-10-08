@@ -171,6 +171,7 @@ public static class OfficeImageExportFontDiagnostics {
     }
 
     private static bool IsGenericFamily(string family) {
+        if (OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family)) return true;
         string normalized = family.Replace("-", string.Empty).Replace(" ", string.Empty);
         return string.Equals(normalized, "serif", StringComparison.OrdinalIgnoreCase) ||
                string.Equals(normalized, "sans", StringComparison.OrdinalIgnoreCase) ||
