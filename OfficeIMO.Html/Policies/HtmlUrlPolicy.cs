@@ -4,6 +4,9 @@ namespace OfficeIMO.Html;
 /// Shared URL policy used by OfficeIMO HTML ingestion adapters before links or resource references are materialized.
 /// </summary>
 public sealed class HtmlUrlPolicy {
+    private Func<string, string?>? _composedResolvedUrlTransform;
+    private HtmlUrlPolicy? _resolvedUrlTransformPrefix;
+
     /// <summary>
     /// Creates the default OfficeIMO URL policy for trusted compatibility-oriented HTML ingestion.
     /// </summary>
@@ -130,6 +133,9 @@ public sealed class HtmlUrlPolicy {
             }
         }
 
+        clone._composedResolvedUrlTransform = _composedResolvedUrlTransform;
+        clone._resolvedUrlTransformPrefix = _resolvedUrlTransformPrefix;
+
         return clone;
     }
 
@@ -154,14 +160,27 @@ public sealed class HtmlUrlPolicy {
             : right.RestrictUrlSchemes ? right.AllowedUrlSchemes
             : left.AllowedUrlSchemes.Union(right.AllowedUrlSchemes, StringComparer.OrdinalIgnoreCase);
         foreach (string scheme in schemes) result.AllowedUrlSchemes.Add(scheme);
+        if (result.ResolvedUrlTransform != null) {
+            result._composedResolvedUrlTransform = result.ResolvedUrlTransform;
+            result._resolvedUrlTransformPrefix = (left.ResolvedUrlTransform != null ? left : right).Clone();
+        }
         return result;
     }
+
+    // Resource planning retains its applied transform. A composed operation
+    // policy may already include that boundary as its prefix; resolve its raw
+    // input in that case rather than rewriting an already-transformed URI.
+    internal bool BeginsWithResolvedUrlTransform(Func<string, string?> transform) =>
+        ResolvedUrlTransform == transform
+        || ReferenceEquals(ResolvedUrlTransform, _composedResolvedUrlTransform)
+            && _resolvedUrlTransformPrefix?.BeginsWithResolvedUrlTransform(transform) == true;
 
     private static Func<string, string?>? ComposeTransforms(
         Func<string, string?>? first,
         Func<string, string?>? second) {
         if (first == null) return second;
         if (second == null) return first;
+        if (first == second) return first;
         return value => {
             string? transformed = first(value);
             return string.IsNullOrWhiteSpace(transformed) ? null : second(transformed!);

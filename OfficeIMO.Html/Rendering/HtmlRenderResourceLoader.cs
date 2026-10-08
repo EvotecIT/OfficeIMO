@@ -175,18 +175,19 @@ public sealed partial class HtmlResourceSession {
         }
     }
 
-    internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
+    internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource, Uri? requestUri = null) {
         AcceptedResourceBytes += resource.Length;
         AcceptedResourceCount++;
-        string canonicalSource = GetCanonicalSource(reference, resource);
-        AddAliases(reference, canonicalSource, resource);
+        string canonicalSource = GetCanonicalSource(reference, resource, requestUri);
+        AddAliases(reference, canonicalSource, resource, requestUri);
         _entries.Add(CreateEntry(reference.Kind, reference.Source, canonicalSource, resource));
     }
 
     private void AddAliases(
         HtmlResourceReference reference,
         string canonicalSource,
-        HtmlResolvedResource resource) {
+        HtmlResolvedResource resource,
+        Uri? requestUri = null) {
         if (reference.Source.Length > 0) {
             _resources[reference.Source] = resource;
             _resolvedSources[reference.Source] = canonicalSource;
@@ -200,12 +201,16 @@ public sealed partial class HtmlResourceSession {
             _resources[canonicalSource] = resource;
             _resolvedSources[canonicalSource] = canonicalSource;
         }
+        if (requestUri != null) {
+            _resources[requestUri.AbsoluteUri] = resource;
+            _resolvedSources[requestUri.AbsoluteUri] = canonicalSource;
+        }
     }
 
-    private static string GetCanonicalSource(HtmlResourceReference reference, HtmlResolvedResource resource) =>
+    private static string GetCanonicalSource(HtmlResourceReference reference, HtmlResolvedResource resource, Uri? requestUri = null) =>
         resource.FinalUri?.IsAbsoluteUri == true
             ? resource.FinalUri.AbsoluteUri
-            : reference.ResolvedSource;
+            : requestUri?.AbsoluteUri ?? reference.ResolvedSource;
 
     internal bool TryReserveRequest(HtmlResourceReference reference) {
         while (true) {
@@ -227,10 +232,11 @@ public sealed partial class HtmlResourceSession {
         HtmlResourceReference reference,
         HtmlResolvedResource resource,
         out bool stop,
-        out bool alreadyAccepted) {
+        out bool alreadyAccepted,
+        Uri? requestUri = null) {
         stop = false;
         alreadyAccepted = false;
-        string canonicalSource = GetCanonicalSource(reference, resource);
+        string canonicalSource = GetCanonicalSource(reference, resource, requestUri);
         if (canonicalSource.Length > 0 && _resources.TryGetValue(canonicalSource, out HtmlResolvedResource? accepted)) {
             if (!IsAcceptedContentType(reference.Kind, accepted.ContentType)) {
                 Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.ResourceContentTypeRejected,
@@ -239,7 +245,7 @@ public sealed partial class HtmlResourceSession {
                     reference.Kind + ":" + accepted.ContentType, OfficeConversionLossKind.Omission);
                 return false;
             }
-            AddAliases(reference, canonicalSource, accepted);
+            AddAliases(reference, canonicalSource, accepted, requestUri);
             if (reference.Kind == HtmlResourceKind.Stylesheet) {
                 PropagateStylesheetState(_budgetedStylesheets, reference, canonicalSource);
                 PropagateStylesheetState(_rejectedStylesheets, reference, canonicalSource);
@@ -279,7 +285,7 @@ public sealed partial class HtmlResourceSession {
             return false;
         }
 
-        Add(reference, resource);
+        Add(reference, resource, requestUri);
         return true;
     }
 
@@ -612,11 +618,13 @@ internal static partial class HtmlRenderResourceLoader {
                 if (!reference.IsAllowed || !(IsLoadableKind(reference.Kind) || archiveResources && reference.Kind == HtmlResourceKind.Media) || reference.ResolvedSource.Length == 0) continue;
                 if (!archiveResources && reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
                 if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
-                if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? uri)) {
+                if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? plannedUri)) {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, OfficeConversionLossKind.Omission);
                     continue;
                 }
-                if (!ApproveResourceUri(reference, uri, resourcePolicy, diagnostics, finalUri: false)) continue;
+                if (!TryAuthorizeResourceRequest(reference, resourcePolicy, diagnostics, out Uri uri)) continue;
+                if (!archiveResources && uri.Scheme.Equals("data", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!uri.Equals(plannedUri) && !seen.Add(GetSeenKey(reference.Kind, uri.AbsoluteUri))) continue;
                 if (result.AcceptedResourceCount >= result.MaxResourceCount) {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + result.MaxResourceCount, OfficeConversionLossKind.Omission);
                     stop = true;
@@ -680,7 +688,8 @@ internal static partial class HtmlRenderResourceLoader {
 
                 Uri resourceUri = item.Uri;
                 if (resource.FinalUri?.IsAbsoluteUri == true) {
-                    if (!ApproveResourceUri(reference, resource.FinalUri, resourcePolicy, diagnostics, finalUri: true)) continue;
+                    if (!resource.FinalUri.Equals(item.Uri)
+                        && !ApproveFinalResourceUri(reference, resource.FinalUri, resourcePolicy, diagnostics)) continue;
                     resourceUri = resource.FinalUri;
                 }
 
@@ -688,7 +697,8 @@ internal static partial class HtmlRenderResourceLoader {
                         reference,
                         resource,
                         out bool stopAfterResource,
-                        out bool alreadyAccepted)) {
+                        out bool alreadyAccepted,
+                        item.Uri)) {
                     if (stopAfterResource) stop = true;
                     continue;
                 }

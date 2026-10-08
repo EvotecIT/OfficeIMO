@@ -729,7 +729,10 @@ The session owns one immutable policy and limit snapshot for the operation. It d
 
 The session checks its resource URL policy before invoking a resolver, even when a
 manifest was planned under a more permissive policy. It also checks reported final
-URIs before accepting content. Resolvers must enforce that policy while following
+URIs before accepting content. URL transforms preserve the manifest's rewrite;
+when the operation policy includes the planning transform, it resolves the original
+input instead of transforming the planned URI again. Reusing the same transform
+in intersected policies avoids duplicate URL rewrites. Resolvers must enforce that policy while following
 redirects. `ResourceTimeout` cancels the resolver's token; cancellation is
 cooperative, so a callback that ignores the token delays completion until it returns.
 Content returned after the deadline is rejected. Use an isolated worker when a hard

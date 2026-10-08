@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 /// Resource dependency discovered during OfficeIMO HTML resource planning.
 /// </summary>
 public sealed class HtmlResourceReference {
-    internal HtmlResourceReference(HtmlResourceKind kind, string elementName, string attributeName, string source, string resolvedSource, bool isAllowed, string diagnosticCode) {
+    internal HtmlResourceReference(HtmlResourceKind kind, string elementName, string attributeName, string source, string resolvedSource, bool isAllowed, string diagnosticCode, Uri? resolutionBaseUri, Func<string, string?>? resolvedUrlTransform) {
         Kind = kind;
         ElementName = elementName ?? string.Empty;
         AttributeName = attributeName ?? string.Empty;
@@ -12,6 +12,8 @@ public sealed class HtmlResourceReference {
         ResolvedSource = resolvedSource ?? string.Empty;
         IsAllowed = isAllowed;
         DiagnosticCode = diagnosticCode ?? string.Empty;
+        ResolutionBaseUri = resolutionBaseUri;
+        PlanningUrlTransform = resolvedUrlTransform;
     }
 
     /// <summary>Resource kind.</summary>
@@ -34,4 +36,9 @@ public sealed class HtmlResourceReference {
 
     /// <summary>Diagnostic code associated with blocked or degraded resource handling.</summary>
     public string DiagnosticCode { get; }
+
+    // Retain the planner's original resolution context so operation policies can
+    // authorize raw input without applying a rewriting transform twice.
+    internal Uri? ResolutionBaseUri { get; }
+    internal Func<string, string?>? PlanningUrlTransform { get; }
 }
