@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<SectionBlock> sections = Array.Empty<SectionBlock>();
         IReadOnlyDictionary<string, int>? pageNumbers = null;
         var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
-        var runningMaterializations = new Dictionary<RunningContentMaterializationKey, IReadOnlyList<IPdfBlock>>();
+        var runningAssets = new RunningContentImageAssets();
         IReadOnlyList<PageNumberInfo>? previousRunningPages = null;
         int previousDocumentPages = 1;
         LayoutResult result = null!;
@@ -145,7 +145,7 @@ internal static partial class PdfWriter {
             cancellationToken.ThrowIfCancellationRequested();
             result?.Dispose();
             using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations,
-                runningMaterializations: runningMaterializations, previousRunningPages: previousRunningPages,
+                runningAssets: runningAssets, previousRunningPages: previousRunningPages,
                 previousDocumentPages: previousDocumentPages, cancellationToken: cancellationToken);
             result = context.Layout(blockList);
             IReadOnlyList<PageNumberInfo> runningPages = BuildPageNumberInfos(result.Pages);

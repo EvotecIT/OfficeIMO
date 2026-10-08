@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
             System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null,
             PdfPageContentStore? sharedPageContents = null,
             bool isRunningContent = false,
-            Dictionary<RunningContentMaterializationKey, IReadOnlyList<IPdfBlock>>? runningMaterializations = null,
+            RunningContentImageAssets? runningAssets = null,
             IReadOnlyList<PageNumberInfo>? previousRunningPages = null,
             int previousDocumentPages = 1,
             System.Threading.CancellationToken cancellationToken = default) {
@@ -71,7 +71,7 @@ internal static partial class PdfWriter {
             pageContents = sharedPageContents ?? new PdfPageContentStore(options.PageContentMemoryLimitBytes);
             ownsPageContents = sharedPageContents == null;
             this.isRunningContent = isRunningContent;
-            this.runningMaterializations = runningMaterializations ?? new();
+            this.runningAssets = runningAssets ?? new();
             this.previousRunningPages = previousRunningPages;
             this.previousDocumentPages = previousDocumentPages;
             emitGeneratedStructure = !isRunningContent && options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;

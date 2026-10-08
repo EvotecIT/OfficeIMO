@@ -30,6 +30,7 @@ public sealed partial class PdfHeaderBuilder {
 
     private PdfHeaderBuilder SetContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distance, double gap, PdfRunningContentVariant variant) {
         Guard.NotNull(build, nameof(build));
+        Guard.NonNegative(distance, nameof(distance)); Guard.NonNegative(gap, nameof(gap));
         _opts.SetRunningContent(new PdfRunningContent(context => _doc.BuildFlowBlocks(build(context)
             ?? throw new InvalidOperationException("Running PDF content factory returned null.")), distance, gap, usesPageContext: true), true, variant);
         return this;
