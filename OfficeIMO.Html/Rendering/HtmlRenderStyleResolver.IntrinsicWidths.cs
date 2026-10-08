@@ -72,8 +72,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (style.MinWidthWithIndefiniteReference.HasValue) resolved.MinWidth = style.MinWidthWithIndefiniteReference;
         if (Cyclic(leftPadding)) resolved.PaddingLeft = Math.Max(0D, ReadLength(leftPadding, null, 0D, style.Font.Size) ?? 0D);
         if (Cyclic(rightPadding)) resolved.PaddingRight = Math.Max(0D, ReadLength(rightPadding, null, 0D, style.Font.Size) ?? 0D);
-        if (Cyclic(leftMargin)) resolved.MarginLeft = ReadLength(leftMargin, null, 0D, style.Font.Size) ?? 0D;
-        if (Cyclic(rightMargin)) resolved.MarginRight = ReadLength(rightMargin, null, 0D, style.Font.Size) ?? 0D;
+        if (Cyclic(leftMargin)) ApplyMarginLength(leftMargin, 0D, style.Font.Size, ref resolved.MarginLeft);
+        if (Cyclic(rightMargin)) ApplyMarginLength(rightMargin, 0D, style.Font.Size, ref resolved.MarginRight);
         return resolved;
     }
 
@@ -100,7 +100,8 @@ internal sealed partial class HtmlRenderStyleResolver {
                 || floating.Length > 0 && floating != "none"
                 || columns.Length > 0 && columns != "auto"
                 || columnWidth.Length > 0 && columnWidth != "auto"
-                || container.Length > 0 && container != "normal") {
+                || container.Length > 0 && container != "normal"
+                || display == "inline" && HasUnqualifiedInlineIntrinsicEdges(computed)) {
                 _specializedIntrinsicWidthContent[element] = true;
                 return true;
             }
@@ -108,5 +109,20 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         _specializedIntrinsicWidthContent[element] = false;
         return false;
+    }
+
+    private bool HasUnqualifiedInlineIntrinsicEdges(HtmlComputedStyle? computed) {
+        if (computed == null) return false;
+        HtmlComputedStyle physical = PhysicalizeLogicalProperties(computed, "horizontal-tb",
+            computed.GetValue("direction") == "rtl" ? "rtl" : "ltr");
+        // Inline decoration paint expands around text, but line layout does not
+        // reserve these edges yet. Measuring them alone can cause false wrapping.
+        foreach (string property in new[] { "margin-left", "margin-right", "padding-left", "padding-right" }) {
+            string value = physical.GetValue(property).Trim();
+            if (value.IndexOf('%') >= 0 && value != "0%") return true;
+        }
+        var edges = new HtmlRenderBoxStyle();
+        ApplyBoxValues(physical, 1D, _rootFontSize, edges);
+        return edges.HorizontalInsets > 0D || edges.MarginLeft != 0D || edges.MarginRight != 0D;
     }
 }

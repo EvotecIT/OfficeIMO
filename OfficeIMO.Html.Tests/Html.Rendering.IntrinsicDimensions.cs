@@ -165,7 +165,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("div", "padding-left:10%", 90D)]
-    [InlineData("span", "margin-left:10%", 90D)]
+    [InlineData("span", "margin:0;padding:0;border:0", 90D)]
     [InlineData("span", "display:contents;padding:10px;border:2px solid black;margin:8px", 90D)]
     [InlineData("span", "display:inline-block", 150D)]
     public void HtmlIntrinsicWidth_DescendantEdgesAndAtomicNestedBoxesMatchTheirFormattingContext(string tag, string declarations, double expected) {
@@ -190,6 +190,42 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.Pages.Count >= 2);
         Assert.Equal(90D, TableGeometryShape(rendered, "div#sized").Width, 3);
         rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("div", "margin-left:calc(-10px + 10%)")]
+    [InlineData("div", "margin-right:calc(-10px + 10%)")]
+    [InlineData("span", "display:inline-block;margin-left:calc(-10px + 10%)")]
+    [InlineData("span", "display:inline-block;margin-inline-end:calc(-10px + 10%)")]
+    [InlineData("div", "margin-inline-start:calc(-10px + 10%)")]
+    [InlineData("div", "margin-inline-end:calc(-10px + 10%)")]
+    [InlineData("span", "display:inline-block;margin-right:calc(-10px + 10%)")]
+    [InlineData("span", "display:inline-block;margin-inline-start:calc(-10px + 10%)")]
+    public void HtmlIntrinsicWidth_SignedDescendantMarginsReduceMaxContent(string tag, string declarations) {
+        string html = TableGeometrySource("<div style='width:300px'><div id='sized' style='width:max-content;background:lime'><"
+            + tag + " style='" + declarations + "'>" + IntrinsicWidthAtoms + "</" + tag + "></div></div>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+
+        Assert.Equal(80D, TableGeometryShape(rendered, "div#sized").Width, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("max-content", "margin-left:-10px")]
+    [InlineData("max-content", "margin-right:calc(-10px + 10%)")]
+    [InlineData("min-content", "margin-inline-end:calc(-10px + 10%)")]
+    [InlineData("max-content", "padding-left:10px")]
+    [InlineData("max-content", "padding-inline-end:10%")]
+    [InlineData("max-content", "border:2px solid black")]
+    public void HtmlIntrinsicWidth_UnqualifiedInlineEdgeLayoutRetainsLoss(string width, string declarations) {
+        string html = TableGeometrySource("<div style='width:300px'><div id='sized' style='width:" + width
+            + ";background:lime'><span style='" + declarations + "'>" + IntrinsicWidthAtoms + "</span></div></div>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
+            item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported && item.Source == "div#sized");
+
+        Assert.Contains("width=" + width, diagnostic.Detail);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
     }
 
     private static HtmlRenderDocument RenderIntrinsicWidth(string declarations, double parentWidth) {
