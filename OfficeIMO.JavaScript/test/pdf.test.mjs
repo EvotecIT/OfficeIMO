@@ -89,6 +89,27 @@ test("empty report metadata preserves direct PDF layout and the data cell budget
     await assert.rejects(writePdf(rows, { ...options, [key]: "Visible metadata" }), /maxCells/);
 });
 
+test("empty page decorations permit zero margins while visible decorations retain layout checks", async () => {
+  const options = { columns, compression: false, pageNumbers: false, margins: 0, limits: { maxCells: 4 } };
+  const baseline = await inspectPdf(await writePdf([["Hello", 1]], options));
+  for (const key of ["pageHeader", "pageFooter"]) {
+    for (const value of ["", () => ""]) {
+      const actual = await inspectPdf(await writePdf([["Hello", 1]], { ...options, [key]: value }));
+      assert.deepEqual(actual.pages.map(page => page.content), baseline.pages.map(page => page.content));
+    }
+    await assert.rejects(writePdf([["Hello", 1]], { ...options, [key]: "Visible" }), /margin/);
+    await assert.rejects(writePdf([["Hello", 1]], { ...options, [key]: () => "Visible" }), /margin/);
+    await assert.rejects(writePdf([["Hello", 1]], { ...options, [key]: async () => "" }), /synchronous/);
+    await assert.rejects(writePdf([["Hello", 1]], { ...options, [key]: () => null }), /synchronous string/);
+  }
+  await assert.rejects(writePdf([["Hello", 1]], { ...options, pageNumbers: true }), /margin/);
+  const visited = [];
+  await assert.rejects(writePdf(Array.from({ length: 120 }, () => ["Hello", 1]), {
+    ...options, limits: undefined, pageSize: "A5", pageHeader: ({ pageNumber }) => { visited.push(pageNumber); return pageNumber === 1 ? "" : "Visible"; }
+  }), /margin/);
+  assert.deepEqual(visited, [1, 2], "Callbacks are resolved once on each page, including later failures");
+});
+
 test("PDF cancellation returns a pending source and releases a hung sink's stream lock", async () => {
   const sourceAbort = new AbortController(); let returned = 0;
   const source = { [Symbol.asyncIterator]() { return { next() { setTimeout(() => sourceAbort.abort(Error("source abort")), 0); return new Promise(() => {}); }, return() { returned++; return Promise.resolve({done:true}); } }; } };

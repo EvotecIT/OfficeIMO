@@ -4701,7 +4701,7 @@ _modules.set("bc46062e3ddb9b421eec917feac8c339c6d4913f02318d573170ace4085abc11",
 return _exports;
 })();
 
-const _m44 = _modules.get("1ee93274ac9137b02f9c091c12c5ff29fc75dbd94ef19c053d8e95135aa1329f") ?? (() => {
+const _m44 = _modules.get("c14e0dc169fc93126cd424072b40eb287aa1e013110bce900ca546bf37cf8f7c") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { checkAbort } = _m4;
@@ -4766,11 +4766,13 @@ class PdfPages {
         this.add("q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
             (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n");
     }
-    decoration(value, x, y, width) {
+    decorationText(value) {
         if (value === undefined)
-            return;
+            return "";
         checkAbort(this.settings.options.signal);
-        const text = synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+        return synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+    }
+    decoration(text, x, y, width) {
         if (!text)
             return;
         this.settings.budget.cell(text);
@@ -4786,16 +4788,17 @@ class PdfPages {
         this.commands = [];
         this.commandBytes = 0;
         this.y = page.height - margins.top;
-        if (options.pageHeader !== undefined && margins.top < this.layout.lineHeight + 4)
+        const header = this.decorationText(options.pageHeader), footer = this.decorationText(options.pageFooter);
+        if (header && margins.top < this.layout.lineHeight + 4)
             throw new RangeError("Top margin is too small for a page header.");
-        if ((options.pageFooter !== undefined || this.totalPages) && margins.bottom < this.layout.lineHeight + 4)
+        if ((footer || this.totalPages) && margins.bottom < this.layout.lineHeight + 4)
             throw new RangeError("Bottom margin is too small for page decorations.");
         const font = this.layout.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
-        this.decoration(options.pageHeader, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
+        this.decoration(header, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
         const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? this.pageNumberWidth + this.settings.padding * 2 : 0);
-        if (footerWidth <= 0 && options.pageFooter !== undefined)
+        if (footerWidth <= 0 && footer)
             throw new RangeError("Page is too narrow for both footer text and page numbers.");
-        this.decoration(options.pageFooter, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
+        this.decoration(footer, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
         if (this.totalPages) {
             const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset, label = "Page " + this.references.length + " of ";
             const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0];
@@ -4907,11 +4910,11 @@ class PdfPages {
     xobjects() { return this.totalPages ? " /XObject << /TotalPages " + this.totalPages + " 0 R >>" : ""; }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("1ee93274ac9137b02f9c091c12c5ff29fc75dbd94ef19c053d8e95135aa1329f", _exports);
+_modules.set("c14e0dc169fc93126cd424072b40eb287aa1e013110bce900ca546bf37cf8f7c", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("cc2c4d81441ade30e75d8a10aa29174a973630a8fd3b5767070337a302f5e66b") ?? (() => {
+const _m32 = _modules.get("2bf71d79a95e5be737a21b0f620c03c51e13823b2a5cbd9e9edcb8b0b9491ae9") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m4;
@@ -4985,14 +4988,14 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("cc2c4d81441ade30e75d8a10aa29174a973630a8fd3b5767070337a302f5e66b", _exports);
+_modules.set("2bf71d79a95e5be737a21b0f620c03c51e13823b2a5cbd9e9edcb8b0b9491ae9", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("412007480ebd1a0bc5c2117f4aa2a9116e751ad45d5db5a1ab95995c19e73ce2") ?? (() => {
+const _m31 = _modules.get("e46da80f893e95d8d64738d87f3d64a555d120adc7b587f82664b9012614a22a") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m32.writePdf, writePdfTo: _m32.writePdfTo, PdfFont: _m37.PdfFont, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("412007480ebd1a0bc5c2117f4aa2a9116e751ad45d5db5a1ab95995c19e73ce2", _exports);
+_modules.set("e46da80f893e95d8d64738d87f3d64a555d120adc7b587f82664b9012614a22a", _exports);
 return _exports;
 })();
 
@@ -5295,7 +5298,7 @@ _modules.set("04ba6efc84626da42c151b3efe8ac74cfe65735d84744392292a0e17d8a53508",
 return _exports;
 })();
 
-const _m0 = _modules.get("4441714792565b8c2fe9b3df205f6ef8212751f2525dead1bb773d9edb438445") ?? (() => {
+const _m0 = _modules.get("c3e26fbe60294f830667fdff034b78f0521fcb98d955b5d2fe52e921a1b5d4ae") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -5417,8 +5420,12 @@ function registerDataTablesButtons(host, options = {}) {
                             for (const key of ["orientation", "pageSize"])
                                 if (member(configuration, key) !== undefined)
                                     Object.assign(pdf, { [key]: member(configuration, key) });
-                            if (member(configuration, "header") === false)
+                            if (member(configuration, "header") === false) {
                                 pdf.includeHeader = false;
+                                delete pdf.headerRows;
+                            }
+                            if (member(configuration, "footer") === false)
+                                delete pdf.footer;
                             current = { ...current, pdf };
                         }
                         else if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
@@ -5449,7 +5456,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m47.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("4441714792565b8c2fe9b3df205f6ef8212751f2525dead1bb773d9edb438445", _exports);
+_modules.set("c3e26fbe60294f830667fdff034b78f0521fcb98d955b5d2fe52e921a1b5d4ae", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

@@ -276,6 +276,37 @@ test("PDF suppressed and replacement headers do not validate unused source spans
   assert.ok((await inspectPdf(delivered)).text.includes("Approved"));
 });
 
+test("native PDF heading and footer suppression overrides replacement matrices without changing defaults", async () => {
+  for (const configuredAt of ["registration", "button"]) {
+    const { host, table } = fixture(); let delivered, failure;
+    const pdf = { headerRows: [[{ value: "Replacement heading" }, { value: "Amount" }]],
+      footer: { rows: [[{ value: "Replacement footer" }, { value: "99" }]] }, compression: false };
+    const original = structuredClone(pdf);
+    registerDataTablesButtons(host, { ...(configuredAt === "registration" ? { pdf } : {}), save: blob => { delivered = blob; }, onError: error => { failure = error; } });
+    const config = configuredAt === "button" ? { officeimo: { pdf } } : {};
+    await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { ...config, header: false, footer: false }, resolve));
+    assert.equal(failure, undefined); assert.ok(delivered);
+    const text = (await inspectPdf(delivered)).text;
+    assert.ok(text.includes("first")); assert.ok(text.includes("second"));
+    for (const absent of ["Replacement heading", "Replacement footer", "Metrics", "Totals"]) assert.ok(!text.includes(absent), absent);
+    assert.deepEqual(pdf, original);
+    delivered = undefined;
+    await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, config, resolve));
+    assert.equal(failure, undefined);
+    const restored = (await inspectPdf(delivered)).text;
+    assert.ok(restored.includes("Replacement heading")); assert.ok(restored.includes("Replacement footer"));
+  }
+});
+
+test("native PDF footer suppression also omits a custom footer", async () => {
+  const { host, table } = fixture(); let delivered, failure;
+  registerDataTablesButtons(host, { pdf: { footer: { values: ["Custom footer", 99] } }, save: blob => { delivered = blob; }, onError: error => { failure = error; } });
+  await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { footer: false }, resolve));
+  assert.equal(failure, undefined);
+  const text = (await inspectPdf(delivered)).text;
+  assert.ok(text.includes("Metrics")); assert.ok(text.includes("first")); assert.ok(!text.includes("Custom footer"));
+});
+
 test("PDF replacement footer does not validate unused source footer spans", async () => {
   const { host, table } = fixture(); const native = table.buttons.exportData;
   table.buttons.exportData = options => {

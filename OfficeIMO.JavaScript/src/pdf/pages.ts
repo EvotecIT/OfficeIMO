@@ -49,10 +49,12 @@ export class PdfPages {
     this.add("q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
       (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n");
   }
-  private decoration(value: string | ((context: { pageNumber: number }) => string) | undefined, x: number, y: number, width: number): void {
-    if (value === undefined) return;
+  private decorationText(value: string | ((context: { pageNumber: number }) => string) | undefined): string {
+    if (value === undefined) return "";
     checkAbort(this.settings.options.signal);
-    const text = synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+    return synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+  }
+  private decoration(text: string, x: number, y: number, width: number): void {
     if (!text) return;
     this.settings.budget.cell(text);
     const font = this.layout.fonts.select(), lines = wrapText(text, font, this.settings.fontSize, width, this.settings.limits.maxCellCharacters, 1, false);
@@ -63,13 +65,14 @@ export class PdfPages {
     const { page, margins, options, fontSize } = this.settings;
     this.current = this.objects.reserve(); this.references.push(this.current); this.commands = []; this.commandBytes = 0;
     this.y = page.height - margins.top;
-    if (options.pageHeader !== undefined && margins.top < this.layout.lineHeight + 4) throw new RangeError("Top margin is too small for a page header.");
-    if ((options.pageFooter !== undefined || this.totalPages) && margins.bottom < this.layout.lineHeight + 4) throw new RangeError("Bottom margin is too small for page decorations.");
+    const header = this.decorationText(options.pageHeader), footer = this.decorationText(options.pageFooter);
+    if (header && margins.top < this.layout.lineHeight + 4) throw new RangeError("Top margin is too small for a page header.");
+    if ((footer || this.totalPages) && margins.bottom < this.layout.lineHeight + 4) throw new RangeError("Bottom margin is too small for page decorations.");
     const font = this.layout.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
-    this.decoration(options.pageHeader, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
+    this.decoration(header, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
     const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? this.pageNumberWidth + this.settings.padding * 2 : 0);
-    if (footerWidth <= 0 && options.pageFooter !== undefined) throw new RangeError("Page is too narrow for both footer text and page numbers.");
-    this.decoration(options.pageFooter, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
+    if (footerWidth <= 0 && footer) throw new RangeError("Page is too narrow for both footer text and page numbers.");
+    this.decoration(footer, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
     if (this.totalPages) {
       const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset, label = "Page " + this.references.length + " of ";
       const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0]!;

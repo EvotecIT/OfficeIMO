@@ -94,7 +94,8 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
               }
               for (const key of ["orientation", "pageSize"] as const) if (member(configuration, key) !== undefined)
                 Object.assign(pdf, { [key]: member(configuration, key) });
-              if (member(configuration, "header") === false) pdf.includeHeader = false;
+              if (member(configuration, "header") === false) { pdf.includeHeader = false; delete pdf.headerRows; }
+              if (member(configuration, "footer") === false) delete pdf.footer;
               current = { ...current, pdf };
             } else if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
               throw new TypeError("Use OfficeIMO sheet title/footer options; native Buttons report layout options are unsupported.");
