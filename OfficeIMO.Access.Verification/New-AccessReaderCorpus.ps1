@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string] $OutputDirectory)
+﻿param([Parameter(Mandatory)][string] $OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $root) { throw 'Use a fresh output directory.' }

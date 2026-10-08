@@ -542,7 +542,7 @@ These are outside P10 and must not displace unfinished baseline milestones: Prim
 
 ## Microsoft Access document library
 
-Extend `OfficeIMO.Access` into a native document library for `.accdb` and `.mdb`, covering database content and the application objects stored with it. The [current native reader and model contract](../OfficeIMO.Access/SUPPORT.md) defines the delivered foundation and MDB/ACCDB reading. Application-payload decoding, preservation and native writing remain open. The [Access design](officeimo.access-design.md) defines codec ownership, the DbaClientX boundary and the remaining qualification contracts.
+Extend `OfficeIMO.Access` with existing-file editing, generation conversion, application-object authoring, rendering and protection qualification. The [current Access contract](../OfficeIMO.Access/SUPPORT.md) covers native MDB/ACCDB reading, qualified application/VBA inspection, unchanged preservation and seed-free Jet 4/ACE 12 database creation. The [Access design](officeimo.access-design.md) defines codec ownership, the DbaClientX boundary and the remaining qualification contracts.
 
 The milestones below are the complete planned baseline, in dependency order. Each names a usable result and its closure evidence. A table reader, opaque application-object preservation, an ACE wrapper or a self-round-trip cannot close a native editing/creation milestone. Delivered contracts move to the package README and `OfficeIMO.Access/SUPPORT.md`; remaining work stays here. [Access implementation discipline](../AGENTS.md#access-implementation-discipline) owns task kickoff, handoff and scope-change rules.
 
@@ -559,7 +559,7 @@ The milestones below are the complete planned baseline, in dependency order. Eac
 | Validation | Independent Access-produced fixtures, external schema/data/object observations, and Access reopen/edit/re-save for native output; portable engine tests are separate | [Oracle and fixture baseline](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility); every milestone extends it |
 | Expansion | Earlier Access generations, compiled-file authoring/decompilation, `.adp`, add-in/distribution-package lifecycle, live multi-user engine behavior and general VBA execution are outside this baseline | Separate adoption with an owner, useful workflow, dependency impact and acceptance evidence |
 
-The disposable Windows DAO and Access producer routes are qualified for the synthetic table and application-object corpus described in [SUPPORT.md](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility). DAO and Access independently reopen, edit and save seed-free MDB/ACCDB output from the public creation API; the qualified creation boundary is in [SUPPORT.md](../OfficeIMO.Access/SUPPORT.md#native-creation-contract). The native-first boundary remains the baseline; infeasible native work requires a concrete product decision rather than silently substituting a different implementation.
+Remaining milestones extend the [independent oracle baseline](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility) and [native creation contract](../OfficeIMO.Access/SUPPORT.md#native-creation-contract). Infeasible native work requires a concrete product decision rather than silently substituting a different implementation.
 
 ### Delivery sequence
 

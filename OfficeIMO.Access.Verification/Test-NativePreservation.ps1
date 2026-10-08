@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string] $OutputDirectory)
+﻿param([Parameter(Mandatory)][string] $OutputDirectory)
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'The independent application oracle requires Windows Access.' }
 $root = [IO.Path]::GetFullPath($OutputDirectory)

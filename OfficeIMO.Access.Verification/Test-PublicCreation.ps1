@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$CorpusDirectory)
+﻿param([Parameter(Mandatory)][string]$CorpusDirectory)
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'Independent creation qualification requires Windows DAO and Microsoft Access.' }
 $root = [IO.Path]::GetFullPath($CorpusDirectory)

@@ -74,6 +74,8 @@ The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysA
 
 `ChangeJournal` records modeled object identities, revisions and operations; rollback removes its entries. Loaded native documents remain immutable, so this journal does not imply an existing-file editor.
 
+VBA inspection shares one expansion allowance across the directory and module sources, bounded by `MaxMetadataBytes`. Bytes expanded before malformed source fails still consume that allowance. After exhaustion, declared module metadata remains available and unread source remains opaque with a limit diagnostic. Cancellation reaches module and compressed-chunk traversal.
+
 ## Unchanged preservation
 
 Same-family/profile save retains the entire loaded snapshot without byte changes, including unknown pages, application payloads, linked metadata, compiled content and protection/signature carriers. Header-only and protected loads can preserve their snapshots without decoding the catalog. A loaded path is checked against its original SHA-256 before saving; a changed source fails before destination output. This is byte preservation, not signature validity, decryption or security-policy qualification. Signature validation remains A09.

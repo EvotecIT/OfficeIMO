@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string] $OutputDirectory, [switch] $IncludeDataMacro, [switch] $IncludeEmbeddedMacro)
+﻿param([Parameter(Mandatory)][string] $OutputDirectory, [switch] $IncludeDataMacro, [switch] $IncludeEmbeddedMacro)
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'The designer oracle requires Windows Access.' }
 $root = [IO.Path]::GetFullPath($OutputDirectory)
@@ -53,7 +53,9 @@ try {
             $export = Join-Path $root ($profile.Name + '.BoundReport.txt'); $application.SaveAsText(3,'BoundReport',$export)
             $objects += [ordered]@{kind='report';name='BoundReport';recordSource='Contacts';export=[IO.Path]::GetFileName($export);exportSha256=(Get-FileHash -LiteralPath $export).Hash.ToLowerInvariant()}
             $moduleText = Join-Path $root 'DesignerModule.bas'
-            @('Attribute VB_Name = "DesignerModule"','Option Compare Database','Option Explicit',"'Zażółć gęślą jaźń",'Public Function ConstantValue() As Long','    ConstantValue = 42','End Function') | Set-Content -LiteralPath $moduleText -Encoding ansi
+            $moduleLines = @('Attribute VB_Name = "DesignerModule"','Option Compare Database','Option Explicit',"'Zażółć gęślą jaźń",'Public Function ConstantValue() As Long','    ConstantValue = 42','End Function')
+            $moduleEncoding = [Text.Encoding]::GetEncoding(1250, [Text.EncoderFallback]::ExceptionFallback, [Text.DecoderFallback]::ExceptionFallback)
+            [IO.File]::WriteAllText($moduleText, ($moduleLines -join "`r`n") + "`r`n", $moduleEncoding)
             $application.LoadFromText(5,'DesignerModule',$moduleText)
             $export = Join-Path $root ($profile.Name + '.DesignerModule.txt'); $application.SaveAsText(5,'DesignerModule',$export)
             $objects += [ordered]@{kind='vba-module';name='DesignerModule';export=[IO.Path]::GetFileName($export);exportSha256=(Get-FileHash -LiteralPath $export).Hash.ToLowerInvariant()}
