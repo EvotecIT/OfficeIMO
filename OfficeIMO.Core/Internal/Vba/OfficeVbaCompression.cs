@@ -31,7 +31,7 @@ namespace OfficeIMO.Core.Internal {
             }
             return output.ToArray();
         }
-    
+
         /// <summary>Checks chunk flags in a module container already validated by project loading.</summary>
         internal static bool ContainsRawChunk(byte[] validatedModuleStream, int sourceOffset) {
             for (int position = sourceOffset + 1; position < validatedModuleStream.Length;) {
@@ -41,7 +41,7 @@ namespace OfficeIMO.Core.Internal {
             }
             return false;
         }
-    
+
         private static byte[] CompressChunk(byte[] source, int start, int count) {
             // Each dictionary and search is confined to one 4 KiB chunk. A bounded hash chain
             // avoids quadratic work on large inputs while allowing overlapping copy tokens.
@@ -87,14 +87,14 @@ namespace OfficeIMO.Core.Internal {
             }
             return output.ToArray();
         }
-    
+
         private static int Key(byte[] source, int offset) => source[offset] | source[offset + 1] << 8 | source[offset + 2] << 16;
-    
+
         internal static bool TryDecompress(byte[] input, int maximumOutputBytes,
             out byte[] output, out string detail) {
             return TryDecompress(input, ref maximumOutputBytes, out output, out detail);
         }
-    
+
         /// <summary>Charges all expanded bytes, including discarded output, and observes cancellation during traversal.</summary>
         internal static bool TryDecompress(byte[] input, ref int remainingExpandedBytes,
             out byte[] output, out string detail, CancellationToken cancellationToken = default) {
@@ -175,7 +175,7 @@ namespace OfficeIMO.Core.Internal {
                 remainingExpandedBytes -= decompressed.Count;
             }
         }
-    
+
         private static ushort ReadUInt16(byte[] bytes, int offset) => (ushort)(bytes[offset] | bytes[offset + 1] << 8);
         private static bool TryReadUInt16(byte[] bytes, ref int position, out ushort value) { value = 0; if (position < 0 || position > bytes.Length - 2) return false; value = ReadUInt16(bytes, position); position += 2; return true; }
     }
