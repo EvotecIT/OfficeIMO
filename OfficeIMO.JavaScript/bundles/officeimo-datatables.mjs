@@ -5348,6 +5348,10 @@ function registerDataTablesButtons(host, options = {}) {
                                         continue;
                                     }
                                     const text = member(info, key);
+                                    if (text === null || text === "") {
+                                        delete pdf[key];
+                                        continue;
+                                    }
                                     if (typeof text !== "string")
                                         throw new TypeError("PDF " + key + " must resolve to text.");
                                     pdf[key] = text;

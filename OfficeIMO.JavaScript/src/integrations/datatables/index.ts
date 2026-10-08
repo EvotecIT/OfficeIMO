@@ -88,6 +88,7 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
               for (const key of ["title", "messageTop", "messageBottom"] as const) if (member(configuration, key) !== undefined) {
                 if (member(configuration, key) === null) { delete pdf[key]; continue; }
                 const text = member(info, key);
+                if (text === null || text === "") { delete pdf[key]; continue; }
                 if (typeof text !== "string") throw new TypeError("PDF " + key + " must resolve to text.");
                 pdf[key] = text;
               }
