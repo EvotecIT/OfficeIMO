@@ -5,7 +5,7 @@ using static OfficeIMO.Access.AccessNativeBinary;
 namespace OfficeIMO.Access;
 
 internal sealed partial class AccessNativeDatabase {
-    private void LoadProperties(AccessTable table, byte[]? bytes, CancellationToken cancellation) {
+    private void LoadProperties(AccessTable table, byte[]? bytes, CancellationToken cancellation, bool macroMap = false) {
         if (bytes == null || bytes.Length == 0) return;
         if (bytes.Length > MaxMetadataBytes) throw new InvalidDataException("Native Access properties exceed MaxMetadataBytes.");
         table.NativeProperties = new AccessOpaqueValue(0, bytes, "Persisted table/column property map; retained without expression evaluation.");
@@ -23,27 +23,36 @@ internal sealed partial class AccessNativeDatabase {
                 while (item < block.Length) { if (names.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access property names exceed their limit."); names.Add(PropertyName(block, ref item)); }
                 continue;
             }
-            if (type != 0 && type != 1 && type != 2) {
+            if (type != 0 && type != 1 && type != 2 && !(macroMap && type == 3)) {
                 table.Diagnostics = table.Diagnostics.Concat(new[] { new AccessDiagnostic("access.properties.unknown-chunk", "Unknown property chunk is retained in NativeProperties.", table.Id) }).ToArray(); continue;
             }
             if (block.Length == 0) continue;
             int nameLength = I32(block, 0);
             if (nameLength < 4 || nameLength > block.Length) throw new InvalidDataException("Native Access property map name block is invalid.");
-            int offset = 4; string mapName = nameLength > 6 ? PropertyName(Slice(block, 0, nameLength), ref offset) : string.Empty;
+            int offset = macroMap && type == 3 ? 8 : 4;
+            if (macroMap && type == 3 && (nameLength < 10 || I32(block, 4) != 0)) throw new InvalidDataException("Native Access data-macro map header is unqualified.");
+            string mapName = nameLength > offset + 2 ? PropertyName(Slice(block, 0, nameLength), ref offset) : string.Empty;
             offset = nameLength; var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             while (offset < block.Length) {
-                cancellation.ThrowIfCancellationRequested(); int valueLength = U16(block, offset);
-                if (valueLength < 8) throw new InvalidDataException("Native Access property record makes no progress.");
+                cancellation.ThrowIfCancellationRequested(); bool wide = macroMap && type == 3;
+                int headerLength = wide ? 12 : 8;
+                int valueLength = wide ? I32(block, offset) : U16(block, offset);
+                if (valueLength < headerLength) throw new InvalidDataException("Native Access property record makes no progress.");
                 var value = Slice(block, offset, valueLength); offset = checked(offset + valueLength);
-                byte nativeType = value[3]; int nameIndex = U16(value, 4), size = U16(value, 6);
-                if (nameIndex >= names.Count || size > value.Length - 8) throw new InvalidDataException("Native Access property name/value reference is invalid.");
-                var payload = Slice(value, 8, size); string name = names[nameIndex];
-                object? decoded = nativeType == 10 || nativeType == 12 ? Text(payload) : nativeType == 9 || nativeType == 11 ? payload.ToArray() : DecodeScalar(new AccessNativeColumn { Type = nativeType }, payload, cancellation);
+                byte nativeType = value[wide ? 5 : 3]; int nameIndex = U16(value, wide ? 6 : 4), size = wide ? I32(value, 8) : U16(value, 6);
+                if (nameIndex >= names.Count || size < 0 || size > value.Length - headerLength) throw new InvalidDataException("Native Access property name/value reference is invalid.");
+                var payload = Slice(value, headerLength, size); string name = names[nameIndex];
+                int scalarWidth = nativeType switch { 1 => 1, 2 => 1, 3 => 2, 4 => 4, 5 => 8, 6 => 4, 7 => 8, 8 => 8, 15 => 16, 19 => 8, 16 => 17, 18 => 4, 20 => 42, _ => -1 };
+                object? decoded;
+                if (scalarWidth >= 0 && payload.Length != scalarWidth) {
+                    decoded = new AccessOpaqueValue(nativeType, payload.ToArray(), "This property uses an unqualified width for its nominal native type; the exact payload is retained.");
+                    table.Diagnostics = table.Diagnostics.Concat(new[] { new AccessDiagnostic("access.properties.opaque-value", "An unqualified property value representation is retained without coercion.", table.Id) }).ToArray();
+                } else decoded = nativeType == 10 || nativeType == 12 ? Text(payload) : nativeType == 9 || nativeType == 11 ? payload.ToArray() : DecodeScalar(new AccessNativeColumn { Type = nativeType }, payload, cancellation);
                 if (values.ContainsKey(name)) throw new InvalidDataException("Native Access property names are ambiguous.");
                 values.Add(name, decoded);
             }
             var properties = new ReadOnlyDictionary<string, object?>(values);
-            if (type == 0 && mapName.Length == 0) table.Properties = properties;
+            if ((type == 0 || macroMap && type == 3) && mapName.Length == 0) table.Properties = properties;
             else if (type == 1) {
                 var column = table.Columns.Items.SingleOrDefault(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, mapName));
                 if (column != null) { column.Properties = properties; column.IsRichText = values.TryGetValue("TextFormat", out var format) && Convert.ToInt32(format) == 1; }

@@ -21,8 +21,8 @@ public sealed class AccessDiagnostic {
 
 /// <summary>Immutable save assessment bound to one document revision.</summary>
 public sealed class AccessOperationReport {
-    internal AccessOperationReport(Guid documentId, long revision, AccessFileFormat target, AccessFormatProfile profile, IReadOnlyList<AccessDiagnostic> diagnostics) {
-        DocumentId = documentId; Revision = revision; TargetFormat = target; TargetProfile = profile; Diagnostics = diagnostics; Status = AccessOperationStatus.Unsupported;
+    internal AccessOperationReport(Guid documentId, long revision, AccessFileFormat target, AccessFormatProfile profile, IReadOnlyList<AccessDiagnostic> diagnostics, AccessOperationStatus status = AccessOperationStatus.Unsupported) {
+        DocumentId = documentId; Revision = revision; TargetFormat = target; TargetProfile = profile; Diagnostics = diagnostics; Status = status;
     }
     /// <summary>Identity of the assessed document.</summary>
     public Guid DocumentId { get; }

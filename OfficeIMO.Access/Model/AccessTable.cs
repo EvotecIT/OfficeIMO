@@ -79,7 +79,7 @@ public sealed class AccessTable : AccessNamedObject {
             column.ValidateValue(pair.Value);
             row.Add(column.Name, CopyValue(pair.Value));
         }
-        Rows.Add(row); Document.Changed(() => Rows.RemoveAt(Rows.Count - 1));
+        Rows.Add(row); Document.Changed(() => Rows.RemoveAt(Rows.Count - 1), Id, "row.append");
     }
     internal static object? CopyValue(object? value) => value is byte[] bytes ? (byte[])bytes.Clone() : value;
     /// <summary>Opens a forward-only reader over modeled rows. Its lease blocks edits until disposal.</summary>
@@ -94,6 +94,17 @@ public sealed class AccessTable : AccessNamedObject {
 public sealed class AccessColumnCollection : AccessObjectCollection<AccessColumn> {
     private readonly AccessTable _table;
     internal AccessColumnCollection(AccessTable table) : base(table.Document) { _table = table; }
+    /// <summary>Adds a sequential AutoNumber field whose first omitted value is seed. The model retains omission; native creation allocates values.</summary>
+    public AccessColumn AddAutoNumber(string name, int seed = 1) {
+        if (seed < 1) throw new ArgumentOutOfRangeException(nameof(seed));
+        AccessColumn column = Add(name, AccessDataType.AutoNumber); column.AutoNumberSeed = seed; return column;
+    }
+    /// <summary>Adds a Decimal field with explicit precision and scale. Native saving rejects values requiring rounding.</summary>
+    public AccessColumn AddDecimal(string name, int precision = 28, int scale = 0) {
+        if (precision < 1 || precision > 28) throw new ArgumentOutOfRangeException(nameof(precision));
+        if (scale < 0 || scale > precision) throw new ArgumentOutOfRangeException(nameof(scale));
+        AccessColumn column = Add(name, AccessDataType.Decimal); column.Precision = precision; column.Scale = scale; return column;
+    }
     /// <summary>Adds a typed column before rows have been appended. ShortText defaults to 255 characters.</summary>
     public AccessColumn Add(string name, AccessDataType type, int? maxLength = null) {
         _table.EnsureAttached(); Document.EnsureMutable();
@@ -109,7 +120,7 @@ public sealed class AccessColumn : AccessNamedObject {
         if (!Enum.IsDefined(typeof(AccessDataType), type)) throw new ArgumentOutOfRangeException(nameof(type));
         if (type == AccessDataType.ShortText) { maxLength ??= 255; if (maxLength < 1 || maxLength > 255) throw new ArgumentOutOfRangeException(nameof(maxLength)); }
         else if (maxLength != null) throw new ArgumentException("maxLength is declared only for ShortText.", nameof(maxLength));
-        Table = table; DataType = type; MaxLength = maxLength;
+        Table = table; DataType = type; MaxLength = maxLength; IsAutoNumber = type == AccessDataType.AutoNumber; AutoNumberSeed = IsAutoNumber ? 1 : (int?)null;
     }
     /// <summary>Owning table.</summary>
     public AccessTable Table { get; }
@@ -119,6 +130,8 @@ public sealed class AccessColumn : AccessNamedObject {
     public int? MaxLength { get; }
     /// <summary>Whether the native field allocates an engine-generated integer or GUID. Reading does not allocate new values.</summary>
     public bool IsAutoNumber { get; internal set; }
+    /// <summary>Initial sequential seed for an authored AutoNumber field. Null for loaded native fields whose initial seed has not been decoded.</summary>
+    public int? AutoNumberSeed { get; internal set; }
     /// <summary>Whether this native text field stores hyperlink syntax. Its stored text is retained unchanged.</summary>
     public bool IsHyperlink { get; internal set; }
     /// <summary>Whether this native memo field has rich-text formatting. Reading does not render or strip markup.</summary>

@@ -4,9 +4,20 @@ using System.Text.Json;
 using OfficeIMO;
 using OfficeIMO.Access;
 
-if (args.Length == 2 && args[0] == "--bootstrap") {
-    OfficeIMO.Access.Verification.NativeBootstrapProbe.Generate(args[1]);
-    Console.WriteLine("Generated a fixed native catalog/table probe without seed files. Run the independent DAO qualification route.");
+if (args.Length == 2 && args[0] == "--create") {
+    OfficeIMO.Access.Verification.CreationProbe.Generate(args[1]);
+    Console.WriteLine("Public model creation and native decode passed. Run independent creation qualification."); return;
+}
+
+if (args.Length == 3 && args[0] == "--preserve") {
+    OfficeIMO.Access.Verification.PreservationProbe.Generate(args[1], args[2]);
+    Console.WriteLine("Whole-file and application-stream preservation verified. Run Test-NativePreservation.ps1 for independent Access reopening.");
+    return;
+}
+
+if (args.Length == 2 && args[0] == "--verify-edits") {
+    OfficeIMO.Access.Verification.CreationProbe.VerifyAccessEdits(args[1]);
+    Console.WriteLine("Access-resaved changes, deletion, append, relationships and original values decoded successfully.");
     return;
 }
 if (args.Length == 2 && args[0] == "--catalog") {
@@ -44,7 +55,7 @@ ExpectUnsupported(() => database.AssessSave("contacts.mdb", new AccessSaveOption
 foreach (string file in new[] { "jet4.mdb", "ace12.accdb" }) {
     using AccessDocument source = await AccessDocument.LoadAsync(Path.Combine(corpus, file), new AccessLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
     source.ValidateSourceIdentity();
-    Require(source.CatalogStatus == AccessCatalogStatus.Decoded && source.Forms.CatalogStatus == AccessCatalogStatus.NotDecoded && source.VbaProject.CatalogStatus == AccessCatalogStatus.NotDecoded, "Separate native inventories");
+    Require(source.CatalogStatus == AccessCatalogStatus.Decoded && source.Forms.CatalogStatus == AccessCatalogStatus.Decoded && source.VbaProject.CatalogStatus == AccessCatalogStatus.Decoded, "Separate native inventories");
     Require(source.Tables["Contacts"].Indexes["PK_Contacts"].IsPrimaryKey && source.Relationships.Count == 1, "Native schema");
     using var table = new DataTable(); using var reader = source.Tables["Contacts"].OpenDataReader();
     table.Load(reader);
@@ -85,7 +96,7 @@ using (var source = AccessDocument.Load(Path.Combine(corpus, "Generations/fracti
     Require(rows.GetInt64(rows.GetOrdinal("Large")) == long.MaxValue, "Large Number precision");
     Require(source.AssessSave("target.mdb").Diagnostics.Any(x => x.Code == "access.conversion.loss.extended-date"), "Generation conversion assessment");
 }
-Console.WriteLine("Public consumer passed: model, native schema/rows, selective reads, lazy binary, complex values, generation metadata and unsupported persistence.");
+Console.WriteLine("Public consumer passed: model, native schema/rows, selective reads, lazy binary, complex values, generation metadata and unsupported query authoring/conversion.");
 static void Require(bool condition, string contract) { if (!condition) throw new InvalidDataException(contract + " failed."); }
 static void ExpectUnsupported(Action action) {
     try { action(); throw new InvalidOperationException("An unqualified operation unexpectedly succeeded."); }

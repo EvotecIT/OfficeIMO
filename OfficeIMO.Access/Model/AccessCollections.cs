@@ -54,7 +54,7 @@ public class AccessObjectCollection<T> : IReadOnlyList<T> where T : AccessNamedO
         Document.EnsureMutable();
         if (Items.Any(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, item.Name))) throw new ArgumentException("An object with this name already exists.");
         Items.Add(item);
-        Document.Changed(() => { Items.Remove(item); item.Attached = false; });
+        Document.Changed(() => { Items.Remove(item); item.Attached = false; }, item.Id);
     }
     internal void AddNativeItem(T item) {
         if (Items.Any(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, item.Name))) throw new InvalidDataException("The native Access catalog contains duplicate or ambiguous names.");
@@ -94,18 +94,4 @@ public sealed class AccessQueryDefinition : AccessNamedObject {
     public int NativeFlags { get; internal set; }
     /// <summary>Declared native parameters, without execution or supplied values.</summary>
     public IReadOnlyList<AccessQueryParameter> Parameters { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessQueryParameter>());
-}
-
-/// <summary>Metadata boundary for an Access form, report or action macro.</summary>
-public sealed class AccessApplicationObject : AccessNamedObject {
-    internal AccessApplicationObject(AccessDocument document, string name) : base(document, name) { }
-}
-
-/// <summary>VBA inventory availability. No module or event procedure is executed.</summary>
-public sealed class AccessVbaProjectInfo {
-    internal AccessVbaProjectInfo(AccessCatalogStatus status) { CatalogStatus = status; }
-    /// <summary>NotDecoded means modules and signatures have not been inspected, rather than being absent.</summary>
-    public AccessCatalogStatus CatalogStatus { get; }
-    /// <summary>Known module names; an empty list is conclusive only for a new modeled document.</summary>
-    public IReadOnlyList<string> ModuleNames { get; } = Array.AsReadOnly(Array.Empty<string>());
 }

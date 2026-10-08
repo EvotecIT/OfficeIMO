@@ -68,16 +68,17 @@ public sealed class AccessFoundationTests {
     [Fact]
     public void AssessmentIsBoundToDocumentAndCommittedRevision() {
         using var document = AccessDocument.Create(); var report = document.AssessSave("out.accdb");
-        Assert.Equal(AccessOperationStatus.Unsupported, report.Status); report.RequireCurrent(document);
+        Assert.Equal(AccessOperationStatus.Supported, report.Status); report.RequireCurrent(document);
         using var other = AccessDocument.Create(); Assert.Throws<InvalidOperationException>(() => report.RequireCurrent(other));
         AddTable(document); Assert.Throws<InvalidOperationException>(() => report.RequireCurrent(document));
         using (document.BeginUpdate()) Assert.Throws<InvalidOperationException>(() => document.AssessSave());
-        Assert.Throws<AccessOperationNotSupportedException>(() => document.AssessSave().RequireNoLoss());
+        document.AssessSave().RequireNoLoss();
     }
 
     [Fact]
     public async Task UnsupportedWritesNeverTouchPathOrStreamEvenWhenLossIsAllowed() {
         using var document = AccessDocument.Create(); AddTable(document).AppendRow(new AccessRowValues { ["Name"] = "Ada" });
+        document.Queries.Add("Names", "SELECT Name FROM Contacts;");
         string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-Access-" + Guid.NewGuid().ToString("N"));
         string path = Path.Combine(root, "out.mdb");
         var options = new AccessSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow, FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace };

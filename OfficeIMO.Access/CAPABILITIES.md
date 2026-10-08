@@ -5,18 +5,19 @@ Native read, in-memory modeling and persistence have separate qualification boun
 
 | Operation | Supported | Qualified boundary |
 | --- | --- | --- |
-| `model.create` | Yes | New Jet4/ACE12-targeted in-memory model; no native output. |
+| `model.create` | Yes | New Jet4/ACE12-targeted in-memory model with separately assessed native creation. |
 | `model.edit` | Yes | Typed tables, columns, primary-key definitions, relationships, inert query text and rows; rollback and read leases. |
 | `model.rows.read` | Yes | Forward-only DbDataReader over modeled or qualified native tables; modeled input retains omitted/null distinctions. |
 | `native.header.inspect` | Yes | Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12/ACE14/ACE16/ACE17 fixtures; Jet3 recognized without producer qualification. Protection and feature values are not decoded. |
-| `native.catalog.read` | Yes | Unprotected Jet4 and ACE12/14/16/17 catalog, selected table/column properties, index definitions, relationships and inert links. System/unknown catalog entries remain separate; application payloads and VBA are NotDecoded. |
+| `native.catalog.read` | Yes | Unprotected Jet4 and ACE12/14/16/17 catalog, selected table/column properties, index definitions, relationships and inert links. System/unknown catalog entries remain separate. |
 | `native.rows.read` | Yes | Bounded forward-only native scans, deleted/overflow/fragmented rows, lazy fields and incremental binary streams. Qualified scalar/Unicode/Memo/OLE, complex values, attachments, BigInt and extended-date profiles; calculated/unknown values retain bytes and diagnostics. |
 | `native.query.records.read` | Yes | Exact inert query records and typed parameter inventory. Simple single-table SELECT and two-part UNION SQL reconstruction is qualified; other query SQL remains explicitly unavailable. |
-| `native.create` | No | Template-free catalog/allocation/index/relationship writing is not qualified. |
-| `native.edit` | No | Native editing and opaque preservation are not qualified. |
+| `native.create` | Yes | Seed-free unprotected Jet4/ACE12 output from new table models; qualified scalar/Unicode/long values, sequential AutoNumber seeds, primary/unique/composite indexes and enforced single-field relationships. General legacy ASCII collation subset; unsupported types, keys, queries and lossy values fail before output. |
+| `native.preserve` | Yes | Immutable native snapshot copied without byte changes to the same family/profile, including opaque/protected/compiled content. Source identity is checked; signature validity and protected-content decoding are not assessed. |
+| `native.edit` | No | Existing native documents remain immutable; row/schema/application edits require separate codecs. |
 | `native.convert` | No | Known complex-field, rich-text, BigInt, extended-date and unqualified opaque-property target mappings are diagnosed. Native conversion and persistence remain unavailable. |
-| `application.objects.read` | No | Forms, reports and action macros are NotDecoded for native input. |
+| `application.objects.read` | Yes | Jet4/ACE application inventory and exact payloads; qualified ACE version-21 designer sections/controls/sources/event metadata, 76-byte StopMacro definitions, table data-macro XML and resource metadata. Jet version-19 designers and unknown definitions are preserve-only. Dependency references are partial and inert. |
 | `application.objects.write` | No | No native form/report/macro/module writer is qualified. |
-| `vba.inspect` | No | Access-specific VBA storage and signature carriers are not decoded. |
+| `vba.inspect` | Yes | Access Jet compound storage and ACE hierarchy adapt to shared Core MS-OVBA parsing. Module source and stored references are decoded when available; compiled/unknown streams remain exact. Built-in references and signature validation are outside this contract. |
 | `protection.inspect` | No | Password, encryption and signature state is NotAssessed. |
 | `report.render` | No | Native report definitions and expression evaluation are not qualified. |

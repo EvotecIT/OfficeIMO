@@ -1,6 +1,6 @@
 # OfficeIMO.Access
 
-OfficeIMO.Access reads native Jet 4 MDB and ACE ACCDB files through one typed document model. It exposes catalogs, selected table schemas and properties, index definitions, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
+OfficeIMO.Access reads native Jet 4 MDB and ACE ACCDB files, inspects their application objects and VBA, preserves unchanged files, and creates fresh Jet 4/ACE 12 databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
 
 The library runs on .NET without Microsoft Access, DAO, OLE DB or a database provider. It references OfficeIMO.Core for shared document contracts and binary primitives. File inspection never executes SQL, VBA, macros, calculated expressions or linked-table connections.
 
@@ -42,7 +42,7 @@ while (reader.Read()) {
 
 The same API reads both file families. `AccessDataReader` implements `DbDataReader` and works with `DataTable.Load`. Field order and types come from the native schema. `RowCount` is the declared native count; a complete scan validates it. Linked tables expose `LinkedTable` metadata and reject row access because the library never resolves external targets.
 
-`Tables` contains user tables. `SystemTables` exposes native system/backing tables separately, and `Catalog` retains typed object identifiers, flags, owner metadata and exact catalog-row representations. Each collection has its own `CatalogStatus`: decoded table metadata does not imply decoded form, report, macro or VBA payloads. These application collections remain `NotDecoded`.
+`Tables` contains user tables. `SystemTables` exposes native system/backing tables separately, and `Catalog` retains native identifiers, flags, owner metadata and exact catalog-row representations. Each collection has its own `CatalogStatus`. An application inventory can be decoded while individual definitions remain preserve-only.
 
 ## Read binary and structured fields
 
@@ -99,14 +99,34 @@ Loading snapshots the bounded file into memory and closes its file handle. Table
 
 Caller-owned streams stay open. Seekable input is read from the start and its position is restored on success and failure. `ValidateSourceIdentity()` detects changes to a loaded path. Native documents are immutable. Keep the document open while using readers, streams, structured values or attachments; disposing it invalidates those views.
 
-## Create an in-memory model and assess output
+## Inspect application objects and VBA
+
+```csharp
+using AccessDocument source = AccessDocument.Load("application.accdb");
+foreach (AccessApplicationObject form in source.Forms) {
+    Console.WriteLine($"{form.Name}: {form.Definition?.RecordSource}");
+    foreach (AccessStorageStream stream in form.Streams)
+        Console.WriteLine($"{stream.Path}: {stream.Payload.GetBytes().Length} bytes");
+}
+foreach (AccessVbaModuleInfo module in source.VbaProject.Modules)
+    Console.WriteLine(module.Source ?? module.SourceLimitation);
+foreach (AccessVbaReferenceInfo reference in source.VbaProject.References)
+    Console.WriteLine($"{reference.Name}: {reference.LibraryId}");
+```
+
+ACE version-21 designers expose qualified sections, controls, sources and Click bindings. Jet version-19 designers and unsupported properties retain exact bytes. Standalone and embedded `StopMacro` definitions, table data-macro XML and resource metadata have separate APIs. Stored VBA references are inventoried without resolving libraries; implicit built-in references are outside this inventory. Missing compiled-source text stays unavailable.
+
+`ApplicationStreams` retains storage paths and exact payloads, `Dependencies` contains observed references with explicit unresolved entries, and `ChangeJournal` records model mutations and rolls them back with the edit scope. Dependency inspection is partial; it does not parse arbitrary SQL or VBA. Set `DecodeApplicationObjects = false` when only the table catalog is needed.
+
+## Create a native database
 
 ```csharp
 using AccessDocument database = AccessDocument.Create(new AccessCreateOptions {
-    Format = AccessFileFormat.Accdb
+    Format = AccessFileFormat.Accdb,
+    DatabaseTitle = "Contacts"
 });
 AccessTable contacts = database.Tables.Add("Contacts");
-contacts.Columns.Add("Id", AccessDataType.AutoNumber);
+contacts.Columns.AddAutoNumber("Id", seed: 101);
 contacts.Columns.Add("Name", AccessDataType.ShortText, maxLength: 120);
 contacts.Indexes.AddPrimaryKey("PK_Contacts", "Id");
 
@@ -115,11 +135,26 @@ using (AccessUpdateScope edit = database.BeginUpdate()) {
     edit.Commit();
 }
 AccessOperationReport assessment = database.AssessSave("contacts.accdb");
-Console.WriteLine(assessment.Status); // Unsupported: no production native writer
+assessment.RequireNoLoss();
+database.Save("contacts.accdb");
 ```
 
-Models retain supplied values and typed references. They do not allocate AutoNumber values, apply defaults, enforce indexes or referential integrity, calculate expressions or execute queries. Modeled rows distinguish an omitted value from an explicit null. Reader leases block mutation; an uncommitted update rolls back on disposal.
+Use `Format = AccessFileFormat.Mdb` and an `.mdb` path to create Jet 4 output. Creation writes native headers, catalogs, allocation maps, table definitions, rows, long values and indexes directly; it reads no blank database or template and invokes no external engine.
 
-`AssessSave` identifies known profile losses, including complex fields, rich text, calculated fields, Large Number and Date/Time Extended. It returns an immutable report tied to the document identity and revision. Native creation, editing, preservation, conversion and saving remain unsupported. `Save` fails with its report before creating or changing output. Allowing conversion loss does not enable an unavailable writer; `SaveOnDispose` is unavailable.
+Models retain supplied values and typed references. Modeled rows distinguish omission from explicit null. Saving allocates omitted sequential AutoNumber values in the output without modifying model rows, checks primary/unique keys and enforced single-field relationships, and persists omitted Yes/No as false. Explicit null Yes/No or AutoNumber values are rejected. Reader leases block mutation; an uncommitted update rolls back on disposal.
+
+`AddDecimal(name, precision, scale)` declares exact Decimal storage without rounding. `AddUnique(name, columns)` and `Add(name, columns)` create unique and ordinary indexes. Creation supports Byte, Int16, Int32/AutoNumber and a bounded General legacy ASCII text subset as index keys. Unicode text values are supported; indexed Unicode outside that subset is rejected. Tables support up to 255 columns, 32 indexes including relationship indexes, and a 4060-byte row. The default `MaxOutputBytes` is 64 MiB. See [the creation limits](SUPPORT.md#native-creation-contract) before choosing schemas.
+
+## Preserve an unchanged database
+
+```csharp
+using AccessDocument source = AccessDocument.Load("application.mdb");
+source.AssessSave("archive.mdb").RequireNoLoss();
+source.Save("archive.mdb");
+```
+
+Same-profile preservation copies the immutable loaded snapshot byte for byte, including opaque application, compiled, signed and protected content. It does not validate signatures or decode protected content. `ValidateSourceIdentity` runs before saving a loaded path. Path output uses an atomic staged commit and defaults to `FailIfExists`; pass `FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace` to replace a destination. Caller streams remain open; seekable output is rewound and truncated. Unsupported output and pre-cancellation leave the destination untouched; arbitrary stream I/O failures cannot provide file-style rollback.
+
+`AssessSave` returns an immutable report tied to the document identity and revision and checks creation limits before destination I/O. It names known profile losses for complex fields, rich text, calculated fields, Large Number and Date/Time Extended. Existing-file editing, profile conversion, authored queries/application objects and protection/signature operations remain unsupported. Allowing conversion loss does not enable an unavailable codec. Persistence is explicit; `SaveOnDispose` is unavailable.
 
 See [support and independent evidence](SUPPORT.md), the [generated operation matrix](CAPABILITIES.md), and the [product roadmap](../Docs/ROADMAP.md#microsoft-access-document-library).

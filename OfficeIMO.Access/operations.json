@@ -4,7 +4,7 @@
     {
       "operation": "model.create",
       "supported": true,
-      "boundary": "New Jet4/ACE12-targeted in-memory model; no native output."
+      "boundary": "New Jet4/ACE12-targeted in-memory model with separately assessed native creation."
     },
     {
       "operation": "model.edit",
@@ -24,7 +24,7 @@
     {
       "operation": "native.catalog.read",
       "supported": true,
-      "boundary": "Unprotected Jet4 and ACE12/14/16/17 catalog, selected table/column properties, index definitions, relationships and inert links. System/unknown catalog entries remain separate; application payloads and VBA are NotDecoded."
+      "boundary": "Unprotected Jet4 and ACE12/14/16/17 catalog, selected table/column properties, index definitions, relationships and inert links. System/unknown catalog entries remain separate."
     },
     {
       "operation": "native.rows.read",
@@ -38,13 +38,18 @@
     },
     {
       "operation": "native.create",
-      "supported": false,
-      "boundary": "Template-free catalog/allocation/index/relationship writing is not qualified."
+      "supported": true,
+      "boundary": "Seed-free unprotected Jet4/ACE12 output from new table models; qualified scalar/Unicode/long values, sequential AutoNumber seeds, primary/unique/composite indexes and enforced single-field relationships. General legacy ASCII collation subset; unsupported types, keys, queries and lossy values fail before output."
+    },
+    {
+      "operation": "native.preserve",
+      "supported": true,
+      "boundary": "Immutable native snapshot copied without byte changes to the same family/profile, including opaque/protected/compiled content. Source identity is checked; signature validity and protected-content decoding are not assessed."
     },
     {
       "operation": "native.edit",
       "supported": false,
-      "boundary": "Native editing and opaque preservation are not qualified."
+      "boundary": "Existing native documents remain immutable; row/schema/application edits require separate codecs."
     },
     {
       "operation": "native.convert",
@@ -53,8 +58,8 @@
     },
     {
       "operation": "application.objects.read",
-      "supported": false,
-      "boundary": "Forms, reports and action macros are NotDecoded for native input."
+      "supported": true,
+      "boundary": "Jet4/ACE application inventory and exact payloads; qualified ACE version-21 designer sections/controls/sources/event metadata, 76-byte StopMacro definitions, table data-macro XML and resource metadata. Jet version-19 designers and unknown definitions are preserve-only. Dependency references are partial and inert."
     },
     {
       "operation": "application.objects.write",
@@ -63,8 +68,8 @@
     },
     {
       "operation": "vba.inspect",
-      "supported": false,
-      "boundary": "Access-specific VBA storage and signature carriers are not decoded."
+      "supported": true,
+      "boundary": "Access Jet compound storage and ACE hierarchy adapt to shared Core MS-OVBA parsing. Module source and stored references are decoded when available; compiled/unknown streams remain exact. Built-in references and signature validation are outside this contract."
     },
     {
       "operation": "protection.inspect",

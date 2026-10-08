@@ -553,23 +553,21 @@ The milestones below are the complete planned baseline, in dependency order. Eac
 | --- | --- | --- |
 | Native formats | ACE-family `.accdb`, Jet 4 `.mdb` and a later Jet 3/Access 97 lifecycle; producer/header/feature profiles are separately qualified | [Qualified profiles and fixtures](../OfficeIMO.Access/SUPPORT.md#profiles-and-qualification-boundaries); A02/A03/A05/A06/A09 qualify operations |
 | Public API | One typed `AccessDocument`, stable object identities, lazy data/payload access, explicit edits/saves and report-returning operations; fluent wrappers share that model | [Executable foundation examples](../OfficeIMO.Access/README.md); later milestones extend this contract |
-| Application objects | Saved queries, relationships, forms/reports/controls, standalone/embedded/data macros, VBA modules/references, resources and event bindings | A04 read/preserve; A07 typed edit/native authoring |
+| Application objects | Saved queries, relationships, forms/reports/controls, standalone/embedded/data macros, VBA modules/references, resources and event bindings | [Current read/preserve contract](../OfficeIMO.Access/SUPPORT.md#application-and-vba-inspection); A07 typed edit/native authoring |
 | Execution | File operations remain inert. Provider-backed SQL execution belongs to DbaClientX; static report expression evaluation is explicit and bounded | A08 rendering profile; A10 optional provider integration |
 | Dependencies | Native `OfficeIMO.Access` uses existing shared owners without a new external runtime dependency | [Selected engine boundary](../OfficeIMO.Access/SUPPORT.md#engine-alternatives-and-deployment); any added engine/driver or normal toolchain needs explicit approval |
 | Protection | Inspection reports protection as not assessed. A09 qualifies named encrypted/password and direct-VBA-signature profiles for read/write or inspect/validate/sign operations | [Profile and isolated oracle evidence](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility); unqualified carriers remain blocked |
 | Validation | Independent Access-produced fixtures, external schema/data/object observations, and Access reopen/edit/re-save for native output; portable engine tests are separate | [Oracle and fixture baseline](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility); every milestone extends it |
 | Expansion | Earlier Access generations, compiled-file authoring/decompilation, `.adp`, add-in/distribution-package lifecycle, live multi-user engine behavior and general VBA execution are outside this baseline | Separate adoption with an owner, useful workflow, dependency impact and acceptance evidence |
 
-The disposable Windows DAO and Access producer routes are qualified for the synthetic table and application-object corpus described in [SUPPORT.md](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility). DAO independently consumes seed-free MDB/ACCDB creation probes with a fixed schema; general production creation remains A05. The native-first boundary remains the baseline; infeasible native work requires a concrete product decision rather than silently substituting a different implementation.
+The disposable Windows DAO and Access producer routes are qualified for the synthetic table and application-object corpus described in [SUPPORT.md](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility). DAO and Access independently reopen, edit and save seed-free MDB/ACCDB output from the public creation API; the qualified creation boundary is in [SUPPORT.md](../OfficeIMO.Access/SUPPORT.md#native-creation-contract). The native-first boundary remains the baseline; infeasible native work requires a concrete product decision rather than silently substituting a different implementation.
 
 ### Delivery sequence
 
 | ID | Deliverable | Prerequisites | Result at exit |
 | --- | --- | --- | --- |
-| A04 | Application objects, VBA and opaque preservation | A02/A03 | Inert object inventory, supported typed read and proven no-op preservation |
-| A05 | Template-free native creation | A01/A03/A04 and A00 writer evidence | Independently opened fresh MDB and ACCDB files with schema/data/index/relationship content |
-| A06 | Native edits, structural safety and conversion | A04/A05 | Safe same-profile editing and explicit-loss MDB/ACCDB conversion |
-| A07 | Forms, reports, macros and VBA authoring | A04/A06 | Qualified typed edits and new native application objects, including module/event integrity |
+| A06 | Native edits, structural safety and conversion | [A04 inspection/preservation](../OfficeIMO.Access/SUPPORT.md#application-and-vba-inspection) and [A05 creation](../OfficeIMO.Access/SUPPORT.md#native-creation-contract) | Safe same-profile editing and explicit-loss MDB/ACCDB conversion |
+| A07 | Forms, reports, macros and VBA authoring | [A04 inspection](../OfficeIMO.Access/SUPPORT.md#application-and-vba-inspection)/A06 | Qualified typed edits and new native application objects, including module/event integrity |
 | A08 | Explicit expressions, static previews and report output | A07 and qualified Drawing/destination owners | Bounded report evaluation/rendering with supplied data and native visual comparisons |
 | A09 | Protection and declared legacy/profile completion | A03/A06/A07; A00 protection/legacy evidence | Named encryption/signature operations and Jet 3 lifecycle qualified independently |
 | A10 | Reader, conversion, host and optional database integration | Relevant A02-A09 capability; shared-owner/package readiness | Thin end-to-end consumers with truthful per-host operation claims |
@@ -577,38 +575,7 @@ The disposable Windows DAO and Access producer routes are qualified for the synt
 
 A02 is the first useful read product, A06 the native database-lifecycle milestone, and A07/A08 the application-object/report milestone. They may be delivered independently with bounded support claims. A11 closes the complete adopted baseline. Dates and effort estimates follow A00's writer, corpus and oracle evidence; they are not inferred from the existing VBA infrastructure.
 
-### A00 — Feasibility baseline
-
-The selected native route, profile/producer corpus, independent schema/object/report oracles and successful seed-free MDB/ACCDB catalog/table creation spikes are owned by the [feasibility contract](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility). The fixed creation probe is independently opened and consumed through DAO; it does not enable a production writer. Remaining native application carriers, general creation/editing, signature/protection variants, additional complex profiles and the unavailable Jet 3 producer are explicit A04–A09 criteria below.
-
-### A01 — Foundation contract
-
-The public model/lifecycle/inspection examples and qualified failure behavior are owned by the [package README](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md#qualified-foundation). Remaining object and persistence work belongs to A04–A09; support claims must stay within the generated operation catalog.
-
-### A02 — Modern ACCDB reading and structured values
-
-The delivered catalog/schema/row readers, resource limits, scalar/structured values, redacted inert links and independent corpus evidence are owned by the [native reader contract](../OfficeIMO.Access/SUPPORT.md#native-reader-contract), [profile matrix](../OfficeIMO.Access/SUPPORT.md#profiles-and-qualification-boundaries) and [executable API examples](../OfficeIMO.Access/README.md). Application payloads and native persistence remain separate milestones.
-
-### A03 — Jet 4 MDB reading and common model
-
-Jet 4 catalog/properties/rows, Access format 9/10 fixtures, inert query/security/link metadata and shared API semantics are owned by the [native reader contract](../OfficeIMO.Access/SUPPORT.md#native-reader-contract). The [MDB/ACCDB feature assessment](../OfficeIMO.Access/SUPPORT.md#mdb-and-accdb-feature-assessment) names target losses; it does not enable conversion. Jet 3 legacy encoding/lifecycle remains A09.
-
-### A04 — Application objects, VBA and opaque preservation
-
-- [ ] Read saved query definitions, parameters and dependencies; forms/reports/sections/controls; record/control/row sources; startup settings; resource/OLE metadata; and standalone/embedded/data macro definitions for the qualified layouts.
-- [ ] Add the Access storage adapter to the existing VBA owner. Recover module/reference metadata and source where available; retain compiled, locked, designer and unknown content with explicit limits. Keep VBA and Access action macros distinct.
-- [ ] Build object-to-native provenance, dependency maps and change journals. Detect hidden/system/unknown objects and report the safety impact on edits rather than silently omitting them.
-- [ ] Qualify unchanged whole-file identity and object/payload preservation independently from typed read semantics. Protect signed/protected sources and keep links, code, AutoExec and data macros inert.
-
-Acceptance: independent object exports/application observations agree with the supported typed inventory, and no-op saves preserve the promised bytes. An uninterpreted object is labeled preserve-only; source extraction never implies compilation, execution or recovery of missing compiled-source text.
-
-### A05 — Template-free native creation
-
-- [ ] Write valid Jet 4 and qualified ACE headers, catalogs, page/allocation structures, table/column metadata, typed rows, long-value storage, indexes, primary keys and relationships directly from the model.
-- [ ] Qualify row allocation/deletion state, AutoNumber seeds, unique/foreign-key behavior, collation/code-page metadata, database properties and required system catalog objects. Cover empty and multi-table databases, fragmented/overflow data and boundary-size writes.
-- [ ] Create native files from an in-memory model without shipping/copying blank databases or calling ACE/Access. Reopen, edit and re-save the output in Access; independently decode its schema, values and relationships.
-
-Acceptance: fresh `.mdb` and `.accdb` outputs open without repair and retain intended data/schema after an independent application save. The native writer rejects unsupported authored features before committing output. Existing-file patching alone cannot close this milestone.
+The delivered A00–A05 baseline is maintained in the [public API examples](../OfficeIMO.Access/README.md), [native reader contract](../OfficeIMO.Access/SUPPORT.md#native-reader-contract), [A04 application/VBA inspection](../OfficeIMO.Access/SUPPORT.md#application-and-vba-inspection), [unchanged preservation](../OfficeIMO.Access/SUPPORT.md#unchanged-preservation) and [A05 native creation contract](../OfficeIMO.Access/SUPPORT.md#native-creation-contract). These owners retain the exact profile limits and independent qualification routes. Existing-file editing, application authoring, rendering, protection and Jet 3 lifecycle remain open below.
 
 ### A06 — Native edits, structural safety and conversion
 

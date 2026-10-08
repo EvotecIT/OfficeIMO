@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Portable native Access MDB/ACCDB catalogs, schema and typed readers with bounded payload access and explicit operation assessment.</Description>
+    <Description>Portable native Access MDB/ACCDB reading, application inspection, unchanged preservation and seed-free database creation with explicit operation assessment.</Description>
     <PackageId>OfficeIMO.Access</PackageId>
     <VersionPrefix>3.4.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>

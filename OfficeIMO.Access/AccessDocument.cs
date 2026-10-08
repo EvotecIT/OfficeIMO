@@ -6,11 +6,15 @@ public sealed partial class AccessDocument : IDisposable {
     private int _readers;
     private AccessUpdateScope? _update;
     private readonly List<Action> _undo = new List<Action>();
+    private readonly List<AccessChange> _changes = new List<AccessChange>();
     private string? _path;
     private Stream? _destination;
     private long _inputLimit;
     private int _pageLimit;
     internal AccessNativeDatabase? NativeDatabase;
+    private AccessNativeWriter? _creationPlan;
+    private long _creationPlanLimit;
+    internal DateTime CreatedAt { get; } = DateTime.Now;
 
     private AccessDocument(AccessFileFormat format, DocumentAccessMode accessMode, AccessInspection? inspection) {
         Format = format; AccessMode = accessMode; Inspection = inspection;
@@ -44,7 +48,7 @@ public sealed partial class AccessDocument : IDisposable {
     public AccessFormatProfile Profile { get; }
     /// <summary>Document mutation policy.</summary>
     public DocumentAccessMode AccessMode { get; }
-    /// <summary>Access persistence is explicit until native writing is qualified.</summary>
+    /// <summary>Native creation and unchanged snapshot preservation require an explicit Save.</summary>
     public DocumentPersistenceMode PersistenceMode => DocumentPersistenceMode.Explicit;
     /// <summary>Bounded native header evidence; null for a newly created model.</summary>
     public AccessInspection? Inspection { get; }
@@ -75,7 +79,17 @@ public sealed partial class AccessDocument : IDisposable {
     /// <summary>Action macro metadata boundary, separate from VBA.</summary>
     public AccessObjectCollection<AccessApplicationObject> Macros { get; }
     /// <summary>Inert VBA inventory availability.</summary>
-    public AccessVbaProjectInfo VbaProject { get; }
+    public AccessVbaProjectInfo VbaProject { get; internal set; }
+    /// <summary>Inert application storage streams with native paths, including unknown and compiled content.</summary>
+    public IReadOnlyList<AccessStorageStream> ApplicationStreams { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessStorageStream>());
+    /// <summary>Inert observed query, designer and relationship references. This is a partial dependency map, never an expression engine.</summary>
+    public IReadOnlyList<AccessDependency> Dependencies { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessDependency>());
+    /// <summary>Qualified native table data-macro XML definitions. Actions and expressions are retained without execution.</summary>
+    public IReadOnlyList<AccessDataMacroInfo> DataMacros { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessDataMacroInfo>());
+    /// <summary>Native resource metadata; embedded payloads use the existing lazy attachment reader.</summary>
+    public IReadOnlyList<AccessResourceInfo> Resources { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessResourceInfo>());
+    /// <summary>Committed or pending model mutations; rollback removes mutations from its scope.</summary>
+    public IReadOnlyList<AccessChange> ChangeJournal { get { EnsureNotDisposed(); return _changes.AsReadOnly(); } }
     /// <summary>Operation boundaries for this document state, including unsupported native operations.</summary>
     public IReadOnlyList<AccessOperationCapability> Capabilities {
         get {
@@ -85,6 +99,10 @@ public sealed partial class AccessDocument : IDisposable {
                 if (operation.Operation == "model.edit") enabled &= CatalogStatus == AccessCatalogStatus.Modeled && AccessMode == DocumentAccessMode.ReadWrite;
                 if (operation.Operation == "model.rows.read") enabled &= CatalogStatus != AccessCatalogStatus.NotDecoded;
                 if (operation.Operation == "native.catalog.read" || operation.Operation == "native.rows.read" || operation.Operation == "native.query.records.read") enabled &= CatalogStatus == AccessCatalogStatus.Decoded;
+                if (operation.Operation == "native.create") enabled &= CatalogStatus == AccessCatalogStatus.Modeled;
+                if (operation.Operation == "native.preserve") enabled &= Inspection != null;
+                if (operation.Operation == "application.objects.read") enabled &= Forms.CatalogStatus == AccessCatalogStatus.Decoded;
+                if (operation.Operation == "vba.inspect") enabled &= VbaProject.CatalogStatus == AccessCatalogStatus.Decoded;
                 return new AccessOperationCapability(operation.Operation, enabled, operation.Boundary);
             }).ToArray());
         }
@@ -98,8 +116,10 @@ public sealed partial class AccessDocument : IDisposable {
         if (_readers != 0) throw new InvalidOperationException("Close Access data readers before modifying the document.");
         if (Revision == long.MaxValue) throw new InvalidOperationException("The model revision limit was reached.");
     }
-    internal void Changed(Action undo) {
+    internal void Changed(Action undo, Guid? objectId = null, string operation = "object.add") {
+        _creationPlan = null;
         Revision++;
+        _changes.Add(new AccessChange(Revision, objectId ?? Id, operation));
         if (_update != null) _undo.Add(undo);
     }
     internal void AcquireReader() {
@@ -116,13 +136,13 @@ public sealed partial class AccessDocument : IDisposable {
     }
     internal void FinishUpdate(AccessUpdateScope scope, long revision, bool commit) {
         if (_update != scope) throw new InvalidOperationException("This Access update scope is no longer active.");
-        if (!commit) { for (int i = _undo.Count - 1; i >= 0; i--) _undo[i](); Revision = revision; }
+        if (!commit) { for (int i = _undo.Count - 1; i >= 0; i--) _undo[i](); _changes.RemoveAll(x => x.Revision > revision); Revision = revision; }
         _undo.Clear(); _update = null;
     }
     /// <summary>Discards pending model edits and releases the document. Caller-owned streams remain open.</summary>
     public void Dispose() {
         if (_disposed) return;
-        _update?.Dispose(); _disposed = true; _destination = null; NativeDatabase?.Dispose(); NativeDatabase = null;
+        _update?.Dispose(); _disposed = true; _destination = null; _creationPlan = null; NativeDatabase?.Dispose(); NativeDatabase = null;
     }
 }
 

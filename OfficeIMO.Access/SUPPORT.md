@@ -1,6 +1,6 @@
-# Access support and feasibility
+# Access support
 
-The public contract covers a typed model, bounded native inspection and portable catalog/schema/row reading for qualified unprotected Jet 4 and ACE layouts. [CAPABILITIES.md](CAPABILITIES.md) and [operations.json](operations.json) are generated from `AccessCapabilities.cs`. The executable consumer in `OfficeIMO.Access.Verification` owns the public example contract. Native persistence and application-payload decoding remain unsupported.
+The public contract covers a typed model, bounded native reading and application inspection, unchanged snapshot preservation, and seed-free Jet 4/ACE 12 creation. [CAPABILITIES.md](CAPABILITIES.md) and [operations.json](operations.json) are generated from `AccessCapabilities.cs`. The executable consumer in `OfficeIMO.Access.Verification` owns the public examples. Existing-file editing and conversion require separate codecs.
 
 ## Qualified foundation
 
@@ -12,8 +12,8 @@ Foundation tests cover stream ownership and position, byte/page budgets, malform
 
 | Profile | Header code / page size | Independent producer evidence | Current operations |
 | --- | --- | --- | --- |
-| Jet 4 MDB | `1` / 4096 | DAO 16 tables, typed values, indexes, relationships and queries; Access format 9 (2000) and 10 (2002/2003) files | Catalog, schema, properties, rows, index definitions, relationships and query records |
-| ACE 12 ACCDB | `2` / 4096 | DAO 16 scalar/fragmented tables, attachments and multivalued fields, read-only schema/value exports | Same read API, plus qualified structured values |
+| Jet 4 MDB | `1` / 4096 | DAO 16 tables, typed values, indexes, relationships and queries; Access format 9 (2000) and 10 (2002/2003) files; independent creation reopen/edit/save | Catalog/schema/rows, application/VBA inventory, whole-file preservation and qualified creation; compact designers are preserve-only |
+| ACE 12 ACCDB | `2` / 4096 | DAO 16 scalar/fragmented tables, attachments and multivalued fields; independent application exports and creation reopen/edit/save | Same read/preserve/create API, structured-value reading and qualified version-21 designer metadata |
 | Jet 3 MDB | `0` / 2048 | Representative Access 97 producer fixture still required | Header recognition only |
 | ACE 14 | `3`, subversion `1` / 4096 | DAO calculated field and independent value observation; separate password-required fixture | Unprotected catalog/rows; calculated payload is exact opaque data with diagnostics. Protected catalogs remain unavailable |
 | ACE 16 | `5` / 4096 | DAO BigInt definition and independently observed `5,000,000,000` value | Catalog/rows and native signed 64-bit integers |
@@ -23,7 +23,7 @@ Generation codes are physical compatibility gates, not a claim about the produci
 
 ## Native reader contract
 
-The A02/A03 reader uses one schema and `DbDataReader` API for MDB and ACCDB. Required system catalogs are separate from selected user tables. The catalog retains unknown object types and exact native records; form/report/macro/VBA payload collections remain `NotDecoded` even when tables are decoded. Linked definitions expose redacted connection metadata and never open their targets. Explicit raw catalog records may contain credentials and require caller-controlled handling.
+The reader uses one schema and `DbDataReader` API for MDB and ACCDB. Required system catalogs are separate from selected user tables. The catalog retains unknown object types and exact native records; application inventory and per-object decoding have separate availability. Linked definitions expose redacted connection metadata and never open their targets. Explicit raw catalog records may contain credentials and require caller-controlled handling.
 
 | Feature | Qualified read behavior and evidence |
 | --- | --- |
@@ -45,7 +45,7 @@ Readers expose deterministic schema before the first row and support `DataTable.
 
 ## MDB and ACCDB feature assessment
 
-`AssessSave` records the following named target losses before any future codec can write. All native save/conversion operations remain unsupported; these assessments never authorize automatic flattening.
+`AssessSave` records the following named target losses. Cross-family/profile conversion remains unsupported; these assessments never authorize automatic flattening.
 
 | Feature/target | Diagnostic code |
 | --- | --- |
@@ -56,7 +56,53 @@ Readers expose deterministic schema before the first row and support `DataTable.
 | Calculated field to Jet or ACE 12 | `access.conversion.loss.calculated` |
 | Opaque property metadata to a different family/profile without a qualified mapping | `access.conversion.loss.opaque-properties` |
 
-Unsupported property maps, calculated values and application carriers stay exact opaque metadata or explicitly undecoded. Opaque property mappings are diagnosed when the target family/profile changes. The unavailable writer blocks persistence and preservation claims for these definitions.
+Unsupported property maps, calculated values and application carriers stay exact opaque metadata or explicitly undecoded. Opaque property mappings are diagnosed when the target family/profile changes. Same-profile whole-file preservation retains these definitions without interpreting or rebuilding them.
+
+## Application and VBA inspection
+
+The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysAccessStorage` hierarchies. It retains native row/catalog identities, storage paths, base/delta/compiled streams and exact opaque payloads. Malformed hierarchy cycles, ambiguous paths and excessive metadata budgets fail explicitly. `DecodeApplicationObjects = false` leaves this inventory `NotDecoded` while preserving the full snapshot.
+
+| Content | Qualified interpretation | Preserve-only boundary |
+| --- | --- | --- |
+| Forms and reports | ACE designer version 21 property trees, native sections/control kinds, Name/Caption, record/control/row sources, explicit size properties and Click bindings | Jet compact version 19, unknown node/property semantics and delta merging; missing defaults are not invented |
+| Action macros | Independently observed 76-byte single `StopMacro` definition, standalone and embedded | Other actions/argument layouts retain exact streams; action macros are distinct from VBA |
+| Table data macros | MR2 wide-property map, qualified Access XML namespace, event/name and top-level statement names; exact XML retained with DTD/resolver disabled | No action execution, expression evaluation or editing |
+| Resources | `MSysResources` identity/type/name metadata and attachment access through the existing reader | No automatic theme unpacking, rendering or OLE activation |
+| Startup settings | Qualified database property maps, including AppTitle and stored AccessVersion | Unknown property records retain exact payloads |
+| VBA | Shared Core MS-OVBA directory/source inspection, declared modules, source offsets/flags and stored library references; CP1250 source fixture includes Polish text | Missing compiled-source text, unsupported code pages, built-in implicit references and signatures; referenced libraries are never loaded |
+| Dependencies | Observed relationship fields, qualified query table records and designer sources, with unresolved references labeled | Partial inventory; no arbitrary SQL/VBA parsing, expression resolution or automatic rewrites |
+
+`ChangeJournal` records modeled object identities, revisions and operations; rollback removes its entries. Loaded native documents remain immutable, so this journal does not imply an existing-file editor.
+
+## Unchanged preservation
+
+Same-family/profile save retains the entire loaded snapshot without byte changes, including unknown pages, application payloads, linked metadata, compiled content and protection/signature carriers. Header-only and protected loads can preserve their snapshots without decoding the catalog. A loaded path is checked against its original SHA-256 before saving; a changed source fails before destination output. This is byte preservation, not signature validity, decryption or security-policy qualification. Signature validation remains A09.
+
+Path saves stage output beside the destination and commit atomically with an explicit conflict policy. The default is `FailIfExists`. Replacing the same unchanged source path requires no write. Caller streams remain open; seekable output rewinds and truncates. Unsupported assessment and pre-cancellation preserve the previous destination. A caller-provided stream can remain partially written on an I/O failure; it has no atomic replacement mechanism.
+
+Independent Access reopening and object re-export compare both file families and both simple/rich application corpora after a byte-identical save. Fixtures contain inert AutoExec/StopMacro, VBA, bound forms/reports and ACE embedded/data macros. Access automation forces macros disabled. No module, macro, event, link or data-macro action is invoked by the library.
+
+## Native creation contract
+
+New table models produce unprotected Jet 4 or ACE 12 files without reading seeds/templates, shipping blank databases, calling Microsoft Access/DAO, or adding a runtime dependency. The writer generates headers, system catalog/permission records, property maps, chained table definitions, global/table/column usage maps, packed rows, long-value chains and linked index leaf/branch pages. A complete bounded creation plan is assessed before destination I/O.
+
+| Area | Qualified creation boundary |
+| --- | --- |
+| Schema | Empty and multiple-table databases; 1–255 fields per table; native rows up to 4060 bytes; up to 32 indexes including generated relationship indexes |
+| Values | Boolean, Byte, Int16, Int32/AutoNumber, Currency, Single, Double, ordinary Date/Time, GUID, ShortText, LongText, Binary and Decimal precision up to 28 with declared scale; Unicode values retain exact text |
+| Exactness | Decimal values must fit precision/scale without rounding; ordinary Date/Time must round-trip through native OLE dates at the same ticks; unpaired Unicode surrogates and unsupported representations are rejected |
+| Omitted/null | Omitted Yes/No becomes false; explicit null Yes/No or AutoNumber is rejected. Omitted sequential AutoNumber is allocated in the output without changing the model. Other omissions become null; text/binary retain empty versus null |
+| AutoNumber | One positive sequential Int32 field per table, seed ≥1, explicit values advance the persisted counter; increment/custom generator profiles are unqualified |
+| Indexes | Ascending primary, unique, ordinary and composite indexes over Byte, Int16, Int32/AutoNumber and bounded ShortText; duplicate primary/unique keys and null primary members are rejected |
+| Collation | Code page 1252 and General legacy sort order 1033. Qualified text keys use ASCII letters, digits, underscores and spaces, case-insensitive weights and trailing-space equivalence. Indexed Unicode outside this subset and keys over 510 bytes are rejected |
+| Names | Table and relationship catalog keys require the qualified text subset. Columns/index names can be Unicode. Access-forbidden punctuation/control characters and leading/trailing whitespace are rejected; MSys table names are reserved |
+| Relationships | Enforced single-field references to a unique parent index, including self references; nullable child references are allowed. Cascades and composite relationship authoring are unqualified |
+| Properties | DatabaseTitle persists as AppTitle; authored text columns allow zero-length strings. AccessVersion is initialized by Access when it creates its application carrier, rather than guessed by the native table writer |
+| Resources | `MaxOutputBytes` bounds planned pages (default 64 MiB). Unsupported models fail assessment; cancellation reaches plan construction and writing. The plan is invalidated by model mutations |
+
+Saved query authoring, designer/macro/VBA authoring, descending and other scalar index key codecs, modern complex/rich-text/calculated/Int64/extended-date fields, encryption and signatures remain unsupported. Existing-file edits and conversion belong to A06–A09.
+
+The portable `--create` example produces empty, multi-table and boundary databases. Independent DAO checks both file families with 255 ordinary fields, 255 long-value fields, 6000 wide rows beyond the inline allocation map, inline/single/chained long-value boundaries, scalar precision and primary/text/composite index seeks. Microsoft Access opens separate owned copies without repair, rejects duplicate keys and orphan references, updates/appends/deletes rows and re-saves. DAO and OfficeIMO independently reopen those saved files and verify the retained schema, relationships, values and edits. Fragmented/deleted/overflow input reading remains covered by the independent reader corpus; fresh creation packs new rows rather than manufacturing fragmentation.
 
 ## Reusable owners
 
@@ -77,7 +123,7 @@ Unsupported property maps, calculated values and application carriers stay exact
 
 The table corpus is checked in with independent expected-value exports. Schema, index definitions and relationships are observed after a read-only DAO reopen. Application-object fixtures and exports are also project-owned synthetic evidence. Access creates and re-exports a form, report, inert VBA module and inert `StopMacro` action macro in both file families. Macro text import uses the `SaveAsText` envelope rather than clipboard XML. No macro or module is executed.
 
-`New-AccessProfileCorpus.ps1` creates the profile/protection corpus under `Fixtures/Profiles`. DAO rejects an open without the synthetic password and independently reopens the protected files with it. OfficeIMO still reports protection as not assessed and does not decrypt these files. Modern feature definitions raise the physical header compatibility gates independently of the producer's application version. Jet 3 creation through the installed engine fails with “Could not find installable ISAM”; a genuine legacy producer remains required. Signature carriers and additional protection variants remain qualification work in A04/A09.
+`New-AccessProfileCorpus.ps1` creates the profile/protection corpus under `Fixtures/Profiles`. DAO rejects an open without the synthetic password and independently reopens the protected files with it. OfficeIMO reports protection as not assessed and does not decrypt these files. Modern feature definitions raise physical compatibility gates independently of the producer's application version. Jet 3 creation through the installed engine fails with “Could not find installable ISAM”; a genuine legacy producer remains required. Signature validation and additional protection variants remain A09 work.
 
 `New-AccessReaderCorpus.ps1` produces [the scalar/complex corpus](../OfficeIMO.Access.Tests/Fixtures/Readers/manifest.json), including deleted/grown rows, composite indexes/relationships, Unicode/Memo/OLE, exact Currency/Decimal boundaries, rich text, lookup properties, multivalued text and attachment files. The installed ACE OLE DB engine defines Decimal precision/scale in this validation-only producer; DAO independently reopens the files read-only and exports schema, rows, complex children and decoded attachment bytes. Neither engine is a product dependency.
 
@@ -85,11 +131,9 @@ The table corpus is checked in with independent expected-value exports. Schema, 
 
 `Test-NativeBootstrap.ps1` is a negative control: it writes a header and page-type skeleton without copying a seed file. DAO rejects both MDB and ACCDB controls (`0x800A0C0F`). This proves that header recognition is insufficient; it does **not** prove template-free native creation. No native writer is enabled by this result.
 
-`NativeBootstrapProbe.cs` and `Test-NativeCreation.ps1` qualify `native-bootstrap-01` and `native-table-01` for a fixed unprotected Jet 4/ACE 12 schema. The managed generator reads no seed or template. It emits the masked header, empty user slots, global/table/long-value allocation maps, system definitions/catalog/permissions rows, index leaves, two user tables, typed rows and a relationship from logical definitions. DAO independently opens both generated files, exports their persisted schema/index/relationship/value definitions, and seeks the primary index. On separate owned verification copies, it rejects duplicate primary keys and invalid foreign keys. [The native manifest](../OfficeIMO.Access.Tests/Fixtures/Native/manifest.json) records the exact bytes and observations.
+`Test-NativeCreation.ps1` runs the public `AccessDocument.Create`/`Save` examples, independent DAO/Access qualification and the OfficeIMO reader over Access-resaved files. The fixed feasibility fixtures under [Fixtures/Native](../OfficeIMO.Access.Tests/Fixtures/Native/manifest.json) remain earlier format evidence; their generator has been replaced by the public creation route. Header-derived SID masking uses the generated creation date and password region; only the observed unprotected profile is qualified.
 
-This establishes feasibility, not a general production writer. The spike has a fixed schema and creation date, a restricted observed ASCII General legacy collation, an observed unprotected header field at `0x6A` whose wider semantics are unqualified, and no modern complex system catalog. Header-derived SID masking must remain consistent with the creation date and password region; the probe grants built-in permissions only inside freshly generated files. Production encoding, general schemas/values, structural edits and additional security profiles remain A05/A06/A09 work. `AccessDocument.Save` continues to fail before output.
-
-The independent application corpus exposes different storage boundaries: Jet 4 has `MSysAccessObjects` with a storage-specific `Data` type; ACE has `MSysAccessStorage` with hierarchy/type/date metadata and an `Lv` payload. MDB Tools 1.0.0 identifies Jet's `Data` field as an unknown physical type (`0x11`), demonstrating a comparison-reader gap. Creation and text/PDF export through Access do not prove OfficeIMO carrier decoding. The Access adapters must extract and preserve form/report/macro/VBA storage before passing qualified project content to shared Core VBA/security primitives. Direct VBA signature and ACCDC distribution carriers remain separately unqualified. A04/A07 own these native carrier read/write criteria.
+`New-AccessDesignerCorpus.ps1` produces [the designer corpus](../OfficeIMO.Access.Tests/Fixtures/Designer/manifest.json), with independent text exports of bound forms/reports, module source, StopMacro and ACE embedded/data macros. Its fresh owned Access instance disables macro execution and imports synthetic definitions. `Test-NativePreservation.ps1` reopens and re-exports unchanged copies. Exact stream hashes and whole-file bytes are checked separately from qualified typed metadata. Direct VBA-signature validation and ACCDC distribution-package handling remain unqualified.
 
 ## Engine alternatives and deployment
 

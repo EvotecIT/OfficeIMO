@@ -8,10 +8,21 @@ public sealed class AccessIndexCollection : AccessObjectCollection<AccessIndex> 
     public AccessIndex AddPrimaryKey(string name, params string[] columns) {
         _table.EnsureAttached(); Document.EnsureMutable();
         if (Items.Any(i => i.IsPrimaryKey)) throw new InvalidOperationException("A table already has a primary key definition.");
+        return AddCore(name, columns, true, true);
+    }
+    /// <summary>Adds an ascending index. Native creation checks unique keys before producing output.</summary>
+    public AccessIndex Add(string name, bool unique, params string[] columns) {
+        _table.EnsureAttached(); Document.EnsureMutable(); return AddCore(name, columns, false, unique);
+    }
+    /// <summary>Adds a non-unique ascending index over named fields.</summary>
+    public AccessIndex Add(string name, params string[] columns) => Add(name, false, columns);
+    /// <summary>Adds a unique ascending index over named fields.</summary>
+    public AccessIndex AddUnique(string name, params string[] columns) => Add(name, true, columns);
+    private AccessIndex AddCore(string name, string[] columns, bool primary, bool unique) {
         if (columns == null || columns.Length == 0 || columns.Length > 10) throw new ArgumentException("An index requires 1–10 fields.", nameof(columns));
         AccessColumn[] fields = columns.Select(c => _table.Columns[c]).ToArray();
         if (fields.Distinct().Count() != fields.Length) throw new ArgumentException("An index cannot repeat a field.", nameof(columns));
-        var index = new AccessIndex(_table, name, fields); AddItem(index); return index;
+        var index = new AccessIndex(_table, name, fields, primary, unique); AddItem(index); return index;
     }
 }
 

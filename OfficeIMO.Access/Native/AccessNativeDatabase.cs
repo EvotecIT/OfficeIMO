@@ -17,13 +17,16 @@ internal sealed partial class AccessNativeDatabase : IDisposable {
     internal readonly int MaxCatalogObjects, MaxMetadataBytes, MaxValueBytes, MaxChainLength;
     internal readonly long MaxRows;
     internal readonly HashSet<string>? SelectedTables;
+    internal readonly bool DecodeApplicationObjects;
     internal AccessNativeDatabase(AccessDocument document, byte[] bytes, AccessLoadOptions options) {
         _document = document; _bytes = bytes; MaxCatalogObjects = options.MaxCatalogObjects; MaxMetadataBytes = options.MaxMetadataBytes;
         MaxValueBytes = options.MaxValueBytes; MaxChainLength = options.MaxChainLength; MaxRows = options.MaxRows;
         SelectedTables = options.TableNames == null ? null : new HashSet<string>(options.TableNames, StringComparer.OrdinalIgnoreCase);
+        DecodeApplicationObjects = options.DecodeApplicationObjects;
     }
     internal int PageCount => _bytes.Length / 4096;
     internal AccessDocument Document => _document;
+    internal byte[] Snapshot() { _document.EnsureNotDisposed(); return _bytes; }
     internal OfficeByteView Page(int page, byte? expectedType = null) {
         _document.EnsureNotDisposed();
         if (page <= 0 || page >= PageCount) throw new InvalidDataException("Native Access page reference is outside the source snapshot.");

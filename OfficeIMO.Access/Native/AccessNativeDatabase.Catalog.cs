@@ -17,6 +17,7 @@ internal sealed partial class AccessNativeDatabase {
                     Name = RequiredName(catalog, rows, "Name", cancellation),
                     Type = Convert.ToInt32(RequiredField(catalog, rows, "Type", cancellation)),
                     Flags = Convert.ToInt32(RequiredField(catalog, rows, "Flags", cancellation)),
+                    ParentId = Field(catalog, rows, "ParentId", cancellation) as int?,
                     Properties = Field(catalog, rows, "LvProp", cancellation) as byte[],
                     Source = Field(catalog, rows, "Database", cancellation) as string,
                     ForeignTable = Field(catalog, rows, "ForeignName", cancellation) as string,
@@ -25,9 +26,14 @@ internal sealed partial class AccessNativeDatabase {
                 _catalog.Add(record);
                 // Different catalog namespaces can legitimately reuse a name. Their typed collections check ambiguity independently.
                 var entry = new AccessCatalogEntry(_document, record.Name, record.Type, record.Flags) {
+                    NativeId = record.Id, NativeParentId = record.ParentId,
                     NativeRecord = new AccessOpaqueValue(0, rows.Current.NativeBytes(), "Exact catalog row, including uninterpreted object metadata. Explicit raw inspection may contain credential-bearing metadata."),
                     Owner = Field(catalog, rows, "Owner", cancellation) is byte[] owner ? new AccessOpaqueValue(9, owner, "Persisted security identifier; no authentication is performed.") : null
                 };
+                var payloads = new Dictionary<string, AccessOpaqueValue>(StringComparer.OrdinalIgnoreCase);
+                foreach (string field in new[] { "Lv", "LvModule", "LvExtra" }) if (Field(catalog, rows, field, cancellation) is byte[] bytes)
+                    payloads.Add(field, new AccessOpaqueValue(11, bytes, "Exact catalog application metadata; typed semantics remain unqualified."));
+                entry.NativePayloads = new ReadOnlyDictionary<string, AccessOpaqueValue>(payloads);
                 _document.Catalog.Items.Add(entry);
             }
         }
@@ -60,13 +66,14 @@ internal sealed partial class AccessNativeDatabase {
         LoadComplexDefinitions(cancellation);
         LoadRelationships(cancellation);
         LoadQueries(cancellation);
+        if (DecodeApplicationObjects) LoadApplicationObjects(cancellation);
     }
     private AccessTable Model(AccessNativeTable definition, bool system) {
         var table = new AccessTable(_document, definition.Name) { NativeTable = definition, IsSystem = system }; definition.Model = table;
         foreach (var native in definition.Columns) {
             AccessDataType dataType = DataType(native);
             var column = new AccessColumn(table, native.Name, dataType, dataType == AccessDataType.ShortText ? native.Size / 2 : (int?)null) {
-                IsAutoNumber = (native.Flags & 0x44) != 0, IsHyperlink = (native.Flags & 0x80) != 0, IsCalculated = native.Calculated,
+                IsAutoNumber = (native.Flags & 0x44) != 0, AutoNumberSeed = null, IsHyperlink = (native.Flags & 0x80) != 0, IsCalculated = native.Calculated,
                 Precision = native.Type == 16 ? native.Precision : (int?)null, Scale = native.Type == 16 ? native.Scale : (int?)null
             };
             native.Model = column; table.Columns.AddNativeItem(column);
@@ -138,7 +145,7 @@ internal sealed partial class AccessNativeDatabase {
         } catch (ArgumentException) { return "[redacted: unparsed connection metadata]"; }
     }
     private sealed class NativeCatalogRecord {
-        internal int Id, Type, Flags; internal string Name = string.Empty;
+        internal int Id, Type, Flags; internal int? ParentId; internal string Name = string.Empty;
         internal byte[]? Properties; internal string? Source, ForeignTable, Connection;
     }
     private sealed class NativeRelationshipField {

@@ -12,7 +12,7 @@ public sealed class AccessNativeReaderTests {
     public void NativeSchemaRowsIndexesAndRelationshipsAgreeWithDao(string file) {
         using var document = AccessDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", file));
         Assert.Equal(AccessCatalogStatus.Decoded, document.CatalogStatus);
-        Assert.Equal(AccessCatalogStatus.NotDecoded, document.Forms.CatalogStatus);
+        Assert.Equal(AccessCatalogStatus.Decoded, document.Forms.CatalogStatus);
         Assert.Equal(2, document.Tables.Count);
         var contacts = document.Tables["Contacts"];
         Assert.Equal(2, contacts.RowCount);

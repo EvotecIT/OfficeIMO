@@ -32,13 +32,16 @@ public sealed class AccessCreateOptions : DocumentCreateOptions {
     public AccessFileFormat Format { get; set; } = AccessFileFormat.Accdb;
     /// <summary>Optional explicit generation. New models target Jet4 for MDB and Ace12 for ACCDB.</summary>
     public AccessFormatProfile? Profile { get; set; }
+    /// <summary>Optional inert AppTitle property for a newly created database. No startup action is authored.</summary>
+    public string? DatabaseTitle { get; set; }
     internal void Validate() {
+        if (DatabaseTitle != null && (DatabaseTitle.Length > 255 || DatabaseTitle.IndexOf('\0') >= 0)) throw new ArgumentException("DatabaseTitle must contain at most 255 non-null characters.", nameof(DatabaseTitle));
         if (!Enum.IsDefined(typeof(AccessFileFormat), Format)) throw new ArgumentOutOfRangeException(nameof(Format));
         if (Profile.HasValue && Profile.Value != (Format == AccessFileFormat.Mdb ? AccessFormatProfile.Jet4 : AccessFormatProfile.Ace12))
             throw new NotSupportedException("New Access models currently target Jet4 MDB or Ace12 ACCDB; the explicit profile must agree with that family.");
         if (!Enum.IsDefined(typeof(DocumentPersistenceMode), PersistenceMode)) throw new ArgumentOutOfRangeException(nameof(PersistenceMode));
-        // Do not promise disposal persistence before a native writer is qualified.
-        if (PersistenceMode != DocumentPersistenceMode.Explicit) throw new NotSupportedException("Access native persistence is not qualified; use Explicit persistence and AssessSave.");
+        // Disposal persistence is separate from the qualified explicit Save contract.
+        if (PersistenceMode != DocumentPersistenceMode.Explicit) throw new NotSupportedException("Access requires explicit persistence; use Save and AssessSave.");
     }
 }
 
@@ -46,6 +49,8 @@ public sealed class AccessCreateOptions : DocumentCreateOptions {
 public sealed class AccessLoadOptions : DocumentLoadOptions {
     /// <summary>Decode qualified native catalogs and schema. Rows and long values remain lazy. False retains header-only inspection.</summary>
     public bool DecodeCatalog { get; set; } = true;
+    /// <summary>Decode bounded application carriers, designers and VBA after the catalog. False retains their NotDecoded status while preserving the whole snapshot.</summary>
+    public bool DecodeApplicationObjects { get; set; } = true;
     /// <summary>Optional case-insensitive user-table selection. Null loads every user-table definition.</summary>
     public IReadOnlyCollection<string>? TableNames { get; set; }
     /// <summary>Maximum bytes snapshotted from input, including a non-seekable stream.</summary>
@@ -75,12 +80,14 @@ public sealed class AccessLoadOptions : DocumentLoadOptions {
         if (!Enum.IsDefined(typeof(DocumentPersistenceMode), PersistenceMode)) throw new ArgumentOutOfRangeException(nameof(PersistenceMode));
         if (PackageSecurity != null) throw new NotSupportedException("Access databases are paged database files. PackageSecurity is not an Access protection policy.");
         OfficeIMO.Core.Internal.OfficeDocumentLifecycle.Validate(AccessMode, PersistenceMode, "Access document");
-        if (PersistenceMode != DocumentPersistenceMode.Explicit) throw new NotSupportedException("Access native persistence is not qualified; SaveOnDispose is unavailable.");
+        if (PersistenceMode != DocumentPersistenceMode.Explicit) throw new NotSupportedException("Access requires explicit persistence; SaveOnDispose is unavailable.");
     }
 }
 
 /// <summary>Explicit save target and shared loss/conflict policy.</summary>
 public sealed class AccessSaveOptions {
+    /// <summary>Maximum complete native output size. Creation allocation and whole-file preservation reject larger output before destination I/O.</summary>
+    public long MaxOutputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Null retains the document family, or uses a recognized destination extension.</summary>
     public AccessFileFormat? Format { get; set; }
     /// <summary>Optional explicit target generation. It must agree with the destination family.</summary>
@@ -90,6 +97,7 @@ public sealed class AccessSaveOptions {
     /// <summary>Existing-file policy for a qualified writer.</summary>
     public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
     internal void Validate() {
+        if (MaxOutputBytes < 4096 || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
         if (Format.HasValue && !Enum.IsDefined(typeof(AccessFileFormat), Format.Value)) throw new ArgumentOutOfRangeException(nameof(Format));
         if (Profile.HasValue && (!Enum.IsDefined(typeof(AccessFormatProfile), Profile.Value) || Profile.Value == AccessFormatProfile.Unknown)) throw new ArgumentOutOfRangeException(nameof(Profile));
         if (!Enum.IsDefined(typeof(OfficeConversionLossPolicy), LossPolicy)) throw new ArgumentOutOfRangeException(nameof(LossPolicy));
