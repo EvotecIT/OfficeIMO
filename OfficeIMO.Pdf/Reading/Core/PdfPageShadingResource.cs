@@ -3,7 +3,15 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageShadingResource {
-    public PdfPageShadingResource(double x0, double y0, double x1, double y1, OfficeColor startColor, OfficeColor endColor, bool supportsExactType3Projection = true) {
+    internal PdfPageShadingResource(PdfFunctionShading functionShading) : this() {
+        FunctionShading = functionShading;
+        SupportsExactType3Projection = true;
+        Stops = Array.Empty<OfficeGradientStop>();
+    }
+
+    internal PdfFunctionShading? FunctionShading { get; }
+
+    public PdfPageShadingResource(double x0, double y0, double x1, double y1, OfficeColor startColor, OfficeColor endColor, bool supportsExactType3Projection = true) : this() {
         IsRadial = false;
         X0 = x0;
         Y0 = y0;
@@ -15,7 +23,7 @@ internal readonly struct PdfPageShadingResource {
         SupportsExactType3Projection = supportsExactType3Projection;
     }
 
-    public PdfPageShadingResource(double x0, double y0, double x1, double y1, IReadOnlyList<OfficeGradientStop> stops, bool supportsExactType3Projection = true) {
+    public PdfPageShadingResource(double x0, double y0, double x1, double y1, IReadOnlyList<OfficeGradientStop> stops, bool supportsExactType3Projection = true) : this() {
         IsRadial = false;
         X0 = x0;
         Y0 = y0;
@@ -27,7 +35,7 @@ internal readonly struct PdfPageShadingResource {
         SupportsExactType3Projection = supportsExactType3Projection;
     }
 
-    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, OfficeColor startColor, OfficeColor endColor, bool supportsExactType3Projection = true) {
+    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, OfficeColor startColor, OfficeColor endColor, bool supportsExactType3Projection = true) : this() {
         IsRadial = true;
         X0 = x0;
         Y0 = y0;
@@ -39,7 +47,7 @@ internal readonly struct PdfPageShadingResource {
         SupportsExactType3Projection = supportsExactType3Projection;
     }
 
-    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, IReadOnlyList<OfficeGradientStop> stops, bool supportsExactType3Projection = true) {
+    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, IReadOnlyList<OfficeGradientStop> stops, bool supportsExactType3Projection = true) : this() {
         IsRadial = true;
         X0 = x0;
         Y0 = y0;

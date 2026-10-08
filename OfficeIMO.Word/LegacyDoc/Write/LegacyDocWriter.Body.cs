@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableBookmarks bookmarks,
                 IReadOnlyList<LegacyDocWritableSection> sections,
                 LegacyDocWritableStyleSheet styleSheet,
+                Numbering? numbering,
                 LegacyDocWritableFootnoteStories footnoteStories,
                 LegacyDocWritableEndnoteStories endnoteStories,
                 LegacyDocWritableHeaderFooterStories headerFooterStories,
@@ -69,6 +70,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PlcfBkf = resolvedBookmarks.PlcfBkf;
                 PlcfBkl = resolvedBookmarks.PlcfBkl;
                 FontFamilies = styleSheet.FontFamilies
+                    .Concat(ReadNumberingFontFamilies(numbering))
                     .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(FootnoteFormattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(HeaderFooterFormattedRuns.Select(run => run.Formatting.FontFamily))
@@ -81,6 +83,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FontFamilyIndexes = FontFamilies
                     .Select((fontFamily, index) => new { fontFamily, index })
                     .ToDictionary(item => item.fontFamily, item => item.index, StringComparer.OrdinalIgnoreCase);
+                ListTables = CreateWritableNumbering(numbering, styleSheet.StyleIndexes, FontFamilyIndexes);
                 string[] revisionAuthors = CreateFormattedRuns()
                     .Select(run => run.Formatting.Revision.Author)
                     .Where(author => !string.IsNullOrWhiteSpace(author))
@@ -112,6 +115,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal string Text { get; }
 
             internal LegacyDocWritableFieldTables FieldTables { get; }
+
+            internal LegacyDocWritableNumbering ListTables { get; }
 
             internal int FieldTablesOffsetInTableStream => AfterEndnoteDataOffsetInTableStream;
 
@@ -317,9 +322,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionThreadingOffsetInTableStream) : AfterRevisionThreadingOffsetInTableStream;
 
-            internal int FontTableOffsetInTableStream => HasStyleSheet
+            private int AfterStyleSheetOffsetInTableStream => HasStyleSheet
                 ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
                 : AfterRevisionThreadingOffsetInTableStream;
+
+            internal int ListDefinitionsOffsetInTableStream => AlignToEven(AfterStyleSheetOffsetInTableStream);
+
+            internal int ListInstancesOffsetInTableStream => ListDefinitionsOffsetInTableStream + ListTables.Definitions.Length;
+
+            internal int FontTableOffsetInTableStream => ListTables.Definitions.Length == 0 ? AfterStyleSheetOffsetInTableStream
+                : ListInstancesOffsetInTableStream + ListTables.Instances.Length;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();

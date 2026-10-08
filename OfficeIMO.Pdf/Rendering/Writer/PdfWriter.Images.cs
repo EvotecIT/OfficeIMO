@@ -253,7 +253,13 @@ internal static partial class PdfWriter {
         byte[] data,
         CancellationToken cancellationToken,
         out int componentCount,
-        out int samplePrecision) {
+        out int samplePrecision) =>
+        TryGetJpegFrameMetadata(data, cancellationToken, out componentCount, out samplePrecision, out _);
+
+    internal static bool TryGetJpegFrameMetadata(
+        byte[] data, CancellationToken cancellationToken, out int componentCount,
+        out int samplePrecision, out byte frameMarker) {
+        frameMarker = 0;
         componentCount = 0;
         samplePrecision = 0;
         cancellationToken.ThrowIfCancellationRequested();
@@ -272,6 +278,7 @@ internal static partial class PdfWriter {
             if (segmentLength < 2 || (long)offset + segmentLength > data.Length) return false;
             if (marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF) {
                 if (segmentLength < 8) return false;
+                frameMarker = marker;
                 samplePrecision = data[offset + 2];
                 componentCount = data[offset + 7];
                 return samplePrecision > 0 && componentCount > 0;

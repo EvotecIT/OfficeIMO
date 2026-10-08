@@ -96,12 +96,14 @@ internal static partial class PdfPageXObjectInvocationParser {
         Action<string>? visibleColorSpaceVisitor = null,
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
         Func<string, int?>? mcidForProperty = null,
-        Action? operationCheck = null) {
+        Action? operationCheck = null,
+        PdfTextStateSnapshot? initialTextState = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
         var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasUnsupportedPaintState, initialHasUnsupportedImagePaintEffect, initialImagePaintEffectState, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern, mcidForProperty, operationCheck);
+        parser.InitializeTextState(initialTextState ?? PdfTextStateSnapshot.Default);
         return parser.Parse();
     }
 
@@ -396,6 +398,12 @@ internal static partial class PdfPageXObjectInvocationParser {
         }
 
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
+
+        internal void InitializeTextState(PdfTextStateSnapshot state) {
+            _textFont = state.FontResource; _textSize = state.FontSize; _textLeading = state.Leading;
+            _textCharSpacing = state.CharacterSpacing; _textWordSpacing = state.WordSpacing;
+            _textHScale = state.HorizontalScaling; _textRise = state.TextRise; _textRenderingMode = state.TextRenderingMode;
+        }
 
         private TextState CaptureTextState() =>
             new TextState(_inText, _textFont, _textSize, _textLeading, _textCharSpacing, _textWordSpacing, _textHScale, _textRise, _textRenderingMode, _textMatrix, _lineMatrix);
@@ -895,6 +903,8 @@ internal static partial class PdfPageXObjectInvocationParser {
             }
 
             _state = _state.WithGraphicsStateResource(resource);
+            if (resource.FontResource != null) _textFont = resource.FontResource;
+            if (resource.FontSize.HasValue) _textSize = resource.FontSize.Value;
             if (resource.RenderingIntent.HasValue) {
                 _hasAuthoredRenderingIntent = true;
                 ApplyRenderingIntent(resource.RenderingIntent.Value);
@@ -1921,7 +1931,9 @@ internal readonly struct PdfPageXObjectInvocation {
         PdfStrokeDashPattern? strokeDashPattern = null,
         int? markedContentId = null,
         bool isArtifactContent = false,
-        PdfPageImagePaintEffectState? imagePaintEffectState = null) {
+        PdfPageImagePaintEffectState? imagePaintEffectState = null,
+        PdfTextStateSnapshot? textState = null) {
+        TextState = textState ?? PdfTextStateSnapshot.Default;
         Name = name;
         InlineImage = null;
         Transform = transform;
@@ -1993,6 +2005,7 @@ internal readonly struct PdfPageXObjectInvocation {
         int? markedContentId = null,
         bool isArtifactContent = false,
         PdfPageImagePaintEffectState? imagePaintEffectState = null) {
+        TextState = PdfTextStateSnapshot.Default;
         Name = inlineImage.ResourceName;
         InlineImage = inlineImage;
         Transform = transform;
@@ -2029,6 +2042,8 @@ internal readonly struct PdfPageXObjectInvocation {
         MarkedContentId = markedContentId;
         IsArtifactContent = isArtifactContent;
     }
+
+    internal PdfTextStateSnapshot TextState { get; }
 
     public string Name { get; }
 

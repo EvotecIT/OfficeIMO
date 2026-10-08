@@ -20,6 +20,14 @@ internal static partial class OfficeJpegReader {
     private const long Fix3_072711026 = 25172;
 
     private static void InverseDct(int[] input, byte[] output, int[] workspace) {
+        // Extended JPEG quantization can exceed the integer workspace range.
+        // Guard both hardware paths and clip samples only after the transform.
+        for (int i = 0; i < 64; i++) {
+            if (input[i] < -8191 || input[i] > 8191) {
+                InverseDctWide(input, output);
+                return;
+            }
+        }
 #if NET8_0_OR_GREATER
         if (System.Runtime.Intrinsics.X86.Avx2.IsSupported) {
             InverseDctVector(input, output, workspace);

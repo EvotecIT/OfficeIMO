@@ -33,7 +33,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!TryResolveSvgPatternGeometry(pattern, shape, drawing.Width, drawing.Height, viewX, viewY,
                 out double originX, out double originY, out double tileWidth, out double tileHeight,
                 out OfficeTransform patternTransform, out bool objectBoundingBoxContent)
-            || !TryCreateShapeStrokeClipPath(shape.Shape, references, out OfficeClipPath? strokeClip)) {
+            || !TryCreateShapeStrokeClipPath(shape.Shape, references, out OfficeClipPath? strokeClip, out OfficePoint clipOffset)) {
             unsupported++;
             ClearShapeStroke(shape.Shape);
             return false;
@@ -45,9 +45,8 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform contentTransform = objectBoundingBoxContent
             ? OfficeTransform.Scale(shape.Shape.Width, shape.Shape.Height)
             : OfficeTransform.Identity;
-        double contentViewX = objectBoundingBoxContent ? 0D : originX;
-        double contentViewY = objectBoundingBoxContent ? 0D : originY;
-        AddChildren(pattern, tile, tileStyle, paintServers, references, contentTransform, contentViewX, contentViewY,
+        // Pattern x/y places the tile. Its content starts at the tile origin.
+        AddChildren(pattern, tile, tileStyle, paintServers, references, contentTransform, 0D, 0D,
             maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
             ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
         if (tile.Elements.Count == 0) {
@@ -81,7 +80,8 @@ public static partial class OfficeSvgDrawingReader {
 
         var clipped = new OfficeDrawing(drawing.Width, drawing.Height);
         try {
-            clipped.AddClippedDrawing(repeated, shape.X, shape.Y, strokeClip!, -shape.X, -shape.Y);
+            double clipX = shape.X + clipOffset.X, clipY = shape.Y + clipOffset.Y;
+            clipped.AddClippedDrawingForRendering(repeated, clipX, clipY, strokeClip!, -clipX, -clipY);
         } catch (ArgumentOutOfRangeException) {
             unsupported++;
             ClearShapeStroke(shape.Shape);
@@ -101,8 +101,9 @@ public static partial class OfficeSvgDrawingReader {
         return true;
     }
 
-    private static bool TryCreateShapeStrokeClipPath(OfficeShape shape, SvgElementReferenceRegistry references, out OfficeClipPath? clipPath) {
+    private static bool TryCreateShapeStrokeClipPath(OfficeShape shape, SvgElementReferenceRegistry references, out OfficeClipPath? clipPath, out OfficePoint clipOffset) {
         clipPath = null;
+        clipOffset = default;
         if (shape.StrokeWidth <= 0D) return false;
         var commands = new List<OfficePathCommand>();
         foreach (OfficeFlattenedPathContour contour in GetStrokeContours(shape)) {
@@ -111,6 +112,10 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (commands.Count == 0) return false;
         try {
+            double left = double.PositiveInfinity, top = double.PositiveInfinity;
+            double right = double.NegativeInfinity, bottom = double.NegativeInfinity;
+            foreach (var command in commands) IncludeCommandBounds(command, ref left, ref top, ref right, ref bottom);
+            clipOffset = new OfficePoint(left, top);
             clipPath = OfficeClipPath.Path(commands, OfficeFillRule.NonZero);
             return true;
         } catch (ArgumentException) {

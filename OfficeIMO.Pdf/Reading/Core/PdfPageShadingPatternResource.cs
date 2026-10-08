@@ -4,7 +4,7 @@ internal readonly struct PdfPageShadingPatternResource {
     public PdfPageShadingPatternResource(PdfPageShadingResource shading, Matrix2D matrix, bool hasExactMatrix = true) {
         Shading = shading;
         Matrix = matrix;
-        IsSupported = true;
+        IsSupported = shading.FunctionShading == null;
         HasExactMatrix = hasExactMatrix;
     }
 

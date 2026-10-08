@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (LegacyDocWritableParagraphSegment segment in segments) {
                 byte[]? papx = segment.PapxOverride;
                 if (papx == null && segment.Formatting.HasFormatting) {
-                    papx = CreatePapx(segment.Formatting);
+                    papx = CreatePapx(segment.Formatting, out _);
                 }
 
                 if (papx == null) {

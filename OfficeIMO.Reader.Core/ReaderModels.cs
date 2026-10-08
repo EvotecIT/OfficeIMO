@@ -112,7 +112,9 @@ public enum ReaderInputKind {
     /// <summary>
     /// Apple Pages, Numbers, or Keynote document.
     /// </summary>
-    IWork = 25
+    IWork = 25,
+    /// <summary>Native XPS or OpenXPS fixed-page package.</summary>
+    Xps = 26
 }
 
 /// <summary>
@@ -387,6 +389,9 @@ public sealed class ReaderChunkDiagnostics {
 /// Generic location metadata used across supported formats.
 /// </summary>
 public sealed class ReaderLocation {
+    /// <summary>Explicit native reading-order position across physical containers. Null retains canonical container order.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? LogicalOrder { get; set; }
     /// <summary>
     /// Source path used for citations.
     /// </summary>

@@ -110,23 +110,11 @@ public static partial class OfficeSvgDrawingReader {
                     OfficeGradientStop previous = Stops[index - 1];
                     double span = next.Offset - previous.Offset;
                     double amount = span <= double.Epsilon ? 0D : (mapped - previous.Offset) / span;
-                    return InterpolateColor(previous.Color, next.Color, amount);
+                    return OfficeGradientColors.Interpolate(previous.Color, next.Color, amount, ColorInterpolation);
                 }
             }
             return Stops[Stops.Count - 1].Color;
         }
-
-        private static OfficeColor InterpolateColor(OfficeColor start, OfficeColor end, double amount) {
-            double clamped = amount < 0D ? 0D : amount > 1D ? 1D : amount;
-            return OfficeColor.FromRgba(
-                InterpolateByte(start.R, end.R, clamped),
-                InterpolateByte(start.G, end.G, clamped),
-                InterpolateByte(start.B, end.B, clamped),
-                InterpolateByte(start.A, end.A, clamped));
-        }
-
-        private static byte InterpolateByte(byte start, byte end, double amount) =>
-            (byte)Math.Round(start + ((end - start) * amount));
 
         private static void IncludeLinearRatio(
             double x,

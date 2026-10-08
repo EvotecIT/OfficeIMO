@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -41,7 +41,33 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
     .RunAsync(runner, cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf` and `PlainText` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+
+Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
+PDF bridge. Single conversion, batches, PDF assembly and document preview share
+that owner. Native logical structure is preserved strictly by default; unsupported
+semantics fail before publication. The `Faithful` output profile is supported.
+Assembly accepts native sources whose converted PDF has no semantic tags. The PDF
+owner rejects merging tagged documents; it preserves the destination instead of
+dropping native semantics. When semantic loss is acceptable, first convert with
+the explicit opt-out below and assemble the resulting PDFs.
+
+```csharp
+using OfficeIMO.Xps;
+
+OfficeWorkflowResult converted = await OfficeWorkflow.Convert("report.oxps")
+    .To("report.pdf")
+    .WithConversionOptions(new OfficeWorkflowConversionOptions {
+        Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
+    })
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+The explicit semantic opt-out retains vector paint and markup-order Unicode.
+`Xps.PdfOptions` accepts the PDF engine's output settings, including encryption;
+`CompressPdfOutput` uses the shared verified compression path. Native input limits
+and workflow byte limits both apply. PDF serialization is bounded before the
+runner reopens and publishes the artifact. See the [native preservation limits](../OfficeIMO.Xps/SUPPORT.md).
 
 Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict policies. Directory discovery is incremental and skips filesystem links. Outputs retain the full relative source filename plus the target extension, so `report.doc` and `report.docx` have distinct PDF names. Explicit files retain relative paths when `InputDirectory` supplies their common root; otherwise they use their filenames, and destination collisions follow the selected policy.
 
@@ -1863,7 +1889,7 @@ OfficeWorkflowResult result = await OfficeWorkflow.Convert("source.pdf")
 ```
 
 `OfficeWorkflowRunner.PreviewDocument(bytes, extension, cancellationToken)` creates
-an in-memory sample of the first three pages of a PDF, DOCX, XLSX, PPTX, or HTML
+an in-memory sample of the first three pages of a PDF, DOCX, XLSX, PPTX, HTML, XPS, or OpenXPS
 artifact. The sample includes rendering diagnostics and uses bounded input and
 image sizes. HTML previews do not load external or sibling resources. Previewing
 is a review aid; inspect the full saved document for whole-document fidelity.

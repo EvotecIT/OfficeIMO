@@ -41,3 +41,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Zip")]
 [assembly: InternalsVisibleTo("OfficeIMO.Opml")]
 [assembly: InternalsVisibleTo("OfficeIMO.DocBook")]
+[assembly: InternalsVisibleTo("OfficeIMO.Xps")]

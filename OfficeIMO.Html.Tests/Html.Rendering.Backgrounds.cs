@@ -257,7 +257,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, CountBackgroundOccurrences(svg, "<g id=\"officeimo-pattern-tile-"));
         Assert.True(CountBackgroundOccurrences(svg, "<use href=\"#officeimo-pattern-tile-") >= 4);
         Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
-        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Red);
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(pdfDrawing, scale: 4D / 3D);
+        Assert.Equal(OfficeColor.Red, pdfRaster.GetPixel(9, 9));
+        Assert.Equal(OfficeColor.Blue, pdfRaster.GetPixel(14, 9));
+        Assert.Equal(OfficeColor.Red, pdfRaster.GetPixel(19, 9));
+        Assert.Equal(OfficeColor.Red, pdfRaster.GetPixel(9, 19));
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);

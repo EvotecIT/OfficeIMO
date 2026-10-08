@@ -1,0 +1,17 @@
+[
+  {
+    "file": "word.xps",
+    "sha256": "3d0b64f3b7174ab7d3faf70f9fca1abbffffe14c76fd3ca6b9e13ac84c66d36d",
+    "source": "https://github.com/dotnet/wpf-test/blob/6ea95ca2ad9b1e0fe96a3f445d4fb3a85c09c41c/src/Test/Annotations/FeatureTests/BuildSources/Part2/VersionTolerance/word.xps"
+  },
+  {
+    "file": "Test_Document.xps",
+    "sha256": "0eb4e5eaaf8dc459606b443feef2710d5c65c7b4385a6561a8c8a9050cb6a58b",
+    "source": "https://github.com/dotnet/wpf-test/blob/6ea95ca2ad9b1e0fe96a3f445d4fb3a85c09c41c/src/Test/DigitalDocuments/DRT/Payloads/DocStructurePackage/drtfiles/Test_Document.xps"
+  },
+  {
+    "file": "PrintingDrt.xps",
+    "sha256": "e4bcd771918d379d9a734d56fc7dc1cb0b51b797201e679766ff1c18696a90b1",
+    "source": "https://github.com/dotnet/wpf-test/blob/6ea95ca2ad9b1e0fe96a3f445d4fb3a85c09c41c/src/Test/Printing/DRT/Printing/DrtFiles/PrintingDrt.xps"
+  }
+]

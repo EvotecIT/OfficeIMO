@@ -19,6 +19,7 @@ namespace OfficeIMO.Word {
         private readonly WordHeaderFooter? _headerFooter;
         private Run _run => _wordParagraph._run!;
         private V.TextBox? _vmlTextBox;
+        private readonly bool _hasSelectedVmlTextBox;
         private readonly AlternateContent? _selectedAlternateContent;
         private readonly WordDrawing? _selectedDrawing;
 
@@ -31,7 +32,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, string text, WordImageTextWrapping wrapTextImage) {
             var paragraph = new WordParagraph(wordDocument, true, true);
             wordDocument.AddParagraph(paragraph);
-            AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
+            _selectedAlternateContent = AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _document = wordDocument;
             _wordParagraph = paragraph;
@@ -51,6 +52,7 @@ namespace OfficeIMO.Word {
             _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
             _selectedAlternateContent = selectedAlternateContent;
             _selectedDrawing = selectedDrawing;
+            _hasSelectedVmlTextBox = selectedVmlTextBox != null;
             _vmlTextBox = selectedVmlTextBox ??
                 (selectedAlternateContent == null && selectedDrawing == null ? run.Descendants<V.TextBox>().FirstOrDefault() : null);
         }
@@ -67,7 +69,7 @@ namespace OfficeIMO.Word {
             _headerFooter = wordHeaderFooter;
 
             var paragraph = wordHeaderFooter.AddParagraph(newRun: true);
-            AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
+            _selectedAlternateContent = AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _wordParagraph = paragraph;
         }
@@ -82,7 +84,7 @@ namespace OfficeIMO.Word {
         public WordTextBox(WordDocument wordDocument, WordParagraph paragraph, string text, WordImageTextWrapping wrapTextImage) {
             _document = wordDocument;
 
-            AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
+            _selectedAlternateContent = AddAlternateContent(wordDocument, paragraph, text, wrapTextImage);
 
             _wordParagraph = paragraph;
         }
@@ -498,7 +500,7 @@ namespace OfficeIMO.Word {
         }
 
         private AlternateContentChoice? _alternateContentChoice =>
-            (_selectedAlternateContent ?? _run.ChildElements.OfType<AlternateContent>().FirstOrDefault())?
+            (_hasSelectedVmlTextBox ? null : _selectedAlternateContent ?? _run.ChildElements.OfType<AlternateContent>().FirstOrDefault())?
                 .ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
 
         private WordDrawing? _drawing => _selectedDrawing ?? _alternateContentChoice?.ChildElements.OfType<WordDrawing>().FirstOrDefault();
@@ -731,7 +733,7 @@ namespace OfficeIMO.Word {
             return horizontalPosition;
         }
 
-        private void AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text, WordImageTextWrapping wrapTextImage) {
+        private AlternateContent AddAlternateContent(WordDocument wordDocument, WordParagraph wordParagraph, string text, WordImageTextWrapping wrapTextImage) {
 
             AlternateContent alternateContent1 = new AlternateContent();
             AlternateContentChoice alternateContentChoice1 = new AlternateContentChoice() { Requires = "wps" };
@@ -752,9 +754,9 @@ namespace OfficeIMO.Word {
             alternateContentChoice1.Append(drawing1);
 
             alternateContent1.Append(alternateContentChoice1);
-            //alternateContent1.Append(alternateContentFallback1);
             wordParagraph.VerifyRun();
             wordParagraph._run?.Append(alternateContent1);
+            return alternateContent1;
         }
 
         private Inline GenerateInline(WordDocument wordDocument, string text) {

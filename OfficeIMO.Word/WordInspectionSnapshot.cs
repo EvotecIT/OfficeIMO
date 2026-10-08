@@ -135,6 +135,10 @@ namespace OfficeIMO.Word {
         public bool? IsOrderedList { get; internal set; }
         /// <summary>Gets the zero-based list nesting level.</summary>
         public int? ListLevel { get; internal set; }
+        /// <summary>Gets the resolved portable marker text, without its following tab or space, for a body or header/footer list item. An invisible marker is empty; an unresolved or non-list paragraph returns <see langword="null"/>.</summary>
+        public string? ListMarker { get; internal set; }
+        /// <summary>Gets the resolved ordered-list counter at this nesting level, accounting for continuation and explicit restarts, or <see langword="null"/> for unordered or unresolved paragraphs.</summary>
+        public int? ListIndex { get; internal set; }
         /// <summary>Gets the OfficeIMO list-style classification.</summary>
         public string? ListStyleName { get; internal set; }
         /// <summary>Gets the paragraph alignment authored directly on the paragraph, without resolving inherited styles.</summary>

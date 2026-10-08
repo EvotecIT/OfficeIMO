@@ -5,9 +5,9 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Provides bounded, dependency-free conversion for supported ICC color profiles.</summary>
 /// <remarks>
-/// Supports RGB and Gray matrix/TRC input profiles, RGB and CMYK LUT8/LUT16 input transforms,
+/// Supports RGB and Gray matrix/TRC input profiles and RGB, CMYK, and three-to-eight-channel LUT8/LUT16 input transforms,
 /// legacy LUT8/LUT16 output transforms, and bounded ICC v4 AToB/BToA transforms using the mAB/mBA
-/// types. Unsupported transform types are rejected for explicit fallback.
+/// types. Multichannel profiles support input conversion only. Unsupported transform types are rejected for explicit fallback.
 /// </remarks>
 public sealed partial class OfficeIccColorProfile {
     private const uint InputDeviceClassSignature = 0x73636E72U;
@@ -214,7 +214,10 @@ public sealed partial class OfficeIccColorProfile {
             return true;
         }
 
-        int lutComponentCount = deviceColorSpace == RgbSignature ? 3 : deviceColorSpace == 0x434D594BU ? 4 : 0; // CMYK
+        bool multichannel = (deviceColorSpace & 0x00FFFFFFU) == 0x00434C52U &&
+            (deviceColorSpace >> 24) >= 0x33 && (deviceColorSpace >> 24) <= 0x38;
+        int lutComponentCount = multichannel ? (int)(deviceColorSpace >> 24) - 0x30
+            : deviceColorSpace == RgbSignature ? 3 : deviceColorSpace == 0x434D594BU ? 4 : 0;
         if (lutComponentCount != 0 &&
             TryReadDeviceToPcsTransforms(
                 profileBytes,
@@ -222,7 +225,7 @@ public sealed partial class OfficeIccColorProfile {
                 lutComponentCount,
                 profileConnectionSpace == LabSignature,
                 out IDeviceToPcsTransform?[] transforms)) {
-            IPcsToDeviceTransform?[]? outputTransforms = TryReadPcsToDeviceTransforms(
+            IPcsToDeviceTransform?[]? outputTransforms = !multichannel && TryReadPcsToDeviceTransforms(
                 profileBytes,
                 tags,
                 lutComponentCount,
@@ -436,68 +439,6 @@ public sealed partial class OfficeIccColorProfile {
         return false;
     }
 
-    private static bool TryReadLutTransform(
-        byte[] bytes,
-        TagRange range,
-        int expectedInputChannels,
-        bool pcsIsLab,
-        out LutTransform transform) {
-        transform = null!;
-        if (range.Length < 52) return false;
-        uint type = ReadUInt32(bytes, range.Offset);
-        int precision = type == Lut8TypeSignature ? 1 : type == Lut16TypeSignature ? 2 : 0;
-        if (precision == 0 || (precision == 1 && !pcsIsLab) ||
-            bytes[range.Offset + 4] != 0 || bytes[range.Offset + 5] != 0 ||
-            bytes[range.Offset + 6] != 0 || bytes[range.Offset + 7] != 0 || bytes[range.Offset + 11] != 0) return false;
-        int inputChannels = bytes[range.Offset + 8];
-        int outputChannels = bytes[range.Offset + 9];
-        int gridPoints = bytes[range.Offset + 10];
-        if (inputChannels != expectedInputChannels || outputChannels != 3 ||
-            inputChannels is < 3 or > 4 || gridPoints is < 2 or > 33 ||
-            !HasIdentityLutMatrix(bytes, range.Offset + 12)) return false;
-
-        int inputEntries = precision == 1 ? 256 : ReadUInt16(bytes, range.Offset + 48);
-        int outputEntries = precision == 1 ? 256 : ReadUInt16(bytes, range.Offset + 50);
-        int tableOffset = precision == 1 ? 48 : 52;
-        if (inputEntries is < 2 or > 4096 || outputEntries is < 2 or > 4096) return false;
-        long gridSampleCount = 1;
-        for (int channel = 0; channel < inputChannels; channel++) {
-            gridSampleCount *= gridPoints;
-            if (gridSampleCount > int.MaxValue) return false;
-        }
-        long inputBytes = (long)inputChannels * inputEntries * precision;
-        long clutBytes = gridSampleCount * outputChannels * precision;
-        long outputBytes = (long)outputChannels * outputEntries * precision;
-        long requiredLength = tableOffset + inputBytes + clutBytes + outputBytes;
-        if (requiredLength != range.Length || requiredLength > int.MaxValue) return false;
-
-        var payload = new byte[(int)requiredLength];
-        Buffer.BlockCopy(bytes, range.Offset, payload, 0, payload.Length);
-        transform = new LutTransform(
-            payload,
-            inputChannels,
-            outputChannels,
-            gridPoints,
-            inputEntries,
-            outputEntries,
-            precision,
-            tableOffset,
-            checked(tableOffset + (int)inputBytes),
-            checked(tableOffset + (int)inputBytes + (int)clutBytes),
-            pcsIsLab);
-        return true;
-    }
-
-    private static bool HasIdentityLutMatrix(byte[] bytes, int offset) {
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 3; column++) {
-                int expected = row == column ? 65536 : 0;
-                if (unchecked((int)ReadUInt32(bytes, offset + (row * 3 + column) * 4)) != expected) return false;
-            }
-        }
-        return true;
-    }
-
     private static bool TryReadSampledCurve(byte[] bytes, TagRange range, out ToneCurve curve) {
         curve = ToneCurve.Identity;
         uint declaredCount = ReadUInt32(bytes, range.Offset + 8);
@@ -648,170 +589,7 @@ public sealed partial class OfficeIccColorProfile {
         bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz);
     }
 
-    private sealed class LutTransform : IDeviceToPcsTransform {
-        private const double PcsXyzScale = 65535D / 32768D;
-        private readonly byte[] _payload;
-        private readonly int _inputChannels;
-        private readonly int _outputChannels;
-        private readonly int _gridPoints;
-        private readonly int _inputEntries;
-        private readonly int _outputEntries;
-        private readonly int _precision;
-        private readonly int _inputOffset;
-        private readonly int _clutOffset;
-        private readonly int _outputOffset;
-        private readonly bool _pcsIsLab;
 
-        internal LutTransform(
-            byte[] payload,
-            int inputChannels,
-            int outputChannels,
-            int gridPoints,
-            int inputEntries,
-            int outputEntries,
-            int precision,
-            int inputOffset,
-            int clutOffset,
-            int outputOffset,
-            bool pcsIsLab) {
-            _payload = payload;
-            _inputChannels = inputChannels;
-            _outputChannels = outputChannels;
-            _gridPoints = gridPoints;
-            _inputEntries = inputEntries;
-            _outputEntries = outputEntries;
-            _precision = precision;
-            _inputOffset = inputOffset;
-            _clutOffset = clutOffset;
-            _outputOffset = outputOffset;
-            _pcsIsLab = pcsIsLab;
-        }
-
-        public long RetainedByteCount => checked(96L + _payload.LongLength);
-
-        public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
-            pcsXyz = default;
-            if (components.Count < _inputChannels) return false;
-            return TryTransform(
-                components[0],
-                components[1],
-                components[2],
-                _inputChannels == 4 ? components[3] : 0D,
-                whitePoint,
-                out pcsXyz);
-        }
-
-        public bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz) {
-            pcsXyz = default;
-            if (components.Count < _inputChannels) return false;
-            return TryTransform(
-                components[0],
-                components[1],
-                components[2],
-                _inputChannels == 4 ? components[3] : 0D,
-                whitePoint,
-                out pcsXyz);
-        }
-
-        private bool TryTransform(
-            double component0,
-            double component1,
-            double component2,
-            double component3,
-            XyzValue whitePoint,
-            out XyzValue pcsXyz) {
-            double input0 = LookupInput(component0, 0);
-            double input1 = LookupInput(component1, 1);
-            double input2 = LookupInput(component2, 2);
-            double input3 = _inputChannels == 4 ? LookupInput(component3, 3) : 0D;
-            InterpolateClut(input0, input1, input2, input3, out double output0, out double output1, out double output2);
-            output0 = LookupTable(_outputOffset, _outputEntries, output0);
-            output1 = LookupTable(_outputOffset + _outputEntries * _precision, _outputEntries, output1);
-            output2 = LookupTable(_outputOffset + 2 * _outputEntries * _precision, _outputEntries, output2);
-            if (_pcsIsLab) {
-                double lightness = _precision == 1 ? output0 * 100D : output0 * (65535D / 65280D) * 100D;
-                double a = _precision == 1 ? output1 * 255D - 128D : output1 * (65535D / 256D) - 128D;
-                double b = _precision == 1 ? output2 * 255D - 128D : output2 * (65535D / 256D) - 128D;
-                OfficeColorSpaceConverter.ConvertLabToXyz(
-                    lightness,
-                    a,
-                    b,
-                    whitePoint.X,
-                    whitePoint.Y,
-                    whitePoint.Z,
-                    out double x,
-                    out double y,
-                    out double z);
-                pcsXyz = new XyzValue(x, y, z);
-            } else {
-                pcsXyz = new XyzValue(
-                    output0 * PcsXyzScale,
-                    output1 * PcsXyzScale,
-                    output2 * PcsXyzScale);
-            }
-            return true;
-        }
-
-        private double LookupInput(double component, int channel) =>
-            LookupTable(
-                _inputOffset + channel * _inputEntries * _precision,
-                _inputEntries,
-                Clamp01(component));
-
-        private double LookupTable(int offset, int entries, double value) {
-            double position = Clamp01(value) * (entries - 1);
-            int lower = (int)Math.Floor(position);
-            if (lower >= entries - 1) return ReadNormalized(offset + (entries - 1) * _precision);
-            double fraction = position - lower;
-            double left = ReadNormalized(offset + lower * _precision);
-            double right = ReadNormalized(offset + (lower + 1) * _precision);
-            return left + (right - left) * fraction;
-        }
-
-        private void InterpolateClut(
-            double input0,
-            double input1,
-            double input2,
-            double input3,
-            out double output0,
-            out double output1,
-            out double output2) {
-            GetGridPosition(input0, out int lower0, out double fraction0);
-            GetGridPosition(input1, out int lower1, out double fraction1);
-            GetGridPosition(input2, out int lower2, out double fraction2);
-            GetGridPosition(input3, out int lower3, out double fraction3);
-            output0 = 0D;
-            output1 = 0D;
-            output2 = 0D;
-            int cornerCount = 1 << _inputChannels;
-            for (int corner = 0; corner < cornerCount; corner++) {
-                double weight = 1D;
-                int gridIndex = 0;
-                for (int channel = 0; channel < _inputChannels; channel++) {
-                    bool upper = (corner & (1 << channel)) != 0;
-                    int lower = channel == 0 ? lower0 : channel == 1 ? lower1 : channel == 2 ? lower2 : lower3;
-                    double fraction = channel == 0 ? fraction0 : channel == 1 ? fraction1 : channel == 2 ? fraction2 : fraction3;
-                    weight *= upper ? fraction : 1D - fraction;
-                    gridIndex = gridIndex * _gridPoints + lower + (upper ? 1 : 0);
-                }
-                if (weight == 0D) continue;
-                int valueOffset = _clutOffset + gridIndex * _outputChannels * _precision;
-                output0 += ReadNormalized(valueOffset) * weight;
-                output1 += ReadNormalized(valueOffset + _precision) * weight;
-                output2 += ReadNormalized(valueOffset + 2 * _precision) * weight;
-            }
-        }
-
-        private void GetGridPosition(double input, out int lower, out double fraction) {
-            double position = Clamp01(input) * (_gridPoints - 1);
-            lower = Math.Min((int)Math.Floor(position), _gridPoints - 2);
-            fraction = position - lower;
-        }
-
-        private double ReadNormalized(int offset) => _precision == 1
-            ? _payload[offset] / 255D
-            : ReadUInt16(_payload, offset) / 65535D;
-    }
 
     private sealed class ToneCurve {
         internal static readonly ToneCurve Identity = new ToneCurve(0, Array.Empty<double>());

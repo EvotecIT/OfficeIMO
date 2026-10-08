@@ -6,14 +6,6 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeFontFaceCollection {
-    private OfficeFontFace? ResolveMathematicalFace(string? text, string family, OfficeFontStyle style) {
-        foreach ((OfficeFontFace face, _) in ResolveFamilyCandidates(family, OfficeFontFaceDescriptor.FromStyle(style))) {
-            bool explicitResource = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
-            if (text == null || CoversPlannedText(face, text, requireUnicodeRange: !explicitResource)) return face;
-        }
-        return null;
-    }
-
     private readonly Dictionary<string, List<OfficeFontFace>> _installedMathCffSources = new(StringComparer.Ordinal);
 
     private bool TryAddInstalledMathematicalFamily(OfficeFontFaceDescriptor requested, int maximumDecodedBytes,

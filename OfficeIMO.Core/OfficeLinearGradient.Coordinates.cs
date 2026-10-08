@@ -44,6 +44,6 @@ public sealed partial class OfficeLinearGradient {
         return CreateImported(start.X, start.Y,
             start.X + (normalX / normalSquared) / normalScale,
             start.Y + (normalY / normalSquared) / normalScale,
-            Stops);
+            Stops).WithColorInterpolation(ColorInterpolation);
     }
 }

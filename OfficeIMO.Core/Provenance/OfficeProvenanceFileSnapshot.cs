@@ -212,6 +212,12 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         }
     }
 
+    // Preserve the published workflow signature; optional audit-root checks remain in the shared implementation.
+    internal static OfficeProvenanceFileSnapshot Capture(
+        string sourcePath, long maximumBytes, CancellationToken cancellationToken) =>
+        Capture(sourcePath, maximumBytes, cancellationToken,
+            auditRootPhysicalPath: null, auditRootIdentity: null);
+
     /// <summary>Captures one input through a single bounded read and holds a shared-read lease until disposal.</summary>
     internal static OfficeProvenanceFileSnapshot Capture(
         string sourcePath,

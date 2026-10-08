@@ -50,6 +50,10 @@ internal static partial class DocumentReaderEngine {
         foreach (string field in fields) {
             data.Append(field.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(field);
         }
+        if (chunk.Location?.LogicalOrder is long order) {
+            string value = "logicalOrder:" + order.ToString(CultureInfo.InvariantCulture);
+            data.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value);
+        }
         return ComputeSha256Hex(data.ToString());
     }
 

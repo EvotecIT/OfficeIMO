@@ -5,6 +5,27 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void OfficeShadowLayerPlanner_PublishedCallerSignaturePreservesUninsetShadowCore() {
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            opacity: 0.4D,
+            blurRadius: 12D,
+            baseStrokeWidth: 0D,
+            hasFill: true,
+            hasStroke: false,
+            canExpand: true);
+
+        Assert.True(layers.Count > 1);
+        Assert.Contains(layers, layer => layer.Expansion > 0D);
+        OfficeShadowLayer core = Assert.Single(layers, layer => layer.Expansion == 0D);
+        Assert.True(core.HasFill);
+        Assert.False(core.HasStroke);
+        Assert.All(layers, layer => Assert.True(layer.Expansion >= 0D));
+        double remainingTransparency = 1D;
+        foreach (OfficeShadowLayer layer in layers) remainingTransparency *= 1D - layer.Opacity;
+        Assert.Equal(0.4D, 1D - remainingTransparency, 6);
+    }
+
+    [Fact]
     public void OfficeShadowLayerPlanner_UsesExpandedPrimitiveLayersWithoutOverdarkeningCorners() {
         OfficeShape roundedRectangle = OfficeShape.RoundedRectangle(80D, 30D, 10D);
         IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(

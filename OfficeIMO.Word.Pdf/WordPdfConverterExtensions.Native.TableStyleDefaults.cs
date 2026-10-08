@@ -15,12 +15,14 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
+            public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, string? FontFamily, bool? Bold, bool? Italic, OfficeTextDecorationStyle? UnderlineStyle, OfficeTextDecorationStyle? StrikeStyle, bool? AllCaps, W.VerticalPositionValues? Baseline, W.HighlightColorValues? Highlight, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent) {
+            public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
@@ -66,6 +68,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeTextSpacing textSpacing = default;
             double? fontSize = null;
             string? fontFamily = null;
+            NativeLatinFontFamilies fontFamilies = default;
             bool? bold = null;
             bool? italic = null;
             OfficeTextDecorationStyle? underlineStyle = null;
@@ -86,7 +89,8 @@ namespace OfficeIMO.Word.Pdf {
                 complexScript = complexScript.Merge(runProperties);
                 textSpacing = textSpacing.Merge(runProperties);
                 fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
-                fontFamily = ResolveNativeRunFontsFamily(table.Document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
+                fontFamilies = GetNativeRunFontFamilies(table.Document, runProperties?.GetFirstChild<W.RunFonts>()).Inherit(fontFamilies);
+                fontFamily = fontFamilies.Primary;
                 bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
                 italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
                 underlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>()) ?? underlineStyle;
@@ -177,7 +181,8 @@ namespace OfficeIMO.Word.Pdf {
             // so a derived whole-table font also governs inherited conditional spacing.
             var conditionalDefaults = nativeDefaults with {
                 FontSize = fontSize ?? nativeDefaults.FontSize,
-                FontFamily = fontFamily ?? nativeDefaults.FontFamily
+                FontFamily = fontFamily ?? nativeDefaults.FontFamily,
+                FontFamilies = fontFamilies.Primary != null ? fontFamilies : nativeDefaults.FontFamilies
             };
             var conditionalFontDefaults = ResolveNativeConditionalFontDefaults(styleChain, table.Document, conditionalDefaults);
             foreach (W.Style style in styleChain) {
@@ -229,7 +234,7 @@ namespace OfficeIMO.Word.Pdf {
                     baseline,
                     colorHex,
                     highlight,
-                    null) { ComplexScript = complexScript, TextSpacing = textSpacing },
+                    null) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing },
                 firstRowStyle,
                 lastRowStyle,
                 firstColumnStyle,
@@ -250,9 +255,11 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (W.Style style in styleChain) {
                     foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
                         W.RunPropertiesBaseStyle? runs = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
+                        NativeLatinFontFamilies fonts = GetNativeRunFontFamilies(document, runs?.GetFirstChild<W.RunFonts>()).Inherit(defaults.FontFamilies);
                         defaults = defaults with {
                             FontSize = GetNativeRunPropertiesBaseStyleFontSize(runs) ?? defaults.FontSize,
-                            FontFamily = ResolveNativeRunFontsFamily(document, runs?.GetFirstChild<W.RunFonts>()) ?? defaults.FontFamily
+                            FontFamily = fonts.Primary ?? defaults.FontFamily,
+                            FontFamilies = fonts
                         };
                     }
                 }
@@ -271,7 +278,8 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = MapNativeNullableCellVerticalAlign(cellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value);
 
                 W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
-                string? fontFamily = ResolveNativeRunFontsFamily(document, runProperties?.GetFirstChild<W.RunFonts>());
+                NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, runProperties?.GetFirstChild<W.RunFonts>()).Inherit(result.FontFamilies);
+                string? fontFamily = fontFamilies.Primary;
                 PdfCore.PdfColor? textColor = ParseNativeColor(runProperties?.GetFirstChild<W.Color>()?.Val?.Value);
                 double? fontSize = GetNativeRunPropertiesBaseStyleFontSize(runProperties);
                 bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
@@ -346,7 +354,8 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphAlignment ?? result.ParagraphAlignment,
                     paragraphLeftIndent ?? result.ParagraphLeftIndent,
                     paragraphRightIndent ?? result.ParagraphRightIndent,
-                    paragraphFirstLineIndent ?? result.ParagraphFirstLineIndent) {
+                paragraphFirstLineIndent ?? result.ParagraphFirstLineIndent) {
+                    FontFamilies = fontFamilies,
                     ComplexScript = result.ComplexScript.Merge(runProperties),
                     TextSpacing = result.TextSpacing.Merge(runProperties),
                     LineSpacing = ReadNativeLineSpacing(spacing).Inherit(result.LineSpacing),

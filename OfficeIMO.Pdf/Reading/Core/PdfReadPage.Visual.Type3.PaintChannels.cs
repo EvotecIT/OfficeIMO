@@ -406,7 +406,10 @@ public sealed partial class PdfReadPage {
             _limits.MaxContentOperations,
             operation => {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (operation.HasInvalidOperands || operation.Name is "BT" or "Do" or "BI") {
+                // Gradient paint cannot prove an entirely black drawing. In
+                // particular, do not rasterize function shading just for this
+                // optional visibility shortcut; the normal mask path paints it.
+                if (operation.HasInvalidOperands || operation.Name is "BT" or "Do" or "BI" or "sh") {
                     vectorOnly = false;
                     return false;
                 }

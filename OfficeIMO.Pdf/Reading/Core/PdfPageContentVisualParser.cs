@@ -133,6 +133,7 @@ internal static partial class PdfPageContentVisualParser {
         double height,
         double pageHeight) {
         if (width <= 0D || height <= 0D) return false;
+        if (shading.FunctionShading != null) return IsRepresentableRadialShadingTransform(transform);
         (double X, double Y) start = transform.Transform(shading.X0, shading.Y0);
         (double X, double Y) end = transform.Transform(shading.X1, shading.Y1);
         if (!IsFiniteNumber(start.X) || !IsFiniteNumber(start.Y) ||
@@ -200,16 +201,6 @@ internal static partial class PdfPageContentVisualParser {
         return true;
     }
 
-    private static bool IsRepresentableRadialShadingTransform(Matrix2D transform) {
-        double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
-        double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
-        if (firstLengthSquared <= 0D || secondLengthSquared <= 0D ||
-            double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
-            double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
-        double dot = (transform.A * transform.C) + (transform.B * transform.D);
-        if (firstLengthSquared == secondLengthSquared && dot == 0D) return true;
-        return transform.B == 0D && transform.C == 0D;
-    }
 
     private static double ResolveStrokeWidth(double value) {
         if (value < 0D) {
@@ -1147,6 +1138,18 @@ internal static partial class PdfPageContentVisualParser {
                 return;
             }
 
+            if (shading.FunctionShading is PdfFunctionShading function) {
+                if (!IsRepresentableRadialShadingTransform(_state.Transform)) {
+                    _unsupportedShadingTransformVisitor?.Invoke();
+                    return;
+                }
+                var transform = new OfficeTransform(_state.Transform.A, _state.Transform.B, _state.Transform.C,
+                    _state.Transform.D, _state.Transform.E, _state.Transform.F)
+                    .Then(new OfficeTransform(1D, 0D, 0D, -1D, 0D, _pageHeight));
+                AddPrimitive(PdfPageVisualPrimitive.FunctionRectangle(x, y, width, height,
+                    new PdfPageFunctionPaint(function, transform), _state.FillOpacity, _state.ClipPath, paintOrder));
+                return;
+            }
             CreateShadingGradients(shading, x, y, width, height, Matrix2D.Identity, out OfficeLinearGradient? linearGradient, out OfficeRadialGradient? radialGradient);
             if (radialGradient != null) {
                 AddPrimitive(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, radialGradient, _state.FillOpacity, _state.ClipPath, paintOrder));

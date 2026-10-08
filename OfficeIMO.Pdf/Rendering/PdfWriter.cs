@@ -232,6 +232,8 @@ internal static partial class PdfWriter {
             return id;
         }
 
+        var pendingSearchableFonts = new List<(int SourceId, int Id, SearchableFontBank Bank)>();
+
         void MaterializePendingFontObjects() {
             foreach (var pendingFont in pendingFontObjects) {
                 if (pendingFont.Options.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -259,6 +261,7 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(fontProgram, descriptorId, cidToGlyphMapId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.FontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
@@ -291,11 +294,13 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(cffFontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descriptorId: descriptorId, descendantId: descendantFontId);
                 } else {
                     int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
                         : 0;
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(pendingFont.Font, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, pendingFont.Font.ToBaseFontName());
                 }
             }
 
@@ -567,6 +572,12 @@ internal static partial class PdfWriter {
                 fontResources.Add((kvp.Value, EnsureNamedFont(kvp.Key, pageOpts)));
             }
 
+            foreach (var bank in page.SearchableFonts.Banks) {
+                int id = ReserveObject(objects);
+                pendingSearchableFonts.Add((EnsureFont(normalFont, pageOpts), id, bank));
+                fontResources.Add((bank.Name, id));
+            }
+
             var graphicsStates = new List<(string Name, int Id)>();
             if (page.GraphicsStates.Count > 0) {
                 foreach (var state in page.GraphicsStates) {
@@ -575,13 +586,14 @@ internal static partial class PdfWriter {
                 }
             }
 
+            var xobjects = new List<(string Name, int Id)>();
             var shadings = new List<(string Name, int Id)>();
             if (page.Shadings.Count > 0) {
                 PdfPrintColorTransform? shadingColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                     ? GetPrintColorTransform(pageOpts)
                     : null;
                 foreach (var shading in page.Shadings) {
-                    string shadingObject = shading.IsRadial
+                    string shadingObject = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
                         ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
                             shading.X0,
                             shading.Y0,
@@ -590,17 +602,21 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.R1,
                             shading.Stops,
-                            shadingColorTransform)
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation)
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
                             shading.Stops,
-                            shadingColorTransform);
-                    int shadingId = AddObject(objects, shadingObject);
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
+                    int shadingId;
+                    if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
+                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, shadingColorTransform);
+                    } else shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);
+                    AddRadialPadResources(objects, shading, shadingId, xobjects, shadingColorTransform, cancellationToken);
                 }
             }
 
@@ -616,7 +632,6 @@ internal static partial class PdfWriter {
                 AssignFigureMarkedContentIds(page);
             }
 
-            var xobjects = new List<(string Name, int Id)>();
             if (page.Images.Count > 0) {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
@@ -643,6 +658,10 @@ internal static partial class PdfWriter {
                         }
                     }
 
+                    if (img.Interpolate) {
+                        imageStream.DictionarySuffix += " /Interpolate true";
+                        if (imageStream.SoftMask != null) imageStream.SoftMask.DictionarySuffix += " /Interpolate true";
+                    }
                     int imgId = EnsureImageXObject(imageStream);
                     if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
                         name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -659,6 +678,12 @@ internal static partial class PdfWriter {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
+                    if (effect.AlphaMask != null) {
+                        int maskStateId = AddObject(objects, "<< /Type /ExtGState /ca 1 /CA 1 /BM /Normal /SMask << /S /Alpha /G " +
+                            effect.AlphaMask.ObjectId.ToString(CultureInfo.InvariantCulture) + " 0 R >> >>");
+                        effect.MaskGraphicsStateName = "GM" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
+                        graphicsStates.Add(("/" + effect.MaskGraphicsStateName, maskStateId));
+                    }
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
                     PdfPrintColorTransform? effectColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
@@ -1370,8 +1395,9 @@ internal static partial class PdfWriter {
             var invocation = new StringBuilder();
             var stream = new ContentStreamBuilder(invocation).SaveState();
             if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);
-            stream.TransformMatrix(effect.Transform)
-                .XObject(effect.Name)
+            stream.TransformMatrix(effect.Transform);
+            if (effect.MaskGraphicsStateName != null) stream.GraphicsState(effect.MaskGraphicsStateName);
+            stream.XObject(effect.Name)
                 .RestoreState();
             result = result.Replace(effect.Token, invocation.ToString());
         }
@@ -1963,7 +1989,7 @@ internal static partial class PdfWriter {
                 Level = level,
                 PageIndex = pageIndex,
                 Title = bookmark.Title,
-                Y = bookmark.Y,
+                Y = bookmark.Y, X = bookmark.X, Uri = bookmark.Uri,
                 OutlineState = bookmark.OutlineState,
                 Parent = parent
             };
@@ -2001,7 +2027,7 @@ internal static partial class PdfWriter {
                 lastChildId,
                 descendantCount,
                 pageId,
-                node.Y));
+                node.Y, node.X, node.Uri));
         }
 
         ReplaceObject(objects, rootId, PdfOutlineDictionaryBuilder.BuildOutlineRoot(

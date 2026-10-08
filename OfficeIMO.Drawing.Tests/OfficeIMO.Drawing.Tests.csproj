@@ -16,6 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\JpegXrTestFixture.cs" Link="JpegXrTestFixture.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
@@ -35,6 +37,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="TestAssets\JpegXr\*.jxr;TestAssets\JpegXr\*.rgba;TestAssets\JpegXr\manifest.csv;TestAssets\JpegXr\*.cmyk;TestAssets\JpegXr\cmyk-manifest.csv;TestAssets\JpegXr\*.nchannel;TestAssets\JpegXr\nchannel-manifest.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\TiffUnsigned16\*.tif;TestAssets\TiffUnsigned16\*.rgba;TestAssets\TiffUnsigned16\manifest.csv" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
@@ -57,7 +61,7 @@
     <None Include="TestAssets\RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\IccColorCorpus\*.icc" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="TestAssets\IccColorCorpus\reference-srgb.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestAssets\IccColorCorpus\reference-srgb.csv;TestAssets\IccColorCorpus\reference-nchannel.csv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ContentSafety\svg-concealed-adversarial.svg" Link="TestAssets\svg-concealed-adversarial.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -119,4 +123,42 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.rgba" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.yuv16" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffFloating/*.tif;TestAssets/TiffFloating/*.rgba;TestAssets/TiffFloating/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffPacked/*.tif;TestAssets/TiffPacked/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffFax/*.tif;TestAssets/TiffFax/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpeg/*.tif;TestAssets/TiffJpeg/*.raw;TestAssets/TiffJpeg/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegExtended/*.jpg;TestAssets/TiffJpegExtended/*.tif;TestAssets/TiffJpegExtended/*.raw;TestAssets/TiffJpegExtended/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegPlanar/*.tif;TestAssets/TiffJpegPlanar/*.rgb;TestAssets/TiffJpegPlanar/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegCosited/*.tif;TestAssets/TiffJpegCosited/*.rgb;TestAssets/TiffJpegCosited/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegAlpha/*.tif;TestAssets/TiffJpegAlpha/*.rgba;TestAssets/TiffJpegAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLowAlpha/*.tif;TestAssets/TiffJpegLowAlpha/*.rgba;TestAssets/TiffJpegLowAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffFaxUncompressed/*.tif;TestAssets/TiffFaxUncompressed/*.rgb;TestAssets/TiffFaxUncompressed/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffExtraSamples/*.tif;TestAssets/TiffExtraSamples/*.rgba;TestAssets/TiffExtraSamples/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLossless/*.tif;TestAssets/TiffJpegLossless/*.rgba;TestAssets/TiffJpegLossless/*.jpg;TestAssets/TiffJpegLossless/*.raw;TestAssets/TiffJpegLossless/manifest.csv;TestAssets/TiffJpegLossless/edges/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLossless16/*.tif;TestAssets/TiffJpegLossless16/*.rgba;TestAssets/TiffJpegLossless16/*.jpg;TestAssets/TiffJpegLossless16/*.raw;TestAssets/TiffJpegLossless16/manifest.csv;TestAssets/TiffJpegLossless16/edges/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegChroma16/*.tif;TestAssets/TiffJpegChroma16/*.rgba;TestAssets/TiffJpegChroma16/*.jpg;TestAssets/TiffJpegChroma16/*.raw;TestAssets/TiffJpegChroma16/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLegacy/**/*.tif;TestAssets/TiffJpegLegacy/**/*.tiff;TestAssets/TiffJpegLegacy/**/*.png;TestAssets/TiffJpegLegacy/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/JpegLosslessPrecision/*.jpg;TestAssets/JpegLosslessPrecision/*.raw;TestAssets/JpegLosslessPrecision/*.rgba;TestAssets/JpegLosslessPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/JpegDct12/*.jpg;TestAssets/JpegDct12/*.rgba;TestAssets/JpegDct12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/Tiff12/*.tif;TestAssets/Tiff12/*.raw;TestAssets/Tiff12/*.srgb;TestAssets/Tiff12/manifest.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLossless12/*.tif;TestAssets/TiffJpegLossless12/*.rgba;TestAssets/TiffJpegLossless12/*.jpg;TestAssets/TiffJpegLossless12/*.raw;TestAssets/TiffJpegLossless12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Update="TestAssets/JpegArithmetic/*.jpg;TestAssets/JpegArithmetic/*.tif;TestAssets/JpegArithmetic/*.rgba;TestAssets/JpegArithmetic/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Update="TestAssets/JpegArithmeticProgressive/*.jpg;TestAssets/JpegArithmeticProgressive/*.rgba;TestAssets/JpegArithmeticProgressive/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Update="TestAssets/JpegArithmeticLossless/*.jpg;TestAssets/JpegArithmeticLossless/*.csv;TestAssets/JpegArithmeticLossless/*.rgba" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Update="TestAssets/TiffJpegArithmeticLossless/*.tif;TestAssets/TiffJpegArithmeticLossless/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Update="TestAssets/JpegArithmeticColor/*.jpg;TestAssets/JpegArithmeticColor/*.cmyk16;TestAssets/JpegArithmeticColor/*.srgb;TestAssets/JpegArithmeticColor/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticAlpha/*.tif;TestAssets/TiffJpegArithmeticAlpha/*.rgba;TestAssets/TiffJpegArithmeticAlpha/*.icc-rgba;TestAssets/TiffJpegArithmeticAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLowAlpha/*.tif;TestAssets/TiffJpegArithmeticLowAlpha/*.rgba;TestAssets/TiffJpegArithmeticLowAlpha/*.icc-rgba;TestAssets/TiffJpegArithmeticLowAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmetic12/*.tif;TestAssets/TiffJpegArithmetic12/*.rgba;TestAssets/TiffJpegArithmetic12/*.icc-rgba;TestAssets/TiffJpegArithmetic12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLosslessColor/*.tif;TestAssets/TiffJpegArithmeticLosslessColor/*.rgba;TestAssets/TiffJpegArithmeticLosslessColor/*.icc-rgba;TestAssets/TiffJpegArithmeticLosslessColor/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLosslessChroma/*.tif;TestAssets/TiffJpegArithmeticLosslessChroma/*.rgba;TestAssets/TiffJpegArithmeticLosslessChroma/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticExtra/*.tif;TestAssets/TiffJpegArithmeticExtra/*.rgba;TestAssets/TiffJpegArithmeticExtra/*.icc-rgba;TestAssets/TiffJpegArithmeticExtra/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticMultiscan/*.tif;TestAssets/TiffJpegArithmeticMultiscan/*.rgba;TestAssets/TiffJpegArithmeticMultiscan/*.icc-rgba;TestAssets/TiffJpegArithmeticMultiscan/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLosslessPrecision/*.tif;TestAssets/TiffJpegLosslessPrecision/*.rgba;TestAssets/TiffJpegLosslessPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegYccPrecision/*.tif;TestAssets/TiffJpegYccPrecision/*.rgba;TestAssets/TiffJpegYccPrecision/*.icc-rgba;TestAssets/TiffJpegYccPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegLosslessAlphaPrecision/*.tif;TestAssets/TiffJpegLosslessAlphaPrecision/*.rgba;TestAssets/TiffJpegLosslessAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegLosslessAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegChromaAlpha/*.tif;TestAssets/TiffJpegChromaAlpha/*.rgba;TestAssets/TiffJpegChromaAlpha/*.icc-rgba;TestAssets/TiffJpegChromaAlpha/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmeticAlphaPrecision/*.tif;TestAssets/TiffJpegArithmeticAlphaPrecision/*.rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/*.icc-rgba;TestAssets/TiffJpegArithmeticAlphaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegArithmetic4x4/*.tif;TestAssets/TiffJpegArithmetic4x4/*.rgba;TestAssets/TiffJpegArithmetic4x4/*.icc-rgba;TestAssets/TiffJpegArithmetic4x4/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="TestAssets/TiffJpegChromaPrecision/*.tif;TestAssets/TiffJpegChromaPrecision/*.rgba;TestAssets/TiffJpegChromaPrecision/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

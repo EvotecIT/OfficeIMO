@@ -1,0 +1,1019 @@
+# XPS/OpenXPS support
+
+The native package lifecycle and the rendering profile are separate contracts.
+Preserving an unsupported native element does not mean that it can be rendered.
+
+| Operation | Supported contract | Boundary |
+| --- | --- | --- |
+| Read | Microsoft XPS and ECMA-388 OpenXPS; OPC relationships/content types; multiple fixed documents; ordered page references; UTF-8/UTF-16 XML; bounded interleaved OPC piece assembly | Materialized loading, not progressive streaming; protected packages are not supported |
+| Create | Both dialects; pages, vector paths, embedded fonts, Unicode glyph runs, PNG/JPEG/TIFF and supported JPEG XR image placement | Typed creation is a bounded fixed-page profile, not a complete schema object model |
+| Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement; owning APIs for relationship-owned DocumentStructure and StoryFragments; atomic combined page/fragment edits | Removed parts/resources remain preserved; story references to removed pages and resulting empty stories are removed; dangling known name/story addresses reject edits; unknown semantic extensions remain opaque |
+| Save | Original dialect; native page content and opaque parts retained; required-resource relationships emitted, including profiles and transitive dictionary resources; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; interleaved storage is normalized to atomic parts; no dialect conversion; signed packages cannot be rewritten |
+| Text extraction | Page-element UnicodeString runs in markup order, excluding resources and brush visuals | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
+| Shared model and Reader | Native logical-order Unicode blocks with physical page citations; recursive structure, list markers and table spans in the shared model; authored Path/Canvas descriptions as payload-free assets; bounded rectangular tables and optional strict SVG previews; modular `.xps`/`.oxps` Reader registration | Unreferenced text follows native stories in page/markup order; missing structure and unavailable text are diagnosed; overlapping text ownership rejects projection; preview payload is bounded to 512 pages/128 MiB independently of description assets |
+| Native logical structure | Relationship-owned StoryFragments; named page/Canvas/Path/Glyphs references with authored Path/Canvas accessibility descriptions; DocumentStructure story-reference order; continued paragraphs, sections, lists, figures and tables; StoryBreak boundaries; list markers and cell spans | No inferred structure on unstructured pages; unknown extensions and unresolved content produce diagnostics; missing Unicode is not reconstructed; one million work units and 16 million resolved text/description characters bound each read |
+| Paths | Abbreviated geometry, fill rules, explicit figures/segments with fill/stroke suppression, dashes with separate endpoint/dash caps, triangle caps, clipped miters and the degenerate-segment limit, matrix transforms and clipping | Extended strokes use bounded adaptive vector outlines; native Windows confirmation remains for degenerate and mixed-segment cap rules where the independent engines disagree with the specification |
+| Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
+| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF/JPEG XR, native integer sRGB/gray defaults for non-ICC image descriptions, and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, unsupported colorimetry such as non-sRGB PNG cICP, unsupported TIFF and JPEG XR encodings are diagnosed |
+| Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
+| Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; native Pad supports boundary/exterior point foci and endpoint paint outside the cone; bounded interior, boundary and exterior radial Repeat/Reflect expansion retains vector PDF shading | PDF uses function-based vector shading when finite expansion exceeds 256 stops or has no finite cycle bound; shared Drawing/raster/SVG retains explicit spread outside that bound; direct SVG preserves Pad and boundary/exterior Repeat/Reflect fields, including unbounded tangent regions; native consumer differences remain below |
+| SVG | Self-contained images and glyph outlines; authored Path/Canvas descriptions retained as title/desc metadata; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
+| Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
+| PDF | Optional thin bridge retaining vector paint, dimensions, native alpha masks and searchable Unicode clusters; native paragraph/list/table/figure tags with authored figure descriptions, continued cross-page containers, declared story order, list labels and cell spans; header/footer artifacts | Unstructured pages use markup order; unassociated fragments use page order; unknown/unresolved/overlapping semantics reject strict mapping; an explicit paint-only mode retains markup-order text; no inferred figure descriptions, PDF/UA qualification, print-ticket or signature migration; clipped/transparent source text remains searchable |
+| Workflows | Native `xps-pdf` route for both extensions; single and batch conversion, untagged-source assembly and preview; bounded PDF stream serialization, reopen validation and staged publication; existing PDF encryption/compression settings | `Faithful` profile only; strict semantic mapping unless explicitly disabled; tagged PDF merging is blocked by the PDF owner; native and workflow input ceilings both apply; a successful reopen does not establish whole-document visual equivalence |
+| Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
+
+ICC ContextColor uses Core's supported RGB, gray, CMYK and N-channel profiles,
+converting to sRGB with media-relative colorimetric intent and no black-point
+compensation. Alpha and channel values are clamped to the native range. Profile
+parsing has a 4 MiB per-profile ceiling and a 64 MiB aggregate parser allowance.
+PrintTicket color overrides are not interpreted. Image brushes apply associated
+`ColorConvertedBitmap` profiles in preference to embedded profiles. Core decodes
+RGB and gray PNG/JPEG/TIFF, including PNG/TIFF alpha, and CMYK JPEG/TIFF device
+channels before ICC conversion. The first image is limited to four million pixels;
+physical dimensions are retained. Malformed, oversized or incompatible profiles
+and unsupported non-ICC color metadata are diagnosed. A usable associated profile
+takes precedence; an unusable or channel-incompatible associated profile falls back
+to a usable embedded profile. If no usable profile remains, strict conversion
+reports an error. Unprofiled CMYK JPEG/TIFF/JPEG XR images require a usable ICC profile;
+OfficeIMO does not substitute an approximate RGB conversion or a default SWOP
+profile. Profile and decode budgets still apply before fallback.
+
+Without ICC, supported integer gray/RGB images use the native sRGB sample rules.
+PNG gamma/chromaticity and JPEG/TIFF non-ICC calibration descriptions do not
+override these defaults. The adapter normalizes these resources so subsequent
+SVG/PDF consumers cannot reinterpret the descriptions. TIFF uses the first IFD,
+ignores the display Orientation tag, and ignores an extra sample declared as
+unspecified. The managed TIFF subset accepts unsigned eight/twelve/sixteen-bit and finite
+floating sixteen/twenty-four/thirty-two/sixty-four-bit gray/RGB/CMYK components,
+packed one/four-bit grayscale samples, and one/four/eight-bit palette indices in either byte order. Chunky/planar strips
+and tiles use uncompressed, LZW, PackBits or Deflate payloads, including word-based
+horizontal prediction and floating-point prediction for LZW/Deflate. Sample and associated-alpha precision is retained through
+ICC conversion before eight-bit RGBA projection. Packed rows retain byte alignment, and bilevel images may omit BitsPerSample.
+Packed samples require no predictor. Bilevel CCITT decoding supports Modified
+Huffman, Group 3 one/two-dimensional coding with optional fill bits, and Group 4,
+including both bit orders and strip/tile layouts. Unsigned RowsPerStrip values
+above the page height, including 0xFFFFFFFF, describe a single strip. T.4/T.6 uncompressed fax extension mode supports literal
+pixels, five-zero stuffing and exit-color resumption within a row. Baseline eight-bit and extended sequential eight/twelve-bit JPEG (compression 7) accept shared
+or local quantization/Huffman tables, strips/tiles, gray/RGB/CMYK chunky or separate
+planes, and chunky or separate centered/cosited YCbCr. TIFF tags control color interpretation and
+component order; JPEG application markers cannot override them. Extra samples support unspecified data and one declared associated or
+unassociated alpha channel at any extra-channel position for gray, RGB, CMYK and
+YCbCr; multiple declared alpha channels are rejected. Subsampled YCbCr keeps alpha at luma resolution. Chunky JPEG frames with more than four components use separate scans;
+raw component decoding retains frame order without inventing a standalone color space. Legacy compression 6 accepts complete interchange JPEGs, self-contained striles,
+and one-to-four-component raw scans reconstructed from TIFF quantization/Huffman
+table pointers. JPEGProc 1 supports eight/twelve-bit sequential DCT; JPEGProc 14 supports
+eight/twelve/sixteen-bit Huffman lossless scans. Partial interchange headers require the
+TIFF table tags. Raw chunky lossless components require matching predictors and
+point transforms. Legacy integer ReferenceBlackWhite values are accepted alongside
+rationals. Compression 7 also accepts eight/twelve-bit sequential arithmetic JPEG with local conditioning tables and restart intervals; compression 6 retains its Huffman process contract. Compression 7 accepts two-through-sixteen-bit Huffman and arithmetic lossless JPEG. Both lossless processes accept all seven predictors, point transforms, row-aligned restart intervals and separate scans. Point transforms restore discarded low bits as zero. Progressive/hierarchical JPEG is rejected by the TIFF contract. Mixed component widths, reversed
+bit order outside CCITT, sixteen-bit palette indices, signed and undefined
+sample encodings are rejected. Floating samples are normalized device components;
+the decoder preserves their precision for ICC conversion and unassociation, then
+clips to SDR output. It does not infer linear scRGB or rescale scientific ranges,
+and non-finite color or alpha samples fail content validation and decoding.
+Unspecified extra channels and tile padding remain ignored.
+
+Linear and radial gradient brushes require `MappingMode="Absolute"`, including
+brushes supplied through a resource dictionary. Strict conversion diagnoses
+missing or relative mapping modes instead of inventing a coordinate convention.
+This rendering check does not change opaque native package preservation.
+
+## Qualification
+
+Integer JPEG/TIFF default qualification includes eight independently encoded
+synthetic image fixtures in both dialects: RGB, gray, alpha, calibration tags,
+TIFF orientation, an embedded profile and an unspecified extra sample. Managed
+pixels and independently rendered SVG/PDF interior samples agree within three channel
+values. GhostXPS agrees for fourteen cases, including the correct raw TIFF viewbox;
+it changes sample order for unspecified extra channels in two cases. The differing reference output is retained.
+The bounded Windows WPF comparison below qualifies seven default-image inputs;
+the unspecified-extra-channel TIFF disagreement and photographic producer coverage remain open.
+
+### Bounded Windows WPF comparison
+
+The [opt-in Windows runner](../Build/XpsWindowsEvidence/README.md) compares native
+Microsoft WPF rendering with managed XPS rendering and the rendered PDF projection
+at 96 dpi. Its [recorded run](../Build/XpsWindowsEvidence/Evidence/2026-10-07/report.json)
+contains input/output hashes, assembly versions and hashes, source context,
+diagnostics and both full-image and stable-interior error measurements.
+
+The 29 authored inputs cover eleven stroke cases, ten radial fields and eight
+integer image defaults. Six stroke cases have identical stable-interior pixels;
+all ten radial cases differ by at most 2/255 for managed rendering and 3/255 for
+the PDF projection in stable interiors. Seven image cases differ by at most
+1/255 throughout the image. These measurements exclude native edge neighborhoods
+from the interior result; they do not establish full-image pixel equivalence.
+
+Returning endpoints, zero-length triangle/square dashes, mixed caps and transparent
+cap overlap differ from WPF. The TIFF with an unspecified extra sample also
+differs: OfficeIMO follows the format's ignored-channel rule, while the native
+consumer produces different colors. Boundary Repeat/Reflect PDF previews show
+larger whole-image differences in the high-frequency tangent region despite
+their close stable-interior agreement. These disagreements remain qualification
+limits, with representative renders retained by the runner.
+
+A separately generated Microsoft WPF package contains two fixed documents and
+three pages, with embedded Carlito glyphs and an absolute radial brush. All pages
+retain their Unicode text through extraction and searchable PDF conversion.
+OfficeIMO save/reopen preserves the sequence and identical WPF pixels; loaded
+path edits render in both WPF and OfficeIMO. Its managed/PDF stable-interior
+differences are at most 1/255. This is independent producer and native-consumer
+evidence for that bounded Microsoft XPS input. It does not qualify OpenXPS,
+interleaved OPC, StoryFragments, printing, XPS Viewer or complete Windows
+consumer conformance.
+
+JPEG-TIFF qualification covers 160 independently encoded and decoded LibTIFF
+fixtures: gray/RGB/CMYK/YCbCr, byte order, strips/tiles, separate gray/RGB/CMYK planes,
+centered YCbCr 1-by-1 and 2-by-2 subsampling, and local/shared table combinations.
+All 106,400 Core pixel comparisons agree with the independent decoder within
+3/255 per channel. Both dialects produce 320 documents and 212,800 pixel-center
+probes per route; MuPDF SVG/PDF output differs from managed rendering by at most
+2/255. CMYK XPS resources use an explicit ICC profile. GhostXPS exits successfully
+but differs by up to 255 and leaves some planar/tiled cases blank. Those consumer
+differences and native Windows qualification remain open.
+
+Separate-plane YCbCr qualification adds 48 independently encoded and decoded
+LibTIFF fixtures with 1/1, 2/1, 2/2, 4/1, 4/2 and 4/4 chroma sampling. Reduced JPEG
+frame dimensions, odd image edges, byte order, strips/tiles and shared/local tables
+are covered. All 112,560 Core pixel comparisons agree within 3/255 with independent
+plane decoding and Pillow reconstruction. Both dialects produce 96 documents and
+225,120 pixel-center probes per route; MuPDF SVG/PDF output differs from managed
+rendering by at most 2/255. GhostXPS still differs by up to 255, including blank
+planar/tiled output. Native Windows acceptance remains unqualified. Shared JPEG
+tables ignore DAC/DRI control markers without carrying their state into segments.
+
+Cosited YCbCr qualification adds 88 LibTIFF fixtures and two centered chunky
+partial-tile regressions spanning chunky/separate
+planes, byte order, strips/tiles, local/shared tables and odd/even image edges.
+Reconstruction clamps chroma to the visible image extent before interpolation;
+contrasting tile padding cannot supply additional interpolation samples.
+Independent libjpeg-turbo raw component decoding and Pillow reconstruction agree
+with all 215,788 Core pixel comparisons within 3/255. Both dialects produce 180
+documents and 431,576 pixel-center probes per route; MuPDF SVG/PDF output differs
+from managed rendering by at most 2/255. GhostXPS differs by up to 255, including
+blank tiled/separate-plane cases. Native Windows acceptance remains unqualified.
+
+Extended sequential JPEG-TIFF qualification covers 160 independent LibTIFF
+fixtures with SOF1 frames and 16-bit quantization tables. The baseline corpus's
+color, storage, byte-order and shared/local-table matrix is repeated at JPEG
+quality 1. All 106,400 Core pixels agree with independent decoding within 3/255.
+Segments must use the same JPEG process; the shared JPEG owner handles wide
+quantization without overflowing its fixed-point transform. Both XPS dialects
+produce 320 documents with 212,800 pixel-center probes per route; independent
+MuPDF SVG/PDF output differs from managed rendering by at most 2/255. GhostXPS
+still differs by up to 255, including blank planar/tiled output. Native Windows
+acceptance and progressive JPEG-in-TIFF remain unqualified.
+
+Arithmetic lossless TIFF qualification covers [168 LibTIFF containers](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLossless/README.md)
+with eight/twelve/sixteen-bit grayscale/RGB, both byte orders, all seven predictors,
+point transforms and row-aligned restarts. Single chunky strips retain native
+sample words through the shared JPEG decoder and TIFF conversion. All 35,112 RGBA
+pixels match the source-sample contract exactly. The native JPEG producer's
+corrections and calibration are documented in the adjacent standalone corpus.
+LibTIFF writes the containers but cannot decode these payloads in the tested build;
+full-file native TIFF acceptance remains unqualified. The 336 XPS/OpenXPS exports
+cover 70,224 probes per route, with MuPDF PDF/SVG differences at most 2/255 and no
+warnings. GhostXPS opens all packages but can render blank images. Color/alpha and
+planar/tiled extensions are qualified below; native Windows acceptance remains open.
+
+Huffman lossless JPEG qualification covers [224 LibTIFF/libjpeg-turbo fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/README.md)
+with eight-bit gray/RGB/CMYK samples, gray/RGB unassociated alpha, all seven
+predictors, point transforms 0/1/3/7, separate/interleaved scans, row-aligned
+restarts, both byte orders and chunky/planar strips/tiles. All 148,960 TIFF RGBA
+pixels and 182,784 standalone JPEG component samples agree exactly with the
+independent decoder. Full-file LibTIFF decoding also agrees exactly for all 224
+TIFFs. Both dialects produce 896 light/dark exports and 595,840 pixel-center probes
+per route. MuPDF differs by at most 4/255 for PDF and 2/255 for SVG. GhostXPS opens
+all exports but differs by up to 255/255, including blank output. Native Windows
+acceptance remains open. Point transforms above zero discard source low bits;
+exact decoder agreement does not restore those discarded bits. Sixteen
+specification-authored subsampled lossless JPEG cases, independently decoded by
+libjpeg-turbo, cover edge interpolation with even/odd dimensions and separate or
+interleaved scans. Twelve compatible TIFF wrappers produce 48 XPS/OpenXPS
+light/dark exports; MuPDF PDF/SVG pixels agree exactly with managed rendering.
+GhostXPS still differs by up to 128/255. These edge cases supply independent-decoder
+evidence, not an independent producer corpus.
+
+Sixteen-bit Huffman lossless JPEG preserves native words through TIFF alpha
+unassociation, YCbCr reconstruction and ICC conversion. The
+[280-fixture corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/README.md)
+covers all seven predictors, point transforms 0/1/8/15, both byte orders,
+chunky/planar strips/tiles, gray/RGB/CMYK/YCbCr and low associated/unassociated
+alpha. All 239,904 independently decoded JPEG component samples and 186,200 TIFF
+RGBA pixels agree exactly. ICC output agrees with corresponding uncompressed
+sixteen-bit reference TIFFs. LibTIFF 4.7.2 rejects the compressed sixteen-bit
+streams as an unsupported JPEG precision, so full-file independent TIFF decoding
+remains unqualified. Sixteen specification-authored subsampled JPEG edge cases
+also agree with libjpeg-turbo decoding; twelve have compatible TIFF wrappers.
+The [varying-color corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChroma16/README.md)
+adds 48 specification-authored TIFFs with 2×1/2×2/4×2 subsampling, centered/cosited
+positioning, both byte orders, chunky/separate planes and partial strips/tiles.
+Libjpeg-turbo verifies native samples; Pillow floating-point interpolation provides
+an independent chroma reference. All 11,934 retained JPEG component samples per
+quality mode and 4,848 TIFF pixels agree exactly. This qualifies reconstruction
+against independent decode/interpolation operations, not independent full-file
+TIFF consumption or an independent producer. The 96 XPS/OpenXPS exports cover
+9,696 pixel-center probes per route; MuPDF PDF/SVG output differs by at most
+2/255. GhostXPS opens every file but still differs by up to 255/255, including
+blank output.
+Standalone JPEG output projects components to the public eight-bit raster buffer;
+TIFF retains native words until its color and alpha operations are complete. Both dialects
+produce 1,120 light/dark exports with 744,800 pixel-center probes per route.
+Independent MuPDF output differs by at most 4/255 for PDF and 2/255 for SVG;
+GhostXPS opens every export without a process failure but differs by up to
+255/255, including blank output. These comparisons do not establish native
+Windows acceptance.
+
+Twelve-bit TIFF retains native samples through color conversion and alpha
+unassociation for packed uncompressed/LZW/Deflate/PackBits data and extended
+sequential JPEG. The [228-file independent corpus](../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/README.md)
+covers both byte orders, chunky/planar strips/tiles, white/black grayscale, RGB,
+associated/straight RGBA, CMYK and centered 2×2 YCbCr JPEG. Packed pixels agree exactly
+with LibTIFF-derived samples; JPEG pixels agree with libjpeg-turbo within 3/255.
+LibTIFF full-file samples agree for 212 cases; 16 odd-width JPEG files expose its
+omitted final-sample packing behavior and use direct JPEG references instead.
+The 376 XPS/OpenXPS exports provide 250,040 pixel-center probes per route. MuPDF
+agrees within 4/255 for PDF and 2/255 for SVG without warnings. GhostXPS opens
+all exports but differs by up to 255/255, including blank output. Forty additional CMYK files cover packed and JPEG payloads with the existing
+explicit CMYK profile; LittleCMS double-input references agree within 3/255.
+This qualifies that profile, not a default SWOP profile. Wider legacy layouts
+and native Windows acceptance remain independently unqualified. Packed
+twelve-bit data requires Predictor 1.
+
+Twelve-bit Huffman lossless TIFF qualification includes a
+[280-fixture corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless12/README.md)
+covering all seven predictors, point transforms 0/1/6/11, restarts,
+separate/interleaved scans, both byte orders, chunky/planar strips/tiles,
+gray/RGB/CMYK/YCbCr and associated/straight alpha. All 239,904 JPEG component
+words and 186,200 TIFF RGBA pixels agree exactly with independent sample decoding
+and the declared color equations. ICC output agrees within 1/255 with reference
+TIFFs that rescale native samples to sixteen bits. Full-file LibTIFF decoding
+matches 182 files; 70 expose its odd-row final-sample omission, and 28 chunky
+YCbCr-alpha files are rejected at container sizing. These remain independent
+full-file decoder gaps despite the qualified segment and managed TIFF paths.
+The lossless and CMYK additions produce 1,280 light/dark XPS/OpenXPS exports
+with 851,200 pixel-center probes per route. MuPDF differs by at most 5/255 for
+PDF and 2/255 for SVG, without warnings. GhostXPS exits with signal 11 on 192
+CMYK exports and differs by up to 255/255 on others, including blank output.
+These results do not establish native Windows or universal consumer acceptance.
+
+Standalone twelve-bit Huffman DCT JPEG supports extended sequential and progressive
+frames. The shared decoder retains native-width sample planes through IDCT and
+chroma reconstruction before projecting to eight-bit output. Baseline SOF0 remains
+eight-bit, and twelve-bit frames require explicit Huffman tables. The
+[twelve-bit corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/README.md) contains
+60 independently encoded/decoded gray, RGB and YCbCr images, with sequential and
+progressive scans, 1×1/2×1/2×2 chroma, restart intervals, partial blocks and quality
+1/75/100. All 79,800 nearest/high-quality pixel comparisons agree within 1/255. The 120
+XPS/OpenXPS exports cover 79,800 probes per route; independent MuPDF PDF/SVG
+rendering differs by at most 2/255 without warnings. GhostXPS opens every export
+but differs by up to 255/255, including blank images. SVG/PDF export uses the
+existing high-precision JPEG normalization path. CMYK/YCCK qualification is described
+below; unusual sampling combinations and native Windows acceptance remain outside
+the qualified contract.
+
+Sequential arithmetic JPEG supports eight/twelve-bit SOF9 frames through the shared
+managed decoder. Conditioning defaults and explicit DAC tables, all sixteen table
+destinations, interleaved/separate scans and restart reset use the existing bounded
+sample planes and DCT/color pipeline. The [arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/README.md)
+contains 90 independent libjpeg-turbo streams and their LibTIFF single-strip wrappers.
+Nearest/high-quality standalone and high-quality TIFF output agree with native JPEG
+references within 2/255. This is native JPEG pixel evidence and independent TIFF
+container production, not full-file native TIFF acceptance. The 360 XPS/OpenXPS
+JPEG/TIFF exports cover 239,400 pixel-center probes per route; MuPDF PDF/SVG
+rendering differs by at most 2/255 without warnings. GhostXPS opens all exports but
+differs by up to 255/255, including blank output. PDF and SVG normalize arithmetic
+JPEG to portable pixel images. Eight-bit arithmetic CMYK/alpha and planar/tiled TIFF qualification is described
+below alongside twelve-bit variants; native Windows acceptance remains open.
+
+Progressive arithmetic JPEG supports eight/twelve-bit SOF10 frames through the same
+Core decoder and portable PDF/SVG normalization. Initial/refinement DC and AC scans
+retain bounded coefficients, validate band and approximation order, and latch a
+component's quantization table when its DC scan starts. Tables for later components
+may arrive between scans. Valid DC-only previews render missing coefficients as zero;
+there is no inferred interblock smoothing. Physical truncation requires explicit
+best-effort decoding; a valid terminating marker may supply arithmetic zero padding.
+The [progressive corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticProgressive/README.md)
+contains 150 independently encoded/decoded cases across spectral-only, successive
+approximation and coarse previews, both precisions, chroma modes and restart layouts.
+Native nearest/high-quality references agree within 2/255 with smoothing disabled.
+The 300 XPS/OpenXPS exports cover 199,500 pixel-center probes per route; MuPDF
+PDF/SVG differs by at most 2/255 without warnings. GhostXPS opens all exports
+but differs by up to 255/255, including blank images.
+Native Windows acceptance remains unqualified. Progressive JPEG remains outside
+the TIFF contract.
+
+The [Adobe color corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/README.md)
+qualifies 64 standalone eight/twelve-bit CMYK/YCCK JPEGs across Huffman/arithmetic,
+sequential/progressive, quality 30/90 and 1×1/2×1/2×2 YCCK sampling. Native
+libjpeg-turbo CMYK colorants agree within 2/255 for both chroma modes. An explicit
+CMYK ICC profile produces sRGB within 3/255 of LittleCMS. Adobe YCCK conversion
+normalizes all four colorants; direct PDF DCT decoding leaves component polarity
+to the PDF Decode array. XPS still requires an associated or embedded CMYK profile.
+The 128 XPS/OpenXPS exports cover 85,120 pixel-center probes per route; MuPDF
+PDF/SVG output agrees within 2/255 without warnings. GhostXPS opens all exports
+but differs by up to 223/255. This does not qualify default SWOP color, arithmetic
+CMYK TIFF, lossless arithmetic color interpretation, or native Windows behavior.
+
+The [arithmetic TIFF color/alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlpha/README.md)
+qualifies 480 eight-bit files across gray polarities, RGB, CMYK, YCbCr, both byte
+orders, strips/tiles, shared/local tables, chunky/separate planes and extra samples,
+including low associated alpha. All 4,320 segments use SOF9. LibTIFF independently
+decodes 320 complete files with all 665,000 device samples exact; the remaining
+160 encounter native five-component or YCbCr/alpha layout limits. Native JPEG
+component references still cover those files. All 80 CMYK cases compare explicit
+ICC conversion with LittleCMS; compositing differs by at most 3/255 with exact alpha.
+The 1,920 XPS/OpenXPS exports cover 1,276,800 pixel-center probes per route; MuPDF
+PDF/SVG differences reach 4/255 and 2/255 without warnings. GhostXPS opens all files
+but differs by up to 255/255, including blank images.
+
+The [twelve-bit arithmetic TIFF corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic12/README.md)
+adds 384 opaque/extra-channel files across the same layouts, including low alpha
+and 64 explicit-profile CMYK cases. Visible compositing agrees with independent
+references within 3/255; twelve-bit IDCT rounding permits one eight-bit alpha level.
+LibTIFF agrees exactly on 176 complete files and 337,820 samples. Another 96
+files differ only in the final column, 96 hit native layout limits, and 16 ordinary
+subsampled YCbCr files require a richer raw-component oracle. JPEG component
+references cover every file. The 1,536 XPS/OpenXPS exports cover 1,021,440 probes
+per route; MuPDF PDF/SVG differences reach 4/255 and 2/255 without warnings.
+GhostXPS opens 1,408 exports with differences up to 255/255, and crashes on 128
+CMYK strip exports. Native Windows acceptance remains open.
+
+Standalone arithmetic lossless JPEG supports SOF11 precisions 2–16, all seven
+predictors, point transforms and row-aligned restarts. Shared lossless sample
+prediction feeds a bounded arithmetic context history, with statistics reset at
+scan/restart boundaries. Native twelve/sixteen-bit sample words remain available
+to internal color consumers before projection to the public eight-bit raster.
+The [lossless arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticLossless/README.md)
+contains 438 full-resolution and 36 subsampled grayscale/RGB cases. Its expanded
+native producer has explicitly documented configuration and initial-predictor
+corrections; 42 companion Huffman cases calibrate that correction against
+libjpeg-turbo. All 99,066 managed output pixels match exactly, including subsampled
+nearest references independently decoded from companion Huffman streams.
+The 948 XPS/OpenXPS exports cover 198,132 probes per route. MuPDF PDF/SVG output
+agrees within 2/255 without warnings; GhostXPS opens all files but can render blank
+images, with error up to 255/255. Arithmetic CMYK/YCbCr interpretation and native Windows acceptance remain unqualified.
+
+The [lossless arithmetic TIFF color corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessColor/README.md)
+qualifies 168 eight/twelve/sixteen-bit files: gray, RGB, CMYK and full-resolution
+YCbCr, opaque/associated/straight alpha, both byte orders, strips/tiles and
+contiguous/separate samples. CMYK alpha uses separate planes; the independent
+producer rejects five-component frames. All 1,593 native JPEG segments round-trip
+exactly. Managed alpha is exact and visible compositing agrees within 3/255,
+including 24 LittleCMS explicit-profile references. System LibTIFF rejects every
+full file because of codec, precision or YCbCr-extra layout limits. Across 672
+XPS/OpenXPS exports and 446,880 probes per route, MuPDF PDF/SVG differences reach
+5/255 and 2/255 without warnings. GhostXPS opens 656 exports with differences up
+to 255/255 and crashes on 16 twelve-bit CMYK strip exports. Subsampled YCbCr,
+shared tables, unspecified extras, chunky CMYK alpha and wider native acceptance
+remain outside this corpus; standalone JPEG color interpretation is separate.
+
+The [subsampled lossless arithmetic TIFF corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessChroma/README.md)
+adds 192 eight/twelve/sixteen-bit YCbCr files with 2×1/2×2/4×2 sampling, centered
+and cosited positioning, partial strips/tiles and opaque/associated/straight
+alpha. Four-component 4×2 cases use separate planes. Native Huffman companions
+decoded by libjpeg-turbo provide sample references because the producer's own
+decoder corrupts odd-height edge rows; Pillow independently checks interpolation.
+Managed alpha matches exactly and visible compositing agrees within 3/255.
+LibTIFF fails on 174 files and cannot display the other 18 despite returning zero;
+no full-file native acceptance is claimed. The 768 XPS/OpenXPS exports cover
+510,720 probes per route: MuPDF PDF/SVG errors reach 4/255 and 2/255 without
+warnings. GhostXPS opens all packages but can render blank images (255/255).
+Wider native acceptance remains outside this qualification; unspecified extras,
+multi-scan chunky alpha and table-only state isolation are covered below.
+
+The [unspecified-extra corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticExtra/README.md)
+qualifies 114 lossless-arithmetic TIFFs with one extra channel declared unspecified.
+These are single-byte declaration changes to independently referenced straight-alpha
+fixtures; JPEG data and reference colors remain unchanged. Opacity is exactly 255
+and colors agree within 3/255, including six explicit-profile CMYK cases. This
+covers the source full-resolution/subsampled layouts, not a new independent
+producer corpus. LibTIFF fails all 114 files because of codec, precision or layout
+limits. Across 456 XPS/OpenXPS exports and 303,240 probes per route, MuPDF PDF/SVG
+errors reach 2/255 without warnings. GhostXPS opens 452 packages with errors up to
+255/255 and crashes on four twelve-bit CMYK strip exports.
+
+The [multi-scan lossless arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticMultiscan/README.md)
+qualifies 54 chunky TIFFs: five-component CMYK and four-component 4×2 YCbCr with
+associated, straight or unspecified extras. The 243 frames combine independently
+encoded single-component streams without changing entropy bytes; forward/reverse
+scan order and frame geometry are checked against the planar source references.
+Managed alpha is exact and visible compositing agrees within 3/255, including 18
+explicit-profile CMYK cases. These constructed frames do not establish independent
+full-file producer acceptance. LibTIFF rejects all 54 files. Across 216 XPS/OpenXPS
+exports and 143,640 probes per route, MuPDF PDF/SVG errors reach 4/255 and 2/255
+without warnings. GhostXPS opens 204 packages with errors up to 255/255 and crashes
+on 12 twelve-bit CMYK strip exports. Wider native producer/reader acceptance remains
+open; no default CMYK interpretation is implied.
+
+Lossless arithmetic JPEG does not consume quantization or Huffman tables.
+The `JPEGTables` DAC/DRI controls reset before each image, as required by
+[TIFF Technical Note #2](https://libtiff.gitlab.io/libtiff/specification/technote2.html#jpegtables-field).
+Focused eight/twelve/sixteen-bit tests use conflicting table-only conditioning
+and restart settings with images that have no local overrides; pixels remain
+unchanged. Moving those controls into the image changes or rejects decoding,
+confirming that the samples exercise state isolation. This qualifies the
+applicable table-only control behavior, not an independent full-file TIFF reader.
+
+Standalone Huffman lossless JPEG accepts sample precisions from two through sixteen
+bits. Native sample values survive prediction and chroma interpolation before
+projection to the public eight-bit raster buffer. YCbCr conversion uses the
+precision-specific chroma midpoint before projection, preserving neutral colors
+at low precision. The [precision corpus](../OfficeIMO.Drawing.Tests/TestAssets/JpegLosslessPrecision/README.md)
+contains 140 independently encoded/decoded gray/RGB files and 15 component-encoded
+YCbCr files. All native component samples match the projected public output;
+YCbCr paint also matches the declared conversion equations within one channel
+value. Point transforms restore discarded bits as zero. XPS SVG export normalizes lossless/high-precision JPEG to PNG;
+PDF export also normalizes those streams instead of passing them through DCTDecode.
+The corpus checks 60,775 native component samples and produces 310 XPS/OpenXPS
+exports with 57,970 pixel-center probes per route. Independent MuPDF PDF/SVG
+rendering differs by at most 2/255 without warnings. GhostXPS opens all exports
+but differs by up to 255/255, including blank images. The new precision corpus
+uses full-resolution components; wider subsampled producer and native Windows
+acceptance remain separate evidence gaps.
+
+Compression-7 lossless JPEG-TIFF also supports unsigned samples from two through
+sixteen bits. Native sample words survive decoding until color/alpha conversion;
+DCT JPEG retains its eight/twelve-bit limits. The [TIFF precision corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessPrecision/README.md)
+adds 192 LibTIFF-wrapped native Huffman/arithmetic gray/RGB streams at 2–7, 9–11
+and 13–15 bits, in both byte orders and with zero/maximum point transforms.
+All 38,016 managed reference pixels match exactly. Across 384 XPS/OpenXPS exports,
+MuPDF PDF/SVG differs by at most 2/255 over 76,032 pixel-center probes per route,
+without warnings. LibTIFF rejects these precisions; GhostXPS opens the exports
+but can render blank images. This full-resolution single-strip corpus does not
+qualify other precisions' alpha, color-profile, subsampling or wider-layout
+combinations, nor independent whole-file/native Windows acceptance.
+
+TIFF YCbCr conversion retains fractional RGB through alpha unassociation and ICC
+conversion, rounding only at final RGBA output. The [YCbCr precision corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegYccPrecision/README.md)
+qualifies 60 full-resolution Huffman/arithmetic TIFFs at 2–16 bits in both byte
+orders. Its 11,880 device-color pixels match within 1/255, and the same pixels
+with an explicit DCI-P3 matrix profile match LittleCMS within 2/255. Existing
+12/16-bit YCbCr-alpha references use floating-point RGB to retain the same
+fractional-color contract. Across 240 XPS/OpenXPS device/profile exports, MuPDF
+PDF/SVG differs by at most 2/255 over 47,520 probes per route, without warnings.
+GhostXPS returns zero for 144 exports but can paint blank images; 96 profiled
+cases terminate with SIGSEGV. LibTIFF's data-read check accepts four Huffman
+8/12-bit containers and rejects the remaining 56. Low-precision alpha,
+subsampling, additional profiles and independent full-file/native Windows
+color acceptance remain separate qualification gaps.
+
+The [additional-precision alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessAlphaPrecision/README.md)
+qualifies 192 native Huffman lossless TIFFs at 2–7, 9–11 and 13–15 bits across
+gray/RGB/full-resolution YCbCr, associated/unassociated alpha and four paired
+strip/tile, chunky/planar, byte-order layouts. Alpha is exact; 127,680 device
+pixels match within 1/255 and 63,840 DCI-P3-profiled pixels match LittleCMS within
+2/255. Native color survives even when alpha projects to zero at eight bits.
+Across 1,152 XPS/OpenXPS exports on black/white backgrounds, MuPDF PDF/SVG differs
+by at most 5/255 and 2/255 over 766,080 probes per route, without warnings.
+LibTIFF rejects all containers for precision or chunky YCbCr-alpha layout sizing.
+Four GhostXPS probes produce blank/different device-color output or crash with
+ICC; wider GhostXPS testing was not performed. Native whole-file/Windows
+acceptance remains open.
+
+Subsampled JPEG-TIFF retains fractional chroma until color conversion, including
+centered and cosited 2×1/2×2/4×2/4×4 grids in chunky or separate planes.
+The [fractional chroma corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaPrecision/README.md)
+contains 900 specification-authored Huffman lossless TIFFs at every precision
+from 2 through 16 bits. Libjpeg-turbo independently verifies native samples;
+Pillow supplies fractional interpolation references. All 90,900 device-color
+pixels match within 1/255. This corrects visible low-precision color shifts from
+rounding interpolated samples before RGB conversion. The integer raw-JPEG
+component API keeps its existing rounding contract. Standalone JPEG decoding
+with `HighQualityChroma` also retains fractional samples through YCbCr color
+conversion; a 15-precision regression checks the same independently decoded
+source strips. Default nearest-neighbor sampling is unchanged.
+Across 360 XPS/OpenXPS exports at 2/8/16 bits, MuPDF PDF/SVG differs by at most
+2/255 over 36,360 probes per route, without warnings. This run does not add
+GhostXPS or native Windows evidence. Further alpha/profile combinations and independent producer/whole-file
+acceptance remain open.
+
+The [subsampled-alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/README.md)
+qualifies 1,680 constructed Huffman lossless TIFFs at 2–16 bits with associated
+and unassociated full-resolution alpha, centered/cosited 2×1/2×2/4×2/4×4 chroma,
+strips/tiles and chunky/planar storage in both byte orders. Libjpeg-turbo verifies
+6,840 native JPEG segments; Pillow and LittleCMS provide fractional device and
+DCI-P3-profile references. Each color mode covers 169,680 pixels with exact alpha,
+RGB differences at most 1/255 for device color and 2/255 for profile conversion.
+Nonzero native alpha retains foreground color even when its final byte is zero.
+The XPS tests cover both dialects and black/white backgrounds. Across 384 external
+exports selected from 48 representative 2/8/16-bit inputs, MuPDF PDF/SVG differs
+by at most 4/255 and 2/255 over 71,808 probes per route, without warnings.
+This does not add native Windows or GhostXPS evidence; further profiles and
+independent producer/whole-file acceptance remain open.
+
+The [additional-precision arithmetic-alpha corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlphaPrecision/README.md)
+adds 912 TIFFs at 2–7, 9–11 and 13–15 bits: 432 full-resolution gray/RGB/CMYK/YCbCr
+cases and 480 centered/cosited 2×1/2×2/4×2 YCbCr cases, with both alpha kinds and
+paired strip/tile, planar/contiguous and byte-order layouts. Native arithmetic
+encoding supplies 10,584 stored JPEG segments. Full-resolution native decoding
+is exact; subsampled references use independently decoded Huffman companions
+because the native arithmetic decoder has an odd-height edge defect. Fractional
+color survives interpolation and unassociation in the Pillow/LittleCMS references.
+All 606,480 device-color pixels match within 1/255, and 478,800 DCI-P3 or explicit
+CMYK-profile pixels within 2/255, with exact alpha. Both XPS dialects exercise
+black/white compositing; CMYK requires an explicit profile. Across 312 external
+exports from 48 selected inputs, MuPDF PDF/SVG differs by at most 5/255 and 2/255
+over 207,480 probes per route, without warnings. Native Windows, independent
+whole-file acceptance and wider profiles remain open.
+
+The [4×4 arithmetic corpus](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic4x4/README.md)
+adds 720 TIFFs at every 2–16-bit precision, including opaque, associated-alpha and
+unassociated-alpha samples, centered/cosited positioning, both byte orders,
+strips/partial tiles and planar or multi-scan storage. All 1,980 component streams
+are independently re-encoded and decoded exactly; the 2,520 stored streams retain
+that entropy. Multi-scan assembly is constructed and covers both component orders.
+The native producer cannot independently generate complete 4×4 lossless color
+frames through its available scan setup. Device and DCI-P3 references retain the
+source Pillow/LittleCMS values. Both XPS dialects cover raster, SVG and PDF output;
+288 selected external exports differ by at most 4/255 in MuPDF PDF and 2/255 in
+SVG over 53,856 probes per route, without warnings. This closes the generated
+4×4 decoding checks, not independent whole-file or native Windows acceptance.
+
+Legacy JPEG-TIFF qualification includes [114 reconstructed cases and three upstream samples](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/README.md).
+The reconstructed cases retain independently encoded entropy for baseline and
+lossless data, including both byte orders, strip/tile layouts and separate planes;
+four specification-authored cases exercise single-byte lossless entropy. Their
+pixels agree exactly with corresponding compression-7 references. Two unchanged
+LibTIFF samples and one explicitly sanitized sample decode with maximum RGB
+differences of 20/255 against Pillow 11.3.0 with LibTIFF 4.7.0. The original sample
+containing invalid directory records remains rejected. This is bounded legacy
+compatibility, not acceptance of every historical JPEG-in-TIFF layout. Wider
+producer/native-consumer coverage remains open. The 228 XPS/OpenXPS exports cover
+116,608 pixel-center probes per route; MuPDF differs by at most 3/255 for PDF and
+2/255 for SVG, without warnings. GhostXPS 10.08.0 exits with signal 11 on 26
+CMYK cases and produces differences up to 255/255 on others, including blank
+output. These results do not establish native Windows acceptance.
+
+JPEG extra-sample qualification covers 288 component-encoded fixtures with
+191,520 pixel comparisons. Independently decoded alpha agrees exactly; RGB agrees
+within 3/255, or 6/255 after associated-alpha unassociation. The matrix covers
+byte order, strips/tiles, shared/local tables, chunky/separate storage and centered
+1/1 or 2/2 YCbCr. TIFF metadata and five-component reference handling are documented
+in the [fixture provenance](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegAlpha/README.md).
+Both dialects produce 576 documents with 383,040 pixel-center probes per route.
+Independent MuPDF output differs from managed rendering by at most 3/255 for PDF
+and 2/255 for SVG. Transparent managed rendering preserves source alpha exactly.
+GhostXPS differs by up to 255, including blank or incorrect output. That corpus uses
+source alpha 96–239. A further [192 low-alpha fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLowAlpha/README.md)
+span decoded alpha 0–255 and preserve every independently decoded alpha sample
+exactly across 127,680 pixels. Compositing over black and white differs by at most
+3/255. Straight RGB differences can reach 255/255 near zero alpha because
+unassociation amplifies JPEG/color rounding; this does not establish lossless
+source recovery. The 768 XPS/OpenXPS light/dark exports provide 510,720 pixel-center
+probes per route: independent MuPDF differences are at most 4/255 for PDF and
+2/255 for SVG. GhostXPS still differs by up to 255; native Windows acceptance
+remains unqualified.
+
+Multiple-extra-sample qualification adds [288 fixtures](../OfficeIMO.Drawing.Tests/TestAssets/TiffExtraSamples/README.md)
+with three extra channels: one declared alpha at the first, middle or last position,
+or no alpha. The 192 lossless and 96 JPEG fixtures cover 125,856 pixels; decoded
+alpha agrees exactly and RGB differs by at most 6/255. Unspecified floating channels
+contain NaN and remain ignored. JPEG frames with more than four components use
+independently decoded individual entropy scans; whole-file native acceptance of
+these frames is not established. Both dialects produce 1,152 light/dark exports
+with 503,424 pixel-center probes per route. MuPDF differences are at most 4/255
+for PDF and 2/255 for SVG. GhostXPS crashes on 128 exports and differs by up to
+255/255 on the remaining outputs. Native Windows acceptance remains open.
+
+Packed-sample qualification covers 96 independently encoded and decoded LibTIFF
+fixtures: one/four-bit samples, both byte orders, grayscale polarities and palettes,
+strip/tile layouts, and uncompressed/LZW/Deflate/PackBits payloads. Odd widths and
+partial tiles in both axes preserve row alignment and ignore padding. Core pixels
+match source values exactly. Both dialects preserve 62,016 pixel-center samples
+per rendering route across raster, SVG and PDF readback; MuPDF SVG/PDF comparisons
+differ by at most 2/255 per channel. GhostXPS returns success but differs by up to
+255 and leaves tiled cases blank. Its output is retained as a consumer difference;
+native Windows packed-TIFF acceptance remains unqualified.
+
+CCITT qualification covers 99 independently encoded and decoded LibTIFF fixtures:
+Modified Huffman, Group 3 one/two-dimensional coding with optional fill bits,
+Group 4, both byte/bit orders and grayscale polarities, strips and tiles. Three
+single-strip cases use the unsigned RowsPerStrip sentinel. Both dialects produce
+198 documents and 312,246 pixel-center probes per rendering route. Managed pixels
+match exactly; MuPDF SVG/PDF output differs by at most 3/255 per channel.
+GhostXPS returns success but differs by up to 255 and leaves some mixed/tiled
+cases blank. Its output is retained as a consumer difference; native Windows
+acceptance remains unqualified.
+
+The optional uncompressed fax extension has 80 specification-authored fixtures,
+covering T.4/T.6, both byte/bit orders and polarities, strips/tiles, literal exits
+and ordinary-run resumption. Core comparisons cover 30,720 pixels exactly.
+The [fixture provenance](../OfficeIMO.Drawing.Tests/TestAssets/TiffFaxUncompressed/README.md)
+separates this coverage from independent producer/decoder acceptance, which remains
+unqualified. Both dialects produce 160 documents and 61,440 pixel-center probes
+per rendering route; independent MuPDF PDF/SVG output differs by at most 2/255.
+GhostXPS still differs by up to 255. PDF filter checks also cover exit consumption
+before end markers.
+
+
+Floating-point qualification covers 304 independently encoded and decoded LibTIFF
+fixtures: 16/24/32/64-bit samples, both byte orders, compression/prediction and
+strip/tile layouts, alpha, RGB, grayscale and CMYK. All 377,264 decoded source
+samples match the producer inputs, and managed normalized RGBA pixels match
+exactly. The 76 float24 fixtures additionally use the unmodified imagecodecs
+sample converter to verify the TN3 representation. Both XPS dialects exercise
+raster, SVG and PDF-reader output, including
+explicit-profile CMYK conversion. Low associated alpha retains precision through
+ICC conversion. This does not establish native Windows floating-TIFF acceptance
+or a general HDR/scientific tone-mapping policy.
+
+Unsigned sixteen-bit qualification uses 47 independently encoded LibTIFF fixtures,
+including 32 compression/storage combinations, gray, associated-alpha RGB/CMYK,
+embedded RGB/gray/CMYK profiles and two-page input. LibTIFF verifies the original
+sample words; LittleCMS supplies the ICC reference colors. Core decoding matches
+unprofiled reference pixels exactly and profiled pixels within two channel values.
+The 45 paintable fixtures are placed in both dialects and checked through managed
+raster, standalone SVG and PDF readback. Their 22,230 pixel-center probes retain
+paint within one channel value in managed output and within four in MuPDF PDF/SVG
+output. Four unprofiled CMYK placements reject explicitly. Ghostscript's interpolated
+PDF output differs by up to 65 on this discontinuous sample field, while disabling
+interpolation preserves pixel-center samples within one channel value. GhostXPS differs
+by up to 255 and omits some TIFF encodings. These consumer differences are retained
+as qualification limits. Native Windows confirmation remains open.
+
+The focused tests exercise both dialects, package reopening and native edits,
+opaque-part preservation, deterministic saves, fonts/glyph positioning, image
+placement, gradients, external resource dictionaries, hostile inputs, cancellation,
+and preservation of the destination on a rejected signed-package save. Native-editing
+checks cover repeated document/page references, reference metadata and link-target
+preservation, atomic rejection at package/page limits, and resource replacement.
+Generated piece fixtures cover interleaved metadata and resources, non-sequential
+ZIP ordering, missing/duplicate/ambiguous pieces, and aggregate part bounds.
+Microsoft `System.IO.Packaging` 10.0.11 independently rewrites 20 generated
+interleaved packages across both dialects: cross-piece writes, truncation within a
+piece and at a boundary, empty parts, and terminal-piece growth. Inputs include
+empty pieces, 13-piece sequences, reversed ZIP ordering, and uppercase piece
+suffixes. Resource bytes and both pages' SVG output survive loading; every logical
+part survives OfficeIMO normalization and reopening in Microsoft's packaging reader.
+The comparison library is confined to an isolated validation harness. This qualifies
+rewriting of generated piece storage; independently produced interleaved documents
+remain unqualified.
+
+Independent input: [Ecma's published ECMA-388 XPS document](https://ecma-international.org/wp-content/uploads/ECMA-388.xps),
+which uses the Microsoft XPS dialect and contains 494 pages (SHA-256
+`579b553f499800713bdbbc3a82be6065db8611a050b585c011a29ebd8533c9ad`). The full sequence is
+loaded and each page is exercised through SVG conversion. Cover, dense text/table,
+and graphics pages are the representative rendering checks; successful conversion
+is not a pixel-equivalence claim for every page.
+
+Three additional [Microsoft WPF test inputs](../OfficeIMO.Xps.Tests/Fixtures/MicrosoftWpf/SOURCE.md)
+qualify native page insertion/reopening with obfuscated fonts, print tickets and
+thumbnail preservation. The Word/MXDC, document-structure input and printing pages
+render against GhostXPS 10.08.0 at 96 DPI with mean absolute RGB differences of
+3.38/255, 0.34/255 and 0.68/255 respectively. Visual checks retain text, color and
+placement; glyph and edge rasterization differ. GhostXPS renders the original and
+OfficeIMO-saved packages pixel-identically. These are single-page Microsoft
+XPS documents with atomic storage; the structure-test input contains no authored
+structure part. They do not qualify multi-document stories or OpenXPS producers.
+
+Generated OpenXPS sequence, fixed-document, and fixed-page markup is checked against
+[Ecma's OpenXPS schemas](https://ecma-international.org/wp-content/uploads/OpenXPS-WC3-Schemas.zip).
+MuPDF/PyMuPDF 1.26.5 independently opens a generated Microsoft XPS document, extracts
+its Unicode text, and renders its font/image placements. Its handling of this
+OpenXPS package selects a generic ZIP reader, so it does not establish independent
+OpenXPS rendering acceptance. These tools are isolated validation tools and are
+not product dependencies or ordinary build requirements.
+
+GhostXPS 10.08.0 independently renders generated Microsoft XPS and OpenXPS packages,
+both atomic and interleaved, after document/page restructuring. The two simple
+vector pages match managed raster output exactly at 96 DPI. A separate two-page
+Ghostscript xpswrite document is loaded, rendered, saved, and reopened in GhostXPS;
+its managed render differs by less than 0.05/255 mean channel error. This adds an
+independent Microsoft-XPS producer and a representative OpenXPS consumer check;
+it does not qualify an independent OpenXPS producer corpus.
+
+A generated 16-case brush corpus is compared at 96 DPI against MuPDF's native XPS
+renderer, including non-zero tile origins, all flip modes, transformed patterns,
+linear-gradient transforms, and solid/gradient/tiled alpha masks. Fourteen cases agree
+within small rasterization differences. The overlapping visual-brush mask and masked-group cases disagree
+with MuPDF's native XPS renderer: OfficeIMO follows ECMA-388 section 18.5's isolated
+composition rule, verified by opacity arithmetic and independently rendered PDF
+output. These checks qualify representative cases, not every combination of native
+brushes, fonts, transforms, and effects. Managed PDF readback retains the qualified
+masked Canvas opacity, including overlapping children; ordinary isolated RGB
+Form groups compose before invocation opacity is applied.
+
+Sideways text follows ECMA-388 §12.1.6 for TrueType outlines: top-center origins,
+vertical advances, run-relative offsets, and rotation before the page transform.
+Metric-table tests cover compressed vertical metrics and both fallback sources.
+A generated corpus checks horizontal and rotated/clipped runs against independent
+fontTools metric extraction and MuPDF rendering of equivalent horizontal glyphs.
+Direct MuPDF 1.26.5 sideways rendering agrees for the unmodified fallback fonts,
+but its fixed font-ascender origin disagrees with per-glyph vertical bearings and
+distinct OS/2 origins. GhostXPS 10.08.0 renders all eight native sideways cases with
+matching placement, including these metrics and rotated/clipped runs. Raster
+comparisons retain font rasterization differences: worst mean channel error is
+1.82/255, with fewer than 1.7% of channels differing by more than 10/255.
+
+ICC tests reuse independently generated LittleCMS reference swatches for two RGB
+matrix profiles, an RGB v4 LUT profile, and a CMYK LUT profile. GhostXPS 10.08.0
+renders the same 24 swatches in both dialects within one 8-bit channel value when
+configured with matching relative intent and black-point compensation disabled.
+TIFF placement and colors are checked in both dialects; upscaled boundaries retain
+interpolation differences between the managed and independent renderers.
+
+Eight additional image/visual stroke cases cover both dialects, non-tiled brush
+coverage, transformed dashes and brush opacity. GhostXPS comparisons have a worst
+mean channel difference of 0.68/255 at 96 DPI; one transformed translucent PDF is
+also independently rendered. Edge antialiasing and image interpolation differ.
+
+Style simulation checks cover the required two-percent-em default advance
+increase, explicit advance overrides, horizontal/sideways italic baseline origins,
+translucent overlapping glyphs, gradient fills and glyph opacity masks. Six solid-fill
+single-glyph cases agree in placement with GhostXPS 10.08.0; raster differences
+remain (worst mean channel error 1.87/255). Two gradient cases also verify brush
+placement, but GhostXPS omits bold outline widening for non-solid glyph brushes;
+that difference is not used as a fidelity target. Independent PDF rendering confirms
+the gradient-filled bold outline. Bold fill is applied once through a
+coverage mask in a local viewport; repeated small runs and non-tiled strokes do
+not allocate a page-sized coverage layer each. These style checks do not qualify native font hinting.
+
+The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).
+
+ICC image qualification uses 24 independently encoded Pillow/LittleCMS fixtures,
+covering associated/embedded RGB, gray, CMYK and alpha combinations. Both dialects
+match the independent reference channels within two values. Of 48 GhostXPS
+10.08.0 comparisons, 42 match within one channel value; its split JPEG-profile
+reader and gray-alpha TIFF paths do not qualify the other six. All 48 exported
+PDF swatches match the managed raster exactly when independently rendered at
+96 DPI. Four nonuniform baseline/progressive JPEG checks retain EXIF orientation
+with either profile association method; independent PDF/reference images confirm
+placement, with raster interpolation differences at the color boundary. These
+checks are not a broad photographic image corpus.
+
+Fallback checks cover malformed and channel-incompatible associated profiles with
+embedded RGB PNG/JPEG/TIFF and CMYK JPEG/TIFF profiles. They preserve the qualified
+reference colors and keep strict errors when no usable profile remains. Reusing a
+discarded image profile as ContextColor still reports its unsupported color. Both
+dialects reject unprofiled CMYK JPEG/TIFF resources explicitly.
+
+Searchable PDF projection is checked with native Unicode clusters, whitespace,
+ligatures, surrogate pairs, right-to-left advances, sideways glyphs, affine
+transforms, explicit offsets and blank pages. Poppler independently extracts the
+expected text from both dialects; Ghostscript renders the generated vector PDFs
+with a mean channel difference of 0.71/255 from the managed raster on the text
+fixture. macOS Preview confirms word and ligature-cluster search with localized
+word highlighting. PDFKit extracts and finds the source text, including a surrogate
+pair, in both dialects with standard, embedded TrueType and embedded CFF fonts.
+Ghostscript and MuPDF render these six searchable-text exports identically to the
+previous vector paint. A separate 30-document native probe covers plain,
+90-degree rotated, sheared, nested-transform and sideways text in both dialects
+with standard, embedded TrueType and embedded CFF fonts. PDFKit and MuPDF extract
+and find the source word in every case; MuPDF paint is byte-identical to the
+pre-change vector renders. Contiguous selection cells share a text run with
+explicit scalar advances, preserving cluster widths. Logical cells follow explicit
+advances even where glyph ink overhangs them; zero-advance clusters retain an
+ink-based selection region. A further 24 native cases cover repeated characters
+with different advances and a Unicode scalar absent from the selected PDF font,
+with plain/sheared
+text, both dialects and all three font choices. PDFKit finds every source string;
+MuPDF renders match the pre-change paint. Sideways selection cells
+share the run baseline while retaining explicit glyph offsets. Distinct CFF glyph
+IDs retain Unicode ownership; unavailable glyphs keep separate fallback mappings.
+Discontinuous baselines remain separate runs. Wider interactive selection and
+font-fallback combinations remain unqualified. Text follows source markup order and retains clipped/transparent
+source content; this is not a redaction or accessibility reconstruction contract.
+
+Native DocumentStructure edits have generated coverage in both dialects for
+insertion, reordering, transfer, removal, repeated pages and atomic rejection of
+malformed known metadata. The independent Ecma document reopens with 495 pages
+after insertion and retains all 695 outline entries. It has no story references.
+Story-page remapping follows ECMA-388 section 16.1.1.6's payload-global prose;
+the adjacent attribute table describes document-local ordering. Independent
+multi-document story fixtures are needed to resolve that interoperability ambiguity.
+
+StoryFragments have generated lifecycle coverage in both dialects for reading order,
+continuation, list markers, table-cell spans, repeated page occurrences, shared-part
+validation, cancellation and atomic edits. ECMA-388 example 16-5 reconstructs its
+three-row table from two two-row fragments. An independently produced
+[Microsoft WPF sample](https://github.com/microsoft/WPF-Samples/blob/811d01e95c8c929e68539d698d0a0609e94fd185/Documents/Fixed%20Documents/DocumentStructure/content/spec_wiithstructure.xps)
+resolves all six fragments on its two pages: body sections/tables, headers and
+footers. Adding explicit body story addresses, saving and reopening retains a
+complete logical reconstruction. The sample predates the final XPS specification;
+it does not qualify independently produced OpenXPS or multi-document story addresses.
+Microsoft resource-key namespaces are supported alongside the existing XAML key
+spelling; legacy Microsoft image-brush `Stretch="Fill"` uses the native fill mapping.
+
+Authored Path and Canvas accessibility descriptions have generated coverage in
+both dialects for native save/reopen, SVG title/desc metadata, Reader JSON assets
+and PDF Figure alternative text. A 24-case name-only, HelpText-only and combined
+description matrix covers structured and unstructured pages. PyMuPDF independently
+checks the PDF structure dictionaries and confirms that descriptions add no search
+text. Managed output, independently rendered SVG/PDF and GhostXPS agree at all
+1,560 sampled interior/background pixels within one channel level. This qualifies
+the generated metadata projection, not independent producer accessibility or
+PDF/UA conformance.
+
+PDF navigation has generated coverage in both dialects for forward and same-page
+links, repeated page references, page moves, percent-encoded targets, nested
+transforms, clipping and outline hierarchy. An independent pypdf inspection
+confirms destination pages and coordinates, Unicode outline titles and child URI
+actions in both dialects. Ghostscript renders the navigation fixture successfully.
+This does not qualify interactive navigation in every PDF viewer or reconstruct
+StoryFragments reading order and PDF accessibility tags.
+
+Radial-gradient qualification covers 48 generated cases in both dialects: rotation,
+shear, reflection, translucent stops, offset interior foci and strokes with Pad,
+Repeat and Reflect spread. GhostXPS and Ghostscript independently render the native
+packages and PDFs. Worst mean channel errors at 96 DPI are 4.76/255 for native XPS
+and 1.02/255 for PDF; repeat boundaries and stroke edges have the largest raster
+differences. Managed tests check analytic color samples, SVG round trips, opaque
+PDF reimport, opacity/clone retention and rejection at the expansion limit. These
+cases do not qualify all focal positions or every producer's gradient conventions.
+
+Native Pad boundary/exterior qualification adds generated XPS/OpenXPS cases for
+elliptical fields, rotation, shear, reflection, strokes and translucent endpoints.
+Core reverses the circle sequence to select the smallest containing ellipse;
+PDF retains vector shading and explicitly paints the outside endpoint color and
+alpha. Independent PDF consumers exercise both cone paint and outside paint.
+GhostXPS agrees on qualified interior samples but leaves some outside regions
+unpainted; that difference is retained in the evidence. Direct `ToSvg`, SVG image
+exports and shared Drawing SVG exports preserve native Pad fields through SVG 2 shrinking-circle
+patterns with separately composed color and alpha. These exports retain vector
+paint and require an SVG 2 consumer; the shared SVG importer accepts their shrinking-circle
+Pad representation. Direct `ToSvg` preserves its native glyph, mask,
+and VisualBrush projection paths. A 40-case direct-SVG browser comparison across
+both dialects covers fills, strokes, affine visual/brush transforms, opacity masks
+and VisualBrush content; full-rectangle pixels differ by at most 1/255 per channel
+and the maximum whole-page mean difference is 0.145/255. Sixteen additional normal
+and simulated-bold glyph cases retain the field with a maximum whole-page mean
+difference of 0.801/255, including text-edge rasterization differences. A 20-case Drawing browser comparison covers boundary/exterior
+foci, opaque/translucent stops, inset paths, reflected/sheared placement, strokes and
+markers. Full-rectangle pixels differ from managed output by at most 1/255 per
+channel; maximum whole-page mean difference is 0.285/255, with geometry-edge
+rasterization differences retained. Native radial colors and alpha interpolate
+consistently across rectangle, path and stroke rendering. Managed opaque PDF
+readback retains shrinking elliptical fields with a point end. A 108-case SVG import/browser
+comparison covers 32 standalone shrinking fields, the 56 direct native SVG
+exports above and 20 Drawing SVG exports. Another 22 native tiled-brush cases
+compare native PNG output with emitted SVG in the browser. Plain fills differ from browser rendering by at most 2/255 per
+channel; the maximum whole-page mean difference is 1.024/255 including glyph,
+stroke, transformed-pattern and cone-edge rasterization. Pattern tile origins,
+stroke coverage offsets and clipped overflow are retained through import. Arbitrary
+photographic or producer coverage and PDF/UA are not qualified by these cases.
+
+Native exterior Repeat/Reflect uses the same smallest-containing-ellipse rule.
+Core bounds the required cycles over the painted region and retains at most 256
+expanded stops; Reflect uses offset zero outside the cone, while Repeat uses
+offset one. Focus positions exactly on the end ellipse boundary are supported when the
+conservative painted bounds lie strictly inside the focus tangent half-plane
+and fit the same stop budget. Bounds touching or crossing the tangent can require
+an unbounded cycle count. PDF retains these fields as vector function-based
+shadings with separate alpha masks. Drawing, raster and SVG retain an
+explicit spread mode and sample the original field without stop expansion. Near-boundary
+exterior fields use an additional finite half-plane bound to avoid excessive
+expansion from coordinate rounding.
+A 32-case PDF comparison covers both dialects, both spread modes, alpha,
+linear-light RGB and affine transforms across the tangent. Managed reopening at
+96 dpi has a maximum whole-image mean channel difference of 0.054/255 against
+native XPS sampling. Ghostscript independently renders the vector files; its
+maximum mean difference is 2.218/255, including dense cycle sampling differences.
+MuPDF 1.28.2 also renders the 32 periodic RGB cases, with a maximum whole-image
+mean channel difference of 3.700/255 against managed PDF readback. Near-tangent
+cycle sampling still differs between renderers. macOS 27.0.1 PDFKit renders the
+same 32 RGB cases with a maximum mean difference of 3.127/255. Calculator fields
+use ordered comparisons and alpha Forms use zero-based bounds with equivalent
+placement transforms to avoid native evaluation and clipping differences.
+PDFKit also renders 32 converted CMYK cases and two 1,024-stop RGB/CMYK stress
+exports. CMYK mean differences reach 44.853/255, and the RGB stress case reaches
+24.649/255; these cases establish execution and placement, not color equivalence.
+These are generated fixtures, not independent-producer or native Windows proof.
+Explicit print-condition conversion reuses the PDF engine's ICC gradient sampler,
+retaining vector CMYK component functions and scalar alpha. Caller-supplied
+profiles, rendering intent and black-preservation settings follow the existing
+PDF print contract. The converted sample count is bounded at 4,096.
+Managed readback retains the PDF reader's output-intent/transparency diagnostic;
+this conversion does not qualify print soft-proof equivalence or PDF/X conformance.
+The 36 ordinary generated cases cover both dialects, fill/stroke, affine
+transforms and stop alpha. Managed sampling and Ghostscript PDF rendering track
+the analytic field in these cases, while MuPDF and GhostXPS retain visible
+consumer differences. Separate near-boundary numerical regressions cover large
+radii, shrinking-circle roots, PDF focal coordinates and nonempty endpoint/alpha
+Form bounds. Managed rendering and opaque PDF readback retain these extreme
+fields; both MuPDF and Ghostscript have numerical or raster differences in the
+large-radius stress cases. This evidence qualifies the bounded field and emitted
+vector geometry, not every consumer's raster output or independent native Windows
+behavior. Direct `ToSvg`, Drawing and SVG image exports use vector pattern
+composition after bounded spread expansion. The direct route shares Core's cycle
+bounds, preserves authored color interpolation, and caps expanded stops at 256.
+When finite expansion is unavailable, direct `ToSvg` uses SVG 2 repeating
+shrinking-circle fields without expanding stops. Separate color and alpha fields
+retain the native outside-cone endpoint for both Repeat and Reflect. A 32-case
+browser comparison covers both dialects, both spread modes, stop alpha,
+linearRGB and affine transforms across the tangent boundary. The maximum mean
+channel difference against the analytical native field is 0.139/255; maximum
+channel difference is 6/255 at high-frequency transformed cycle edges. This
+qualifies direct SVG output; native Windows qualification remains open.
+Shared SVG import, Drawing and raster preserve these fields and ordinary
+shrinking-circle Repeat/Reflect gradients. A 96-pair comparison covers native
+PNG, imported SVG raster output and Drawing SVG for the same 32 cases; maximum
+mean channel error is 0.161/255. Exact Repeat seams can differ by 255/255 when
+numerical rounding chooses opposite sides of a discontinuity. PDF still requires
+finite expansion.
+
+For ordinary SVG point foci exactly on the end circle, repeating gradients use
+the offset-weighted average color and alpha outside the tangent half-plane, as
+defined by [SVG 2](https://www.w3.org/TR/SVG2/pservers.html#RadialGradientNotes).
+This compatibility rule is separate from native XPS endpoint paint. The checked
+browser paints that ordinary outside region transparent instead; browser agreement
+is not claimed for the original SVG compatibility case. The composed re-export
+matches managed output within 1/255 per channel. The full 110-pair check contains
+108 comparisons with maximum mean error 0.235/255 and these two explicitly
+separated original-consumer differences, including four ordinary shrinking fields
+and two public Drawing interior-alpha fields.
+
+An 84-case direct-SVG browser comparison covers 36 boundary fields and 48 exterior
+fields across both dialects, Repeat/Reflect, stop alpha, transforms, strokes and
+non-endpoint stops and mixed filled/unfilled stroke figures. The 76 sRGB cases have a maximum whole-page mean difference
+of 1.366/255 against managed PNG output, including geometry and cycle edges.
+All 84 SVG files reimport without unsupported-feature diagnostics. Native
+`ScRgbLinearInterpolation` is retained through shared Drawing, raster, SVG and
+PDF output. A 184-pair browser comparison includes direct and Drawing SVG for
+all 84 cases, plus managed PDF readback and Ghostscript for eight linearRGB
+cases. Those eight cases have maximum mean channel differences of 0.071/255
+for SVG/PNG, 0.099/255 for managed PDF readback and 0.549/255 for Ghostscript,
+including cone and cycle-edge rasterization. Direct and Drawing SVG differ
+from managed PNG by at most one channel value in these linearRGB cases; managed
+PDF readback differs by at most two. PDF uses calibrated RGB shading; color-stop
+alpha remains independent of color interpolation. This qualifies these generated
+fields, not arbitrary native-producer coverage.
+
+
+Boundary Repeat/Reflect qualification adds 36 generated cases across both dialects,
+fill, stroke, translucent stops, shear and reflection. Managed samples differ from
+the analytic field by at most 1.09/255; opaque PDF readback differs by at most
+0.51/255. Ghostscript and GhostXPS render the native vector fields, with maximum
+sample differences of 9.16/255 and 14.03/255 respectively at 96 DPI. Raster edge
+and interpolation differences remain; native Windows acceptance is not established.
+The shared renderer preserves radial fill, gradient stroke and marker coordinates
+through shape transforms, including paths inset within a declared canvas. PDF readback accepts up to 256 stitched child functions,
+with its separate recursion, breakpoint and evaluation limits still enforced.
+
+Stroke qualification includes 48 generated XPS/OpenXPS cases and 16 focused rendering
+regressions covering clipped miters,
+asymmetric and triangle caps, separate dash caps, overlapping translucent dashes,
+closed seams, curve/affine placement, fill/stroke suppression, and gradient, image
+and visual-brush paint. Core constructs the stroke as one nonzero union before the
+native transform, so overlapping pieces do not compound the brush opacity. Curve
+approximation accounts for native and visual-brush transforms; subdivision, expanded
+points and SVG output remain bounded.
+Open figures retain their caps when their endpoints coincide. Painted dashes retain
+authored degenerate vertices, including closed seams. Small line/arc coordinates
+remain distinct before affine magnification; equivalent transformed and untransformed
+managed fixtures have the same coverage.
+
+GhostXPS/Ghostscript and MuPDF render the same generated fixtures at 96 DPI. Their
+rendered evidence is supplemented by analytic managed checks. Both XPS engines omit
+fully degenerate strokes and apply authored line caps at internal breaks created by
+unstroked segments; the managed checks follow ECMA-388 18.6.5, 18.6.8 and 18.6.10 for
+those cases. Exact dash-boundary caps, dashed degenerate joins, leading degenerate
+closed seams and magnified short geometry also differ between consumers. These
+discrepancies remain visible qualification gaps, requiring
+a native Windows consumer or another producer/consumer fixture; they are not treated
+as proof that every native stroke case is independently qualified.
+
+PDF semantic mapping is exercised with generated native structures in both dialects
+and Microsoft's two-page WPF structured sample. pypdf independently resolves every
+marked-content reference and ParentTree entry in these PDFs. The generated stories
+retain the declared page-2-before-page-1 order, labels, empty cells and spans.
+PyMuPDF 1.28.2 renders tagged and untagged exports pixel-identically at 96 DPI on
+all six pages. This proves the representative structure and paint-preservation
+contracts; it does not establish a broader OpenXPS producer corpus or PDF/UA
+conformance. The PDF bridge uses the same native structure limits and rejects
+multiple semantic owners for the same glyph or graphic paint.
+
+## PNG declarations without ICC
+
+Native integer PNG samples without a usable ICC profile use the sRGB defaults
+required by ECMA-388 15.3.7, Table 15-3. `gAMA` and `cHRM` do not override those
+native defaults. Core decodes the channel samples, and the native image path
+re-encodes them before SVG/PDF projection so another consumer cannot apply PNG
+calibration to the resulting paint. A usable associated or embedded ICC profile
+retains the native profile precedence described above.
+
+PNG resources with APNG chunks use the static `IDAT` image, including when it
+differs from animation frame zero. Native SVG/PDF/raster conversion normalizes
+that static image for ordinary, gamma-declared and ICC-managed resources. It
+does not play animation. This normalization uses the same four-million-pixel
+limit as native color conversion; malformed containers and exceeded limits are
+reported instead of selecting an animation frame.
+
+Nine qualified generated PNG inputs cover RGB, grayscale, indexed color and alpha, with gamma-only
+and gamma/chromaticity declarations. Canonical sRGB `cICP` is accepted; non-sRGB
+`cICP`, other unsupported color declarations and noncanonical TIFF colorimetry
+remain diagnosed. The native four-million-pixel decode limit and cancellation
+policy still apply. This does not qualify HDR, general PNG color management,
+a broad photographic corpus or all non-ICC image colorimetry. Raw Core raster
+decoding continues to return channel samples without color calibration.
+
+## JPEG XR image resources
+
+Image brushes accept `image/jxr` and the legacy `image/vnd.ms-photo` content type. Core decodes single-image tagged containers with unsigned eight-bit gray/RGB/BGR/BGRA, unsigned sixteen-bit gray/RGB/RGBA, and finite sixteen/thirty-two-bit fixed-point or floating-point gray/RGB/RGBA samples, 4:4:4/4:2:2/4:2:0 chroma with defined sampling-grid centering, spatial/frequency packets, lossy/lossless quantization, overlap filtering, tiled images, reduced subbands, and straight or premultiplied alpha. Unsigned eight/sixteen-bit CMYK and CMYKDirect images require an associated or embedded four-component ICC profile. Three-to-eight-channel unsigned eight/sixteen-bit images require a matching associated or embedded ICC profile. Associated or embedded RGB/gray/CMYK/multichannel ICC profiles use the existing image color pipeline at source precision before rounding to the rendering buffer. SVG carries normalized PNG pixels, and raster/PDF conversion uses the same decoded image.
+
+The checked-in reference corpus covers independently encoded eight/sixteen-bit images, sample shifts, and premultiplied-alpha variants. Color and alpha retain source precision through unassociation and ICC conversion before rounding to the eight-bit rendering buffer. Without a usable ICC profile, fixed-point and floating-point samples use linear scRGB and are converted to sRGB, clipping colors outside the SDR output gamut. NaN and infinity samples are rejected without partial pixels. Focused XPS tests exercise both package dialects and raster, SVG, and PDF-reader pixels. Interleaved alpha supports the same or fewer frequency bands than the primary plane. All six reduced-alpha band combinations have unsigned eight/sixteen-bit regression coverage in both packet orders: spatial pixels match the independent ITU decoder, while frequency pixels match equivalent spatial encodings. Direct native frequency-order qualification remains open because the independent decoders fail or disagree on these mixed-band streams. Multiple image directories remain unsupported. This is a bounded rendering contract, not complete JPEG XR or OpenXPS consumer conformance.
+
+CMYK JPEG XR qualification includes 96 independent encodings with 768,768 exact source samples across CMYK/CMYKDirect, unsigned eight/sixteen-bit, spatial/frequency packets, quantization, hard tiles and separate/interleaved alpha. Both XPS dialects preserve ICC-normalized pixels and PDF-reader alpha. The Microsoft comparison decoder accepts the 48 ordinary CMYK cases, agrees on all color samples, and differs by one alpha level in four lossy eight-bit interleaved-alpha cases; it rejects CMYKDirect. The ITU reference fixtures correct container identifiers and separate-alpha lengths and pad the input TIFF alpha strip where required by that encoder. These corrections do not alter encoded pixel packets.
+
+N-channel qualification covers three through eight unsigned 8/16-bit color channels, spatial/frequency packets, and interleaved or separate alpha. The 60 fixtures match 422,730 ITU-decoded source samples exactly; 48 are direct reference encodings and 12 combine independently encoded primary and grayscale alpha streams. The latter avoid a reference-encoder assertion when producing separate N-channel alpha; the assembled containers are independently decoded again. The shared ICC engine matches 153 LittleCMS swatches for `3CLR`–`8CLR` LUT8/LUT16 and variable-grid `mAB` profiles within two 8-bit levels. Both XPS dialects preserve normalized SVG pixels and PDF-reader alpha. Four representative rendered image pairs match reference PNG placements exactly. The Microsoft comparison decoder agrees exactly on 23 of the 48 direct encodings; it differs on interleaved alpha and one eight-channel frequency case. Broader native N-channel interoperability remains unqualified.
