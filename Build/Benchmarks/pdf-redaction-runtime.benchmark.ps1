@@ -11,7 +11,7 @@ New-BenchmarkSuite 'officeimo-pdf-redaction-runtime' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 5 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
     Add-BenchmarkMetadata Contract 'Precise regex search, relabeled review, apply and complete-stream/managed-render verification on immutable PDFs with exactly one reviewed area on each page. Input preparation and final saved-output readback are outside measurement. No UI rendering or cross-engine ranking.'
     Add-BenchmarkMetadata InputPolicy $(if ($inputPath) { 'Saved PDFs; input fingerprints recorded per case' } else { 'Generated synthetic PDFs; input fingerprints recorded per case' })
-    Add-BenchmarkMetadata SearchPattern $pattern
+    Add-BenchmarkMetadata SearchPatternJson (ConvertTo-Json -InputObject $pattern -Compress)
     Add-BenchmarkMetadata SearchOptions 'Regex; MatchCase=true; MatchedGlyphs; TextOnly; CheckManagedRendering=true; RequireCompleteStreamInspection=true; FailOnUndecodablePdfStreams=true'
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
     Add-BenchmarkMetadata AffinityPolicy 'Inherited. Keep other builds idle; macOS processor placement is unqualified.'
