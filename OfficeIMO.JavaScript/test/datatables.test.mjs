@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { ExportCell } from "../dist/core/index.js";
 import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "../dist/integrations/datatables/index.js";
 import { readZip } from "./zip-reader.mjs";
@@ -216,6 +217,30 @@ test("PDF button metadata inherits omitted values and clears explicit native nul
   assert.ok(replaced.includes("Fixture title")); assert.ok(replaced.includes("New below"));
   for (const key of keys) assert.ok(!replaced.includes(defaults[key]), key);
   assert.deepEqual(defaults, { title: "Default title", messageTop: "Default above", messageBottom: "Default below", compression: false });
+});
+
+test("partial button PDF options retain registration metadata, fonts and footer defaults", async () => {
+  const { PdfFont } = await import("../dist/pdf/index.js");
+  const bytes = new Uint8Array(await readFile(new URL("../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf", import.meta.url)));
+  const regular = new PdfFont(bytes), { host, table } = fixture({ data: [["Łódź", 1], ["Zażółć", 2]] });
+  const defaults = Object.freeze({ title: "Default title", messageTop: "Default above", messageBottom: "Default below",
+    fonts: Object.freeze({ regular }), pageFooter: "Confidential", compression: false,
+    footer: Object.freeze({ values: Object.freeze(["Default footer", 3]) }) });
+  let delivered, failure;
+  registerDataTablesButtons(host, { pdf: defaults, save: blob => { delivered = blob; }, onError: error => { failure = error; } });
+  const overrides = Object.freeze({ pageNumbers: false });
+  await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { officeimo: { pdf: overrides } }, resolve));
+  assert.equal(failure, undefined); assert.ok(delivered);
+  const text = (await inspectPdf(delivered)).text;
+  for (const required of ["Łódź", "Zażółć", "Default title", "Default above", "Default below", "Default footer", "Confidential"]) assert.ok(text.includes(required), required);
+  assert.ok(!text.includes("Page 1 of"));
+  await new Promise(resolve => host.ext.buttons.officeimoPdf.action(null, table, null, { officeimo: { pdf: overrides },
+    title: null, messageTop: "", messageBottom: null, header: false, footer: false }, resolve));
+  assert.equal(failure, undefined);
+  const cleared = (await inspectPdf(delivered)).text;
+  assert.ok(cleared.includes("Łódź")); assert.ok(cleared.includes("Confidential"));
+  for (const absent of ["Default title", "Default above", "Default below", "Default footer", "Metrics"]) assert.ok(!cleared.includes(absent), absent);
+  assert.equal(defaults.fonts.regular, regular); assert.deepEqual(overrides, { pageNumbers: false });
 });
 
 test("PDF button clears native metadata resolved to null and retains other defaults", async () => {

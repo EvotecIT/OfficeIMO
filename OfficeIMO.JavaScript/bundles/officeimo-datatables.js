@@ -5298,7 +5298,7 @@ _modules.set("04ba6efc84626da42c151b3efe8ac74cfe65735d84744392292a0e17d8a53508",
 return _exports;
 })();
 
-const _m0 = _modules.get("c3e26fbe60294f830667fdff034b78f0521fcb98d955b5d2fe52e921a1b5d4ae") ?? (() => {
+const _m0 = _modules.get("5780f41122980d62a63fa721668584db9a944f22dd21c29ee67af8f52fa2d934") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -5401,7 +5401,7 @@ function registerDataTablesButtons(host, options = {}) {
                             throw new TypeError("Native customize callbacks are unsupported; use OfficeIMO sheet/workbook/pdf options.");
                         if (format === "pdf") {
                             const info = call(table.buttons, "exportInfo", configuration);
-                            const pdf = { ...current.pdf };
+                            const pdf = { ...options.pdf, ...current.pdf };
                             for (const key of ["title", "messageTop", "messageBottom"])
                                 if (member(configuration, key) !== undefined) {
                                     if (member(configuration, key) === null) {
@@ -5456,7 +5456,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m47.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("c3e26fbe60294f830667fdff034b78f0521fcb98d955b5d2fe52e921a1b5d4ae", _exports);
+_modules.set("5780f41122980d62a63fa721668584db9a944f22dd21c29ee67af8f52fa2d934", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

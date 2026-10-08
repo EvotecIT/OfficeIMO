@@ -111,6 +111,11 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
       await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,{title:'Button report',pageSize:'LETTER',orientation:'landscape',exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
       if(!delivered) throw Error('PDF button failed to deliver its file.');
       await save('datatables-button',delivered,['Button report','Łódź','Metrics','Totals','Approved','Finance'],{rows:120});
+      delivered=undefined;
+      await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,{
+        officeimo:{pdf:{pageNumbers:false}},exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
+      if(!delivered)throw Error('Partial PDF button options lost defaults or failed to deliver.');
+      await save('datatables-partial-options',delivered,['Łódź',...Object.values(metadata)],{rows:120,forbidden:['Page 1 of']});
       for (const location of ['registration','button']) {
         const host={Buttons:DataTable.Buttons,ext:{buttons:{}}}, replacement={fonts,pageNumbers:false,
           headerRows:[[{value:'Replacement heading'},{value:'Amount'},{value:'State'}]],

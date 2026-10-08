@@ -84,7 +84,7 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
             if (member(configuration, "customize") !== undefined) throw new TypeError("Native customize callbacks are unsupported; use OfficeIMO sheet/workbook/pdf options.");
             if (format === "pdf") {
               const info = call(table.buttons, "exportInfo", configuration);
-              const pdf = { ...current.pdf };
+              const pdf = { ...options.pdf, ...current.pdf };
               for (const key of ["title", "messageTop", "messageBottom"] as const) if (member(configuration, key) !== undefined) {
                 if (member(configuration, key) === null) { delete pdf[key]; continue; }
                 const text = member(info, key);
