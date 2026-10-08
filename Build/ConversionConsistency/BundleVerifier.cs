@@ -33,7 +33,7 @@ internal static class BundleVerifier {
             using var parsed = PdfPigDocument.Open(pdf);
             if (parsed.NumberOfPages != item.Contract.Pages.Count)
                 errors.Add($"PDF page count: expected {item.Contract.Pages.Count}, got {parsed.NumberOfPages}.");
-            foreach (OfficeImageExportFormat format in Enum.GetValues<OfficeImageExportFormat>()) {
+            foreach (OfficeImageExportFormat format in ComparedImageFormats.All) {
                 var sequence = item.Images.Where(image => image.Format == format.ToString()).Select(image => image.Page).Order().ToArray();
                 if (!sequence.SequenceEqual(Enumerable.Range(1, item.Contract.Pages.Count)))
                     errors.Add(format + " page sequence is missing, duplicated, or unexpected.");

@@ -95,6 +95,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadSectionPages(characters, characterIndex,
+                    out string sectionPagesInstruction, out int sectionPagesResultStartIndex,
+                    out int sectionPagesResultEndIndex, out int sectionPagesFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.SectionPages, sectionPagesInstruction, sectionPagesResultStartIndex, sectionPagesResultEndIndex);
+                    characterIndex = sectionPagesFieldEndIndex;
+                    continue;
+                }
+
                 if (LegacyDocField.TryReadDateTimeField(
                     characters,
                     characterIndex,

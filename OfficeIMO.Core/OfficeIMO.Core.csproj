@@ -13,7 +13,7 @@
     <PackageId>OfficeIMO.Core</PackageId>
     <PackageTags>documents;drawing;color;image;raster;png;jpeg;tiff;webp;font;metadata;lifecycle;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT AND Apache-2.0 AND BSD-3-Clause</PackageLicenseExpression>
     <IsPublishable>True</IsPublishable>
     <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
     <PackageIcon>OfficeIMO.png</PackageIcon>
@@ -36,7 +36,6 @@
     <InternalsVisibleTo Include="OfficeIMO.CSV" />
     <InternalsVisibleTo Include="OfficeIMO.Data.Arrow" />
     <InternalsVisibleTo Include="OfficeIMO.Excel" />
-    <InternalsVisibleTo Include="OfficeIMO.Access" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf" />
@@ -59,6 +58,7 @@
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Project" />
+    <InternalsVisibleTo Include="OfficeIMO.Access" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Verification" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.DocBook" />

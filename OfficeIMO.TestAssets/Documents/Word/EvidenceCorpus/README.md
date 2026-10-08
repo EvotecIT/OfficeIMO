@@ -21,6 +21,15 @@ OfficeIMO supports a documented first-party DOC subset; callers must use
 `AssessLegacyDocWrite`, conversion reports, and an explicit loss decision for
 content outside that subset.
 
+The four `Word/LegacyFields` SECTIONPAGES fixtures start with OfficeIMO-authored
+two-page sections and are saved as binary DOC by Microsoft Word desktop 16.0.
+They cover header and footer tables, visible numbering starting at five, and
+two sections with continuing numbering. Their stored field result is `1`;
+the reader preserves that cached value and its editable instruction rather
+than recalculating it during import. Raw-byte hashes are recorded in the
+manifest. Their [bounded import report](../LegacyFields/import-report.md)
+retains the binary Data-stream and quick-save-history diagnostics.
+
 Run the manifest contract with:
 
 ```powershell

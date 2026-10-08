@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
+        private const ushort SprmPChgTabs = 0xC615;
         private const ushort SprmPIlvl = 0x260A;
         private const ushort SprmPOutLvl = 0x2640;
         private const ushort SprmPIlfo = 0x460B;
@@ -583,7 +584,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (sprm == SprmPChgTabsPapx) {
+                if (sprm == SprmPChgTabsPapx || sprm == SprmPChgTabs) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -593,7 +594,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         break;
                     }
 
-                    ReadTabChanges(bytes, offset + 3, offset + 3 + tabOperandLength, tabStops);
+                    // Word also stores list-level additions in sprmPChgTabs. With no
+                    // deletions its payload matches sprmPChgTabsPapx. Range deletions
+                    // need inherited-tab resolution and remain outside this projection.
+                    if (sprm == SprmPChgTabsPapx || (tabOperandLength >= 2 && bytes[offset + 3] == 0)) {
+                        ReadTabChanges(bytes, offset + 3, offset + 3 + tabOperandLength, tabStops);
+                    }
                     offset += 3 + tabOperandLength;
                     continue;
                 }
@@ -1242,6 +1248,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return true;
                 case 4:
                     alignment = LegacyDocTabStopAlignment.Bar;
+                    return true;
+                case 6:
+                    alignment = LegacyDocTabStopAlignment.Number;
                     return true;
                 default:
                     alignment = LegacyDocTabStopAlignment.Left;

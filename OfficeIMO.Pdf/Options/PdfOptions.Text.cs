@@ -17,8 +17,27 @@ public enum PdfTextShapingMode {
 }
 
 public sealed partial class PdfOptions {
-    /// <summary>Retains leading and repeated spaces in flow text. Intended for literal preformatted documents.</summary>
-    public bool PreserveTextWhitespace { get; set; }
+    private PdfTextWhitespaceMode _textWhitespaceMode;
+    private bool _hasExplicitTextWhitespaceConfiguration;
+
+    /// <summary>Controls ordinary spaces in flow text. The default is <see cref="PdfTextWhitespaceMode.Collapse"/>.</summary>
+    public PdfTextWhitespaceMode TextWhitespaceMode {
+        get => _textWhitespaceMode;
+        set {
+            if (value < PdfTextWhitespaceMode.Collapse || value > PdfTextWhitespaceMode.Preformatted)
+                throw new ArgumentOutOfRangeException(nameof(value));
+            _textWhitespaceMode = value;
+            _hasExplicitTextWhitespaceConfiguration = true;
+        }
+    }
+
+    /// <summary>Retains leading and repeated spaces. Setting true selects literal <see cref="PdfTextWhitespaceMode.Preformatted"/> layout; setting false selects <see cref="PdfTextWhitespaceMode.Collapse"/>.</summary>
+    public bool PreserveTextWhitespace {
+        get => _textWhitespaceMode != PdfTextWhitespaceMode.Collapse;
+        set => TextWhitespaceMode = value ? PdfTextWhitespaceMode.Preformatted : PdfTextWhitespaceMode.Collapse;
+    }
+
+    internal bool HasExplicitTextWhitespaceConfiguration => _hasExplicitTextWhitespaceConfiguration;
     /// <summary>
     /// Dependency-free generated text shaping mode used by embedded TrueType and OpenType/CFF font output.
     /// </summary>

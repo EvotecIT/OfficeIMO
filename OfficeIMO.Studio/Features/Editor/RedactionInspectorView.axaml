@@ -19,16 +19,23 @@
         <CheckBox Content="{loc:Loc Redaction.Regex}" IsChecked="{Binding RedactionSearchRegex}" />
         <CheckBox Content="{loc:Loc Redaction.MatchCase}" IsChecked="{Binding RedactionSearchMatchCase}" />
         <CheckBox Content="{loc:Loc Redaction.SelectedPagesOnly}" IsChecked="{Binding RedactionSearchSelectedPagesOnly}" />
-        <TextBlock Classes="muted" Text="{loc:Loc Redaction.SearchScope}" TextWrapping="Wrap" />
+        <CheckBox AutomationProperties.AutomationId="RedactionMatchedTextOnly" Content="{loc:Loc Redaction.MatchedTextOnly}" IsChecked="{Binding RedactionSearchMatchedTextOnly}" />
+        <CheckBox AutomationProperties.AutomationId="RedactionPreserveUnderlay" Content="{loc:Loc Redaction.PreserveUnderlay}" IsChecked="{Binding RedactionSearchPreserveUnderlay}" />
+        <TextBlock Classes="muted" Text="{Binding RedactionSearchScopeDescription}" TextWrapping="Wrap" />
         <Button Classes="tool" Content="{loc:Loc Redaction.FindMarks}" Command="{Binding SearchRedactionsCommand}" IsEnabled="{Binding CanRedact}" />
       </StackPanel>
     </Expander>
     <ListBox ItemsSource="{Binding RedactionMarks}" SelectedItem="{Binding SelectedRedactionMark}" MaxHeight="170" AutomationProperties.Name="{loc:Loc Redaction.Marks}">
+      <ListBox.ItemContainerTheme>
+        <ControlTheme TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" x:DataType="editor:PdfRedactionMarkViewModel">
+          <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleName}" />
+        </ControlTheme>
+      </ListBox.ItemContainerTheme>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="editor:PdfRedactionMarkViewModel">
           <StackPanel Spacing="3">
             <StackPanel Orientation="Horizontal" Spacing="6">
-              <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc Redaction.Include}" />
+              <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc Redaction.Include}" AutomationProperties.Name="{Binding IncludeAccessibleName}" />
               <TextBlock Text="{Binding PageNumber}" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Text="{Binding Description}" TextWrapping="Wrap" MaxWidth="245" />

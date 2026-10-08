@@ -290,11 +290,9 @@ internal static class OfficeVbaDirectoryCodec {
             if (!TryReadFixedRecord(0x002B, out _)) return false;
             string streamName;
             try {
-                streamName = unicodeStream.Length > 0
-                    ? new UnicodeEncoding(false, false, true).GetString(unicodeStream).TrimEnd('\0')
-                    : OfficeVbaText.Decode(ansiStream, CodePage).TrimEnd('\0');
+                streamName = new UnicodeEncoding(false, false, true).GetString(unicodeStream);
             } catch (DecoderFallbackException) { return false; }
-            catch (NotSupportedException) { return false; }
+            if (streamName.Length == 0 || streamName.IndexOf('\0') >= 0) return false;
             uint textOffset = ReadUInt32(textOffsetBytes, 0);
             if (textOffset > int.MaxValue) return false;
             model = new ModuleModel {
