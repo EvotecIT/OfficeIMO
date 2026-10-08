@@ -21,6 +21,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
 
     public DocumentWorkspaceView() {
         InitializeComponent();
+        IndependentPanes.ReaderFocusRequested += (_, _) => FocusActiveIndependentPane();
         InitializeOrganizerInput();
         InitializeAnnotationSelectionInput();
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);

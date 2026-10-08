@@ -75,7 +75,12 @@ public sealed partial class StudioDocumentPaneViewModel : ObservableObject, IDis
         }
         PublishNavigation();
     }
-    partial void OnIsActiveChanged(bool value) { MirrorInteractions(); RefreshOcrPage(); }
+    partial void OnIsActiveChanged(bool value) {
+        // The selected field survives a pane switch; an interrupted click/Tab focus request does not.
+        if (!value) foreach (var page in _sourcePages) page.FocusInlineFormEditorRequested = false;
+        MirrorInteractions();
+        RefreshOcrPage();
+    }
 
     internal void Activate() => _host.Activate(this);
     internal void ActivatePage(int pageNumber) {

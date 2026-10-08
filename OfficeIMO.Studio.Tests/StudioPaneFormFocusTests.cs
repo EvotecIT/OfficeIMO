@@ -118,12 +118,66 @@ public sealed class StudioPaneFormFocusTests {
                 Capture(window, $"pane-form-f6-focus-settled-{width}-{separateDocuments}");
                 var leftView = PaneView(window, left);
                 var reader = leftView.FindControl<ListBox>("PanePages")!;
-                Assert.True(leftView.IsKeyboardFocusWithin,
-                    $"Actual focus={window.FocusManager!.GetFocusedElement()}; reader focusable={reader.Focusable}, visible={reader.IsEffectivelyVisible}, enabled={reader.IsEffectivelyEnabled}, bounds={reader.Bounds}");
-                Assert.True(reader.Focusable);
-                Assert.True(reader.Focus(NavigationMethod.Directional));
-                Assert.Same(reader, window.FocusManager!.GetFocusedElement());
+                var firstFocus = window.FocusManager!.GetFocusedElement();
+                bool firstReaderFocused = ReferenceEquals(reader, firstFocus);
                 Assert.DoesNotContain(PaneView(window, right).GetVisualDescendants().OfType<TextBox>(), editor => editor.IsFocused);
+                window.KeyPress(Key.F6, RawInputModifiers.None, PhysicalKey.None, null);
+                await Flush(window);
+                Capture(window, $"pane-form-f6-return-focus-{width}-{separateDocuments}");
+                Assert.Same(right, panes.ActivePane);
+                var rightReader = PaneView(window, right).FindControl<ListBox>("PanePages")!;
+                Assert.True(firstReaderFocused,
+                    $"First switch focus={firstFocus}; returning focus={window.FocusManager.GetFocusedElement()}");
+                Assert.Same(rightReader, window.FocusManager.GetFocusedElement());
+                Assert.NotNull(right.Document.SelectedFormField); // Remembering the field does not request editor focus.
+                Assert.False(right.Document.SelectedPage!.FocusInlineFormEditorRequested);
+                Assert.False(right.SelectedPage!.FocusInlineFormEditorRequested);
+            } finally { window.Close(); }
+            return true;
+        }, default);
+    }
+
+    [Theory]
+    [InlineData(1600, false)]
+    [InlineData(390, false)]
+    [InlineData(1600, true)]
+    [InlineData(390, true)]
+    public async Task SwitchButtonFocusesReaderAfterFormsContextRestoration(int width, bool separateDocuments) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            string source = CreateFixture(services.Paths.Root);
+            Application.Current!.RequestedThemeVariant = width == 390 ? ThemeVariant.Dark : ThemeVariant.Light;
+            var window = new MainWindow(services) { Width = width, Height = 900 };
+            try {
+                window.Show(); await window.TabHost.OpenDocumentAsync(source);
+                window.ViewModel.ShowFormsModeCommand.Execute(null);
+                window.ViewModel.SelectedFormField = Assert.Single(window.ViewModel.FormFields);
+                var panes = window.TabHost.Panes; panes.OpenSecondPane(window.TabHost.SelectedTab);
+                if (separateDocuments) {
+                    string other = Path.Combine(services.Paths.Root, "other-switch-widgets.pdf");
+                    File.Copy(source, other, true);
+                    await window.TabHost.OpenDocumentAsync(other);
+                    window.ViewModel.ShowFormsModeCommand.Execute(null);
+                    window.ViewModel.SelectedFormField = Assert.Single(window.ViewModel.FormFields);
+                }
+                var left = panes.Left!; var right = panes.Right!;
+                await Render(window, left, right); HideInspector(window);
+                Click(window, Editor(PaneView(window, right), 7)); await Flush(window);
+                var workspace = window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!;
+                var surface = workspace.FindControl<IndependentDocumentPanesView>("IndependentPanes")!;
+                var button = surface.FindControl<Button>("SwitchPaneButton")!;
+                Click(window, button); await Flush(window);
+                Capture(window, $"pane-form-switch-button-{width}-{separateDocuments}");
+                Assert.Same(left, panes.ActivePane);
+                if (width == 390) Assert.False(workspace.FindControl<Grid>("InspectorPane")!.IsVisible);
+                Assert.Same(PaneView(window, left).FindControl<ListBox>("PanePages"), window.FocusManager!.GetFocusedElement());
+                Click(window, button); await Flush(window);
+                Capture(window, $"pane-form-switch-button-return-{width}-{separateDocuments}");
+                Assert.Same(right, panes.ActivePane);
+                Assert.Same(PaneView(window, right).FindControl<ListBox>("PanePages"), window.FocusManager.GetFocusedElement());
+                Assert.NotNull(right.Document.SelectedFormField);
+                Assert.False(right.Document.SelectedPage!.FocusInlineFormEditorRequested);
             } finally { window.Close(); }
             return true;
         }, default);

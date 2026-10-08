@@ -32,6 +32,8 @@ public sealed partial class IndependentDocumentPanesView : UserControl {
         };
     }
     internal bool IsCompact => _compact;
+    /// <summary>Lets the containing workspace apply context visibility and reader focus through one route.</summary>
+    internal event EventHandler? ReaderFocusRequested;
     internal void FocusActivePane() => (_panes?.ActivePane == _panes?.Right ? RightPane : LeftPane).FocusReader();
     private void OnPanesChanged(object? sender, PropertyChangedEventArgs args) => ApplyLayout(Bounds.Width);
     private void Observe() {
@@ -44,7 +46,10 @@ public sealed partial class IndependentDocumentPanesView : UserControl {
         if (_panes is not null) _panes.PropertyChanged -= OnPanesChanged;
         _observing = false;
     }
-    private void OnSwitchClick(object? sender, RoutedEventArgs args) { _panes?.SwitchPane(); FocusActivePane(); }
+    private void OnSwitchClick(object? sender, RoutedEventArgs args) {
+        _panes?.SwitchPane();
+        ReaderFocusRequested?.Invoke(this, EventArgs.Empty);
+    }
     private void ApplyLayout(double width) {
         _compact = width < 780;
         PaneSplitter.IsVisible = !_compact;
