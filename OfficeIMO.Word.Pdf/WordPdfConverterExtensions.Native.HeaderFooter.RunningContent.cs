@@ -34,13 +34,18 @@ public static partial class WordPdfConverterExtensions {
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
                 var paragraph = new WordParagraph(story.Document, source);
-                if (WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible != true) continue;
-                hasNumberedParagraph = true;
+                WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+                hasNumberedParagraph |= info?.MarkerVisible == true;
                 var style = CreateNativeParagraphStyle(paragraph);
-                ApplyNativeInlineListIndent(paragraph, style);
+                if (info.HasValue) ApplyNativeInlineListIndent(paragraph, style);
                 // Keep the established bounded simple-story export for indents
-                // that cannot leave a positive paragraph-flow text frame.
-                if (style.LeftIndent + style.RightIndent >= width) return false;
+                // that cannot leave both paragraph-flow text frames positive.
+                // Admission switches every paragraph in every active variant.
+                double textWidth = width - style.LeftIndent - style.RightIndent;
+                double firstLineWidth = textWidth - style.FirstLineIndent;
+                if (textWidth <= 0D || firstLineWidth <= 0D ||
+                    double.IsNaN(textWidth) || double.IsInfinity(textWidth) ||
+                    double.IsNaN(firstLineWidth) || double.IsInfinity(firstLineWidth)) return false;
             }
         }
         return hasNumberedParagraph;
