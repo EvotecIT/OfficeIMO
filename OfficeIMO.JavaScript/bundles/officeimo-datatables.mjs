@@ -5072,6 +5072,10 @@ function safeOptions(options) {
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
+    return captureDataTablesExport(host, table, options);
+}
+/** @internal Writers omit source structures only when their output explicitly suppresses or replaces them. */
+function captureDataTablesExport(host, table, options = {}, omitted) {
     for (const column of Object.values(options.columnOptions ?? {}))
         if (column.style !== undefined)
             throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
@@ -5111,7 +5115,7 @@ function createDataTablesExport(host, table, options = {}) {
     const leaf = array(member(data, "header"));
     if (leaf.length !== columnIndexes.length)
         throw new TypeError("Export header must match the selected columns.");
-    const heading = headings(member(data, "headerStructure"), leaf, headingMode);
+    const heading = headings(omitted?.header ? undefined : member(data, "headerStructure"), leaf, omitted?.header ? "leaf" : headingMode);
     for (const index of columnIndexes)
         if (member(options.columnOptions?.[index], "value") !== undefined)
             throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
@@ -5130,10 +5134,11 @@ function createDataTablesExport(host, table, options = {}) {
             throw new TypeError("A spanning leaf heading cannot have per-column header overrides.");
         return override === undefined ? cell : Object.freeze({ ...cell, value: override });
     })));
-    const footerStructure = member(data, "footerStructure");
-    if (headingMode !== "structured" && options.includeFooter !== false && Array.isArray(footerStructure) && footerStructure.length > 1)
+    const includeSourceFooter = options.includeFooter !== false && omitted?.footer !== true;
+    const footerStructure = includeSourceFooter ? member(data, "footerStructure") : undefined;
+    if (headingMode !== "structured" && includeSourceFooter && Array.isArray(footerStructure) && footerStructure.length > 1)
         throw new TypeError("Only a single footer row is supported; select includeFooter: false to omit it explicitly.");
-    const rawFooter = options.includeFooter === false ? undefined : member(data, "footer");
+    const rawFooter = includeSourceFooter ? member(data, "footer") : undefined;
     const footer = rawFooter == null ? undefined : array(rawFooter).map(value);
     if (footer && footer.length !== columns.length)
         throw new TypeError("Export footer must match the selected columns.");
@@ -5228,7 +5233,7 @@ function createDataTablesExport(host, table, options = {}) {
         ...(headerStructure ? { headerStructure: Object.freeze(headerStructure) } : {}),
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
-const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
+const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
 return _exports;
 })();
 
@@ -5247,7 +5252,7 @@ const { call, member } = _m45;
 
 const { value } = _m46;
 
-const { createDataTablesExport } = _m47;
+const { captureDataTablesExport, createDataTablesExport } = _m47;
 
 
 
@@ -5261,7 +5266,10 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
         throw new TypeError("Structured headings require PDF output; use grouped or leaf for Excel/CSV.");
     portableSheet(options.sheet);
     portableWorkbook(options.workbook);
-    const source = createDataTablesExport(host, table, format === "pdf" ? { ...options, headings: options.headings ?? "structured" } : options), signal = options.signal;
+    const source = format === "pdf" ? captureDataTablesExport(host, table, { ...options, headings: options.headings ?? "structured" }, {
+        header: options.pdf?.includeHeader === false || options.pdf?.headerRows !== undefined,
+        footer: options.pdf?.footer !== undefined
+    }) : createDataTablesExport(host, table, options), signal = options.signal;
     let result;
     const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
     if (format === "xlsx") {

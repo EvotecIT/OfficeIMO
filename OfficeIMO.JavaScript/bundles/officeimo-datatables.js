@@ -5100,7 +5100,7 @@ _modules.set("32b517ba4354c67d18845619b53504032d1bbae555d033baed1f90f4345b787b",
 return _exports;
 })();
 
-const _m47 = _modules.get("5400b1bdf75f5ec206e007f99ee4de5159fe611dc8cf950cc09123d8892fdc40") ?? (() => {
+const _m47 = _modules.get("04ba6efc84626da42c151b3efe8ac74cfe65735d84744392292a0e17d8a53508") ?? (() => {
 const { checkAbort, pause, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m7;
@@ -5124,6 +5124,10 @@ function safeOptions(options) {
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
+    return captureDataTablesExport(host, table, options);
+}
+/** @internal Writers omit source structures only when their output explicitly suppresses or replaces them. */
+function captureDataTablesExport(host, table, options = {}, omitted) {
     for (const column of Object.values(options.columnOptions ?? {}))
         if (column.style !== undefined)
             throw new TypeError("Workbook-local column styles require the advanced Workbook API; use portable ExportCell presentation.");
@@ -5163,7 +5167,7 @@ function createDataTablesExport(host, table, options = {}) {
     const leaf = array(member(data, "header"));
     if (leaf.length !== columnIndexes.length)
         throw new TypeError("Export header must match the selected columns.");
-    const heading = headings(member(data, "headerStructure"), leaf, headingMode);
+    const heading = headings(omitted?.header ? undefined : member(data, "headerStructure"), leaf, omitted?.header ? "leaf" : headingMode);
     for (const index of columnIndexes)
         if (member(options.columnOptions?.[index], "value") !== undefined)
             throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
@@ -5182,10 +5186,11 @@ function createDataTablesExport(host, table, options = {}) {
             throw new TypeError("A spanning leaf heading cannot have per-column header overrides.");
         return override === undefined ? cell : Object.freeze({ ...cell, value: override });
     })));
-    const footerStructure = member(data, "footerStructure");
-    if (headingMode !== "structured" && options.includeFooter !== false && Array.isArray(footerStructure) && footerStructure.length > 1)
+    const includeSourceFooter = options.includeFooter !== false && omitted?.footer !== true;
+    const footerStructure = includeSourceFooter ? member(data, "footerStructure") : undefined;
+    if (headingMode !== "structured" && includeSourceFooter && Array.isArray(footerStructure) && footerStructure.length > 1)
         throw new TypeError("Only a single footer row is supported; select includeFooter: false to omit it explicitly.");
-    const rawFooter = options.includeFooter === false ? undefined : member(data, "footer");
+    const rawFooter = includeSourceFooter ? member(data, "footer") : undefined;
     const footer = rawFooter == null ? undefined : array(rawFooter).map(value);
     if (footer && footer.length !== columns.length)
         throw new TypeError("Export footer must match the selected columns.");
@@ -5280,12 +5285,12 @@ function createDataTablesExport(host, table, options = {}) {
         ...(headerStructure ? { headerStructure: Object.freeze(headerStructure) } : {}),
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
-const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport });
-_modules.set("5400b1bdf75f5ec206e007f99ee4de5159fe611dc8cf950cc09123d8892fdc40", _exports);
+const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
+_modules.set("04ba6efc84626da42c151b3efe8ac74cfe65735d84744392292a0e17d8a53508", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("cff097b06b99dc82159acae6eb44e1146af68fe7ab1ba031327177f4365b17ad") ?? (() => {
+const _m0 = _modules.get("c4f09f96c0ba572204c92461975852aa21bd6b8d3779ae77e322bffacfc72740") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { writeCsvTo } = _m6;
@@ -5300,7 +5305,7 @@ const { call, member } = _m45;
 
 const { value } = _m46;
 
-const { createDataTablesExport } = _m47;
+const { captureDataTablesExport, createDataTablesExport } = _m47;
 
 
 
@@ -5314,7 +5319,10 @@ async function writeDataTableTo(host, table, format, destination, options = {}) 
         throw new TypeError("Structured headings require PDF output; use grouped or leaf for Excel/CSV.");
     portableSheet(options.sheet);
     portableWorkbook(options.workbook);
-    const source = createDataTablesExport(host, table, format === "pdf" ? { ...options, headings: options.headings ?? "structured" } : options), signal = options.signal;
+    const source = format === "pdf" ? captureDataTablesExport(host, table, { ...options, headings: options.headings ?? "structured" }, {
+        header: options.pdf?.includeHeader === false || options.pdf?.headerRows !== undefined,
+        footer: options.pdf?.footer !== undefined
+    }) : createDataTablesExport(host, table, options), signal = options.signal;
     let result;
     const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
     if (format === "xlsx") {
@@ -5432,7 +5440,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m47.createDataTablesExport, ExportCell: _m5.ExportCell, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("cff097b06b99dc82159acae6eb44e1146af68fe7ab1ba031327177f4365b17ad", _exports);
+_modules.set("c4f09f96c0ba572204c92461975852aa21bd6b8d3779ae77e322bffacfc72740", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

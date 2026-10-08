@@ -118,6 +118,30 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
         await save('datatables-metadata-'+key,delivered,required,{forbidden,rows:120});
       }
     } finally {table.destroy(true);}
+    const deepRows=rows.slice(0,3).map(r=>[r.name,r.amount,'Łódź']);
+    const exportOptions={modifier:{order:'index',search:'none'}};
+    const sourceFooter='<tfoot><tr><th rowspan="2">Totals</th><th>4.5</th><th>Approved</th></tr><tr><th colspan="2">Finance</th></tr></tfoot>';
+    document.body.innerHTML='<table id="deep-header"><thead>'+Array.from({length:17},()=>'<tr><th>Unused heading</th><th>Unused heading</th><th>Unused heading</th></tr>').join('')+'</thead>'+sourceFooter+'</table>';
+    const deepHeader=new DataTable('#deep-header',{data:deepRows,order:[],columns:[{title:'Name'},{title:'Amount'},{title:'State'}]});
+    try {
+      await save('datatables-no-header',await OfficeIMO.exportDataTable(DataTable,deepHeader,'pdf',{exportOptions,pdf:{fonts,includeHeader:false}}),
+        ['Łódź','Totals','Approved','Finance'],{rows:3,forbidden:['Unused heading']});
+      await save('datatables-replacement-header',await OfficeIMO.exportDataTable(DataTable,deepHeader,'pdf',{exportOptions,
+        pdf:{fonts,headerRows:[[{value:'Replacement heading'},{value:'Amount'},{value:'State'}]]}}),
+        ['Replacement heading','Łódź','Totals','Finance'],{rows:3,forbidden:['Unused heading']});
+      let delivered,failure;
+      await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,deepHeader,null,
+        {header:false,exportOptions,officeimo:{save:blob=>{delivered=blob;},onError:error=>{failure=error;}}},resolve));
+      if(failure||!delivered)throw failure??Error('Suppressed-header PDF button did not deliver.');
+      await save('datatables-no-header-button',delivered,['Łódź','Totals','Finance'],{rows:3,forbidden:['Unused heading']});
+    } finally {deepHeader.destroy(true);}
+    document.body.innerHTML='<table id="deep-footer"><thead><tr><th>Name</th><th>Amount</th><th>State</th></tr></thead><tfoot>'+Array.from({length:17},()=>'<tr><th>Unused footer</th><th>Unused footer</th><th>Unused footer</th></tr>').join('')+'</tfoot></table>';
+    const deepFooter=new DataTable('#deep-footer',{data:deepRows,order:[],columns:[{title:'Name'},{title:'Amount'},{title:'State'}]});
+    try {
+      await save('datatables-replacement-footer',await OfficeIMO.exportDataTable(DataTable,deepFooter,'pdf',{exportOptions,
+        pdf:{fonts,footer:{values:['Replacement footer',42,'Approved']}}}),
+        ['Name','Łódź','Replacement footer','42','Approved'],{rows:3,forbidden:['Unused footer']});
+    } finally {deepFooter.destroy(true);}
   }
   if(scale) for(const count of [10000,100000]) for(const width of [4,20]) for(const styled of [false,true]) {
     async function* source(){for(let i=0;i<count;i++)yield Array.from({length:width},(_,c)=>c===0?'Row'+String(i).padStart(6,'0'):styled?new ExportCell(i+c,{text:String(i+c),presentation:{background:i%2?'F3F4F6':'ffffff'}}):i+c);}

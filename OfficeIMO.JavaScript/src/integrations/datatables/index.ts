@@ -6,7 +6,7 @@ import { writePdfTo } from "../../pdf/index.js";
 import { portableSheet, portableWorkbook } from "../../xlsx/portable.js";
 import { call, member } from "./api.js";
 import { value } from "./headings.js";
-import { createDataTablesExport } from "./snapshot.js";
+import { captureDataTablesExport, createDataTablesExport } from "./snapshot.js";
 import type { DataTablesApi, DataTablesButtonOptions, DataTablesHost, DataTablesWriteOptions } from "./types.js";
 export { createDataTablesExport } from "./snapshot.js";
 export { ExportCell } from "../../core/presentation.js";
@@ -19,7 +19,10 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("DataTables export format must be xlsx, csv or pdf.");
   if (format !== "pdf" && options.headings === "structured") throw new TypeError("Structured headings require PDF output; use grouped or leaf for Excel/CSV.");
   portableSheet(options.sheet); portableWorkbook(options.workbook);
-  const source = createDataTablesExport(host, table, format === "pdf" ? { ...options, headings: options.headings ?? "structured" } : options), signal = options.signal;
+  const source = format === "pdf" ? captureDataTablesExport(host, table, { ...options, headings: options.headings ?? "structured" }, {
+    header: options.pdf?.includeHeader === false || options.pdf?.headerRows !== undefined,
+    footer: options.pdf?.footer !== undefined
+  }) : createDataTablesExport(host, table, options), signal = options.signal;
   let result: ExportResult;
   const stream = { ...(signal ? { signal } : {}), ...(options.limits ? { limits: options.limits } : {}) };
   if (format === "xlsx") {
