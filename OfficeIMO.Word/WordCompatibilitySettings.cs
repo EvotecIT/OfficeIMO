@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
     /// Provides access to compatibility settings for the document and allows
     /// reading or changing the compatibility mode and layout options.
     /// </summary>
-    public class WordCompatibilitySettings {
+    public partial class WordCompatibilitySettings {
         private readonly WordprocessingDocument _wordprocessingDocument;
         private readonly WordDocument _document;
 

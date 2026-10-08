@@ -181,6 +181,11 @@ namespace OfficeIMO.Word {
             document.Settings.MirrorMargins = legacyDocument.MirrorMargins;
             document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
             document.CompatibilitySettings.DoNotBalanceTextColumns = legacyDocument.NoColumnBalance;
+            document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2003;
+            // Word's native DOC layout moves trailing paragraph marks even when
+            // later compatibility storage contains a disabled option. Project
+            // that effective layout into the editable DOCX model.
+            document.CompatibilitySettings.SplitPageBreakAndParagraphMark = true;
             if (legacyDocument.DefaultTabStop != null) document.Settings.DefaultTabStop = legacyDocument.DefaultTabStop.Value;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;

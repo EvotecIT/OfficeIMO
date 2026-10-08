@@ -4,6 +4,8 @@ OfficeIMO.Word provides first-party, dependency-free support for Office Open XML
 
 This document is the current capability contract.
 
+Native DOC uses the legacy behavior for a manual page break at the end of a paragraph: the paragraph mark moves onto the next page and consumes its line height and after spacing. Import projects this behavior through `CompatibilitySettings.SplitPageBreakAndParagraphMark = true` and Word 2003 compatibility mode, so DOCX and PDF conversion retain it. Native DOC saving rejects an explicitly disabled value. Use DOCX to retain `false`; Word 2013 compatibility mode ignores this stored setting during layout.
+
 ## Normal API
 
 Use the same `WordDocument` surface for both formats:
