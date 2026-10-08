@@ -458,10 +458,15 @@ internal static class PdfContentStreamTextRewriter {
             byte[] first = { bytes[0] };
             byte[] second = { bytes[1] };
             byte[] pair = { bytes[0], bytes[1] };
-            string one = decoder(first) ?? string.Empty;
-            string two = decoder(pair) ?? string.Empty;
+            string one = DecodeProbe(first);
+            string two = DecodeProbe(pair);
             twoByte = (string.IsNullOrEmpty(one.Trim('\0')) && !string.IsNullOrEmpty(two.Trim('\0'))) ||
                 (widthProvider(first) <= 0D && widthProvider(second) <= 0D && widthProvider(pair) > 0D);
+        }
+
+        string DecodeProbe(byte[] code) {
+            try { return decoder(code) ?? string.Empty; }
+            catch (PdfUnsupportedTextMappingException) { return string.Empty; }
         }
 
         for (int index = 0; index < bytes.Length;) {

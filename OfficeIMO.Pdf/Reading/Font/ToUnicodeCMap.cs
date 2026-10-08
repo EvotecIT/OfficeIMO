@@ -223,11 +223,21 @@ internal sealed class ToUnicodeCMap {
 
     public string MapBytes(byte[] bytes) => MapBytes(bytes, PdfReadLimits.DefaultMaxDecodedTextCharacters);
 
-    internal string MapBytes(byte[] bytes, int maxOutputCharacters) {
+    internal string MapBytes(byte[] bytes, int maxOutputCharacters) =>
+        MapBytesCore(bytes, maxOutputCharacters, allowUnmappedBytes: true, out _);
+
+    /// <summary>Maps every supplied code without falling back to raw bytes.</summary>
+    internal bool TryMapBytes(byte[] bytes, int maxOutputCharacters, out string decoded) {
+        decoded = MapBytesCore(bytes, maxOutputCharacters, allowUnmappedBytes: false, out bool allMapped);
+        return allMapped;
+    }
+
+    private string MapBytesCore(byte[] bytes, int maxOutputCharacters, bool allowUnmappedBytes, out bool allMapped) {
         if (maxOutputCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxOutputCharacters), maxOutputCharacters, "Maximum decoded text characters must be positive.");
         }
 
+        allMapped = true;
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < bytes.Length;) {
             // Greedy match up to _maxKeyBytes (1-2 bytes typical)
@@ -236,6 +246,10 @@ internal sealed class ToUnicodeCMap {
             for (int len = max; len >= 1; len--) {
                 string key = ByteSliceToHex(bytes, i, len);
                 if (_map.TryGetValue(key, out var s)) { mapped = s; used = len; break; }
+            }
+            if (mapped is null) {
+                allMapped = false;
+                if (!allowUnmappedBytes) return string.Empty;
             }
             int appendLength = mapped?.Length ?? 1;
             long nextLength = (long)sb.Length + appendLength;

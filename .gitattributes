@@ -154,3 +154,6 @@ OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
 Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
 Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
 Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff
+
+# Preserve the independent composite-font refusal fixture across checkout platforms.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -text -diff

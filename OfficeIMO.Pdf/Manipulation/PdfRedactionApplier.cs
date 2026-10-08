@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Applies reviewed redaction areas by removing intersecting content and annotations, then painting matching redaction marks.
-/// Unsupported text mappings fall back to removal of the complete PDF text object.
+/// Redaction requires a reviewable inspection plan before any content is removed or marks are painted.
 /// </summary>
 internal static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
@@ -242,6 +242,14 @@ internal static partial class PdfRedactionApplier {
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (!plan.Preflight.CanReadLogicalObjects) {
             throw new InvalidOperationException("PDF redaction cannot be applied because logical content cannot be read. " + string.Join(" ", plan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects)));
+        }
+        // Image/annotation removal consumes plan matches. A blocked plan may have discarded
+        // those matches even when the unsupported content is on an unselected page. The
+        // independent text-editing primitive instead rewrites only its supplied geometry.
+        if (!plan.IsReviewable && mutationScope != RedactionMutationScope.Text) {
+            throw new InvalidOperationException("PDF content removal cannot be applied because its inspection plan is blocked. " +
+                string.Join(" ", plan.Findings.Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
+                    .Select(static finding => finding.Message)));
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
