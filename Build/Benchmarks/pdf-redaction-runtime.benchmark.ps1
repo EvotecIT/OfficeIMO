@@ -12,7 +12,7 @@ New-BenchmarkSuite 'officeimo-pdf-redaction-runtime' {
     Add-BenchmarkMetadata AffinityPolicy 'Inherited. Keep other builds idle; macOS processor placement is unqualified.'
     Add-BenchmarkMetadata WorkloadSha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Pdf.Benchmarks.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata PdfSha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Pdf.dll') -Algorithm SHA256).Hash
-    Add-BenchmarkMetadata RunnerSha256 (Get-FileHash ([PowerForge.PowerShellBenchmarkRunner].Assembly.Location) -Algorithm SHA256).Hash
+    Add-BenchmarkMetadata RunnerModuleSha256 (Get-FileHash (Get-Command Invoke-BenchmarkSuite).ImplementingType.Assembly.Location -Algorithm SHA256).Hash
     Add-BenchmarkMetadata SpecSha256 (Get-FileHash $specPath -Algorithm SHA256).Hash
     Add-BenchmarkCaseSource {
         foreach ($pages in $pageCounts) {

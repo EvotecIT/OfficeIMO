@@ -23,6 +23,8 @@ dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release
 ./Build/Benchmarks/Run-PdfRedactionRuntimeBenchmarks.ps1 -OutputRoot ./Ignore/Benchmarks/PdfRedactionRuntime
 ```
 
+Use PSPublishModule 3.0.158 or newer. `-ModulePath` also accepts a module manifest or a source-built module DLL.
+
 The default 1-, 25- and 100-page matrix measures precise regex search, review with edited labels, application and complete-stream verification including managed rendering. Input generation and final readback occur outside measurement. Each lane checks every page, absence of selected text, retained neighboring text and source immutability. `-Pages`, `-WarmupCount`, `-IterationCount`, `-BinaryRoot`, `-ModulePath` and `-Plan` select the run. Timing and managed allocation come from PowerForge; no measurement is part of ordinary PR correctness gates.
 
 Use `-MemorySamplingIntervalMilliseconds 10` in a separate run to observe managed heap and resident memory during the operation. Sampled maxima are lower bounds and include host/observer effects; they do not isolate native allocations. These workloads measure the engine calls used by Studio, rather than window responsiveness or another engine's redaction behavior. Keep other builds idle and interpret results for the recorded host and input shapes.
