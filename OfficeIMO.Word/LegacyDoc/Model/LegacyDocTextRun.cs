@@ -222,6 +222,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool IsNumPages => FieldKind == LegacyDocFieldKind.NumPages;
 
+        internal bool IsSectionPages => FieldKind == LegacyDocFieldKind.SectionPages;
+
         internal bool IsStaticDateTimeField =>
             FieldKind == LegacyDocFieldKind.Date
             || FieldKind == LegacyDocFieldKind.Time

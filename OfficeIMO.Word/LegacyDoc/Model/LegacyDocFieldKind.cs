@@ -3,6 +3,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         None,
         Page,
         NumPages,
+        SectionPages,
         Date,
         Time,
         CreateDate,
