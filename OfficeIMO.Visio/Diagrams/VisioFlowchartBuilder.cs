@@ -500,8 +500,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void RouteBranchConnector(VisioPage page, VisioConnector connector, int branchRouteIndex) {
-            VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
-            VisioShapeBounds toBounds = connector.To.GetShapeBounds();
+            VisioShapeBounds fromBounds = VisioConnectorEndpoints.Bounds(connector, true);
+            VisioShapeBounds toBounds = VisioConnectorEndpoints.Bounds(connector, false);
             double branchLaneSpacing = _branchLaneSpacing.ToInches(_unit);
             double routeOffset = (branchRouteIndex % 3) * (branchLaneSpacing * 0.5D);
 

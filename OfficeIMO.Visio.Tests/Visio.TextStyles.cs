@@ -62,8 +62,9 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement faceName = Assert.Single(ReadXml(filePath, "visio/document.xml")
-                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Aptos");
-            Assert.Equal("0", faceName.Attribute("ID")?.Value);
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("NameU") == "Aptos");
+            Assert.Null(faceName.Attribute("ID"));
+            Assert.Null(faceName.Attribute("Name"));
 
             XElement shape = FindShape(ReadXml(filePath, "visio/pages/page1.xml"), ns, "Styled text");
 
@@ -73,7 +74,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0.11", Cell(shape, ns, "BottomMargin").Attribute("V")?.Value);
             Assert.Equal("1", Cell(shape, ns, "VerticalAlign").Attribute("V")?.Value);
             Assert.Equal("#FFFFE0", Cell(shape, ns, "TextBkgnd").Attribute("V")?.Value);
-            Assert.Equal("15", Cell(shape, ns, "TextBkgndTrans").Attribute("V")?.Value);
+            Assert.Equal("RGB(255,255,224)+1", Cell(shape, ns, "TextBkgnd").Attribute("F")?.Value);
+            Assert.Equal("0.15", Cell(shape, ns, "TextBkgndTrans").Attribute("V")?.Value);
             Assert.Equal("1.25", Cell(shape, ns, "TxtPinX").Attribute("V")?.Value);
             Assert.Equal("-0.25", Cell(shape, ns, "TxtPinY").Attribute("V")?.Value);
             Assert.Equal("2.4", Cell(shape, ns, "TxtWidth").Attribute("V")?.Value);
@@ -84,7 +86,7 @@ namespace OfficeIMO.Tests {
 
             XElement charSection = SingleSection(shape, ns, "Character");
             XElement charRow = Assert.Single(charSection.Elements(ns + "Row"));
-            Assert.Equal("0", Cell(charRow, ns, "Font").Attribute("V")?.Value);
+            Assert.Equal("Aptos", Cell(charRow, ns, "Font").Attribute("V")?.Value);
             Assert.Equal("#336699", Cell(charRow, ns, "Color").Attribute("V")?.Value);
             Assert.Equal("0.1875", Cell(charRow, ns, "Size").Attribute("V")?.Value);
             Assert.Equal("PT", Cell(charRow, ns, "Size").Attribute("U")?.Value);
@@ -153,7 +155,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Character");
             Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Paragraph");
             Assert.Single(ReadXml(savedPath, "visio/document.xml")
-                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Consolas");
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("NameU") == "Consolas");
         }
 
         [Fact]
@@ -311,15 +313,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0.06", Cell(connector, ns, "BottomMargin").Attribute("V")?.Value);
             Assert.Equal("1", Cell(connector, ns, "VerticalAlign").Attribute("V")?.Value);
             Assert.Equal("#FFFFFF", Cell(connector, ns, "TextBkgnd").Attribute("V")?.Value);
+            Assert.Equal("RGB(255,255,255)+1", Cell(connector, ns, "TextBkgnd").Attribute("F")?.Value);
             Assert.Equal("0", Cell(connector, ns, "TextBkgndTrans").Attribute("V")?.Value);
-            Assert.Equal("3.25", Cell(connector, ns, "TxtPinX").Attribute("V")?.Value);
-            Assert.Equal("4.45", Cell(connector, ns, "TxtPinY").Attribute("V")?.Value);
+            double ReadCell(string name) => double.Parse(Cell(connector, ns, name).Attribute("V")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+            var frame = new VisioShape("label-frame") { PinX = ReadCell("PinX"), PinY = ReadCell("PinY"), LocPinX = ReadCell("LocPinX"), LocPinY = ReadCell("LocPinY"), Angle = ReadCell("Angle") };
+            var point = frame.GetAbsolutePoint(ReadCell("TxtPinX"), ReadCell("TxtPinY"));
+            Assert.Equal(3.25, point.X, 8); Assert.Equal(4.45, point.Y, 8);
             Assert.Equal("1.4", Cell(connector, ns, "TxtWidth").Attribute("V")?.Value);
             Assert.Equal("0.35", Cell(connector, ns, "TxtHeight").Attribute("V")?.Value);
 
             XElement charSection = SingleSection(connector, ns, "Character");
             XElement charRow = Assert.Single(charSection.Elements(ns + "Row"));
-            Assert.Equal("0", Cell(charRow, ns, "Font").Attribute("V")?.Value);
+            Assert.Equal("Aptos", Cell(charRow, ns, "Font").Attribute("V")?.Value);
             Assert.Equal("#1E90FF", Cell(charRow, ns, "Color").Attribute("V")?.Value);
             Assert.Equal("0.131944444444444", Cell(charRow, ns, "Size").Attribute("V")?.Value);
             Assert.Equal("PT", Cell(charRow, ns, "Size").Attribute("U")?.Value);
@@ -329,7 +334,7 @@ namespace OfficeIMO.Tests {
             XElement paraRow = Assert.Single(paraSection.Elements(ns + "Row"));
             Assert.Equal("1", Cell(paraRow, ns, "HorzAlign").Attribute("V")?.Value);
             Assert.Single(ReadXml(filePath, "visio/document.xml")
-                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Aptos");
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("NameU") == "Aptos");
         }
 
         [Fact]
@@ -382,7 +387,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Character");
             Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Paragraph");
             Assert.Single(ReadXml(savedPath, "visio/document.xml")
-                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Consolas");
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("NameU") == "Consolas");
         }
 
         [Fact]

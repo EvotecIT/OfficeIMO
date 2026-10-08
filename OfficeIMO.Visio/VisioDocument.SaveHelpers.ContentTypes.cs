@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.IO.Packaging;
+using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -63,7 +64,11 @@ namespace OfficeIMO.Visio {
             Uri vbaProjectPartUri,
             IEnumerable<PreservedVbaPart> preservedVbaParts) {
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
-            entry?.Delete();
+            XElement? originalTypes = null;
+            if (entry != null) {
+                using (Stream input = entry.Open()) originalTypes = XElement.Load(input);
+                entry.Delete();
+            }
             ZipArchiveEntry newEntry = archive.CreateEntry("[Content_Types].xml");
             XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
             XElement root = new(ct + "Types",
@@ -98,7 +103,6 @@ namespace OfficeIMO.Visio {
             AddOverride("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml");
             AddOverride("/docProps/app.xml", "application/vnd.openxmlformats-officedocument.extended-properties+xml");
             AddOverride("/docProps/custom.xml", "application/vnd.openxmlformats-officedocument.custom-properties+xml");
-            AddOverride("/docProps/thumbnail.emf", OfficeImageInfo.GetMimeType(OfficeImageFormat.Emf));
             AddOverride("/visio/windows.xml", WindowsContentType);
 
             foreach (string partName in pagePartNames) {
@@ -123,6 +127,14 @@ namespace OfficeIMO.Visio {
                 for (int i = 1; i <= masterCount; i++) {
                     AddOverride($"/visio/masters/master{i}.xml", "application/vnd.ms-visio.master+xml");
                 }
+            }
+            // Preserve content types of binary resources emitted by the shared foreign-content writer.
+            foreach (ZipArchiveEntry binary in archive.Entries.Where(item => item.FullName.StartsWith("visio/media/foreign", StringComparison.Ordinal) || item.FullName.StartsWith("visio/embeddings/foreign", StringComparison.Ordinal))) {
+                string partName = "/" + binary.FullName;
+                string? contentType = (string?)originalTypes?.Elements(ct + "Override").FirstOrDefault(element => (string?)element.Attribute("PartName") == partName)?.Attribute("ContentType");
+                contentType ??= (string?)originalTypes?.Elements(ct + "Default").FirstOrDefault(element => (string?)element.Attribute("Extension") == Path.GetExtension(binary.FullName).TrimStart('.'))?.Attribute("ContentType");
+                if (contentType == null) throw new InvalidDataException("Foreign resource has no content type: " + partName);
+                AddOverride(partName, contentType);
             }
             XDocument doc = new(root);
             using StreamWriter writer = new(newEntry.Open());

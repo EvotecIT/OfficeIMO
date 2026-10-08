@@ -42,6 +42,8 @@ namespace OfficeIMO.Visio.Diagrams {
             connector.RerouteBehavior = VisioConnectorRerouteBehavior.Never;
             var first = route.Points[0];
             var last = route.Points[route.Points.Count - 1];
+            if (connector.From == null || connector.To == null)
+                throw new InvalidOperationException("Graph routes require attached endpoints.");
             connector.FromConnectionPoint = AddRouteEndpoint(connector.From, first.X, first.Y);
             connector.ToConnectionPoint = AddRouteEndpoint(connector.To, last.X, last.Y);
             connector.Waypoints.Clear();

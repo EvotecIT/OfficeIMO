@@ -266,7 +266,8 @@ namespace OfficeIMO.Visio {
             HashSet<VisioShape> activities = new(activityShapes);
             int routeIndex = 0;
             foreach (VisioConnector connector in page.Connectors) {
-                if (!activities.Contains(connector.From) && !activities.Contains(connector.To)) {
+                if ((connector.From == null || !activities.Contains(connector.From)) &&
+                    (connector.To == null || !activities.Contains(connector.To))) {
                     continue;
                 }
 

@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             VisioStencilProfile profile = document.CreateStencilProfile();
             Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.off-page-reference" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.continuation" && usage.Count == 1);
-            Assert.DoesNotContain(page.Connectors, connector => connector.From.Id == "jump" && connector.To.Id == "resume");
+            Assert.DoesNotContain(page.Connectors, connector => connector.From?.Id == "jump" && connector.To?.Id == "resume");
         }
 
         [Fact]
@@ -230,8 +230,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "review");
             Assert.Contains(page.Shapes, shape => shape.Id == "done");
             VisioConnector connector = Assert.Single(page.Connectors, item => item.Label == "retry");
-            Assert.Equal("review", connector.From.Id);
-            Assert.Equal("start", connector.To.Id);
+            Assert.Equal("review", connector.From?.Id);
+            Assert.Equal("start", connector.To?.Id);
         }
 
         [Fact]

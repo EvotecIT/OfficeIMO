@@ -14,17 +14,6 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public partial class VisioDocument {
 
-        private static void WriteGeometryHeaderRow(XmlWriter writer, string ns) {
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "Geometry");
-            WriteCellValue(writer, ns, "NoFill", "0");
-            WriteCellValue(writer, ns, "NoLine", "0");
-            WriteCellValue(writer, ns, "NoShow", "0");
-            WriteCellValue(writer, ns, "NoSnap", "0");
-            WriteCellValue(writer, ns, "NoQuickDrag", "0");
-            writer.WriteEndElement();
-        }
-
         private static void WriteXForm(XmlWriter writer, string ns, VisioShape shape, double width, double height) {
             WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, shape.LocPinX, shape.LocPinY, shape.Angle);
         }
@@ -47,37 +36,30 @@ namespace OfficeIMO.Visio {
         }
 
         private static void WriteRectangleGeometry(XmlWriter writer, string ns, double width, double height) {
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
@@ -91,21 +73,17 @@ namespace OfficeIMO.Visio {
             double centerX = rx;
             double centerY = ry;
             const int segments = 24;
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", centerX + rx);
             WriteCell(writer, ns, "Y", centerY);
             writer.WriteEndElement();
 
             for (int i = 1; i <= segments; i++) {
                 double angle = (Math.PI * 2D * i) / segments;
-                writer.WriteStartElement("Row", ns);
-                writer.WriteAttributeString("T", "LineTo");
+                VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
                 WriteCell(writer, ns, "X", centerX + (Math.Cos(angle) * rx));
                 WriteCell(writer, ns, "Y", centerY + (Math.Sin(angle) * ry));
                 writer.WriteEndElement();
@@ -117,37 +95,30 @@ namespace OfficeIMO.Visio {
         private static void WriteDiamondGeometry(XmlWriter writer, string ns, double width, double height) {
             double midX = width / 2.0;
             double midY = height / 2.0;
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", midX);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", midY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", midX);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", midY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", midX);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
@@ -156,31 +127,25 @@ namespace OfficeIMO.Visio {
         }
 
         private static void WriteTriangleGeometry(XmlWriter writer, string ns, double width, double height) {
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width / 2.0);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
@@ -192,43 +157,35 @@ namespace OfficeIMO.Visio {
             double midX = width / 2.0;
             double shoulderY = height * 0.62;
             double lowerInset = width * 0.2;
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", midX);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", shoulderY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width - lowerInset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", lowerInset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", shoulderY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", midX);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
@@ -238,37 +195,30 @@ namespace OfficeIMO.Visio {
 
         private static void WriteParallelogramGeometry(XmlWriter writer, string ns, double width, double height) {
             double offset = Math.Min(width / 4.0, Math.Max(width / 10.0, height / 3.0));
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", offset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width - offset);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", offset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
@@ -279,49 +229,40 @@ namespace OfficeIMO.Visio {
         private static void WriteHexagonGeometry(XmlWriter writer, string ns, double width, double height) {
             double inset = Math.Min(width / 4.0, Math.Max(width / 8.0, height / 4.0));
             double midY = height / 2.0;
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", inset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width - inset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", midY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width - inset);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", inset);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", midY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", inset);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
@@ -331,37 +272,30 @@ namespace OfficeIMO.Visio {
 
         private static void WriteTrapezoidGeometry(XmlWriter writer, string ns, double width, double height) {
             double inset = Math.Min(width / 5.0, Math.Max(width / 10.0, height / 4.0));
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", inset);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width - inset);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", inset);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
@@ -372,43 +306,35 @@ namespace OfficeIMO.Visio {
         private static void WriteOffPageReferenceGeometry(XmlWriter writer, string ns, double width, double height) {
             double midX = width / 2.0;
             double shoulderY = height * 0.45;
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-            WriteGeometryHeaderRow(writer, ns);
+            VisioGeometrySection.WriteGeneratedStart(writer, ns);
+            int rowIndex = 0;
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "MoveTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", width);
             WriteCell(writer, ns, "Y", shoulderY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", midX);
             WriteCell(writer, ns, "Y", 0);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", shoulderY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
+            VisioGeometrySection.WriteRowStart(writer, ns, "LineTo", ++rowIndex);
             WriteCell(writer, ns, "X", 0);
             WriteCell(writer, ns, "Y", height);
             writer.WriteEndElement();

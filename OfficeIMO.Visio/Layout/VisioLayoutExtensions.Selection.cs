@@ -35,20 +35,15 @@ namespace OfficeIMO.Visio {
                 return selection;
             }
 
-            foreach (VisioShape shape in selection) {
-                switch (alignment) {
-                    case VisioHorizontalAlignment.Left:
-                        shape.PinX = bounds.Left + shape.Width / 2D;
-                        break;
-                    case VisioHorizontalAlignment.Center:
-                        shape.PinX = bounds.CenterX;
-                        break;
-                    case VisioHorizontalAlignment.Right:
-                        shape.PinX = bounds.Right - shape.Width / 2D;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(alignment));
-                }
+            foreach (VisioShape shape in selection.Distinct().OrderBy(GetShapeDepth)) {
+                VisioShapeBounds current = shape.GetShapeBounds();
+                double delta = alignment switch {
+                    VisioHorizontalAlignment.Left => bounds.Left - current.Left,
+                    VisioHorizontalAlignment.Center => bounds.CenterX - current.CenterX,
+                    VisioHorizontalAlignment.Right => bounds.Right - current.Right,
+                    _ => throw new ArgumentOutOfRangeException(nameof(alignment))
+                };
+                VisioNativeShapeTransform.MoveInPage(shape, delta, 0);
             }
 
             return selection;
@@ -69,20 +64,15 @@ namespace OfficeIMO.Visio {
                 return selection;
             }
 
-            foreach (VisioShape shape in selection) {
-                switch (alignment) {
-                    case VisioVerticalAlignment.Bottom:
-                        shape.PinY = bounds.Bottom + shape.Height / 2D;
-                        break;
-                    case VisioVerticalAlignment.Middle:
-                        shape.PinY = bounds.CenterY;
-                        break;
-                    case VisioVerticalAlignment.Top:
-                        shape.PinY = bounds.Top - shape.Height / 2D;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(alignment));
-                }
+            foreach (VisioShape shape in selection.Distinct().OrderBy(GetShapeDepth)) {
+                VisioShapeBounds current = shape.GetShapeBounds();
+                double delta = alignment switch {
+                    VisioVerticalAlignment.Bottom => bounds.Bottom - current.Bottom,
+                    VisioVerticalAlignment.Middle => bounds.CenterY - current.CenterY,
+                    VisioVerticalAlignment.Top => bounds.Top - current.Top,
+                    _ => throw new ArgumentOutOfRangeException(nameof(alignment))
+                };
+                VisioNativeShapeTransform.MoveInPage(shape, 0, delta);
             }
 
             return selection;
@@ -98,18 +88,19 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(selection));
             }
 
-            if (selection.Count < 3) {
+            List<VisioShape> unique = selection.Distinct().ToList();
+            if (unique.Count < 3) {
                 return selection;
             }
 
             List<VisioShape> ordered;
             switch (axis) {
                 case VisioDistributionAxis.Horizontal:
-                    ordered = selection.OrderBy(shape => shape.PinX).ToList();
+                    ordered = unique.OrderBy(shape => shape.GetShapeBounds().CenterX).ToList();
                     DistributeCenters(ordered, true);
                     break;
                 case VisioDistributionAxis.Vertical:
-                    ordered = selection.OrderBy(shape => shape.PinY).ToList();
+                    ordered = unique.OrderBy(shape => shape.GetShapeBounds().CenterY).ToList();
                     DistributeCenters(ordered, false);
                     break;
                 default:
@@ -169,17 +160,18 @@ namespace OfficeIMO.Visio {
                 return selection;
             }
 
-            List<VisioShape> ordered = OrderSelection(selection, effectiveOptions.Order);
+            List<VisioShape> ordered = OrderSelection(selection, effectiveOptions.Order).Distinct().ToList();
             int columns = ResolveColumnCount(effectiveOptions.Columns, ordered.Count);
             int rows = (int)Math.Ceiling(ordered.Count / (double)columns);
+            var footprints = ordered.ToDictionary(shape => shape, shape => shape.GetShapeBounds());
             double[] columnWidths = new double[columns];
             double[] rowHeights = new double[rows];
 
             for (int index = 0; index < ordered.Count; index++) {
                 int row = index / columns;
                 int column = index % columns;
-                columnWidths[column] = Math.Max(columnWidths[column], ordered[index].Width);
-                rowHeights[row] = Math.Max(rowHeights[row], ordered[index].Height);
+                columnWidths[column] = Math.Max(columnWidths[column], footprints[ordered[index]].Width);
+                rowHeights[row] = Math.Max(rowHeights[row], footprints[ordered[index]].Height);
             }
 
             VisioShapeBounds originalBounds = selection.GetShapeBounds();
@@ -187,18 +179,22 @@ namespace OfficeIMO.Visio {
             double startTop = originalBounds.Top;
             if (!effectiveOptions.PreserveTopLeft) {
                 VisioShape first = ordered[0];
-                startLeft = first.PinX - first.Width / 2D;
-                startTop = first.PinY + first.Height / 2D;
+                startLeft = footprints[first].Left;
+                startTop = footprints[first].Top;
             }
 
+            var placements = new Dictionary<VisioShape, (double X, double Y)>();
             for (int index = 0; index < ordered.Count; index++) {
                 int row = index / columns;
                 int column = index % columns;
                 VisioShape shape = ordered[index];
                 double cellLeft = startLeft + SumBefore(columnWidths, column) + (effectiveOptions.HorizontalSpacing * column);
                 double cellTop = startTop - SumBefore(rowHeights, row) - (effectiveOptions.VerticalSpacing * row);
-                shape.PinX = cellLeft + columnWidths[column] / 2D;
-                shape.PinY = cellTop - rowHeights[row] / 2D;
+                placements[shape] = (cellLeft + columnWidths[column] / 2D, cellTop - rowHeights[row] / 2D);
+            }
+            foreach (VisioShape shape in ordered.OrderBy(GetShapeDepth)) {
+                VisioShapeBounds current = shape.GetShapeBounds();
+                VisioNativeShapeTransform.MoveInPage(shape, placements[shape].X - current.CenterX, placements[shape].Y - current.CenterY);
             }
 
             if (effectiveOptions.RouteInternalConnectors) {
@@ -310,18 +306,23 @@ namespace OfficeIMO.Visio {
             HashSet<VisioShape> selectedShapes = new(selection);
             int routeIndex = 0;
             foreach (VisioConnector connector in page.Connectors) {
-                if (selectedShapes.Contains(connector.From) && selectedShapes.Contains(connector.To)) {
+                if (connector.From != null && connector.To != null &&
+                    selectedShapes.Contains(connector.From) && selectedShapes.Contains(connector.To)) {
                     connector.RouteOrthogonal(style, (routeIndex % 3) * 0.04D);
                     routeIndex++;
                 }
             }
         }
 
+        private static int GetShapeDepth(VisioShape shape) {
+            int depth = 0;
+            for (VisioShape? parent = shape.Parent; parent != null; parent = parent.Parent) depth++;
+            return depth;
+        }
+
         private static void MoveShapes(IEnumerable<VisioShape> shapes, double deltaX, double deltaY) {
-            foreach (VisioShape shape in shapes) {
-                shape.PinX += deltaX;
-                shape.PinY += deltaY;
-            }
+            foreach (VisioShape shape in shapes)
+                VisioNativeShapeTransform.MoveInPage(shape, deltaX, deltaY);
         }
 
         private static void MoveConnectorPageCoordinates(IEnumerable<VisioConnector> connectors, double deltaX, double deltaY) {
@@ -343,18 +344,16 @@ namespace OfficeIMO.Visio {
         }
 
         private static void DistributeCenters(IReadOnlyList<VisioShape> orderedShapes, bool horizontal) {
-            VisioShape first = orderedShapes[0];
-            VisioShape last = orderedShapes[orderedShapes.Count - 1];
-            double firstCenter = horizontal ? first.PinX : first.PinY;
-            double lastCenter = horizontal ? last.PinX : last.PinY;
+            var centers = orderedShapes.ToDictionary(shape => shape, shape => shape.GetShapeBounds());
+            double firstCenter = horizontal ? centers[orderedShapes[0]].CenterX : centers[orderedShapes[0]].CenterY;
+            double lastCenter = horizontal ? centers[orderedShapes[orderedShapes.Count - 1]].CenterX : centers[orderedShapes[orderedShapes.Count - 1]].CenterY;
             double step = (lastCenter - firstCenter) / (orderedShapes.Count - 1);
-
-            for (int index = 1; index < orderedShapes.Count - 1; index++) {
-                if (horizontal) {
-                    orderedShapes[index].PinX = firstCenter + step * index;
-                } else {
-                    orderedShapes[index].PinY = firstCenter + step * index;
-                }
+            var targets = orderedShapes.Select((shape, index) => new { Shape = shape, Center = firstCenter + step * index });
+            foreach (var target in targets.OrderBy(item => GetShapeDepth(item.Shape))) {
+                VisioShapeBounds current = target.Shape.GetShapeBounds();
+                VisioNativeShapeTransform.MoveInPage(target.Shape,
+                    horizontal ? target.Center - current.CenterX : 0,
+                    horizontal ? 0 : target.Center - current.CenterY);
             }
         }
     }

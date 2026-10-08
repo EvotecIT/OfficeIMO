@@ -21,7 +21,11 @@ namespace OfficeIMO.Visio {
 
         internal bool NoLine { get; }
 
+        /// <summary>Whether the native outline joins its endpoints, independently of implicit fill closure.</summary>
         internal bool IsClosed { get; }
+
+        /// <summary>Whether the contour participates in its Geometry section's fill, including open outlines.</summary>
+        internal bool CanFill => !NoFill && Points.Count >= 3;
 
         internal int FillGroup { get; }
     }
@@ -30,8 +34,19 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioShapeGeometry {
         private const int ArcSegmentCount = 16;
 
+        /// <summary>Selects a referenced child blueprint's primitive without changing the root master's identity.</summary>
+        internal static string? ResolvePrimitiveName(VisioShape shape, string? fallbackName) {
+            VisioShape? childDefinition = GetReferencedMasterChild(shape);
+            return childDefinition?.NameU ?? childDefinition?.Name ?? fallbackName;
+        }
+
+        private static VisioShape? GetReferencedMasterChild(VisioShape shape) =>
+            shape.Master != null && shape.MasterShape != null && !ReferenceEquals(shape.MasterShape, shape.Master.Shape)
+                ? shape.MasterShape
+                : null;
+
         internal static string ResolveRenderKind(VisioShape shape) {
-            string kind = NormalizeKind(shape.MasterNameU ?? shape.NameU ?? shape.Name ?? string.Empty);
+            string kind = NormalizeKind(ResolvePrimitiveName(shape, shape.MasterNameU ?? shape.NameU ?? shape.Name) ?? string.Empty);
             if (IsSemanticTerminatorShape(shape, kind)) {
                 return "terminator";
             }
@@ -56,19 +71,21 @@ namespace OfficeIMO.Visio {
             if (masterShape == null ||
                 !TryGetPreservedClosedPaths(masterShape, out List<VisioShapeGeometryPath> masterPaths)) {
                 paths = new List<VisioShapeGeometryPath>();
-                return false;
+                // Groups without their own geometry are containers, not implicit rectangles.
+                return shape.Children.Count > 0 || string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase);
             }
 
             paths = ScalePaths(masterShape, shape, masterPaths);
             return true;
         }
 
-        internal static bool TryGetPreservedClosedPaths(VisioShape shape, out List<VisioShapeGeometryPath> paths) {
+        /// <summary>Projects preserved paths; structural callers can retain geometry whose outline is hidden.</summary>
+        internal static bool TryGetPreservedClosedPaths(VisioShape shape, out List<VisioShapeGeometryPath> paths, bool includeHidden = false) {
             paths = new List<VisioShapeGeometryPath>();
             bool handledGeometry = false;
             int fillGroup = 0;
             foreach (XElement section in shape.PreservedGeometrySections) {
-                if (!TryParseGeometrySection(shape, section, fillGroup, out List<VisioShapeGeometryPath> sectionPaths)) {
+                if (!TryParseGeometrySection(shape, section, fillGroup, includeHidden, out List<VisioShapeGeometryPath> sectionPaths)) {
                     paths.Clear();
                     return false;
                 }
@@ -284,7 +301,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static string GetStencilIdentityMetadata(VisioShape shape) {
-            VisioMaster? master = shape.Master;
+            VisioMaster? master = GetReferencedMasterChild(shape) == null ? shape.Master : null;
             return NormalizeKind(
                 (shape.GetUserCellValue(VisioSemanticUserCells.StencilId) ?? string.Empty) + " " +
                 (shape.GetUserCellValue(VisioSemanticUserCells.StencilName) ?? string.Empty) + " " +
@@ -293,7 +310,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static string GetStencilMetadata(VisioShape shape) {
-            VisioMaster? master = shape.Master;
+            // The enclosing stencil describes the group, not each referenced child primitive.
+            VisioMaster? master = GetReferencedMasterChild(shape) == null ? shape.Master : null;
             return NormalizeKind(
                 (shape.GetUserCellValue(VisioSemanticUserCells.StencilId) ?? string.Empty) + " " +
                 (shape.GetUserCellValue(VisioSemanticUserCells.StencilName) ?? string.Empty) + " " +

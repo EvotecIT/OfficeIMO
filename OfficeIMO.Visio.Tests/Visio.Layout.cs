@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(4, loaded.Pages[0].ShapesWithData("Group", "A").Count);
-            Assert.Single(loaded.Pages[0].Connectors, connector => connector.From.Id == "one" && connector.To.Id == "two");
+            Assert.Single(loaded.Pages[0].Connectors, connector => connector.From?.Id == "one" && connector.To?.Id == "two");
         }
 
         [Fact]
