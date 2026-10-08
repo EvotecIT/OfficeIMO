@@ -17,7 +17,7 @@ public sealed partial class PdfRedactionMarkViewModel : ObservableObject {
         localizer ??= new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
         string page = localizer.FormatOrDefault("PdfPage.Label", "Page {0}", PageNumber);
         AccessibleName = $"{page}: {description}";
-        IncludeAccessibleName = localizer.FormatOrDefault("Redaction.IncludePage", "Include page {0}", PageNumber);
+        IncludeAccessibleName = localizer.FormatOrDefault("Redaction.IncludePage", "Include page {0}: {1}", PageNumber, description);
     }
 
     internal PdfRedactionArea Area { get; }
@@ -29,7 +29,7 @@ public sealed partial class PdfRedactionMarkViewModel : ObservableObject {
     /// <summary>Identifies the page and matched content to assistive technology.</summary>
     public string AccessibleName { get; }
 
-    /// <summary>Identifies the page controlled by the inclusion checkbox.</summary>
+    /// <summary>Identifies the page and matched content controlled by the inclusion checkbox.</summary>
     public string IncludeAccessibleName { get; }
 
     [ObservableProperty]

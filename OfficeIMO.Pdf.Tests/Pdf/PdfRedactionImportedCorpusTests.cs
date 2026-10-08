@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
             PdfReadDocument read = PdfReadDocument.Open(result.Pdf);
             foreach (PdfReadPage page in read.Pages) {
-                Assert.False(Regex.IsMatch(page.ExtractText(), @"private\s+account\s+123"));
+                Assert.DoesNotMatch(@"private\s+account\s+123", page.ExtractText());
                 Assert.Contains("Before", page.ExtractText(), StringComparison.Ordinal);
                 Assert.Contains("after page", page.ExtractText(), StringComparison.Ordinal);
             }
