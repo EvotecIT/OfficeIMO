@@ -76,10 +76,11 @@ public sealed class ExcelSvgImageExportTests {
     [InlineData(true)]
     [InlineData(false)]
     public void CallerRasterCodecUsesSharedContainerInspection(bool validContainer) {
-        // Independently encoded 16x16 JPEG-compressed TIFF, also used
-        // by the Core decoder contracts. The JPEG fixture has a size header but no scan.
+        // LibTIFF 4.7.2 independently encoded and decoded 16x16 RGB, LZMA compression,
+        // outside managed support and used by the Core caller-codec contracts.
+        // The JPEG fixture has a size header but no scan.
         byte[] bytes = validContainer
-            ? Convert.FromBase64String("SUkqADwAAAD/2P/AABEIABAAEANSEQBHEQBCEQD/2gAMA1IARwBCAAA/APf6+f6+f6KKKKKKKKK//9kACwAAAQMAAQAAABAAAAABAQMAAQAAABAAAAACAQMAAwAAAMYAAAADAQMAAQAAAAcAAAAGAQMAAQAAAAIAAAARAQQAAQAAAAgAAAAVAQMAAQAAAAMAAAAWAQMAAQAAABAAAAAXAQQAAQAAADMAAAAcAQMAAQAAAAEAAABbAQcAIQEAAMwAAAAAAAAACAAIAAgA/9j/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/2Q==")
+            ? Convert.FromBase64String("SUkqAFAAAAD9N3pYWgAAAP8S2UECAQMBACEBFnkgxO7gAv8ADV0Af4A8Fz4mR/wBtzwgAAAAAAAAASGABgAAAADtKJuoAAr8AgAAAAAAWVoKAAABAwABAAAAEAAAAAEBAwABAAAAEAAAAAIBAwADAAAAzgAAAAMBAwABAAAAbYgAAAYBAwABAAAAAgAAABEBBAABAAAACAAAABUBAwABAAAAAwAAABYBAwABAAAAEAAAABcBBAABAAAASAAAABwBAwABAAAAAQAAAAAAAAAIAAgACAA=")
             : new byte[] { 0xFF, 0xD8, 0xFF, 0xC0, 0, 17, 8, 0, 1, 0, 1, 3, 1, 17, 0, 2, 17, 0, 3, 17, 0, 0xFF, 0xD9 };
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Inspected");
