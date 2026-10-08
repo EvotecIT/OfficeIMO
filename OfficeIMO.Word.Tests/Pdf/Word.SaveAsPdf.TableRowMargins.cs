@@ -35,5 +35,7 @@ public partial class Word {
         double first = words.Single(word => word.Text == "Frame0").Letters[0].StartBaseLine.Y;
         double next = words.Single(word => word.Text == "Frame2").Letters[0].StartBaseLine.Y;
         Assert.Equal(advance, first - next, 3);
+        double neighbor = words.Single(word => word.Text == "Frame1").Letters[0].StartBaseLine.Y;
+        Assert.Equal(first, neighbor, 3);
     }
 }

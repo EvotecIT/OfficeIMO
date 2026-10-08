@@ -52,13 +52,14 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Translates Word's row constraints into cell-box heights without counting spacing twice.</summary>
         private static void ApplyNativeFramedRowHeights(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style,
             double sourceSpacing, double outerTopThickness) {
+            IReadOnlyList<WordTableRow> sourceRows = table.Rows;
             var minimums = style.RowMinHeights == null ? new List<double?>() : new List<double?>(style.RowMinHeights);
             var fixedHeights = style.FixedRowHeights == null ? new List<double?>() : new List<double?>(style.FixedRowHeights);
-            while (minimums.Count < table.Rows.Count) minimums.Add(null);
-            while (fixedHeights.Count < table.Rows.Count) fixedHeights.Add(null);
+            while (minimums.Count < sourceRows.Count) minimums.Add(null);
+            while (fixedHeights.Count < sourceRows.Count) fixedHeights.Add(null);
             bool hasMinimum = false, hasFixed = false;
-            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-                W.TableRowHeight? height = table.Rows[rowIndex]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
+            for (int rowIndex = 0; rowIndex < sourceRows.Count; rowIndex++) {
+                W.TableRowHeight? height = sourceRows[rowIndex]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
                 if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
                 double top = 0D, bottom = 0D;
                 double bottomMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: false);
