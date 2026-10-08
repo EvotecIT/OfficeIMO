@@ -14,7 +14,7 @@ public sealed class OfficeVisualConversionOptions {
     private double _maximumSvgViewportPixels = OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
     private OfficeVisualSvgPolicy _svgPolicy = OfficeVisualSvgPolicy.PreserveVector;
 
-    /// <summary>Gets or sets ChartForgeX rendering options, including watermarks and PNG metadata.</summary>
+    /// <summary>Gets or sets core ChartForgeX topology rendering and raster encoding options.</summary>
     public VisualArtifactRenderOptions? RenderOptions { get; set; }
 
     /// <summary>Gets or sets SVG import behavior. The default preserves vector output and reports limitations.</summary>

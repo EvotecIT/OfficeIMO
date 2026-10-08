@@ -747,18 +747,6 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     }
 
     [Fact]
-    public void TypedVisioProjectionReportsRenderWatermarksThatRemainInStaticFallbacks() {
-        TopologyChart topology = TopologyChart.Create();
-        topology.Nodes.Add(new TopologyNode { Id = "service", Label = "Service" });
-        var renderOptions = new VisualArtifactRenderOptions();
-        renderOptions.Watermarks.Add(VisualWatermark.FromText("CONFIDENTIAL"));
-
-        OfficeVisioVisualConversionResult result = topology.ToVisualArtifact().ToOfficeVisio(renderOptions: renderOptions);
-
-        Assert.Contains(result.Report.Warnings, warning => warning.Contains("watermarks") && warning.Contains("SVG or PNG"));
-    }
-
-    [Fact]
     public void VisioOptionsRejectInvalidPageAndPixelDensity() {
         Assert.Throws<ArgumentException>(() => new OfficeVisioVisualOptions { PageName = " " });
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisioVisualOptions { PixelsPerInch = 0D });

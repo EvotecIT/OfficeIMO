@@ -46,6 +46,12 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
         foreach (var edge in edges) {
             var source = sourceEdges[edge.Id!];
+            if (source.ResolvedRoute.Count >= 2) {
+                var resolved = source.ResolvedRoute.Select(point => Point(point.X, point.Y, ppi, pageHeight)).ToList();
+                ReportPreservedRouteBounds(resolved, envelope, ppi, report, source.Id);
+                edge.Route = new VisioGraphRoute(resolved);
+                continue;
+            }
             var from = sourceNodes[source.SourceId];
             var to = sourceNodes[source.TargetId];
             var waypoints = source.Topology!.Waypoints;
@@ -73,17 +79,15 @@ public static partial class OfficeVisioVisualConversionExtensions {
                 report.Warn(OfficeVisioVisualDiagnosticCode.EdgePresentationNormalized, OfficeVisioVisualEntityKind.Edge, source.Id, "selfRoute",
                     "The self relationship was projected as a native loop; its computed CFX route was not present in the envelope.");
             } else if (waypoints.Count == 0 && source.Topology.Routing != TopologyEdgeRouting.Straight) {
-                // The envelope contains authored waypoints, not the renderer's computed obstacle route.
-                // Keep the bounds and attachments, but report this visible route normalization.
+                // Unprepared envelopes retain authored waypoints. A missing resolved route
+                // requires native routing, which remains an explicit fidelity normalization.
                 points.Add(Point((start.X + end.X) / 2, start.Y, ppi, pageHeight));
                 points.Add(Point((start.X + end.X) / 2, end.Y, ppi, pageHeight));
                 report.Warn(OfficeVisioVisualDiagnosticCode.EdgePresentationNormalized, OfficeVisioVisualEntityKind.Edge, source.Id, "computedRoute",
                     "Node bounds and attachments were preserved, but the envelope did not contain a resolved route; a native orthogonal route was used.");
             }
             points.Add(Point(end.X, end.Y, ppi, pageHeight));
-            if (points.Any(point => point.X < 0 || point.Y < 0 || point.X > envelope.Width!.Value / ppi || point.Y > pageHeight / ppi))
-                report.Warn(OfficeVisioVisualDiagnosticCode.GeometryOutsidePage, OfficeVisioVisualEntityKind.Edge, source.Id, "route",
-                    "The preserved connector extends beyond the declared page.");
+            ReportPreservedRouteBounds(points, envelope, ppi, report, source.Id);
             edge.Route = new VisioGraphRoute(points);
         }
     }
@@ -95,6 +99,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
             .Concat(groups.Select(group => envelope.Height!.Value - (group.Placement!.PinY + group.Placement.Height / 2) * options.PixelsPerInch))
             .Concat(edges.Where(edge => edge.Route != null).SelectMany(edge => edge.Route!.Points)
                 .Select(point => envelope.Height!.Value - point.Y * options.PixelsPerInch))
+            .Concat(envelope.Edges.Where(edge => edge.ResolvedLabelBounds.HasValue && !string.IsNullOrWhiteSpace(CombineEdgeLabel(edge)))
+                .Select(edge => edge.ResolvedLabelBounds!.Value.Y))
             .DefaultIfEmpty(envelope.Height!.Value).Min() / options.PixelsPerInch;
         const double margin = 0.16, height = 0.45, gap = 0.08;
         if (available < margin + height + gap || envelope.Width!.Value / options.PixelsPerInch < 1) {
@@ -106,7 +112,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     }
 
     private static void RouteComputedConnectors(VisioPage page, VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualConversionReport report) {
-        var computed = new HashSet<string>(envelope.Edges.Where(edge => edge.Topology!.Waypoints.Count == 0 &&
+        var computed = new HashSet<string>(envelope.Edges.Where(edge => edge.ResolvedRoute.Count < 2 && edge.Topology!.Waypoints.Count == 0 &&
             edge.SourceId != edge.TargetId && edge.Topology.Routing != TopologyEdgeRouting.Straight).Select(edge => edge.Id), StringComparer.Ordinal);
         foreach (var connector in page.Connectors.Where(connector => computed.Contains(connector.Id))) {
             connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions { IncludeDiagramAdornments = true });

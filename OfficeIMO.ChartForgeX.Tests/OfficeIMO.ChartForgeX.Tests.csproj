@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
+    <PackageReference Include="ChartForgeX.Visuals" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' != '' And Exists('$(ChartForgeXProjectPath)')">
@@ -26,6 +27,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' == '' Or !Exists('$(ChartForgeXProjectPath)')">
-    <PackageReference Include="ChartForgeX" Version="[1.6.0,2.0.0)" />
+    <PackageReference Include="ChartForgeX" Version="2.0.0" />
   </ItemGroup>
 </Project>

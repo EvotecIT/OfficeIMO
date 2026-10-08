@@ -2,6 +2,8 @@
 
 `OfficeIMO.ChartForgeX` is the optional bridge for placing any ChartForgeX `VisualArtifact` in Word, Excel, PowerPoint, PDF, or another `OfficeDrawing` consumer, and for projecting supported diagram semantics into native editable Visio. Existing OfficeIMO packages do not acquire a ChartForgeX dependency.
 
+The bridge uses ChartForgeX 2.0. Add `ChartForgeX.Visuals` when producing factual tables, canvases, or watermark decoration. Add `ChartForgeX.Stories` only in applications that produce stories or animation. Both optional producers can supply a common static artifact to the bridge; the bridge itself keeps a core-only ChartForgeX dependency.
+
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
 Every CFX surface that emits SVG can use the flat Office placement path, even when it does not expose a typed artifact envelope. Wrap the generated markup in `OfficeVisualSource`:
@@ -22,10 +24,14 @@ The bridge renders once and returns an `OfficeVisualConversionResult` containing
 - accessible text, metadata-ready regions, and a typed fidelity report.
 
 ```csharp
+using ChartForgeX.Rendering;
 using ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 
-VisualArtifact artifact = chart.ToVisualArtifact("sales-quarter");
+var context = new VisualRenderContext(
+    layout: new VisualLayoutOptions(new VisualSize(640, 400), padding: 16),
+    frame: new VisualFrame(title: "Quarterly sales", showLegend: false));
+VisualArtifact artifact = chart.Prepare(context).ToArtifact("sales-quarter", VisualArtifactKind.Chart);
 artifact.Accessibility.WithTextAlternative(
     "Quarterly sales",
     "Revenue increased in each of the four reported quarters.");
@@ -46,6 +52,17 @@ PdfDocument.Create(pdf => pdf.Content(content =>
 
 The default `PreserveVector` policy keeps the imported vector scene and reports SVG features that OfficeIMO.Drawing cannot represent. Choose `RasterizeWhenNeeded` for visual fidelity when unsupported SVG features should use the PNG placement payload, or `RequireVector` when incomplete vector conversion must fail closed. Word, Excel, and PowerPoint use the selected placement payload; PDF uses the converted `OfficeDrawing` scene.
 
+Prepared artifacts retain their resolved viewport and accessible text. The default scale is 0.75 points per pixel; `PointsPerPixel` changes that scale, while `WidthPoints` or `HeightPoints` can set the document size explicitly. Raster DPI metadata does not change the chosen placement size.
+
+Apply static watermarks before conversion with the Visuals decorator:
+
+```csharp
+artifact.WithWatermarks(VisualWatermark.FromText("Internal"));
+OfficeVisualConversionResult visual = artifact.ToOfficeVisual();
+```
+
+Decoration retains the semantic model. Native Visio reports `WatermarkNotProjected` because its editable page does not project the static watermark layers; the SVG or PNG picture contains them. The same diagnostic and fidelity policy apply when the artifact is passed as an interchange envelope or UTF-8 JSON.
+
 ## Native editable Visio
 
 Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Visio diagrams. Nodes, containers, connectors, Shape Data, hyperlinks, sequence messages, activations, notes, and fragments remain editable after saving to VSDX. The conversion result includes the document, generated page, validated CFX interchange envelope, and a fidelity report.
@@ -54,7 +71,7 @@ Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Vi
 using ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 
-VisualArtifact artifact = topology.ToVisualArtifact();
+VisualArtifact artifact = topology.Prepare().ToArtifact("service-topology", VisualArtifactKind.Topology);
 OfficeVisioVisualConversionResult visio = artifact.ToOfficeVisio(
     new OfficeVisioVisualOptions { PageName = "Service topology" });
 
@@ -75,7 +92,9 @@ ChartForgeX owns chart and diagram semantics, deterministic rendering, interchan
 
 ### Preserve placement and enforce fidelity
 
-`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Preserved graphs retain authored connector bends and named port offsets. Native titles use clear space above the preserved content; when no header band is available, the title is omitted and `TitleNotProjected` is reported. When the envelope has no resolved route, native routing is reported as a normalization. Native graph styling maps source card, surface, border, and foreground colors, with Arial text for portable previews. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
+`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Prepared topology graphs retain their resolved connector routes and label rectangles. Envelopes without a resolved route retain authored connector bends and named port offsets; native route construction is reported when neither is available. Native titles use clear space above the preserved content; when no header band is available, the title is omitted and `TitleNotProjected` is reported. Native graph styling maps source card, surface, border, and foreground colors, with Arial text for portable previews. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
+
+Flow and sequence remain native editable diagrams with recomputed layout. Their prepared coordinates remain in the interchange envelope, and `LayoutRecomputed` reports that the native page uses a different layout. `Preserve` rejects those families instead of claiming exact placement.
 
 ```csharp
 var options = new OfficeVisioVisualOptions {

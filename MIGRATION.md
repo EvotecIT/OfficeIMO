@@ -841,6 +841,29 @@ File overloads reject an oversized source before buffering. Applications that
 previously attached larger XML must reduce or split the payload before using
 these methods.
 
+## ChartForgeX 2.0 adapter integration
+
+Rebuild callers of `OfficeIMO.ChartForgeX` against ChartForgeX 2.0. The bridge keeps
+its core-only ChartForgeX dependency. Add `ChartForgeX.Visuals` to the application
+when rendering factual tables, canvases, or watermarks; optional story and motion
+producers belong to `ChartForgeX.Stories`. Pass their common static artifacts to
+the existing `ToOfficeVisual` and document-placement APIs.
+
+Replace `VisualArtifactRenderOptions.Watermarks.Add(watermark)` with
+`artifact.WithWatermarks(watermark)` before conversion. Native editable Visio
+does not project those static layers. Inspect `WatermarkNotProjected`, or reject
+it through `RejectedDiagnostics`/`RequireLossless`; the diagnostic also survives
+interchange envelope and UTF-8 JSON handoff.
+
+Use `prepared.ToArtifact(id, kind)` when placing a prepared chart or diagram.
+It retains the resolved viewport, accessible text, and producer-owned semantics.
+Complete topology projection consumes resolved connector routes and label bounds;
+unprepared envelopes retain the authored waypoint and named-port contract.
+Flow and sequence keep native editable semantics with `LayoutRecomputed` and
+reject `LayoutMode = Preserve`. Their native page does not promise the prepared
+scene's placement. The Markdown companion uses `ChartForgeX.Markup.Mermaid` 2.0
+and keeps static fence materialization and document placement in their owners.
+
 ## Native ChartForgeX topology placement
 
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
