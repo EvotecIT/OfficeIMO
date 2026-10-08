@@ -88,6 +88,11 @@ public sealed class PdfPredefinedCjkTests {
     [Theory]
     [InlineData("0 65535 700", 12.6)]
     [InlineData("0 65535 700 4826 [900] 4825 4827 800 4826 [600]", 10.8)]
+    [InlineData("4826 [900] 0 65535 700", 12.6)]
+    [InlineData("0 65535 700 4825 4827 800", 14.4)]
+    [InlineData("4825 4827 800 0 65535 700", 12.6)]
+    [InlineData("4825 4827 800 4826 [600]", 10.8)]
+    [InlineData("4826 [600] 4825 4827 800", 14.4)]
     public void CidWidthRangesRetainCompleteCoverageAndDeclarationPrecedence(string widths, double expectedAdvance) {
         byte[] source = BuildMappedTextSource("UniCNS-UCS2-H", "CNS1", "6A5F", widths);
 

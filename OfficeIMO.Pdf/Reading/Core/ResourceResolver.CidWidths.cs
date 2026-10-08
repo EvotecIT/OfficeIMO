@@ -23,22 +23,49 @@ internal static partial class ResourceResolver {
     private sealed class CidWidthMap {
         private readonly double _defaultWidth;
         private readonly Dictionary<int, CidWidthEntry> _entries;
-        private readonly List<CidWidthRange> _ranges;
+        private readonly double[]? _indexedWidths;
 
         internal CidWidthMap(double defaultWidth, Dictionary<int, CidWidthEntry> entries, List<CidWidthRange> ranges) {
-            _defaultWidth = defaultWidth; _entries = entries; _ranges = ranges;
+            _defaultWidth = defaultWidth;
+            _entries = entries;
+            if (ranges.Count == 0) return;
+            if (ranges.Any(range => range.Last - range.First + 1 > ExpandedCidWidthRangeLimit)) {
+                _indexedWidths = new double[CidCodeCount];
+                for (int cid = 0; cid < CidCodeCount; cid++) _indexedWidths[cid] = defaultWidth;
+                foreach (KeyValuePair<int, CidWidthEntry> entry in entries) _indexedWidths[entry.Key] = entry.Value.Width;
+            }
+
+            // Resolve newest declarations first. The successor index skips CIDs already
+            // resolved, so overlapping ranges visit each 16-bit CID at most once rather
+            // than expanding every range or scanning declarations for every glyph.
+            int[] next = new int[CidCodeCount + 1];
+            for (int cid = 0; cid <= CidCodeCount; cid++) next[cid] = cid;
+            for (int index = ranges.Count - 1; index >= 0; index--) {
+                CidWidthRange range = ranges[index];
+                for (int cid = FindNextCid(next, range.First); cid <= range.Last; cid = FindNextCid(next, cid)) {
+                    if (!entries.TryGetValue(cid, out CidWidthEntry entry) || range.Order > entry.Order) {
+                        if (_indexedWidths != null) _indexedWidths[cid] = range.Width;
+                        else entries[cid] = new CidWidthEntry(range.Width, range.Order);
+                    }
+                    next[cid] = FindNextCid(next, cid + 1);
+                }
+            }
         }
 
         internal double GetWidth(int cid) {
-            bool explicitWidth = _entries.TryGetValue(cid, out CidWidthEntry entry);
-            // Keep broad constant ranges compact. Later declarations still override earlier
-            // ranges or array entries, matching the existing small-range dictionary behavior.
-            for (int index = _ranges.Count - 1; index >= 0; index--) {
-                CidWidthRange range = _ranges[index];
-                if (explicitWidth && range.Order < entry.Order) break;
-                if (cid >= range.First && cid <= range.Last) return range.Width;
+            if (_indexedWidths != null) return _indexedWidths[cid];
+            return _entries.TryGetValue(cid, out CidWidthEntry entry) ? entry.Width : _defaultWidth;
+        }
+
+        private static int FindNextCid(int[] next, int cid) {
+            int root = cid;
+            while (next[root] != root) root = next[root];
+            while (next[cid] != cid) {
+                int successor = next[cid];
+                next[cid] = root;
+                cid = successor;
             }
-            return explicitWidth ? entry.Width : _defaultWidth;
+            return root;
         }
     }
 
@@ -72,11 +99,7 @@ internal static partial class ResourceResolver {
                     if (last.Value < startCid) continue;
                     int endCid = (int)Math.Min(last.Value, CidCodeCount - 1);
                     double width = (widths.Items[index] as PdfNumber)?.Value ?? defaultWidth;
-                    if (endCid - startCid + 1 > ExpandedCidWidthRangeLimit) {
-                        ranges.Add(new CidWidthRange(startCid, endCid, width, order));
-                    } else {
-                        for (int cid = startCid; cid <= endCid; cid++) entries[cid] = new CidWidthEntry(width, order);
-                    }
+                    ranges.Add(new CidWidthRange(startCid, endCid, width, order));
                 }
             }
         }
