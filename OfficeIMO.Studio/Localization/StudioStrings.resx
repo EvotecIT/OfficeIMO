@@ -2865,4 +2865,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="FormOcr.Constraint.NumericRange" xml:space="preserve"><value>The number is outside the field's declared range.</value></data>
   <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve"><value>This field has script constraints that cannot be safely assessed. Use a qualified form application.</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>The display label matches several choices. Enter the exact export value.</value></data>
+  <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Unmatched current selection</value></data>
+  <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Unmatched comparison selection</value></data>
 </root>

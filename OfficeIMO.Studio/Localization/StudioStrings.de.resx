@@ -5531,4 +5531,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="FormOcr.Constraint.NumericRange" xml:space="preserve"><value>Die Zahl liegt außerhalb des festgelegten Feldbereichs.</value></data>
   <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve"><value>Dieses Feld hat Skripteinschränkungen, die nicht sicher geprüft werden können. Verwenden Sie eine geprüfte Formularanwendung.</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Die Anzeige entspricht mehreren Optionen. Geben Sie den genauen Exportwert ein.</value></data>
+  <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Aktuelle Auswahl ohne Partner</value></data>
+  <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Vergleichsauswahl ohne Partner</value></data>
 </root>

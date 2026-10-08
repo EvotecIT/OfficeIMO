@@ -2043,4 +2043,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="FormOcr.Constraint.NumericRange" xml:space="preserve"><value>Le nombre est hors de la plage définie pour le champ.</value></data>
   <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve"><value>Ce champ comporte des contraintes de script qui ne peuvent pas être évaluées sûrement. Utilisez une application de formulaires qualifiée.</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Le libellé correspond à plusieurs options. Saisissez la valeur d’exportation exacte.</value></data>
+  <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Sélection actuelle sans paire</value></data>
+  <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Sélection de comparaison sans paire</value></data>
 </root>

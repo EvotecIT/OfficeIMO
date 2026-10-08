@@ -5531,4 +5531,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="FormOcr.Constraint.NumericRange" xml:space="preserve"><value>Liczba jest poza zakresem określonym dla pola.</value></data>
   <data name="FormOcr.Constraint.UnsupportedScriptConstraint" xml:space="preserve"><value>To pole ma ograniczenia skryptowe, których nie można bezpiecznie ocenić. Użyj sprawdzonego programu do formularzy.</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Etykieta odpowiada kilku opcjom. Wpisz dokładną wartość eksportu.</value></data>
+  <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Bez pary w bieżącym wyborze</value></data>
+  <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Bez pary w wyborze porównania</value></data>
 </root>
