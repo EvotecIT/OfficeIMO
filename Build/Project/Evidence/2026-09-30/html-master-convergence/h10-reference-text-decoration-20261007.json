@@ -281,9 +281,10 @@
   "publication": {
     "pr": 2930,
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2930",
-    "head": "2d930f0beabfcbe77d666967ec028939826f50cf",
+    "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
     "initialFeedback": "complete paginated threads/reviews/raw/issue comments/reactions, zero findings",
-    "state": "current-head CI and delayed feedback pending; no manual hosted review request"
+    "state": "OPEN; current-head CI failure/cancellation and pending lanes block merge",
+    "delayedCurrentHeadGate": "complete paginated feedback on current head; no actionable findings; CI still held"
   },
   "integrationPreflight": {
     "uncommittedMergeTree": "3a64dd219631864e28da19abdb43b66b7a42df6f",
@@ -357,5 +358,72 @@
     "workflowBlobExact": true,
     "newHeadCIAndDelayedFeedback": "pending; never rerun exhausted old proof run",
     "initialFeedback": "complete pages0unresolved;queued/running andno failure in immediate snapshot"
+  },
+  "currentCiDiagnosis20261008": {
+    "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/due-feedback-ci-diagnosis-20261008.json",
+    "failure": {
+      "run": 37713553719,
+      "job": 113104764175,
+      "kind": "job timeout after approximately 25 minutes apt font setup, no TRX; product build completed",
+      "elapsedSetup": "02:04:46 through02:30:16 font installation",
+      "testWindow": "02:32:48 through02:34:35 Word tests before cancellation",
+      "parentStatusAtDueRead": "queued with pending net472 lane; not eligible for rerun yet",
+      "newParentRerunCount": 0,
+      "oldCompliance37668008164RerunCount": 1,
+      "oldComplianceRetry": "exhausted; never rerun old compliance source"
+    },
+    "feedback": {
+      "pr": 2930,
+      "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
+      "checkedUtc": "2026-10-08T03:33:02.741411+00:00",
+      "snapshot": "Ignore/H10ReferenceAppearanceQualification-20261007/pr-2930-2026-10-08T03-33-02.json",
+      "snapshotSha256": "03a4d239f87e6a26dd1618b8ff53fbfdb014ebffe4d51eaa8f1e5471c8db720c",
+      "reviewThreadPages": 1,
+      "unresolved": 0,
+      "reviews": 0,
+      "rawReviewComments": 0,
+      "rawIssueComments": 1,
+      "reactionInspection": "all zero; full groups/raw preserved",
+      "delayedFeedback": "complete; no actionable finding or pending manual request",
+      "titleBody": "matches final source and limits",
+      "heldChecks": [
+        {
+          "bucket": "fail",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713553719/job/113121270289",
+          "name": "Ubuntu",
+          "state": "FAILURE"
+        },
+        {
+          "bucket": "cancel",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713553719/job/113104764175",
+          "name": "Ubuntu net10.0 / word-rtf-html",
+          "state": "CANCELLED"
+        },
+        {
+          "bucket": "pending",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713553719/job/113104767332",
+          "name": ".NET Framework 4.7.2 / Word",
+          "state": "QUEUED"
+        }
+      ],
+      "reviewerOnlyUnchangedCount": 0
+    },
+    "rerunEligibilityReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/2930-parent-rerun-eligibility-20261008.json"
+  },
+  "evidencePreservationPreflight20261008": {
+    "archive": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-decoration-e62f99d29/evidence.zip",
+    "manifest": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-decoration-e62f99d29/preservation-manifest.json",
+    "verification": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-decoration-e62f99d29/independent-verification.json",
+    "files": 77,
+    "logicalBytes": 27258873,
+    "sha256": "dd1b97d244030a8badf4f65444e8a0ab6f120fb734eaa229507879a74b34e7e0",
+    "state": "independently decoded and original hashes verified; checkout not removed, CI hold remains"
+  },
+  "combinedIntegrationPreparation20261008": {
+    "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/pending-owner-integration-20261008/owner-identity-and-next-proof.json",
+    "tree": "b6c990630211ae0b5703836143ed3a2b975e6eca",
+    "sourceBlobsExact": 20,
+    "acceptedFontPreserved": true,
+    "status": "read-only alternate index; not adopted, built, packaged or profile-qualified"
   }
 }

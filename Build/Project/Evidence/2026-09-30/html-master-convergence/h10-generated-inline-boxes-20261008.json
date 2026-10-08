@@ -6,8 +6,8 @@
   "milestone": "H10ReferenceSystemsGeneratedInlineBoxes",
   "publication": {
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2937",
-    "state": "OPEN",
-    "delayedCurrentHeadGate": "pending",
+    "state": "OPEN; current-head CI failure/cancellation and pending lanes block merge",
+    "delayedCurrentHeadGate": "complete paginated feedback on current head; no actionable findings; CI still held",
     "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
     "initialCompleteFeedback": {
       "threads": 0,
@@ -250,5 +250,80 @@
     "logicalBytesRemoved": 3239388617,
     "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/finish-cleanup-storage-summary-20261008.json",
     "pendingPrQualificationLogicalBytes": 110087094
+  },
+  "currentCiDiagnosis20261008": {
+    "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/due-feedback-ci-diagnosis-20261008.json",
+    "failure": {
+      "run": 37713849433,
+      "job": 113105701372,
+      "kind": "Studio page chooser geometry settling helper canceled after15-second wait on Windows1366x1024",
+      "hostedStudio": {
+        "passed": 781,
+        "failed": 1,
+        "skipped": 1
+      },
+      "ownedHtmlPatchChangesStudioCorePdf": "none; exact diff against candidate base",
+      "rootCause": "unconfirmed; original ZIP/TRX/logs retained",
+      "newParentRerunCount": 0,
+      "parentStatusAtDueRead": "queued; no rerun while active"
+    },
+    "feedback": {
+      "pr": 2937,
+      "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+      "checkedUtc": "2026-10-08T03:33:05.869574+00:00",
+      "snapshot": "Ignore/H10ReferenceAppearanceQualification-20261007/pr-2937-2026-10-08T03-33-05.json",
+      "snapshotSha256": "04ce71d455cb780b98bf8f08ad161b80cb8f61ce37d2f04a24bccfc3ed1c6053",
+      "reviewThreadPages": 1,
+      "unresolved": 0,
+      "reviews": 0,
+      "rawReviewComments": 0,
+      "rawIssueComments": 1,
+      "reactionInspection": "all zero; full groups/raw preserved",
+      "delayedFeedback": "complete; no actionable finding or pending manual request",
+      "titleBody": "matches final source and limits",
+      "heldChecks": [
+        {
+          "bucket": "fail",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713849433/job/113105701372",
+          "name": "Studio workflows and accessibility / windows-latest",
+          "state": "FAILURE"
+        },
+        {
+          "bucket": "pending",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713849433/job/113105704130",
+          "name": ".NET Framework 4.7.2 / Shared",
+          "state": "QUEUED"
+        },
+        {
+          "bucket": "pending",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713849433/job/113105704459",
+          "name": ".NET Framework 4.7.2 / Visio",
+          "state": "QUEUED"
+        },
+        {
+          "bucket": "pending",
+          "link": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37713849433/job/113105704566",
+          "name": ".NET Framework 4.7.2 / Word",
+          "state": "QUEUED"
+        }
+      ],
+      "reviewerOnlyUnchangedCount": 0
+    },
+    "rerunEligibilityReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/2937-parent-rerun-eligibility-20261008.json",
+    "localFocused": {
+      "cases": 4,
+      "passed": 4,
+      "framework": "net10.0",
+      "platform": "macOS Arm64",
+      "receipt": "../OfficeIMO-html-generated-inline-boxes/Ignore/GeneratedInlineBoxQualification/current-ci-studio-diagnosis-receipt-20261008.json",
+      "limit": "original Windows root cause remains unconfirmed; no product patch or fixed claim"
+    }
+  },
+  "combinedIntegrationPreparation20261008": {
+    "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/pending-owner-integration-20261008/owner-identity-and-next-proof.json",
+    "tree": "b6c990630211ae0b5703836143ed3a2b975e6eca",
+    "sourceBlobsExact": 20,
+    "acceptedFontPreserved": true,
+    "status": "read-only alternate index; not adopted, built, packaged or profile-qualified"
   }
 }
