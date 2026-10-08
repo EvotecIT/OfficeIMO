@@ -1128,6 +1128,9 @@ instead of interpreting the character codes as WinAnsi text. Supply a PDF with
 an explicit Unicode map before using those text operations. Logical extraction
 still uses explicit `ActualText` and excludes artifacts by default. Redaction
 review requires mappings for painted text even under `ActualText` or artifacts.
+Area-based redaction and image removal also reject a blocked inspection plan,
+including unsupported text on an unselected page. Redaction refuses before
+painting marks or replacing output files and streams.
 Unused font resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain
 their current behavior and editability limits.
 
