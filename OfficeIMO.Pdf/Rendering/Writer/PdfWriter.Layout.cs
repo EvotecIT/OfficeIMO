@@ -89,7 +89,7 @@ internal static partial class PdfWriter {
     }
     private readonly record struct TableCellParagraphRange(PdfTableCellParagraph Paragraph, int StartLine, int LineCount);
     private readonly struct TableCellLayout {
-        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap, PdfTableCellViewport? viewport) {
+        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap, PdfTableCellViewport? viewport, int textRotation) {
             Column = column;
             ColumnSpan = columnSpan;
             RowSpan = rowSpan;
@@ -105,6 +105,7 @@ internal static partial class PdfWriter {
             Images = images;
             NoWrap = noWrap;
             Viewport = viewport;
+            TextRotation = textRotation;
         }
 
         public int Column { get; }
@@ -122,6 +123,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
         public bool NoWrap { get; }
         public PdfTableCellViewport? Viewport { get; }
+        public int TextRotation { get; }
     }
 
     private static LayoutResult LayoutBlocks(

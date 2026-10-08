@@ -321,7 +321,7 @@ internal static partial class PdfWriter {
                 int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                 int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
                 double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
-                int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, tableStyle.PreservePartialCellLines);
+                int visibleLineCount = cell.TextRotation != 0 ? 1 : LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, tableStyle.PreservePartialCellLines);
                 double verticalOffset = 0;
                 double visibleTextHeight = 0D;
                 if (visibleLineCount > 0) {
@@ -380,9 +380,12 @@ internal static partial class PdfWriter {
                         OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                             paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
                             xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts, cellFont);
-                    WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - textClipBleed, textClipWidth, cellHeight + (textClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths, baselineFont: cellFont);
+                    if (cell.TextRotation != 0)
+                            RenderOrientedTableCellContent(cell, tableStyle, rowIndex, c, contentFrame, xi, state.Y, cellWidth, cellHeight, cellFont, rowSize, rowLeading, 1D, paragraph, markedStructureType, markedContentId);
+                        else
+                            WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - textClipBleed, textClipWidth, cellHeight + (textClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths, baselineFont: cellFont);
                 }
-                if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
+                if (cell.TextRotation == 0 && !suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                     if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                         RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, AdjustRichLineBaseline(firstBaseline, lines.Lines[sourceStartLine], currentOpts, rowSize, cellFont));
                     } else {

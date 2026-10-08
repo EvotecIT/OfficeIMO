@@ -88,7 +88,8 @@ namespace OfficeIMO.Word.Pdf {
                         embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         // Word no-wrap changes automatic sizing. Fixed-layout tables and
                         // cells with absolute preferred widths still wrap their content.
-                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText));
+                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText,
+                        textRotation: GetNativeCellTextRotation(cell.TextDirection)));
 
                     PdfCore.PdfColor? fill =
                         ParseNativeColor(cell.ShadingFillColorHex) ??
