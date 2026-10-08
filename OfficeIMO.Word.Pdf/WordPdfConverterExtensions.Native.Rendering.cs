@@ -395,7 +395,7 @@ namespace OfficeIMO.Word.Pdf {
                 Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>();
 
             foreach (DocumentFormat.OpenXml.OpenXmlElement item in itemElements) {
-                string text = string.Concat(item.Descendants<W.Text>().Select(value => value.Text));
+                string text = string.Concat(item.Descendants<W.Text>().Select(WordParagraph.ReadVisibleText));
                 if (!string.IsNullOrWhiteSpace(text)) {
                     items.Add(text);
                 }
@@ -992,6 +992,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldRenderNativeDirectText(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, string content) =>
             runs.Count == 0 &&
             !string.IsNullOrEmpty(content) &&
+            !(paragraph._stdRun is W.SdtRun control && IsNativeRepeatingSectionControl(control)) &&
             WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
             !paragraph._paragraph.Descendants<W.FieldChar>().Any() &&
             !IsNativeHiddenTextRun(paragraph);

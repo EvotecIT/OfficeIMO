@@ -9,6 +9,93 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FindAndReplace_UsesSignificantXmlTextForContainedAndCrossRunMatches(bool crossRun) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph(crossRun ? "First " : " First ");
+        if (crossRun) {
+            paragraph._paragraph.RemoveAllChildren<W.Run>();
+            paragraph._paragraph.Append(new W.Run(new W.Text("First ")), new W.Run(new W.Text(" Second")));
+        }
+        foreach (W.Text text in paragraph._paragraph.Descendants<W.Text>()) text.Space = null;
+        using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        string target = crossRun ? "FirstSecond" : "First";
+        Assert.Equal(target, string.Concat(imported.Paragraphs.Select(value => value.Text)));
+        Assert.NotEmpty(imported.Find(target, StringComparison.Ordinal));
+        Assert.Equal(1, imported.FindAndReplace(target, "Updated", StringComparison.Ordinal));
+        Assert.Equal("Updated", string.Concat(imported.Paragraphs.Select(value => value.Text)));
+    }
+
+    [Theory]
+    [InlineData(" \t", false, false)]
+    [InlineData(" \t", true, false)]
+    [InlineData("Before \t", false, false)]
+    [InlineData("Before \t", true, false)]
+    [InlineData(" \t", false, true)]
+    [InlineData(" \t", true, true)]
+    [InlineData("Before \t", false, true)]
+    [InlineData("Before \t", true, true)]
+    public void ParagraphText_IgnoredXmlEdgesDoNotMovePageOrColumnBreaks(string prefix, bool column, bool replace) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("seed");
+        W.Run run = paragraph._run!;
+        run.RemoveAllChildren();
+        W.BreakValues breakType = column ? W.BreakValues.Column : W.BreakValues.Page;
+        run.Append(new W.Text(prefix), new W.Break { Type = breakType }, new W.Text(" After "));
+        string before = prefix.Trim(' ', '\t') + "\u2028After";
+        Assert.Equal(before, paragraph.Text);
+        if (replace) Assert.Equal(1, document.FindAndReplace("After", "Updated", StringComparison.Ordinal));
+        else paragraph.Text = paragraph.Text;
+        Assert.Equal(replace ? before.Replace("After", "Updated") : before, paragraph.Text);
+        Assert.Equal(breakType, Assert.Single(run.Elements<W.Break>()).Type!.Value);
+    }
+
+    [Theory]
+    [InlineData("body")]
+    [InlineData("table")]
+    [InlineData("header")]
+    public void RepeatingSection_ImportedWhitespaceMatchesPublicAndPdfText(string story) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph;
+        if (story == "header") {
+            document.AddHeadersAndFooters();
+            paragraph = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph();
+        } else if (story == "table") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        else paragraph = document.AddParagraph();
+        WordRepeatingSection section = paragraph.AddRepeatingSection("Seed", "Whitespace");
+        section.SetTextItems(new[] { "Seed" });
+        W.Run run = section._sdtRun.Descendants<W.Run>().Single();
+        run.RemoveAllChildren();
+        run.Append(new W.Text(" First "), new W.Text(" Second "));
+        string xml = section._sdtRun.OuterXml;
+        Assert.Equal("FirstSecond", Assert.Single(section.TextItems));
+        Assert.Equal(xml, section._sdtRun.OuterXml);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        Assert.Equal("FirstSecond", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
+        Assert.Equal(xml, section._sdtRun.OuterXml);
+    }
+
+    [Fact]
+    public void RepeatingSection_UnknownXmlTextHonorsWhitespaceAndPreservedReplacement() {
+        using WordDocument document = WordDocument.Create();
+        WordRepeatingSection section = document.AddParagraph().AddRepeatingSection("Seed", "Whitespace");
+        OpenXmlElement item = section._sdtRun.SdtContentRun!.FirstChild!;
+        item.RemoveAllChildren();
+        item.InnerXml = "<w:sdt xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:sdtContent><w:r><w:t> First </w:t><w:t> Second </w:t></w:r></w:sdtContent></w:sdt>";
+        Assert.Empty(item.Descendants<W.Text>());
+        string xml = section._sdtRun.OuterXml;
+        Assert.Equal("FirstSecond", Assert.Single(section.TextItems));
+        Assert.Equal(xml, section._sdtRun.OuterXml);
+        item.InnerXml = item.InnerXml.Replace("<w:t>", "<w:t xml:space=\"preserve\">");
+        Assert.Equal(" First  Second ", Assert.Single(section.TextItems));
+        section.SetTextItems(new[] { " Preserved " });
+        Assert.Equal(" Preserved ", Assert.Single(section.TextItems));
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(0, true)]
     [InlineData(1, false)]

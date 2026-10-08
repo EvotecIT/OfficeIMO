@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
                 static int CountContentUnits(string? text) {
                     var segment = text ?? string.Empty;
                     if (segment.Length == 0) {
-                        return 1;
+                        return 0;
                     }
 
                     int units = 0;
@@ -154,7 +154,7 @@ namespace OfficeIMO.Word {
                         switch (child) {
                             case Text textNode:
                                 textNode.Remove();
-                                contentNodesEncountered += CountContentUnits(textNode.Text);
+                                contentNodesEncountered += CountContentUnits(ReadWordprocessingText(textNode));
                                 break;
                             case TabChar tabChar:
                                 tabChar.Remove();

@@ -86,7 +86,7 @@ Inline pictures in table cells retain their position among the paragraph's text,
 
 Ordinary underlining includes spaces between words. Word's explicit *underline words only* style continues to leave those spaces clear.
 
-Imported Word text honors `xml:space`: leading and trailing XML whitespace is visible only when the text node declares `preserve`. Internal spaces, non-breaking spaces, explicit tabs and line breaks retain their meaning. Reading text and exporting PDF leave the source XML unchanged; text authored through the Word APIs preserves supplied spaces.
+Word text extraction honors `xml:space`: leading and trailing XML whitespace is significant only when the text node declares `preserve`. PDF export omits insignificant text-node edges. Internal spaces, non-breaking spaces, explicit tabs and line breaks retain their meaning in the Word model. Reading text and exporting PDF leave the source XML unchanged; text authored through the Word APIs preserves supplied spaces. The PDF flow engine can still collapse preserved edge or consecutive spaces in body text and table cells.
 
 Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
 
