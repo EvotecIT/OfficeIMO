@@ -37,6 +37,23 @@ public static class HtmlCssTokenizer {
             yield return token;
         } while (token.Kind != HtmlCssTokenKind.EndOfFile);
     }
+
+    // Conversion owns the input budget. Preserve string and URL tokens while
+    // replacing real comments with a separator, without another token list.
+    internal static string StripComments(string source) {
+        if (source.IndexOf("/*", StringComparison.Ordinal) < 0) return source;
+        System.Text.StringBuilder? result = null;
+        int copied = 0;
+        foreach (HtmlCssToken token in Enumerate(source)) {
+            if (token.Kind != HtmlCssTokenKind.Comment) continue;
+            result ??= new System.Text.StringBuilder(source.Length);
+            result.Append(source, copied, token.Offset - copied).Append(' ');
+            copied = token.Offset + token.Length;
+        }
+        if (result == null) return source;
+        result.Append(source, copied, source.Length - copied);
+        return result.ToString();
+    }
 }
 
 /// <summary>Source and token budgets for a standalone lexical operation.</summary>

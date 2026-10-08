@@ -13,45 +13,8 @@ public static partial class HtmlComputedStyleEngine {
         return close < open;
     }
 
-    internal static string StripCssCommentsOutsideStrings(string css) {
-        var result = new System.Text.StringBuilder(css.Length);
-        char quote = '\0';
-        for (int i = 0; i < css.Length; i++) {
-            char current = css[i];
-            if (quote != '\0') {
-                result.Append(current);
-                if (current == quote && !IsEscaped(css, i)) {
-                    quote = '\0';
-                }
-
-                continue;
-            }
-
-            if (current == '"' || current == '\'') {
-                quote = current;
-                result.Append(current);
-                continue;
-            }
-
-            if (current == '/' && i + 1 < css.Length && css[i + 1] == '*') {
-                i += 2;
-                while (i + 1 < css.Length && !(css[i] == '*' && css[i + 1] == '/')) {
-                    i++;
-                }
-
-                if (i + 1 < css.Length) {
-                    i++;
-                }
-
-                result.Append(' ');
-                continue;
-            }
-
-            result.Append(current);
-        }
-
-        return result.ToString();
-    }
+    internal static string StripCssCommentsOutsideStrings(string css) =>
+        OfficeIMO.Html.Css.HtmlCssTokenizer.StripComments(css);
 
     internal static IEnumerable<string> SplitSelectorList(string selectorText) {
         int depth = 0;

@@ -26,24 +26,15 @@ public static partial class HtmlComputedStyleEngine {
     // border and text-decoration components. Preserve the whole family: mixing preserved variables
     // with parser-collapsed ordinary declarations loses their relative order.
     // A colour-only override must not reset the authored width and style.
-    private static string PreserveManagedDeclarations(string css) {
+    private static string PreserveManagedDeclarations(string css, OfficeIMO.Html.Css.HtmlCssStyleSheet sheet) {
         var result = new System.Text.StringBuilder(css.Length);
         int copied = 0;
         int declarationId = 0;
-        for (int index = 0; index < css.Length; index++) {
-            char current = css[index];
-            if (current is '\'' or '"') {
-                char quote = current;
-                while (++index < css.Length && (css[index] != quote || IsEscaped(css, index))) { }
-                continue;
-            }
-            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
-                int end = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
-                index = end < 0 ? css.Length : end + 1;
-                continue;
-            }
-            int before = SkipCssWhitespaceAndCommentsBackward(css, index - 1);
-            if (before < 0 || css[before] is not ('{' or ';')) continue;
+        // The owned parser already distinguishes declaration names from URL,
+        // function and custom-property component values. Reuse its source spans
+        // rather than treating every semicolon or brace as a declaration boundary.
+        foreach (OfficeIMO.Html.Css.HtmlCssDeclaration declaration in EnumerateManagedDeclarationCandidates(sheet.Rules)) {
+            int index = declaration.Span.Offset;
             int endName = index;
             if (!HtmlCssIdentifierParser.TryRead(css, ref endName, out string name)) continue;
             name = name.ToLowerInvariant();
@@ -52,15 +43,23 @@ public static partial class HtmlComputedStyleEngine {
                 : LayoutDeclarationNames.Contains(name) || DimensionDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix
                 : BorderDeclarationNames.Contains(name) ? BorderDeclarationSentinelPrefix : null;
             if (prefix == null) continue;
-            int colon = SkipCssWhitespaceAndCommentsForward(css, endName);
-            if (colon >= css.Length || css[colon] != ':') continue;
-            int valueEnd = FindDeclarationValueEnd(css, colon + 1);
             result.Append(css, copied, index - copied).Append(prefix).Append(declarationId++).Append('-').Append(name);
             copied = endName;
-            index = valueEnd - 1;
         }
         if (copied == 0) return css;
         result.Append(css, copied, css.Length - copied);
         return result.ToString();
+    }
+
+    private static IEnumerable<OfficeIMO.Html.Css.HtmlCssDeclaration> EnumerateManagedDeclarationCandidates(
+        IEnumerable<OfficeIMO.Html.Css.HtmlCssSyntaxNode> nodes) {
+        foreach (OfficeIMO.Html.Css.HtmlCssSyntaxNode node in nodes) {
+            if (node is OfficeIMO.Html.Css.HtmlCssDeclaration declaration) yield return declaration;
+            else if (node is OfficeIMO.Html.Css.HtmlCssRule rule) {
+                foreach (OfficeIMO.Html.Css.HtmlCssDeclaration child in EnumerateManagedDeclarationCandidates(rule.Contents)) {
+                    yield return child;
+                }
+            }
+        }
     }
 }
