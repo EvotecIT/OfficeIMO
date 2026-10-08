@@ -12,14 +12,16 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. During layout, including pagination stabilization, running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks; exceeding this limit throws `InvalidDataException`. This bounds retained layout assets; transient callback/decoder allocations and opt-in image optimization or PDF/X conversion during serialization use their own policies.
 
 ```csharp
-var document = PdfDocument.Create();
-document.Header(header => header.Content(content => content
-    .Table(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
-    distanceFromEdge: 18, bodyGap: 6));
-document.Footer(footer => footer.Content(page => content => content
-    .Paragraph(paragraph => paragraph.Text($"Page {page.PageNumber} of {page.DocumentPages}")),
-    distanceFromEdge: 18));
-document.Paragraph(paragraph => paragraph.Text("Report content"));
+var document = PdfDocument.Create(document => document.Page(page => {
+    page.Header(header => header.Content(content => content
+        .Table(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
+        distanceFromEdge: 18, bodyGap: 6));
+    page.Footer(footer => footer.Content(context => content => content
+        .Paragraph(paragraph => paragraph.Text($"Page {context.PageNumber} of {context.DocumentPages}")),
+        distanceFromEdge: 18));
+    page.Content(content => content.Paragraph(paragraph => paragraph.Text("Report content")));
+}));
+document.Save("report.pdf");
 ```
 
 The page-context overload supplies visible and physical page numbers, section-relative page position, section and document page counts, and the current content width. `SectionPages` counts physical pages in the current page group independently of numbering restarts. `TotalPages` retains the existing `{pages}` meaning: the last visible number in the current numbering sequence. `FormatPageNumber` follows the configured number style or an explicit override. The factory must be deterministic because page totals can require pagination to stabilize. Running content cannot create pages: page breaks, page canvases, deferred content and other unbounded flow are rejected. The measured stories must leave positive space for the document body.
