@@ -1,0 +1,51 @@
+import { withDestination } from "../core/sinks.js";
+import { copyColumns } from "../internal/rows.js";
+import type { Column, ExportResult, OutputDestination } from "../core/index.js";
+import { Workbook } from "./workbook.js";
+import type { XlsxRows } from "./types.js";
+import { portableSheet, portableWorkbook } from "./portable.js";
+import type { PortableWorkbookOptions, PortableSheetOptions } from "./portable.js";
+
+/** One table, using the same workbook engine as the advanced multi-worksheet API. */
+export interface XlsxOptions<T = never> extends PortableWorkbookOptions {
+  readonly columns: readonly (Column<T> & { readonly style?: never })[];
+  readonly sheet?: PortableSheetOptions & { readonly name?: string };
+}
+
+function prepare(options: XlsxOptions): XlsxOptions {
+  const columns = copyColumns(options?.columns);
+  return { ...portableWorkbook(options), columns, sheet: { ...portableSheet(options.sheet), ...(options.sheet?.name === undefined ? {} : { name: options.sheet.name }) } };
+}
+
+function worksheet(book: Workbook, options: XlsxOptions) {
+  const { name = "Data", ...sheet } = options.sheet ?? {};
+  return book.addWorksheet(name, { boldHeader: true, autoFilter: sheet.includeHeader !== false,
+    autoSize: { minWidth: 6, maxWidth: 54 }, ...sheet, columns: options.columns });
+}
+
+/** Write one worksheet to a Blob. Async sources are consumed once; call a source factory for each export. */
+export function writeXlsx<T extends object>(rows: Iterable<T> | AsyncIterable<T>, options: XlsxOptions<NoInfer<T>>): Promise<Blob>;
+export async function writeXlsx(rows: Iterable<unknown> | AsyncIterable<unknown>, configuration: unknown): Promise<Blob> {
+  const options = prepare(configuration as XlsxOptions);
+  const { columns: _columns, sheet: _sheet, ...settings } = options;
+  const book = Workbook.forTable(settings);
+  try { await worksheet(book, options).addRows(rows as XlsxRows); return await book.toBlob(); }
+  catch (error) { await book.discard(error); throw error; }
+}
+
+/** Await accepted bytes without closing/aborting the caller's destination. Its partial bytes remain caller-owned. */
+export function writeXlsxTo<T extends object>(rows: Iterable<T> | AsyncIterable<T>, destination: OutputDestination, options: XlsxOptions<NoInfer<T>>): Promise<ExportResult>;
+export async function writeXlsxTo(rows: Iterable<unknown> | AsyncIterable<unknown>, destination: OutputDestination, configuration: unknown): Promise<ExportResult> {
+  const options = prepare(configuration as XlsxOptions);
+  return withDestination(destination, async sink => {
+    const { columns: _columns, sheet: _sheet, ...settings } = options;
+    const book = Workbook.forTable({ ...settings, sink });
+    try {
+      const sheet = worksheet(book, options);
+      const columns = options.columns.length;
+      await sheet.addRows(rows as XlsxRows);
+      const result = await book.finish();
+      return { rows: result.rows, columns, bytes: result.bytes };
+    } catch (error) { await book.discard(error); throw error; }
+  });
+}

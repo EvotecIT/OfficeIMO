@@ -49,9 +49,9 @@ namespace OfficeIMO.Word {
             bool? tableAutofit = tableBlock.Rows
                 .Select(row => row.TableAutofit)
                 .FirstOrDefault(autofit => autofit.HasValue);
-            if (tableAutofit != null) {
-                table.LayoutMode = tableAutofit.Value ? WordTableLayoutMode.AutoFit : WordTableLayoutMode.Fixed;
-            }
+            // Binary DOC defaults to fixed columns when sprmTFAutofit is absent;
+            // the projected DOCX table must not acquire DOCX's AutoFit default.
+            table.LayoutMode = tableAutofit == true ? WordTableLayoutMode.AutoFit : WordTableLayoutMode.Fixed;
 
             int? tableCellSpacingTwips = tableBlock.Rows
                 .Select(row => row.DefaultCellSpacingTwips)

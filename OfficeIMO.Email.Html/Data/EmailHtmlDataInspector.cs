@@ -21,6 +21,8 @@ public sealed class EmailHtmlDataInspectionReport {
     public IReadOnlyList<EmailHtmlInspectionFinding> Findings { get; internal set; } = Array.Empty<EmailHtmlInspectionFinding>();
     /// <summary>Whether the finding sample reached its bound; additional findings may exist.</summary>
     public bool FindingLimitMayHaveBeenReached { get; internal set; }
+    /// <summary>Advisory selected-body evidence, including plain text and bounded inline Base64. Null for catalog-only artifacts.</summary>
+    public EmailBodyContentSafetyReport? BodyContentSafety { get; internal set; }
 }
 
 /// <summary>One concealed-text mechanism and risk classification, without the private text.</summary>
@@ -52,6 +54,21 @@ public static class EmailHtmlDataInspector {
         var policy = options ?? new EmailDataInspectionOptions();
         var report = new EmailHtmlDataInspectionReport(EmailDataInspector.Inspect(opened, policy, cancellationToken));
         if (opened.EmailDocument == null) return report;
+        cancellationToken.ThrowIfCancellationRequested();
+        string selected = !string.IsNullOrWhiteSpace(opened.EmailDocument.Body.Html) ? opened.EmailDocument.Body.Html! :
+            !string.IsNullOrWhiteSpace(opened.EmailDocument.Body.Rtf) ? opened.EmailDocument.Body.Rtf! : opened.EmailDocument.Body.Text ?? string.Empty;
+        if (selected.Length > Math.Min(maxHtmlCharacters, 1000000)) {
+            report.BodyContentSafety = new EmailBodyContentSafetyReport { InspectionStatus = "BodyLimitExceeded" };
+        } else {
+            try {
+                report.BodyContentSafety = EmailBodyProjection.Create(opened.EmailDocument, new EmailBodyProjectionOptions {
+                    IncludeResources = false, IncludeResourceReferences = false, InspectContentSafety = true
+                }).ContentSafety;
+            } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException || exception is HtmlDomLimitException) {
+                report.BodyContentSafety = new EmailBodyContentSafetyReport { InspectionStatus = "Unavailable" };
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         string? html = opened.EmailDocument.Body.Html;
         if (html == null) { report.HtmlInspectionStatus = "NoHtmlBody"; return report; }
         if (html.Length > maxHtmlCharacters) { report.HtmlInspectionStatus = "BodyLimitExceeded"; return report; }

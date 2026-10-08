@@ -281,6 +281,7 @@ public static partial class HtmlComputedStyleEngine {
         "text-decoration-line",
         "text-decoration-color",
         "text-decoration-style",
+        "text-decoration-thickness",
         "text-overflow",
         "text-shadow",
         "text-transform",

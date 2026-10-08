@@ -49,3 +49,15 @@ test("a sink failure or cancellation prevents ZIP finalization", async () => {
   controller.abort(); await assert.rejects(adding, { name: "AbortError" });
   await assert.rejects(cancelled.toBlob(), { name: "AbortError" });
 });
+
+test("invalid ZIP producer bytes fail without waiting for cleanup or finalizing output", { timeout: 2000 }, async () => {
+  let returned = 0, produced = 0;
+  const source = { [Symbol.iterator]() { return {
+    next() { produced++; return { done: false, value: "not bytes" }; },
+    return() { returned++; return new Promise(() => {}); }
+  }; } };
+  const zip = new ZipWriter();
+  await assert.rejects(zip.add("data", source), TypeError);
+  assert.equal(returned, 1); assert.equal(produced, 1);
+  await assert.rejects(zip.finish(), { code: "INVALID_STATE" });
+});

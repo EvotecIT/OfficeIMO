@@ -772,7 +772,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
-            Assert.Equal("Report!headerFooter", diagnostic.Source);
+            Assert.Equal("Report!headerFooter:header-center-image", diagnostic.Source);
             Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
         }

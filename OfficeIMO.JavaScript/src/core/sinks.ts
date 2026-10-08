@@ -1,10 +1,24 @@
-import { checkAbort, withAbort, inputRows, pause } from "./iteration.js";
+import { checkAbort, consumeRows, withAbort, pause, taskYieldDue } from "./iteration.js";
 import { OfficeIMOError } from "./errors.js";
 
 /** Writes must resolve only after the sink accepts bytes. Ownership stays with the caller. */
 export interface ByteSink { write(bytes: Uint8Array): void | Promise<void>; }
+/** A caller-owned byte destination. WritableStream locks are borrowed only for the operation. */
+export type OutputDestination = ByteSink | WritableStream<Uint8Array>;
 export type ByteWriter = (bytes: Uint8Array) => void | Promise<void>;
 export type ByteSource = Uint8Array | Iterable<Uint8Array> | AsyncIterable<Uint8Array>;
+
+/** @internal Borrow a stream writer without closing or aborting the caller's destination. */
+export async function withDestination<T>(destination: OutputDestination, operation: (sink: ByteSink) => Promise<T>): Promise<T> {
+  // Native streams can belong to another browser realm; constructor identity is not portable.
+  if (destination && typeof (destination as WritableStream<Uint8Array>).getWriter === "function") {
+    const writer = (destination as WritableStream<Uint8Array>).getWriter();
+    try { return await operation({ write: bytes => writer.write(bytes) }); }
+    finally { writer.releaseLock(); }
+  }
+  if (!destination || typeof (destination as ByteSink).write !== "function") throw new TypeError("Destination must be a ByteSink or WritableStream.");
+  return operation(destination as ByteSink);
+}
 
 /** Collects output only; it does not retain source rows or XML strings. */
 export class BlobByteSink implements ByteSink {
@@ -33,7 +47,6 @@ export class BlobByteSink implements ByteSink {
 /** Bounded UTF-8 batches, preserving surrogate pairs across append boundaries. */
 export class ChunkedTextSink {
   private text = "";
-  private deadline = performance.now() + 8;
   private readonly encoder = new TextEncoder();
   constructor(private readonly sink: ByteSink, private readonly signal?: AbortSignal, readonly chunkSize = 32768) {
     if (!Number.isInteger(chunkSize) || chunkSize < 2) throw new RangeError("Text chunk size must be at least 2.");
@@ -41,7 +54,7 @@ export class ChunkedTextSink {
   append(value: string): boolean {
     checkAbort(this.signal);
     this.text += value;
-    return this.text.length >= this.chunkSize || performance.now() >= this.deadline;
+    return this.text.length >= this.chunkSize || taskYieldDue();
   }
   /** Flush full text, keeping a trailing high surrogate until the next append. */
   async flush(final = false): Promise<void> {
@@ -53,7 +66,7 @@ export class ChunkedTextSink {
       const bytes = this.encoder.encode(this.text.slice(0, end));
       this.text = this.text.slice(end);
       await withAbort(Promise.resolve(this.sink.write(bytes)), this.signal);
-      if (performance.now() >= this.deadline) { await pause(); this.deadline = performance.now() + 8; }
+      if (taskYieldDue()) await pause();
       checkAbort(this.signal);
     }
   }
@@ -63,8 +76,10 @@ export class ChunkedTextSink {
 
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 export async function writeBytes(source: ByteSource, sink: ByteSink, signal?: AbortSignal): Promise<void> {
-  for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+  await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
     if (!(bytes instanceof Uint8Array)) throw new TypeError("Byte sources must yield Uint8Array chunks.");
-    await withAbort(Promise.resolve(sink.write(bytes)), signal);
-  }
+    const pending = sink.write(bytes);
+    if (taskYieldDue()) return Promise.resolve(pending).then(() => { checkAbort(signal); return pause(); });
+    return pending;
+  });
 }

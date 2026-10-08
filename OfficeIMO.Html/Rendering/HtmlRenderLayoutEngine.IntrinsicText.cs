@@ -113,7 +113,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             AppendInFlowIntrinsicTextRuns(item.Element, item.Style, availableSize, depth, rawRuns, skipSizedNestedTables, includeDescendantInsets);
         }
+        return NormalizeIntrinsicTextRuns(rawRuns);
+    }
 
+    private IReadOnlyList<IntrinsicTextRun> NormalizeIntrinsicTextRuns(IReadOnlyList<IntrinsicTextRun> rawRuns) {
         var normalized = new List<IntrinsicTextRun>();
         HtmlRenderBoxStyle? pendingWhitespaceStyle = null;
         foreach (IntrinsicTextRun run in rawRuns) {

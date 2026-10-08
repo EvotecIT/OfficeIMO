@@ -8,12 +8,28 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
+        if (pattern.Opacity <= 0D) return;
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeImagePatternLayout layout = pattern.Layout.Scale(scale);
+        OfficeImagePlacement area = layout.Area;
+        using var clip = canvas.PushClipRectangle(area.X, area.Y, area.Width, area.Height);
+        if (!canvas.HasVisibleClipBounds) return;
+        var placements = layout.GetTilePlacements(pattern.MaximumTileCount);
+        bool visibleTile = false;
+        foreach (OfficeImagePlacement placement in placements) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (canvas.IntersectsVisibleSurface(new OfficeImageProjection(placement).CreateUnitSquareTransform(), 1D, 1D)) {
+                visibleTile = true;
+                break;
+            }
+        }
+        if (!visibleTile) return;
+        (double targetWidth, double targetHeight) = GetImageTargetSize(canvas, new OfficeImageProjection(layout.Tile), 1D);
         if (!TryDecodeImage(
                 pattern.EncodedBytes,
                 pattern.ContentType,
-                layout.Tile.Width,
-                layout.Tile.Height,
+                targetWidth,
+                targetHeight,
                 imageCodec,
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
@@ -32,11 +48,9 @@ public static partial class OfficeDrawingRasterRenderer {
             image = ApplyImageOpacity(image, pattern.Opacity);
         }
 
-        OfficeImagePlacement area = layout.Area;
-        using (canvas.PushClipRectangle(area.X, area.Y, area.Width, area.Height)) {
-            foreach (OfficeImagePlacement tile in layout.GetTilePlacements(pattern.MaximumTileCount)) {
-                canvas.DrawImage(image, new OfficeImageProjection(tile));
-            }
+        foreach (OfficeImagePlacement tile in placements) {
+            cancellationToken.ThrowIfCancellationRequested();
+            canvas.DrawImage(image, new OfficeImageProjection(tile));
         }
     }
 }

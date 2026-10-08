@@ -111,7 +111,7 @@ namespace OfficeIMO.Word {
                 bodyChild = bodyChild.NextSibling();
             }
             string[] values = new string[nodes.Count];
-            for (int index = 0; index < nodes.Count; index++) values[index] = nodes[index].Text;
+            for (int index = 0; index < nodes.Count; index++) values[index] = WordParagraph.ReadVisibleText(nodes[index]);
             if (HasCrossParagraphMatch(values, textToFind, stringComparison)) return false;
 
             for (int index = 0; index < nodes.Count; index++) {
@@ -231,6 +231,9 @@ namespace OfficeIMO.Word {
                             }
                         }
                     } else {
+                        if (!replace && !foundParagraphs.Any(fp => ReferenceEquals(fp._paragraph, paragraphs[ts.BeginIndex]._paragraph))) {
+                            foundParagraphs.Add(paragraphs[ts.BeginIndex]);
+                        }
                         if (replace) {
                             var beginPara = paragraphs[ts.BeginIndex];
                             var endPara = paragraphs[ts.EndIndex];

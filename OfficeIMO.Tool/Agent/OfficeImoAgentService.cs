@@ -1,3 +1,4 @@
+using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
 using OfficeIMO.Drawing;
 using OfficeIMO.Reader;
@@ -353,9 +354,11 @@ internal sealed partial class OfficeImoAgentService {
     private static OfficeDocumentReader CreateReader() {
         var email = new ReaderEmailHandlersOptions {
             Artifacts = new ReaderEmailOptions {
+                ConcealedTextPolicy = EmailConcealedTextPolicy.ExcludeRemovable,
                 IncludeAttachmentContent = false
             },
             Stores = new ReaderEmailStoreOptions {
+                ConcealedTextPolicy = EmailConcealedTextPolicy.ExcludeRemovable,
                 ItemReadOptions = new EmailStoreItemReadOptions(
                     AgentEmailParts,
                     preferStreamingAttachmentContent: true),

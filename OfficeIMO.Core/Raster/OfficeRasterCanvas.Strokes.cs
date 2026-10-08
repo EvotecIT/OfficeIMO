@@ -20,7 +20,9 @@ public sealed partial class OfficeRasterCanvas {
             StrokeContours(collapsed,width,cap,join,miterLimit,pattern,offset,paint);
             return;
         }
-        var bounds = inverse.TransformRectangleBounds(0, 0, Width, Height);
+        // Contours remain logical until FillContourPaint applies the canvas axes.
+        // Clip in that same space so a compressed axis retains its visible extent.
+        var bounds = inverse.TransformRectangleBounds(0, 0, Width / CoordinateScaleX, Height / CoordinateScaleY);
         double pixelsPerUnit = Math.Sqrt(transform.M11*transform.M11 + transform.M12*transform.M12 + transform.M21*transform.M21 + transform.M22*transform.M22);
         var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, pattern, offset, pixelsPerUnit,
             bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, _cancellationToken);
@@ -38,7 +40,8 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<double>? dashPattern, double dashOffset, Func<double, double, OfficeColor> paint,
         bool resetDashPatternForEachSegment = false) {
         if (!IsFinite(width) || width <= 0D) return;
-        var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, 1D, 0D, 0D, Width - 1D, Height - 1D, _cancellationToken, resetDashPatternForEachSegment);
+        var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, 1D,
+            0D, 0D, Width / CoordinateScaleX, Height / CoordinateScaleY, _cancellationToken, resetDashPatternForEachSegment);
         var fillContours = new List<IReadOnlyList<OfficePoint>>(outlines.Count);
         foreach (List<OfficePoint> outline in outlines) fillContours.Add(outline);
         FillContourPaint(fillContours, OfficeFillRule.NonZero, paint);
