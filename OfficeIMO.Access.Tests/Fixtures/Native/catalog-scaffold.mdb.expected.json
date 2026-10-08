@@ -1,0 +1,130 @@
+{
+  "observation": "DAO read-only reopen and index seek",
+  "tables": [
+    {
+      "name": "Groups",
+      "columns": [
+        {
+          "name": "Id",
+          "daoType": 4,
+          "size": 4,
+          "attributes": 1
+        },
+        {
+          "name": "Label",
+          "daoType": 10,
+          "size": 80,
+          "attributes": 2
+        }
+      ],
+      "indexes": [
+        {
+          "name": "PK_Groups",
+          "primary": true,
+          "unique": true,
+          "foreign": false,
+          "fields": [
+            "Id"
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "Id": 1,
+          "Label": "Group A"
+        }
+      ]
+    },
+    {
+      "name": "Contacts",
+      "columns": [
+        {
+          "name": "Active",
+          "daoType": 1,
+          "size": 1,
+          "attributes": 1
+        },
+        {
+          "name": "Amount",
+          "daoType": 5,
+          "size": 8,
+          "attributes": 1
+        },
+        {
+          "name": "CreatedAt",
+          "daoType": 8,
+          "size": 8,
+          "attributes": 1
+        },
+        {
+          "name": "DisplayName",
+          "daoType": 10,
+          "size": 120,
+          "attributes": 2
+        },
+        {
+          "name": "GroupId",
+          "daoType": 4,
+          "size": 4,
+          "attributes": 1
+        },
+        {
+          "name": "Id",
+          "daoType": 4,
+          "size": 4,
+          "attributes": 1
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ContactGroups",
+          "primary": false,
+          "unique": false,
+          "foreign": true,
+          "fields": [
+            "GroupId"
+          ]
+        },
+        {
+          "name": "PK_Contacts",
+          "primary": true,
+          "unique": true,
+          "foreign": false,
+          "fields": [
+            "Id"
+          ]
+        }
+      ],
+      "rows": [
+        {
+          "Active": true,
+          "Amount": 12.3456,
+          "CreatedAt": "2026-01-02T03:04:05",
+          "DisplayName": "Ada",
+          "GroupId": 1,
+          "Id": 1
+        },
+        {
+          "Active": false,
+          "Amount": -1.25,
+          "CreatedAt": null,
+          "DisplayName": "",
+          "GroupId": 1,
+          "Id": 2
+        }
+      ]
+    }
+  ],
+  "relationship": {
+    "name": "ContactGroups",
+    "parentTable": "Groups",
+    "childTable": "Contacts",
+    "attributes": 0,
+    "fields": [
+      {
+        "parentColumn": "Id",
+        "childColumn": "GroupId"
+      }
+    ]
+  }
+}
