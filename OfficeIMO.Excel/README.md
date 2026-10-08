@@ -298,6 +298,14 @@ workbook must be inspected, edited, or saved again. CSV provides the same typed
 and ordered-parallel row-mapping contracts through the separate
 `OfficeIMO.CSV` package.
 
+Native XLSX data-reader opening qualifies the complete selected worksheet before
+row delivery. When that worksheet references shared strings, opening also
+materializes the complete workbook shared-string table and checks its XML and
+item/count/character limits, including later items unused by that worksheet.
+`HasHeaderRow = false` does not skip this work. First-row latency therefore
+includes more than reading the first record; the reader exposes no option to
+replace these checks with the XML count attributes or a partial table load.
+
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:
 
