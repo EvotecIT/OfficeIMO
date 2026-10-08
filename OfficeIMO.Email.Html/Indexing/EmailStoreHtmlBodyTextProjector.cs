@@ -32,8 +32,15 @@ public sealed class EmailStoreHtmlBodyTextProjector : IEmailStoreBodyTextProject
             default: throw new ArgumentOutOfRangeException(nameof(bodyField));
         }
         if (string.IsNullOrEmpty(view.Body.Text) && string.IsNullOrEmpty(view.Body.Html) && string.IsNullOrEmpty(view.Body.Rtf)) return string.Empty;
+        const int maximumSourceCharacters = 2 * 1024 * 1024;
+        if ((view.Body.Text ?? view.Body.Html ?? view.Body.Rtf ?? string.Empty).Length > maximumSourceCharacters) {
+            _inspectionObserver?.Invoke(new EmailBodyContentSafetyReport { InspectionStatus = "BodyLimitExceeded" });
+            // Use the store's recoverable item-error contract rather than rejecting the whole query.
+            throw new InvalidDataException("The selected email body exceeds the body projector's 2 MiB character limit.");
+        }
         EmailIndexTextResult projection = EmailIndexText.Create(view, new EmailIndexTextOptions {
-            MaxTextChars = maxCharacters, InspectContentSafety = true, ConcealedTextPolicy = _policy
+            MaxSourceChars = maximumSourceCharacters, MaxTextChars = maxCharacters,
+            InspectContentSafety = true, ConcealedTextPolicy = _policy
         });
         cancellationToken.ThrowIfCancellationRequested();
         if (projection.ContentSafety != null) _inspectionObserver?.Invoke(projection.ContentSafety);

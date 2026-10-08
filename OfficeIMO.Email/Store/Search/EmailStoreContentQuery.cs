@@ -15,8 +15,26 @@ public sealed class EmailStoreContentQuery {
         int snippetCharacters = 240,
         int progressInterval = 100,
         bool continueOnItemError = true,
-        EmailStoreContentSearchCheckpoint? resumeFrom = null,
-        IEmailStoreBodyTextProjector? bodyTextProjector = null) {
+        EmailStoreContentSearchCheckpoint? resumeFrom = null)
+        : this(terms, null, fields, matchMode, metadataFilter, maxItemsScanned, maxResults,
+            maxDecodedPropertyBytesPerItem, maxSearchableCharactersPerItem, snippetCharacters,
+            progressInterval, continueOnItemError, resumeFrom) { }
+
+    /// <summary>Creates a bounded content query with an optional format-owned body projection.</summary>
+    public EmailStoreContentQuery(
+        IEnumerable<string> terms,
+        IEmailStoreBodyTextProjector? bodyTextProjector,
+        EmailStoreContentSearchFields fields = EmailStoreContentSearchFields.All,
+        EmailStoreContentMatchMode matchMode = EmailStoreContentMatchMode.AllTerms,
+        EmailStoreQuery? metadataFilter = null,
+        int maxItemsScanned = 10_000,
+        int maxResults = 100,
+        long maxDecodedPropertyBytesPerItem = 16L * 1024 * 1024,
+        int maxSearchableCharactersPerItem = 2_000_000,
+        int snippetCharacters = 240,
+        int progressInterval = 100,
+        bool continueOnItemError = true,
+        EmailStoreContentSearchCheckpoint? resumeFrom = null) {
         if (terms == null) throw new ArgumentNullException(nameof(terms));
         const EmailStoreContentSearchFields known = EmailStoreContentSearchFields.All;
         if (fields == EmailStoreContentSearchFields.None || (fields & ~known) != 0) {

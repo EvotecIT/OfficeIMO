@@ -45,7 +45,7 @@ public static class EmailIndexText {
             diagnostics.AddRange(projection.Diagnostics);
             if (kind != EmailBodySourceKind.None) {
                 var document = projection.Document.CreateDocumentForConversion();
-                Walk(document.Body ?? (HtmlNode)document, EmailIndexRegionKind.Unclassified, "unclassified", false);
+                Walk(document.Body ?? (HtmlNode)document, builder, EmailIndexRegionKind.Unclassified, "unclassified", false);
             }
         }
         if (builder.Truncated) diagnostics.Add(new EmailDiagnostic("EMAIL_INDEX_TEXT_TRUNCATED", "Indexing text reached its character limit.", location: "message/body"));
@@ -56,29 +56,39 @@ public static class EmailIndexText {
         void CheckSource(string value) {
             if (value.Length > effective.MaxSourceChars) throw new ArgumentException("The selected email body exceeds MaxSourceChars.", nameof(source));
         }
-        void Walk(HtmlNode node, EmailIndexRegionKind region, string reason, bool preformatted) {
-            if (builder.Truncated) return;
-            if (node.Kind == HtmlNodeKind.Text) { builder.Append(node.TextContent, region, reason, preformatted); return; }
-            var element = node as HtmlElement;
-            string name = element?.LocalName ?? string.Empty;
-            if (name == "head" || name == "script" || name == "style" || name == "template" ||
-                element?.HasAttribute("hidden") == true || element?.GetAttribute("aria-hidden") == "true") return;
-            bool block = IsBlock(name);
-            if (block || name == "br") builder.LineBreak(region, reason);
-            if (region == EmailIndexRegionKind.Unclassified && element != null) {
-                string[] classes = (element.GetAttribute("class") ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
-                string? quote = classes.FirstOrDefault(value => value == "gmail_quote" || value == "yahoo_quoted");
-                string? signature = classes.FirstOrDefault(value => value == "gmail_signature" || value == "moz-signature");
-                if (name == "blockquote" || quote != null) { region = EmailIndexRegionKind.Quoted; reason = quote ?? "blockquote"; }
-                else if (signature != null) { region = EmailIndexRegionKind.Signature; reason = signature; }
-            }
-            foreach (HtmlNode child in node.ChildNodes) {
-                Walk(child, region, reason, preformatted || name == "pre");
-                if (builder.Truncated) break;
-            }
-            if (block) builder.LineBreak(region, reason);
-            else if (name == "td" || name == "th") builder.Append(" ", region, reason, false);
+    }
+
+    // Preserve block boundaries and source whitespace when inspecting wrapped encoded text.
+    internal static string CreateInspectionText(string html, int maximum, out bool truncated) {
+        var builder = new EmailIndexTextBuilder(maximum);
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForConversion();
+        Walk(document.Body ?? (HtmlNode)document, builder, EmailIndexRegionKind.Unclassified, "unclassified", true);
+        truncated = builder.Truncated;
+        return builder.Build(EmailBodySourceKind.Html, false, false, Array.Empty<EmailDiagnostic>()).FullText;
+    }
+
+    private static void Walk(HtmlNode node, EmailIndexTextBuilder builder, EmailIndexRegionKind region, string reason, bool preformatted) {
+        if (builder.Truncated) return;
+        if (node.Kind == HtmlNodeKind.Text) { builder.Append(node.TextContent, region, reason, preformatted); return; }
+        var element = node as HtmlElement;
+        string name = element?.LocalName ?? string.Empty;
+        if (name == "head" || name == "script" || name == "style" || name == "template" ||
+            element?.HasAttribute("hidden") == true || element?.GetAttribute("aria-hidden") == "true") return;
+        bool block = IsBlock(name);
+        if (block || name == "br") builder.LineBreak(region, reason);
+        if (region == EmailIndexRegionKind.Unclassified && element != null) {
+            string[] classes = (element.GetAttribute("class") ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
+            string? quote = classes.FirstOrDefault(value => value == "gmail_quote" || value == "yahoo_quoted");
+            string? signature = classes.FirstOrDefault(value => value == "gmail_signature" || value == "moz-signature");
+            if (name == "blockquote" || quote != null) { region = EmailIndexRegionKind.Quoted; reason = quote ?? "blockquote"; }
+            else if (signature != null) { region = EmailIndexRegionKind.Signature; reason = signature; }
         }
+        foreach (HtmlNode child in node.ChildNodes) {
+            Walk(child, builder, region, reason, preformatted || name == "pre");
+            if (builder.Truncated) break;
+        }
+        if (block) builder.LineBreak(region, reason);
+        else if (name == "td" || name == "th") builder.Append(" ", region, reason, false);
     }
 
     private static bool IsBlock(string name) => name == "p" || name == "div" || name == "blockquote" ||

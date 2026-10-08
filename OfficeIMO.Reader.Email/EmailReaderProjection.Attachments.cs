@@ -21,7 +21,8 @@ internal static partial class EmailReaderProjection {
             ReaderNestedContent.ReserveDecodedInput(attachment.Content?.LongLength ?? Math.Max(0, attachment.Length));
             var document = attachment.EmbeddedDocument!;
             projection = new Projection(attachmentPath, document.Format) {
-                IncludeEmbeddedMessageContent = parent.IncludeEmbeddedMessageContent
+                IncludeEmbeddedMessageContent = parent.IncludeEmbeddedMessageContent,
+                ConcealedTextPolicy = parent.ConcealedTextPolicy
             };
             projection.Documents.Add(document);
             projection.MailboxEntries.Add(null);

@@ -33,20 +33,23 @@ internal static class EmailBodyContentSafety {
             return OmitIfRequired(html, plainText, exclude, report, diagnostics);
         }
         try {
+            var instructionBudget = new OfficeContentInstructionBudget();
             var options = new OfficeContentSafetyOptions {
                 MaxInputBytes = MaximumCharacters * 4L, MaxCharacters = MaximumCharacters,
-                MaxFindings = MaximumFindings, MaxPreviewCharacters = 1
+                MaxFindings = MaximumFindings, MaxPreviewCharacters = 1, InstructionBudget = instructionBudget
             };
             OfficeContentSafetyReport? concealed = plainText == null ? HtmlContentSafety.Inspect(html, options) : null;
-            string text = plainText ?? HtmlConversionDocument.Parse(html).CreateSourceDocumentForConversion().Body?.TextContent ?? string.Empty;
-            OfficeContentInstructionAnalysis instructions = OfficeContentInstructionDetector.Analyze(text);
+            bool textTruncated = false;
+            string text = plainText ?? EmailIndexText.CreateInspectionText(html, MaximumCharacters, out textTruncated);
+            OfficeContentInstructionAnalysis instructions = OfficeContentInstructionDetector.Analyze(text, MaximumCharacters, instructionBudget);
             report.InstructionSignals = Array.AsReadOnly(instructions.Signals.Concat(
                 concealed?.Findings.SelectMany(finding => finding.InstructionSignals) ?? Array.Empty<string>())
                 .Distinct(StringComparer.Ordinal).ToArray());
             report.ConcealedFindingCount = concealed?.Findings.Count(IsConcealed) ?? 0;
             report.ConcealedTextRetained = report.ConcealedFindingCount > 0;
             report.FindingLimitMayHaveBeenReached = concealed?.Findings.Count >= MaximumFindings;
-            if (!instructions.IsComplete || report.FindingLimitMayHaveBeenReached) {
+            if (!instructions.IsComplete || textTruncated || report.FindingLimitMayHaveBeenReached ||
+                concealed?.Diagnostics.Contains("CONTENT_INSTRUCTION_SCAN_INCOMPLETE") == true) {
                 report.InspectionStatus = "Partial";
                 Add(diagnostics, "EMAIL_CONTENT_SAFETY_INCOMPLETE", "A content-safety inspection budget was reached; further evidence may exist.", EmailDiagnosticSeverity.Warning);
             }
@@ -60,6 +63,9 @@ internal static class EmailBodyContentSafety {
                     (finding.CleanupCapability == OfficeContentCleanupCapability.RemoveText ||
                      finding.CleanupCapability == OfficeContentCleanupCapability.RemoveElement)).Select(finding => finding.Id).ToArray();
                 if (ids.Length > 0) {
+                    // Cleanup revalidates exact finding identities; instruction evidence was already collected.
+                    options.DetectInstructionLikeText = false;
+                    options.InstructionBudget = null;
                     OfficeContentCleanupResult cleaned = HtmlContentSafety.RemoveSelected(html, new OfficeContentCleanupSelection(ids), options);
                     html = Encoding.UTF8.GetString(cleaned.Output);
                     report.ConcealedTextOmitted = cleaned.Changed;

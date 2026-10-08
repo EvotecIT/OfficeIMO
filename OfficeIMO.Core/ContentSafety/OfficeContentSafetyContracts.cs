@@ -86,6 +86,8 @@ public sealed class OfficeContentSafetyOptions {
     internal OfficeIMO.Provenance.OfficeTextIntegrityOptions? TextIntegrityOptions { get; set; }
     // Native Word provenance assessment collects Unicode only, with its own finding budget.
     internal bool TextIntegrityOnly { get; set; }
+    // Email inspection shares its encoded-text work budget across visible and concealed surfaces.
+    internal OfficeContentInstructionBudget? InstructionBudget { get; set; }
 
     internal void Validate() {
         if (MaxInputBytes <= 0 || MaxInputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));

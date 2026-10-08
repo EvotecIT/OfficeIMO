@@ -123,13 +123,16 @@ to collect evidence while retaining content. These operations leave the original
 
 `ContentSafety` records selected-body instruction signals, concealment counts, omission/retention and inspection
 completion without returning private previews or decoded payloads. Instruction inspection covers one million
-source characters and one layer of printable UTF-8 Base64, with at most 32 candidates and 32,768 decoded
-characters. Wrapped tokens and Unicode format characters are inspected without rewriting source text. Further
+source characters and one layer of printable UTF-8 Base64. The decoding work budget of 32 candidates and 32,768
+decoded characters is shared across visible text, concealed text and supported metadata in the selected body.
+Wrapped tokens, their constituent segments and Unicode format characters are inspected without rewriting source text. Further
 encodings, unsupported CSS and arbitrary obfuscation remain outside these heuristics; no findings is not a trust verdict.
 
 For semantic store search, pass `new EmailStoreHtmlBodyTextProjector(EmailConcealedTextPolicy.ExcludeRemovable)`
 as `bodyTextProjector` to `EmailStoreContentQuery`. The projector uses this same indexing owner. Its policy identity
 is bound into continuation checkpoints, so a checkpoint cannot resume under a different projection policy.
+Bodies above 2,097,152 source characters produce incomplete inspection evidence and an item error.
+Search diagnoses and skips those items when `ContinueOnItemError` is enabled; other items remain searchable.
 
 Inspect the original HTML with `OfficeIMO.Html.HtmlContentSafety.Inspect`, review its findings, and pass
 an `OfficeIMO.ContentSafety.OfficeContentCleanupSelection` containing the chosen finding IDs as

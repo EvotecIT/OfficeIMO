@@ -32,7 +32,7 @@ internal sealed partial class OfficeImoAgentService {
         EmailStoreContentSearchReport report;
         var safety = new AgentContentSafetySummary();
         try {
-            report = session.SearchContent(new EmailStoreContentQuery(new[] { query }, selectedFields,
+            report = session.SearchContent(new EmailStoreContentQuery(new[] { query }, fields: selectedFields,
                 metadataFilter: new EmailStoreQuery(folderId: folderId, includeDescendants: includeDescendants,
                     subjectContains: subject, senderContains: sender, since: since, before: before,
                     hasAttachments: hasAttachments, isRead: isRead),
