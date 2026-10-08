@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeRasterResampler {
-    private const double LanczosRadius = 3D;
     private const string ScratchLimitMessage = "High-quality raster resampling scratch space exceeds the managed image limit.";
 
     // One float occupies the same four bytes as an RGBA pixel. The source buffer
@@ -239,7 +238,7 @@ public static partial class OfficeRasterResampler {
         }
 
         double filterScale = Math.Max(1D, scale);
-        double support = LanczosRadius * filterScale;
+        double support = KernelRadius(mode) * filterScale;
         start = Math.Max(0, (int)Math.Ceiling(center - support));
         int last = Math.Min(sourceLength - 1, (int)Math.Floor(center + support));
         if (last < start) {
@@ -288,7 +287,7 @@ public static partial class OfficeRasterResampler {
         double filterScale = Math.Max(1D, scale);
         double total = 0D;
         for (int index = 0; index < count; index++) {
-            double weight = Lanczos((center - (start + index)) / filterScale);
+            double weight = ReconstructionKernel((center - (start + index)) / filterScale, mode);
             weights[offset + index] = weight;
             total += weight;
         }
@@ -304,15 +303,6 @@ public static partial class OfficeRasterResampler {
     private static void Normalize(double[] weights, int offset, int count, double total) {
         if (total <= 0D) throw new InvalidOperationException("Raster resampling weights are empty.");
         for (int index = 0; index < count; index++) weights[offset + index] /= total;
-    }
-
-    private static double Lanczos(double value) {
-        double absolute = Math.Abs(value);
-        if (absolute < 1E-12D) return 1D;
-        if (absolute >= LanczosRadius) return 0D;
-        double piValue = Math.PI * value;
-        return (Math.Sin(piValue) / piValue) *
-            (Math.Sin(piValue / LanczosRadius) / (piValue / LanczosRadius));
     }
 
     private static void ResampleHorizontal(

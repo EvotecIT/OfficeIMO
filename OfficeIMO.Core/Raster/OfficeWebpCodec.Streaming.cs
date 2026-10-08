@@ -68,8 +68,11 @@ public static partial class OfficeWebpCodec {
         double dpiX,
         double dpiY,
         CancellationToken cancellationToken,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null,
+        long additionalRetainedManagedBytes = 0L,
+        bool materializeOutput = false) {
         if (image == null) throw new ArgumentNullException(nameof(image));
+        if (additionalRetainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(additionalRetainedManagedBytes));
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
@@ -90,10 +93,12 @@ public static partial class OfficeWebpCodec {
             throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
         }
         try {
-            long retainedOutputCopies = OfficeRasterOutput.TryGetMemoryStream(destination, out _) ? 2L : 0L;
+            long outputPeakBytes = OfficeRasterOutput.TryGetMemoryStream(destination, out MemoryStream? outputStream)
+                ? OfficeRasterOutput.GetMemoryStreamWritePeakBytes(outputStream!, fileLength, materializeOutput)
+                : 0L;
             long peakBytes = checked(
-                pixels.LongLength + 24L +
-                retainedOutputCopies * (fileLength + 24L) +
+                additionalRetainedManagedBytes + pixels.LongLength + 24L +
+                outputPeakBytes +
                 (exif?.LongLength ?? 0L) + 24L +
                 16L * 1024L);
             if (peakBytes > OfficeRasterGuards.MaximumDecodedBytes) {

@@ -43,6 +43,26 @@ public static class OfficeProvenanceInspector {
         return InspectCore(data, fileName, options);
     }
 
+    /// <summary>Inspects an independent XMP packet for standardized IPTC Digital Source Type declarations.</summary>
+    /// <param name="packet">Encoded XMP XML extracted from a container or a sidecar.</param>
+    /// <param name="options">Byte, carrier, and XML node limits. Default limits apply when omitted.</param>
+    /// <returns>A report whose format is unknown because the packet does not identify an asset container.</returns>
+    /// <remarks>Malformed XML and unrelated namespaces produce no declaration evidence. This inspection
+    /// interprets metadata declarations without establishing authorship or validating C2PA claims.</remarks>
+    public static OfficeProvenanceReport InspectXmp(byte[] packet, OfficeProvenanceOptions? options = null) {
+        if (packet == null) throw new ArgumentNullException(nameof(packet));
+        options ??= new OfficeProvenanceOptions();
+        OfficeProvenanceBinary.ValidateLimits(options);
+        options.CancellationToken.ThrowIfCancellationRequested();
+        if (packet.LongLength > options.MaxAssetBytes) {
+            throw OfficeProvenanceLimitException.Create($"The XMP packet exceeds the configured limit of {options.MaxAssetBytes} bytes.");
+        }
+        var context = new OfficeProvenanceContext(OfficeProvenanceAssetFormat.Unknown, options);
+        OfficeProvenanceXmp.Inspect(packet, options, context, "XMP");
+        options.CancellationToken.ThrowIfCancellationRequested();
+        return context.ToReport();
+    }
+
     internal static OfficeProvenanceReport InspectCore(byte[] data, string? fileName, OfficeProvenanceOptions options) {
         OfficeProvenanceAssetFormat format = DetectFormat(data, fileName, options);
         return InspectCore(data, options, format);

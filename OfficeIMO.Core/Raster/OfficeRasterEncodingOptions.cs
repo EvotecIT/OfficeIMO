@@ -47,11 +47,15 @@ public sealed class OfficeRasterEncodingOptions {
     /// <summary>TIFF encoding settings.</summary>
     public OfficeTiffEncodeOptions Tiff { get; set; } = new OfficeTiffEncodeOptions();
 
+    /// <summary>WebP compression mode, quality, and density settings.</summary>
+    public OfficeWebpEncodeOptions Webp { get; set; } = new OfficeWebpEncodeOptions { WritePhysicalResolution = true };
+
     /// <summary>Creates an independent copy of these settings.</summary>
     public OfficeRasterEncodingOptions Clone() {
         OfficePngEncodeOptions png = Png ?? throw new InvalidOperationException("PNG encoding options cannot be null.");
         OfficeJpegEncodeOptions jpeg = Jpeg ?? throw new InvalidOperationException("JPEG encoding options cannot be null.");
         OfficeTiffEncodeOptions tiff = Tiff ?? throw new InvalidOperationException("TIFF encoding options cannot be null.");
+        OfficeWebpEncodeOptions webp = Webp ?? throw new InvalidOperationException("WebP encoding options cannot be null.");
         var clone = new OfficeRasterEncodingOptions {
             Png = new OfficePngEncodeOptions {
                 Compression = png.Compression,
@@ -76,7 +80,16 @@ public sealed class OfficeRasterEncodingOptions {
                 Predictor = tiff.Predictor,
                 DpiX = tiff.DpiX,
                 DpiY = tiff.DpiY,
+                Resolution = tiff.Resolution,
                 WriteResolution = tiff.WriteResolution
+            },
+            Webp = new OfficeWebpEncodeOptions {
+                Mode = webp.Mode,
+                Quality = webp.Quality,
+                DpiX = webp.DpiX,
+                DpiY = webp.DpiY,
+                WritePhysicalResolution = webp.WritePhysicalResolution,
+                RetainedManagedBytes = webp.RetainedManagedBytes
             }
         };
         clone.WriteResolutionMetadata = WriteResolutionMetadata;
@@ -116,13 +129,29 @@ public sealed class OfficeRasterEncodingOptions {
                 resolved.Jpeg.WriteJfifHeader &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Tiff:
-                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Tiff.DpiX;
-                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Tiff.DpiY;
+                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Tiff.Resolution?.PhysicalDpiX ?? resolved.Tiff.DpiX;
+                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Tiff.Resolution?.PhysicalDpiY ?? resolved.Tiff.DpiY;
                 resolved.Tiff.DpiX = dpiX * scaleRatio;
                 resolved.Tiff.DpiY = dpiY * scaleRatio;
+                if (resolved.Tiff.Resolution != null) {
+                    OfficeImageResolution native = resolved.Tiff.Resolution;
+                    resolved.Tiff.Resolution = _hasExplicitDpiX || _hasExplicitDpiY
+                        ? new OfficeImageResolution(dpiX * scaleRatio, dpiY * scaleRatio)
+                        : new OfficeImageResolution(native.Horizontal * scaleRatio, native.Vertical * scaleRatio, native.Unit);
+                }
                 resolved.Tiff.WriteResolution &= resolved.WriteResolutionMetadata;
                 break;
             case OfficeImageExportFormat.Webp:
+                dpiX = _hasExplicitDpiX ? _dpiX : resolved.Webp.DpiX;
+                dpiY = _hasExplicitDpiY ? _dpiY : resolved.Webp.DpiY;
+                resolved.Webp.DpiX = dpiX * scaleRatio;
+                resolved.Webp.DpiY = dpiY * scaleRatio;
+                resolved.Webp.WritePhysicalResolution &= resolved.WriteResolutionMetadata;
+                break;
+            case OfficeImageExportFormat.Bmp:
+            case OfficeImageExportFormat.Pbm:
+            case OfficeImageExportFormat.Tga:
+            case OfficeImageExportFormat.Icon:
                 dpiX = _dpiX;
                 dpiY = _dpiY;
                 break;
