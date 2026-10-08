@@ -268,6 +268,10 @@ public sealed class OfficeImageExportResult {
         OfficeImageExportFormat.Jpeg => OfficeImageFormat.Jpeg,
         OfficeImageExportFormat.Tiff => OfficeImageFormat.Tiff,
         OfficeImageExportFormat.Webp => OfficeImageFormat.Webp,
+        OfficeImageExportFormat.Bmp => OfficeImageFormat.Bmp,
+        OfficeImageExportFormat.Pbm => OfficeImageFormat.PortableMap,
+        OfficeImageExportFormat.Tga => OfficeImageFormat.Tga,
+        OfficeImageExportFormat.Icon => OfficeImageFormat.Icon,
         _ => OfficeImageFormat.Unknown
     };
 }

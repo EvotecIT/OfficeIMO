@@ -942,18 +942,13 @@ public sealed partial class DrawingRasterEncodingTests {
     }
 
     [Fact]
-    public void RasterContainerInspectionRejectsIdentifiableButUnsupportedFormats() {
+    public void RasterContainerInspectionRejectsVectorOnlySvg() {
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"3\"><rect width=\"2\" height=\"3\"/></svg>");
-        byte[] icon = CreateSingleEntryIcon(
-            OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Blue)));
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(svg, null, out OfficeImageInfo svgInfo));
         Assert.Equal(OfficeImageFormat.Svg, svgInfo.Format);
         Assert.False(OfficeRasterContainerInspector.TryInspect(svg, out _));
-        Assert.True(OfficeImageReader.TryIdentifyByContent(icon, null, out OfficeImageInfo iconInfo));
-        Assert.Equal(OfficeImageFormat.Icon, iconInfo.Format);
-        Assert.False(OfficeRasterContainerInspector.TryInspect(icon, out _));
     }
 
     [Fact]

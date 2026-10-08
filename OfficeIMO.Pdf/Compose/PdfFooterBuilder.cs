@@ -3,9 +3,10 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Footer builder (alignment, text, page number tokens).</summary>
-public sealed class PdfFooterBuilder {
+public sealed partial class PdfFooterBuilder {
     private readonly PdfOptions _opts;
-    internal PdfFooterBuilder(PdfOptions opts) { _opts = opts; }
+    private readonly PdfDocument _doc;
+    internal PdfFooterBuilder(PdfDocument doc, PdfOptions opts) { _doc = doc; _opts = opts; }
     /// <summary>Sets footer alignment to the left.</summary>
     public PdfFooterBuilder AlignLeft() { _opts.FooterAlign = PdfAlign.Left; return this; }
     /// <summary>Sets footer alignment to the center.</summary>

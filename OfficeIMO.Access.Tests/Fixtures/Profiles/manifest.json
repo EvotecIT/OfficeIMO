@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft DAO",
+  "producerBuild": "16.0.20430.20092",
+  "engineVersion": "16.0",
+  "bitness": 64,
+  "license": "MIT (synthetic OfficeIMO fixtures)",
+  "startup": "DAO only; no application, active content, external links or trust-policy changes",
+  "files": [
+    {
+      "path": "password-jet4.mdb",
+      "headerVersion": 1,
+      "headerSubVersion": 0,
+      "length": 90112,
+      "sha256": "459a4989dae9f30b57d0f2486de03774d35adbfeafc7d62f3cc6cda71afe780f",
+      "daoFieldType": 4,
+      "observedValues": [
+        42
+      ],
+      "passwordRequired": true,
+      "syntheticPassword": "Fixture123",
+      "encryptionRequested": true,
+      "limitations": [
+        "Header evidence only in OfficeIMO; native catalogs and protection not decoded",
+        "Extended date/time field definition only; no precision-value qualification"
+      ]
+    },
+    {
+      "path": "password-ace.accdb",
+      "headerVersion": 3,
+      "headerSubVersion": 1,
+      "length": 184320,
+      "sha256": "f40d3b15d803bb2df9e2e16d4f6c8c1c89753ed651ee88bd11207c6b14e8d17c",
+      "daoFieldType": 4,
+      "observedValues": [
+        42
+      ],
+      "passwordRequired": true,
+      "syntheticPassword": "Fixture123",
+      "encryptionRequested": true,
+      "limitations": [
+        "Header evidence only in OfficeIMO; native catalogs and protection not decoded",
+        "Extended date/time field definition only; no precision-value qualification"
+      ]
+    },
+    {
+      "path": "large-number.accdb",
+      "headerVersion": 5,
+      "headerSubVersion": 0,
+      "length": 188416,
+      "sha256": "6ed98fb316ed3d9e07078c3ea2f33bc29f618d66651ac2f32bc6ebc0ca223bfe",
+      "daoFieldType": 16,
+      "observedValues": [
+        5000000000
+      ],
+      "passwordRequired": null,
+      "syntheticPassword": null,
+      "encryptionRequested": false,
+      "limitations": [
+        "Header evidence only in OfficeIMO; native catalogs and protection not decoded",
+        "Extended date/time field definition only; no precision-value qualification"
+      ]
+    },
+    {
+      "path": "extended-date.accdb",
+      "headerVersion": 6,
+      "headerSubVersion": 0,
+      "length": 184320,
+      "sha256": "0f1dfbbe6df60ab0086db734dd10d1d4bf62a6a11b4fd76d095284a56bd0de57",
+      "daoFieldType": 26,
+      "observedValues": [],
+      "passwordRequired": null,
+      "syntheticPassword": null,
+      "encryptionRequested": false,
+      "limitations": [
+        "Header evidence only in OfficeIMO; native catalogs and protection not decoded",
+        "Extended date/time field definition only; no precision-value qualification"
+      ]
+    }
+  ],
+  "failures": [
+    {
+      "path": "jet3.mdb",
+      "requestedVersion": 32,
+      "requestedType": 4,
+      "hresult": -2146825118,
+      "error": "Could not find installable ISAM."
+    }
+  ]
+}

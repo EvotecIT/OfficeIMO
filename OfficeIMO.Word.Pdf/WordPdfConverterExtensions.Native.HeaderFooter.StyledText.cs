@@ -144,6 +144,7 @@ namespace OfficeIMO.Word.Pdf {
                 bool currentHasText = !string.IsNullOrWhiteSpace(plainText);
                 if (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    text.IndexOf("{sectionpages}", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     text.IndexOf("{documentpages}", StringComparison.OrdinalIgnoreCase) >= 0) {
                     HasPageTokens = true;
                 }

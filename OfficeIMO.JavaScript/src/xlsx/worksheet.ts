@@ -48,6 +48,7 @@ export class Worksheet<T = never> {
   private reservedLayout = false;
   private readonly internalLinks: { cell: string; location: string }[] = [];
   private readonly links: Hyperlink[] = [];
+  private readonly linkedCells = new Set<string>();
   private readonly pictures: WorksheetImage[] = [];
   private readonly conditional: ConditionalFormats;
   private constructor(private readonly book: Workbook, readonly name: string, options: SheetOptions, private readonly table?: TableDefinition, private readonly preserved = false, conditional: readonly PreparedRule[] = []) {
@@ -63,7 +64,10 @@ export class Worksheet<T = never> {
     this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title!.style ?? {}) : 0;
     this.headerRows = this.layout.headerRows;
     this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
-    for (const link of options.hyperlinks ?? []) this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
+    for (const link of options.hyperlinks ?? []) {
+      const copied = copyHyperlink(link, book.settings.invalidCharacterPolicy);
+      this.links.push(copied); this.linkedCells.add(copied.cell);
+    }
     book.checkLinks(this.links.length);
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
       style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
@@ -126,6 +130,7 @@ export class Worksheet<T = never> {
     const total = value instanceof ComputedTotal ? value : undefined;
     if (total) value = total.value;
     let presentation = value instanceof ExportCell ? value.presentation : undefined;
+    let link = value instanceof ExportCell ? value.link : undefined;
     if (value instanceof ExportCell) value = value.value;
     const suppliedStyle = value instanceof Cell ? value.style : undefined;
     const covered = this.layout.regions.covered(i + 1, row);
@@ -135,11 +140,12 @@ export class Worksheet<T = never> {
       if (writer) value = writer(value instanceof Cell ? value.value : value as CellValue,
         { column: col.column, rowIndex: row - this.headerRows - 1, worksheetRow: row, columnIndex: i, sheetName: this.name });
     }
-    if (value instanceof ExportCell) { presentation = value.presentation; value = value.value; }
+    if (value instanceof ExportCell) { presentation = value.presentation; link = value.link; value = value.value; }
     const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
     if (value instanceof Cell) value = value.value;
     assertScalar(value);
     if (covered) {
+      if (link) throw new TypeError("Hyperlinks cannot address a covered merged cell.");
       if (total || (value != null && value !== "")) throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
       value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
     }
@@ -173,12 +179,13 @@ export class Worksheet<T = never> {
     let reservedCharacters = this.preserved || header || footer ? originalCharacters : undefined;
     if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
       const cell = col.letter + row;
-      if (this.links.some(link => link.cell === cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+      if (link || this.linkedCells.has(cell)) throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
       // Replace a generated cell's original reservation with its preview and overflow records.
       if (reservedCharacters !== undefined) { this.book.budget.release(1, reservedCharacters); reservedCharacters = undefined; }
       const preserved = this.book.preserveText(this.name, cell, value as string);
-      this.book.retainLink(); this.internalLinks.push({ cell, location: preserved.location }); value = preserved.preview;
+      this.book.retainLink(); this.internalLinks.push({ cell, location: preserved.location }); this.linkedCells.add(cell); value = preserved.preview;
     }
+    if (link) this.appendHyperlink({ cell: col.letter + row, ...link });
     if (type === "date") value = excelDate(value as Date, this.book.settings.dateMode);
     if (!header && !footer) this.layout.accept(i, value as CellValue);
     const prefix = '<c r="' + col.letter + row + '" s="' + style + '"';
@@ -329,12 +336,15 @@ export class Worksheet<T = never> {
     this.book.assertOpen();
     if (this.completion) throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
     if (this.failed) throw this.error;
+    this.appendHyperlink(link);
+  }
+  private appendHyperlink(link: Hyperlink): void {
     const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
     const position = cellPosition(copied.cell);
     if (this.layout.regions.covered(position.column, position.row)) throw new TypeError("Hyperlinks cannot address a covered merged cell.");
-    if (this.links.some(existing => existing.cell === copied.cell) || this.internalLinks.some(existing => existing.cell === copied.cell)) throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+    if (this.linkedCells.has(copied.cell)) throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
     this.book.retainLink();
-    this.links.push(copied);
+    this.links.push(copied); this.linkedCells.add(copied.cell);
   }
   /** @internal */
   get hyperlinks(): readonly Hyperlink[] { return this.links; }

@@ -15,6 +15,10 @@ internal sealed class OfficeImageExportEncodingBudget {
 
     internal long MaximumBytes { get; }
 
+    /// <summary>Snapshots the remaining ceiling for early rejection of known-length output.</summary>
+    /// <remarks>Concurrent encoders still reserve each write atomically through <see cref="Reserve"/>.</remarks>
+    internal long RemainingBytes => MaximumBytes - Volatile.Read(ref _usedBytes);
+
     internal byte[] EncodeWithinRemainingBudget(
         Func<long, byte[]> encoder,
         CancellationToken cancellationToken) {

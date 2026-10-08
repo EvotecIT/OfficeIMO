@@ -1,4 +1,6 @@
 import type { Alignment, CellValue } from "./index.js";
+import { copyExportLink } from "./links.js";
+import type { ExportLink } from "./links.js";
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 
 /** Portable presentation selected by the report producer, without workbook-local indexes. */
@@ -15,17 +17,21 @@ export interface ExportCellOptions {
   /** Display text for PDF, CSV's display mode and bounded width sampling; typed values remain authoritative. */
   readonly text?: string;
   readonly presentation?: CellPresentation;
+  /** XLSX/PDF retain the external link. CSV emits ordinary value/display text. */
+  readonly link?: ExportLink;
 }
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 export class ExportCell {
   static [Symbol.hasInstance](value: unknown): boolean { return !!value && typeof value === "object" && (value as Record<symbol, unknown>)[exportCellBrand] === true; }
   readonly text: string | undefined;
   readonly presentation: Readonly<CellPresentation> | undefined;
+  readonly link: Readonly<ExportLink> | undefined;
   constructor(readonly value: CellValue, options: ExportCellOptions = {}) {
     if (options.text !== undefined && typeof options.text !== "string") throw new TypeError("Display text must be a string.");
     assertScalar(value);
     this.text = options.text;
     this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+    this.link = options.link === undefined ? undefined : copyExportLink(options.link);
     Object.defineProperty(this, exportCellBrand, { value: true });
     Object.freeze(this);
   }

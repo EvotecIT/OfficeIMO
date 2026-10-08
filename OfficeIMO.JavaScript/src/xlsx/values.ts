@@ -16,7 +16,7 @@ export function assertXlsxValue(value: unknown): void {
 export function copyValue(value: unknown): unknown {
   if (value instanceof Date) return new Date(value);
   if (value instanceof Cell && value.value instanceof Date) return new Cell(new Date(value.value), value.style);
-  if (value instanceof ExportCell && value.value instanceof Date) return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}) });
+  if (value instanceof ExportCell && value.value instanceof Date) return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
   return value;
 }
 

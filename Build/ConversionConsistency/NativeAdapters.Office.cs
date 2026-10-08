@@ -92,7 +92,7 @@ internal static partial class NativeAdapters {
     private static NativeExport Capture(byte[] pdf, Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images,
         List<string> diagnostics, CancellationToken token) {
         var results = new Dictionary<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>>();
-        foreach (OfficeImageExportFormat format in Enum.GetValues<OfficeImageExportFormat>()) {
+        foreach (OfficeImageExportFormat format in ComparedImageFormats.All) {
             token.ThrowIfCancellationRequested();
             results.Add(format, images(format));
         }

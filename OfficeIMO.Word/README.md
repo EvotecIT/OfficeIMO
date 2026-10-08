@@ -108,6 +108,8 @@ paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
 
 PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
 
+`document.CompatibilitySettings.SplitPageBreakAndParagraphMark` controls the blank line after a manual page break that ends a paragraph. In older Word layout, enabling it moves the paragraph mark and its line height onto the next page. DOCX retains both explicit values; Word 2013 compatibility mode ignores the stored option during layout. Native DOC import uses the legacy enabled behavior and retains that layout when saved as DOCX. Native DOC saving rejects an explicitly disabled value; save as DOCX to retain it.
+
 ## Page sizes and orientation
 
 Set a section's paper preset and orientation through `PageSettings`:
