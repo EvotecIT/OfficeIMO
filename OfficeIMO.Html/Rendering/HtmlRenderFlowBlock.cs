@@ -735,6 +735,11 @@ internal sealed class HtmlInlineRun {
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
     internal bool IsFlowMarker { get; }
+    internal HtmlInlineEdgeBoundary? InlineEdgeBoundary { get; set; }
+    internal IReadOnlyList<HtmlInlineEdgeScope> InlineEdgeScopes { get; set; } = Array.Empty<HtmlInlineEdgeScope>();
+    internal double InlineClosingAdvance { get; set; }
+    internal bool InlineTokenEndsRun { get; set; }
+    internal bool IsEmptyInlineBox { get; set; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
@@ -797,7 +802,10 @@ internal sealed class HtmlInlineRun {
             IsFirstLetter = isFirstLetter,
             PreparedHyphenation = PreparedHyphenation,
             EndsFirstLine = EndsFirstLine,
-            FirstLineHyphen = FirstLineHyphen
+            FirstLineHyphen = FirstLineHyphen,
+            InlineEdgeScopes = InlineEdgeScopes,
+            InlineClosingAdvance = InlineClosingAdvance,
+            InlineTokenEndsRun = InlineTokenEndsRun
         };
         return clone;
     }

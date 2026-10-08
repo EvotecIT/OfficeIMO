@@ -211,12 +211,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("max-content", "margin-left:-10px")]
     [InlineData("max-content", "margin-right:calc(-10px + 10%)")]
     [InlineData("min-content", "margin-inline-end:calc(-10px + 10%)")]
-    [InlineData("max-content", "padding-left:10px")]
     [InlineData("max-content", "padding-inline-end:10%")]
-    [InlineData("max-content", "border:2px solid black")]
     public void HtmlIntrinsicWidth_UnqualifiedInlineEdgeLayoutRetainsLoss(string width, string declarations) {
         string html = TableGeometrySource("<div style='width:300px'><div id='sized' style='width:" + width
             + ";background:lime'><span style='" + declarations + "'>" + IntrinsicWidthAtoms + "</span></div></div>");

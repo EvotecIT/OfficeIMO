@@ -84,6 +84,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
+            if (ProcessInlineEdgeBoundary(run, line)) continue;
             if (run.FloatingBlock != null) {
                 if (noWrapRangeStart >= 0) {
                     previousWasCollapsibleSpace = FinalizeFloatNoWrapRange(
@@ -177,7 +178,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!paragraphStyle.PreventTextWrapping
                     && !runPreventsWrapping
                     && line.HasFlowContent
-                    && line.Width + atomicWidth > line.AvailableWidth) {
+                    && line.PreviewAdvance(run, atomicWidth) > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                 }
                 line.Add(new InlineSegment(string.Empty, atomicWidth, run));
@@ -189,6 +190,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     if (noWrapRangeStart >= 0) {
@@ -230,7 +232,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (run.EndsFirstLine && tokenIndex == tokens.Count - 1) {
                     paintToken += run.FirstLineHyphen;
                     double prefixWidth = MeasureInlineText(paintToken, run.Style);
-                    if (line.HasFlowContent && line.Width + prefixWidth > line.AvailableWidth + 0.0001D)
+                    if (line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
                         CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (!line.HasFlowContent && prefixWidth > line.AvailableWidth + 0.0001D)
                         MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, prefixWidth);
@@ -243,7 +245,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping
                     && !whitespace
                     && run.Style.WordBreak != "break-all"
-                    && measured > Math.Max(0D, line.AvailableWidth - line.Width)
+                    && measured > Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D))
                     && TryAddHyphenatedFloatToken(
                         lines,
                         ref line,
@@ -257,7 +259,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (!preventTokenWrapping
                     && !whitespace
-                    && measured > Math.Max(0D, line.AvailableWidth - line.Width)
+                    && measured > Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D))
                     && TryAddPreferredFloatBreakToken(
                         lines,
                         ref line,
@@ -272,7 +274,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
-                    && measured > Math.Max(0D, line.AvailableWidth - line.Width);
+                    && measured > Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D));
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
@@ -286,7 +288,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping && !whitespace && measured > line.AvailableWidth && !line.HasFlowContent) {
                     MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, measured);
                 }
-                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > line.AvailableWidth) {
+                if (!preventTokenWrapping && line.HasFlowContent && line.PreviewAdvance(run, measured) > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (whitespace && !preserveWhitespace) continue;
                 }
@@ -336,7 +338,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool startedAfterContent) {
         if (rangeStart < line.Segments.Count && line.Width > line.AvailableWidth + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
-            double rangeWidth = range.Sum(static segment => segment.Width);
+            double rangeWidth = range.Sum(static segment => segment.Advance);
             bool canClearObstruction = context.NextBottomAfter(y) > y + 0.0001D;
             if (startedAfterContent || canClearObstruction) {
                 while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart);
@@ -375,7 +377,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string token) {
         foreach (string value in OfficeTextElements.Enumerate(token)) {
             double elementWidth = MeasureInlineText(value, run.Style);
-            if (line.HasFlowContent && line.Width + elementWidth > line.AvailableWidth) {
+            if (line.HasFlowContent && line.PreviewAdvance(run, elementWidth) > line.AvailableWidth) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }
             line.Add(new InlineSegment(value, elementWidth, run));
@@ -442,6 +444,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var breakOffsets = new SortedSet<double>();
         var breakProgress = new List<HtmlInlineBreakProgress>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        _currentInlineEdgeGeometry.Clear();
         IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
             .Select(static line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
             .ToArray();
@@ -504,9 +507,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
                 && current.Segments.Any(segment => OfficeTextElements.ContainsRightToLeft(segment.Text));
             double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
+            if (lineBidiResolved) {
+                _currentInlineEdgeGeometry.Clear();
+                foreach (HtmlInlineEdgeScope scope in current.Segments.SelectMany(segment => segment.Run.InlineEdgeScopes).Distinct()) {
+                    if (_reportedInlineEdgeFallbacks.Add(scope.Owner)) _diagnostics.Add(ComponentName,
+                        HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported,
+                        "Bidi-reordered inline edge fragments retain content-based decoration geometry; exact fragment edges are not qualified.",
+                        HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(scope.Owner),
+                        "inline-edges;bidi-fragment-geometry", OfficeConversionLossKind.Approximation);
+                }
+            } else {
+                current.RecordInlineScopePositions(lineStart, _currentInlineEdgeGeometry);
+            }
             int lineVisualStart = visuals.Count;
             foreach (InlineSegment segment in paintLineSegments) {
-                double x = rightToLeftLine ? cursor - segment.Width : cursor;
+                double x = rightToLeftLine ? cursor - segment.LeadingAdvance - segment.Width : cursor + segment.LeadingAdvance;
                 if (segment.Run.RunningStringElement != null) {
                     runningStringAssignments.AddRange(ResolveRunningStringAssignments(
                         segment.Run.RunningStringElement,
@@ -530,10 +545,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.OwnerElement,
                             formattingContainer);
                     }
+                } else if (segment.Run.IsEmptyInlineBox) {
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, inlineBounds);
+                    RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, anchorBounds);
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
                     double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomicBaseline);
+                    if (segment.Run.Style.TableVerticalAlignment == "top") atomicY = lineY;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
                     double anchorTop = Math.Min(lineY, atomicY);
                     RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, anchorTop,
@@ -604,7 +623,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Width, anchorHeight, anchorBounds);
                     }
                     if (!segment.Run.Style.PaintVisible) {
-                        cursor += rightToLeftLine ? -segment.Width : segment.Width;
+                        cursor += rightToLeftLine ? -segment.Advance : segment.Advance;
                         continue;
                     }
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
@@ -678,7 +697,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         segment.Run.OwnerElement,
                         formattingContainer);
                 }
-                cursor += rightToLeftLine ? -segment.Width : segment.Width;
+                cursor += rightToLeftLine ? -segment.Advance : segment.Advance;
             }
 
             if (lineBidiResolved && visuals.Count > lineVisualStart) {

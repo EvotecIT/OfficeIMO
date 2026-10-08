@@ -37,10 +37,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     currentBounds = new InlineContainingBounds(this);
                     bounds[current] = currentBounds;
                 }
+                double contentX = x;
+                double contentWidth = width;
+                HtmlInlineEdgeScope? scope = run.InlineEdgeScopes.FirstOrDefault(edge => ReferenceEquals(edge.Owner, current));
+                if (scope != null && _currentInlineEdgeGeometry.TryGetValue(scope, out var edgeGeometry)) {
+                    contentX = edgeGeometry.Left;
+                    contentWidth = Math.Max(0D, edgeGeometry.Right - edgeGeometry.Left);
+                }
                 currentBounds.Include(
-                    x + run.PaintOffsetX,
+                    contentX + run.PaintOffsetX,
                     y + run.PaintOffsetY,
-                    Math.Max(0.01D, width),
+                    Math.Max(0.01D, contentWidth),
                     Math.Max(0.01D, height), run.PaintOffsetY);
             }
             if (ReferenceEquals(current, formattingContainer)) break;
@@ -75,6 +82,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!bounds.TryGetValue(current, out InlineAnchorBounds? entry)) {
                     entry = new InlineAnchorBounds(run.LinkUri, new InlineContainingBounds(this));
                     bounds[current] = entry;
+                }
+                HtmlInlineEdgeScope? scope = run.InlineEdgeScopes.FirstOrDefault(edge => ReferenceEquals(edge.Owner, current));
+                if (scope != null && _currentInlineEdgeGeometry.TryGetValue(scope, out var edgeGeometry)) {
+                    x = edgeGeometry.Left;
+                    width = Math.Max(0D, edgeGeometry.Right - edgeGeometry.Left);
                 }
                 entry.Bounds.Include(
                     x + run.PaintOffsetX,

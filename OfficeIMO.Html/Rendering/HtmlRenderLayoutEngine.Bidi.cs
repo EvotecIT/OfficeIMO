@@ -120,6 +120,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (lines.Count == 1 && lines[0].Count < 2) return null;
         if (lines.SelectMany(static line => line).Any(static segment =>
                 segment.Run.AtomicBlock != null ||
+                segment.Run.IsEmptyInlineBox ||
                 segment.Run.RunningStringElement != null ||
                 segment.Run.PositionedMarkerElement != null)) {
             return null;
@@ -219,6 +220,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bidiResolved: true,
                 logicalEndProgress: sources[ordered[start].SourceSegmentIndex].LogicalEndProgress));
             start = end;
+        }
+        // Reordering may split a source segment into several visual groups.
+        // Its box edges belong to the two visual ends, never to every group.
+        foreach (IGrouping<int, InlineBidiElement> source in ordered.GroupBy(element => element.SourceSegmentIndex)) {
+            HtmlInlineRun run = sources[source.Key].Run;
+            InlineSegment[] groups = result.Where(segment => ReferenceEquals(segment.Run, run)).ToArray();
+            if (groups.Length == 0) continue;
+            groups[0].LeadingAdvance += sources[source.Key].LeadingAdvance;
+            groups[groups.Length - 1].TrailingAdvance += sources[source.Key].TrailingAdvance;
         }
         return result.AsReadOnly();
     }

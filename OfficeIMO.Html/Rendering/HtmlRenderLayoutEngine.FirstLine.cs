@@ -86,17 +86,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 out HtmlRenderBoxStyle firstLineStyle)) return;
 
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
-        double lineWidth = 0D;
+        PrepareInlineEdgeScopes(runs);
+        var previewLine = new InlineLine();
         bool firstLine = true;
         bool hasContent = false;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
+            if (run.InlineEdgeBoundary != null) {
+                if (firstLine) ProcessInlineEdgeBoundary(run, previewLine);
+                styledRuns.Add(run);
+                continue;
+            }
             if (!firstLine || run.AtomicBlock != null || run.Text.Length == 0) {
                 styledRuns.Add(run);
                 if (firstLine && run.AtomicBlock != null) {
-                    if (hasContent && lineWidth + run.AtomicBlock.Width > width) firstLine = false;
+                    if (hasContent && previewLine.PreviewAdvance(run, run.AtomicBlock.Width) > width) firstLine = false;
                     else {
-                        lineWidth += run.AtomicBlock.Width;
+                        previewLine.Add(new InlineSegment(string.Empty, run.AtomicBlock.Width, run));
                         hasContent = true;
                     }
                 }
@@ -109,6 +115,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IReadOnlyList<string> tokens = Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 if (!firstLine) {
                     styledRuns.Add(run.CloneText(token, token, run.Style, run.IsFirstLetter));
                     continue;
@@ -122,7 +129,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderBoxStyle tokenStyle = run.IsFirstLetter ? run.Style : runFirstLineStyle;
                 string measuredToken = !run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token;
                 double tokenWidth = MeasureInlineText(measuredToken, tokenStyle);
-                double remainingWidth = Math.Max(0D, width - lineWidth);
+                double remainingWidth = Math.Max(0D, width - previewLine.PreviewAdvance(run, 0D, false));
                 bool preventWrapping = parentStyle.PreventTextWrapping || run.Style.PreventTextWrapping;
                 bool moveWholeToken = !preventWrapping && hasContent && !IsWhitespaceToken(token)
                     && tokenWidth > remainingWidth + 0.0001D
@@ -156,11 +163,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     hasContent = true;
                     continue;
                 }
-                if (hasContent && lineWidth + tokenWidth > width) firstLine = false;
+                if (hasContent && previewLine.PreviewAdvance(run, tokenWidth) > width) firstLine = false;
                 HtmlRenderBoxStyle appliedStyle = firstLine ? tokenStyle : run.Style;
                 styledRuns.Add(run.CloneText(token, token, appliedStyle, run.IsFirstLetter));
                 if (firstLine) {
-                    lineWidth += tokenWidth;
+                    previewLine.Add(new InlineSegment(token, tokenWidth, run));
                     if (!IsWhitespaceToken(token)) hasContent = true;
                 }
             }

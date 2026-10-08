@@ -26,7 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int start = 0;
         while (start < token.PaintText.Length) {
-            double available = Math.Max(0D, line.AvailableWidth - line.Width);
+            double available = Math.Max(0D, line.AvailableWidth - line.PreviewAdvance(run, 0D, false));
             bool hyphenationAllowed = !run.Style.HyphenateLimitLines.HasValue
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
@@ -101,7 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 start = end;
                 continue;
             }
-            if (line.HasFlowContent && line.Width + chunkWidth > line.AvailableWidth + 0.0001D) {
+            if (line.HasFlowContent && line.PreviewAdvance(run, chunkWidth, end == paintToken.Length) > line.AvailableWidth + 0.0001D) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }
             line.Add(new InlineSegment(paintChunk, chunkWidth, run, logicalChunk));
