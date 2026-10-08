@@ -28,6 +28,10 @@ OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
 
+# Independent redaction fixtures include ASCII containers and embedded fonts.
+# Preserve source fingerprints and PDF stream/xref byte offsets on every OS.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Redaction/*.pdf -text -diff
+
 # Frozen HTML qualification inputs and manifests identify exact source bytes.
 # Preserve their authored line endings rather than changing their integrity pins.
 OfficeIMO.TestAssets/Documents/Html/Qualification/** -text

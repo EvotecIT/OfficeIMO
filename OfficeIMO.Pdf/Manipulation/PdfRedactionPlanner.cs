@@ -408,10 +408,14 @@ internal static partial class PdfRedactionPlanner {
             }
             bool rectangleMark = primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.HasFillPaint && !primitive.HasStrokePaint;
             bool exactMark = area.ExactGeometry is not null && (primitive.HasFillPaint || primitive.HasStrokePaint);
-            if ((rectangleMark || exactMark) && AreClose(primitive.X, visualArea.Left) &&
-                AreClose(primitive.Y, visualArea.Top) &&
-                AreClose(primitive.Width, visualArea.Width) &&
-                AreClose(primitive.Height, visualArea.Height)) {
+            // Freehand review bounds include the round-cap stroke radius;
+            // primitive bounds describe the centerline before that padding.
+            double strokePadding = area.ExactGeometry?.Kind == PdfRedactionRegionKind.Freehand && primitive.HasStrokePaint
+                ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
+            if ((rectangleMark || exactMark) && AreClose(primitive.X - strokePadding, visualArea.Left) &&
+                AreClose(primitive.Y - strokePadding, visualArea.Top) &&
+                AreClose(primitive.Width + strokePadding * 2D, visualArea.Width) &&
+                AreClose(primitive.Height + strokePadding * 2D, visualArea.Height)) {
                 return i;
             }
         }

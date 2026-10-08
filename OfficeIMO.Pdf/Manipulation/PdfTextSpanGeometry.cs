@@ -31,10 +31,10 @@ internal static class PdfTextSpanGeometry {
     // PDF glyphs ascend along the positive baseline normal in page user space.
     // Keep the legacy selection envelope above separate from precise redaction marks.
     internal static PdfTextSpanBounds GetRedactionGlyphBounds(PdfTextSpan span, double advanceOffset, double advance) =>
-        GetAxisAlignedBoundsCore(span, advanceOffset, advance, 1D, -0.25D);
+        GetAxisAlignedBoundsCore(span, advanceOffset, advance, 1D, -0.25D, useSourceTransform: true);
 
     private static PdfTextSpanBounds GetAxisAlignedBoundsCore(PdfTextSpan span, double advanceOffset, double advance,
-        double firstNormalFactor, double secondNormalFactor) {
+        double firstNormalFactor, double secondNormalFactor, bool useSourceTransform = false) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(span);
 #else
@@ -46,18 +46,25 @@ internal static class PdfTextSpanGeometry {
         double radians = span.RotationDegrees * Math.PI / 180D;
         double alongX = Math.Cos(radians);
         double alongY = Math.Sin(radians);
-        double normalX = -alongY;
-        double normalY = alongX;
+        // The source font size is in text space. Preserve the transformed y
+        // axis, including nonuniform scale and shear, instead of reconstructing
+        // a perpendicular unit vector from the baseline rotation.
+        double normalX = -alongY * fontSize;
+        double normalY = alongX * fontSize;
+        if (useSourceTransform && span.TextToPageTransform is Matrix2D transform) {
+            normalX = transform.C * span.FontSize;
+            normalY = transform.D * span.FontSize;
+        }
         double startX = span.X + alongX * advanceOffset;
         double startY = span.Y + alongY * advanceOffset;
-        double x0 = startX + normalX * fontSize * firstNormalFactor;
-        double y0 = startY + normalY * fontSize * firstNormalFactor;
-        double x1 = startX + alongX * advance + normalX * fontSize * firstNormalFactor;
-        double y1 = startY + alongY * advance + normalY * fontSize * firstNormalFactor;
-        double x2 = startX + normalX * fontSize * secondNormalFactor;
-        double y2 = startY + normalY * fontSize * secondNormalFactor;
-        double x3 = startX + alongX * advance + normalX * fontSize * secondNormalFactor;
-        double y3 = startY + alongY * advance + normalY * fontSize * secondNormalFactor;
+        double x0 = startX + normalX * firstNormalFactor;
+        double y0 = startY + normalY * firstNormalFactor;
+        double x1 = startX + alongX * advance + normalX * firstNormalFactor;
+        double y1 = startY + alongY * advance + normalY * firstNormalFactor;
+        double x2 = startX + normalX * secondNormalFactor;
+        double y2 = startY + normalY * secondNormalFactor;
+        double x3 = startX + alongX * advance + normalX * secondNormalFactor;
+        double y3 = startY + alongY * advance + normalY * secondNormalFactor;
         double left = Math.Min(Math.Min(x0, x1), Math.Min(x2, x3));
         double right = Math.Max(Math.Max(x0, x1), Math.Max(x2, x3));
         double bottom = Math.Min(Math.Min(y0, y1), Math.Min(y2, y3));

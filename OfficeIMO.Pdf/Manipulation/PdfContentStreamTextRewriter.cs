@@ -143,7 +143,11 @@ internal static class PdfContentStreamTextRewriter {
             maxOperands: limits.MaxContentOperands,
             dispatchInvalidOperations: true);
 
-        if (!safe || !sawTextShowOperator) return false;
+        if (!safe) return false;
+        // Producers may emit state-only BT/ET objects before real text. With no
+        // text-show operator there are no encoded glyphs to redact; retain the
+        // object because its font and spacing state can affect later objects.
+        if (!sawTextShowOperator) return true;
         rewritten = removedAnyGlyph ? ApplyEdits(textObject, edits) : textObject;
         return true;
     }

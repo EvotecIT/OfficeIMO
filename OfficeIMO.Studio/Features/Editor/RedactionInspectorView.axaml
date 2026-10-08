@@ -26,11 +26,16 @@
       </StackPanel>
     </Expander>
     <ListBox ItemsSource="{Binding RedactionMarks}" SelectedItem="{Binding SelectedRedactionMark}" MaxHeight="170" AutomationProperties.Name="{loc:Loc Redaction.Marks}">
+      <ListBox.ItemContainerTheme>
+        <ControlTheme TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" x:DataType="editor:PdfRedactionMarkViewModel">
+          <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleName}" />
+        </ControlTheme>
+      </ListBox.ItemContainerTheme>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="editor:PdfRedactionMarkViewModel">
           <StackPanel Spacing="3">
             <StackPanel Orientation="Horizontal" Spacing="6">
-              <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc Redaction.Include}" />
+              <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc Redaction.Include}" AutomationProperties.Name="{Binding IncludeAccessibleName}" />
               <TextBlock Text="{Binding PageNumber}" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Text="{Binding Description}" TextWrapping="Wrap" MaxWidth="245" />

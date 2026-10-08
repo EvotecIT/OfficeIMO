@@ -25,3 +25,11 @@ PDFKit must find the removal criterion in the source and no matches in the outpu
 Use Poppler's `pdftotext -bbox-layout`, `pdfinfo` and `pdftoppm -png` on the same pair for a second reader and renderer. Inspect the PNGs and compare changes against the reviewed rectangles; successful extraction alone does not establish visual preservation. Keep source hashes, tool versions, reports and representative images with the run, and remove superseded output.
 
 These checks qualify the selected files and readers. They do not prove Acrobat behavior, accessibility, every imported font or structure, or native Studio usability.
+
+## Independent-producer regression corpus
+
+The [redaction corpus](../../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Redaction/corpus-manifest.json) records producer versions, font licenses, feature coverage and source SHA-256 fingerprints. Its ReportLab and PyMuPDF inputs exercise imported TrueType and CFF fonts, inherited text state, numeric font descriptors, bookmarks and ink annotations. The outlined-letter input requires a reviewed area; text search cannot select letters represented by vector paths.
+
+`PdfRedactionImportedCorpusTests` applies the public redaction API to these inputs, verifies the saved output, preserves neighboring text and navigation/ink, and checks source immutability. Use the opt-in pair export and independent reader commands above when changing the engine. For fonts with non-breaking spaces, a criterion such as `private\s+account\s+123` matches the extracted whitespace explicitly. A substring whose conservative glyph envelope intersects unselected text remains blocked.
+
+The corpus covers these selected font and document structures. Predefined CJK character maps, other producers, Acrobat and native platform accessibility require their own evidence.
