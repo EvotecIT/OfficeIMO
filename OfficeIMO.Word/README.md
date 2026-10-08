@@ -472,6 +472,17 @@ Dictionary<string, object?> values = document.ExtractContentControlValues();
 document.ValidateContentControlValues(values).EnsureValid();
 ```
 
+Form filling respects content-control locks. A supplied value for a control with
+`contentLocked` or `sdtContentLocked` causes `FillContentControlValues` to throw
+`InvalidOperationException` before applying any form values. Validation reports
+`WordContentControlFormIssueKind.LockedControl` for the same target. Omit locked
+fields from the map when filling the editable fields of a form.
+
+An `sdtLocked` control remains fillable because that lock only prevents deleting
+the control. Replacing a picture or repeating section also rejects locked nested
+controls that would be removed. Direct control setters remain authoring APIs for
+intentional document edits.
+
 ### Legacy DOC files
 
 ```csharp

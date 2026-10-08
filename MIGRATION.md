@@ -48,6 +48,20 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Word content-control form locks
+
+`FillContentControlValues` rejects supplied values for content-locked controls
+before applying any form values. `ValidateContentControlValues` reports these
+targets as `WordContentControlFormIssueKind.LockedControl`. Remove locked fields
+from the supplied map to fill only editable fields; when validating a partial
+map, pass `requireAllControls: false`.
+
+Controls with `sdtLocked` remain fillable. That lock prevents deleting the
+control, while `contentLocked` and `sdtContentLocked` prevent content edits.
+Picture and repeating-section replacements also reject operations that would
+remove locked nested controls. Use direct control setters for intentional
+authoring changes that bypass form-fill safeguards.
+
 ## XPS radial focal points
 
 For radial gradients with a focal point on or outside the end ellipse,
