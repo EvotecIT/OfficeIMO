@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
                     if (encryptedLoad) {
                         return false;
                     }
-                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use ExcelDocument.LoadEncrypted and provide its password.");
+                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use ExcelDocument.LoadEncrypted or ExcelDocument.OpenEncryptedDataReader and provide its password.");
                 case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:
                     throw new InvalidDataException("The OLE compound file contains more than one root Office document stream and cannot be routed safely.");
                 default:

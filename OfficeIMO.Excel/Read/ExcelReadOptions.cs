@@ -293,7 +293,10 @@ namespace OfficeIMO.Excel {
         public ExcelReadOptions Clone() {
             var clone = (ExcelReadOptions)MemberwiseClone();
             clone.Execution = Execution.Clone();
-            clone.Culture = CultureInfo.ReadOnly((CultureInfo)Culture.Clone());
+            // The immutable singleton can be shared and retains invariant parsing eligibility.
+            clone.Culture = ReferenceEquals(Culture, CultureInfo.InvariantCulture)
+                ? CultureInfo.InvariantCulture
+                : CultureInfo.ReadOnly((CultureInfo)Culture.Clone());
             return clone;
         }
 

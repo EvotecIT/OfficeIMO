@@ -84,7 +84,8 @@ namespace OfficeIMO.Excel {
 
                 int rowCapacity = Math.Max(16, Math.Min(lastRow - firstRow + 1, 4096));
                 _rowIndexes = ArrayPool<int>.Shared.Rent(rowCapacity);
-                int cellCapacity = checked(rowCapacity * fieldCount);
+                int cellRows = InitializeCellWindow(rowCapacity, (long)lastRow - firstRow + 1, fieldCount);
+                int cellCapacity = checked(cellRows * fieldCount);
                 _valueStarts = ArrayPool<int>.Shared.Rent(cellCapacity);
                 _valueLengths = ArrayPool<int>.Shared.Rent(cellCapacity);
                 _cellKinds = ArrayPool<byte>.Shared.Rent(cellCapacity);
@@ -123,14 +124,12 @@ namespace OfficeIMO.Excel {
                         }
 
                         int fieldCount = lastColumn - firstColumn + 1;
-                        long rowCount = (long)lastRow - firstRow + 1L;
-                        long cellCount = rowCount * fieldCount;
                         if (firstRow <= 0 || lastRow < firstRow || lastRow > A1.MaxRows
                             || firstColumn <= 0 || lastColumn < firstColumn || lastColumn > A1.MaxColumns
                             || fieldCount <= 0
                             || fieldCount > owner._opt.MaxDataReaderColumns
-                            || cellCount > owner._opt.MaxDataReaderBufferedCells
-                            || cellCount > MaximumIndexedCells) {
+                            || fieldCount > owner._opt.MaxDataReaderBufferedCells
+                            || owner._opt.MaxDataReaderChunkRows <= 0) {
                             candidate.Dispose();
                             return false;
                         }
@@ -172,7 +171,8 @@ namespace OfficeIMO.Excel {
                 out ExcelUtf8RangeRowSource? source) {
                 source = null;
                 if (owner._opt.CellValueConverter != null
-                    || ((long)(lastRow - firstRow + 1) * fieldCount) > MaximumIndexedCells) {
+                    || fieldCount > owner._opt.MaxDataReaderBufferedCells
+                    || owner._opt.MaxDataReaderChunkRows <= 0) {
                     return false;
                 }
 
@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel {
                 return TryReadWorksheetBuffer(stream, ct, out buffer, out length);
             }
 
-            internal bool SelectRow(int rowIndex) {
+            internal bool SelectRow(int rowIndex, CancellationToken lifetimeCt, CancellationToken readCt) {
                 EnsureNotDisposed();
                 while (_rowCursor < _rowCount && _rowIndexes![_rowCursor] < rowIndex) {
                     _rowCursor++;
@@ -256,7 +256,10 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                _currentRowOffset = checked(_rowCursor * _fieldCount);
+                _currentRowOffset = UsesCellWindow
+                    ? SelectCellWindowRow(_rowCursor, lifetimeCt, readCt)
+                    : checked(_rowCursor * _fieldCount);
+                _selectedPhysicalRow = _rowCursor;
                 _rowCursor++;
                 return true;
             }
@@ -463,10 +466,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReturnRowArray(ref _rowIndexes);
+                ReturnRowArray(ref _rowContentStarts);
+                ReturnRowArray(ref _rowContentEnds);
                 ReturnRowArray(ref _valueStarts);
                 ReturnRowArray(ref _valueLengths);
                 ReturnRowArray(ref _formulaStarts);
                 ReturnRowArray(ref _formulaLengths);
+                ReturnImplicitCellTagCache();
                 if (_cellKinds != null) {
                     ArrayPool<byte>.Shared.Return(_cellKinds);
                     _cellKinds = null;
@@ -573,16 +579,25 @@ namespace OfficeIMO.Excel {
                     int tagSearchStart = position;
                     Utf8Tag tag = default;
                     int rowIndex = 0;
-                    bool repeatedRow = repeatedRowShapeValidated
+                    bool rowAlreadyIndexed = false;
+                    // Exact attribute-free row tags already prove their XML syntax.
+                    // This does not prove the row number: a later explicit cell can
+                    // still require the ordinary coordinate lookahead below.
+                    bool simpleImplicitRow = MatchesUtf8(position, "<row>"u8);
+                    bool repeatedRow = !simpleImplicitRow && repeatedRowShapeValidated
                         && TryReadRepeatedRowStartTag(
                             ref position,
                             out tag,
                             out rowIndex);
-                    if (!repeatedRow
+                    if (simpleImplicitRow) {
+                        tag = new Utf8Tag(position, position + 4, position + 1, position + 4,
+                            position + 1, isEnd: false, isEmpty: false);
+                        position += 5;
+                    } else if (!repeatedRow
                         && !TryReadNextTag(ref position, _length, out tag)) {
                         return false;
                     }
-                    if (!repeatedRow && ContainsNonWhitespace(tagSearchStart, tag.Start)) {
+                    if (!simpleImplicitRow && !repeatedRow && ContainsNonWhitespace(tagSearchStart, tag.Start)) {
                         _sheetDataSupportsFastValidation = false;
                     }
                     if (tag.IsEnd && IsIndexedTag(tag) && LocalNameEquals(tag, "sheetData")) {
@@ -594,8 +609,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    int indexedRowContentStart = position;
                     if (!repeatedRow) {
-                        bool rowSupportsFastValidation = ValidateCanonicalTagAttributes(
+                        bool rowSupportsFastValidation = simpleImplicitRow || ValidateCanonicalTagAttributes(
                             tag,
                             out bool rowDeclaresDefaultNamespace,
                             out _,
@@ -615,19 +631,32 @@ namespace OfficeIMO.Excel {
                             _sheetDataSupportsFastValidation = false;
                         }
 
-                        if (!TryGetAttribute(tag, "r", out bool hasRowReference, out int rowReferenceStart, out int rowReferenceLength)) {
+                        bool hasRowReference = false;
+                        int rowReferenceStart = 0;
+                        int rowReferenceLength = 0;
+                        if (!simpleImplicitRow
+                            && !TryGetAttribute(tag, "r", out hasRowReference, out rowReferenceStart, out rowReferenceLength)) {
                             return false;
                         }
 
                         rowIndex = hasRowReference
                             ? ParsePositiveInt(_buffer!, rowReferenceStart, rowReferenceLength)
                             : nextImplicitRow;
-                        if (!hasRowReference && !tag.IsEmpty
-                            && !TryInferImplicitRowIndex(position, nextImplicitRow, ct, out rowIndex)) {
-                            return false;
+                        if (!hasRowReference && !tag.IsEmpty) {
+                            if (rowSupportsFastValidation && rowIndex >= firstRow && rowIndex <= lastRow) {
+                                EnsureRowCapacity(_rowCount + 1);
+                                int provisionalRowOffset = GetQualificationRowOffset(_rowCount);
+                                InitializeMetadataRow(provisionalRowOffset);
+                                rowAlreadyIndexed = TryIndexCanonicalImplicitDenseRow(
+                                    ref position, rowIndex, provisionalRowOffset, ct);
+                            }
+                            if (!rowAlreadyIndexed
+                                && !TryInferImplicitRowIndex(position, nextImplicitRow, ct, out rowIndex)) {
+                                return false;
+                            }
                         }
                         if (rowSupportsFastValidation) {
-                            repeatedRowShapeValidated = TryCaptureRepeatedRowShape(tag, rowIndex);
+                            repeatedRowShapeValidated = !simpleImplicitRow && TryCaptureRepeatedRowShape(tag, rowIndex);
                         }
                     }
                     if (rowIndex <= 0 || rowIndex <= previousRow) {
@@ -640,11 +669,11 @@ namespace OfficeIMO.Excel {
                     int rowOffset = -1;
                     if (includeRow) {
                         EnsureRowCapacity(_rowCount + 1);
-                        rowOffset = checked(_rowCount * _fieldCount);
-                        InitializeMetadataRow(rowOffset);
+                        rowOffset = GetQualificationRowOffset(_rowCount);
+                        if (!rowAlreadyIndexed) InitializeMetadataRow(rowOffset);
                     }
 
-                    if (!tag.IsEmpty) {
+                    if (!tag.IsEmpty && !rowAlreadyIndexed) {
                         int rowContentStart = position;
                         bool indexedCanonicalRow = rowOffset >= 0
                             && TryIndexCanonicalDenseRow(ref position, rowIndex, rowOffset, ct);
@@ -661,6 +690,7 @@ namespace OfficeIMO.Excel {
 
                     if (includeRow) {
                         _rowIndexes![_rowCount] = rowIndex;
+                        RetainQualifiedRowPosition(_rowCount, indexedRowContentStart, position);
                         _rowCount++;
                     }
 
@@ -737,6 +767,7 @@ namespace OfficeIMO.Excel {
                         if (!TryIndexCompactValueCell(
                                 ref position,
                                 cellIndex,
+                                kind,
                                 out hasCachedValue,
                                 out valueStart,
                                 out valueLength)) {
@@ -974,7 +1005,7 @@ namespace OfficeIMO.Excel {
             }
 
             private bool IsDateStyle(int styleIndex) {
-                if (styleIndex < 0 || !_options.TreatDatesUsingNumberFormat) {
+                if (styleIndex < 0 || !TreatDatesForIndex) {
                     return false;
                 }
 
@@ -1030,6 +1061,10 @@ namespace OfficeIMO.Excel {
             }
 
             private void EnsureRowCapacity(int required) {
+                if (UsesCellWindow) {
+                    EnsureWindowRowCapacity(required);
+                    return;
+                }
                 int currentCapacity = Math.Min(_rowIndexes!.Length, _valueStarts!.Length / _fieldCount);
                 if (required <= currentCapacity) {
                     return;
@@ -1078,7 +1113,7 @@ namespace OfficeIMO.Excel {
                 int capacity = _valueStarts!.Length;
                 _formulaStarts = ArrayPool<int>.Shared.Rent(capacity);
                 _formulaLengths = ArrayPool<int>.Shared.Rent(capacity);
-                int initializedCellCount = checked((_rowCount + 1) * _fieldCount);
+                int initializedCellCount = GetInitializedFormulaCellCount();
                 Array.Clear(_formulaStarts, 0, initializedCellCount);
                 for (int index = 0; index < initializedCellCount; index++) {
                     _formulaLengths[index] = -1;
