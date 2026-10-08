@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "producer": "OfficeIMO verification script",
+  "consumer": "Microsoft DAO",
+  "engineVersion": "16.0",
+  "proof": "negative control only; does not prove a native writer",
+  "results": [
+    {
+      "path": "jet4.mdb",
+      "profile": "Standard Jet DB",
+      "probe": "header-and-page-skeleton-negative-control",
+      "seedUsed": false,
+      "outcome": "rejected",
+      "hresult": -2146824945,
+      "sha256": "5da0c229066a14bb235b2ba80ded989a7d5a5749bd324cd0641d978a13242d6c",
+      "notImplemented": [
+        "valid masked header",
+        "catalog fields and rows",
+        "allocation maps",
+        "system permissions",
+        "table indexes",
+        "relationships"
+      ],
+      "requiredExperiment": "native-bootstrap-01: encode system tables, allocation and catalog index roots from logical definitions; DAO must open the generated file before adding a user table"
+    },
+    {
+      "path": "ace12.accdb",
+      "profile": "Standard ACE DB",
+      "probe": "header-and-page-skeleton-negative-control",
+      "seedUsed": false,
+      "outcome": "rejected",
+      "hresult": -2146824945,
+      "sha256": "732fb56080c3cf0ade8e46fd6876c39e36d100b1248cb3b7299c8258019f525e",
+      "notImplemented": [
+        "valid masked header",
+        "catalog fields and rows",
+        "allocation maps",
+        "system permissions",
+        "table indexes",
+        "relationships"
+      ],
+      "requiredExperiment": "native-bootstrap-01: encode system tables, allocation and catalog index roots from logical definitions; DAO must open the generated file before adding a user table"
+    }
+  ]
+}

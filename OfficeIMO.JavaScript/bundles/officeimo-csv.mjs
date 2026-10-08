@@ -338,7 +338,26 @@ const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: bounde
 return _exports;
 })();
 
+const _m6 = (() => {
+/** @internal One target policy shared by document writers and portable cells. */
+function copyExportLink(link) {
+    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
+        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(link.target);
+    if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
+        throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
+    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+        throw new TypeError("Hyperlink tooltip must be text.");
+    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+}
+const _exports = Object.freeze({ copyExportLink: copyExportLink });
+return _exports;
+})();
+
 const _m5 = (() => {
+const { copyExportLink } = _m6;
+
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -346,6 +365,7 @@ class ExportCell {
     static [Symbol.hasInstance](value) { return !!value && typeof value === "object" && value[exportCellBrand] === true; }
     text;
     presentation;
+    link;
     constructor(value, options = {}) {
         this.value = value;
         if (options.text !== undefined && typeof options.text !== "string")
@@ -353,6 +373,7 @@ class ExportCell {
         assertScalar(value);
         this.text = options.text;
         this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -376,7 +397,7 @@ const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertSca
 return _exports;
 })();
 
-const _m6 = (() => {
+const _m7 = (() => {
 const { assertExportValue } = _m5;
 
 const { checkAbort } = _m1;
@@ -436,7 +457,7 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m8 = (() => {
 
 
 
@@ -491,7 +512,7 @@ const { ExportBudget, boundedSink } = _m4;
 
 const { ExportCell } = _m5;
 
-const { copyColumns, createRowProjector } = _m6;
+const { copyColumns, createRowProjector } = _m7;
 
 
 
@@ -611,7 +632,7 @@ async function writeCsv(rows, configuration) {
         throw error;
     }
 }
-const _exports = Object.freeze({ saveBlob: _m7.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
+const _exports = Object.freeze({ saveBlob: _m8.saveBlob, ExportCell: _m5.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
 return _exports;
 })();
 const { saveBlob, ExportCell, writeCsvTo, writeCsv } = _m0;
