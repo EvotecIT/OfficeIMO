@@ -340,7 +340,22 @@
           "OfficeIMO.Visio": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )",
           "OfficeIMO.Word.Html": "[3.4.4, )",
-          "OfficeIMO.Word.Pdf": "[3.4.4, )"
+          "OfficeIMO.Word.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps": "[3.4.4, )"
         }
       }
     },

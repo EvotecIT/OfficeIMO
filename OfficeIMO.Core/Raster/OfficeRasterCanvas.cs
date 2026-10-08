@@ -722,14 +722,15 @@ public sealed partial class OfficeRasterCanvas {
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(value)));
 
     private static OfficeColor InterpolateGradient(OfficeLinearGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio);
+        return InterpolateGradientStops(gradient.Stops, ratio, interpolation: gradient.ColorInterpolation);
     }
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio);
+        return double.IsNaN(ratio) ? gradient.OutsideColor ?? OfficeColor.Transparent
+            : InterpolateGradientStops(gradient.Stops, ratio, gradient.SpreadMode != OfficeGradientSpreadMode.Pad || gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius, gradient.ColorInterpolation);
     }
 
-    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio) {
+    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
         if (ratio <= stops[0].Offset) {
             return stops[0].Color;
         }
@@ -740,52 +741,23 @@ public sealed partial class OfficeRasterCanvas {
                 OfficeGradientStop previous = stops[i - 1];
                 double span = next.Offset - previous.Offset;
                 double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
-                return Interpolate(previous.Color, next.Color, Clamp(localRatio, 0D, 1D));
+                localRatio = Clamp(localRatio, 0D, 1D);
+                // Native XPS radial paint interpolates color and alpha separately,
+                // consistently with paths, strokes, SVG composition and PDF.
+                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation);
+                if (separateAlpha) return OfficeColor.FromRgba(
+                    InterpolateByte(previous.Color.R, next.Color.R, localRatio),
+                    InterpolateByte(previous.Color.G, next.Color.G, localRatio),
+                    InterpolateByte(previous.Color.B, next.Color.B, localRatio),
+                    InterpolateByte(previous.Color.A, next.Color.A, localRatio));
+                return Interpolate(previous.Color, next.Color, localRatio);
             }
         }
 
         return stops[stops.Count - 1].Color;
     }
 
-    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) {
-        double endRadiusX = Math.Max(gradient.EndRadiusX, 0.0000001D);
-        double endRadiusY = Math.Max(gradient.EndRadiusY, 0.0000001D);
-        double normalizedX = (x - gradient.EndX) / endRadiusX;
-        double normalizedY = (y - gradient.EndY) / endRadiusY;
-        double startX = (gradient.StartX - gradient.EndX) / endRadiusX;
-        double startY = (gradient.StartY - gradient.EndY) / endRadiusY;
-        double startRadius = gradient.StartRadiusX / endRadiusX;
-        double vx = normalizedX - startX;
-        double vy = normalizedY - startY;
-        double dx = -startX;
-        double dy = -startY;
-        double dr = 1D - startRadius;
-        double a = (dx * dx) + (dy * dy) - (dr * dr);
-        double b = -2D * ((vx * dx) + (vy * dy) + (startRadius * dr));
-        double c = (vx * vx) + (vy * vy) - (startRadius * startRadius);
-        if (Math.Abs(a) < 0.0000001D) {
-            if (Math.Abs(b) < 0.0000001D) {
-                return 0D;
-            }
-
-            return Clamp(-c / b, 0D, 1D);
-        }
-
-        double discriminant = (b * b) - (4D * a * c);
-        if (discriminant < 0D) {
-            return 0D;
-        }
-
-        double sqrt = Math.Sqrt(discriminant);
-        double t1 = (-b - sqrt) / (2D * a);
-        double t2 = (-b + sqrt) / (2D * a);
-        double ratio = Math.Max(t1, t2);
-        if (ratio < 0D) {
-            ratio = Math.Min(t1, t2);
-        }
-
-        return Clamp(ratio, 0D, 1D);
-    }
+    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
 
     private static byte InterpolateByte(byte start, byte end, double ratio) =>
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio))));

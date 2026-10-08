@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -41,7 +41,33 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
     .RunAsync(runner, cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf` and `PlainText` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+
+Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
+PDF bridge. Single conversion, batches, PDF assembly and document preview share
+that owner. Native logical structure is preserved strictly by default; unsupported
+semantics fail before publication. The `Faithful` output profile is supported.
+Assembly accepts native sources whose converted PDF has no semantic tags. The PDF
+owner rejects merging tagged documents; it preserves the destination instead of
+dropping native semantics. When semantic loss is acceptable, first convert with
+the explicit opt-out below and assemble the resulting PDFs.
+
+```csharp
+using OfficeIMO.Xps;
+
+OfficeWorkflowResult converted = await OfficeWorkflow.Convert("report.oxps")
+    .To("report.pdf")
+    .WithConversionOptions(new OfficeWorkflowConversionOptions {
+        Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
+    })
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+The explicit semantic opt-out retains vector paint and markup-order Unicode.
+`Xps.PdfOptions` accepts the PDF engine's output settings, including encryption;
+`CompressPdfOutput` uses the shared verified compression path. Native input limits
+and workflow byte limits both apply. PDF serialization is bounded before the
+runner reopens and publishes the artifact. See the [native preservation limits](../OfficeIMO.Xps/SUPPORT.md).
 
 Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict policies. Directory discovery is incremental and skips filesystem links. Outputs retain the full relative source filename plus the target extension, so `report.doc` and `report.docx` have distinct PDF names. Explicit files retain relative paths when `InputDirectory` supplies their common root; otherwise they use their filenames, and destination collisions follow the selected policy.
 
@@ -1863,7 +1889,7 @@ OfficeWorkflowResult result = await OfficeWorkflow.Convert("source.pdf")
 ```
 
 `OfficeWorkflowRunner.PreviewDocument(bytes, extension, cancellationToken)` creates
-an in-memory sample of the first three pages of a PDF, DOCX, XLSX, PPTX, or HTML
+an in-memory sample of the first three pages of a PDF, DOCX, XLSX, PPTX, HTML, XPS, or OpenXPS
 artifact. The sample includes rendering diagnostics and uses bounded input and
 image sizes. HTML previews do not load external or sibling resources. Previewing
 is a review aid; inspect the full saved document for whole-document fidelity.
@@ -2084,6 +2110,15 @@ PdfRedactionWorkflowResult applied = await runner.RunRedactionAsync(
 ```
 
 Rule and explicit-region names are stable, non-sensitive evidence identifiers. `ContentScope` decides whether a reviewed area removes only text or also intersecting underlay content. `AppearanceMode` independently controls the privacy of the visible mark: exact, nearby-merged, quantized-width, or full-line. Recipe, decision, and batch JSON reject unknown members so misspelled policy fields cannot silently fall back to defaults.
+
+Literal and regex rules can set `TextSelection = PdfRedactionTextSelection.MatchedGlyphs`
+with `DetectionMode = PdfRedactionDetectionMode.NativeOnly` to remove the matched
+encoded glyphs while retaining neighbouring text. Use `ContentScope = TextOnly`
+to retain artwork beneath the text. JSON recipes use `"textSelection": "MatchedGlyphs"`.
+Ambiguous mappings, partial ligatures, and intersections with unselected glyphs
+block planning; an unsupported glyph rewrite blocks application before publication.
+The default `LogicalBlocks` policy continues to select complete matching blocks.
+Changing the selection policy requires a fresh review decision manifest.
 
 The schemas are `officeimo.pdf.redaction.recipe.v1`, `officeimo.pdf.redaction.plan.v1`, `officeimo.pdf.redaction.decisions.v1`, `officeimo.pdf.redaction.result.v1`, `officeimo.pdf.redaction.batch-request.v1`, and `officeimo.pdf.redaction.batch.v1`. Persisted `PdfRedactionWorkflowRecord` JSON omits matched text, extracted text, passwords, OCR payloads, provider options, host paths, and caller request identifiers. The in-memory operational result still carries paths and request correlation for host UX. Evidence retains rule names, policies, hashes, counts, complete atomic candidate geometry, stable issue codes, one-way SHA-256 fingerprints of provider/model/language values, and OCR confidence. Raw provider-returned metadata is never persisted, so document text or credentials cannot become evidence metadata even when they contain only identifier characters. Encrypted input requires an explicit reject, decrypt, or decrypt-and-reencrypt policy with runtime-only owner credentials. Zero-area verification of a re-encrypted output also requires the trusted output SHA-256 from prior apply evidence.
 

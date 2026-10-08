@@ -159,48 +159,21 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the <see cref="WordTextBox"/> contained within the paragraph, if any.
         /// </summary>
-        public WordTextBox? TextBox {
-            get {
-                if (_run is not null) {
-                    // DrawingML text boxes
-                    var drawing = VisibleSourceRunChildren().OfType<WordDrawing>().FirstOrDefault();
-                    if (drawing is not null) {
-                        if (drawing.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any())) {
-                            return new WordTextBox(_document, _paragraph, _run, selectedDrawing: drawing);
-                        }
-                    }
+        public WordTextBox? TextBox => GetTextBoxes().FirstOrDefault();
 
-                    // Legacy text boxes wrapped in AlternateContent (Word 2007)
-                    bool choiceHasOnlyShape = false;
-                    foreach (var ac in VisibleSourceRunChildren().OfType<AlternateContent>()) {
-                        DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
-                            WordAlternateContentResolver.SelectBranch(ac);
-                        if (branch is not null) {
-                            bool branchHasTextBox = branch.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any()) ||
-                                branch.Descendants<V.TextBox>().Any(box => !box.Ancestors<V.Group>().Any());
-                            if (branchHasTextBox) {
-                                return new WordTextBox(_document, _paragraph, _run,
-                                    selectedAlternateContent: ac,
-                                    selectedVmlTextBox: branch.Descendants<V.TextBox>().FirstOrDefault(box => !box.Ancestors<V.Group>().Any()));
-                            }
-                            bool hasShape = branch.Descendants<Wps.WordprocessingShape>().Any() ||
-                                branch.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
-                            if (hasShape) {
-                                choiceHasOnlyShape = true;
-                                continue;
-                            }
-                        }
-                    }
-                    if (choiceHasOnlyShape) {
-                        return null;
-                    }
-
-                    // VML text boxes
-                    if (VisibleSourceRunDescendants<V.TextBox>().FirstOrDefault(box => !box.Ancestors<V.Group>().Any()) is { } vmlTextBox) {
-                        return new WordTextBox(_document, _paragraph, _run, selectedVmlTextBox: vmlTextBox);
-                    }
+        internal IEnumerable<WordTextBox> GetTextBoxes() {
+            if (_run == null) yield break;
+            foreach (OpenXmlElement child in EnumerateEffectiveRunContent()) {
+                if (child is WordDrawing drawing) {
+                    if (drawing.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any()))
+                        yield return new WordTextBox(_document, _paragraph, _run, selectedDrawing: drawing);
+                    continue;
                 }
-                return null;
+
+                foreach (V.TextBox box in child.Descendants<V.TextBox>()) {
+                    if (!box.Ancestors<V.Group>().Any() && ReferenceEquals(box.Ancestors<Run>().FirstOrDefault(), _run))
+                        yield return new WordTextBox(_document, _paragraph, _run, selectedVmlTextBox: box);
+                }
             }
         }
 

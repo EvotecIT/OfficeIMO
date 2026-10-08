@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Decodes baseline and progressive JPEG images to RGBA buffers (SOF0/SOF2, 8-bit, Huffman).
+/// Decodes baseline, extended sequential, progressive and lossless JPEG images to RGBA buffers (eight-bit SOF0; eight/twelve-bit SOF1/SOF2; two-through-sixteen-bit Huffman/arithmetic lossless SOF3/SOF11).
 /// </summary>
 internal static partial class OfficeJpegReader {
     private static readonly byte[] ZigZag = {
@@ -138,7 +138,10 @@ internal static partial class OfficeJpegReader {
         out int componentCount,
         int? requestedColorTransform,
         bool usePdfColorTransformDefault,
-        OfficeJpegDecodeOptions options = default) {
+        OfficeJpegDecodeOptions options = default,
+        CancellationToken cancellationToken = default,
+        long retainedManagedBytes = 0L,
+        bool preserveRaw16 = false, bool samplesLittleEndian = true) {
         if (requestedColorTransform.HasValue && requestedColorTransform.Value is not (0 or 1)) {
             throw new ArgumentOutOfRangeException(nameof(requestedColorTransform));
         }
@@ -152,8 +155,8 @@ internal static partial class OfficeJpegReader {
             requestedColorTransform,
             usePdfColorTransformDefault,
             returnColorComponents: true,
-            CancellationToken.None,
-            retainedManagedBytes: 0L);
+            cancellationToken,
+            retainedManagedBytes, preserveRaw16, samplesLittleEndian);
     }
 
     private static byte[] Decode(
@@ -166,7 +169,8 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         bool returnColorComponents,
         CancellationToken cancellationToken,
-        long retainedManagedBytes) {
+        long retainedManagedBytes,
+        bool preserveRaw16 = false, bool samplesLittleEndian = true) {
         componentCount = 0;
         if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
         cancellationToken.ThrowIfCancellationRequested();
@@ -179,11 +183,16 @@ internal static partial class OfficeJpegReader {
         var restartInterval = 0;
         var hasFrame = false;
         var progressive = false;
+        var lossless = false;
+        var arithmetic = false;
+        var endOfImage = false;
+        var conditioning = new ArithmeticConditioning();
         var orientation = 1;
         int? adobeTransform = null;
         var frame = default(JpegFrame);
         BaselineState? baselineState = null;
         ProgressiveState? progressiveState = null;
+        ArithmeticProgression? arithmeticProgression = null;
 
         var offset = 2;
         while (offset < data.Length) {
@@ -197,7 +206,7 @@ internal static partial class OfficeJpegReader {
             if (offset >= data.Length) break;
             var marker = data[offset++];
 
-            if (marker == 0xD9) break;
+            if (marker == 0xD9) { endOfImage = true; break; }
 
             if (marker == 0xDA) {
                 if (!hasFrame) throw new FormatException("Missing JPEG frame segment.");
@@ -210,10 +219,45 @@ internal static partial class OfficeJpegReader {
                 var scanEnd = FindScanEnd(data, offset, cancellationToken);
                 var scanData = data.Slice(offset, scanEnd - offset);
 
+                if (arithmetic) {
+                    if (scanEnd == data.Length && !options.AllowTruncated)
+                        throw new FormatException("Arithmetic JPEG scan has no terminating marker.");
+                    if (lossless) {
+                        baselineState ??= BaselineState.Create(frame, orientation,
+                            checked(data.LongLength + retainedManagedBytes + LosslessArithmeticScan.WorkingBytes(frame)), preserveRaw16);
+                        DecodeLosslessScan(scanData, scan, frame, baselineState, dcTables,
+                            restartInterval, cancellationToken, conditioning);
+                    } else if (progressive) {
+                        arithmeticProgression ??= new ArithmeticProgression(frame.ComponentCount);
+                        arithmeticProgression.Validate(scan);
+                        progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation,
+                            checked(data.LongLength + retainedManagedBytes + 8192 + frame.ComponentCount * 96L),
+                            allowDeferredQuantization: true);
+                        DecodeArithmeticProgressive(scanData, scan, frame, progressiveState, arithmeticProgression,
+                            quantTables, conditioning, restartInterval, cancellationToken);
+                    } else {
+                        baselineState ??= BaselineState.Create(frame, orientation,
+                            checked(data.LongLength + retainedManagedBytes + 8192), preserveRaw16);
+                        DecodeArithmeticSequential(scanData, scan, frame, baselineState, quantTables,
+                            conditioning, restartInterval, cancellationToken);
+                    }
+                    offset = scanEnd;
+                    continue;
+                }
+
+                if (lossless) {
+                    baselineState ??= BaselineState.Create(
+                        frame, orientation, checked(data.LongLength + retainedManagedBytes), preserveRaw16);
+                    DecodeLosslessScan(scanData, scan, frame, baselineState, dcTables,
+                        restartInterval, cancellationToken);
+                    offset = scanEnd;
+                    continue;
+                }
+
                 if (!progressive) {
                     ValidateBaselineScan(scan, frame, quantTables, dcTables, acTables);
                     baselineState ??= BaselineState.Create(
-                        frame, orientation, checked(data.LongLength + retainedManagedBytes));
+                        frame, orientation, checked(data.LongLength + retainedManagedBytes), preserveRaw16);
                     DecodeBaselineScan(
                         scanData,
                         scan,
@@ -256,15 +300,25 @@ internal static partial class OfficeJpegReader {
                     var info = data[offset++];
                     var precision = info >> 4;
                     var tableId = info & 0x0F;
-                    if (precision != 0) throw new FormatException("Unsupported JPEG quantization precision.");
+                    if (precision > 1) throw new FormatException("Unsupported JPEG quantization precision.");
                     if (tableId >= quantTables.Length) throw new FormatException("Unsupported JPEG quantization table.");
-                    if (offset + 64 > end) throw new FormatException("Invalid JPEG quantization table.");
+                    if (offset + 64 * (precision + 1) > end) throw new FormatException("Invalid JPEG quantization table.");
                     var table = new int[64];
                     for (var i = 0; i < 64; i++) {
-                        table[ZigZag[i]] = data[offset++];
+                        int value = precision == 0 ? data[offset++] : ReadUInt16BE(data, offset);
+                        if (precision == 1) offset += 2;
+                        if (value == 0) throw new FormatException("Invalid zero JPEG quantization value.");
+                        table[ZigZag[i]] = value;
                     }
                     quantTables[tableId] = table;
                 }
+                continue;
+            }
+
+            if (marker == 0xCC) {
+                int dacLength = ReadUInt16BE(data, offset);
+                if (dacLength < 2 || dacLength > data.Length - offset) throw new FormatException("Invalid JPEG DAC segment.");
+                conditioning.Read(data.Slice(offset + 2, dacLength - 2)); offset += dacLength;
                 continue;
             }
 
@@ -294,14 +348,20 @@ internal static partial class OfficeJpegReader {
                 continue;
             }
 
-            if (marker == 0xC0 || marker == 0xC2) {
+            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2 || marker == 0xC3 || marker == 0xC9 || marker == 0xCA || marker == 0xCB) {
                 var segLen = ReadUInt16BE(data, offset);
                 offset += 2;
                 if (segLen < 8 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG SOF segment.");
                 if (hasFrame) throw new FormatException("Multiple JPEG frame segments are not supported.");
-                frame = ParseFrameHeader(data.Slice(offset, segLen - 2));
+                frame = ParseFrameHeader(data.Slice(offset, segLen - 2), marker);
+                bool rawWordFrame = marker == 0xC3 || marker == 0xCB ||
+                    frame.Precision == 12 && (marker == 0xC1 || marker == 0xC9);
+                if (preserveRaw16 && (!rawWordFrame || requestedColorTransform != 0 || !returnColorComponents))
+                    throw new FormatException("Raw sample words require a lossless or twelve-bit sequential JPEG frame.");
                 hasFrame = true;
-                progressive = marker == 0xC2;
+                progressive = marker == 0xC2 || marker == 0xCA;
+                lossless = marker == 0xC3 || marker == 0xCB;
+                arithmetic = marker == 0xC9 || marker == 0xCA || marker == 0xCB;
                 offset += segLen - 2;
                 continue;
             }
@@ -356,9 +416,16 @@ internal static partial class OfficeJpegReader {
             throw new FormatException("JPEG Adobe APP14 transform is invalid for the component count.");
         }
 
+        if (arithmetic && !endOfImage && !options.AllowTruncated)
+            throw new FormatException("Arithmetic JPEG has no end-of-image marker.");
+
         if (!progressive && hasFrame && baselineState is not null) {
             width = frame.Width;
             height = frame.Height;
+            if (preserveRaw16) {
+                componentCount = frame.ComponentCount;
+                return CopyRawSamples16(frame, baselineState, samplesLittleEndian, options.HighQualityChroma, cancellationToken);
+            }
             if (returnColorComponents) {
                 return baselineState.RenderColorComponents(
                     frame,
@@ -366,6 +433,7 @@ internal static partial class OfficeJpegReader {
                     requestedColorTransform,
                     usePdfColorTransformDefault,
                     options.HighQualityChroma,
+                    cancellationToken,
                     out componentCount);
             }
             var rgba = baselineState.RenderRgba(frame, adobeTransform, options.HighQualityChroma, cancellationToken);
@@ -374,6 +442,7 @@ internal static partial class OfficeJpegReader {
         }
 
         if (progressive && hasFrame && progressiveState is not null) {
+            arithmeticProgression?.RequireDcComponents();
             width = frame.Width;
             height = frame.Height;
             if (returnColorComponents) {
@@ -383,6 +452,7 @@ internal static partial class OfficeJpegReader {
                     requestedColorTransform,
                     usePdfColorTransformDefault,
                     options.HighQualityChroma,
+                    cancellationToken,
                     out componentCount);
             }
             var rgba = progressiveState.RenderRgba(frame, adobeTransform, options.HighQualityChroma, cancellationToken);

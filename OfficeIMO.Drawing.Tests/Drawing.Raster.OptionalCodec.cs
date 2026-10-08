@@ -6,7 +6,8 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterOptionalCodecTests {
-    private const string IndependentJpegTiff = "SUkqADwAAAD/2P/AABEIABAAEANSEQBHEQBCEQD/2gAMA1IARwBCAAA/APf6+f6+f6KKKKKKKKK//9kACwAAAQMAAQAAABAAAAABAQMAAQAAABAAAAACAQMAAwAAAMYAAAADAQMAAQAAAAcAAAAGAQMAAQAAAAIAAAARAQQAAQAAAAgAAAAVAQMAAQAAAAMAAAAWAQMAAQAAABAAAAAXAQQAAQAAADMAAAAcAQMAAQAAAAEAAABbAQcAIQEAAMwAAAAAAAAACAAIAAgA/9j/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/2Q==";
+    // LibTIFF 4.7.2 independently encoded and decoded 16x16 RGB, LZMA compression.
+    private const string IndependentLzmaTiff = "SUkqAFAAAAD9N3pYWgAAAP8S2UECAQMBACEBFnkgxO7gAv8ADV0Af4A8Fz4mR/wBtzwgAAAAAAAAASGABgAAAADtKJuoAAr8AgAAAAAAWVoKAAABAwABAAAAEAAAAAEBAwABAAAAEAAAAAIBAwADAAAAzgAAAAMBAwABAAAAbYgAAAYBAwABAAAAAgAAABEBBAABAAAACAAAABUBAwABAAAAAwAAABYBAwABAAAAEAAAABcBBAABAAAASAAAABwBAwABAAAAAQAAAAAAAAAIAAgACAA=";
     // Independently encoded two-frame 16x16 animation (Pillow 12.3.0, libwebp 1.6.0).
     private const string IndependentAnimatedWebp = "UklGRogAAABXRUJQVlA4WAoAAAACAAAADwAADwAAQU5JTQYAAAAAAAAAAABBTk1GKgAAAAAAAAAAAA8AAA8AAGQAAAJWUDhMEQAAAC8PwAMAB1CoohSv/4GI6H8AAEFOTUYqAAAAAAAAAAAADwAADwAAZAAAAFZQOEwRAAAALw/AAwAHUKjiFaX/gYjofwAA";
 
@@ -131,18 +132,21 @@ public sealed class DrawingRasterOptionalCodecTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnsupportedArithmeticJpegRetainsVisiblePlaceholder(bool invalidCodecDimensions) {
-        // libjpeg-turbo 3.2.0 cjpeg -arithmetic; constant 16x12 RGB (30,80,120).
-        byte[] bytes = Convert.FromBase64String("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/yQARCAAMABADASIAAhEBAxEB/8wACgAQEAUBEBEF/9oADAMBAAIRAxEAPwD/AJafF8ZI/9k=");
+    public void ProgressiveArithmeticJpegUsesManagedPixels(bool supplyCallerCodec) {
+        // libjpeg-turbo 3.2.0 cjpeg -arithmetic -progressive; constant 16x12 RGB (30,80,120).
+        byte[] bytes = Convert.FromBase64String("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/ygARCAAMABADASIAAhEBAxEB/8wABgAQARD/2gAMAwEAAhADEAAAAf8AKhWW5P/MAAQQBf/aAAgBAQABBQLA/8wABBEF/9oACAEDAQE/AcD/zAAEEQX/2gAIAQIBAT8BwP/MAAQQBf/aAAgBAQAGPwLA/8wABBAF/9oACAEBAAE/IcD/2gAMAwEAAgADAAAAEGD/zAAEEQX/2gAIAQMBAT8QwP/MAAQRBf/aAAgBAgEBPxDA/8wABBAF/9oACAEBAAE/EMD/2Q==");
         Assert.True(OfficeImageReader.TryIdentifyByContent(bytes, null, out var source));
         Assert.Equal(16, source.Width);
         var drawing = new OfficeDrawing(16, 12).AddImage(bytes, "image/jpeg",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 12)));
+        var codec = supplyCallerCodec ? new IncorrectJpegCodec() : null;
         var result = drawing.ExportImage(OfficeImageExportFormat.Png,
-            new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent, ImageCodec = invalidCodecDimensions ? new IncorrectJpegCodec() : null });
+            new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent, ImageCodec = codec });
         Assert.True(OfficePngReader.TryDecode(result.Bytes, out var image));
         Assert.True(image!.GetPixel(8, 6).A > 0);
-        Assert.Contains(result.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        Assert.DoesNotContain(result.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        Assert.InRange(image.GetPixel(8, 6).B, 118, 122);
+        if (codec != null) Assert.Equal(0, codec.Calls);
     }
 
     [Fact]
@@ -177,8 +181,8 @@ public sealed class DrawingRasterOptionalCodecTests {
     [InlineData(16, true)]
     [InlineData(1, false)]
     public void InspectedUnsupportedTiffUsesValidatedFirstPageCallerPixels(int size, bool succeeds) {
-        // Independent Pillow/libtiff JPEG-compressed TIFF, outside managed compression support.
-        byte[] bytes = Convert.FromBase64String(IndependentJpegTiff);
+        // Valid independent LZMA TIFF remains outside managed compression support.
+        byte[] bytes = Convert.FromBase64String(IndependentLzmaTiff);
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
         var codec = new TiffCodec(size);
         Assert.Equal(succeeds, OfficeRasterImageDecoder.TryDecode(bytes,
@@ -204,7 +208,7 @@ public sealed class DrawingRasterOptionalCodecTests {
 
     [Fact]
     public void OptionalCodecCloneAndOutputMustFitRetainedBudgetBeforeCallback() {
-        byte[] bytes = Convert.FromBase64String(IndependentJpegTiff);
+        byte[] bytes = Convert.FromBase64String(IndependentLzmaTiff);
         Array.Resize(ref bytes, 128 * 1024); // TIFF permits unreferenced trailing data.
         var codec = new TiffCodec(16);
         // The inspector's 64 KiB allowance fits, but the 128 KiB provider input clone does not.
@@ -218,7 +222,9 @@ public sealed class DrawingRasterOptionalCodecTests {
     }
 
     private sealed class IncorrectJpegCodec : IOfficeRasterImageCodec {
+        public int Calls;
         public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            Calls++;
             image = new OfficeRasterImage(1, 1, OfficeColor.Red);
             return true;
         }

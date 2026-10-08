@@ -1,0 +1,263 @@
+namespace OfficeIMO.Xps;
+
+internal sealed partial class XpsSvgConverter {
+    private static readonly XNamespace Svg = "http://www.w3.org/2000/svg";
+    private XNamespace ResourceKeyNamespace => XpsPackage.Namespace(_page.Document.Format) + "/resourcedictionary-key";
+    private static readonly XNamespace LegacyXamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+    private bool IsResourceKey(XName name) => name == ResourceKeyNamespace + "Key" ||
+        (_page.Document.Format == XpsFormat.Xps && name == LegacyXamlNamespace + "Key");
+    private readonly XpsPage _page;
+    private readonly bool _explicitPageLinks;
+    private readonly bool _nativeDrawing;
+    private readonly CancellationToken _token;
+    private readonly List<string> _diagnostics = new();
+    private readonly XElement _defs;
+    private readonly Dictionary<XElement, XElement> _brushFills = new();
+    private readonly Dictionary<XElement, (XElement Paint, BrushRegion Bounds)> _brushStrokes = new();
+    private int _id;
+    private int _visited;
+    private int _points;
+    private int _pathCommands;
+    private long _outputCharacters;
+    private int _outputNodes;
+    private readonly Dictionary<string, XElement> _resourceDictionaries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, OfficeIMO.Drawing.OfficeTrueTypeFont> _fonts = new(StringComparer.OrdinalIgnoreCase);
+    internal XpsSvgConverter(XpsPage page, CancellationToken token, bool explicitPageLinks = false, bool nativeDrawing = false) { _nativeDrawing = nativeDrawing; _explicitPageLinks = explicitPageLinks; _page = page; _token = token; _defs = Element("defs"); }
+    private sealed class Resource {
+        internal Resource(XElement value, string part) { Value = value; Part = part; }
+        internal XElement Value { get; }
+        internal string Part { get; }
+    }
+    internal XpsSvgResult Convert(bool allowPartial) {
+        _token.ThrowIfCancellationRequested();
+        var root = Element("svg", new XAttribute("width", N(_page.Width)), new XAttribute("height", N(_page.Height)), new XAttribute("viewBox", "0 0 " + N(_page.Width) + " " + N(_page.Height)), _defs);
+        XElement page = _page.GetMarkup();
+        CheckAttributes(page, "Width Height ContentBox BleedBox Name");
+        if (page.Attribute("Name") is XAttribute pageName) {
+            Set(root, "id", "xps-" + pageName.Value);
+            _targets.Add(new XpsNavigationTarget(pageName.Value, new[] { new OfficeIMO.Drawing.OfficePoint(0, 0) }));
+        }
+        RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0, new BrushRegion(0, 0, _page.Width, _page.Height));
+        if (_diagnostics.Count != 0 && !allowPartial) throw new NotSupportedException("XPS conversion would lose features: " + string.Join("; ", _diagnostics.Take(12)));
+        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics, _textSpans, _targets);
+    }
+    private static string N(double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidDataException("Non-finite XPS projection coordinate.");
+        return XpsPackage.N(value);
+    }
+    private void Loss(string message) { if (_diagnostics.Count < 100 && !_diagnostics.Contains(message)) _diagnostics.Add(message); }
+    private void CheckAttributes(XElement e, string allowed) {
+        if (e.Name.LocalName is "Path" or "Canvas") allowed += " AutomationProperties.Name AutomationProperties.HelpText";
+        var names = new HashSet<string>((allowed + " Name").Split(' '), StringComparer.Ordinal);
+        foreach (var a in e.Attributes()) {
+            if (a.IsNamespaceDeclaration || a.Name == XNamespace.Xml + "lang" || IsResourceKey(a.Name)) continue;
+            if ((a.Name.NamespaceName.Length != 0 && a.Name.Namespace != e.Name.Namespace) || !names.Contains(a.Name.LocalName)) Loss(e.Name.LocalName + "." + a.Name.LocalName);
+        }
+    }
+    private void Charge(int depth) {
+        _token.ThrowIfCancellationRequested();
+        if (depth > 64 || ++_visited > 100000) throw new InvalidDataException("XPS conversion complexity limit exceeded.");
+    }
+    private Dictionary<string, Resource> Resources(XElement parent, Dictionary<string, Resource> inherited, string part, int depth) {
+        XElement? container = parent.Element(parent.Name.Namespace + (parent.Name.LocalName + ".Resources"));
+        if (container == null) return inherited;
+        ChargeBindings(inherited.Count);
+        var scope = new Dictionary<string, Resource>(inherited, StringComparer.Ordinal);
+        var localKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var dictionary in container.Elements()) ReadDictionary(dictionary, part, scope, localKeys, new HashSet<string>(StringComparer.OrdinalIgnoreCase), depth);
+        return scope;
+    }
+    private void ReadDictionary(XElement dictionary, string part, Dictionary<string, Resource> scope, HashSet<string> keys, HashSet<string> stack, int depth) {
+        Charge(depth);
+        if (dictionary.Name != XName.Get("ResourceDictionary", XpsPackage.Namespace(_page.Document.Format))) { Loss("Unknown resource dictionary"); return; }
+        CheckAttributes(dictionary, "Source");
+        string? source = (string?)dictionary.Attribute("Source");
+        if (source != null) {
+            string name = XpsPackage.Resolve(part, source);
+            if (!stack.Add(name)) throw new InvalidDataException("Cyclic XPS resource dictionary.");
+            if (_page.Document.ContentType(name) != XpsPackage.Type("resourcedictionary")) throw new InvalidDataException("Invalid resource dictionary content type.");
+            if (!_resourceDictionaries.TryGetValue(name, out var external)) {
+                external = _page.Document.ReadXml(name, _token);
+                _resourceDictionaries.Add(name, external);
+            }
+            ReadDictionary(external, name, scope, keys, stack, depth + 1);
+            stack.Remove(name);
+        }
+        foreach (var item in dictionary.Elements()) {
+            var keyAttributes = item.Attributes().Where(a => IsResourceKey(a.Name)).ToArray();
+            if (keyAttributes.Length > 1) throw new InvalidDataException("Ambiguous XPS resource key.");
+            string? key = keyAttributes.Length == 0 ? null : keyAttributes[0].Value;
+            if (key == null) { Loss("Unkeyed resource: " + item.Name.LocalName); continue; }
+            if (!keys.Add(key)) throw new InvalidDataException("Duplicate XPS resource key.");
+            ChargeBindings(1);
+            scope[key] = new Resource(item, part);
+        }
+    }
+    private Resource? ResolveResource(string value, Dictionary<string, Resource> resources) {
+        const string prefix = "{StaticResource ";
+        if (!value.StartsWith(prefix, StringComparison.Ordinal) || !value.EndsWith("}", StringComparison.Ordinal)) throw new InvalidDataException("Unsupported XPS markup extension.");
+        string key = value.Substring(prefix.Length, value.Length - prefix.Length - 1).Trim();
+        if (!resources.TryGetValue(key, out var found)) throw new InvalidDataException("Missing XPS resource: " + key);
+        return found;
+    }
+    private void RenderChildren(XElement parent, XElement target, Dictionary<string, Resource> inherited, string part, int depth, BrushRegion region, XElement? singleVisual = null) {
+        Charge(depth);
+        var scope = Resources(parent, inherited, part, depth);
+        foreach (XElement child in singleVisual == null ? parent.Elements() : new[] { singleVisual }) {
+            _token.ThrowIfCancellationRequested();
+            if (child.Name.LocalName == parent.Name.LocalName + ".Resources") continue;
+            if (child.Name.LocalName == parent.Name.LocalName + ".RenderTransform" || child.Name.LocalName == parent.Name.LocalName + ".Clip" || child.Name.LocalName == parent.Name.LocalName + ".OpacityMask") continue;
+            if (child.Name.NamespaceName != XpsPackage.Namespace(_page.Document.Format)) { Loss("Foreign element: " + child.Name); continue; }
+            string? transform = Transform(child, scope);
+            BrushRegion localRegion = LocalRegion(region, transform);
+            double previousStrokeResolution = _strokeResolution;
+            _strokeResolution = StrokeResolution(previousStrokeResolution, transform);
+            try {
+            int firstText = _textSpans.Count;
+            int firstTarget = _targets.Count;
+            XElement? result;
+            switch (child.Name.LocalName) {
+                case "Canvas":
+                    CheckAttributes(child, "RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
+                    result = Element("g");
+                    RenderChildren(child, result, scope, part, depth + 1, localRegion); break;
+                case "Path": result = PathElement(child, scope, part, depth + 1, localRegion); break;
+                case "Glyphs": result = Glyphs(child, scope, part, depth + 1, localRegion); break;
+                default: Loss("Element: " + child.Name.LocalName); continue;
+            }
+            if (result == null) continue;
+            var description = XpsGraphicDescription.Read(child);
+            if (description != null) {
+                if (!string.IsNullOrWhiteSpace(description.HelpText)) result.AddFirst(Element("desc", description.HelpText!));
+                if (!string.IsNullOrWhiteSpace(description.Name)) result.AddFirst(Element("title", description.Name!));
+            }
+            TransformText(firstText, transform);
+            ApplyOpacityMask(child, result, scope, part, depth + 1, localRegion);
+            if (transform != null) Set(result, "transform", transform);
+            string? clip = Geometry(child, "Clip", scope);
+            if (clip != null) {
+                string id = "clip" + (++_id);
+                string path = StripFillRule(clip, out string rule, out var clipBounds);
+                if (_nativeBounds.TryGetValue(child, out var contentBounds) && clipBounds.HasValue) _nativeBounds[child] = IntersectRegion(contentBounds, clipBounds.Value);
+                _defs.Add(Element("clipPath", new XAttribute("id", id), new XAttribute("clipPathUnits", "userSpaceOnUse"), Element("path", new XAttribute("d", path), new XAttribute("clip-rule", rule))));
+                Set(result, "clip-path", "url(#" + id + ")");
+            }
+            if (child.Attribute("Opacity") is XAttribute opacity) Set(result, "opacity", N(Unit(opacity.Value)));
+            string? link = (string?)child.Attribute("FixedPage.NavigateUri");
+            if (link != null && _visualDepth == 0) {
+                string? href = Link(link, part);
+                if (href != null) result = Element("a", new XAttribute("href", href), result);
+            }
+            if (_visualDepth == 0 && child.Attribute("Name") is XAttribute name) Set(result, "id", "xps-" + name.Value);
+            RecordNavigationBounds(child, parent, transform, firstTarget);
+            target.Add(result);
+            } finally { _strokeResolution = previousStrokeResolution; }
+        }
+    }
+    private string? Link(string target, string part) {
+        var reference = _page.Document.ResolveNavigation(part, target);
+        if (!reference.HasValue) { Loss("Unsafe or unresolved navigation URI"); return null; }
+        if (reference.Value.Uri != null) return reference.Value.Uri;
+        int index = reference.Value.PageIndex;
+        string fragment = reference.Value.Name != null ? "#xps-" + reference.Value.Name : "";
+        if (_explicitPageLinks) return target.StartsWith("#", StringComparison.Ordinal) ? (fragment.Length == 0 ? "#" : fragment)
+            : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
+        return fragment.Length > 0 && string.Equals(_page.Document.Pages[index].PartName, _page.PartName, StringComparison.OrdinalIgnoreCase)
+            ? fragment : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
+    }
+
+    private static double Unit(string value) {
+        double number = XpsPackage.Number(value);
+        if (number < 0 || number > 1) throw new InvalidDataException("XPS opacity must be between 0 and 1.");
+        return number;
+    }
+    private string? Transform(XElement element, Dictionary<string, Resource> resources, string property = "RenderTransform") {
+        string? value = (string?)element.Attribute(property);
+        XElement? matrix = element.Element(element.Name.Namespace + (element.Name.LocalName + "." + property))?.Elements().SingleOrDefault();
+        if (value?.StartsWith("{", StringComparison.Ordinal) == true) matrix = ResolveResource(value, resources)!.Value;
+        if (matrix != null) {
+            if (matrix.Name.LocalName != "MatrixTransform") { Loss("Non-matrix transform"); return null; }
+            CheckAttributes(matrix, "Matrix"); value = (string?)matrix.Attribute("Matrix");
+        }
+        if (value == null) return null;
+        var numbers = Numbers(value);
+        if (numbers.Length != 6) throw new InvalidDataException("An XPS matrix requires six coefficients.");
+        return "matrix(" + string.Join(" ", numbers.Select(N)) + ")";
+    }
+    private static double[] Numbers(string value) => value.Split(new[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(v => XpsPackage.Number(v)).ToArray();
+    private string StripFillRule(string path, out string rule) => StripFillRule(path, out rule, out _);
+    private string StripFillRule(string path, out string rule, out BrushRegion? bounds) {
+        bounds = null;
+        path = path.Trim(); rule = "evenodd";
+        if (path.StartsWith("F", StringComparison.Ordinal)) {
+            int index = 1;
+            while (index < path.Length && char.IsWhiteSpace(path[index])) index++;
+            if (index >= path.Length || (path[index] != '0' && path[index] != '1')) throw new InvalidDataException("Invalid XPS fill rule.");
+            rule = path[index] == '1' ? "nonzero" : "evenodd";
+            path = path.Substring(index + 1).Trim();
+        }
+        if (path.Length > 0) {
+            if (!OfficeIMO.Drawing.OfficeSvgPathDataParser.TryParse(path, 100000 - _pathCommands, out var commands, out _, allowEmptyGeometry: true))
+                throw new InvalidDataException("Malformed or excessive XPS path geometry.");
+            _pathCommands += commands.Count;
+            double minX = double.PositiveInfinity, minY = double.PositiveInfinity, maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            foreach (var command in commands) OfficeIMO.Drawing.OfficeSvgDrawingReader.IncludeCommandBounds(command, ref minX, ref minY, ref maxX, ref maxY);
+            if (!double.IsInfinity(minX)) bounds = new BrushRegion(minX, minY, maxX - minX, maxY - minY);
+        }
+        return path;
+    }
+    private string? Geometry(XElement e, string property, Dictionary<string, Resource> scope) {
+        string? value = (string?)e.Attribute(property);
+        XElement? geometry = e.Element(e.Name.Namespace + (e.Name.LocalName + "." + property))?.Elements().SingleOrDefault();
+        if (value?.StartsWith("{", StringComparison.Ordinal) == true) geometry = ResolveResource(value, scope)!.Value;
+        if (geometry == null) return value;
+        if (geometry.Name.LocalName != "PathGeometry") { Loss("Geometry: " + geometry.Name.LocalName); return null; }
+        CheckAttributes(geometry, "Figures FillRule");
+        string figures = (string?)geometry.Attribute("Figures") ?? Figures(geometry);
+        return ((string?)geometry.Attribute("FillRule") == "NonZero" ? "F1 " : "F0 ") + figures;
+    }
+    private string Figures(XElement geometry) => ProjectFigures(geometry).Fill;
+    private XElement PathElement(XElement e, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
+        Charge(depth);
+        CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
+        var projection = PathProjection(e, scope);
+        string path = StripFillRule(projection?.Full ?? Geometry(e, "Data", scope) ?? "", out string rule, out var bounds);
+        if (_visualDepth == 0 && bounds.HasValue) _nativeBounds[e] = bounds.Value;
+        string fillPath = bounds.HasValue && bounds.Value.Width == 0D && bounds.Value.Height == 0D ? "" : projection?.Fill ?? path;
+        var result = Element("path", new XAttribute("d", fillPath), new XAttribute("fill-rule", rule));
+        Paint(e, "Fill", result, "fill", scope, part, depth, region);
+        Paint(e, "Stroke", result, "stroke", scope, part, depth, region, bounds);
+        Stroke(e, result, path, region, projection);
+        foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform", "Path.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
+        return ApplyBrushFill(result, region);
+    }
+    private XElement ApplyBrushFill(XElement path, BrushRegion? region = null) {
+        bool fillAbsent = (string?)path.Attribute("fill") == "none" && !_brushFills.ContainsKey(path);
+        XElement result = string.IsNullOrWhiteSpace((string?)path.Attribute("d")) || fillAbsent && _strokeOutlines.ContainsKey(path) ? Element("g") : path;
+        if (!string.IsNullOrWhiteSpace((string?)path.Attribute("d")) && _brushFills.TryGetValue(path, out var image)) {
+            string id = "pathClip" + (++_id);
+            _defs.Add(Element("clipPath", new XAttribute("id", id), Element("path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
+            result = Element("g", Element("g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);
+        }
+        if (_strokeOutlines.TryGetValue(path, out var outline) && !_brushStrokes.ContainsKey(path)) {
+            var paint = Element("path", new XAttribute("d", outline), new XAttribute("fill-rule", "nonzero"),
+                new XAttribute("fill", (string?)path.Attribute("stroke") ?? "none"), new XAttribute("stroke", "none"));
+            if (path.Attribute("stroke-opacity") is XAttribute opacity) Set(paint, "fill-opacity", opacity.Value);
+            Set(path, "stroke", "none");
+            result = Element("g", result, paint);
+        }
+        if (_brushStrokes.TryGetValue(path, out var stroke)) {
+            var visible = region ?? throw new InvalidOperationException("A brush stroke requires the local visible region.");
+            var coverage = CloneProjection(path);
+            if (_strokeOutlines.TryGetValue(path, out var coverageOutline)) {
+                Set(coverage, "d", coverageOutline); Set(coverage, "fill-rule", "nonzero");
+                Set(coverage, "fill", "#ffffff"); Set(coverage, "stroke", "none");
+                coverage.Attribute("fill-opacity")?.Remove();
+                if (path.Attribute("stroke-opacity") is XAttribute strokeOpacity) Set(coverage, "fill-opacity", strokeOpacity.Value);
+            } else { Set(coverage, "fill", "none"); Set(coverage, "stroke", "#ffffff"); }
+            Set(path, "stroke", "none");
+            result = Element("g", result, ApplyCoverageMask(coverage, stroke.Paint, IntersectRegion(visible, stroke.Bounds)));
+        }
+        return result;
+    }
+}

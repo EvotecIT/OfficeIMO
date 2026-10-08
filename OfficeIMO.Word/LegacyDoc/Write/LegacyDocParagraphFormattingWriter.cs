@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 byte[]? papx = segment.PapxOverride;
                 if (papx == null && segment.Formatting.HasFormatting) {
-                    papx = CreatePapx(segment.Formatting);
+                    papx = CreatePapx(segment.Formatting, out _);
                 }
 
                 if (papx != null) {
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             stream[pageOffset + oleSectorSize - 1] = (byte)segments.Count;
         }
 
-        private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting) {
+        private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting, out int propertyByteCount) {
             var grpprl = new List<byte>(6) {
                 (byte)((formatting.StyleIndex ?? 0) & 0xFF),
                 (byte)((formatting.StyleIndex ?? 0) >> 8)
@@ -299,6 +299,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmTTableHeader, 1);
             }
 
+            propertyByteCount = grpprl.Count;
             if (grpprl.Count % 2 != 0) {
                 grpprl.Add(0);
             }
@@ -320,8 +321,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return Array.Empty<byte>();
             }
 
-            byte[] papx = CreatePapx(formatting);
-            var upx = new byte[papx.Length - 2];
+            byte[] papx = CreatePapx(formatting, out int propertyByteCount);
+            // Style UPX and list LVL lengths exclude the padding required by a page PAPX.
+            // The enclosing style record writes its own external alignment byte.
+            var upx = new byte[propertyByteCount];
             Buffer.BlockCopy(papx, 2, upx, 0, upx.Length);
             return upx;
         }

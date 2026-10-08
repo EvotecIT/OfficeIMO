@@ -1,15 +1,21 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextEditor {
     private static IReadOnlyList<TextSearchHit> FindHits(byte[] pdf, string text, PdfTextSearchOptions? options,
-        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget? workBudget = null) {
+        PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget? workBudget = null,
+        Func<TextSearchUnit, IEnumerable<TextSearchRange>>? findRanges = null,
+        bool includeUnsafeSpans = false, int maximumHits = int.MaxValue,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        if (text.Length == 0) return Array.Empty<TextSearchHit>();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (text.Length == 0 && findRanges is null) return Array.Empty<TextSearchHit>();
         workBudget?.Charge((long)pdf.Length + text.Length + 1_000L);
         PdfTextSearchOptions snapshot = (options ?? new PdfTextSearchOptions()).Snapshot();
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
-        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
         int[] pages = snapshot.PageNumbers == null || snapshot.PageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : snapshot.PageNumbers;
@@ -18,13 +24,15 @@ internal static partial class PdfTextEditor {
         string[] queries = PdfTextSearchNormalization.NormalizeQueries(text);
         var hits = new List<TextSearchHit>();
         for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             workBudget?.Charge(0L);
             int pageNumber = pages[pageIndex];
             PdfReadPage page = document.Pages[pageNumber - 1];
             (double originX, double originY) = page.GetPageBoundaryOrigin();
-            PdfTextSpan[] spans = page
-                .GetTextSpans()
-                .Where(span => IsSearchSpan(span, snapshot.IncludeTextRenderingMode3))
+            PdfTextSpan[] spans = (includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
+                .Where(span => includeUnsafeSpans
+                    ? (span.IsVisible || span.TextRenderingMode == 3) && !string.IsNullOrEmpty(span.Text)
+                    : IsSearchSpan(span, snapshot.IncludeTextRenderingMode3))
                 .ToArray();
             workBudget?.Charge(spans.Length);
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
@@ -34,6 +42,7 @@ internal static partial class PdfTextEditor {
             if (flows.Any(static flow => flow.Length > 1) || lines.Any(static line => line.Spans.Count > 1)) {
                 long tableWork = 0;
                 void ChargeTableWork(long work) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     tableWork += work;
                     workBudget?.Charge(work);
                     if (tableWork > limits.MaxTextSearchTableDetectionWork)
@@ -50,15 +59,19 @@ internal static partial class PdfTextEditor {
             }
             workBudget?.Charge(flowComparisons);
             foreach (int[] flow in flows) {
+                cancellationToken.ThrowIfCancellationRequested();
                 workBudget?.Charge(flow.Length);
                 PdfTextSpan[][] flowLines = flow.Select(lineIndex => lines[lineIndex].Spans.ToArray()).ToArray();
                 var unit = new TextSearchUnit(flowLines);
                 if (unit.Text.Length == 0) continue;
                 workBudget?.Charge((long)unit.Text.Length + queries.Sum(static query => query.Length));
-                foreach (TextSearchRange range in unit.FindRanges(queries, comparison, snapshot.WholeWords)) {
+                foreach (TextSearchRange range in findRanges?.Invoke(unit) ?? unit.FindRanges(queries, comparison, snapshot.WholeWords)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     workBudget?.Charge(1L);
                     IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(range.Start, range.Length);
                     if (segments.Count == 0) continue;
+                    if (hits.Count + pageHits.Count >= maximumHits)
+                        throw new InvalidOperationException("Redaction search exceeded the configured candidate limit.");
                     if (hits.Count + pageHits.Count >= limits.MaxTextSearchMatches) {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchMatches, limits.MaxTextSearchMatches, hits.Count + pageHits.Count + 1L);
                     }

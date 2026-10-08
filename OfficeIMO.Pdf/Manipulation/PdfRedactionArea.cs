@@ -22,7 +22,7 @@ public sealed class PdfRedactionArea {
         : this(pageNumber, x, y, width, height, label, textRenderingMode: null, exactGeometry: null, contentScope, appearanceMode) {
     }
 
-    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) {
+    private PdfRedactionArea(int pageNumber, double x, double y, double width, double height, string? label, int? textRenderingMode, PdfRedactionGeometry? exactGeometry, PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode, bool requiresGlyphRewrite = false) {
         if (pageNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be greater than zero.");
         }
@@ -55,6 +55,7 @@ public sealed class PdfRedactionArea {
         AppearanceMode = appearanceMode;
         TextRenderingMode = textRenderingMode;
         ExactGeometry = exactGeometry;
+        RequiresGlyphRewrite = requiresGlyphRewrite;
     }
 
     /// <summary>One-based page number.</summary>
@@ -91,9 +92,15 @@ public sealed class PdfRedactionArea {
 
     internal PdfRedactionGeometry? ExactGeometry { get; }
 
+    // A precise search plan must never silently expand removal to an entire text object.
+    internal bool RequiresGlyphRewrite { get; }
+
     internal bool IntersectsRectangle(double x, double y, double width, double height) =>
         ExactGeometry?.IntersectsRectangle(x, y, width, height) ??
-        X < x + width && Right > x && Y < y + height && Top > y;
+        (RequiresGlyphRewrite
+            // Independently accumulated advances can differ at a shared edge by floating-point noise.
+            ? X < x + width - 0.0000001D && Right > x + 0.0000001D && Y < y + height - 0.0000001D && Top > y + 0.0000001D
+            : X < x + width && Right > x && Y < y + height && Top > y);
 
     internal bool ContainsRectangle(double x, double y, double width, double height) =>
         ExactGeometry?.ContainsRectangle(x, y, width, height) ??
@@ -111,13 +118,16 @@ public sealed class PdfRedactionArea {
         PdfRedactionGeometry.RectangleIntersectsQuadrilateral(X, Y, Width, Height, first, second, third, fourth);
 
     internal PdfRedactionArea WithExactGeometry(PdfRedactionGeometry exactGeometry) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, exactGeometry, ContentScope, AppearanceMode, RequiresGlyphRewrite);
 
     internal PdfRedactionArea WithTextRenderingMode(int textRenderingMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, textRenderingMode, ExactGeometry, ContentScope, AppearanceMode, RequiresGlyphRewrite);
 
     internal PdfRedactionArea WithPolicies(PdfRedactionContentScope contentScope, PdfRedactionAppearanceMode appearanceMode) =>
-        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, contentScope, appearanceMode);
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, contentScope, appearanceMode, RequiresGlyphRewrite);
+
+    internal PdfRedactionArea RequiringGlyphRewrite() =>
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, Label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, requiresGlyphRewrite: true);
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

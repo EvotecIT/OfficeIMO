@@ -23,11 +23,7 @@ internal sealed class PdfRedactionSearchWorkBudget {
 
     internal bool IsMatch(Regex regex, string text) {
         ChargeTextScan(text, regex.ToString());
-        TimeSpan remaining = MaximumElapsed - _elapsed.Elapsed;
-        if (remaining <= TimeSpan.Zero) Charge(0L);
-        Regex bounded = regex.MatchTimeout <= TimeSpan.Zero || regex.MatchTimeout > remaining
-            ? new Regex(regex.ToString(), regex.Options, remaining)
-            : regex;
+        Regex bounded = BoundRegex(regex);
         bool matched;
         try {
             matched = bounded.IsMatch(text);
@@ -37,5 +33,23 @@ internal sealed class PdfRedactionSearchWorkBudget {
         }
         Charge(0L);
         return matched;
+    }
+
+    internal IEnumerable<Match> Matches(Regex regex, string text) {
+        ChargeTextScan(text, regex.ToString());
+        Regex bounded = BoundRegex(regex);
+        for (Match match = bounded.Match(text); match.Success; match = match.NextMatch()) {
+            Charge(1L);
+            yield return match;
+        }
+        Charge(0L);
+    }
+
+    private Regex BoundRegex(Regex regex) {
+        TimeSpan remaining = MaximumElapsed - _elapsed.Elapsed;
+        if (remaining <= TimeSpan.Zero) Charge(0L);
+        return regex.MatchTimeout <= TimeSpan.Zero || regex.MatchTimeout > remaining
+            ? new Regex(regex.ToString(), regex.Options, remaining)
+            : regex;
     }
 }

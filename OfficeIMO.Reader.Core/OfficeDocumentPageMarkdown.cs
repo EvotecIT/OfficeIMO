@@ -115,7 +115,8 @@ public static partial class OfficeDocumentReadResultExtensions {
                 markdown.AppendLine(text);
                 break;
             case "list-item":
-                markdown.Append(string.IsNullOrWhiteSpace(block.Marker) ? "- " : block.Marker + " ");
+                markdown.Append(ResolveMarkdownListMarker(block));
+                markdown.Append(' ');
                 markdown.AppendLine(text);
                 break;
             default:
@@ -123,5 +124,17 @@ public static partial class OfficeDocumentReadResultExtensions {
                 break;
         }
         markdown.AppendLine();
+    }
+
+    private static string ResolveMarkdownListMarker(OfficeDocumentBlock block) {
+        // CommonMark has decimal ordered markers and three bullet characters.
+        // Keep the source glyph in Marker; project the logical index separately.
+        if (block.ListIndex is >= 0 and <= 999999999)
+            return block.ListIndex.Value.ToString(CultureInfo.InvariantCulture) + ".";
+        string marker = block.Marker?.Trim() ?? string.Empty;
+        if (marker is "-" or "+" or "*") return marker;
+        if (marker.Length >= 2 && marker.Length <= 10 && (marker[marker.Length - 1] is '.' or ')')
+            && marker.Take(marker.Length - 1).All(character => character >= '0' && character <= '9')) return marker;
+        return "-";
     }
 }

@@ -164,47 +164,6 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
-    /// Assesses several mutation families against one shared preflight snapshot.
-    /// </summary>
-    /// <remarks>
-    /// This is a portfolio view over the existing mutation planner, not a second capability table.
-    /// It is useful for deciding which annotation, navigation, form, appearance, security, and page
-    /// workflows can be offered for one input before any mutation is attempted.
-    /// </remarks>
-    public PdfMutationPortfolioReport AssessMutations(
-        IEnumerable<PdfMutationOperation>? operations = null,
-        IEnumerable<string>? fieldNames = null,
-        PdfLoadOptions? options = null,
-        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        PdfMutationOperation[] requested;
-        if (operations != null) {
-            requested = operations.Distinct().OrderBy(static operation => operation).ToArray();
-        } else {
-#pragma warning disable CA2263 // Generic Enum.GetValues is unavailable on netstandard2.0 and net472.
-            requested = global::OfficeIMO.Internal.EnumCompat.GetValues<PdfMutationOperation>().OrderBy(static operation => operation).ToArray();
-#pragma warning restore CA2263
-        }
-        if (requested.Length == 0) throw new ArgumentException("At least one mutation operation is required.", nameof(operations));
-        string[]? requestedFieldNames = fieldNames?.ToArray();
-        var snapshot = GetReadSnapshot(options);
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(
-            snapshot.Bytes,
-            snapshot.Options,
-            () => snapshot.Document);
-        var plans = new PdfMutationPlan[requested.Length];
-        for (int index = 0; index < requested.Length; index++) {
-            plans[index] = PdfMutationPlanner.Plan(
-                preflight,
-                snapshot.Bytes,
-                requested[index],
-                requestedFieldNames,
-                executionPreference,
-                snapshot.Options);
-        }
-        return new PdfMutationPortfolioReport(preflight, Array.AsReadOnly(plans));
-    }
-
-    /// <summary>
     /// Validates signature structure, byte ranges, and preservation markers for this PDF.
     /// </summary>
     internal PdfSignatureValidationReport ValidateSignatures(PdfLoadOptions? options = null) {

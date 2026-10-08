@@ -519,7 +519,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     kerningMinimumFontSizeHalfPoints: currentFormat.KerningMinimumFontSizeHalfPoints,
                     language: currentFormat.Language,
                     eastAsiaLanguage: currentFormat.EastAsiaLanguage,
-                    revision: currentFormat.Revision));
+                    revision: currentFormat.Revision,
+                    hyperlinkTooltip: currentHyperlinkTarget.Tooltip,
+                    hyperlinkTargetFrame: currentHyperlinkTarget.TargetFrame));
                 runText.Clear();
                 runCharacterPositions.Clear();
             }

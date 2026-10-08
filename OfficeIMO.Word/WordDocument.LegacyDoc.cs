@@ -118,6 +118,7 @@ namespace OfficeIMO.Word {
 
             WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit);
             ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
+            AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
             AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
             WordSection section = document.Sections.Count > 0
                 ? document.Sections[0]
@@ -1086,6 +1087,8 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            if (target.Tooltip != null) hyperlink.Tooltip = target.Tooltip;
+            if (target.TargetFrame != null) hyperlink.TargetFrame = target.TargetFrame;
             for (int index = startIndex; index < startIndex + count; index++) {
                 AppendLegacyDocHyperlinkRunContent(hyperlink, paragraph, legacyRuns[index], bookmarks);
             }

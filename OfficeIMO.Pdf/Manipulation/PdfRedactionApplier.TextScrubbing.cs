@@ -299,7 +299,7 @@ internal static partial class PdfRedactionApplier {
                         target.Area,
                         target.TextRenderingMode))
                     .ToArray();
-                string replacement = PdfContentStreamTextRewriter.TryRemoveIntersectingGlyphs(
+                bool rewrittenSafely = PdfContentStreamTextRewriter.TryRemoveIntersectingGlyphs(
                     span.Value,
                     fontDecoders,
                     fontWidthProviders,
@@ -309,9 +309,11 @@ internal static partial class PdfRedactionApplier {
                     limits,
                     verticalWritingFonts,
                     extGStateFonts,
-                    out string rewritten)
-                    ? rewritten
-                    : string.Empty;
+                    out string rewritten);
+                if (!rewrittenSafely && selectedTargets.Any(static target => target.Area.RequiresGlyphRewrite)) {
+                    throw new InvalidOperationException("Precise redaction cannot safely rewrite the selected encoded glyphs; complete text-object removal is not permitted.");
+                }
+                string replacement = rewrittenSafely ? rewritten : string.Empty;
                 return new TextObjectRewrite(span.Index, span.Length, replacement);
             })
             .ToArray();

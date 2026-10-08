@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? Color,
             PdfCore.PdfColor? BackgroundColor) {
             public NativeTextSpacing TextSpacing { get; init; }
+            public NativeTextSpacing ListMarkerTextSpacing { get; init; }
             internal bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
             internal bool Strike => StrikeStyle != OfficeTextDecorationStyle.None;
         }
@@ -76,6 +77,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
             W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
             NativeCharacterStyleDefaults characterStyleDefaults = GetNativeCharacterStyleDefaults(paragraph._document, runProperties);
+            W.ParagraphMarkRunProperties? markerProperties = styleSource._paragraph?.ParagraphProperties?.ParagraphMarkRunProperties;
+            NativeCharacterStyleDefaults markerCharacterStyle = GetNativeCharacterStyleDefaults(styleSource._document, markerProperties);
 
             bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? false;
             bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? false;
@@ -118,7 +121,10 @@ namespace OfficeIMO.Word.Pdf {
 
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
                 TextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
-                    .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve()
+                    .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(),
+                // Numbering uses the paragraph mark, independently of the first body run.
+                ListMarkerTextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
+                    .Merge(styleDefaults.TextSpacing).Merge(markerCharacterStyle.TextSpacing).Merge(markerProperties).Resolve()
             };
         }
 

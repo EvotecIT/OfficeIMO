@@ -136,6 +136,12 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum operators parsed from one page or form content stream. Default: 1,000,000.</summary>
     public int MaxContentOperations { get; init; } = DefaultMaxContentOperations;
 
+    /// <summary>Maximum aggregate pixels sampled from function shadings during one page projection. Default: 16,000,000.</summary>
+    public int MaxFunctionShadingPixels { get; init; } = 16_000_000;
+
+    /// <summary>Maximum aggregate calculator work for function shading during one page projection. Default: 512,000,000.</summary>
+    public int MaxFunctionShadingEvaluationWork { get; init; } = 512_000_000;
+
     /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream. Default: 1,000,000.</summary>
     public int MaxContentOperands { get; init; } = DefaultMaxContentOperands;
 
@@ -214,6 +220,8 @@ public sealed class PdfReadLimits {
             MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
             MaxAnnotationsPerPage = SaturatingAdd(MaxAnnotationsPerPage, growth.AdditionalAnnotationsPerPage),
             MaxColorSpaceResourcesPerPage = MaxColorSpaceResourcesPerPage,
+            MaxFunctionShadingPixels = MaxFunctionShadingPixels,
+            MaxFunctionShadingEvaluationWork = MaxFunctionShadingEvaluationWork,
             MaxContentOperations = SaturatingAdd(MaxContentOperations, growth.AdditionalContentOperations),
             MaxContentOperands = SaturatingAdd(MaxContentOperands, growth.AdditionalContentOperands),
             MaxContentNestingDepth = SaturatingAdd(MaxContentNestingDepth, growth.AdditionalContentNestingDepth),
@@ -275,6 +283,8 @@ public sealed class PdfReadLimits {
             MaxFormFieldAppearanceStates = sources.Max(static limits => limits.MaxFormFieldAppearanceStates),
             MaxAnnotationsPerPage = sources.Max(static limits => limits.MaxAnnotationsPerPage),
             MaxColorSpaceResourcesPerPage = sources.Max(static limits => limits.MaxColorSpaceResourcesPerPage),
+            MaxFunctionShadingPixels = sources.Max(static limits => limits.MaxFunctionShadingPixels),
+            MaxFunctionShadingEvaluationWork = sources.Max(static limits => limits.MaxFunctionShadingEvaluationWork),
             MaxContentOperations = sources.Max(static limits => limits.MaxContentOperations),
             MaxContentOperands = sources.Max(static limits => limits.MaxContentOperands),
             MaxContentNestingDepth = sources.Max(static limits => limits.MaxContentNestingDepth),
@@ -378,6 +388,8 @@ public sealed class PdfReadLimits {
             MaxFormFieldAppearanceStates = Math.Min(MaxFormFieldAppearanceStates, maximumContainerEntries),
             MaxAnnotationsPerPage = Math.Min(MaxAnnotationsPerPage, maximumContainerEntries),
             MaxColorSpaceResourcesPerPage = Math.Min(MaxColorSpaceResourcesPerPage, maximumContainerEntries),
+            MaxFunctionShadingPixels = MaxFunctionShadingPixels,
+            MaxFunctionShadingEvaluationWork = MaxFunctionShadingEvaluationWork,
             MaxContentOperations = MaxContentOperations,
             MaxContentOperands = MaxContentOperands,
             MaxContentNestingDepth = MaxContentNestingDepth,
@@ -460,6 +472,8 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxFormFieldAppearanceStates, nameof(MaxFormFieldAppearanceStates), "Maximum form-field appearance states must be positive.");
         ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
         ValidatePositive(MaxColorSpaceResourcesPerPage, nameof(MaxColorSpaceResourcesPerPage), "Maximum color-space resources per page must be positive.");
+        ValidatePositive(MaxFunctionShadingPixels, nameof(MaxFunctionShadingPixels), "Function shading pixel limit must be positive.");
+        ValidatePositive(MaxFunctionShadingEvaluationWork, nameof(MaxFunctionShadingEvaluationWork), "Function shading work limit must be positive.");
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
         ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");

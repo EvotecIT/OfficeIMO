@@ -134,6 +134,13 @@ internal static partial class PdfWriter {
     }
 
     private static double GetListMarkerWidth(PdfListStyle? style, double estimatedWidth) {
+        if (style?.MarkerAlignsAtIndent == true) {
+            estimatedWidth *= style.MarkerAlign switch {
+                PdfAlign.Right => 0D,
+                PdfAlign.Center => 0.5D,
+                _ => 1D
+            };
+        }
         return Math.Max(estimatedWidth, style?.MarkerWidth ?? estimatedWidth);
     }
 
