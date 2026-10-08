@@ -1,4 +1,4 @@
-import { beginTask, checkAbort, consumeRows, inputRows } from "../core/iteration.js";
+import { checkAbort, consumeRows, inputRows, pause, taskYieldDue } from "../core/iteration.js";
 import { ChunkedTextSink, BlobByteSink } from "../core/sinks.js";
 import { NotSupportedError, OfficeIMOError } from "../core/errors.js";
 import type { CellValue } from "../core/index.js";
@@ -216,6 +216,7 @@ export class Worksheet<T = never> {
   private async sampleRow(values: readonly unknown[]): Promise<void> {
     if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000)) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
     const encoded: string[] = [];
+    let chunks = 0;
     for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
       if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
         if (this.options.autoSize?.sampleRows !== undefined) throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling text limit exceeded; reduce sampleRows or raise its bounded limit.");
@@ -227,6 +228,9 @@ export class Worksheet<T = never> {
       }
       if (this.started) { if (this.buffer!.append(chunk)) await this.buffer!.flush(); }
       else { this.pendingCharacters += chunk.length; encoded.push(chunk); }
+      if (!this.started && (++chunks & 127) === 0 && taskYieldDue()) {
+        await pause(); checkAbort(this.book.settings.signal);
+      }
     }
     if (!this.started) { this.layout.sample(values); this.pending.push(encoded); }
   }
@@ -286,7 +290,6 @@ export class Worksheet<T = never> {
     if (this.failed) throw this.error;
     this.busy = true;
     try {
-      beginTask();
       this.reserveLayout();
       if (!this.layout.sampleRows) await this.start();
       let checkpoint = performance.now();
@@ -294,6 +297,7 @@ export class Worksheet<T = never> {
       const completed = (): void | Promise<void> => {
         this.count++;
         if (!this.started && this.pending.length >= this.layout.sampleRows) return this.start().then(progress);
+        if (!this.started && taskYieldDue()) return pause().then(() => { checkAbort(this.book.settings.signal); progress(); });
         progress();
       };
       await consumeRows(rows, this.book.settings.signal, row => {

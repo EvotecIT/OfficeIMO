@@ -82,6 +82,28 @@ async function runBrowserScenarios({ vectorJson, workerScript, limits }) {
         setTimeout(() => controller.abort(), 15);
         await rejects(() => writing, "AbortError"); require(returned, scheduling + " cancelled iterator was returned");
       }
+      for (const kind of ["appends", "sample"]) {
+        const controller = new AbortController(), reason = new Error("cancel " + kind), total = 100000;
+        let produced = 0, returned = false;
+        const book = new Workbook({ compression: "store", signal: controller.signal, sink: { write() {} },
+          limits: { maxBufferedCells: total * 2, maxBufferedCharacters: total * 256 } });
+        const sheet = book.addWorksheet("Cancelled", { columns: [{ header: "ID" }, { header: "Text" }],
+          autoSize: { sampleRows: kind === "sample" ? total : 0 } });
+        const timer = setTimeout(() => controller.abort(reason), 15);
+        try {
+          let failure;
+          try {
+            if (kind === "appends") {
+              for (let i = 0; i < total; i++) { produced++; await sheet.addRows([[i, "Value"]]); }
+            } else {
+              function* rows() { try { for (let i = 0; i < total; i++) { produced++; yield [i, "Value"]; } } finally { returned = true; } }
+              await sheet.addRows(rows());
+            }
+          } catch (error) { failure = error; }
+          require(failure === reason && produced < total, scheduling + " timer must stop Excel " + kind + " before exhausting its source");
+          if (kind === "sample") require(returned, scheduling + " sampled source was returned");
+        } finally { clearTimeout(timer); await book.discard(reason); }
+      }
     }
   } finally {
     if (schedulerDescriptor) Object.defineProperty(globalThis, "scheduler", schedulerDescriptor);

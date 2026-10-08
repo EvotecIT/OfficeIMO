@@ -2209,7 +2209,7 @@ return _exports;
 })();
 
 const _m19 = (() => {
-const { beginTask, checkAbort, consumeRows, inputRows } = _m4;
+const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
 
@@ -2495,6 +2495,7 @@ class Worksheet {
         if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
             throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
         const encoded = [];
+        let chunks = 0;
         for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
             if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
                 if (this.options.autoSize?.sampleRows !== undefined)
@@ -2514,6 +2515,10 @@ class Worksheet {
             else {
                 this.pendingCharacters += chunk.length;
                 encoded.push(chunk);
+            }
+            if (!this.started && (++chunks & 127) === 0 && taskYieldDue()) {
+                await pause();
+                checkAbort(this.book.settings.signal);
             }
         }
         if (!this.started) {
@@ -2594,7 +2599,6 @@ class Worksheet {
             throw this.error;
         this.busy = true;
         try {
-            beginTask();
             this.reserveLayout();
             if (!this.layout.sampleRows)
                 await this.start();
@@ -2607,6 +2611,8 @@ class Worksheet {
                 this.count++;
                 if (!this.started && this.pending.length >= this.layout.sampleRows)
                     return this.start().then(progress);
+                if (!this.started && taskYieldDue())
+                    return pause().then(() => { checkAbort(this.book.settings.signal); progress(); });
                 progress();
             };
             await consumeRows(rows, this.book.settings.signal, row => {
@@ -2875,7 +2881,7 @@ return _exports;
 })();
 
 const _m13 = (() => {
-const { checkAbort } = _m4;
+const { beginTask, checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
 
@@ -2955,6 +2961,8 @@ class Workbook {
         for (const writer of Object.values(this.writers))
             if (typeof writer !== "function")
                 throw new TypeError("Cell value writers must be functions.");
+        // One write phase covers every worksheet and incremental append in this book.
+        beginTask();
         this.package = new OpcPackage({ compression, invalidCharacterPolicy: policy, ...(options.signal ? { signal: options.signal } : {}),
             ...(options.sink ? { sink: options.sink } : {}), ...(options.limits?.maxOutputBytes === undefined ? {} : { maxOutputBytes: options.limits.maxOutputBytes }) });
         // Property dates and app settings are captured before an asynchronous export begins.

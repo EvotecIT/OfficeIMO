@@ -2189,8 +2189,8 @@ _modules.set("28d9cc676883e53fa8a0dfe779786821980376a277e4a9cfc1bc28a4a8f4b3f3",
 return _exports;
 })();
 
-const _m17 = _modules.get("f9c3bd4902283b3125e04366e4cfaf226d1f0c86008c84fd41f2ce29406617f8") ?? (() => {
-const { beginTask, checkAbort, consumeRows, inputRows } = _m2;
+const _m17 = _modules.get("5295df3e17efc60838c0146882c7f34dd6b078b3f027e17c5eeb6020638d1d01") ?? (() => {
+const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
 
@@ -2476,6 +2476,7 @@ class Worksheet {
         if ((this.pending.length + 1) * this.columns.length > (this.book.settings.limits?.maxBufferedCells ?? 100000))
             throw new OfficeIMOError("RESOURCE_LIMIT", "Width sampling cell limit exceeded; reduce sampleRows or raise its bounded limit.");
         const encoded = [];
+        let chunks = 0;
         for (const chunk of this.rowXml(values, this.count + this.headerRows + 1, false)) {
             if (!this.started && this.pendingCharacters + chunk.length > (this.book.settings.limits?.maxBufferedCharacters ?? 1000000)) {
                 if (this.options.autoSize?.sampleRows !== undefined)
@@ -2495,6 +2496,10 @@ class Worksheet {
             else {
                 this.pendingCharacters += chunk.length;
                 encoded.push(chunk);
+            }
+            if (!this.started && (++chunks & 127) === 0 && taskYieldDue()) {
+                await pause();
+                checkAbort(this.book.settings.signal);
             }
         }
         if (!this.started) {
@@ -2575,7 +2580,6 @@ class Worksheet {
             throw this.error;
         this.busy = true;
         try {
-            beginTask();
             this.reserveLayout();
             if (!this.layout.sampleRows)
                 await this.start();
@@ -2588,6 +2592,8 @@ class Worksheet {
                 this.count++;
                 if (!this.started && this.pending.length >= this.layout.sampleRows)
                     return this.start().then(progress);
+                if (!this.started && taskYieldDue())
+                    return pause().then(() => { checkAbort(this.book.settings.signal); progress(); });
                 progress();
             };
             await consumeRows(rows, this.book.settings.signal, row => {
@@ -2739,7 +2745,7 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("f9c3bd4902283b3125e04366e4cfaf226d1f0c86008c84fd41f2ce29406617f8", _exports);
+_modules.set("5295df3e17efc60838c0146882c7f34dd6b078b3f027e17c5eeb6020638d1d01", _exports);
 return _exports;
 })();
 
@@ -2858,8 +2864,8 @@ _modules.set("111b738ac0b2b823bc5a1f675bff5cb7cec56e15b2b2d2260106ba3a8a183d84",
 return _exports;
 })();
 
-const _m1 = _modules.get("77155cf5d27d20ec88b51a2332cde47600b01cf56f9df5dcc511be8846ec7cde") ?? (() => {
-const { checkAbort } = _m2;
+const _m1 = _modules.get("e68eb12390e076942fd5613ef1a2e38a60233bd937fd0e8cadf16d1c4e26170e") ?? (() => {
+const { beginTask, checkAbort } = _m2;
 
 const { OfficeIMOError } = _m3;
 
@@ -2939,6 +2945,8 @@ class Workbook {
         for (const writer of Object.values(this.writers))
             if (typeof writer !== "function")
                 throw new TypeError("Cell value writers must be functions.");
+        // One write phase covers every worksheet and incremental append in this book.
+        beginTask();
         this.package = new OpcPackage({ compression, invalidCharacterPolicy: policy, ...(options.signal ? { signal: options.signal } : {}),
             ...(options.sink ? { sink: options.sink } : {}), ...(options.limits?.maxOutputBytes === undefined ? {} : { maxOutputBytes: options.limits.maxOutputBytes }) });
         // Property dates and app settings are captured before an asynchronous export begins.
@@ -3165,7 +3173,7 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("77155cf5d27d20ec88b51a2332cde47600b01cf56f9df5dcc511be8846ec7cde", _exports);
+_modules.set("e68eb12390e076942fd5613ef1a2e38a60233bd937fd0e8cadf16d1c4e26170e", _exports);
 return _exports;
 })();
 
@@ -3216,7 +3224,7 @@ _modules.set("76d4326d823318c570d9872567e2ff31ac14aa569f36706e573e5064cfd79d92",
 return _exports;
 })();
 
-const _m26 = _modules.get("6afbed52b8f829f4801154846e2a47e3c16ed00c8489f4f1f3ce8debf4351195") ?? (() => {
+const _m26 = _modules.get("83aa795417e3700164cd195955be91c1ae699c75a1289a708d0ac8d5f58d68d6") ?? (() => {
 const { withDestination } = _m4;
 
 const { copyColumns } = _m18;
@@ -3266,7 +3274,7 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("6afbed52b8f829f4801154846e2a47e3c16ed00c8489f4f1f3ce8debf4351195", _exports);
+_modules.set("83aa795417e3700164cd195955be91c1ae699c75a1289a708d0ac8d5f58d68d6", _exports);
 return _exports;
 })();
 
@@ -3317,10 +3325,10 @@ _modules.set("c013cfe5b472c379f0b80176b6ea8c7fcb7db1049c1e4119025f6d8431abc453",
 return _exports;
 })();
 
-const _m0 = _modules.get("f7f5dc7528619b97a4e22894e0ca806829567b845eb7bde8e5b52a291de75be7") ?? (() => {
+const _m0 = _modules.get("fd5e50bda4eea0f1c22a56afb2c526214e8c202037aa1042df72a584587a46b1") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m26.writeXlsx, writeXlsxTo: _m26.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m28.saveBlob, ExportCell: _m16.ExportCell });
-_modules.set("f7f5dc7528619b97a4e22894e0ca806829567b845eb7bde8e5b52a291de75be7", _exports);
+_modules.set("fd5e50bda4eea0f1c22a56afb2c526214e8c202037aa1042df72a584587a46b1", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m28, zip: _m10, xml: _m9, opc: _m6, xlsx: _m0 });
