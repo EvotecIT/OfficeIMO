@@ -588,6 +588,7 @@ internal static partial class HtmlRenderResourceLoader {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(result.ResourcePolicy);
         var seen = new HashSet<string>(HtmlResourceSeenKeyComparer.Instance);
+        var requestAliases = new Dictionary<string, List<HtmlResourceReference>>(HtmlResourceSeenKeyComparer.Instance);
         var pending = new Queue<PendingResource>();
         foreach (HtmlResourceReference reference in manifest.Resources) {
             pending.Enqueue(new PendingResource(reference, 0));
@@ -617,14 +618,20 @@ internal static partial class HtmlRenderResourceLoader {
                 HtmlResourceReference reference = pendingResource.Reference;
                 if (!reference.IsAllowed || !(IsLoadableKind(reference.Kind) || archiveResources && reference.Kind == HtmlResourceKind.Media) || reference.ResolvedSource.Length == 0) continue;
                 if (!archiveResources && reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
-                if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? plannedUri)) {
+                if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out _)) {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, OfficeConversionLossKind.Omission);
                     continue;
                 }
                 if (!TryAuthorizeResourceRequest(reference, resourcePolicy, diagnostics, out Uri uri)) continue;
                 if (!archiveResources && uri.Scheme.Equals("data", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!uri.Equals(plannedUri) && !seen.Add(GetSeenKey(reference.Kind, uri.AbsoluteUri))) continue;
+                string requestKey = GetSeenKey(reference.Kind, uri.AbsoluteUri);
+                if (!seen.Add(requestKey)) {
+                    if (requestAliases.TryGetValue(requestKey, out List<HtmlResourceReference>? aliases)) aliases.Add(reference);
+                    result.AliasAcceptedRequest(reference, uri);
+                    if (markAttemptedBeforeResolve) result.MarkAttempted(reference);
+                    continue;
+                }
+                requestAliases.Add(requestKey, new List<HtmlResourceReference> { reference });
                 if (result.AcceptedResourceCount >= result.MaxResourceCount) {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + result.MaxResourceCount, OfficeConversionLossKind.Omission);
                     stop = true;
@@ -703,7 +710,10 @@ internal static partial class HtmlRenderResourceLoader {
                     continue;
                 }
                 seen.Add(GetSeenKey(reference.Kind, resourceUri.AbsoluteUri));
-                if (alreadyAccepted) continue;
+                if (alreadyAccepted) {
+                    AliasAcceptedRequests(result, requestAliases, reference.Kind, item.Uri);
+                    continue;
+                }
                 if (archiveResources && reference.Kind == HtmlResourceKind.Image &&
                     resource.ContentType.Split(';')[0].Trim().Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                     try {
@@ -719,6 +729,7 @@ internal static partial class HtmlRenderResourceLoader {
                     if (cssBudget != null
                         && !HtmlRenderStylesheetApplier.TryReserveCss(cssBudget, resource.EncodedBytes.LongLength, reference.Source, diagnostics)) {
                         result.MarkStylesheetRejected(reference);
+                        AliasAcceptedRequests(result, requestAliases, reference.Kind, item.Uri);
                         continue;
                     }
 
@@ -733,6 +744,7 @@ internal static partial class HtmlRenderResourceLoader {
                         diagnostics,
                         archiveResources);
                 }
+                AliasAcceptedRequests(result, requestAliases, reference.Kind, item.Uri);
             }
         }
 

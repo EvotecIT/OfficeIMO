@@ -7,6 +7,45 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public async Task HtmlResourceSession_PreservesAliasesForRewrittenDuplicates(bool asynchronous, int maxResources) {
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            "<link rel='stylesheet' href='https://assets.example.test/a.css'>"
+            + "<link rel='stylesheet' href='https://assets.example.test/b.css'>");
+        var policy = HtmlUrlPolicy.CreateWebResourceProfile();
+        policy.ResolvedUrlTransform = _ => "https://assets.example.test/shared.css";
+        int requests = 0;
+        var options = new HtmlRenderOptions {
+            ResourceUrlPolicy = policy, MaxResourceCount = maxResources, MaxResourceRequests = maxResources,
+            ResourceResolver = (request, token) => {
+                requests++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Array.Empty<byte>(), "text/css"));
+            }
+        };
+        options.SynchronousResourceResolver = (HtmlRenderResourceRequest request, CancellationToken token, out HtmlResolvedResource? resource) => {
+            requests++;
+            resource = new HtmlResolvedResource(Array.Empty<byte>(), "text/css");
+            return true;
+        };
+
+        HtmlResourceSession session = asynchronous
+            ? await HtmlResourceSession.ResolveAsync(manifest, options)
+            : HtmlResourceSession.Resolve(manifest, options);
+
+        Assert.Equal(1, requests);
+        Assert.Equal(1, session.ResolverRequestCount);
+        Assert.Equal(1, session.AcceptedResourceCount);
+        Assert.Equal("https://assets.example.test/shared.css", Assert.Single(session.Resources).CanonicalSource);
+        foreach (HtmlResourceReference reference in manifest.Resources) {
+            Assert.True(session.TryGet(reference.Source, reference.ResolvedSource, out _));
+        }
+        Assert.Empty(session.Diagnostics);
+    }
+
     [Fact]
     public async Task HtmlRendering_DoesNotDispatchTransformTargetRejectedByDocumentPolicy() {
         var documentPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
