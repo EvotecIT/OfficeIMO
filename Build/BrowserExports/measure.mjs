@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { gzipSync, brotliCompressSync, deflateRawSync, constants } from "node:zlib";
-import { createWorkbook } from "../../OfficeIMO.JavaScript/dist/xlsx/index.js";
+import { Workbook } from "../../OfficeIMO.JavaScript/dist/xlsx/index.js";
 import { readZip } from "../../OfficeIMO.JavaScript/test/zip-reader.mjs";
 
 if (process.argv.length !== 3) throw new Error("Usage: node Build/BrowserExports/measure.mjs <evidence-directory>");
@@ -26,8 +26,8 @@ for (const workload of ["repeated", "unique"]) {
     for (let r = 0; r < rows; r++) yield Array.from({ length: columns }, (_, c) =>
       workload === "repeated" ? "Site " + r % 20 + " field " + c : "Row " + r + " field " + c);
   }
-  const workbook = createWorkbook();
-  await workbook.addSheet("Strings", { columns: Array.from({ length: columns }, () => ({ header: "V" })), includeHeader: false }).addRows(values());
+  const workbook = new Workbook();
+  await workbook.addWorksheet("Strings", { columns: Array.from({ length: columns }, () => ({ header: "V" })), includeHeader: false }).addRows(values());
   const xml = (await readZip(await workbook.toBlob())).get("xl/worksheets/sheet1.xml").content;
   // Compare equivalent XML payloads with the same deflater. This is a measurement
   // prototype, not a second workbook writer or a product shared-string dictionary.

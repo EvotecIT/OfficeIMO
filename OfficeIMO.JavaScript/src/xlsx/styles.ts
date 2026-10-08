@@ -1,6 +1,7 @@
 import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
-import type { Alignment, Column } from "../core/index.js";
+import type { Alignment } from "../core/index.js";
+import type { XlsxColumn } from "./types.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { colorArgb } from "./style-xml.js";
 import { DifferentialStyles } from "./differential-styles.js";
@@ -154,7 +155,7 @@ export class StyleRegistry {
     });
   }
   /** @internal Column shorthand and header style composition. */
-  forColumn(column: Column, header = false, fill?: string, date = false): number {
+  forColumn(column: XlsxColumn, header = false, fill?: string, date = false): number {
     const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
     const format = column.format !== undefined ? column.format || NumberFormats.General : base?.numberFormat || (column.type === "date" || date ? NumberFormats.DateTime : NumberFormats.General);
     return this.add({

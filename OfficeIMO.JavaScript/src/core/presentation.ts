@@ -12,7 +12,7 @@ export interface CellPresentation {
   readonly numberFormat?: string;
 }
 export interface ExportCellOptions {
-  /** Display text for CSV's display mode and bounded width sampling; the typed value remains authoritative. */
+  /** Display text for PDF, CSV's display mode and bounded width sampling; typed values remain authoritative. */
   readonly text?: string;
   readonly presentation?: CellPresentation;
 }
@@ -37,3 +37,7 @@ export function assertScalar(value: unknown): asserts value is CellValue {
   throw new TypeError("Export values and formatter results must be synchronous strings, numbers, booleans, Dates or null.");
 }
 export type ExportValue = CellValue | ExportCell;
+/** @internal Validate selected values before a destination interprets presentation. */
+export function assertExportValue(value: unknown): asserts value is ExportValue {
+  if (!(value instanceof ExportCell)) assertScalar(value);
+}

@@ -13,7 +13,7 @@ test("live rules resolve final data ranges without changing typed values or repo
     const rules = [structuredClone(highlight), { type: "expression", range: { column: 1, through: 2 }, formula: '=$B4<0', style: { font: { bold: false, color: "9C0006" } }, stopIfTrue: true },
       { type: "colorScale", range: { column: 2 }, stops: [{ threshold: { type: "min" }, color: "F8696B" }, { threshold: { type: "percentile", value: 50 }, color: "FFEB84" }, { threshold: { type: "max" }, color: "63BE7B" }] },
       { type: "dataBar", range: "B4:B5", color: "638EC6", showValue: false }];
-    const sheet = book.addSheet("Live", { columns, title: { text: "Report" }, table: {}, freezeHeader: true, footer: { totals: { amount: "sum" } }, print: { repeatHeaders: true }, conditionalFormats: rules });
+    const sheet = book.addWorksheet("Live", { columns, title: { text: "Report" }, table: {}, freezeHeader: true, footer: { totals: { amount: "sum" } }, print: { repeatHeaders: true }, conditionalFormats: rules });
     rules[0].style.fill.color = "000000"; rules[0].range.column = "name"; rules[1].formula = '1=0'; rules[2].stops[1].threshold.value = 99;
     await sheet.addRows([["negative", -12.5]]); await sheet.addRows([["positive", 5]]);
     let blob; if (streamed) { await sheet.close(); await book.finish(); blob = new Blob(chunks); } else blob = await book.toBlob();
@@ -34,7 +34,7 @@ test("differential styles are minimal and cached across worksheets and input pro
   for (let i = 0; i < 3; i++) {
     const style = i % 2 ? { numberFormat: '"_x0041_"0.0', font: { color: "#123456", italic: false }, border: { bottom: { color: "abcdef", style: "thin" } } } :
       { border: { bottom: { style: "thin", color: "FFABCDEF" } }, font: { italic: false, color: "FF123456" }, numberFormat: '"_x0041_"0.0' };
-    await book.addSheet("Sheet" + i, { columns: [{ header: "Value", format: "0.00" }], conditionalFormats: [{ ...highlight, range: "A2", style }] }).addRows([[12.5]]);
+    await book.addWorksheet("Sheet" + i, { columns: [{ header: "Value", format: "0.00" }], conditionalFormats: [{ ...highlight, range: "A2", style }] }).addRows([[12.5]]);
   }
   const zip = await readZip(await book.toBlob()), styles = zip.get("xl/styles.xml").content;
   assert.match(styles, /<dxfs count="1">/); const dxf = /<dxf>(.*?)<\/dxf>/.exec(styles)[1];
@@ -57,26 +57,26 @@ test("conditional metadata rejects unsupported or invalid contracts before sheet
     { type: "colorScale", range: "B2", stops: [{ threshold: { type: "percent", value: -1 }, color: "123456" }, { threshold: { type: "max" }, color: "abcdef" }] }
   ];
   for (const rule of invalid) {
-    const book = new Workbook(); assert.throws(() => book.addSheet("Recover", { columns, conditionalFormats: [rule] }));
-    assert.equal(book.addSheet("Recover", { columns }).name, "Recover");
+    const book = new Workbook(); assert.throws(() => book.addWorksheet("Recover", { columns, conditionalFormats: [rule] }));
+    assert.equal(book.addWorksheet("Recover", { columns }).name, "Recover");
   }
   const limited = new Workbook({ limits: { maxConditionalFormats: 1, maxDifferentialStyles: 1 } });
-  assert.throws(() => limited.addSheet("Recover", { columns, conditionalFormats: [highlight, highlight] }), { code: "RESOURCE_LIMIT" });
-  assert.throws(() => limited.addSheet("Recover", { columns, conditionalFormats: [highlight, { ...highlight, style: { font: { bold: true } } }] }), { code: "RESOURCE_LIMIT" });
-  limited.addSheet("Recover", { columns, conditionalFormats: [highlight] });
-  assert.throws(() => limited.addSheet("Overflow", { columns, conditionalFormats: [highlight] }), { code: "RESOURCE_LIMIT" });
+  assert.throws(() => limited.addWorksheet("Recover", { columns, conditionalFormats: [highlight, highlight] }), { code: "RESOURCE_LIMIT" });
+  assert.throws(() => limited.addWorksheet("Recover", { columns, conditionalFormats: [highlight, { ...highlight, style: { font: { bold: true } } }] }), { code: "RESOURCE_LIMIT" });
+  limited.addWorksheet("Recover", { columns, conditionalFormats: [highlight] });
+  assert.throws(() => limited.addWorksheet("Overflow", { columns, conditionalFormats: [highlight] }), { code: "RESOURCE_LIMIT" });
   const styles = new Workbook({ limits: { maxDifferentialStyles: 1 } });
-  assert.throws(() => styles.addSheet("Recover", { columns, conditionalFormats: [highlight, { ...highlight, style: { font: { bold: true } } }] }), { code: "RESOURCE_LIMIT" });
-  assert.equal(styles.addSheet("Recover", { columns, conditionalFormats: [highlight] }).name, "Recover");
+  assert.throws(() => styles.addWorksheet("Recover", { columns, conditionalFormats: [highlight, { ...highlight, style: { font: { bold: true } } }] }), { code: "RESOURCE_LIMIT" });
+  assert.equal(styles.addWorksheet("Recover", { columns, conditionalFormats: [highlight] }).name, "Recover");
 });
 
 test("empty data-only rules do not color report headings or totals; literal ranges keep bounds", async () => {
-  const empty = new Workbook(); await empty.addSheet("Empty", { columns, title: { text: "Empty" }, footer: { totals: { amount: "sum" } }, conditionalFormats: [highlight] }).addRows([]);
+  const empty = new Workbook(); await empty.addWorksheet("Empty", { columns, title: { text: "Empty" }, footer: { totals: { amount: "sum" } }, conditionalFormats: [highlight] }).addRows([]);
   const xml = (await readZip(await empty.toBlob())).get("xl/worksheets/sheet1.xml").content;
   assert.doesNotMatch(xml, /<conditionalFormatting/);
   for (const streamed of [false, true]) {
     const book = new Workbook({ ...(streamed ? { sink: { write() {} } } : {}) });
-    const sheet = book.addSheet("Bounds", { columns, conditionalFormats: [{ ...highlight, range: "B99" }] }); await sheet.addRows([["one", 1]]);
+    const sheet = book.addWorksheet("Bounds", { columns, conditionalFormats: [{ ...highlight, range: "B99" }] }); await sheet.addRows([["one", 1]]);
     let original; try { await sheet.close(); } catch (error) { original = error; }
     assert.match(String(original), /exported rows/); await assert.rejects(book.finish(), error => error === original);
   }
@@ -90,21 +90,21 @@ test("rejected worksheets release names, conditional capacity and hyperlink rese
   ];
   for (const failure of failures) {
     const book = new Workbook({ invalidCharacterPolicy: "reject", limits: { maxDifferentialStyles: 1, maxConditionalFormats: 1, maxHyperlinks: 1 } });
-    book.addSheet("Existing", { columns, table: { name: "Existing" } });
-    assert.throws(() => book.addSheet("Recover", { columns, conditionalFormats: [highlight], ...failure }));
-    assert.throws(() => book.addSheet(17, { columns, conditionalFormats: [highlight] }));
-    const sheet = book.addSheet("Recover", { columns, conditionalFormats: [{ ...highlight, style: { fill: { color: "123456" } } }], hyperlinks: [{ cell: "A2", target: "https://example.com" }] });
+    book.addWorksheet("Existing", { columns, table: { name: "Existing" } });
+    assert.throws(() => book.addWorksheet("Recover", { columns, conditionalFormats: [highlight], ...failure }));
+    assert.throws(() => book.addWorksheet(17, { columns, conditionalFormats: [highlight] }));
+    const sheet = book.addWorksheet("Recover", { columns, conditionalFormats: [{ ...highlight, style: { fill: { color: "123456" } } }], hyperlinks: [{ cell: "A2", target: "https://example.com" }] });
     assert.equal(sheet.name, "Recover"); await sheet.addRows([["ok", 1]]);
     const zip = await readZip(await book.toBlob()), styles = zip.get("xl/styles.xml").content;
     assert.match(styles, /<dxfs count="1">/); assert.doesNotMatch(styles, /FFFFC7CE/);
     assert.match(zip.get("xl/worksheets/sheet2.xml").content, /priority="1" dxfId="0"/);
   }
   const book = new Workbook({ limits: { maxDifferentialStyles: 0, maxHyperlinks: 1 } });
-  assert.throws(() => book.addSheet("Recover", { columns, conditionalFormats: [highlight], hyperlinks: [{ cell: "A2", target: "https://example.com" }] }), { code: "RESOURCE_LIMIT" });
-  assert.equal(book.addSheet("Recover", { columns, hyperlinks: [{ cell: "A2", target: "https://example.com" }] }).name, "Recover");
+  assert.throws(() => book.addWorksheet("Recover", { columns, conditionalFormats: [highlight], hyperlinks: [{ cell: "A2", target: "https://example.com" }] }), { code: "RESOURCE_LIMIT" });
+  assert.equal(book.addWorksheet("Recover", { columns, hyperlinks: [{ cell: "A2", target: "https://example.com" }] }).name, "Recover");
   const bounded = new Workbook({ limits: { maxDifferentialStyles: 0, maxStyles: 3 } });
-  assert.throws(() => bounded.addSheet("Recover", { title: { text: "Rejected" }, columns: [{ header: "Value", format: "0.00" }], conditionalFormats: [{ ...highlight, range: "A2" }] }), { code: "RESOURCE_LIMIT" });
-  assert.equal(bounded.addSheet("Recover", { columns: [{ header: "Value", format: "0.000" }] }).name, "Recover");
+  assert.throws(() => bounded.addWorksheet("Recover", { title: { text: "Rejected" }, columns: [{ header: "Value", format: "0.00" }], conditionalFormats: [{ ...highlight, range: "A2" }] }), { code: "RESOURCE_LIMIT" });
+  assert.equal(bounded.addWorksheet("Recover", { columns: [{ header: "Value", format: "0.000" }] }).name, "Recover");
   const styles = new StyleRegistry();
   for (let i = 0; i < 65371; i++) styles.addNumberFormat('"' + i + '"0');
   assert.throws(() => styles.addDifferentials([{ numberFormat: '"first"0' }, { numberFormat: '"second"0' }]), /Too many number formats/);
@@ -114,7 +114,7 @@ test("rejected worksheets release names, conditional capacity and hyperlink rese
 
 test("literal formulas and thresholds escape XML while preserving formula semantics", async () => {
   const book = new Workbook(), formula = 'AND(A2="_x0041_ Łódź 🧪",B2<5)';
-  await book.addSheet("Formula", { columns, conditionalFormats: [
+  await book.addWorksheet("Formula", { columns, conditionalFormats: [
     { type: "expression", range: "A2:B2", formula, style: highlight.style },
     { type: "dataBar", range: "B2", color: "638EC6", minimum: { type: "number", value: 0 }, maximum: { type: "formula", value: '=IF(A2="_x0041_ Łódź 🧪\t\r\n",100,200)' } },
     { type: "colorScale", range: "B2", stops: [{ threshold: { type: "min" }, color: "FF0000" }, { threshold: { type: "formula", value: "='Rate_x0041_'!B2" }, color: "00FF00" }] },
