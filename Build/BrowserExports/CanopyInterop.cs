@@ -24,6 +24,35 @@ internal static class CanopyInterop {
                 new HtmlBrowserLaunchOptions { Browser = engine, Headless = true, Timeout = 120000 });
             var errors = new List<string>(); session.Page.PageError += (_, error) => errors.Add(error);
             var files = new List<object>();
+            async Task CaptureAsync(string name, int width, int height) {
+                await session.Page.SetViewportSizeAsync(width, height);
+                await session.Page.EvaluateAsync("() => document.fonts.ready.then(() => true)");
+                await session.Page.WaitForFunctionAsync("""
+                    () => {
+                        const host = document.querySelector('#fixture .cx-data-grid');
+                        if (!host || host.classList.contains('cx-phone') !== (host.clientWidth <= 640)) return false;
+                        const rows = [...host.querySelectorAll('.cx-row[data-cx-id]')];
+                        return rows.length > 0 && rows.every(row =>
+                            row.querySelectorAll('.cx-hidden-fields').length === (host.classList.contains('cx-phone') ? 1 : 0));
+                    }
+                    """);
+                // ResizeObserver updates widths/phone chrome, then schedules the row paint on later frames.
+                await session.Page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)))))");
+                JsonElement layout = await session.Page.EvaluateAsync<JsonElement>("""
+                    () => {
+                        const host = document.querySelector('#fixture .cx-data-grid'), grid = host.querySelector('.cx-grid');
+                        return { viewport: { width: innerWidth, height: innerHeight }, hostWidth: host.clientWidth,
+                            phone: host.classList.contains('cx-phone'), gridHeight: grid.clientHeight,
+                            font: getComputedStyle(host).fontFamily, headingFont: getComputedStyle(document.querySelector('h1')).fontFamily,
+                            columns: host.canopyx?.getColumnLayout?.(),
+                            headings: [...host.querySelectorAll('.cx-hcell')].map(cell => cell.textContent),
+                            rows: [...host.querySelectorAll('.cx-row[data-cx-id]')].map(row => ({ id: row.dataset.cxId,
+                                hiddenFields: [...row.querySelectorAll('.cx-hidden-fields')].map(button => button.textContent) })) };
+                    }
+                    """);
+                File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(layout, new JsonSerializerOptions { WriteIndented = true }));
+                await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, name + ".png"), FullPage = true });
+            }
             await session.Page.ExposeFunctionAsync("writeCanopyFixture", (string name, string base64, string contract) => {
                 if (Path.GetFileName(name) != name || !new[] { ".xlsx", ".pdf", ".csv" }.Contains(Path.GetExtension(name))) throw new InvalidDataException("Invalid Canopy fixture name.");
                 string path = Path.Combine(output, name); File.WriteAllBytes(path, Convert.FromBase64String(base64)); File.WriteAllText(path + ".json", contract);
@@ -31,13 +60,12 @@ internal static class CanopyInterop {
             });
             await session.Page.ExposeFunctionAsync("captureCanopyScreen", async (string name) => {
                 if (name != "records") throw new InvalidDataException("Invalid screenshot stage.");
-                await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "records-wide.png"), FullPage = true });
-                await session.Page.SetViewportSizeAsync(420, 760);
-                await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "records-compact.png"), FullPage = true });
+                await CaptureAsync("records-wide", 1280, 720);
+                await CaptureAsync("records-compact", 420, 760);
                 await session.Page.SetViewportSizeAsync(1280, 720);
                 return true;
             });
-            await session.Page.AddStyleTagAsync(new() { Content = inputs["canopyx-reporting.css"] + inputs["canopyx-filter-editor.css"] + "body{padding:16px;box-sizing:border-box}h1{font:22px system-ui}#fixture{height:620px}.cx-host{height:100%}" });
+            await session.Page.AddStyleTagAsync(new() { Content = inputs["canopyx-reporting.css"] + inputs["canopyx-filter-editor.css"] + "body{padding:16px;box-sizing:border-box}h1{font-size:22px;font-weight:400}#fixture{height:620px}.cx-host{height:100%}" });
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] + "\n" + inputs["canopyx-filter-editor.js"] });
             await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
@@ -48,9 +76,8 @@ internal static class CanopyInterop {
             string? hostError = await session.Page.EvaluateAsync<string?>("globalThis.canopyHostButtonError || null");
             if (hostError is not null) throw new InvalidDataException(hostError);
             if (errors.Count != 0) throw new InvalidDataException(string.Join("; ", errors));
-            await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "canopy-wide.png"), FullPage = true });
-            await session.Page.SetViewportSizeAsync(420, 760);
-            await session.Page.ScreenshotAsync(new() { Path = Path.Combine(output, "canopy-compact.png"), FullPage = true });
+            await CaptureAsync("canopy-wide", 1280, 720);
+            await CaptureAsync("canopy-compact", 420, 760);
             await session.Page.GotoAsync(new Uri(host).AbsoluteUri);
             await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-grid.js"] });
             await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });
