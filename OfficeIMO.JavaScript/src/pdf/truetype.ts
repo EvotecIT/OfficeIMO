@@ -122,5 +122,5 @@ export class TrueTypeFont extends FontReader {
     }
     return 0;
   }
-  subset(glyphs: ReadonlySet<number>): Uint8Array { return this.canSubset ? subsetTrueType(this, glyphs) : this.bytes; }
+  subset(glyphs: ReadonlySet<number>, characters: ReadonlyMap<number, number>): Uint8Array { return this.canSubset ? subsetTrueType(this, glyphs, characters) : this.bytes; }
 }

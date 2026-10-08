@@ -1,5 +1,6 @@
 import { BlobByteSink, checkAbort, saveBlob } from "../../core/index.js";
-import type { OutputDestination, ExportResult, ExportValue } from "../../core/index.js";
+import type { OutputDestination, ExportResult } from "../../core/index.js";
+import { concatRows } from "../../core/iteration.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
 import { writePdfTo } from "../../pdf/index.js";
@@ -38,12 +39,8 @@ export async function writeDataTableTo(host: DataTablesHost, table: DataTablesAp
       ...(options.onProgress ? { onProgress: event => options.onProgress?.({ ...event, totalRows: source.rowCount }) } : {}) });
   } else {
     const headingCount = source.headers.length, footerCount = source.footer ? 1 : 0;
-    async function* rows(): AsyncGenerator<readonly ExportValue[]> {
-      for (const header of source.headers) yield header;
-      yield* source.rows;
-      if (source.footer) yield source.footer;
-    }
-    result = await writeCsvTo(rows(), destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: false,
+    const rows = concatRows(source.headers, source.rows, source.footer ? [source.footer] : []);
+    result = await writeCsvTo(rows, destination, { ...options.csv, ...stream, columns: source.columns, includeHeader: false,
       ...(options.limits?.maxRows !== undefined ? { limits: { ...options.limits, maxRows: Math.min(Number.MAX_SAFE_INTEGER, options.limits.maxRows + headingCount + footerCount) } } : {}),
       onProgress: event => {
         const rowCount = Math.max(0, Math.min(source.rowCount, event.rows - headingCount));

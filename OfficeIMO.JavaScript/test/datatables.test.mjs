@@ -27,7 +27,7 @@ test("adapter portable presentation rejects component IDs and advanced Cells in 
 });
 
 // Contract-shaped external API: deliberately returns batch cells in a different order.
-function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows } = {}) {
+function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0], serverSide = false, grouped = true, nodeRows, ordered = false } = {}) {
   const calls = [], apiArray = values => ({ toArray: () => values });
   const host = { Buttons: { stripData: v => v }, ext: { buttons: {} } };
   const table = {
@@ -40,7 +40,7 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
       let positions = [];
       return { iterator(type, callback) { assert.equal(type, 'table'); callback(); },
         pop() { positions = []; },
-        push(requested) { calls.push([...new Set(requested.map(p => p.row))]); positions = [...requested].reverse(); },
+        push(requested) { calls.push([...new Set(requested.map(p => p.row))]); positions = ordered ? [...requested] : [...requested].reverse(); },
         render: () => apiArray(positions.map(p => data[p.row][p.column])),
         indexes: () => apiArray(positions), nodes: () => apiArray(nodeRows ? positions.filter(p => nodeRows.includes(p.row)) : positions.map(() => null)) };
     },
@@ -55,6 +55,35 @@ function fixture({ data = [["second", 12.5], ["first", 7.5]], selected = [1, 0],
   };
   return { host, table, calls, data };
 }
+
+test("ordered and reordered cell results preserve projected values, callback coordinates and deferred nodes", async () => {
+  for (const ordered of [true, false]) {
+    const { host, table } = fixture({ ordered, nodeRows: [1], grouped: false });
+    const contexts = [];
+    const blob = await exportDataTable(host, table, "csv", { includeFooter: false, batchRows: 2,
+      exportOptions: { format: { body(v, r, c, node) { contexts.push([r, c, node]); return v; } } } });
+    assert.equal(await blob.text(), "Name,Amount\r\nfirst,7.5\r\nsecond,12.5\r\n");
+    assert.deepEqual(contexts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]),
+      [[0, 0, undefined], [0, 1, undefined], [1, 0, { row: 1, column: 0 }], [1, 1, { row: 1, column: 1 }]]);
+  }
+});
+
+test("a reordered suffix preserves its ordered prefix and rejects a repeated prefix coordinate", async () => {
+  for (const duplicate of [false, true]) {
+    const { host, table } = fixture({ ordered: true, grouped: false });
+    const cells = table.cells;
+    table.cells = (...args) => {
+      const result = cells(...args), indexes = result.indexes, render = result.render;
+      const reorder = values => [values[0], values[1], values[3], values[duplicate ? 0 : 2]];
+      result.indexes = () => ({ toArray: () => reorder(indexes().toArray()) });
+      result.render = () => ({ toArray: () => reorder(render().toArray()) });
+      return result;
+    };
+    const exporting = exportDataTable(host, table, "csv", { includeFooter: false });
+    if (duplicate) await assert.rejects(exporting, /Invalid DataTables cell indexes/);
+    else assert.equal(await (await exporting).text(), "Name,Amount\r\nfirst,7.5\r\nsecond,12.5\r\n");
+  }
+});
 
 test("batched export preserves scope, reordered cell indexes, typed presentation, grouped headings and footer", async () => {
   const { host, table, calls } = fixture();
@@ -109,6 +138,17 @@ test("CSV row limits count data rows and progress excludes grouped headings and 
   await assert.rejects(writeDataTableTo(host, table, "csv", { write() {} }, { limits: { maxOutputBytes: 1 } }), /maxOutputBytes/);
 });
 
+test("plain CSV headings preserve quoting, data-row limits and completion through a borrowed sink", async () => {
+  const { host, table } = fixture({ grouped: false }); const events = [], chunks = [];
+  const options = { headings: "leaf", includeFooter: false, csv: { quote: "strings" },
+    limits: { maxRows: 2, maxCells: 6 }, onProgress: event => events.push(event) };
+  const result = await writeDataTableTo(host, table, "csv", { write: bytes => chunks.push(bytes.slice()) }, options);
+  assert.equal(Buffer.concat(chunks).toString(), '"Name","Amount"\r\n"first",7.5\r\n"second",12.5\r\n');
+  assert.deepEqual(result, { rows: 2, columns: 2, bytes: Buffer.concat(chunks).length });
+  assert.equal(events.at(-1).rows, 2); assert.equal(events.at(-1).totalRows, 2);
+  await assert.rejects(writeDataTableTo(host, table, "csv", { write() {} }, { ...options, limits: { maxCells: 5 } }), /maxCells/);
+});
+
 test("cancellation stops the next projection batch and preserves the caller's reason", async () => {
   const { host, table, calls } = fixture(); const controller = new AbortController(), reason = new Error("cancel export");
   const source = createDataTablesExport(host, table, { batchRows: 1, signal: controller.signal });
@@ -122,6 +162,19 @@ test("cancellation stops the next projection batch and preserves the caller's re
     await assert.rejects(collect(source.rows), error => error === reason);
     assert.equal(projected, 1, mode + " must stop before the next projection");
   }
+});
+
+test("CSV cancellation during batch backpressure releases the destination and stops the next batch", async () => {
+  const { host, table, calls } = fixture({ data: [["🧪".repeat(30000), 1], ["later", 2]], selected: [0, 1], grouped: false });
+  const controller = new AbortController(), reason = new Error("cancel slow CSV");
+  let accepted; const started = new Promise(resolve => { accepted = resolve; });
+  const destination = new WritableStream({ write() { accepted(); return new Promise(() => {}); } });
+  const writing = writeDataTableTo(host, table, "csv", destination, { headings: "leaf", includeFooter: false,
+    batchRows: 1, signal: controller.signal });
+  await started; controller.abort(reason);
+  await assert.rejects(writing, error => error === reason);
+  assert.equal(destination.locked, false);
+  assert.deepEqual(calls, [[0]]);
 });
 
 test("body formatting maps sparse DOM nodes and rejects async callback results", async () => {

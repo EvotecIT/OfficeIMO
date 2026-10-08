@@ -13,6 +13,15 @@ async function runLayerScenarios({ fixtureJson, moduleBase }) {
   }
   for (const [kind, library] of libraries) {
     const { core, zip, xml, opc, xlsx, csv } = library;
+    if (typeof globalThis.scheduler?.postTask === "function") {
+      // A bounded user-visible queue models a busy host without a timing threshold.
+      // The export continuation must join that queue rather than wait for it to drain.
+      let hostTasks = 0, tasksAtResume;
+      const resumed = core.pause().then(() => { tasksAtResume = hostTasks; });
+      const host = Array.from({ length: 32 }, () => scheduler.postTask(() => { hostTasks++; }, { priority: "user-visible" }));
+      await Promise.all([resumed, ...host]);
+      require(tasksAtResume < hostTasks, "Export continuation waited for the entire ordinary-priority host queue");
+    }
     const sink = new core.BlobByteSink(), writer = new xml.XmlWriter(sink);
     await writer.startElement("root", { value: "<&\r\n\t" }); await writer.text("Łódź 🧪 שלום"); await writer.endElement(); await writer.close();
     const parsed = new DOMParser().parseFromString(await sink.toBlob().text(), "application/xml");

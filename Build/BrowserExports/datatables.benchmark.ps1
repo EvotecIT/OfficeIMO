@@ -8,9 +8,13 @@ $browserNames = (Get-BenchmarkInput Browsers 'Chromium,Firefox,WebKit').Split(',
 $stackNames = (Get-BenchmarkInput Stacks 'bundled,current').Split(',')
 $formats = (Get-BenchmarkInput Formats 'csv').Split(',')
 $unique = Get-BenchmarkInput Unique $false -Bool
+$styled = Get-BenchmarkInput Styled $false -Bool
+$fullWidthScan = Get-BenchmarkInput FullWidthScan $false -Bool
+$textProfile = Get-BenchmarkInput TextProfile 'unicode'
 $comparison = Get-BenchmarkInput Comparison $true -Bool
-if ($formats.Where({ $_ -notin 'csv','xlsx' }).Count) { throw 'Supported formats are csv and xlsx.' }
-if ($comparison -and $formats -contains 'xlsx') { throw 'XLSX width-sizing work differs between lanes. Cross-library comparisons support CSV only.' }
+if ($formats.Where({ $_ -notin 'csv','xlsx','pdf' }).Count) { throw 'Supported formats are csv, xlsx and pdf.' }
+if ($styled -and $formats.Where({ $_ -ne 'pdf' }).Count) { throw 'The styled comparison currently supports PDF only.' }
+if ($comparison -and $formats -contains 'xlsx' -and -not $fullWidthScan) { throw 'XLSX comparisons require full-width scanning in both implementations.' }
 
 function Invoke-TableComparisonRequest {
     param([hashtable] $Request)
@@ -21,15 +25,18 @@ function Invoke-TableComparisonRequest {
 
 New-BenchmarkSuite 'officeimo-browser-table-exports' -OutputRoot $evidence {
     Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -OutlierMode None
-    Add-BenchmarkMetadata Contract 'Same grid, rows, typed numbers and literal Unicode strings; plain quoted CSV, no title/footer. Browser export and control roundtrip measured; setup, transfer and independent every-value validation excluded. XLSX is output qualification only: native width sizing is not equivalent.'
+    Add-BenchmarkMetadata Contract 'Same grid and ordered values; quoted CSV, typed XLSX or font-supported PDF text, no title/footer. Browser export and control roundtrip measured; setup, transfer and independent cell validation excluded. Comparative XLSX scans all rows for approximate widths; fixed-width XLSX is output qualification only.'
     Add-BenchmarkMetadata ComparisonEnabled $comparison
+    Add-BenchmarkMetadata TextProfile $textProfile
+    Add-BenchmarkMetadata PdfContract 'Identical Carlito regular/bold fonts, A3 landscape, 6-point text, equal columns, repeated heading, same line spacing and 0.4-point grid. Optional body bands. Generation timed through completed Blob, not early Buttons callback; fonts prepared before timing. Each rendered value and column position validated independently.'
+    Add-BenchmarkMetadata XlsxContract 'FullWidthScan measures complete-table character sizing in both implementations, bounded at width 54. Approximation algorithms and resulting widths can differ. OfficeIMO explicitly budgets retained serialized rows for this workload; this is not its default bounded leading sample or a streaming-memory comparison.'
     Add-BenchmarkMetadata BinarySha256 (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash
     Add-BenchmarkMetadata AssetManifestSha256 (Get-FileHash -LiteralPath (Join-Path $repository 'Build/BrowserExports/comparison-assets.json') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata HeapBoundary 'Sampled Chromium JavaScript heap only; unavailable in Firefox/WebKit. Does not measure browser process-tree/native memory.'
     Add-BenchmarkCaseSource {
         foreach ($browser in $browserNames) { foreach ($stack in $stackNames) { foreach ($format in $formats) {
             foreach ($rows in $rowCounts) { foreach ($columns in $columnCounts) {
-                [pscustomobject]@{ Name = "$browser-$stack-$format-$rows-$columns"; Browser = $browser; Stack = $stack; Format = $format; Rows = $rows; Columns = $columns; Unique = $unique }
+                [pscustomobject]@{ Name = "$browser-$stack-$format-$rows-$columns"; Browser = $browser; Stack = $stack; Format = $format; Rows = $rows; Columns = $columns; Unique = $unique; Styled = $styled; FullWidthScan = $fullWidthScan; TextProfile = $textProfile }
             } }
         } } }
     }
@@ -38,7 +45,7 @@ New-BenchmarkSuite 'officeimo-browser-table-exports' -OutputRoot $evidence {
         if ($null -eq [DataTablesBenchmarkClient]::Current) {
             [DataTablesBenchmarkClient]::Current = [DataTablesBenchmarkClient]::new($binary, $repository, (Join-Path $evidence 'browser-session'), $assets)
         }
-        $run.Prepared = Invoke-TableComparisonRequest @{ command = 'prepare'; browser = $case.Browser; stack = $case.Stack; format = $case.Format; rows = $case.Rows; columns = $case.Columns; unique = $case.Unique }
+        $run.Prepared = Invoke-TableComparisonRequest @{ command = 'prepare'; browser = $case.Browser; stack = $case.Stack; format = $case.Format; rows = $case.Rows; columns = $case.Columns; unique = $case.Unique; styled = $case.Styled; fullWidthScan = $case.FullWidthScan; textProfile = $case.TextProfile }
         if ($run.Prepared.rows -ne $case.Rows) { throw 'Grid setup did not load the requested rows.' }
     }
     foreach ($lane in 'native','compatibility','batched') {
