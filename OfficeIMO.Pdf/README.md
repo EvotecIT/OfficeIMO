@@ -1677,6 +1677,15 @@ Complete logical blocks and `TextAndUnderlay` remain the search defaults.
 Evidence for `TextOnly` includes text and annotation removals; preserved image and
 vector underlays remain visible in the plan without being counted as removals.
 
+Precise selection retains inherited font state and uses the source text matrix for
+scaled or sheared glyph bounds. Rewriting preserves imported numeric font resources
+and fractional review geometry. Independently produced TrueType and CFF regression
+inputs cover neighboring text, bookmarks and ink preservation; the
+[viewer checks](../Build/PdfViewerVerification/README.md) describe independent
+readback and rendering. Outlined letters require a reviewed area because they are
+vector paths rather than searchable text. Tight spacing can still block a substring
+when its review envelope intersects an unselected glyph.
+
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
 
 Configured removed and retained markers and external validators check the final

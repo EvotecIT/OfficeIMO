@@ -498,6 +498,9 @@
     <Style Selector="Button.cardAction:disabled"><Setter Property="Opacity" Value="0.72" /></Style>
 
     <Style Selector="Expander"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="8" /></Style>
+    <Style Selector="Expander.accessibleSection /template/ ToggleButton#ExpanderHeader">
+      <Setter Property="AutomationProperties.Name" Value="{ReflectionBinding (AutomationProperties.Name), RelativeSource={RelativeSource TemplatedParent}}" />
+    </Style>
     <Style Selector="ListBox.providers ListBoxItem"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,4,6" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="ListBox.providers ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
 
