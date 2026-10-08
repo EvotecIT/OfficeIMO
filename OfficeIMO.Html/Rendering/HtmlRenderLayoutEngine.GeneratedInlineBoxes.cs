@@ -11,7 +11,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         double containingWidth) {
         var runs = new List<HtmlInlineRun>();
-        AddGeneratedInlineFragments(content, element, style, link, source, containingWidth, 0D, 0D, runs);
+        AddGeneratedInlineFragments(content, element, style, link, source, containingWidth, 0D, 0D, runs,
+            insideGeneratedBox: true);
+        runs = ApplyScopedFontFallbacks(runs);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth;
         if (style.ExplicitWidth.HasValue) {
@@ -31,7 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             boxWidth = ResolveBoxWidth(availableWidth, sized);
         }
 
-        HtmlInlineLayout inline = LayoutInlineRuns(runs, Math.Max(1D, boxWidth - style.HorizontalInsets), style);
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, Math.Max(1D, boxWidth - style.HorizontalInsets), style, element);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         var visuals = new List<HtmlRenderVisual>();
         AddGeneratedBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
