@@ -32,4 +32,7 @@
     <Using Include="System.Text" />
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="TestData\Vba\*.bin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

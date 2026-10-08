@@ -1,5 +1,14 @@
 # Upgrading OfficeIMO
 
+## Word VBA module identities and removal
+
+`WordDocument.Macros` returns logical names from the VBA directory when a complete
+project is present. Applications that previously used compound stream names
+must use those logical names. `RemoveMacro` rejects protected-project mutation
+and host document/designer deletion. Use the typed `ReadVbaProject()` and
+`SetVbaProject(...)` workflow for explicit source changes and signature policy;
+use `RemoveMacros()` only when removing the entire project is intended.
+
 ## PDF mutation assessment cancellation
 
 Replace `pdf.AssessMutations(default)` with

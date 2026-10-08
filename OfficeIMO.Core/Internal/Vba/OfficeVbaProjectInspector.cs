@@ -19,9 +19,23 @@ namespace OfficeIMO.Core.Internal {
                 return Array.Empty<string>();
             }
 
+            if (compoundFile.Streams.TryGetValue("VBA/dir", out byte[]? compressed)
+                && OfficeVbaCompression.TryDecompress(compressed, 64 * 1024 * 1024, out byte[] directory, out _)
+                && OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, 64 * 1024 * 1024, out var model, out _)
+                && model != null) {
+                try {
+                    return model.Modules.Select(module => module.UnicodeName.Length > 0
+                        ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
+                        : OfficeVbaText.Decode(module.AnsiName, model.CodePage))
+                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray();
+                } catch (System.Text.DecoderFallbackException) { }
+                catch (NotSupportedException) { }
+            }
+
             return compoundFile.Entries
                 .Where(static entry => entry.IsStream && !entry.IsFallback)
-                .Where(entry => IsImmediateVbaStream(entry.Path) && !InfrastructureStreams.Contains(entry.Name))
+                .Where(entry => IsImmediateVbaStream(entry.Path) && !InfrastructureStreams.Contains(entry.Name)
+                    && !entry.Name.StartsWith("__SRP_", StringComparison.OrdinalIgnoreCase))
                 .Select(static entry => entry.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)

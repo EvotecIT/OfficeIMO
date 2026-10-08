@@ -6,6 +6,12 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 Deliberately bounded compatibility contracts are not backlog by themselves. A preserved or rejected profile with a documented diagnostic becomes roadmap work only when the repository adopts a concrete supported shape and evidence plan for it.
 
+## VBA host integration
+
+- [ ] Qualify newly written raw MS-OVBA source chunks against Office's source loader and remove the explicit write rejection after independent host proof. Cover full chunks, short final chunks, and source streams crossing the compound mini-stream cutoff; preserve statements and attributes without inserting source padding.
+
+- [ ] Connect the Access carrier to the [shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects) after native database storage is available. Keep database reading/writing in the Access owner, preserve database-specific module identities, and qualify source edits against Access-produced files.
+
 ## OfficeIMO JavaScript
 
 The [TypeScript library](../OfficeIMO.JavaScript/README.md), [report-grade Excel contract](../OfficeIMO.JavaScript/README.md#live-excel-conditional-formatting), [PDF table contract](../OfficeIMO.JavaScript/README.md#pdf-tables) and [architecture contract](officeimo.javascript-architecture.md) own the current package and public layers. Delivery order follows browser consumers. HtmlForgeX and PSWriteHTML's DataTables export paths use JSZip for Excel and pdfmake plus its font file for PDF; TestimoX, CertNoob and DomainDetective reports inherit those paths. CanopyX's replacement grid needs both table exports. Word and PowerPoint remain later modules because their browser consumers are not yet defined; C# OfficeIMO supplies their build-time document generation.
