@@ -177,6 +177,7 @@ namespace OfficeIMO.Word.Pdf {
                 // A valid automatic grid can contain only zero/automatic widths.
                 // Its physical content minimum still determines the table frame.
                 style.AutoFitWidthUsesContentMinimum = true;
+                style.AutoFitUnspecifiedWidthToContent = true;
                 style.PreserveWidth = true;
             }
 

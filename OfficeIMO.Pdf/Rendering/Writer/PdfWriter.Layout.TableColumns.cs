@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
         int columnCount,
         double columnGap) {
         double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
-        if (!style.PreferredWidth.HasValue && !style.AutoFitWidthUsesContentMinimum) {
+        if (!style.PreferredWidth.HasValue && !style.AutoFitUnspecifiedWidthToContent) {
             return availableWidth;
         }
 

@@ -10,6 +10,73 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(true, -90)]
     [InlineData(false, 90)]
     [InlineData(true, 90)]
+    public void Exact_spacing_retains_overlapping_ink_at_the_physical_cell_edge(bool inColumn, int rotation) {
+        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
+        var style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+        style.ColumnWidthPoints = new List<double?> { 20 };
+        style.FixedRowHeights = new List<double?> { 100 };
+        style.CellPaddingX = 2; style.CellPaddingY = 2;
+        var paragraphs = new[] { "ABCD", "EFGH", "IJKL", "MNOP", "QRST" }
+            .Select(text => new PdfTableCellParagraph(new[] { PdfTextRun.Normal(text) },
+                fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(6))).ToArray();
+        var cell = new PdfTableCell(paragraphs.SelectMany(paragraph => paragraph.Runs), paragraphs,
+            textRotation: rotation, linkUri: "https://example.com/turned-clip");
+        var cells = new[] { new[] { cell } };
+        var document = PdfDocument.Create(options);
+        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
+        else document.Table(cells, style: style);
+        byte[] bytes = document.ToBytes();
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var page = Assert.Single(pdf.GetPages());
+        Assert.Contains(page.Letters, letter => letter.Value == "I");
+        Assert.DoesNotContain(page.Letters, letter => letter.Value == "Q");
+        var bounds = Assert.Single(PdfInspector.Inspect(bytes).GetAnnotationsBySubtype("Link"));
+        var overlapping = page.Letters.First(letter => letter.Value == "I");
+        var inkX = new[] { overlapping.BoundingBox.BottomLeft.X, overlapping.BoundingBox.BottomRight.X,
+            overlapping.BoundingBox.TopLeft.X, overlapping.BoundingBox.TopRight.X };
+        Assert.True(inkX.Max() > bounds.X1 && inkX.Min() < bounds.X2);
+    }
+
+    [Theory]
+    [InlineData(false, -90)]
+    [InlineData(true, -90)]
+    [InlineData(false, 90)]
+    [InlineData(true, 90)]
+    public void Automatic_turned_columns_reserve_each_authored_paragraph_line_box(bool inColumn, int rotation) {
+        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
+            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
+        var style = TableStyles.Minimal();
+        style.HeaderRowCount = 0; style.AutoFitColumns = true;
+        style.AutoFitWidthUsesContentMinimum = true; style.AutoFitUnspecifiedWidthToContent = true;
+        style.FixedRowHeights = new List<double?> { 100 };
+        style.CellPaddingX = 2; style.CellPaddingY = 2;
+        var first = new[] { new PdfTextRun("ABCD", fontSize: 12) };
+        var second = new[] { new PdfTextRun("EFGH", fontSize: 36) };
+        var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: 12),
+            new PdfTableCellParagraph(second, fontSize: 36) };
+        var cell = new PdfTableCell(first.Concat(second), paragraphs,
+            textRotation: rotation, linkUri: "https://example.com/turned-paragraphs");
+        var cells = new[] { new[] { cell } };
+        var document = PdfDocument.Create(options);
+        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
+        else document.Table(cells, style: style);
+        byte[] bytes = document.ToBytes();
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var page = Assert.Single(pdf.GetPages());
+        Assert.Equal("ABCDEFGH", string.Concat(page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).Select(letter => letter.Value)));
+        var bounds = Assert.Single(PdfInspector.Inspect(bytes).GetAnnotationsBySubtype("Link"));
+        Assert.InRange(bounds.X2 - bounds.X1, 55, 85);
+    }
+
+    [Theory]
+    [InlineData(false, -90)]
+    [InlineData(true, -90)]
+    [InlineData(false, 90)]
+    [InlineData(true, 90)]
     public void Automatic_columns_measure_turned_text_on_the_cross_axis(bool inColumn, int rotation) {
         var options = new PdfOptions { PageWidth = 260, PageHeight = 180,
             MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
@@ -17,6 +84,7 @@ public sealed class PdfTableCellOrientationTests {
         var style = TableStyles.Minimal();
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true;
+        style.AutoFitUnspecifiedWidthToContent = true;
         style.CellPaddingX = 2; style.CellPaddingY = 2;
         style.FixedRowHeights = new List<double?> { 100 };
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("ABCDEFGHIJKLMNOPQRSTUVWXYZ") },
