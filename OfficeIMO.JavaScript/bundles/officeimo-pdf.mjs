@@ -620,8 +620,13 @@ function pdfNumber(value) {
 }
 function unicodeHex(text) {
     let hex = "";
-    for (let i = 0; i < text.length; i++)
-        hex += text.charCodeAt(i).toString(16).padStart(4, "0");
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        if (code >= 0xd800 && code <= 0xdbff && !(text.charCodeAt(i + 1) >= 0xdc00 && text.charCodeAt(i + 1) <= 0xdfff) ||
+            code >= 0xdc00 && code <= 0xdfff && !(text.charCodeAt(i - 1) >= 0xd800 && text.charCodeAt(i - 1) <= 0xdbff))
+            throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
+        hex += code.toString(16).padStart(4, "0");
+    }
     return hex;
 }
 /** @internal Forward-only PDF objects. Only xref offsets and page references survive a completed page. */

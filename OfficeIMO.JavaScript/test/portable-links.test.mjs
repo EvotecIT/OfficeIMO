@@ -113,3 +113,14 @@ test("PDF link budgets include page continuations and retained annotation bytes"
   await assert.rejects(writePdf([[new ExportCell("Value", { link: { target: "https://example.com/" + "x".repeat(10000) } })]],
     { columns: [{ header: "Value" }], limits: { maxPageBytes: 5000 } }), /maxPageBytes/);
 });
+
+test("PDF link tooltips reject malformed Unicode in body cells and structured decorations", async () => {
+  for (const tooltip of ["bad\ud800", "bad\udc00", "\ud800middle\udc00"]) {
+    const value = new ExportCell("Value", { link: { target: link.target, tooltip } }), options = { columns: [{ header: "Value" }] };
+    await assert.rejects(writePdf([[value]], options), /unpaired UTF-16/);
+    await assert.rejects(writePdf([["Data"]], { ...options, headerRows: [[{ value }]] }), /unpaired UTF-16/);
+    await assert.rejects(writePdf([["Data"]], { ...options, footer: { values: [value] } }), /unpaired UTF-16/);
+  }
+  const valid = await writePdf([[new ExportCell("Value", { link: { target: link.target, tooltip: "A 🧪 B" } })]], { columns: [{ header: "Value" }] });
+  assert.match([...((await inspectPdf(valid)).objects.values())].map(o => o.body).join("\n"), /Contents <feff00410020d83eddea00200042>/);
+});

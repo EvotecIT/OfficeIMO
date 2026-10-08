@@ -28,6 +28,13 @@ async function makePortableLinkFixtures(streamed = false) {
     const csv = await bytes(writeCsv, writeCsvTo, [[rows[0][0]]], { columns: [{ header: 'Amount' }], valueMode, includeHeader: false });
     if (new TextDecoder().decode(csv) !== (valueMode === 'raw' ? '12.5' : '12.50 USD') + '\r\n') throw new Error('Portable CSV value semantics differ.');
   }
+  for (const tooltip of ['bad\ud800', 'bad\udc00', '\ud800middle\udc00']) {
+    const value = new ExportCell('Value', { link: { target: link.target, tooltip } });
+    for (const [body, options] of [[[value], {}], [['Data'], { headerRows: [[{ value }]] }], [['Data'], { footer: { values: [value] } }]]) {
+      let error; try { await writePdf([body], { columns: [{ header: 'Value' }], ...options }); } catch (caught) { error = caught; }
+      if (!error || !String(error).includes('unpaired UTF-16')) throw new Error('Malformed PDF tooltip was not rejected.');
+    }
+  }
   return [['portable-links.xlsx', xlsx], ['portable-links.pdf', pdf], ['portable-links-spans.pdf', spans]]
     .map(([name, bytes]) => ({ name, bytes }));
 }
