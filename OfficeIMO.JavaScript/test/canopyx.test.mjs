@@ -25,6 +25,7 @@ test("Canopy capture preserves column order, own keys, nulls and reusable enumer
   assert.deepEqual(await collect(source), [[12.5, "Literal", null]]);
   assert.deepEqual(await collect(source), [[12.5, "Literal", null]]);
   assert.ok(Object.isFrozen(source.columns) && Object.isFrozen(source.columns[0]));
+  assert.equal(createCanopyExport(capture([], [column("Name")]), "xlsx", { columnOptions: { Amount: { format: "0.00" } } }).columns.length, 1);
   await assert.rejects(collect(createCanopyExport(capture([{ id: "r", cells: {} }]), "csv")), /missing column/);
   for (const value of [NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, -Number.MAX_SAFE_INTEGER - 1])
     await assert.rejects(collect(createCanopyExport(capture([{ id: "r", cells: { Name: cell(value) } }]), "csv")), /scalar value/);

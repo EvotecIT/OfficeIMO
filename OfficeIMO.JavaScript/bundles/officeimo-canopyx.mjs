@@ -3627,8 +3627,13 @@ function pdfNumber(value) {
 }
 function unicodeHex(text) {
     let hex = "";
-    for (let i = 0; i < text.length; i++)
-        hex += text.charCodeAt(i).toString(16).padStart(4, "0");
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        if (code >= 0xd800 && code <= 0xdbff && !(text.charCodeAt(i + 1) >= 0xdc00 && text.charCodeAt(i + 1) <= 0xdfff) ||
+            code >= 0xdc00 && code <= 0xdfff && !(text.charCodeAt(i - 1) >= 0xd800 && text.charCodeAt(i - 1) <= 0xdbff))
+            throw new TypeError("PDF text contains an unpaired UTF-16 surrogate.");
+        hex += code.toString(16).padStart(4, "0");
+    }
     return hex;
 }
 /** @internal Forward-only PDF objects. Only xref offsets and page references survive a completed page. */
@@ -5306,9 +5311,6 @@ function createCanopyExport(capture, format, options = {}) {
                 ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }),
                 ...(override.groups === undefined ? {} : { groups: Object.freeze([...override.groups]) }) }) });
     });
-    for (const id of Object.keys(options.columnOptions ?? {}))
-        if (!ids.has(id))
-            throw new TypeError("Unknown Canopy column option: " + id);
     const values = request.values, rowCount = request.recordCount;
     return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
             checkAbort(signal);
@@ -5364,6 +5366,8 @@ const { createCanopyExport } = _m47;
 
 
 
+
+
 /** Write a captured CanopyX grid to a caller-owned destination; its partial bytes remain caller-owned on failure. */
 async function writeCanopyTo(capture, format, destination, options = {}) {
     const source = createCanopyExport(capture, format, options), { signal } = options;
@@ -5397,8 +5401,8 @@ async function exportCanopy(capture, format, options = {}) {
         throw error;
     }
 }
-const _exports = Object.freeze({ createCanopyExport: _m47.createCanopyExport, ExportCell: _m5.ExportCell, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
+const _exports = Object.freeze({ createCanopyExport: _m47.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m38.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
 return _exports;
 })();
-const { createCanopyExport, ExportCell, writeCanopyTo, exportCanopy } = _m0;
-export { createCanopyExport, ExportCell, writeCanopyTo, exportCanopy };
+const { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy } = _m0;
+export { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy };

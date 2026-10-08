@@ -1,5 +1,20 @@
 # Browser export verification
 
+## CanopyX captures
+
+The optional CanopyX adapter is qualified against an explicitly selected native source checkout. It introduces no CanopyX package into normal builds or shipped artifacts:
+
+```powershell
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/canopy" "--canopy=$canopySource"
+# Opt-in native paging: 10,000/100,000 rows, four/twenty columns; --full also adds 250,000/1,000,000 rows at four columns.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/canopy-scale" "--canopy=$canopySource" --canopy-scale --full
+npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:canopy-types -- "$evidence/npm" "$canopySource"
+```
+
+The normal lane reads actual ordinary and reporting assets, records their hashes, and rejects a candidate that changes during the run. Each browser qualifies raw/display values, column order and visibility, filtered and selected-query captures after UI changes, unknown-count cursors, revision mismatch, in-flight source cancellation, the prepared host callback capture, a clicked export button and explicit diagnostics for custom renderers and relative links. Classic, compression-fallback and bounded worker paths produce independently read CSV/XLSX/PDF artifacts. XLSX validation checks schema, typed values, formats, tone precedence and hyperlinks; PDF validation checks ordered resolved text and link actions. Wide and compact screenshots complement the assertions.
+
+The opt-in scale lane generates native source pages on demand, checks every CSV/XLSX cell using the shared independent oracle, and awaits a 64 KiB file bridge. Ten-thousand-row cases use offset pages, a delayed sink and compression fallback; larger cases exercise unknown-count cursors and offset pages. Large completed files are removed after readback, retaining compact reports. Native source ID/cursor bookkeeping still grows with the record count. Diagnostic durations include native capture and acknowledged file delivery; they are not controlled performance comparisons. PDF scale and full report preservation use the separate format qualification lane.
+
 PDF table qualification uses the same HtmlTinkerX browser owner and a separate managed PDF reader:
 
 ```powershell

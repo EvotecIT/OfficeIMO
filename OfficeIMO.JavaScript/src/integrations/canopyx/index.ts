@@ -7,6 +7,7 @@ import { createCanopyExport } from "./source.js";
 import type { CanopyCapture, CanopyFormat, CanopyWriteOptions } from "./types.js";
 export { createCanopyExport } from "./source.js";
 export { ExportCell } from "../../core/presentation.js";
+export { PdfFont } from "../../pdf/font.js";
 export type { CanopyCapture, CanopyExportCell, CanopyExportColumn, CanopyExportRow, CanopyExport, CanopyFormat, CanopyDiagnostic, CanopySourceOptions, CanopyWriteOptions } from "./types.js";
 
 /** Write a captured CanopyX grid to a caller-owned destination; its partial bytes remain caller-owned on failure. */

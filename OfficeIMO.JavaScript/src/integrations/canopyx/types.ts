@@ -48,7 +48,7 @@ export interface CanopyDiagnostic {
 export interface CanopySourceOptions {
   /** Map semantic tones explicitly; CSS and DOM rules are never inferred. Cell tone overrides row tone. */
   readonly tones?: Readonly<Record<string, CellPresentation>>;
-  /** Widths use Excel zero-character units, not the capture's CSS pixels. */
+  /** Selected-column overrides. Unselected IDs are ignored; widths use Excel zero-character units, not CSS pixels. */
   readonly columnOptions?: Readonly<Record<string, Omit<Partial<ColumnSettings>, "header" | "type">>>;
   /** XLSX/PDF reject unsupported presentation by default. CSV defaults to text because it has no visual styling. */
   readonly unsupportedPresentation?: "reject" | "text";

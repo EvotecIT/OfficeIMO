@@ -56,7 +56,6 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
       ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }),
       ...(override.groups === undefined ? {} : { groups: Object.freeze([...override.groups]) }) }) });
   });
-  for (const id of Object.keys(options.columnOptions ?? {})) if (!ids.has(id)) throw new TypeError("Unknown Canopy column option: " + id);
   const values = request.values, rowCount = request.recordCount;
   return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
     checkAbort(signal); let count = 0;

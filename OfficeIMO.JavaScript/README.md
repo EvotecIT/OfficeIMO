@@ -161,8 +161,9 @@ The optional `@evotecit/officeimo/integrations/canopyx` entry consumes CanopyX's
 import { exportCanopy } from "@evotecit/officeimo/integrations/canopyx";
 
 const capture = grid.prepareExport({ scope: "filtered", values: "raw" });
-const blob = await exportCanopy(capture, "xlsx", {
+const reportOptions = {
   tones: {
+    neutral: {},
     success: { background: "E2F0D9" },
     warning: { background: "FFF2CC", color: "9C6500" },
     danger: { background: "FFC7CE", color: "9C0006", bold: true }
@@ -173,11 +174,14 @@ const blob = await exportCanopy(capture, "xlsx", {
   },
   xlsx: { sheet: { title: { text: "Inventory" }, table: {} } },
   limits: { maxRows: 250_000, maxCells: 5_000_000 }
-});
+};
+const blob = await exportCanopy(capture, "xlsx", reportOptions);
 // Deliver the Blob through the host's download or storage policy.
 ```
 
 `exportCanopy(capture, format, options)` accepts `"xlsx"`, `"csv"` or `"pdf"`. `writeCanopyTo(capture, format, destination, options)` writes to a caller-owned sink or `WritableStream`; failed partial output remains caller-owned. Format options live in `xlsx`, `csv` and `pdf`, with common cancellation, limits and progress at the top level. Common limits override matching format limits. For Unicode PDF text, supply embedding-permitted TrueType fonts through `pdf.fonts`.
+
+`columnOptions` is keyed by captured column ID. Settings for unselected columns are ignored, so one host format map can serve different visible/selected captures. `PdfFont` is exported from this entry as well as the PDF layer for constructing caller-supplied fonts.
 
 | Captured contract | Output behavior |
 | --- | --- |
@@ -207,7 +211,7 @@ const onExport = async ({ capture, format, signal }) => {
     throw new Error("Unsupported export format");
   }
   const destination = await openDestination(format); // Host-owned delivery.
-  await writeCanopyTo(capture, format, destination, { signal });
+  await writeCanopyTo(capture, format, destination, { ...reportOptions, signal });
 };
 ```
 
