@@ -91,7 +91,7 @@ public partial class WordRtfConverterTests {
         comment.RemoveAllChildren();
         comment.Append(
             new Paragraph(
-                new Run(new Text("First ")),
+                new Run(new Text("First ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new Run(new RunProperties(new Bold()), new Text("bold"))),
             new Paragraph(
                 new Run(new RunProperties(new Italic()), new Text("Second"))));

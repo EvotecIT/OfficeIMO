@@ -70,8 +70,20 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
           ./Build/BrowserExports/Test-NpmConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'npm')
-          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate (Join-Path $evidence 'npm/packed-consumer.xlsx')
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:datatables-types -- (Join-Path $evidence 'npm')
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate-directory (Join-Path $evidence 'npm')
           ./Build/BrowserExports/Test-NugetConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'nuget')
+      - name: Verify optional DataTables interoperability
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
+          $assets = Join-Path $evidence 'comparison-assets'
+          node Build/BrowserExports/fetch-comparison.mjs $assets
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'datatables') --datatables "--comparison-assets=$assets"
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-current') --pdf "--comparison-assets=$assets"
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-bundled') --pdf --stack=bundled "--comparison-assets=$assets"
       - name: Upload browser contract evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -79,6 +91,10 @@ jobs:
           name: browser-export-contracts
           path: |
             ${{ runner.temp }}/officeimo-browser-exports/browser/interop
+            ${{ runner.temp }}/officeimo-browser-exports/datatables
+            ${{ runner.temp }}/officeimo-browser-exports/pdf-current
+            ${{ runner.temp }}/officeimo-browser-exports/pdf-bundled
+            ${{ runner.temp }}/officeimo-browser-exports/npm/datatables-types.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/archive.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/*.tgz
             ${{ runner.temp }}/officeimo-browser-exports/nuget/*.nupkg

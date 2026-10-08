@@ -19,8 +19,12 @@ internal static class ExportQualification {
         string? rows = args.FirstOrDefault(a => a.StartsWith("--rows=", StringComparison.Ordinal));
         if (rows is not null) sizes = rows.Substring(7).Split(',').Select(int.Parse).ToArray();
         if (sizes.Any(n => n < 1000 || n > 1048570)) throw new ArgumentException("Qualification sizes must be between 1,000 and 1,048,570 rows.");
+        int[] widths = new[] { 4, 20 };
+        string? columns = args.FirstOrDefault(a => a.StartsWith("--columns=", StringComparison.Ordinal));
+        if (columns is not null) widths = columns.Substring(10).Split(',').Select(int.Parse).Distinct().ToArray();
+        if (widths.Any(n => n is not (4 or 20))) throw new ArgumentException("Qualification column counts must be 4 or 20.");
         var cases = new List<Case>();
-        foreach (int size in sizes) foreach (int width in new[] { 4, 20 }) foreach (bool styled in new[] { false, true }) foreach (bool unique in new[] { false, true })
+        foreach (int size in sizes) foreach (int width in widths) foreach (bool styled in new[] { false, true }) foreach (bool unique in new[] { false, true })
             foreach (string format in new[] { "xlsx", "csv" }) cases.Add(new(format, size, width, styled, Unique: unique, LongText: size == 10000));
         if (!args.Contains("--matrix-only")) foreach (string format in new[] { "xlsx", "csv" }) {
             cases.Add(new(format, 10000, 20, Styled: true, Unique: true, LongText: true, Worker: true));

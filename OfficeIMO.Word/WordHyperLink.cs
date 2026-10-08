@@ -230,7 +230,7 @@ namespace OfficeIMO.Word {
                 if (run != null) {
                     var text = run.ChildElements.OfType<Text>().FirstOrDefault();
                     if (text != null) {
-                        return text.Text;
+                        return WordParagraph.ReadVisibleText(text);
                     }
                 }
                 return "";
@@ -242,6 +242,7 @@ namespace OfficeIMO.Word {
                     if (text != null) {
                         if (value != null) {
                             text.Text = value;
+                            text.Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve;
                         } else {
                             text.Remove();
                             run.Remove();

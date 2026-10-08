@@ -88,6 +88,11 @@ public sealed class PdfRedactionArea {
     /// <summary>Top coordinate in PDF points.</summary>
     public double Top => Y + Height;
 
+    /// <summary>Returns this area with a different review label, preserving its geometry and removal policy.</summary>
+    /// <remarks>Use this when editing a search-derived mark. Reconstructing a rectangle loses its precise glyph and rotated geometry evidence.</remarks>
+    public PdfRedactionArea WithLabel(string? label) =>
+        new PdfRedactionArea(PageNumber, X, Y, Width, Height, label, TextRenderingMode, ExactGeometry, ContentScope, AppearanceMode, RequiresGlyphRewrite);
+
     internal int? TextRenderingMode { get; }
 
     internal PdfRedactionGeometry? ExactGeometry { get; }

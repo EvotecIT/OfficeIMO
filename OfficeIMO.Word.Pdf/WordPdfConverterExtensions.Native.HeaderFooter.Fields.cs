@@ -146,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (hidden) continue;
                 if (child is W.Text text) {
-                    string visibleText = ApplyNativeTextTransform(text.Text, sourceRun, state.Paragraph);
+                    string visibleText = ApplyNativeTextTransform(WordParagraph.ReadVisibleText(text), sourceRun, state.Paragraph);
                     builder.Append(visibleText);
                     state.SerializedRuns?.Add((run, visibleText, false, child));
                 } else if (child is W.TabChar) {

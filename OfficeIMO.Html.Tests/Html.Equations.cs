@@ -64,9 +64,9 @@ namespace OfficeIMO.Tests {
             paragraph._paragraph.Append(new SdtRun(
                 new SdtProperties(new SdtId { Val = 2076 }),
                 new SdtContentRun(
-                    new Run(new Text("control-prefix ")),
+                    new Run(new Text("control-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new M.OfficeMath(new M.Run(new M.Text("controlled"))),
-                    new Run(new Text(" control-suffix")))));
+                    new Run(new Text(" control-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }))));
             paragraph.AddText(" after");
 
             string html = document.ToHtml();
@@ -85,9 +85,9 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();
             paragraph._paragraph.Append(new Hyperlink(
-                new Run(new RunProperties(new Bold()), new Text("link-prefix ")),
+                new Run(new RunProperties(new Bold()), new Text("link-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new M.OfficeMath(new M.Run(new M.Text("linked"))),
-                new Run(new RunProperties(new Italic()), new Text(" link-suffix"))) {
+                new Run(new RunProperties(new Italic()), new Text(" link-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) {
                 Anchor = "target"
             });
 
@@ -203,9 +203,9 @@ namespace OfficeIMO.Tests {
                 new SdtRun(
                     new SdtProperties(new SdtId { Val = 2078 }),
                     new SdtContentRun(
-                        new Run(new Text("nested-prefix ")),
+                        new Run(new Text("nested-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new M.OfficeMath(new M.Run(new M.Text("nested-linked"))),
-                        new Run(new Text(" nested-suffix"))))) {
+                        new Run(new Text(" nested-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })))) {
                 Anchor = "nested-equation-target"
             });
             paragraph.AddText(" after");
@@ -228,9 +228,9 @@ namespace OfficeIMO.Tests {
                 new SdtProperties(new SdtId { Val = 2079 }),
                 new SdtContentRun(
                     new Hyperlink(
-                        new Run(new Text("inner-prefix ")),
+                        new Run(new Text("inner-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new M.OfficeMath(new M.Run(new M.Text("inner-linked"))),
-                        new Run(new Text(" inner-suffix"))) {
+                        new Run(new Text(" inner-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) {
                         Anchor = "inner-equation-target"
                     })));
 
@@ -276,9 +276,9 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("before ");
             paragraph._paragraph.Append(new InsertedRun(
-                new Run(new Text("revision-prefix ")),
+                new Run(new Text("revision-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new M.OfficeMath(new M.Run(new M.Text("revision-equation"))),
-                new Run(new Text(" revision-suffix"))) {
+                new Run(new Text(" revision-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) {
                 Id = "2078",
                 Author = "Reviewer"
             });

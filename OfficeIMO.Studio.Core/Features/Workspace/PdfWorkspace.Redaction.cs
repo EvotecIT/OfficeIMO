@@ -40,11 +40,14 @@ internal sealed partial class PdfWorkspace {
     }
 
     internal Task<IReadOnlyList<PdfRedactionCandidate>> SearchRedactionMarksAsync(
-        string text, bool regex, bool matchCase, IReadOnlyCollection<int>? pages, CancellationToken cancellationToken) {
+        string text, bool regex, bool matchCase, IReadOnlyCollection<int>? pages, CancellationToken cancellationToken,
+        PdfRedactionTextSelection textSelection = PdfRedactionTextSelection.LogicalBlocks,
+        PdfRedactionContentScope contentScope = PdfRedactionContentScope.TextAndUnderlay) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         return Task.Run<IReadOnlyList<PdfRedactionCandidate>>(() => {
             var search = new PdfRedactionSearchOptions {
                 MatchCase = matchCase, MaximumCandidates = 2000,
+                TextSelection = textSelection, ContentScope = contentScope,
                 RegexTimeout = TimeSpan.FromMilliseconds(250), CancellationToken = cancellationToken,
                 RegexOptions = System.Text.RegularExpressions.RegexOptions.CultureInvariant |
                     (matchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase)
@@ -52,6 +55,11 @@ internal sealed partial class PdfWorkspace {
             if (regex) search.AddRegex(text); else search.AddLiteral(text);
             if (pages is not null) foreach (int page in pages) search.PageNumbers.Add(page);
             PdfRedactionPlan plan = snapshot.Redactions.Search(search);
+            if (!plan.IsReviewable) {
+                throw new InvalidOperationException(string.Join(" ", plan.Findings
+                    .Where(finding => finding.Severity == PdfDiagnosticSeverity.Error)
+                    .Select(finding => finding.Message)));
+            }
             PdfDocumentReadResult logical = snapshot.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
             return plan.Areas.Select(area => {
                     cancellationToken.ThrowIfCancellationRequested();

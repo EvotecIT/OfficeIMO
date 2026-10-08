@@ -1,4 +1,4 @@
-import { checkAbort } from "../core/iteration.js";
+import { beginTask, checkAbort } from "../core/iteration.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { ChunkedTextSink } from "../core/sinks.js";
 import { ExportBudget } from "../core/limits.js";
@@ -6,7 +6,8 @@ import type { ZipEntry } from "../zip/index.js";
 import { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } from "../opc/index.js";
 import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
 import { StyleRegistry, spreadsheetNamespace } from "./styles.js";
-import { sheetName } from "./values.js";
+import { sheetName, assertXlsxValue } from "./values.js";
+import { assertExportValue } from "../core/presentation.js";
 import { Worksheet } from "./worksheet.js";
 import { defineTable, tableXml } from "./table.js";
 import { drawingXml, drawingContentType } from "./attachments.js";
@@ -18,6 +19,13 @@ const formatType = (name: string) => "application/vnd.openxmlformats-officedocum
 
 /** Streaming writer model; append rows through Worksheets, then finalize once. */
 export class Workbook {
+  private portableValues = false;
+  /** @internal One-table helpers share the writer while admitting only portable values. */
+  static forTable(options: WorkbookOptions): Workbook {
+    const book = new Workbook(options); book.portableValues = true; return book;
+  }
+  /** @internal Captured once by the worksheet projector. */
+  get valueValidator(): (value: unknown) => void { return this.portableValues ? assertExportValue : assertXlsxValue; }
   readonly styles: StyleRegistry;
   private readonly names = new Set<string>();
   private readonly sheets: Worksheet[] = [];
@@ -52,6 +60,8 @@ export class Workbook {
     this.settings = Object.freeze({ ...options, ...(options.limits ? { limits: Object.freeze({ ...options.limits }) } : {}), dateMode, compression, invalidCharacterPolicy: policy });
     this.writers = Object.freeze({ ...options.cellValueWriters });
     for (const writer of Object.values(this.writers)) if (typeof writer !== "function") throw new TypeError("Cell value writers must be functions.");
+    // One write phase covers every worksheet and incremental append in this book.
+    beginTask();
     this.package = new OpcPackage({ compression, invalidCharacterPolicy: policy, ...(options.signal ? { signal: options.signal } : {}),
       ...(options.sink ? { sink: options.sink } : {}), ...(options.limits?.maxOutputBytes === undefined ? {} : { maxOutputBytes: options.limits.maxOutputBytes }) });
     // Property dates and app settings are captured before an asynchronous export begins.
@@ -132,10 +142,14 @@ export class Workbook {
     this.overflow?.clear();
   }
   get worksheets(): readonly Worksheet[] { return Object.freeze([...this.sheets]); }
-  addWorksheet(name: string, options: SheetOptions = {}): Worksheet {
+  /** Total report data rows; excludes title/header/footer and preservation records. */
+  get rowCount(): number { return this.sheets.reduce((sum, sheet) => sum + sheet.reportRowCount, 0); }
+  addWorksheet<T = never>(name: string, options: SheetOptions<T> = {}): Worksheet<T> {
     this.assertOpen();
     this.checkSheetLimit(this.sheets.length + 1 + (this.overflow ? 1 : 0));
-    const conditional = Worksheet.validate(this, options);
+    // Validation/serialization use erased column metadata; projection later receives T rows.
+    const metadata = options as unknown as SheetOptions;
+    const conditional = Worksheet.validate(this, metadata);
     let tableOptions = options.table;
     if (tableOptions && tableOptions.name === undefined) {
       let suffix = this.tableCount + 1;
@@ -144,15 +158,13 @@ export class Workbook {
     }
     const table = tableOptions ? defineTable(this.tableCount + 1, tableOptions, options.columns ?? [], this.settings.invalidCharacterPolicy) : undefined;
     if (table && this.tableNames.has(table.name.toLowerCase())) throw new TypeError("Duplicate Excel table name: " + table.name);
-    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), options, table, false, conditional);
+    const sheet = Worksheet.create(this, sheetName(name, this.names, this.settings.invalidCharacterPolicy, false), metadata, table, false, conditional);
     this.names.add(sheet.name.toLowerCase());
     this.mergedRanges += sheet.mergeCount;
     this.conditionalFormats += sheet.conditionalFormatCount;
     if (table) { this.tableNames.add(table.name.toLowerCase()); this.tableCount++; }
     this.sheets.push(sheet); return sheet;
   }
-  /** Existing tabular entry point; returns the same Worksheet model as addWorksheet. */
-  addSheet(name: string, options: SheetOptions = {}): Worksheet { return this.addWorksheet(name, options); }
   addPart(part: ExtraPart): void {
     this.assertOpen();
     // Reserve now so collisions and invalid names fail at the call site.
@@ -227,5 +239,3 @@ export class Workbook {
     return this.result;
   }
 }
-
-export function createWorkbook(options: WorkbookOptions = {}): Workbook { return new Workbook(options); }

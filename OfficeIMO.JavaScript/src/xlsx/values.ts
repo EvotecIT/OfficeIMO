@@ -1,11 +1,16 @@
 import { cleanXml, escapeXml } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import type { CellValue } from "../core/index.js";
-import { ExportCell } from "../core/presentation.js";
+import { ExportCell, assertExportValue, assertScalar } from "../core/presentation.js";
 
 /** A typed value plus a workbook-local style index. */
 export class Cell {
   constructor(readonly value: CellValue, readonly style?: number) {}
+}
+/** @internal Advanced worksheets admit cells registered on their owning workbook. */
+export function assertXlsxValue(value: unknown): void {
+  if (value instanceof Cell) assertScalar(value.value);
+  else assertExportValue(value);
 }
 /** @internal Buffered samples and footer definitions capture mutable Date values. */
 export function copyValue(value: unknown): unknown {

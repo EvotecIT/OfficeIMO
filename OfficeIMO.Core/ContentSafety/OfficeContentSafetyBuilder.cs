@@ -14,6 +14,7 @@ namespace OfficeIMO.ContentSafety;
 public sealed class OfficeContentSafetyBuilder {
     private readonly string _format;
     private readonly OfficeContentSafetyOptions _options;
+    private readonly OfficeContentInstructionBudget _instructionBudget;
     private readonly List<OfficeContentSafetyFinding> _findings = new List<OfficeContentSafetyFinding>();
     private readonly List<OfficeTextIntegrityFinding> _textIntegrity = new List<OfficeTextIntegrityFinding>();
     private readonly List<string> _diagnostics = new List<string>();
@@ -31,6 +32,7 @@ public sealed class OfficeContentSafetyBuilder {
         _format = format.Trim();
         _options = options ?? new OfficeContentSafetyOptions();
         _options.Validate();
+        _instructionBudget = _options.InstructionBudget ?? new OfficeContentInstructionBudget();
     }
 
     /// <summary>Gets the validated inspection options.</summary>
@@ -48,9 +50,11 @@ public sealed class OfficeContentSafetyBuilder {
         text = ValidateFindingArguments(location, evidence, text);
         EnsureCanCharge(text.Length);
         EnsureFindingCapacity();
-        IReadOnlyList<string> instructionSignals = _options.DetectInstructionLikeText
-            ? OfficeContentInstructionDetector.Detect(text)
-            : Array.Empty<string>();
+        OfficeContentInstructionAnalysis? analysis = _options.DetectInstructionLikeText
+            ? OfficeContentInstructionDetector.Analyze(text, _options.MaxCharacters, _instructionBudget) : null;
+        if (analysis?.IsComplete == false && !_diagnostics.Contains("CONTENT_INSTRUCTION_SCAN_INCOMPLETE"))
+            AddDiagnostic("CONTENT_INSTRUCTION_SCAN_INCOMPLETE");
+        IReadOnlyList<string> instructionSignals = analysis?.Signals ?? Array.Empty<string>();
         return AddCore(
             kind,
             risk,

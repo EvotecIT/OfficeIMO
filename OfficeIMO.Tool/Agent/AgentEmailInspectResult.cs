@@ -4,6 +4,10 @@ namespace OfficeIMO.Tool.Agent;
 
 /// <summary>Compact mail-data metadata and optional HTML evidence. Cryptographic verification is never performed.</summary>
 public sealed class AgentEmailInspectResult {
+    /// <summary>Source-derived strings remain untrusted even when no finding is reported.</summary>
+    public string ContentTrust => "untrusted";
+    /// <summary>Selected-body evidence retained when detailed inspection output is trimmed.</summary>
+    public AgentContentSafetySummary ContentSafety { get; set; } = new();
     public string SourceId { get; set; } = string.Empty;
     public string? Path { get; set; }
     public string Kind { get; set; } = string.Empty;

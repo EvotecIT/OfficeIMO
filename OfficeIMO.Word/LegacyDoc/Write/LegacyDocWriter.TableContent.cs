@@ -35,6 +35,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             tablePreferredWidth ??= ReadSupportedTableStylePreferredWidth(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             tableAutofit ??= ReadSupportedTableStyleAutofit(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
+            // DOCX defaults to AutoFit, while binary DOC defaults to fixed columns.
+            // Materialize the effective default after direct and inherited settings.
+            tableAutofit ??= true;
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
             // Materialize the resolved DOCX inset for stable native DOC layout;
             // Word positions these cells differently when the padding is implicit.

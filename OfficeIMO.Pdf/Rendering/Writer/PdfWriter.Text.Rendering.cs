@@ -43,10 +43,15 @@ internal static partial class PdfWriter {
             PageImage pageImage = CreatePageImage(
                 block,
                 block.Style ?? new PdfImageStyle(),
-                x,
-                bottom,
-                inlineElement.Width,
-                inlineElement.Height);
+                inlineImage.TableTextRotation == 0 ? x : x + (inlineElement.Width - inlineElement.Height) / 2D,
+                inlineImage.TableTextRotation == 0 ? bottom : bottom + (inlineElement.Height - inlineElement.Width) / 2D,
+                inlineImage.TableTextRotation == 0 ? inlineElement.Width : inlineElement.Height,
+                inlineImage.TableTextRotation == 0 ? inlineElement.Height : inlineElement.Width);
+            if (inlineImage.TableTextRotation != 0) {
+                pageImage.RotationAngle = -inlineImage.TableTextRotation;
+                pageImage.RotationCenterX = x + inlineElement.Width / 2D;
+                pageImage.RotationCenterY = bottom + inlineElement.Height / 2D;
+            }
             pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
             page.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(page);
@@ -226,6 +231,7 @@ internal static partial class PdfWriter {
             .TextLeading(defaultLeading);
 
         double yOffset = 0D;
+        StringBuilder? uprightCellImages = null;
         for (int li = 0; li < lines.Count; li++) {
             double lineY = AdjustRichLineBaseline(startY - yOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize, baselineFont);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
@@ -339,10 +345,17 @@ internal static partial class PdfWriter {
                     }
 
                     if (structurePage != null) PromoteTextStructureContainer(structurePage, textStructElementIndex);
+                    // Upright pictures keep the paragraph's top-to-bottom advance even
+                    // when counterclockwise cell text advances from bottom to top.
+                    double inlineX = s.InlineElement is PdfInlineImage { TableTextRotation: > 0 }
+                        ? lineXOrigin + lineWidthUsed - xCursor - s.InlineElement.Width
+                        : lineXOrigin + xCursor;
                     AppendInlineElement(
-                        sb,
+                        s.InlineElement is PdfInlineImage { TableTextRotation: not 0 }
+                            ? uprightCellImages ??= new StringBuilder()
+                            : sb,
                         s.InlineElement,
-                        lineXOrigin + xCursor,
+                        inlineX,
                         lineY,
                         opts,
                         structurePage,
@@ -516,6 +529,10 @@ internal static partial class PdfWriter {
                 AppendArtifactEnd(sb, markedContentId.HasValue);
             }
         }
+
+        // A picture can overlap later text after the cell turns its text axes.
+        // Preserve its logical structure position while painting the upright image above that text.
+        if (uprightCellImages != null) sb.Append(uprightCellImages);
     }
 
     private static int? FindStructElementIndex(LayoutResult.Page? structurePage, int? markedContentId, string? structureType) {

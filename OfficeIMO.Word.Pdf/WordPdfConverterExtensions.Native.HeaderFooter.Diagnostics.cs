@@ -661,7 +661,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            string text = string.Concat(sdtRun.SdtContentRun.Descendants<W.Text>().Select(runText => runText.Text));
+            string text = string.Concat(sdtRun.SdtContentRun.Descendants<W.Text>().Select(WordParagraph.ReadVisibleText));
             return string.IsNullOrWhiteSpace(text) ? null : text;
         }
 
