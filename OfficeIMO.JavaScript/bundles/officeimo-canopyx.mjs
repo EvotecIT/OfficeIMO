@@ -387,7 +387,214 @@ const _exports = Object.freeze({ OfficeIMOError: _m2.OfficeIMOError, NotSupporte
 return _exports;
 })();
 
-const _m8 = (() => {
+const _m9 = (() => {
+const { OfficeIMOError } = _m2;
+
+/** @internal Check before accepting the next value or chunk. */
+class ExportBudget {
+    cells = 0;
+    text = 0;
+    reservedCells = 0;
+    reservedText = 0;
+    limits;
+    constructor(limits = {}) {
+        for (const [key, value] of Object.entries(limits))
+            if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
+                throw new RangeError(key + " must be a nonnegative safe integer.");
+        this.limits = Object.freeze({ ...limits });
+    }
+    check(kind, value) {
+        const maximum = this.limits[kind];
+        if (maximum !== undefined && value > maximum)
+            throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
+    }
+    row(count) { this.check("maxRows", count); }
+    reserve(cells, characters) {
+        this.check("maxCells", this.cells + this.reservedCells + cells);
+        this.check("maxTextCharacters", this.text + this.reservedText + characters);
+        this.reservedCells += cells;
+        this.reservedText += characters;
+    }
+    release(cells, characters) { this.reservedCells -= cells; this.reservedText -= characters; }
+    cell(value, reservedCharacters) {
+        if (reservedCharacters !== undefined)
+            this.release(1, reservedCharacters);
+        // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
+        // when neither emitted-cell nor text totals are observable by a resource cap.
+        if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined)
+            return;
+        this.check("maxCells", this.cells + this.reservedCells + 1);
+        const length = typeof value === "string" ? value.length : 0;
+        this.check("maxTextCharacters", this.text + this.reservedText + length);
+        this.cells++;
+        this.text += length;
+    }
+}
+/** @internal Ownership stays with the caller. */
+function boundedSink(sink, budget) {
+    let bytes = 0;
+    return { write(chunk) {
+            budget.check("maxOutputBytes", bytes + chunk.length);
+            bytes += chunk.length;
+            return sink.write(chunk);
+        } };
+}
+const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
+return _exports;
+})();
+
+const _m11 = (() => {
+const { OfficeIMOError } = _m2;
+
+/** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
+function partUri(value) {
+    const bad = () => new OfficeIMOError("INVALID_PART_URI", "Invalid OPC part URI: " + value);
+    if (typeof value !== "string" || !value.startsWith("/") || /[^A-Za-z0-9\-._~!$&'()*+,;=:@%/]/.test(value))
+        throw bad();
+    if (value.split("/").slice(1).some(s => !s || s.endsWith(".") || /^\.+$/.test(s)))
+        throw bad();
+    if (/%(?![\da-f]{2})/i.test(value))
+        throw bad();
+    for (const match of value.matchAll(/%([\da-f]{2})/gi)) {
+        const char = String.fromCharCode(parseInt(match[1], 16));
+        if (/[A-Za-z0-9_.~\-/\\]/.test(char))
+            throw bad();
+    }
+    try {
+        decodeURIComponent(value);
+    }
+    catch {
+        throw bad();
+    }
+    return value.replace(/%[\da-f]{2}/gi, s => s.toUpperCase());
+}
+function relationshipPartUri(source) {
+    if (source === "/")
+        return "/_rels/.rels";
+    const uri = partUri(source), slash = uri.lastIndexOf("/");
+    return uri.slice(0, slash + 1) + "_rels/" + uri.slice(slash + 1) + ".rels";
+}
+/** Relative target, derived from validated part URIs rather than caller-provided traversal. */
+function relativePartTarget(source, target) {
+    const to = partUri(target).slice(1).split("/");
+    const from = source === "/" ? [] : partUri(source).slice(1).split("/").slice(0, -1);
+    while (from.length && from[0] === to[0]) {
+        from.shift();
+        to.shift();
+    }
+    const relative = "../".repeat(from.length) + to.join("/");
+    // RFC 3986 section 4.2 forbids a colon in a relative reference's first segment.
+    return relative.split("/", 1)[0].includes(":") ? "./" + relative : relative;
+}
+const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relationshipPartUri, relativePartTarget: relativePartTarget });
+return _exports;
+})();
+
+const _m13 = (() => {
+const { OfficeIMOError } = _m2;
+
+const { ChunkedTextSink } = _m3;
+
+const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+/** XML 1.0 characters; Unicode mode retains valid surrogate pairs. */
+function cleanXml(value, policy = "strip") {
+    if (policy !== "strip" && policy !== "reject")
+        throw new TypeError("Invalid XML character policy.");
+    const text = String(value), invalid = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ud800-\udfff\ufffe\uffff]/gu;
+    if (policy === "reject" && invalid.test(text))
+        throw new OfficeIMOError("INVALID_XML", "Text contains XML 1.0-invalid characters.");
+    return text.replace(invalid, "");
+}
+/** Escape data, including whitespace that XML parsers otherwise normalize. */
+function escapeXml(value, policy = "strip") {
+    const escapes = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
+        "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
+    return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]);
+}
+/** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
+function escapeOoxmlAttribute(value, policy = "strip") {
+    const whitespace = { "\r": "_x000D_", "\n": "_x000A_", "\t": "_x0009_" };
+    const text = cleanXml(value, policy).replace(/_(?=x[0-9a-f]{4}_)|[\r\n\t]/gi, token => token === "_" ? "_x005F_" : whitespace[token]);
+    return escapeXml(text, policy);
+}
+/** Names are schema-owned ASCII QNames; data is accepted only as text or attribute values. */
+function validateXmlName(name) {
+    if (typeof name !== "string" || !/^[A-Za-z_][A-Za-z0-9_.-]*(?::[A-Za-z_][A-Za-z0-9_.-]*)?$/.test(name))
+        throw new OfficeIMOError("INVALID_XML", "Invalid XML name: " + name);
+    return name;
+}
+class XmlWriter {
+    policy;
+    sink;
+    stack = [];
+    roots = 0;
+    closed = false;
+    constructor(sink, policy = "strip", signal) {
+        this.policy = policy;
+        cleanXml("", policy);
+        this.sink = new ChunkedTextSink(sink, signal);
+        this.sink.append(xmlDeclaration);
+    }
+    async startElement(name, attributes = {}) {
+        this.open();
+        validateXmlName(name);
+        const text = "<" + name + Object.entries(attributes).map(([key, value]) => " " + validateXmlName(key) + '="' + escapeXml(value, this.policy) + '"').join("") + ">";
+        if (!this.stack.length && this.roots++)
+            throw new OfficeIMOError("INVALID_XML", "XML must have one root element.");
+        this.stack.push(name);
+        await this.sink.write(text);
+    }
+    async text(value) {
+        this.open();
+        if (!this.stack.length)
+            throw new OfficeIMOError("INVALID_XML", "Text needs an open element.");
+        await this.sink.write(escapeXml(value, this.policy));
+    }
+    async endElement() {
+        this.open();
+        const name = this.stack.pop();
+        if (!name)
+            throw new OfficeIMOError("INVALID_XML", "No open XML element.");
+        await this.sink.write("</" + name + ">");
+    }
+    async close() {
+        this.open();
+        if (this.stack.length || this.roots !== 1)
+            throw new OfficeIMOError("INVALID_XML", "XML document is incomplete.");
+        await this.sink.close();
+        this.closed = true;
+    }
+    open() { if (this.closed)
+        throw new OfficeIMOError("INVALID_STATE", "XML writer is closed."); }
+}
+const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: cleanXml, escapeXml: escapeXml, escapeOoxmlAttribute: escapeOoxmlAttribute, validateXmlName: validateXmlName, XmlWriter: XmlWriter });
+return _exports;
+})();
+
+const _m12 = (() => {
+const { escapeXml, xmlDeclaration } = _m13;
+
+function corePropertiesXml(properties = {}, policy = "strip") {
+    const created = properties.created ?? new Date(), modified = properties.modified ?? created;
+    if (!(created instanceof Date) || !(modified instanceof Date) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
+        throw new TypeError("Invalid workbook property date.");
+    return xmlDeclaration + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
+        ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+        '<dc:creator>' + escapeXml(properties.creator ?? "", policy) + '</dc:creator><dc:title>' + escapeXml(properties.title ?? "", policy) + '</dc:title>' +
+        (properties.subject === undefined ? "" : '<dc:subject>' + escapeXml(properties.subject, policy) + '</dc:subject>') +
+        (properties.description === undefined ? "" : '<dc:description>' + escapeXml(properties.description, policy) + '</dc:description>') +
+        '<dcterms:created xsi:type="dcterms:W3CDTF">' + created.toISOString() + '</dcterms:created>' +
+        '<dcterms:modified xsi:type="dcterms:W3CDTF">' + modified.toISOString() + '</dcterms:modified></cp:coreProperties>';
+}
+function appPropertiesXml(properties = {}, policy = "strip") {
+    return xmlDeclaration + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">' +
+        '<Application>' + escapeXml(properties.application ?? "OfficeIMO", policy) + '</Application><Company>' + escapeXml(properties.company ?? "", policy) + '</Company></Properties>';
+}
+const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appPropertiesXml: appPropertiesXml });
+return _exports;
+})();
+
+const _m15 = (() => {
 const { checkAbort, withAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -531,10 +738,10 @@ const _exports = Object.freeze({ zipLimit: zipLimit, Crc32: Crc32, zipSize: zipS
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m14 = (() => {
 
 
-const { EntryWriter, zipSize } = _m8;
+const { EntryWriter, zipSize } = _m15;
 
 const { checkAbort, withAbort, pause, taskYieldDue } = _m4;
 
@@ -762,158 +969,7 @@ class ZipWriter {
         return this.owned.toBlob(type);
     }
 }
-const _exports = Object.freeze({ Crc32: _m8.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
-return _exports;
-})();
-
-const _m9 = (() => {
-const { OfficeIMOError } = _m2;
-
-const { ChunkedTextSink } = _m3;
-
-const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-/** XML 1.0 characters; Unicode mode retains valid surrogate pairs. */
-function cleanXml(value, policy = "strip") {
-    if (policy !== "strip" && policy !== "reject")
-        throw new TypeError("Invalid XML character policy.");
-    const text = String(value), invalid = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ud800-\udfff\ufffe\uffff]/gu;
-    if (policy === "reject" && invalid.test(text))
-        throw new OfficeIMOError("INVALID_XML", "Text contains XML 1.0-invalid characters.");
-    return text.replace(invalid, "");
-}
-/** Escape data, including whitespace that XML parsers otherwise normalize. */
-function escapeXml(value, policy = "strip") {
-    const escapes = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;",
-        "\r": "&#13;", "\n": "&#10;", "\t": "&#9;" };
-    return cleanXml(value, policy).replace(/[&<>"'\r\n\t]/g, c => escapes[c]);
-}
-/** Encode an OOXML ST_Xstring attribute without interpreting literal escape tokens as characters. */
-function escapeOoxmlAttribute(value, policy = "strip") {
-    const whitespace = { "\r": "_x000D_", "\n": "_x000A_", "\t": "_x0009_" };
-    const text = cleanXml(value, policy).replace(/_(?=x[0-9a-f]{4}_)|[\r\n\t]/gi, token => token === "_" ? "_x005F_" : whitespace[token]);
-    return escapeXml(text, policy);
-}
-/** Names are schema-owned ASCII QNames; data is accepted only as text or attribute values. */
-function validateXmlName(name) {
-    if (typeof name !== "string" || !/^[A-Za-z_][A-Za-z0-9_.-]*(?::[A-Za-z_][A-Za-z0-9_.-]*)?$/.test(name))
-        throw new OfficeIMOError("INVALID_XML", "Invalid XML name: " + name);
-    return name;
-}
-class XmlWriter {
-    policy;
-    sink;
-    stack = [];
-    roots = 0;
-    closed = false;
-    constructor(sink, policy = "strip", signal) {
-        this.policy = policy;
-        cleanXml("", policy);
-        this.sink = new ChunkedTextSink(sink, signal);
-        this.sink.append(xmlDeclaration);
-    }
-    async startElement(name, attributes = {}) {
-        this.open();
-        validateXmlName(name);
-        const text = "<" + name + Object.entries(attributes).map(([key, value]) => " " + validateXmlName(key) + '="' + escapeXml(value, this.policy) + '"').join("") + ">";
-        if (!this.stack.length && this.roots++)
-            throw new OfficeIMOError("INVALID_XML", "XML must have one root element.");
-        this.stack.push(name);
-        await this.sink.write(text);
-    }
-    async text(value) {
-        this.open();
-        if (!this.stack.length)
-            throw new OfficeIMOError("INVALID_XML", "Text needs an open element.");
-        await this.sink.write(escapeXml(value, this.policy));
-    }
-    async endElement() {
-        this.open();
-        const name = this.stack.pop();
-        if (!name)
-            throw new OfficeIMOError("INVALID_XML", "No open XML element.");
-        await this.sink.write("</" + name + ">");
-    }
-    async close() {
-        this.open();
-        if (this.stack.length || this.roots !== 1)
-            throw new OfficeIMOError("INVALID_XML", "XML document is incomplete.");
-        await this.sink.close();
-        this.closed = true;
-    }
-    open() { if (this.closed)
-        throw new OfficeIMOError("INVALID_STATE", "XML writer is closed."); }
-}
-const _exports = Object.freeze({ xmlDeclaration: xmlDeclaration, cleanXml: cleanXml, escapeXml: escapeXml, escapeOoxmlAttribute: escapeOoxmlAttribute, validateXmlName: validateXmlName, XmlWriter: XmlWriter });
-return _exports;
-})();
-
-const _m11 = (() => {
-const { OfficeIMOError } = _m2;
-
-/** Canonical absolute OPC part URI. ASCII URI spelling; Unicode must be UTF-8 percent encoded. */
-function partUri(value) {
-    const bad = () => new OfficeIMOError("INVALID_PART_URI", "Invalid OPC part URI: " + value);
-    if (typeof value !== "string" || !value.startsWith("/") || /[^A-Za-z0-9\-._~!$&'()*+,;=:@%/]/.test(value))
-        throw bad();
-    if (value.split("/").slice(1).some(s => !s || s.endsWith(".") || /^\.+$/.test(s)))
-        throw bad();
-    if (/%(?![\da-f]{2})/i.test(value))
-        throw bad();
-    for (const match of value.matchAll(/%([\da-f]{2})/gi)) {
-        const char = String.fromCharCode(parseInt(match[1], 16));
-        if (/[A-Za-z0-9_.~\-/\\]/.test(char))
-            throw bad();
-    }
-    try {
-        decodeURIComponent(value);
-    }
-    catch {
-        throw bad();
-    }
-    return value.replace(/%[\da-f]{2}/gi, s => s.toUpperCase());
-}
-function relationshipPartUri(source) {
-    if (source === "/")
-        return "/_rels/.rels";
-    const uri = partUri(source), slash = uri.lastIndexOf("/");
-    return uri.slice(0, slash + 1) + "_rels/" + uri.slice(slash + 1) + ".rels";
-}
-/** Relative target, derived from validated part URIs rather than caller-provided traversal. */
-function relativePartTarget(source, target) {
-    const to = partUri(target).slice(1).split("/");
-    const from = source === "/" ? [] : partUri(source).slice(1).split("/").slice(0, -1);
-    while (from.length && from[0] === to[0]) {
-        from.shift();
-        to.shift();
-    }
-    const relative = "../".repeat(from.length) + to.join("/");
-    // RFC 3986 section 4.2 forbids a colon in a relative reference's first segment.
-    return relative.split("/", 1)[0].includes(":") ? "./" + relative : relative;
-}
-const _exports = Object.freeze({ partUri: partUri, relationshipPartUri: relationshipPartUri, relativePartTarget: relativePartTarget });
-return _exports;
-})();
-
-const _m12 = (() => {
-const { escapeXml, xmlDeclaration } = _m9;
-
-function corePropertiesXml(properties = {}, policy = "strip") {
-    const created = properties.created ?? new Date(), modified = properties.modified ?? created;
-    if (!(created instanceof Date) || !(modified instanceof Date) || !Number.isFinite(created.getTime()) || !Number.isFinite(modified.getTime()))
-        throw new TypeError("Invalid workbook property date.");
-    return xmlDeclaration + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"' +
-        ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
-        '<dc:creator>' + escapeXml(properties.creator ?? "", policy) + '</dc:creator><dc:title>' + escapeXml(properties.title ?? "", policy) + '</dc:title>' +
-        (properties.subject === undefined ? "" : '<dc:subject>' + escapeXml(properties.subject, policy) + '</dc:subject>') +
-        (properties.description === undefined ? "" : '<dc:description>' + escapeXml(properties.description, policy) + '</dc:description>') +
-        '<dcterms:created xsi:type="dcterms:W3CDTF">' + created.toISOString() + '</dcterms:created>' +
-        '<dcterms:modified xsi:type="dcterms:W3CDTF">' + modified.toISOString() + '</dcterms:modified></cp:coreProperties>';
-}
-function appPropertiesXml(properties = {}, policy = "strip") {
-    return xmlDeclaration + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">' +
-        '<Application>' + escapeXml(properties.application ?? "OfficeIMO", policy) + '</Application><Company>' + escapeXml(properties.company ?? "", policy) + '</Company></Properties>';
-}
-const _exports = Object.freeze({ corePropertiesXml: corePropertiesXml, appPropertiesXml: appPropertiesXml });
+const _exports = Object.freeze({ Crc32: _m15.Crc32, validateEntryName: validateEntryName, ZipWriter: ZipWriter });
 return _exports;
 })();
 
@@ -926,13 +982,13 @@ const { partUri, relationshipPartUri, relativePartTarget } = _m11;
 
 const { corePropertiesXml, appPropertiesXml } = _m12;
 
-const { ZipWriter } = _m7;
+const { ZipWriter } = _m14;
 
 const { ChunkedTextSink } = _m3;
 
 const { OfficeIMOError } = _m2;
 
-const { escapeXml, xmlDeclaration } = _m9;
+const { escapeXml, xmlDeclaration } = _m13;
 
 const relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const officeRelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -1144,62 +1200,6 @@ const _exports = Object.freeze({ partUri: _m11.partUri, relationshipPartUri: _m1
 return _exports;
 })();
 
-const _m15 = (() => {
-const { OfficeIMOError } = _m2;
-
-/** @internal Check before accepting the next value or chunk. */
-class ExportBudget {
-    cells = 0;
-    text = 0;
-    reservedCells = 0;
-    reservedText = 0;
-    limits;
-    constructor(limits = {}) {
-        for (const [key, value] of Object.entries(limits))
-            if (value !== undefined && (!Number.isSafeInteger(value) || value < 0))
-                throw new RangeError(key + " must be a nonnegative safe integer.");
-        this.limits = Object.freeze({ ...limits });
-    }
-    check(kind, value) {
-        const maximum = this.limits[kind];
-        if (maximum !== undefined && value > maximum)
-            throw new OfficeIMOError("RESOURCE_LIMIT", kind + " exceeded (" + value + " > " + maximum + ").");
-    }
-    row(count) { this.check("maxRows", count); }
-    reserve(cells, characters) {
-        this.check("maxCells", this.cells + this.reservedCells + cells);
-        this.check("maxTextCharacters", this.text + this.reservedText + characters);
-        this.reservedCells += cells;
-        this.reservedText += characters;
-    }
-    release(cells, characters) { this.reservedCells -= cells; this.reservedText -= characters; }
-    cell(value, reservedCharacters) {
-        if (reservedCharacters !== undefined)
-            this.release(1, reservedCharacters);
-        // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
-        // when neither emitted-cell nor text totals are observable by a resource cap.
-        if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined)
-            return;
-        this.check("maxCells", this.cells + this.reservedCells + 1);
-        const length = typeof value === "string" ? value.length : 0;
-        this.check("maxTextCharacters", this.text + this.reservedText + length);
-        this.cells++;
-        this.text += length;
-    }
-}
-/** @internal Ownership stays with the caller. */
-function boundedSink(sink, budget) {
-    let bytes = 0;
-    return { write(chunk) {
-            budget.check("maxOutputBytes", bytes + chunk.length);
-            bytes += chunk.length;
-            return sink.write(chunk);
-        } };
-}
-const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-return _exports;
-})();
-
 const _m17 = (() => {
 function colorArgb(value) {
     if (typeof value !== "string" || !/^#?(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
@@ -1214,7 +1214,7 @@ return _exports;
 const _m18 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { cleanXml, escapeOoxmlAttribute } = _m9;
+const { cleanXml, escapeOoxmlAttribute } = _m13;
 
 const { colorArgb } = _m17;
 
@@ -1322,7 +1322,7 @@ return _exports;
 })();
 
 const _m16 = (() => {
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m13;
 
 const { OfficeIMOError } = _m2;
 
@@ -1531,7 +1531,7 @@ return _exports;
 })();
 
 const _m19 = (() => {
-const { cleanXml, escapeXml } = _m9;
+const { cleanXml, escapeXml } = _m13;
 
 const { ExportCell, assertExportValue, assertScalar } = _m5;
 
@@ -1682,7 +1682,7 @@ return _exports;
 })();
 
 const _m22 = (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m9;
+const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m13;
 
 const { copyExportLink } = _m6;
 
@@ -1898,7 +1898,7 @@ const { ExportCell } = _m5;
 
 const { Cell, cellText, columnName } = _m19;
 
-const { escapeOoxmlAttribute } = _m9;
+const { escapeOoxmlAttribute } = _m13;
 
 const { MergeRegions } = _m24;
 
@@ -2063,7 +2063,7 @@ return _exports;
 })();
 
 const _m26 = (() => {
-const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
+const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m13;
 
 const { cellPosition } = _m22;
 
@@ -2236,9 +2236,9 @@ const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { copyColumns, createRowProjector } = _m21;
 
-const { EntryWriter } = _m8;
+const { EntryWriter } = _m15;
 
-const { xmlDeclaration } = _m9;
+const { xmlDeclaration } = _m13;
 
 const { officeRelationshipsNamespace } = _m10;
 
@@ -2252,7 +2252,7 @@ const { ExportCell, assertScalar } = _m5;
 
 const { ReportLayout, ComputedTotal, printXml } = _m23;
 
-const { cleanXml } = _m9;
+const { cleanXml } = _m13;
 
 const { ConditionalFormats, prepareConditionalFormats } = _m26;
 
@@ -2802,7 +2802,7 @@ return _exports;
 })();
 
 const _m27 = (() => {
-const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
+const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m13;
 
 const { cellText, columnName } = _m19;
 
@@ -2850,7 +2850,7 @@ return _exports;
 const _m28 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { cleanXml } = _m9;
+const { cleanXml } = _m13;
 
 /** @internal Overflow is deliberately bounded: ZIP worksheet entries cannot be interleaved. */
 class TextOverflow {
@@ -2914,18 +2914,18 @@ const _exports = Object.freeze({ TextOverflow: TextOverflow, clipText: clipText 
 return _exports;
 })();
 
-const _m14 = (() => {
+const _m8 = (() => {
 const { beginTask, checkAbort } = _m4;
 
 const { OfficeIMOError } = _m2;
 
 const { ChunkedTextSink } = _m3;
 
-const { ExportBudget } = _m15;
+const { ExportBudget } = _m9;
 
 const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } = _m10;
 
-const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m9;
+const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m13;
 
 const { StyleRegistry, spreadsheetNamespace } = _m16;
 
@@ -3277,7 +3277,7 @@ const { withDestination } = _m3;
 
 const { copyColumns } = _m21;
 
-const { Workbook } = _m14;
+const { Workbook } = _m8;
 
 const { portableSheet, portableWorkbook } = _m30;
 
@@ -3325,9 +3325,9 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m13 = (() => {
+const _m7 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m14.Workbook, writeXlsx: _m29.writeXlsx, writeXlsxTo: _m29.writeXlsxTo, Worksheet: _m20.Worksheet, Cell: _m19.Cell, StyleRegistry: _m16.StyleRegistry, NumberFormats: _m16.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
+const _exports = Object.freeze({ Workbook: _m8.Workbook, writeXlsx: _m29.writeXlsx, writeXlsxTo: _m29.writeXlsxTo, Worksheet: _m20.Worksheet, Cell: _m19.Cell, StyleRegistry: _m16.StyleRegistry, NumberFormats: _m16.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
 return _exports;
 })();
 
@@ -3336,7 +3336,7 @@ const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m4;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m3;
 
-const { ExportBudget, boundedSink } = _m15;
+const { ExportBudget, boundedSink } = _m9;
 
 const { ExportCell } = _m5;
 
@@ -3509,7 +3509,7 @@ return _exports;
 const _m34 = (() => {
 const { OfficeIMOError } = _m2;
 
-const { ExportBudget } = _m15;
+const { ExportBudget } = _m9;
 
 const { copyColumns } = _m21;
 
@@ -5201,10 +5201,219 @@ const _exports = Object.freeze({ writePdf: _m33.writePdf, writePdfTo: _m33.write
 return _exports;
 })();
 
-const _m0 = (() => {
-
-const _exports = Object.freeze({ core: _m1, zip: _m7, xml: _m9, opc: _m10, xlsx: _m13, csv: _m31, pdf: _m32, Workbook: _m13.Workbook, Worksheet: _m13.Worksheet, Cell: _m13.Cell, StyleRegistry: _m13.StyleRegistry, NumberFormats: _m13.NumberFormats, writeXlsx: _m13.writeXlsx, writeXlsxTo: _m13.writeXlsxTo, writeCsv: _m31.writeCsv, writeCsvTo: _m31.writeCsvTo, writePdf: _m32.writePdf, writePdfTo: _m32.writePdfTo, PdfFont: _m32.PdfFont, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
+const _m48 = (() => {
+/** @internal Typed conversion follows declared datetime intent, never localized display text. */
+function datetime(value, mode, clock) {
+    if (mode === "text")
+        return value;
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+    if (!match)
+        throw new TypeError("Canopy datetime values require an ISO timestamp with an explicit time zone.");
+    const date = new Date(value);
+    const offset = match[8] === "Z" ? 0 : (match[8][0] === "+" ? 1 : -1) * (Number(match[8].slice(1, 3)) * 60 + Number(match[8].slice(4)));
+    const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+    const hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6] ?? "0"), fraction = match[7] ?? "";
+    // setUTCFullYear preserves years 0 through 99. Validate the calendar before allowing ISO's next-day 24:00 spelling.
+    const wall = new Date(0);
+    wall.setUTCFullYear(year, month - 1, day);
+    if (!Number.isFinite(date.getTime()) || Number(match[8].slice(1, 3)) > 23 || Number(match[8].slice(4)) > 59 ||
+        wall.getUTCFullYear() !== year || wall.getUTCMonth() + 1 !== month || wall.getUTCDate() !== day ||
+        hour > 24 || minute > 59 || second > 59 || hour === 24 && (minute !== 0 || second !== 0 || /[1-9]/.test(fraction)))
+        throw new TypeError("Invalid Canopy datetime value.");
+    wall.setUTCHours(hour, minute, second, Number((fraction + "000").slice(0, 3)));
+    if (wall.getTime() !== date.getTime() + offset * 60000)
+        throw new TypeError("Invalid Canopy datetime value.");
+    if (/[1-9]/.test(fraction.slice(3))) {
+        if (mode === "typed")
+            throw new TypeError("Typed Excel dates cannot preserve sub-millisecond precision; use datetime: preserve or text.");
+        return value;
+    }
+    const excelYear = clock === "utc" ? date.getUTCFullYear() : date.getFullYear();
+    if (excelYear < 1900 || excelYear > 9999) {
+        if (mode === "typed")
+            throw new TypeError("Typed Excel dates require years 1900 through 9999; use datetime: preserve or text.");
+        return value;
+    }
+    return date;
+}
+const _exports = Object.freeze({ datetime: datetime });
 return _exports;
 })();
-const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, writePdf, writePdfTo, PdfFont, saveBlob, ExportCell } = _m0;
-export { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, writePdf, writePdfTo, PdfFont, saveBlob, ExportCell };
+
+const _m47 = (() => {
+const { ExportCell, checkAbort, inputRows } = _m1;
+
+const { datetime } = _m48;
+
+/** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
+function createCanopyExport(capture, format, options = {}) {
+    if (format !== "xlsx" && format !== "csv" && format !== "pdf")
+        throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
+    if (!capture || typeof capture.rows !== "function" || !capture.request)
+        throw new TypeError("A portable CanopyX capture with request and rows() is required.");
+    const { request } = capture, signal = options.signal;
+    if (!Array.isArray(request.columns) || !request.columns.length || (request.recordCount !== null && (!Number.isSafeInteger(request.recordCount) || request.recordCount < 0)) ||
+        (request.values !== "raw" && request.values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
+        throw new TypeError("Invalid portable CanopyX capture metadata.");
+    const policy = options.unsupportedPresentation ?? (format === "csv" ? "text" : "reject"), dateMode = options.datetime ?? "preserve", notify = options.onDiagnostic;
+    const clock = options.xlsx?.dateMode ?? request.timeZone;
+    if (clock !== "utc" && clock !== "local")
+        throw new TypeError("XLSX dateMode must be utc or local.");
+    if (policy !== "reject" && policy !== "text")
+        throw new TypeError("unsupportedPresentation must be reject or text.");
+    if (dateMode !== "preserve" && dateMode !== "typed" && dateMode !== "text")
+        throw new TypeError("datetime must be preserve, typed or text.");
+    if (notify !== undefined && typeof notify !== "function")
+        throw new TypeError("onDiagnostic must be a synchronous function.");
+    const report = (diagnostic) => {
+        if (policy === "reject")
+            throw new TypeError("Unsupported Canopy presentation: " + diagnostic.code + (diagnostic.columnId ? " (" + diagnostic.columnId + ")" : ""));
+        const result = notify?.(Object.freeze(diagnostic));
+        if (result && typeof result.then === "function") {
+            void Promise.resolve(result).catch(() => { });
+            throw new TypeError("onDiagnostic must be synchronous.");
+        }
+    };
+    const diagnostics = (items, rowId, columnId) => {
+        if (items === undefined)
+            return;
+        if (!Array.isArray(items) || items.some(item => typeof item !== "string"))
+            throw new TypeError("Canopy presentation diagnostics must be strings.");
+        for (const code of items)
+            report({ code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) });
+    };
+    if (request.presentation === "text")
+        report({ code: "TEXT_ONLY_CAPTURE" });
+    else if (request.presentation !== "semantic")
+        throw new TypeError("Canopy captures must declare text or semantic presentation.");
+    const tones = new Map(Object.entries(options.tones ?? {}).map(([name, style]) => {
+        if (!style || typeof style !== "object" || Array.isArray(style))
+            throw new TypeError("Tone mappings must be portable presentation objects.");
+        return [name, Object.freeze({ ...style })];
+    }));
+    const tone = (name, rowId, columnId) => {
+        if (name === undefined)
+            return undefined;
+        if (typeof name !== "string")
+            throw new TypeError("Canopy tones must be strings.");
+        const style = tones.get(name);
+        if (!style)
+            report({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
+        return style;
+    };
+    const ids = new Set();
+    const specs = request.columns.map(column => {
+        if (!column || typeof column.id !== "string" || !column.id || ids.has(column.id) || typeof column.title !== "string" ||
+            !["text", "number", "datetime"].includes(column.kind) ||
+            (column.wrap !== undefined && typeof column.wrap !== "boolean") || (column.alignment !== undefined && !["left", "right"].includes(column.alignment)) ||
+            (column.width !== undefined && (column.width.unit !== "css-px" || !Number.isFinite(column.width.preferred) ||
+                !Number.isFinite(column.width.minimum) || column.width.minimum <= 0 || column.width.preferred < column.width.minimum ||
+                column.width.maximum !== undefined && (!Number.isFinite(column.width.maximum) || column.width.maximum < column.width.preferred))) ||
+            (request.presentation === "semantic" && (column.wrap === undefined || column.alignment === undefined || column.width === undefined)))
+            throw new TypeError("Invalid or duplicate Canopy export column.");
+        ids.add(column.id);
+        diagnostics(column.diagnostics, undefined, column.id);
+        const override = Object.hasOwn(options.columnOptions ?? {}, column.id) ? options.columnOptions[column.id] : {};
+        for (const key of Object.keys(override))
+            if (!["width", "format", "wrapText", "alignment", "groups"].includes(key))
+                throw new TypeError("Unsupported Canopy column option: " + key);
+        return Object.freeze({ id: column.id, kind: column.kind, column: Object.freeze({ ...override, key: column.id, header: column.title,
+                ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
+                ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }),
+                ...(override.groups === undefined ? {} : { groups: Object.freeze([...override.groups]) }) }) });
+    });
+    const values = request.values, rowCount = request.recordCount;
+    return Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
+            checkAbort(signal);
+            let count = 0;
+            for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
+                checkAbort(signal);
+                if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object")
+                    throw new TypeError("Invalid Canopy export record.");
+                diagnostics(row.diagnostics, row.id);
+                const rowStyle = tone(row.tone, row.id), result = [];
+                for (const spec of specs) {
+                    if (!Object.hasOwn(row.cells, spec.id))
+                        throw new TypeError("Canopy record is missing column " + spec.id + ".");
+                    const cell = row.cells[spec.id];
+                    if (!cell || typeof cell !== "object" || typeof cell.text !== "string" ||
+                        (cell.value !== null && !["string", "number", "boolean"].includes(typeof cell.value)) ||
+                        (typeof cell.value === "number" && (!Number.isFinite(cell.value) || Math.abs(cell.value) > Number.MAX_SAFE_INTEGER)))
+                        throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
+                    diagnostics(cell.diagnostics, row.id, spec.id);
+                    let value = values === "display" ? cell.text : cell.value;
+                    if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
+                        value = datetime(value, dateMode, clock);
+                    const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle ? { ...rowStyle, ...cellStyle } : undefined;
+                    // CSV has no presentation or link metadata: emit its selected scalar directly.
+                    // This also avoids a frozen wrapper for every cell in large CSV captures.
+                    result.push(format === "csv" ? value : new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) }));
+                }
+                if (rowCount !== null && count >= rowCount)
+                    throw new TypeError("Canopy capture exceeded its declared recordCount.");
+                count++;
+                yield result;
+            }
+            if (rowCount !== null && count !== rowCount)
+                throw new TypeError("Canopy capture did not produce its declared recordCount.");
+        } });
+}
+const _exports = Object.freeze({ createCanopyExport: createCanopyExport });
+return _exports;
+})();
+
+const _m0 = (() => {
+const { BlobByteSink } = _m1;
+
+const { writeXlsxTo } = _m7;
+
+const { writeCsvTo } = _m31;
+
+const { writePdfTo } = _m32;
+
+const { createCanopyExport } = _m47;
+
+
+
+
+
+
+
+/** Write a captured CanopyX grid to a caller-owned destination; its partial bytes remain caller-owned on failure. */
+async function writeCanopyTo(capture, format, destination, options = {}) {
+    const source = createCanopyExport(capture, format, options), { signal } = options;
+    const progress = options.onProgress ? { onProgress: (event) => {
+            const result = options.onProgress({ ...event, ...(source.rowCount === null ? {} : { totalRows: source.rowCount }) });
+            if (result && typeof result.then === "function") {
+                void Promise.resolve(result).catch(() => { });
+                throw new TypeError("onProgress must be synchronous.");
+            }
+        } } : {};
+    const stream = { ...(signal ? { signal } : {}), ...progress };
+    if (format === "xlsx")
+        return writeXlsxTo(source.rows(), destination, { ...options.xlsx, ...stream, columns: source.columns,
+            dateMode: options.xlsx?.dateMode ?? capture.request.timeZone,
+            limits: { ...options.xlsx?.limits, ...options.limits } });
+    if (format === "pdf")
+        return writePdfTo(source.rows(), destination, { ...options.pdf, ...stream, columns: source.columns,
+            limits: { ...options.pdf?.limits, ...options.limits } });
+    return writeCsvTo(source.rows(), destination, { ...options.csv, ...stream, columns: source.columns, valueMode: capture.request.values,
+        limits: { ...options.csv?.limits, ...options.limits } });
+}
+/** Export an immutable native capture as a Blob without loading or registering CanopyX. */
+async function exportCanopy(capture, format, options = {}) {
+    const sink = new BlobByteSink();
+    try {
+        await writeCanopyTo(capture, format, sink, options);
+        return sink.toBlob(format === "xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : format === "pdf" ? "application/pdf" : "text/csv;charset=utf-8");
+    }
+    catch (error) {
+        sink.discard();
+        throw error;
+    }
+}
+const _exports = Object.freeze({ createCanopyExport: _m47.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m38.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
+return _exports;
+})();
+const { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy } = _m0;
+export { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy };

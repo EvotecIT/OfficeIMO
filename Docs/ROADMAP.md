@@ -8,10 +8,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## OfficeIMO JavaScript
 
-The [TypeScript library](../OfficeIMO.JavaScript/README.md), [report-grade Excel contract](../OfficeIMO.JavaScript/README.md#live-excel-conditional-formatting), [PDF table contract](../OfficeIMO.JavaScript/README.md#pdf-tables) and [architecture contract](officeimo.javascript-architecture.md) own the current package and public layers. Delivery order follows browser consumers. HtmlForgeX and PSWriteHTML's DataTables export paths use JSZip for Excel and pdfmake plus its font file for PDF; TestimoX, CertNoob and DomainDetective reports inherit those paths. CanopyX's replacement grid needs both table exports. Word and PowerPoint remain later modules because their browser consumers are not yet defined; C# OfficeIMO supplies their build-time document generation.
-
-Every milestone retains strict TypeScript compiled with `tsc`, zero runtime dependencies, documented public layers, C# conformance, isolated package qualification and measured size budgets. Keep format models and shared ZIP/XML/OPC behavior in the library, with thin consumer integrations.
-
 | Open milestone | Content and acceptance | Consumers |
 | --- | --- | --- |
 | [ ] 4. Adoption | In the owning consumer repositories, use OfficeIMO JavaScript for CanopyX/HtmlForgeX Excel and PDF export; remove JSZip, pdfmake and the font asset from HtmlForgeX after equivalent exports are qualified. | HtmlForgeX, CanopyX |

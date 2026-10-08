@@ -15,6 +15,8 @@
     "./csv": { "types": "./dist/csv/index.d.ts", "import": "./dist/csv/index.js" },
     "./pdf": { "types": "./dist/pdf/index.d.ts", "import": "./dist/pdf/index.js" },
     "./integrations/datatables": { "types": "./dist/integrations/datatables/index.d.ts", "import": "./dist/integrations/datatables/index.js" },
+    "./integrations/canopyx": { "types": "./dist/integrations/canopyx/index.d.ts", "import": "./dist/integrations/canopyx/index.js" },
+    "./canopyx.js": "./bundles/officeimo-canopyx.js",
     "./datatables.js": "./bundles/officeimo-datatables.js",
     "./classic.js": "./bundles/officeimo.js",
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
@@ -29,6 +31,7 @@
     "test:consumer": "node node_modules/typescript/bin/tsc -p test/consumer/tsconfig.json",
     "test:pack": "node scripts/pack-test.mjs",
     "test:datatables-types": "node ../Build/BrowserExports/test-datatables-types.mjs",
+    "test:canopy-types": "node ../Build/BrowserExports/test-canopy-types.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "sizes": "node scripts/sizes.mjs",
     "prepack": "npm run check"
