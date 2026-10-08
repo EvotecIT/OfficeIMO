@@ -181,7 +181,7 @@ public sealed partial class OfficeVbaProject {
         if (minorVersion < 0 || minorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(minorVersion));
         if (path == null || path.IndexOfAny(new[] { '#', '\r', '\n', '\0' }) >= 0) throw new ArgumentException("The type-library path cannot contain reference separators.", nameof(path));
         string identity = typeLibraryId.ToString("B").ToUpperInvariant();
-        if (_references.Any(reference => reference.LibraryId?.IndexOf(identity, StringComparison.OrdinalIgnoreCase) >= 0)) return;
+        if (_references.Any(reference => reference.LibraryId?.StartsWith("*\\G" + identity + "#", StringComparison.OrdinalIgnoreCase) == true)) return;
         if (_references.Any(reference => string.Equals(reference.Name, name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException("A reference with this name already exists.", nameof(name));
         string libid = "*\\G" + identity + "#" + majorVersion.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "."
             + minorVersion.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "#0#" + path + "#" + name;

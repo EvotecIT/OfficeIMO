@@ -119,6 +119,24 @@ public sealed class OfficeVbaIdentityBoundaryTests {
         Assert.Contains("#0.0#", loaded.References.Single(reference => reference.Name == "Minimum").LibraryId);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RegisteredReferenceIdentityUsesTheLibraryGuidInsteadOfItsPath(bool reload) {
+        Guid first = new("11111111-2222-3333-4444-555555555555");
+        Guid second = new("22222222-3333-4444-5555-666666666666");
+        var project = OfficeVbaProject.Create();
+        project.AddRegisteredReference("First", first, path: "C:\\Libraries\\" + second.ToString("B") + "\\first.tlb");
+        if (reload) project = OfficeVbaProject.Load(project.Write().GetBytes());
+        project.AddRegisteredReference("Second", second);
+        Assert.Equal(new[] { "First", "Second" }, project.References.Select(reference => reference.Name));
+        byte[] bytes = project.Write().GetBytes();
+        project = OfficeVbaProject.Load(bytes);
+        project.AddRegisteredReference("AlreadyPresent", first, path: "C:\\another.tlb");
+        Assert.False(project.HasChanges);
+        Assert.Equal(bytes, project.Write().GetBytes());
+    }
+
     private static byte[] ProjectWithOpaqueStorage() {
         var project = OfficeVbaProject.Create(); project.AddModule("Stable", "'original");
         Assert.True(OfficeCompoundFileReader.TryRead(project.Write().GetBytes(), out OfficeCompoundFile? compound, out _));
