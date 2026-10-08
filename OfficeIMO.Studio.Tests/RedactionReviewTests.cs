@@ -9,6 +9,40 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class RedactionReviewTests {
     [Fact]
+    public async Task RepeatedSearchCountsOnlyNewMarksTowardsReviewCapacity() {
+        using var files = new TestFiles();
+        string text = string.Join(" ", Enumerable.Repeat("x", 1001).Concat(Enumerable.Repeat("y", 999)).Append("z"));
+        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800).Content(content =>
+            content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).Save(files.Input);
+        using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+        await model.OpenDocumentAsync(files.Input);
+        model.RedactionSearchMatchedTextOnly = true;
+        model.RedactionSearchPreserveUnderlay = true;
+        model.RedactionSearchText = "x";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(1001, model.RedactionMarks.Count);
+        PdfRedactionMarkViewModel original = model.RedactionMarks[0];
+        original.Reason = "Retain this reviewed reason";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(1001, model.RedactionMarks.Count);
+        Assert.Same(original, model.RedactionMarks[0]);
+        Assert.Equal("Retain this reviewed reason", original.Reason);
+        model.RedactionSearchText = "y";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(2000, model.RedactionMarks.Count);
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(2000, model.RedactionMarks.Count);
+        model.RedactionSearchText = "z";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.HasError);
+        Assert.Equal(2000, model.RedactionMarks.Count);
+    }
+
+    [Fact]
     public async Task CompatibleOverlapsAndSeparatePoliciesRemainReviewableUntilAConflictingSearch() {
         using var files = new TestFiles();
         await File.WriteAllBytesAsync(files.Input, CreateSource());

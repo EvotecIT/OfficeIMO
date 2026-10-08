@@ -105,13 +105,16 @@ public sealed partial class MainWindowViewModel {
             ReportRedactionPolicyConflict(conflict);
             return;
         }
-        if (RedactionMarks.Count + marks.Count > 2000) {
+        HashSet<(int PageNumber, Avalonia.Rect Bounds)> existingBounds = RedactionMarks.Select(mark => (mark.PageNumber, mark.Bounds)).ToHashSet();
+        PdfRedactionMarkViewModel[] additions = candidates.DistinctBy(mark => (mark.PageNumber, mark.Bounds))
+            .Where(mark => !existingBounds.Contains((mark.PageNumber, mark.Bounds))).ToArray();
+        if (RedactionMarks.Count + additions.Length > 2000) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.TooManyMarks", "A review can contain at most 2,000 marks. Narrow the search or remove some marks.");
             return;
         }
         _pendingRedactionWorkspace = workspace;
         _pendingRedactionRevision = revision;
-        foreach (PdfRedactionMarkViewModel mark in candidates) AddRedactionMark(mark, update: false);
+        foreach (PdfRedactionMarkViewModel mark in additions) AddRedactionMark(mark, update: false);
         InvalidateReviewedRedactions();
         if (marks.Count > 0) RedactionSearchExpanded = false;
         OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching area(s). Review the marked areas before applying.", marks.Count);
@@ -122,11 +125,11 @@ public sealed partial class MainWindowViewModel {
             ReportRedactionPolicyConflict(conflict);
             return;
         }
+        if (RedactionMarks.Any(existing => existing.PageNumber == mark.PageNumber && existing.Bounds == mark.Bounds)) return;
         if (RedactionMarks.Count >= 2000) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.TooManyMarks", "A review can contain at most 2,000 marks. Narrow the search or remove some marks.");
             return;
         }
-        if (RedactionMarks.Any(existing => existing.PageNumber == mark.PageNumber && existing.Bounds == mark.Bounds)) return;
         mark.PropertyChanged += OnRedactionMarkChanged;
         RedactionMarks.Add(mark);
         SelectedRedactionMark ??= mark;
