@@ -33,8 +33,11 @@ export interface PdfOptions<T = never> extends Omit<StreamOptions, "limits"> {
   /** Standard Helvetica is used when omitted. Supply TrueType fonts for Unicode text. */
   readonly fonts?: PdfFonts;
   readonly fontSize?: number;
+  /** First-page title. Empty text is omitted without reserving space or consuming a cell. */
   readonly title?: string;
+  /** Text before the first table heading. Empty text is omitted. */
   readonly messageTop?: string;
+  /** Text after the table. Empty text is omitted. */
   readonly messageBottom?: string;
   readonly includeHeader?: boolean;
   /** Overrides Column.groups/headers with a small explicit span matrix, repeated on each page. */

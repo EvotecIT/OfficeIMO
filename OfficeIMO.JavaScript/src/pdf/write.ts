@@ -45,7 +45,7 @@ export async function writePdfTo(rows: Iterable<unknown> | AsyncIterable<unknown
       if (options.footer?.rows) await pages.block(footer);
       else await pages.row(footer[0]!);
     }
-    if (options.messageBottom !== undefined) await pages.paragraph(options.messageBottom);
+    if (options.messageBottom) await pages.paragraph(options.messageBottom);
     await pages.finish();
     for (const font of fonts.resources) await font.write(objects, options.compression !== false);
     await objects.object(resources, "<< /Font " + fonts.dictionary() + pages.xobjects() + " >>");

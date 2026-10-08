@@ -35,6 +35,10 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
       ['Raport Łódź', 'Łódź — Zażółć gęślą jaźń', 'Totals', '7200'], {rows:120, repeated:['Report','Name','Amount','State']});
     reports.push({name:'report-' + compression, milliseconds:performance.now()-start});
   }
+  await save('empty-metadata', await writePdf([['Row000000', 1]], { columns: [{ header: 'Name' }, { header: 'Amount' }],
+    title: '', messageTop: '', messageBottom: '', pageHeader: '', pageFooter: () => '', pageNumbers: false,
+    limits: { maxCells: 4 } }), ['Name', 'Amount', 'Row000000', '1'],
+    { rows: 1, repeated: ['Name', 'Amount'] });
   const compressor = globalThis.CompressionStream;
   try {
     globalThis.CompressionStream = undefined;
