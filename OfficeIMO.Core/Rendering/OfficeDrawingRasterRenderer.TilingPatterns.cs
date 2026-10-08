@@ -26,12 +26,16 @@ public static partial class OfficeDrawingRasterRenderer {
             ? GetEffectAxisScales(pattern.Transform, canvas.CoordinateScaleX, canvas.CoordinateScaleY)
             : (1D, 1D);
         double scaleX = scale * axisX, scaleY = scale * axisY;
-        double width = System.Math.Ceiling(pattern.InnerTile.Width * scaleX);
-        double height = System.Math.Ceiling(pattern.InnerTile.Height * scaleY);
+        // Interpolated tiles fill their logical extent after density alignment.
+        // Nearest content retains the complete ceiling-padded source grid.
+        double width = interpolate ? pattern.InnerTile.Width : System.Math.Ceiling(pattern.InnerTile.Width * scaleX);
+        double height = interpolate ? pattern.InnerTile.Height : System.Math.Ceiling(pattern.InnerTile.Height * scaleY);
+        double visibilityScaleX = interpolate ? 1D : scaleX;
+        double visibilityScaleY = interpolate ? 1D : scaleY;
         bool visibleTile = double.IsInfinity(width) || double.IsInfinity(height);
         foreach (OfficeTransform transform in transforms) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (visibleTile || canvas.IntersectsVisibleSurface(CreateTilePixelTransform(transform, scale, scaleX, scaleY), width, height)) {
+            if (visibleTile || canvas.IntersectsVisibleSurface(CreateTilePixelTransform(transform, scale, visibilityScaleX, visibilityScaleY), width, height)) {
                 visibleTile = true;
                 break;
             }
