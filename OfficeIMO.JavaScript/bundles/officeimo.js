@@ -3791,7 +3791,7 @@ _modules.set("1161e750dafd5631bd12476f27c7de1c6e97c1cc18a591946376a0636537b9a5",
 return _exports;
 })();
 
-const _m38 = _modules.get("cf1ac09d23b985371f33c366ab39c82d95542f19b6d4bc6e209d253cc20c758e") ?? (() => {
+const _m38 = _modules.get("b594764a2d73e3dc5973aa361ae8f4a2686e67c6d313e12251b78dc9b3709777") ?? (() => {
 const { NotSupportedError } = _m2;
 
 const { FontReader } = _m39;
@@ -3855,7 +3855,7 @@ class TrueTypeFont extends FontReader {
         for (let i = 0; i <= this.glyphCount; i++)
             if (this.offsets[i] > glyf.length || (i && this.offsets[i] < this.offsets[i - 1]))
                 throw new TypeError("Invalid TrueType glyph offsets.");
-        const cmap = this.table("cmap", 4), maps = [];
+        const cmap = this.table("cmap", 4), maps = [], validated = new Set();
         const encodings = this.u16(cmap.offset + 2);
         if (4 + encodings * 8 > cmap.length)
             throw new TypeError("Invalid TrueType cmap directory.");
@@ -3867,6 +3867,9 @@ class TrueTypeFont extends FontReader {
                 throw new TypeError("Invalid cmap subtable offset.");
             const offset = cmap.offset + relative, type = this.u16(offset);
             if (type !== 4 && type !== 12)
+                continue;
+            // Encoding records may share a Unicode subtable; validate its contents once.
+            if (validated.has(offset))
                 continue;
             if (type === 12 && relative + 16 > cmap.length)
                 throw new TypeError("Truncated cmap format 12.");
@@ -3897,8 +3900,8 @@ class TrueTypeFont extends FontReader {
                     previous = end;
                 }
             }
-            if (!maps.some(m => m.offset === offset))
-                maps.push({ offset, length });
+            validated.add(offset);
+            maps.push({ offset, length });
         }
         this.cmaps = maps.sort((a, b) => this.u16(b.offset) - this.u16(a.offset));
         if (!maps.length)
@@ -3963,11 +3966,11 @@ class TrueTypeFont extends FontReader {
     subset(glyphs) { return this.canSubset ? subsetTrueType(this, glyphs) : this.bytes; }
 }
 const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
-_modules.set("cf1ac09d23b985371f33c366ab39c82d95542f19b6d4bc6e209d253cc20c758e", _exports);
+_modules.set("b594764a2d73e3dc5973aa361ae8f4a2686e67c6d313e12251b78dc9b3709777", _exports);
 return _exports;
 })();
 
-const _m37 = _modules.get("d2894fc0fd4f9e668b08d282fecf79346d1b7cd7e050ef9df82b500406c67e9a") ?? (() => {
+const _m37 = _modules.get("e29314f891108517c81fdb3a2fff91d0bdb73af0d8b61a8f52e9ce5d28bd1164") ?? (() => {
 const { TrueTypeFont } = _m38;
 
 const programs = new WeakMap();
@@ -4004,7 +4007,7 @@ class PdfFont {
     toBytes() { return fontProgram(this).bytes.slice(); }
 }
 const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
-_modules.set("d2894fc0fd4f9e668b08d282fecf79346d1b7cd7e050ef9df82b500406c67e9a", _exports);
+_modules.set("e29314f891108517c81fdb3a2fff91d0bdb73af0d8b61a8f52e9ce5d28bd1164", _exports);
 return _exports;
 })();
 
@@ -4331,7 +4334,7 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m36 = _modules.get("e0e1ec99e3d45b3c3e73c2af5c96f4e5fe5b96cf0b6a60ebb959cc15eaa4cacf") ?? (() => {
+const _m36 = _modules.get("68bae536cdaba60bc9eebd7c62bf2ca823fead137c7bb0798bd1e035ca615f3c") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m2;
 
 const { PdfFont, fontProgram } = _m37;
@@ -4493,7 +4496,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ validateScalar: validateScalar, PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("e0e1ec99e3d45b3c3e73c2af5c96f4e5fe5b96cf0b6a60ebb959cc15eaa4cacf", _exports);
+_modules.set("68bae536cdaba60bc9eebd7c62bf2ca823fead137c7bb0798bd1e035ca615f3c", _exports);
 return _exports;
 })();
 
@@ -4908,7 +4911,7 @@ _modules.set("1ee93274ac9137b02f9c091c12c5ff29fc75dbd94ef19c053d8e95135aa1329f",
 return _exports;
 })();
 
-const _m32 = _modules.get("eed13cbc5a5db81714e5d24995353aee30f59973c855edfe6516bbc80344600b") ?? (() => {
+const _m32 = _modules.get("cc2c4d81441ade30e75d8a10aa29174a973630a8fd3b5767070337a302f5e66b") ?? (() => {
 const { BlobByteSink, withDestination } = _m3;
 
 const { checkAbort, inputRows, pause, taskYieldDue } = _m4;
@@ -4982,21 +4985,21 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("eed13cbc5a5db81714e5d24995353aee30f59973c855edfe6516bbc80344600b", _exports);
+_modules.set("cc2c4d81441ade30e75d8a10aa29174a973630a8fd3b5767070337a302f5e66b", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("7971d4e61782825d6144ba767f61230fb80b0a28e7b80c93c5fc8f312e8ede92") ?? (() => {
+const _m31 = _modules.get("412007480ebd1a0bc5c2117f4aa2a9116e751ad45d5db5a1ab95995c19e73ce2") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m32.writePdf, writePdfTo: _m32.writePdfTo, PdfFont: _m37.PdfFont, ExportCell: _m5.ExportCell, saveBlob: _m1.saveBlob });
-_modules.set("7971d4e61782825d6144ba767f61230fb80b0a28e7b80c93c5fc8f312e8ede92", _exports);
+_modules.set("412007480ebd1a0bc5c2117f4aa2a9116e751ad45d5db5a1ab95995c19e73ce2", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("79c7d1d32ecb174597fcf4dffaf5e47475897ead56fb9422c78669389b9529fe") ?? (() => {
+const _m0 = _modules.get("4ac4b4c14c5e0086e9f8990fe0242cfe85d5ba2fd3cdf2dde36bd0e3e36f15f5") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m6, xml: _m8, opc: _m9, xlsx: _m12, csv: _m30, pdf: _m31, Workbook: _m12.Workbook, Worksheet: _m12.Worksheet, Cell: _m12.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, writeXlsx: _m12.writeXlsx, writeXlsxTo: _m12.writeXlsxTo, writeCsv: _m30.writeCsv, writeCsvTo: _m30.writeCsvTo, writePdf: _m31.writePdf, writePdfTo: _m31.writePdfTo, PdfFont: _m31.PdfFont, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("79c7d1d32ecb174597fcf4dffaf5e47475897ead56fb9422c78669389b9529fe", _exports);
+_modules.set("4ac4b4c14c5e0086e9f8990fe0242cfe85d5ba2fd3cdf2dde36bd0e3e36f15f5", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

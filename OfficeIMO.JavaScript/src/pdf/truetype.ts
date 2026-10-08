@@ -47,7 +47,7 @@ export class TrueTypeFont extends FontReader {
     const loca = this.table("loca", (this.glyphCount + 1) * (format ? 4 : 2)), glyf = this.table("glyf");
     this.offsets = Array.from({ length: this.glyphCount + 1 }, (_, i) => format ? this.u32(loca.offset + i * 4) : this.u16(loca.offset + i * 2) * 2);
     for (let i = 0; i <= this.glyphCount; i++) if (this.offsets[i]! > glyf.length || (i && this.offsets[i]! < this.offsets[i - 1]!)) throw new TypeError("Invalid TrueType glyph offsets.");
-    const cmap = this.table("cmap", 4), maps: FontTable[] = [];
+    const cmap = this.table("cmap", 4), maps: FontTable[] = [], validated = new Set<number>();
     const encodings = this.u16(cmap.offset + 2);
     if (4 + encodings * 8 > cmap.length) throw new TypeError("Invalid TrueType cmap directory.");
     for (let i = 0; i < encodings; i++) {
@@ -56,6 +56,8 @@ export class TrueTypeFont extends FontReader {
       if (relative + 4 > cmap.length) throw new TypeError("Invalid cmap subtable offset.");
       const offset = cmap.offset + relative, type = this.u16(offset);
       if (type !== 4 && type !== 12) continue;
+      // Encoding records may share a Unicode subtable; validate its contents once.
+      if (validated.has(offset)) continue;
       if (type === 12 && relative + 16 > cmap.length) throw new TypeError("Truncated cmap format 12.");
       const length = type === 12 ? this.u32(offset + 4) : this.u16(offset + 2);
       if (length < (type === 12 ? 16 : 16) || relative + length > cmap.length) throw new TypeError("Invalid cmap length.");
@@ -78,7 +80,7 @@ export class TrueTypeFont extends FontReader {
           previous = end;
         }
       }
-      if (!maps.some(m => m.offset === offset)) maps.push({ offset, length });
+      validated.add(offset); maps.push({ offset, length });
     }
     this.cmaps = maps.sort((a, b) => this.u16(b.offset) - this.u16(a.offset));
     if (!maps.length) throw new NotSupportedError("TrueType font needs a Unicode cmap format 4 or 12.");
