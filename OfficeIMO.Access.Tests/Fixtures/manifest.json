@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft DAO",
+  "engineVersion": "16.0",
+  "bitness": 64,
+  "license": "MIT (synthetic OfficeIMO fixtures)",
+  "startup": "DAO only; no Access application, macros, modules or external links executed",
+  "files": [
+    {
+      "path": "jet4.mdb",
+      "profile": "jet4",
+      "headerVersion": 1,
+      "length": 126976,
+      "sha256": "98d035dde148429aef5a3389f5e4f49b28abd6dfcdd754559b1e27d8fb13896d",
+      "expected": "jet4.expected.json",
+      "expectedSha256": "a6c9d4085d6b9959aa031e1a184f2f51040250d87c3537bc1672be7ed578a3e4",
+      "independentRowCount": 2,
+      "limitations": [
+        "No application objects",
+        "No password or encryption",
+        "Modern ACE feature upgrades not exercised"
+      ]
+    },
+    {
+      "path": "ace12.accdb",
+      "profile": "ace12",
+      "headerVersion": 2,
+      "length": 221184,
+      "sha256": "e047a86ca7390829ab15da360a127bfe1ce486728fe7ff3294d1b0ae32d4bf85",
+      "expected": "ace12.expected.json",
+      "expectedSha256": "a6c9d4085d6b9959aa031e1a184f2f51040250d87c3537bc1672be7ed578a3e4",
+      "independentRowCount": 2,
+      "limitations": [
+        "No application objects",
+        "No password or encryption",
+        "Modern ACE feature upgrades not exercised"
+      ]
+    }
+  ],
+  "producerBuild": "Microsoft Access 16.0.20430.20092 (64-bit); DAO 16.0"
+}

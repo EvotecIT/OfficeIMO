@@ -1,0 +1,38 @@
+Version =19
+VersionRequired =19
+Checksum =-122868189
+Begin Form
+    DividingLines = NotDefault
+    AllowDesignChanges = NotDefault
+    DefaultView =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridY =10
+    Width =6994
+    DatasheetFontHeight =11
+    Right =26170
+    Bottom =11940
+    DatasheetGridlinesColor =15062992
+    RecSrcDt = Begin
+        0xddb63edeed9be640
+    End
+    GUID = Begin
+        0x240f83de4811eb4ab118d5063a691c98
+    End
+    NameMap = Begin
+        0x0acc0e5500000000000000000000000000000000000000000c00000005000000 ,
+        0x0000000000000000000000000000
+    End
+    Caption ="Synthetic OfficeIMO form"
+    DatasheetFontName ="Calibri"
+    NoSaveCTIWhenDisabled =1
+    Begin
+        Begin Section
+            Height =5952
+            Name ="Detail"
+            GUID = Begin
+                0x3172481953ae1f479bb3d4a5a645f1a2
+            End
+        End
+    End
+End

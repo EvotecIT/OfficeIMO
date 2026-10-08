@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "operations": [
+    {
+      "operation": "model.create",
+      "supported": true,
+      "boundary": "New Jet4/ACE12-targeted in-memory model; no native output."
+    },
+    {
+      "operation": "model.edit",
+      "supported": true,
+      "boundary": "Typed tables, columns, primary-key definitions, relationships, inert query text and rows; rollback and read leases."
+    },
+    {
+      "operation": "model.rows.read",
+      "supported": true,
+      "boundary": "Forward-only DbDataReader over modeled rows; omitted values remain distinguishable from explicit nulls."
+    },
+    {
+      "operation": "native.header.inspect",
+      "supported": true,
+      "boundary": "Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12 fixtures; other generations recognized, not independently qualified."
+    },
+    {
+      "operation": "native.catalog.read",
+      "supported": false,
+      "boundary": "No native table, query, relationship or application catalog decoding. Loaded collections are NotDecoded."
+    },
+    {
+      "operation": "native.rows.read",
+      "supported": false,
+      "boundary": "Native Jet/ACE row codecs are not qualified."
+    },
+    {
+      "operation": "native.create",
+      "supported": false,
+      "boundary": "Template-free catalog/allocation/index/relationship writing is not qualified."
+    },
+    {
+      "operation": "native.edit",
+      "supported": false,
+      "boundary": "Native editing and opaque preservation are not qualified."
+    },
+    {
+      "operation": "native.convert",
+      "supported": false,
+      "boundary": "MDB/ACCDB feature/loss mapping is not qualified."
+    },
+    {
+      "operation": "application.objects.read",
+      "supported": false,
+      "boundary": "Forms, reports and action macros are NotDecoded for native input."
+    },
+    {
+      "operation": "application.objects.write",
+      "supported": false,
+      "boundary": "No native form/report/macro/module writer is qualified."
+    },
+    {
+      "operation": "vba.inspect",
+      "supported": false,
+      "boundary": "Access-specific VBA storage and signature carriers are not decoded."
+    },
+    {
+      "operation": "protection.inspect",
+      "supported": false,
+      "boundary": "Password, encryption and signature state is NotAssessed."
+    },
+    {
+      "operation": "report.render",
+      "supported": false,
+      "boundary": "Native report definitions and expression evaluation are not qualified."
+    }
+  ]
+}

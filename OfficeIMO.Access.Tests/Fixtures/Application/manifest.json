@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Access",
+  "security": "Owned new instance, ForceDisable=3, new synthetic database only, no startup or event code",
+  "license": "MIT (synthetic OfficeIMO fixtures)",
+  "files": [
+    {
+      "path": "objects-jet4.mdb",
+      "sha256": "495ebe9e30cc5a97119d749fc49df53ab59c437d45582f0be0a5718204ed3912",
+      "objects": [
+        {
+          "kind": "form",
+          "name": "FixtureForm",
+          "producer": "Access.CreateForm",
+          "export": "objects-jet4.mdb.form.txt",
+          "exportSha256": "ad06a8194347c12e877f93769989e2812dd84f2eacc0e1cba4635c3a2e14c4a8"
+        },
+        {
+          "kind": "report",
+          "name": "FixtureReport",
+          "producer": "Access.CreateReport",
+          "export": "objects-jet4.mdb.report.txt",
+          "exportSha256": "49cfe807bf9cc9b08c1b99693df36fcc13c6004314947ff6a13c450c1d949939"
+        },
+        {
+          "kind": "vba-module",
+          "name": "FixtureModule",
+          "status": "produced-inert",
+          "export": "objects-jet4.mdb.module.txt",
+          "exportSha256": "6fbb57a37bcb6deff41c28bad4431230eb78c00dd81f481e202e24dc21cc367b"
+        },
+        {
+          "kind": "action-macro",
+          "status": "failed-import",
+          "hresult": -2146826160
+        },
+        {
+          "kind": "report-output",
+          "status": "exported",
+          "export": "objects-jet4.mdb.report.pdf",
+          "exportSha256": "18bf3d4d5860f063fe461bf58e092d9db39ea69b92c0e395c34bb3b834d38e8c"
+        }
+      ],
+      "limitations": [
+        "Independent producer only; no OfficeIMO native object codec proof",
+        "Action macro import result must be assessed separately",
+        "VBA signature and password variants not exercised"
+      ]
+    },
+    {
+      "path": "objects-ace12.accdb",
+      "sha256": "4aacf4901783afcd35381354a4175c8682721e5a4ce770fc9d3697094b1181a6",
+      "objects": [
+        {
+          "kind": "form",
+          "name": "FixtureForm",
+          "producer": "Access.CreateForm",
+          "export": "objects-ace12.accdb.form.txt",
+          "exportSha256": "16b96741084ee664650f5f8725463cf04880d62e47f9edd823b5744db98f5cd5"
+        },
+        {
+          "kind": "report",
+          "name": "FixtureReport",
+          "producer": "Access.CreateReport",
+          "export": "objects-ace12.accdb.report.txt",
+          "exportSha256": "ee42da9d578619e53b98d5b4e7949d16cb0c01e7f9ef6518c75b11a741fa9cc5"
+        },
+        {
+          "kind": "vba-module",
+          "name": "FixtureModule",
+          "status": "produced-inert",
+          "export": "objects-ace12.accdb.module.txt",
+          "exportSha256": "6fbb57a37bcb6deff41c28bad4431230eb78c00dd81f481e202e24dc21cc367b"
+        },
+        {
+          "kind": "action-macro",
+          "status": "failed-import",
+          "hresult": -2146826160
+        },
+        {
+          "kind": "report-output",
+          "status": "exported",
+          "export": "objects-ace12.accdb.report.pdf",
+          "exportSha256": "0dc61ba3a35349bc667c24171dabb7698a84932048229d6a5b5e23184285fd90"
+        }
+      ],
+      "limitations": [
+        "Independent producer only; no OfficeIMO native object codec proof",
+        "Action macro import result must be assessed separately",
+        "VBA signature and password variants not exercised"
+      ]
+    }
+  ],
+  "producerBuild": "16.0.20430.20092 (64-bit)"
+}

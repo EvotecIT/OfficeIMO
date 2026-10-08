@@ -1,0 +1,107 @@
+namespace OfficeIMO.Access;
+
+/// <summary>Field types reached by the in-memory foundation examples. Native field decoding is separately qualified.</summary>
+public enum AccessDataType {
+    /// <summary>Engine-generated integer; omission does not allocate a value in the model.</summary>
+    AutoNumber,
+    /// <summary>Signed 32-bit integer.</summary>
+    Int32,
+    /// <summary>Unicode text with a declared maximum length.</summary>
+    ShortText,
+    /// <summary>Long Unicode text.</summary>
+    LongText,
+    /// <summary>Currency represented by Decimal with four fractional digits.</summary>
+    Currency,
+    /// <summary>64-bit floating-point value.</summary>
+    Double,
+    /// <summary>Date/time value without implicit timezone conversion.</summary>
+    DateTime,
+    /// <summary>Boolean value.</summary>
+    Boolean,
+    /// <summary>128-bit identifier.</summary>
+    Guid,
+    /// <summary>Binary data. Values are copied at the model boundary.</summary>
+    Binary
+}
+
+/// <summary>Input field values. A missing key differs from an explicit null.</summary>
+public sealed class AccessRowValues : Dictionary<string, object?> {
+    /// <summary>Creates a case-insensitive Access field-value map.</summary>
+    public AccessRowValues() : base(StringComparer.OrdinalIgnoreCase) { }
+}
+
+/// <summary>A typed table in a document model.</summary>
+public sealed class AccessTable : AccessNamedObject {
+    internal readonly List<Dictionary<string, object?>> Rows = new List<Dictionary<string, object?>>();
+    internal AccessTable(AccessDocument document, string name) : base(document, name) {
+        Columns = new AccessColumnCollection(this); Indexes = new AccessIndexCollection(this);
+    }
+    /// <summary>Field definitions in ordinal order.</summary>
+    public AccessColumnCollection Columns { get; }
+    /// <summary>Typed index definitions.</summary>
+    public AccessIndexCollection Indexes { get; }
+    /// <summary>Number of modeled rows, without reading any native table.</summary>
+    public long RowCount { get { EnsureAttached(); return Rows.Count; } }
+    /// <summary>Appends validated values to the model, retaining omitted fields separately from explicit nulls.</summary>
+    public void AppendRow(AccessRowValues values) {
+        EnsureAttached(); Document.EnsureMutable();
+        if (values == null) throw new ArgumentNullException(nameof(values));
+        var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in values) {
+            AccessColumn column = Columns[pair.Key];
+            column.ValidateValue(pair.Value);
+            row.Add(column.Name, CopyValue(pair.Value));
+        }
+        Rows.Add(row); Document.Changed(() => Rows.RemoveAt(Rows.Count - 1));
+    }
+    internal static object? CopyValue(object? value) => value is byte[] bytes ? (byte[])bytes.Clone() : value;
+    /// <summary>Opens a forward-only reader over modeled rows. Its lease blocks edits until disposal.</summary>
+    public AccessDataReader OpenDataReader(CancellationToken cancellationToken = default) {
+        EnsureAttached(); cancellationToken.ThrowIfCancellationRequested();
+        return new AccessDataReader(this, cancellationToken);
+    }
+}
+
+/// <summary>Field definitions for one table.</summary>
+public sealed class AccessColumnCollection : AccessObjectCollection<AccessColumn> {
+    private readonly AccessTable _table;
+    internal AccessColumnCollection(AccessTable table) : base(table.Document) { _table = table; }
+    /// <summary>Adds a typed column before rows have been appended. ShortText defaults to 255 characters.</summary>
+    public AccessColumn Add(string name, AccessDataType type, int? maxLength = null) {
+        _table.EnsureAttached(); Document.EnsureMutable();
+        if (_table.Rows.Count != 0) throw new InvalidOperationException("Define columns before appending rows.");
+        if (Items.Count == 255) throw new InvalidOperationException("An Access table cannot declare more than 255 columns.");
+        var column = new AccessColumn(_table, name, type, maxLength); AddItem(column); return column;
+    }
+}
+
+/// <summary>A typed column with immutable definition in the foundation slice.</summary>
+public sealed class AccessColumn : AccessNamedObject {
+    internal AccessColumn(AccessTable table, string name, AccessDataType type, int? maxLength) : base(table.Document, name) {
+        if (!Enum.IsDefined(typeof(AccessDataType), type)) throw new ArgumentOutOfRangeException(nameof(type));
+        if (type == AccessDataType.ShortText) { maxLength ??= 255; if (maxLength < 1 || maxLength > 255) throw new ArgumentOutOfRangeException(nameof(maxLength)); }
+        else if (maxLength != null) throw new ArgumentException("maxLength is declared only for ShortText.", nameof(maxLength));
+        Table = table; DataType = type; MaxLength = maxLength;
+    }
+    /// <summary>Owning table.</summary>
+    public AccessTable Table { get; }
+    /// <summary>Declared field type.</summary>
+    public AccessDataType DataType { get; }
+    /// <summary>Maximum text length, or null for other types.</summary>
+    public int? MaxLength { get; }
+    internal void ValidateValue(object? value) {
+        if (value == null) return;
+        bool valid = DataType switch {
+            AccessDataType.AutoNumber or AccessDataType.Int32 => value is int,
+            AccessDataType.ShortText => value is string text && text.Length <= MaxLength,
+            AccessDataType.LongText => value is string,
+            AccessDataType.Currency => value is decimal amount && amount >= -922337203685477.5808m && amount <= 922337203685477.5807m && decimal.Round(amount, 4) == amount,
+            AccessDataType.Double => value is double number && !double.IsNaN(number) && !double.IsInfinity(number),
+            AccessDataType.DateTime => value is DateTime,
+            AccessDataType.Boolean => value is bool,
+            AccessDataType.Guid => value is Guid,
+            AccessDataType.Binary => value is byte[], _ => false
+        };
+        if (!valid) throw new ArgumentException($"Value for '{Name}' does not satisfy {DataType}.");
+    }
+}

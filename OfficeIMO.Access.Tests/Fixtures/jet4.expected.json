@@ -1,0 +1,112 @@
+{
+  "tables": [
+    {
+      "name": "Contacts",
+      "columns": [
+        {
+          "name": "Id",
+          "daoType": 4,
+          "size": 4,
+          "required": false,
+          "attributes": 17
+        },
+        {
+          "name": "GroupId",
+          "daoType": 4,
+          "size": 4,
+          "required": false,
+          "attributes": 1
+        },
+        {
+          "name": "DisplayName",
+          "daoType": 10,
+          "size": 120,
+          "required": false,
+          "attributes": 2
+        },
+        {
+          "name": "Amount",
+          "daoType": 5,
+          "size": 8,
+          "required": false,
+          "attributes": 1
+        },
+        {
+          "name": "CreatedAt",
+          "daoType": 8,
+          "size": 8,
+          "required": false,
+          "attributes": 1
+        },
+        {
+          "name": "Active",
+          "daoType": 1,
+          "size": 1,
+          "required": false,
+          "attributes": 1
+        },
+        {
+          "name": "Notes",
+          "daoType": 12,
+          "size": 0,
+          "required": false,
+          "attributes": 2
+        }
+      ],
+      "rows": [
+        {
+          "Id": 1,
+          "GroupId": 1,
+          "DisplayName": "Ada",
+          "Amount": 12.3456,
+          "CreatedAt": "2026-01-02T03:04:05",
+          "Active": true,
+          "Notes": "Synthetic text"
+        },
+        {
+          "Id": 2,
+          "GroupId": 1,
+          "DisplayName": "",
+          "Amount": -1.25,
+          "CreatedAt": null,
+          "Active": false,
+          "Notes": null
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "columns": [
+        {
+          "name": "Id",
+          "daoType": 4,
+          "size": 4,
+          "required": false,
+          "attributes": 1
+        },
+        {
+          "name": "Label",
+          "daoType": 10,
+          "size": 80,
+          "required": false,
+          "attributes": 2
+        }
+      ],
+      "rows": [
+        {
+          "Id": 1,
+          "Label": "Synthetic group"
+        }
+      ]
+    }
+  ],
+  "query": {
+    "name": "ContactsByGroup",
+    "sql": "PARAMETERS selectedGroup Long;\r\nSELECT Id, DisplayName\r\nFROM Contacts\r\nWHERE GroupId = selectedGroup\r\nORDER BY Id;\r\n"
+  },
+  "relationship": {
+    "name": "FK_Contacts_Groups",
+    "parent": "Groups.Id",
+    "child": "Contacts.GroupId"
+  }
+}

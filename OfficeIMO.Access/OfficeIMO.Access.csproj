@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Typed Access database models, bounded native profile inspection and explicit operation assessment.</Description>
+    <PackageId>OfficeIMO.Access</PackageId>
+    <VersionPrefix>3.4.4</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <Company>Evotec</Company><Authors>Przemyslaw Klys</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile><PackageIcon>OfficeIMO.png</PackageIcon>
+    <IsPackable>true</IsPackable><IsPublishable>true</IsPublishable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Nullable>enable</Nullable><LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="SUPPORT.md" Pack="true" PackagePath="/" />
+    <None Include="operations.json" Pack="true" PackagePath="/" />
+    <None Include="CAPABILITIES.md" Pack="true" PackagePath="/" />
+    <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
+    <Using Include="System" /><Using Include="System.IO" /><Using Include="System.Linq" />
+    <Using Include="System.Collections.Generic" /><Using Include="System.Threading" /><Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+</Project>
