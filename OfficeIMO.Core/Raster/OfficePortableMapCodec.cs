@@ -69,9 +69,15 @@ internal static class OfficePortableMapCodec {
     }
     internal static void EncodePbmTo(OfficeRasterImage image, Stream output, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        byte[] header = Encoding.ASCII.GetBytes("P4\n" + image.Width + " " + image.Height + "\n"); output.Write(header, 0, header.Length);
+        OfficeRasterGuards.EnsureOutputPixels(image.Width, image.Height, "PBM dimensions exceed pixel limits.");
+        int rowLength = (image.Width + 7) / 8;
+        byte[] header = Encoding.ASCII.GetBytes("P4\n" + image.Width + " " + image.Height + "\n");
+        int size = OfficeRasterGuards.EnsureOutputBytes(header.Length + rowLength * (long)image.Height, "PBM output exceeds the encoded-size limit.");
+        OfficeRasterOutput.EnsureImageWriteWorkingSet(image, output, size, rowLength, header.Length,
+            "PBM encoding exceeds the managed working-set limit.");
+        output.Write(header, 0, header.Length);
         token.ThrowIfCancellationRequested();
-        byte[] row = new byte[(image.Width + 7) / 8];
+        byte[] row = new byte[rowLength];
         for (int y = 0; y < image.Height; y++) {
             token.ThrowIfCancellationRequested(); Array.Clear(row, 0, row.Length);
             for (int x = 0; x < image.Width; x++) {

@@ -13,9 +13,9 @@ public static partial class OfficeHeifMetadataReader {
         private Dictionary<uint, OfficeHeifItemLocationInfo> ReadItemLocations(byte[] data, Box itemLocationBox, Box? itemDataBox) {
             var locations = new Dictionary<uint, OfficeHeifItemLocationInfo>();
             int offset = itemLocationBox.DataOffset;
-            if (!TryReadFullBoxHeader(data, offset, itemLocationBox.EndOffset, out byte version, out _, out offset) ||
+            if (!TryReadFullBoxHeader(data, offset, itemLocationBox.EndOffset, out byte version, out _, out offset) || version > 2 ||
                 offset + 2 > itemLocationBox.EndOffset) {
-                return locations;
+                throw new FormatException("Truncated or unsupported HEIF location collection.");
             }
 
             int offsetSize = data[offset] >> 4;
@@ -28,20 +28,20 @@ public static partial class OfficeHeifMetadataReader {
             offset++;
 
             if (!IsSupportedFieldSize(offsetSize) || !IsSupportedFieldSize(lengthSize) || !IsSupportedFieldSize(baseOffsetSize) || !IsSupportedFieldSize(indexSize)) {
-                return locations;
+                throw new FormatException("Truncated or unsupported HEIF location collection.");
             }
 
             uint itemCount;
             if (version < 2) {
                 if (!TryReadUInt16(data, offset, itemLocationBox.EndOffset, out ushort shortItemCount)) {
-                    return locations;
+                    throw new FormatException("Truncated or unsupported HEIF location collection.");
                 }
 
                 itemCount = shortItemCount;
                 offset += 2;
             } else {
                 if (!TryReadUInt32(data, offset, itemLocationBox.EndOffset, out itemCount)) {
-                    return locations;
+                    throw new FormatException("Truncated or unsupported HEIF location collection.");
                 }
 
                 offset += 4;
@@ -50,10 +50,14 @@ public static partial class OfficeHeifMetadataReader {
             if (itemCount > 4096) {
                 throw new FormatException("HEIF item count exceeds structure limits.");
             }
+            var declaredItemIds = new HashSet<uint>();
             for (uint index = 0; index < itemCount; index++) {
                 CheckWork();
                 if (!TryReadIlocItem(data, itemLocationBox.EndOffset, version, offsetSize, lengthSize, baseOffsetSize, indexSize, ref offset, out IlocItem item)) {
-                    return locations;
+                    throw new FormatException("Truncated or unsupported HEIF location collection.");
+                }
+                if (!declaredItemIds.Add(item.ItemId)) {
+                    throw new FormatException("Duplicate HEIF location item identifier.");
                 }
 
                 if (!TryCreateLocationExtents(item, itemDataBox, out List<OfficeHeifItemExtentInfo> extents)) {
@@ -62,7 +66,9 @@ public static partial class OfficeHeifMetadataReader {
 
                 locations[item.ItemId] = new OfficeHeifItemLocationInfo(item.ConstructionMethod, item.DataReferenceIndex, item.BaseOffset, extents);
             }
-
+            if (offset != itemLocationBox.EndOffset) {
+                throw new FormatException("HEIF location collection does not match its declared count.");
+            }
             return locations;
         }
 
@@ -89,7 +95,7 @@ public static partial class OfficeHeifMetadataReader {
             item = default;
 
             int offset = itemLocationBox.DataOffset;
-            if (!TryReadFullBoxHeader(data, offset, itemLocationBox.EndOffset, out byte version, out _, out offset)) {
+            if (!TryReadFullBoxHeader(data, offset, itemLocationBox.EndOffset, out byte version, out _, out offset) || version > 2) {
                 return false;
             }
 
@@ -129,9 +135,14 @@ public static partial class OfficeHeifMetadataReader {
             if (itemCount > 4096) {
                 throw new FormatException("HEIF item count exceeds structure limits.");
             }
+            bool found = false;
+            var itemIds = new HashSet<uint>();
             for (uint index = 0; index < itemCount; index++) {
                 CheckWork();
                 if (!TryReadIlocItem(data, itemLocationBox.EndOffset, version, offsetSize, lengthSize, baseOffsetSize, indexSize, ref offset, out IlocItem candidateItem)) {
+                    return false;
+                }
+                if (!itemIds.Add(candidateItem.ItemId)) {
                     return false;
                 }
 
@@ -142,7 +153,8 @@ public static partial class OfficeHeifMetadataReader {
 
                     if (candidateItem.ConstructionMethod == 0) {
                         item = candidateItem;
-                        return true;
+                        found = true;
+                        continue;
                     }
 
                     if (candidateItem.ConstructionMethod == 1 && itemDataBox is not null) {
@@ -163,14 +175,15 @@ public static partial class OfficeHeifMetadataReader {
                         }
 
                         item = new IlocItem(candidateItem.ItemId, candidateItem.ConstructionMethod, candidateItem.DataReferenceIndex, 0, extents);
-                        return true;
+                        found = true;
+                        continue;
                     }
 
                     return false;
                 }
             }
 
-            return false;
+            return found && offset == itemLocationBox.EndOffset;
         }
 
         private bool TryReadIlocItem(byte[] data, int endOffset, byte version, int offsetSize, int lengthSize, int baseOffsetSize, int indexSize, ref int offset, out IlocItem item) {

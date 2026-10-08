@@ -98,7 +98,13 @@ if (OfficeHeifMetadataReader.TryReadExifProfile(heif, out OfficeImageMetadata? e
 
 `TryReadInfo` returns brands, primary image properties, item associations, references, and
 locations through the `OfficeHeif*` models. `HasExifItem` and `HasXmpItem` distinguish a
-declared but unlocated item from a missing family. Protected items and XMP items declaring
+declared but unlocated item from a missing family. Reads and writes select the unique metadata
+item whose `cdsc` reference describes the `pitm` primary image, independently of declaration
+order. A sole unassociated item remains supported for older containers. Ambiguous items or
+items explicitly associated only with another image are not selected. Information retains
+all declared items, with `ExifItem` and `XmpItem` identifying the selection or returning null.
+Incomplete item, reference, location, and property-association collections return `false`
+without partial information. Protected items and XMP items declaring
 a MIME content encoding are visible as opaque declarations; payload reads and writes,
 including clearing, return `false`. An independent edit to another family preserves those
 opaque bytes. Readers support absolute file extents,

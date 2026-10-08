@@ -55,11 +55,29 @@ internal static class OfficeTgaCodec {
         } catch (OperationCanceledException) { throw; } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is OverflowException || ex is IndexOutOfRangeException) { return false; }
     }
     internal static void EncodeTo(OfficeRasterImage image, Stream output, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
         if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(image), "TGA dimensions must not exceed 65535.");
-        OfficeRasterGuards.EnsureOutputBytes(18L + image.Width * (long)image.Height * 4, "TGA output exceeds the encoded-size limit.");
+        int pixels = OfficeRasterGuards.EnsureOutputPixels(image.Width, image.Height, "TGA dimensions exceed pixel limits.");
+        int size = OfficeRasterGuards.EnsureOutputBytes(18L + pixels * 4L, "TGA output exceeds the encoded-size limit.");
+        int bufferLength = Math.Min(checked(image.Width * 4), 16 * 1024);
+        OfficeRasterOutput.EnsureImageWriteWorkingSet(image, output, size, bufferLength, 18,
+            "TGA encoding exceeds the managed working-set limit.");
         var header = new byte[18]; header[2] = 2; OfficeExifProfileCodec.Write(header, 12, (uint)image.Width, 2, true); OfficeExifProfileCodec.Write(header, 14, (uint)image.Height, 2, true); header[16] = 32; header[17] = 40; output.Write(header, 0, header.Length);
-        var row = new byte[image.Width * 4]; byte[] rgba = image.PixelBuffer;
-        for (int y = 0; y < image.Height; y++) { token.ThrowIfCancellationRequested(); for (int x = 0; x < image.Width; x++) { int at = y * row.Length + x * 4; int dst = x * 4; row[dst] = rgba[at + 2]; row[dst + 1] = rgba[at + 1]; row[dst + 2] = rgba[at]; row[dst + 3] = rgba[at + 3]; } output.Write(row, 0, row.Length); }
+        var buffer = new byte[bufferLength]; byte[] rgba = image.PixelBuffer;
+        int rowLength = image.Width * 4;
+        for (int y = 0; y < image.Height; y++) {
+            for (int offset = 0; offset < rowLength; offset += bufferLength) {
+                token.ThrowIfCancellationRequested();
+                int count = Math.Min(bufferLength, rowLength - offset);
+                for (int at = 0; at < count; at += 4) {
+                    int source = y * rowLength + offset + at;
+                    buffer[at] = rgba[source + 2]; buffer[at + 1] = rgba[source + 1];
+                    buffer[at + 2] = rgba[source]; buffer[at + 3] = rgba[source + 3];
+                }
+                token.ThrowIfCancellationRequested(); output.Write(buffer, 0, count);
+            }
+        }
+        token.ThrowIfCancellationRequested();
     }
     private static int U16(byte[] bytes, int at) => bytes[at] | bytes[at + 1] << 8;
 }

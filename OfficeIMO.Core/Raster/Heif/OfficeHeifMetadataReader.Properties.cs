@@ -12,26 +12,30 @@ public static partial class OfficeHeifMetadataReader {
     private sealed partial class Parser {
         private void TryApplyImageProperties(byte[] data, Box itemPropertiesBox, List<HeifItemInfoBuilder> itemBuilders) {
             Box? itemPropertyContainerBox = null;
-            Box? itemPropertyAssociationBox = null;
+            var associations = new Dictionary<uint, List<HeifItemPropertyAssociation>>();
 
             foreach (Box childBox in EnumerateBoxes(data, itemPropertiesBox.DataOffset, itemPropertiesBox.EndOffset)) {
                 CheckWork();
                 if (childBox.Type == "ipco") {
                     itemPropertyContainerBox = childBox;
                 } else if (childBox.Type == "ipma") {
-                    itemPropertyAssociationBox = childBox;
+                    Dictionary<uint, List<HeifItemPropertyAssociation>> declared = ReadItemPropertyAssociations(data, childBox);
+                    foreach (KeyValuePair<uint, List<HeifItemPropertyAssociation>> entry in declared) {
+                        CheckWork();
+                        // Multiple ipma boxes contribute entries in file order. Keep the first
+                        // entry for a repeated item, while validating every later declaration.
+                        if (!associations.ContainsKey(entry.Key)) {
+                            associations.Add(entry.Key, entry.Value);
+                        }
+                    }
                 }
             }
 
-            if (itemPropertyContainerBox is null || itemPropertyAssociationBox is null) {
+            if (itemPropertyContainerBox is null || associations.Count == 0) {
                 return;
             }
 
             Dictionary<int, HeifImageProperty> imageProperties = ReadImageProperties(data, itemPropertyContainerBox.Value);
-            Dictionary<uint, List<HeifItemPropertyAssociation>> associations = ReadItemPropertyAssociations(data, itemPropertyAssociationBox.Value);
-            if (associations.Count == 0) {
-                return;
-            }
 
             Dictionary<uint, HeifItemInfoBuilder> buildersById = itemBuilders.ToDictionary(item => item.ItemId);
             foreach (KeyValuePair<uint, List<HeifItemPropertyAssociation>> association in associations) {
@@ -219,12 +223,12 @@ public static partial class OfficeHeifMetadataReader {
         private Dictionary<uint, List<HeifItemPropertyAssociation>> ReadItemPropertyAssociations(byte[] data, Box itemPropertyAssociationBox) {
             var associations = new Dictionary<uint, List<HeifItemPropertyAssociation>>();
             int offset = itemPropertyAssociationBox.DataOffset;
-            if (!TryReadFullBoxHeader(data, offset, itemPropertyAssociationBox.EndOffset, out byte version, out uint flags, out offset)) {
-                return associations;
+            if (!TryReadFullBoxHeader(data, offset, itemPropertyAssociationBox.EndOffset, out byte version, out uint flags, out offset) || version > 1) {
+                throw new FormatException("Truncated HEIF property association collection.");
             }
 
             if (!TryReadUInt32(data, offset, itemPropertyAssociationBox.EndOffset, out uint entryCount)) {
-                return associations;
+                throw new FormatException("Truncated HEIF property association collection.");
             }
 
             offset += 4;
@@ -237,21 +241,21 @@ public static partial class OfficeHeifMetadataReader {
                 uint itemId;
                 if (version < 1) {
                     if (!TryReadUInt16(data, offset, itemPropertyAssociationBox.EndOffset, out ushort shortItemId)) {
-                        return associations;
+                        throw new FormatException("Truncated HEIF property association collection.");
                     }
 
                     itemId = shortItemId;
                     offset += 2;
                 } else {
                     if (!TryReadUInt32(data, offset, itemPropertyAssociationBox.EndOffset, out itemId)) {
-                        return associations;
+                        throw new FormatException("Truncated HEIF property association collection.");
                     }
 
                     offset += 4;
                 }
 
                 if (offset + 1 > itemPropertyAssociationBox.EndOffset) {
-                    return associations;
+                    throw new FormatException("Truncated HEIF property association collection.");
                 }
 
                 int associationCount = data[offset++];
@@ -260,7 +264,7 @@ public static partial class OfficeHeifMetadataReader {
                     CheckWork();
                     if (associationUsesLargePropertyIndex) {
                         if (!TryReadUInt16(data, offset, itemPropertyAssociationBox.EndOffset, out ushort association)) {
-                            return associations;
+                            throw new FormatException("Truncated HEIF property association collection.");
                         }
 
                         int propertyIndex = association & 0x7FFF;
@@ -271,7 +275,7 @@ public static partial class OfficeHeifMetadataReader {
                         offset += 2;
                     } else {
                         if (offset + 1 > itemPropertyAssociationBox.EndOffset) {
-                            return associations;
+                            throw new FormatException("Truncated HEIF property association collection.");
                         }
 
                         byte association = data[offset++];
@@ -282,17 +286,23 @@ public static partial class OfficeHeifMetadataReader {
                     }
                 }
 
+                if (associations.ContainsKey(itemId)) {
+                    throw new FormatException("Duplicate HEIF property association item identifier.");
+                }
                 associations[itemId] = propertyAssociations;
             }
 
+            if (offset != itemPropertyAssociationBox.EndOffset) {
+                throw new FormatException("HEIF property associations do not match the declared count.");
+            }
             return associations;
         }
 
         private List<OfficeHeifItemReference> ReadItemReferences(byte[] data, Box itemReferenceBox) {
             var references = new List<OfficeHeifItemReference>();
             int offset = itemReferenceBox.DataOffset;
-            if (!TryReadFullBoxHeader(data, offset, itemReferenceBox.EndOffset, out byte version, out _, out offset)) {
-                return references;
+            if (!TryReadFullBoxHeader(data, offset, itemReferenceBox.EndOffset, out byte version, out _, out offset) || version > 1) {
+                throw new FormatException("Invalid HEIF reference collection header.");
             }
 
             foreach (Box referenceTypeBox in EnumerateBoxes(data, offset, itemReferenceBox.EndOffset)) {
@@ -301,37 +311,41 @@ public static partial class OfficeHeifMetadataReader {
                 uint fromItemId;
                 if (version == 0) {
                     if (!TryReadUInt16(data, referenceOffset, referenceTypeBox.EndOffset, out ushort shortFromItemId)) {
-                        continue;
+                        throw new FormatException("Truncated HEIF reference source identifier.");
                     }
 
                     fromItemId = shortFromItemId;
                     referenceOffset += 2;
                 } else {
                     if (!TryReadUInt32(data, referenceOffset, referenceTypeBox.EndOffset, out fromItemId)) {
-                        continue;
+                        throw new FormatException("Truncated HEIF reference source identifier.");
                     }
 
                     referenceOffset += 4;
                 }
 
                 if (!TryReadUInt16(data, referenceOffset, referenceTypeBox.EndOffset, out ushort referenceCount)) {
-                    continue;
+                    throw new FormatException("Truncated HEIF reference count.");
                 }
 
                 referenceOffset += 2;
+                int idBytes = version == 0 ? 2 : 4;
+                if (referenceTypeBox.EndOffset - referenceOffset != referenceCount * idBytes) {
+                    throw new FormatException("HEIF reference targets do not match the declared count.");
+                }
                 var toItemIds = new List<uint>();
                 for (ushort index = 0; index < referenceCount; index++) {
                     CheckWork();
                     if (version == 0) {
                         if (!TryReadUInt16(data, referenceOffset, referenceTypeBox.EndOffset, out ushort shortToItemId)) {
-                            break;
+                            throw new FormatException("Truncated HEIF reference target identifier.");
                         }
 
                         toItemIds.Add(shortToItemId);
                         referenceOffset += 2;
                     } else {
                         if (!TryReadUInt32(data, referenceOffset, referenceTypeBox.EndOffset, out uint toItemId)) {
-                            break;
+                            throw new FormatException("Truncated HEIF reference target identifier.");
                         }
 
                         toItemIds.Add(toItemId);

@@ -10,101 +10,11 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeHeifMetadataReader {
     private sealed partial class Parser {
-        private bool TryFindExifItemId(byte[] data, Box itemInfoBox, out uint itemId, bool requireSupportedPayload = false) {
-            itemId = 0;
+        private bool TryFindExifItemId(byte[] data, Box metaBox, Box itemInfoBox, out uint itemId, bool requireSupportedPayload = false) =>
+            TryFindMetadataItemId(data, metaBox, itemInfoBox, true, requireSupportedPayload, out itemId);
 
-            int offset = itemInfoBox.DataOffset;
-            if (!TryReadFullBoxHeader(data, offset, itemInfoBox.EndOffset, out byte version, out _, out offset)) {
-                return false;
-            }
-
-            uint entryCount;
-            if (version == 0) {
-                if (!TryReadUInt16(data, offset, itemInfoBox.EndOffset, out ushort count)) {
-                    return false;
-                }
-
-                entryCount = count;
-                offset += 2;
-            } else {
-                if (!TryReadUInt32(data, offset, itemInfoBox.EndOffset, out entryCount)) {
-                    return false;
-                }
-
-                offset += 4;
-            }
-
-            if (entryCount > 4096) {
-                throw new FormatException("HEIF item count exceeds structure limits.");
-            }
-            for (uint index = 0; index < entryCount; index++) {
-                CheckWork();
-                if (!TryReadBox(data, offset, itemInfoBox.EndOffset, out Box entryBox)) {
-                    return false;
-                }
-
-                if (entryBox.Type == "infe" && TryReadItemInfoEntry(data, entryBox, out uint entryItemId, out string itemType, out _, out ushort protection, out _, out _, out _) && itemType == ExifItemType) {
-                    if (requireSupportedPayload && protection != 0) {
-                        return false;
-                    }
-                    itemId = entryItemId;
-                    return true;
-                }
-
-                offset = entryBox.EndOffset;
-            }
-
-            return false;
-        }
-
-        private bool TryFindXmpItemId(byte[] data, Box itemInfoBox, out uint itemId, bool requireSupportedPayload = false) {
-            itemId = 0;
-
-            int offset = itemInfoBox.DataOffset;
-            if (!TryReadFullBoxHeader(data, offset, itemInfoBox.EndOffset, out byte version, out _, out offset)) {
-                return false;
-            }
-
-            uint entryCount;
-            if (version == 0) {
-                if (!TryReadUInt16(data, offset, itemInfoBox.EndOffset, out ushort count)) {
-                    return false;
-                }
-
-                entryCount = count;
-                offset += 2;
-            } else {
-                if (!TryReadUInt32(data, offset, itemInfoBox.EndOffset, out entryCount)) {
-                    return false;
-                }
-
-                offset += 4;
-            }
-
-            if (entryCount > 4096) {
-                throw new FormatException("HEIF item count exceeds structure limits.");
-            }
-            for (uint index = 0; index < entryCount; index++) {
-                CheckWork();
-                if (!TryReadBox(data, offset, itemInfoBox.EndOffset, out Box entryBox)) {
-                    return false;
-                }
-
-                if (entryBox.Type == "infe" &&
-                    TryReadItemInfoEntry(data, entryBox, out uint entryItemId, out _, out _, out ushort protection, out _, out string? mimeType, out string? contentEncoding) &&
-                    IsXmpMimeType(mimeType)) {
-                    if (requireSupportedPayload && (protection != 0 || !string.IsNullOrEmpty(contentEncoding))) {
-                        return false;
-                    }
-                    itemId = entryItemId;
-                    return true;
-                }
-
-                offset = entryBox.EndOffset;
-            }
-
-            return false;
-        }
+        private bool TryFindXmpItemId(byte[] data, Box metaBox, Box itemInfoBox, out uint itemId, bool requireSupportedPayload = false) =>
+            TryFindMetadataItemId(data, metaBox, itemInfoBox, false, requireSupportedPayload, out itemId);
 
         private bool TryReadItemInfos(byte[] data, Box itemInfoBox, List<HeifItemInfoBuilder> items) {
             int offset = itemInfoBox.DataOffset;
@@ -131,20 +41,22 @@ public static partial class OfficeHeifMetadataReader {
             if (entryCount > 4096) {
                 throw new FormatException("HEIF item count exceeds structure limits.");
             }
+            var itemIds = new HashSet<uint>();
             for (uint index = 0; index < entryCount; index++) {
                 CheckWork();
                 if (!TryReadBox(data, offset, itemInfoBox.EndOffset, out Box entryBox)) {
                     return false;
                 }
 
-                if (entryBox.Type == "infe" && TryReadItemInfoEntry(data, entryBox, out uint itemId, out string itemType, out string itemName, out ushort itemProtectionIndex, out bool isHidden, out string? mimeType, out string? contentEncoding)) {
-                    items.Add(new HeifItemInfoBuilder(itemId, itemType, itemName, itemProtectionIndex, isHidden, mimeType, contentEncoding));
+                if (entryBox.Type != "infe" || !TryReadItemInfoEntry(data, entryBox, out uint itemId, out string itemType, out string itemName, out ushort itemProtectionIndex, out bool isHidden, out string? mimeType, out string? contentEncoding) || !itemIds.Add(itemId)) {
+                    return false;
                 }
+                items.Add(new HeifItemInfoBuilder(itemId, itemType, itemName, itemProtectionIndex, isHidden, mimeType, contentEncoding));
 
                 offset = entryBox.EndOffset;
             }
 
-            return true;
+            return offset == itemInfoBox.EndOffset;
         }
 
         private bool TryReadItemInfoEntry(byte[] data, Box entryBox, out uint itemId, out string itemType, out string itemName, out ushort itemProtectionIndex, out bool isHidden, out string? mimeType, out string? contentEncoding) {
@@ -248,10 +160,11 @@ public static partial class OfficeHeifMetadataReader {
                 }
 
                 primaryItemId = shortItemId;
-                return true;
+                return offset + 2 == primaryItemBox.EndOffset;
             }
 
-            return TryReadUInt32(data, offset, primaryItemBox.EndOffset, out primaryItemId);
+            return version == 1 && offset + 4 == primaryItemBox.EndOffset &&
+                TryReadUInt32(data, offset, primaryItemBox.EndOffset, out primaryItemId);
         }
 
     }

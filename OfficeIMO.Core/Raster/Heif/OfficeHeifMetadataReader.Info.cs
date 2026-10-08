@@ -30,8 +30,6 @@ public static partial class OfficeHeifMetadataReader {
             Box? itemLocationBox = null;
             Box? itemDataBox = null;
             Box? itemPropertiesBox = null;
-            Box? itemReferenceBox = null;
-            uint? primaryItemId = null;
 
             foreach (Box childBox in EnumerateBoxes(data, metaChildrenStart, metaBox.EndOffset)) {
                 CheckWork();
@@ -43,10 +41,6 @@ public static partial class OfficeHeifMetadataReader {
                     itemDataBox = childBox;
                 } else if (childBox.Type == "iprp") {
                     itemPropertiesBox = childBox;
-                } else if (childBox.Type == "iref") {
-                    itemReferenceBox = childBox;
-                } else if (childBox.Type == "pitm" && TryReadPrimaryItemId(data, childBox, out uint childPrimaryItemId)) {
-                    primaryItemId = childPrimaryItemId;
                 }
             }
 
@@ -54,6 +48,9 @@ public static partial class OfficeHeifMetadataReader {
             if (itemInfoBox is not null && !TryReadItemInfos(data, itemInfoBox.Value, itemBuilders)) {
                 return false;
             }
+            ReadMetadataAssociations(data, metaBox, out uint? primaryItemId, out List<OfficeHeifItemReference> references);
+            TrySelectMetadataItem(itemBuilders, references, primaryItemId, true, out HeifItemInfoBuilder? exifItem);
+            TrySelectMetadataItem(itemBuilders, references, primaryItemId, false, out HeifItemInfoBuilder? xmpItem);
 
             if (itemPropertiesBox is not null) {
                 TryApplyImageProperties(data, itemPropertiesBox.Value, itemBuilders);
@@ -94,11 +91,7 @@ public static partial class OfficeHeifMetadataReader {
                     item.AuxiliaryType,
                     item.AuxiliarySubtypes))
                 .ToList();
-            List<OfficeHeifItemReference> references = itemReferenceBox is not null
-                ? ReadItemReferences(data, itemReferenceBox.Value)
-                : new List<OfficeHeifItemReference>();
-
-            info = new OfficeHeifImageInfo(majorBrand, minorVersion, compatibleBrands!, primaryItemId, items, references);
+            info = new OfficeHeifImageInfo(majorBrand, minorVersion, compatibleBrands!, primaryItemId, items, references, exifItem?.ItemId, xmpItem?.ItemId);
             return true;
         }
 

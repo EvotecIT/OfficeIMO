@@ -44,7 +44,7 @@ public static partial class OfficeHeifMetadataReader {
                 return false;
             }
 
-            if (!TryFindExifItemId(data, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)) {
+            if (!TryFindExifItemId(data, metaBox, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)) {
                 return false;
             }
 
@@ -107,7 +107,7 @@ public static partial class OfficeHeifMetadataReader {
                 return false;
             }
 
-            if (!TryFindXmpItemId(data, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)) {
+            if (!TryFindXmpItemId(data, metaBox, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)) {
                 return false;
             }
 
@@ -126,12 +126,12 @@ public static partial class OfficeHeifMetadataReader {
 
         internal bool HasExifItem(byte[] data) {
             return TryFindItemInfoBox(data, out Box itemInfoBox) &&
-                   TryFindExifItemId(data, itemInfoBox, out _);
+                   HasMetadataItem(data, itemInfoBox, true);
         }
 
         internal bool HasXmpItem(byte[] data) {
             return TryFindItemInfoBox(data, out Box itemInfoBox) &&
-                   TryFindXmpItemId(data, itemInfoBox, out _);
+                   HasMetadataItem(data, itemInfoBox, false);
         }
 
         private bool TryGetTiffPayload(byte[] exifItemData, out byte[]? tiffPayload) {

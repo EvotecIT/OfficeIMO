@@ -49,10 +49,10 @@ public static partial class OfficeHeifMetadataReader {
 
         private IEnumerable<Box> EnumerateBoxes(byte[] data, int startOffset, int endOffset) {
             int offset = startOffset;
-            while (offset + 8 <= endOffset) {
+            while (offset < endOffset) {
                 CheckWork();
                 if (!TryReadBox(data, offset, endOffset, out Box box)) {
-                    yield break;
+                    throw new FormatException("Truncated or invalid HEIF box collection.");
                 }
 
                 yield return box;
@@ -168,6 +168,9 @@ public static partial class OfficeHeifMetadataReader {
                 terminatorOffset++;
             }
 
+            if (terminatorOffset == endOffset) {
+                throw new FormatException("Truncated HEIF null-terminated text field.");
+            }
             int stringLength = terminatorOffset - offset;
             if (stringLength > OfficeExifProfileCodec.MaximumProfileBytes) {
                 throw new FormatException("HEIF text exceeds metadata limits.");

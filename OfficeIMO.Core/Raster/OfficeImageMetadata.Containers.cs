@@ -41,6 +41,7 @@ public sealed class OfficeImageMetadataRemovalResult {
 
 public sealed partial class OfficeImageMetadata {
     private static readonly byte[] JpegExifPrefix = Encoding.ASCII.GetBytes("Exif\0\0");
+    private static readonly byte[] JpegJfifPrefix = Encoding.ASCII.GetBytes("JFIF\0");
     private static readonly byte[] JpegXmpPrefix = Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
     private static readonly byte[] JpegExtendedXmpPrefix = Encoding.ASCII.GetBytes("http://ns.adobe.com/xmp/extension/\0");
     private static readonly byte[] JpegIccPrefix = Encoding.ASCII.GetBytes("ICC_PROFILE\0");
@@ -89,19 +90,24 @@ public sealed partial class OfficeImageMetadata {
     private static byte[] RewriteJpeg(byte[] input, OfficeImageMetadata? metadata, CancellationToken token, OfficeImageMetadataProfileKinds replace, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
         present = OfficeImageMetadataProfileKinds.None;
         using var output = CreateRewriteStream(input, metadata, token, additionallyRetainedBytes); output.Write(input, 0, 2);
+        int jfifStart = -1;
+        if (metadata != null) {
+            bool existingJfif = TryFindJpegJfif(input, token, out jfifStart, out int jfifPayload, out int jfifLength);
+            byte[] jfif = existingJfif ? Slice(input, jfifPayload, jfifLength) : new byte[] { 74, 70, 73, 70, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0 };
+            GetExifResolution(metadata, out double x, out double y, out ushort unit);
+            GetIntegerResolution(x, y, unit == 1, ushort.MaxValue, out uint horizontal, out uint vertical);
+            jfif[7] = unit == 1 ? (byte)0 : unit == 3 ? (byte)2 : (byte)1;
+            OfficeExifProfileCodec.Write(jfif, 8, horizontal, 2, false); OfficeExifProfileCodec.Write(jfif, 10, vertical, 2, false);
+            // JFIF APP0 belongs immediately after SOI, including when synthesized.
+            // Preserve the original version and thumbnail while inserting profiles later.
+            WriteJpegSegment(output, 0xE0, jfif);
+        }
         // Insert the new resource once before copying existing segments. This avoids
         // materializing and then copying an entire completed JPEG to add IPTC.
         bool iptcWritten = metadata?._iptc != null;
         if (iptcWritten) WriteJpegSegment(output, 0xED, RewritePhotoshop(PhotoshopPrefix, true, metadata!._iptc, out _));
         if (metadata != null) {
             byte[]? exif = metadata.HasExifProfile ? EncodeDensityExif(metadata, token) : null; if (exif != null) WriteJpegSegment(output, 0xE1, Join(JpegExifPrefix, exif));
-            if (!HasJpegJfif(input)) {
-                GetExifResolution(metadata, out double x, out double y, out ushort unit);
-                byte[] jfif = new byte[] { 74, 70, 73, 70, 0, 1, 2, unit == 1 ? (byte)0 : unit == 3 ? (byte)2 : (byte)1, 0, 0, 0, 0, 0, 0 };
-                OfficeExifProfileCodec.Write(jfif, 8, Density(x, ushort.MaxValue), 2, false);
-                OfficeExifProfileCodec.Write(jfif, 10, Density(y, ushort.MaxValue), 2, false);
-                WriteJpegSegment(output, 0xE0, jfif);
-            }
             if (metadata._xmp != null) WriteJpegSegment(output, 0xE1, Join(JpegXmpPrefix, metadata._xmp));
             if (metadata._icc != null) {
                 const int blockSize = 65519; int blocks = (metadata._icc.Length + blockSize - 1) / blockSize;
@@ -131,6 +137,7 @@ public sealed partial class OfficeImageMetadata {
             }
             int segmentStart = cursor;
             if (!OfficeProvenanceJpeg.TryReadMarker(input, cursor, out byte marker, out int payload, out int length, out int end)) throw new FormatException("JPEG contains a malformed segment.");
+            if (metadata != null && segmentStart == jfifStart) { cursor = end; continue; }
             OfficeImageMetadataProfileKinds kind = marker == 0xE1 && PrefixAt(input, payload, length, JpegExifPrefix) ? OfficeImageMetadataProfileKinds.Exif :
                 marker == 0xE1 && (PrefixAt(input, payload, length, JpegXmpPrefix) || PrefixAt(input, payload, length, JpegExtendedXmpPrefix)) ? OfficeImageMetadataProfileKinds.Xmp :
                 marker == 0xE2 && PrefixAt(input, payload, length, JpegIccPrefix) ? OfficeImageMetadataProfileKinds.Icc : OfficeImageMetadataProfileKinds.None;
@@ -141,12 +148,13 @@ public sealed partial class OfficeImageMetadata {
                 if ((replace & OfficeImageMetadataProfileKinds.Iptc) != 0) { if (rewritten.Length > PhotoshopPrefix.Length) WriteJpegSegment(output, marker, rewritten); iptcWritten |= metadata?._iptc != null; }
                 else output.Write(input, segmentStart, end - segmentStart);
             } else if ((replace & kind) == 0 || kind == OfficeImageMetadataProfileKinds.None) {
-                if (metadata != null && marker == 0xE0 && PrefixAt(input, payload, length, Encoding.ASCII.GetBytes("JFIF\0")) && length >= 12) {
+                if (metadata != null && marker == 0xE0 && PrefixAt(input, payload, length, JpegJfifPrefix) && length >= 12) {
                     byte[] copy = Slice(input, segmentStart, end - segmentStart); int at = payload - segmentStart;
                     GetExifResolution(metadata, out double x, out double y, out ushort unit);
                     copy[at + 7] = unit == 1 ? (byte)0 : unit == 3 ? (byte)2 : (byte)1;
-                    OfficeExifProfileCodec.Write(copy, at + 8, Density(x, ushort.MaxValue), 2, false);
-                    OfficeExifProfileCodec.Write(copy, at + 10, Density(y, ushort.MaxValue), 2, false); output.Write(copy, 0, copy.Length);
+                    GetIntegerResolution(x, y, unit == 1, ushort.MaxValue, out uint horizontal, out uint vertical);
+                    OfficeExifProfileCodec.Write(copy, at + 8, horizontal, 2, false);
+                    OfficeExifProfileCodec.Write(copy, at + 10, vertical, 2, false); output.Write(copy, 0, copy.Length);
                 } else output.Write(input, segmentStart, end - segmentStart);
             }
             cursor = end;
@@ -213,7 +221,8 @@ public sealed partial class OfficeImageMetadata {
                 if (metadata._icc != null) { byte[] compressed = OfficeZlibCodec.Compress(metadata._icc, token); WritePngChunk(output, "iCCP", Join(new byte[] { 73, 67, 67, 0, 0 }, compressed)); }
                 if (metadata._xmp != null) WritePngChunk(output, "iTXt", Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp\0\0\0\0\0"), metadata._xmp));
                 byte[] density = new byte[9]; double scale = metadata.ResolutionUnits == OfficeImageResolutionUnit.PixelsPerInch ? 1D / 0.0254D : metadata.ResolutionUnits == OfficeImageResolutionUnit.PixelsPerCentimeter ? 100D : 1D;
-                OfficeExifProfileCodec.Write(density, 0, Density(metadata.HorizontalResolution * scale, uint.MaxValue), 4, false); OfficeExifProfileCodec.Write(density, 4, Density(metadata.VerticalResolution * scale, uint.MaxValue), 4, false);
+                GetIntegerResolution(metadata.HorizontalResolution * scale, metadata.VerticalResolution * scale, metadata.ResolutionUnits == OfficeImageResolutionUnit.AspectRatio, uint.MaxValue, out uint horizontal, out uint vertical);
+                OfficeExifProfileCodec.Write(density, 0, horizontal, 4, false); OfficeExifProfileCodec.Write(density, 4, vertical, 4, false);
                 density[8] = metadata.ResolutionUnits == OfficeImageResolutionUnit.AspectRatio ? (byte)0 : (byte)1; WritePngChunk(output, "pHYs", density);
             }
             cursor += length + 12;

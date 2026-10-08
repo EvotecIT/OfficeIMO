@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing;
 /// Describes high-level HEIF container metadata that can be read without decoding image pixels.
 /// </summary>
 public sealed class OfficeHeifImageInfo {
-    internal OfficeHeifImageInfo(string majorBrand, uint minorVersion, IReadOnlyList<string> compatibleBrands, uint? primaryItemId, IReadOnlyList<OfficeHeifItemInfo> items, IReadOnlyList<OfficeHeifItemReference> references) {
+    internal OfficeHeifImageInfo(string majorBrand, uint minorVersion, IReadOnlyList<string> compatibleBrands, uint? primaryItemId, IReadOnlyList<OfficeHeifItemInfo> items, IReadOnlyList<OfficeHeifItemReference> references, uint? exifItemId, uint? xmpItemId) {
         MajorBrand = majorBrand;
         MinorVersion = minorVersion;
         CompatibleBrands = compatibleBrands;
@@ -21,8 +21,8 @@ public sealed class OfficeHeifImageInfo {
         PrimaryItem = primaryItemId.HasValue
             ? items.FirstOrDefault(item => item.ItemId == primaryItemId.Value)
             : null;
-        ExifItem = items.FirstOrDefault(item => item.HasExif);
-        XmpItem = items.FirstOrDefault(item => item.HasXmp);
+        ExifItem = exifItemId.HasValue ? items.FirstOrDefault(item => item.ItemId == exifItemId.Value) : null;
+        XmpItem = xmpItemId.HasValue ? items.FirstOrDefault(item => item.ItemId == xmpItemId.Value) : null;
     }
 
     /// <summary>Major HEIF brand declared by the file type box.</summary>
@@ -40,10 +40,10 @@ public sealed class OfficeHeifImageInfo {
     /// <summary>Primary item metadata when it could be resolved from <see cref="Items"/>.</summary>
     public OfficeHeifItemInfo? PrimaryItem { get; }
 
-    /// <summary>EXIF item metadata when the container declares one.</summary>
+    /// <summary>Primary-associated or unique EXIF item metadata; null when selection is ambiguous or unrelated to the primary item.</summary>
     public OfficeHeifItemInfo? ExifItem { get; }
 
-    /// <summary>XMP item metadata when the container declares one.</summary>
+    /// <summary>Primary-associated or unique XMP item metadata; null when selection is ambiguous or unrelated to the primary item.</summary>
     public OfficeHeifItemInfo? XmpItem { get; }
 
     /// <summary>Known item metadata declared by the HEIF item information box.</summary>
@@ -95,10 +95,10 @@ public sealed class OfficeHeifImageInfo {
     public IReadOnlyList<byte> CodecConfigurationBytes => PrimaryItem?.CodecConfigurationBytes ?? Array.Empty<byte>();
 
     /// <summary>Whether the container declares an EXIF metadata item.</summary>
-    public bool HasExif => ExifItem is not null;
+    public bool HasExif => Items.Any(item => item.HasExif);
 
     /// <summary>Whether the container declares an XMP metadata item.</summary>
-    public bool HasXmp => XmpItem is not null;
+    public bool HasXmp => Items.Any(item => item.HasXmp);
 }
 
 /// <summary>

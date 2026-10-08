@@ -650,6 +650,13 @@ if (OfficeHeifMetadataReader.TryReadExifProfile("photo.heic", out OfficeImageMet
 }
 ```
 
+Metadata reads and writes select the unique `cdsc` item associated with the `pitm` primary
+image, regardless of item declaration order. A sole unassociated item remains supported for
+older containers. Multiple possible items, or an item associated only with another image,
+are not selected. `TryReadInfo` retains every declared item; `ExifItem` and `XmpItem` identify
+the selected items or are null when selection is ambiguous. Truncated item, reference,
+location, or property-association collections return `false` without partial information.
+
 Byte-array overloads return independently owned output. Stream readers start at the current
 position, restore seekable streams, and leave them open. `HasExifItem` and `HasXmpItem` report
 declared items even when no readable payload is located. The writer replaces or clears an

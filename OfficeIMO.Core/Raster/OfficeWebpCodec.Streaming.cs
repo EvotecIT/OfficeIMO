@@ -8,6 +8,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {
+    private const int LiteralStreamBufferSize = 16 * 1024;
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open. Direct lossless stream encoding uses a literal VP8L stream with a predictable encoded length.</remarks>
     public static void EncodeTo(OfficeRasterImage image, Stream destination) {
@@ -94,13 +95,15 @@ public static partial class OfficeWebpCodec {
         }
         try {
             long outputPeakBytes = OfficeRasterOutput.TryGetMemoryStream(destination, out MemoryStream? outputStream)
-                ? OfficeRasterOutput.GetMemoryStreamWritePeakBytes(outputStream!, fileLength, materializeOutput)
+                ? OfficeRasterOutput.GetMemoryStreamBlockWritePeakBytes(outputStream!, fileLength, materializeOutput,
+                    Math.Max(Math.Min(payloadLength - 1, LiteralStreamBufferSize), Math.Max(exif?.Length ?? 0, 8)),
+                    exif == null ? 20 : 38, 1, Math.Min(payloadLength - 1, LiteralStreamBufferSize))
                 : 0L;
             long peakBytes = checked(
                 additionalRetainedManagedBytes + pixels.LongLength + 24L +
                 outputPeakBytes +
                 (exif?.LongLength ?? 0L) + 24L +
-                16L * 1024L);
+                LiteralStreamBufferSize + 24L + (exif == null ? 20L : 38L + 8L + 24L) + 24L);
             if (peakBytes > OfficeRasterGuards.MaximumDecodedBytes) {
                 throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
             }
@@ -177,9 +180,8 @@ public static partial class OfficeWebpCodec {
     }
 
     private sealed class StreamLsbBitWriter : ILsbBitWriter, IDisposable {
-        private const int OutputBufferSize = 16 * 1024;
         private readonly Stream _destination;
-        private byte[]? _output = new byte[OutputBufferSize];
+        private byte[]? _output = new byte[LiteralStreamBufferSize];
         private int _outputCount;
         private ulong _buffer;
         private int _bitCount;

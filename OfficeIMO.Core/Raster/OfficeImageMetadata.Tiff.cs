@@ -29,14 +29,7 @@ public sealed partial class OfficeImageMetadata {
                 if (directory.Key == OfficeExifDirectory.Exif && entry.Tag.Id == 37500) metadata._tiffOpaqueOffsets.Add(entry.Tag);
             }
         }
-        OfficeExifValue? unit = metadata.GetExifValue(OfficeExifTag.ResolutionUnit);
-        OfficeExifValue? horizontal = metadata.GetExifValue(OfficeExifTag.XResolution);
-        OfficeExifValue? vertical = metadata.GetExifValue(OfficeExifTag.YResolution);
-        if (horizontal?.Value is OfficeRational x && vertical?.Value is OfficeRational y && x.Denominator != 0 && y.Denominator != 0) {
-            metadata.HorizontalResolution = x.ToDouble(); metadata.VerticalResolution = y.ToDouble();
-            ushort value = unit?.Value is ushort number ? number : (ushort)2;
-            metadata.ResolutionUnits = value == 3 ? OfficeImageResolutionUnit.PixelsPerCentimeter : value == 1 ? OfficeImageResolutionUnit.AspectRatio : OfficeImageResolutionUnit.PixelsPerInch;
-        }
+        ReadExifResolution(metadata);
     }
 
     private static byte[] RewriteTiff(byte[] input, OfficeImageMetadata metadata, CancellationToken token, List<(long Start, long Length)>? pixelRangesOverride = null, bool preserveDensity = true, long additionallyRetainedBytes = 0L) {

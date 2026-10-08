@@ -36,7 +36,7 @@ internal sealed class OfficeMetadataRewriteStream : OfficeBoundedMemoryStream {
     }
     internal void AddRetainedBytes(long bytes) { CheckTransientBytes(bytes); _retainedBytes = checked(_retainedBytes + bytes); }
     private void EnsurePeak(long appendedBytes, bool materialize = false) {
-        if (checked(_retainedBytes + OfficeRasterOutput.GetMemoryStreamWritePeakBytes(this, appendedBytes, materialize)) > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentException("Metadata rewriting exceeds the managed working-set limit.");
+        if (checked(_retainedBytes + OfficeRasterOutput.GetMemoryStreamSingleWritePeakBytes(this, appendedBytes, materialize)) > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentException("Metadata rewriting exceeds the managed working-set limit.");
     }
     private static int ValidateInitialCapacity(long retainedBytes, int hint, int maximumBytes) {
         if (retainedBytes < 0 || hint < 0) throw new ArgumentOutOfRangeException(nameof(retainedBytes));

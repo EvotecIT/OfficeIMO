@@ -18,12 +18,24 @@ public sealed partial class OfficeImageMetadata {
         return new OfficeExifValue(tag, OfficeUnsignedRational.FromPositiveDouble(density));
     }
 
-    private static bool HasJpegJfif(byte[] input) {
+    private static bool TryFindJpegJfif(byte[] input, System.Threading.CancellationToken token, out int start, out int payloadOffset, out int payloadLength) {
         for (int cursor = 2; cursor < input.Length && OfficeIMO.Provenance.OfficeProvenanceJpeg.TryReadMarker(input, cursor, out byte marker, out int payload, out int length, out int end); cursor = end) {
+            token.ThrowIfCancellationRequested();
             if (marker == 0xDA || marker == 0xD9) break;
-            if (marker == 0xE0 && length >= 12 && PrefixAt(input, payload, length, System.Text.Encoding.ASCII.GetBytes("JFIF\0"))) return true;
+            if (marker == 0xE0 && length >= 12 && PrefixAt(input, payload, length, JpegJfifPrefix)) { start = cursor; payloadOffset = payload; payloadLength = length; return true; }
         }
+        start = payloadOffset = payloadLength = -1;
         return false;
+    }
+    private static void GetIntegerResolution(double x, double y, bool aspectRatio, uint maximum, out uint horizontal, out uint vertical) {
+        if (!aspectRatio || x >= 1D && y >= 1D && x <= maximum && y <= maximum && x == Math.Truncate(x) && y == Math.Truncate(y)) {
+            horizontal = Density(x, maximum); vertical = Density(y, maximum);
+            return;
+        }
+        // Unitless carriers store a pair of integer words, so preserve the ratio
+        // rather than rounding each fractional component independently.
+        OfficeRational ratio = OfficeUnsignedRational.FromPositiveDouble(x / y, "resolution", maximum);
+        horizontal = ratio.Numerator; vertical = ratio.Denominator;
     }
     private static void GetExifResolution(OfficeImageMetadata metadata, out double x, out double y, out ushort unit) {
         x = metadata.HorizontalResolution;

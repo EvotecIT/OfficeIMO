@@ -4,8 +4,8 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Converts authored positive density to the unsigned TIFF/Exif rational representation.</summary>
 internal static class OfficeUnsignedRational {
-    internal static OfficeRational FromPositiveDouble(double value, string parameterName = "value") {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value < 1D / uint.MaxValue || value > uint.MaxValue) throw OutsideRange();
+    internal static OfficeRational FromPositiveDouble(double value, string parameterName = "value", uint maximum = uint.MaxValue) {
+        if (maximum == 0 || double.IsNaN(value) || double.IsInfinity(value) || value < 1D / maximum || value > maximum) throw OutsideRange();
         // Continued-fraction convergents preserve small values without a fixed decimal
         // denominator. Both words remain bounded before multiplication. Reject values
         // that cannot achieve one part in a trillion instead of silently losing density.
@@ -13,9 +13,9 @@ internal static class OfficeUnsignedRational {
         double remainder = value;
         for (int step = 0; step < 64; step++) {
             double whole = Math.Floor(remainder);
-            ulong limit = uint.MaxValue;
-            if (numerator != 0) limit = Math.Min(limit, (uint.MaxValue - priorNumerator) / numerator);
-            if (denominator != 0) limit = Math.Min(limit, (uint.MaxValue - priorDenominator) / denominator);
+            ulong limit = maximum;
+            if (numerator != 0) limit = Math.Min(limit, (maximum - priorNumerator) / numerator);
+            if (denominator != 0) limit = Math.Min(limit, (maximum - priorDenominator) / denominator);
             // The largest feasible intermediate convergent can still represent
             // the value when the next full convergent exceeds either uint word.
             bool bounded = whole > limit;

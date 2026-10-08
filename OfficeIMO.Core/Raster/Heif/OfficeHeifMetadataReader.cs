@@ -14,6 +14,10 @@ namespace OfficeIMO.Drawing;
 /// Rewriting replaces or clears an existing single file-backed extent. Item-data-box,
 /// external, derived and multiple-extent items are readable where supported but not writable.
 /// Each metadata family is inspected independently; unchanged siblings are preserved as bytes.
+/// Reads and writes select a unique metadata item associated with the primary image through
+/// cdsc references. A sole unassociated metadata item remains supported for older containers;
+/// ambiguous or explicitly unrelated items are not selected. Information retains all declared
+/// items, while incomplete declared collections are rejected without returning partial results.
 /// Protected items and XMP items declaring a content encoding remain discoverable, but their
 /// payload reads and writes (including clearing) are unsupported. Stream reads include known
 /// caller-owned memory backing in the operation's managed working-set budget.

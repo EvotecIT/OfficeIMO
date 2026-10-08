@@ -13,6 +13,7 @@ public static partial class OfficeRasterImageEncoder {
     internal const double TiffMinimumDpi = 0.001D;
     internal const double WebpMinimumDpi = 0.0001D;
     internal const double PngMaximumDpi = uint.MaxValue * 0.0254D;
+    internal const double BmpMaximumDpi = int.MaxValue * 0.0254D;
     internal const double JpegMaximumDpi = ushort.MaxValue;
     internal const double TiffMaximumDpi = 1000000D;
     internal const double WebpMaximumDpi = 1000000D;
@@ -58,7 +59,8 @@ public static partial class OfficeRasterImageEncoder {
         OfficeImageExportFormat.Jpeg => JpegMaximumDpi,
         OfficeImageExportFormat.Tiff => TiffMaximumDpi,
         OfficeImageExportFormat.Webp => WebpMaximumDpi,
-        OfficeImageExportFormat.Bmp or OfficeImageExportFormat.Pbm or OfficeImageExportFormat.Tga or OfficeImageExportFormat.Icon => PngMaximumDpi,
+        OfficeImageExportFormat.Bmp => BmpMaximumDpi,
+        OfficeImageExportFormat.Pbm or OfficeImageExportFormat.Tga or OfficeImageExportFormat.Icon => PngMaximumDpi,
         OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output does not encode raster density.", nameof(format)),
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
@@ -143,6 +145,9 @@ public static partial class OfficeRasterImageEncoder {
         if (budget == null) throw new ArgumentNullException(nameof(budget));
         OfficeRasterEncodingOptions effective =
             (options ?? new OfficeRasterEncodingOptions()).Resolve(format);
+        if (format == OfficeImageExportFormat.Bmp) {
+            return OfficeBmpWriter.Encode(image, effective, budget, cancellationToken, additionalRetainedManagedBytes);
+        }
         using var output = new OfficeImageExportEncodingMemoryStream(
             budget,
             cancellationToken,
