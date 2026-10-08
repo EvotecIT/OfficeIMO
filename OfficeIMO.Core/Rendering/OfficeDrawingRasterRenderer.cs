@@ -21,7 +21,7 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
-        double scaleX, double scaleY) {
+        double scaleX, double scaleY, OfficeRasterExportPlan? allocationPlan = null) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
@@ -38,7 +38,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         bool uniform = scaleX == scale && scaleY == scale;
-        _ = OfficeRasterExportPlanner.Resolve(
+        OfficeRasterExportPlan plan = allocationPlan ?? OfficeRasterExportPlanner.Resolve(
             uniform ? drawing.Width : drawing.Width * scaleX,
             uniform ? drawing.Height : drawing.Height * scaleY,
             OfficeImageExportFormat.Png,
@@ -48,8 +48,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
 
-        int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scaleX));
-        int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scaleY));
+        int width = plan.Limit.PixelWidth;
+        int height = plan.Limit.PixelHeight;
         OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,

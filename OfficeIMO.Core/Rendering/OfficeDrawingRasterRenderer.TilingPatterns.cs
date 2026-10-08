@@ -37,7 +37,7 @@ public static partial class OfficeDrawingRasterRenderer {
             }
         }
         if (!visibleTile) return;
-        _ = OfficeRasterExportPlanner.Resolve(
+        OfficeRasterExportPlan tilePlan = OfficeRasterExportPlanner.Resolve(
             pattern.InnerTile.Width * scaleX,
             pattern.InnerTile.Height * scaleY,
             OfficeImageExportFormat.Png,
@@ -46,9 +46,13 @@ public static partial class OfficeDrawingRasterRenderer {
                 MaximumRasterPixels = maximumRasterPixels,
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
-        canvas.ChargeIntermediateSurfacePixels(
-            (long)System.Math.Ceiling(pattern.InnerTile.Width * scaleX) *
-            (long)System.Math.Ceiling(pattern.InnerTile.Height * scaleY), maximumRasterPixels);
+        // Fill the complete planned bitmap before repeating it. Retain that plan
+        // so a fractional density cannot round-trip into an extra row or column.
+        if (interpolate) {
+            scaleX = tilePlan.Limit.PixelWidth / pattern.InnerTile.Width;
+            scaleY = tilePlan.Limit.PixelHeight / pattern.InnerTile.Height;
+        }
+        canvas.ChargeIntermediateSurfacePixels(tilePlan.Limit.PixelCount, maximumRasterPixels);
         OfficeRasterImage tile = RenderCore(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
             Scale = System.Math.Max(scaleX, scaleY),
             ImageCodec = imageCodec,
@@ -59,7 +63,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
-        }, scaleX, scaleY);
+        }, scaleX, scaleY, tilePlan);
         foreach (OfficeTransform transform in transforms) {
             cancellationToken.ThrowIfCancellationRequested();
             canvas.DrawAffineImage(tile, CreateTilePixelTransform(transform, scale, scaleX, scaleY), pattern.Opacity, interpolate);
