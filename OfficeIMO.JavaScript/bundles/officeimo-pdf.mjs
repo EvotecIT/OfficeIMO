@@ -282,7 +282,26 @@ const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink:
 return _exports;
 })();
 
+const _m7 = (() => {
+/** @internal One target policy shared by document writers and portable cells. */
+function copyExportLink(link) {
+    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
+        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(link.target);
+    if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
+        throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
+    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+        throw new TypeError("Hyperlink tooltip must be text.");
+    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+}
+const _exports = Object.freeze({ copyExportLink: copyExportLink });
+return _exports;
+})();
+
 const _m6 = (() => {
+const { copyExportLink } = _m7;
+
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -290,6 +309,7 @@ class ExportCell {
     static [Symbol.hasInstance](value) { return !!value && typeof value === "object" && value[exportCellBrand] === true; }
     text;
     presentation;
+    link;
     constructor(value, options = {}) {
         this.value = value;
         if (options.text !== undefined && typeof options.text !== "string")
@@ -297,6 +317,7 @@ class ExportCell {
         assertScalar(value);
         this.text = options.text;
         this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -380,7 +401,7 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
-const _m8 = (() => {
+const _m9 = (() => {
 const { OfficeIMOError } = _m4;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -436,7 +457,7 @@ const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: bounde
 return _exports;
 })();
 
-const _m9 = (() => {
+const _m10 = (() => {
 const { assertExportValue } = _m6;
 
 /** Validate one small, rectangular heading/footer matrix before any drawing. */
@@ -478,14 +499,14 @@ const _exports = Object.freeze({ tableSpans: tableSpans });
 return _exports;
 })();
 
-const _m7 = (() => {
+const _m8 = (() => {
 const { OfficeIMOError } = _m4;
 
-const { ExportBudget } = _m8;
+const { ExportBudget } = _m9;
 
 const { copyColumns } = _m5;
 
-const { tableSpans } = _m9;
+const { tableSpans } = _m10;
 
 function positive(value, name, max = 14400) {
     if (!Number.isFinite(value) || value <= 0 || value > max)
@@ -535,7 +556,7 @@ function settings(configuration) {
         headerPresentation: presentation({ background: "e7edf5", bold: true, ...configuration.headerPresentation }),
         footerPresentation: presentation({ background: "eef2f6", bold: true, ...configuration.footerPresentation }) };
     const budget = new ExportBudget(options.limits);
-    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024 };
+    const limits = { maxPages: 10000, maxColumns: 1024, maxCellCharacters: 1000000, maxRowLines: 100000, maxFontBytes: 16 * 1024 * 1024, maxPageBytes: 8 * 1024 * 1024, maxHyperlinks: 100000 };
     for (const key of Object.keys(limits)) {
         const override = options.limits?.[key];
         if (override !== undefined)
@@ -587,7 +608,7 @@ const _exports = Object.freeze({ positive: positive, color: color, presentation:
 return _exports;
 })();
 
-const _m10 = (() => {
+const _m11 = (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
@@ -714,7 +735,7 @@ const _exports = Object.freeze({ pdfNumber: pdfNumber, unicodeHex: unicodeHex, P
 return _exports;
 })();
 
-const _m14 = (() => {
+const _m15 = (() => {
 /** @internal Bounded big-endian reader used for caller-provided TrueType programs. */
 class FontReader {
     bytes;
@@ -743,8 +764,8 @@ const _exports = Object.freeze({ FontReader: FontReader, checksum: checksum, ali
 return _exports;
 })();
 
-const _m15 = (() => {
-const { align4, checksum } = _m14;
+const _m16 = (() => {
+const { align4, checksum } = _m15;
 
 /** Preserve glyph IDs and complete composite dependencies, as in OfficeIMO.Pdf's native subsetter. */
 function subsetTrueType(font, requested, characters) {
@@ -897,12 +918,12 @@ const _exports = Object.freeze({ subsetTrueType: subsetTrueType });
 return _exports;
 })();
 
-const _m13 = (() => {
+const _m14 = (() => {
 const { NotSupportedError } = _m4;
 
-const { FontReader } = _m14;
+const { FontReader } = _m15;
 
-const { subsetTrueType } = _m15;
+const { subsetTrueType } = _m16;
 
 /** @internal Native TrueType outline profile shared with the C# PDF writer's glyph-preserving subset design. */
 class TrueTypeFont extends FontReader {
@@ -1075,8 +1096,8 @@ const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
 return _exports;
 })();
 
-const _m12 = (() => {
-const { TrueTypeFont } = _m13;
+const _m13 = (() => {
+const { TrueTypeFont } = _m14;
 
 const programs = new WeakMap();
 const fontBrand = Symbol.for("@evotecit/officeimo/PdfFont");
@@ -1115,7 +1136,7 @@ const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
 return _exports;
 })();
 
-const _m16 = (() => {
+const _m17 = (() => {
 // Generated by scripts/pdf-widths.mjs from OfficeIMO.Pdf's Adobe AFM-derived metrics.
 const helveticaWidths = new Map([
     [32, [278, 278]],
@@ -1437,14 +1458,14 @@ const _exports = Object.freeze({ helveticaWidths: helveticaWidths });
 return _exports;
 })();
 
-const _m11 = (() => {
+const _m12 = (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
-const { PdfFont, fontProgram } = _m12;
+const { PdfFont, fontProgram } = _m13;
 
-const { helveticaWidths } = _m16;
+const { helveticaWidths } = _m17;
 
-const { pdfNumber, unicodeHex } = _m10;
+const { pdfNumber, unicodeHex } = _m11;
 
 const winAnsiExtras = new Map([0x20ac, 0, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152, 0, 0x17d, 0, 0, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122, 0x161, 0x203a, 0x153, 0, 0x17e, 0x178].map((cp, i) => [cp, i + 128]));
 function standardCode(scalar) {
@@ -1602,7 +1623,7 @@ const _exports = Object.freeze({ validateScalar: validateScalar, PdfFontResource
 return _exports;
 })();
 
-const _m18 = (() => {
+const _m19 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -1649,7 +1670,7 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m19 = (() => {
+const _m20 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { ExportCell, assertExportValue } = _m6;
@@ -1722,16 +1743,18 @@ const _exports = Object.freeze({ synchronousText: synchronousText, displayText: 
 return _exports;
 })();
 
-const _m17 = (() => {
+const _m18 = (() => {
 const { ExportCell } = _m6;
 
-const { tableSpans } = _m9;
+const { copyExportLink } = _m7;
 
-const { createTotals } = _m18;
+const { tableSpans } = _m10;
 
-const { presentation, positive } = _m7;
+const { createTotals } = _m19;
 
-const { displayText, wrapText } = _m19;
+const { presentation, positive } = _m8;
+
+const { displayText, wrapText } = _m20;
 
 class PdfTableLayout {
     settings;
@@ -1792,6 +1815,7 @@ class PdfTableLayout {
         const text = displayText(value, options, { rowIndex: row, columnIndex: first, column });
         budget.cell(text);
         return { first, span, width, font, style: combined, lineHeight: font.lineHeight(fontSize),
+            ...(value instanceof ExportCell && value.link ? { link: copyExportLink(value.link) } : {}),
             lines: wrapText(text, font, fontSize, width - padding * 2, limits.maxCellCharacters, limits.maxRowLines, combined.wrapText !== false) };
     }
     row(cells) {
@@ -1812,7 +1836,7 @@ class PdfTableLayout {
         const cells = anchors.map(row => row.map(c => {
             const value = c.value instanceof ExportCell ? c.value : new ExportCell(c.value);
             const literal = new ExportCell(value.value, { text: displayText(value, literalOptions, { rowIndex: -1, columnIndex: c.first, column: literalOptions.columns[c.first] }),
-                ...(value.presentation ? { presentation: value.presentation } : {}) });
+                ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
             return { ...this.cell(literal, c.first, c.span, -1, style), rowSpan: c.rowSpan };
         }));
         const heights = cells.map(row => Math.max(this.lineHeight + this.settings.padding * 2, ...row.filter(c => c.rowSpan === 1).map(c => c.lines.length * c.lineHeight + this.settings.padding * 2)));
@@ -1848,16 +1872,62 @@ const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
 return _exports;
 })();
 
-const _m20 = (() => {
+const _m22 = (() => {
+const { OfficeIMOError } = _m4;
+
+const { pdfNumber, unicodeHex } = _m11;
+
+const encoder = new TextEncoder();
+/** @internal URI actions are byte strings; tooltips are Unicode PDF text strings. */
+function linkAnnotation(link, x, bottom, width, height, maxBytes) {
+    const prefix = "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Rect [" +
+        [x, bottom, x + width, bottom + height].map(pdfNumber).join(" ") + "] /A << /S /URI /URI <";
+    const suffix = "> >>" + (link.tooltip === undefined ? "" : " /Contents <feff") + " >>";
+    const fixedBytes = prefix.length + suffix.length + (link.tooltip === undefined ? 0 : link.tooltip.length * 4 + 1);
+    const limit = () => { throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded."); };
+    if (fixedBytes + link.target.length * 2 > maxBytes)
+        limit();
+    // Count before allocating the UTF-8 bytes or their hex representation. Lone
+    // surrogates become U+FFFD, matching TextEncoder's replacement behavior.
+    let uriBytes = 0;
+    for (let i = 0; i < link.target.length; i++) {
+        const code = link.target.charCodeAt(i);
+        if (code < 0x80)
+            uriBytes++;
+        else if (code < 0x800)
+            uriBytes += 2;
+        else if (code >= 0xd800 && code <= 0xdbff && i + 1 < link.target.length &&
+            link.target.charCodeAt(i + 1) >= 0xdc00 && link.target.charCodeAt(i + 1) <= 0xdfff) {
+            uriBytes += 4;
+            i++;
+        }
+        else
+            uriBytes += 3;
+        if (fixedBytes + uriBytes * 2 > maxBytes)
+            limit();
+    }
+    let uri = "";
+    for (const byte of encoder.encode(link.target))
+        uri += byte.toString(16).padStart(2, "0");
+    return prefix + uri + "> >>" +
+        (link.tooltip === undefined ? "" : " /Contents <feff" + unicodeHex(link.tooltip) + ">") + " >>";
+}
+const _exports = Object.freeze({ linkAnnotation: linkAnnotation });
+return _exports;
+})();
+
+const _m21 = (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
 
-const { pdfNumber } = _m10;
+const { pdfNumber } = _m11;
 
-const { color } = _m7;
+const { color } = _m8;
 
-const { wrapText, synchronousText } = _m19;
+const { wrapText, synchronousText } = _m20;
+
+const { linkAnnotation } = _m22;
 
 /** @internal One page of drawing commands and O(page count) references, never the complete report body. */
 class PdfPages {
@@ -1870,6 +1940,8 @@ class PdfPages {
     current = 0;
     commands = [];
     commandBytes = 0;
+    annotations = [];
+    hyperlinks = 0;
     y = 0;
     dataTop = 0;
     totalPages;
@@ -1894,10 +1966,13 @@ class PdfPages {
         }
     }
     add(command) {
-        this.commandBytes += command.length;
+        this.retainPageBytes(command.length);
+        this.commands.push(command);
+    }
+    retainPageBytes(length) {
+        this.commandBytes += length;
         if (this.commandBytes > this.settings.limits.maxPageBytes)
             throw new OfficeIMOError("RESOURCE_LIMIT", "maxPageBytes exceeded.");
-        this.commands.push(command);
     }
     rgb(hex) {
         let rgb = this.colors.get(hex);
@@ -1973,6 +2048,13 @@ class PdfPages {
             if (cell.style.background)
                 this.add("q " + this.rgb(cell.style.background) + " rg " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re f Q\n");
             this.add("q 0.82 0.85 0.89 RG 0.4 w " + n(x) + " " + n(this.y - cellHeight) + " " + n(cell.width) + " " + n(cellHeight) + " re S Q\n");
+            if (cell.link) {
+                if (++this.hyperlinks > this.settings.limits.maxHyperlinks)
+                    throw new OfficeIMOError("RESOURCE_LIMIT", "maxHyperlinks exceeded.");
+                const annotation = linkAnnotation(cell.link, x, this.y - cellHeight, cell.width, cellHeight, this.settings.limits.maxPageBytes - this.commandBytes);
+                this.retainPageBytes(annotation.length);
+                this.annotations.push(annotation);
+            }
             for (let line = firstLine; line < Math.min(cell.lines.length, cell.height ? cell.lines.length : firstLine + lineCount); line++) {
                 const text = cell.lines[line], left = cell.style.alignment === "right" ? cell.width - padding - text.width : cell.style.alignment === "center" ? (cell.width - text.width) / 2 : padding;
                 const ascent = (cell.font.program?.ascent ?? 800) * fontSize / 1000;
@@ -2037,9 +2119,17 @@ class PdfPages {
     async finishPage() {
         const contents = this.objects.reserve(), { page, options } = this.settings;
         await this.objects.stream(contents, this.commands.join(""), "", options.compression !== false);
+        const annotations = [];
+        for (const annotation of this.annotations) {
+            const id = this.objects.reserve();
+            annotations.push(id);
+            await this.objects.object(id, annotation);
+        }
         await this.objects.object(this.current, "<< /Type /Page /Parent " + this.parent + " 0 R /MediaBox [0 0 " + pdfNumber(page.width) + " " + pdfNumber(page.height) +
-            "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R >>");
+            "] /Resources " + this.resources + " 0 R /Contents " + contents + " 0 R" +
+            (annotations.length ? " /Annots [" + annotations.map(id => id + " 0 R").join(" ") + "]" : "") + " >>");
         this.commands = [];
+        this.annotations = [];
         this.commandBytes = 0;
         await this.objects.flush();
     }
@@ -2067,15 +2157,15 @@ const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
 
 const { createRowProjector } = _m5;
 
-const { settings } = _m7;
+const { settings } = _m8;
 
-const { PdfObjects, unicodeHex } = _m10;
+const { PdfObjects, unicodeHex } = _m11;
 
-const { PdfFontResources } = _m11;
+const { PdfFontResources } = _m12;
 
-const { PdfTableLayout } = _m17;
+const { PdfTableLayout } = _m18;
 
-const { PdfPages } = _m20;
+const { PdfPages } = _m21;
 
 async function writePdf(rows, configuration) {
     const sink = new BlobByteSink();
@@ -2140,7 +2230,7 @@ const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
 return _exports;
 })();
 
-const _m21 = (() => {
+const _m23 = (() => {
 
 
 
@@ -2188,7 +2278,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, PdfFont: _m12.PdfFont, ExportCell: _m6.ExportCell, saveBlob: _m21.saveBlob });
+const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, PdfFont: _m13.PdfFont, ExportCell: _m6.ExportCell, saveBlob: _m23.saveBlob });
 return _exports;
 })();
 const { writePdf, writePdfTo, PdfFont, ExportCell, saveBlob } = _m0;

@@ -11,6 +11,14 @@ import type { XlsxColumn } from "@evotecit/officeimo/xlsx";
 import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
 import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "@evotecit/officeimo/integrations/datatables";
 import type { DataTablesApi, DataTablesHost } from "@evotecit/officeimo/integrations/datatables";
+import type { ExportLink } from "@evotecit/officeimo";
+const portableLink: ExportLink = { target: "https://example.com/report", tooltip: "Open report" };
+const linkedValue = new ExportCell(12.5, { text: "12.50 USD", link: portableLink });
+void writePdf([[linkedValue]], { columns: [{ header: "Amount" }], limits: { maxHyperlinks: 1 } });
+// @ts-expect-error captured portable links are immutable
+linkedValue.link!.target = "https://example.com/different";
+// @ts-expect-error a link target is required
+new ExportCell("value", { link: { tooltip: "Missing target" } });
 
 async function exportGrid(host: DataTablesHost, table: DataTablesApi) {
   const source = createDataTablesExport(host, table, { exportOptions: { columns: ':visible', modifier: { selected: null } },

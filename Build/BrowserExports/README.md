@@ -13,6 +13,8 @@ The PDF lane checks Chromium, Firefox and WebKit, native/uncompressed/fallback s
 
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.
 
+The `--links` correctness lane qualifies portable cell links in all three browser engines. It checks numeric/date XLSX values and relationship coordinates through both managed readers and the Open XML SDK, then reads PDF URI actions, Unicode tooltips and page-fragment rectangles independently. Classic and compression-fallback lanes produce Blobs; the worker lane writes to a byte destination and transfers chunks to avoid host-specific worker Blob read limitations. Each lane also checks raw/display CSV semantics. Use `--validate-links <fixture-directory>` to read the captured small link fixtures without launching a browser.
+
 Build and run the TypeScript package before the C# tests:
 
 ```powershell

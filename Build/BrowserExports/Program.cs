@@ -3,6 +3,12 @@ using HtmlTinkerX;
 using OfficeIMO.Browser;
 using OfficeIMO.TestAssets;
 
+if (args.Length == 2 && args[0] == "--validate-links") {
+    var files = Directory.GetFiles(Path.GetFullPath(args[1])).Where(f => f.EndsWith(".xlsx", StringComparison.Ordinal) || f.EndsWith(".pdf", StringComparison.Ordinal)).ToArray();
+    if (files.Length == 0) throw new InvalidDataException("No portable-link fixtures to validate.");
+    foreach (string file in files) Console.WriteLine(JsonSerializer.Serialize(PortableLinkVerifier.Verify(file)));
+    return;
+}
 if (args.Length == 2 && args[0] == "--validate") {
     WorkbookVerifier.Verify(Path.GetFullPath(args[1]));
     Console.WriteLine("Workbook passed OfficeIMO loading and Open XML validation.");
@@ -18,6 +24,7 @@ if (args.Length == 2 && args[0] == "--validate-directory") {
 if (args.Length < 2) throw new ArgumentException("Usage: <repository> <evidence-directory> [--scale] [--limits] [--example=<directory>]");
 string repository = Path.GetFullPath(args[0]), evidence = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(evidence);
+if (args.Contains("--links")) { await PortableLinkInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--pdf")) { await PdfInterop.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--datatables-session")) { await DataTablesComparisonSession.RunAsync(repository, evidence, args); return; }
 if (args.Contains("--datatables")) { await DataTablesInterop.RunAsync(repository, evidence, args); return; }

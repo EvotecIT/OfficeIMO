@@ -60,6 +60,18 @@ saveBlob(await writeCsv(rows, { columns }), "sales.csv");
 
 The table writers accept synchronous iterables and async iterables. XLSX defaults to the sheet name `Data`, a bold header, filtering when a header is present, and width sampling of up to 100 rows clamped to 6–54 characters. `sheet` supplies the existing worksheet layout options. Workbook-local style indexes belong to the advanced `Workbook` API; portable `ExportCell` presentation and row/cell style patches work with the table helper.
 
+An `ExportCell` can carry an external link alongside its typed value, display text and presentation:
+
+```typescript
+new ExportCell(12.5, {
+  text: "12.50 USD",
+  presentation: { color: "0563C1" },
+  link: { target: "https://example.com/invoices/42", tooltip: "Open invoice 42" }
+});
+```
+
+XLSX keeps the numeric value and writes a cell hyperlink. PDF renders the display text and writes a native link annotation over each cell fragment, including fragments continued onto another page. CSV keeps its selected raw/display value mode. Links accept absolute HTTP, HTTPS and mailto targets; credentials, whitespace and other schemes are rejected. Resolve relative report links against an explicit host base before creating the cell. The target and tooltip are copied when the cell is created, and links do not add automatic font styling. An XLSX cell using the oversized-text preservation link cannot also carry an external link; that conflict fails explicitly.
+
 An async generator is consumed once. Use a source factory for separate exports rather than passing the same generator twice:
 
 ```ts
@@ -178,9 +190,9 @@ Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point 
 
 Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
 
-This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. It rejects missing glyphs, malformed surrogates, combining sequences, bidirectional text and other scripts requiring a shaping-capable writer. It does not provide general HTML/SVG rendering, images, links, tagged PDF or PDF/A. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
+This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. It rejects missing glyphs, malformed surrogates, combining sequences, bidirectional text and other scripts requiring a shaping-capable writer. It does not provide general HTML/SVG rendering, images, tagged PDF or PDF/A. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
 
-`PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts) and `maxPageBytes` (8 MiB of drawing commands). PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
+`PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
 Workers can call the same writers without a DOM. For a portable worker-to-page handoff, use `writePdfTo` and transfer byte chunks with acknowledgements; this also avoids WebKit worker Blob-read restrictions. Keep the row source and destination bridge bounded, and pass an `AbortSignal` to stop pending input or output. The caller owns disposal of partial bytes after failure, and the library releases borrowed stream locks without closing or aborting the destination.
 
