@@ -79,6 +79,70 @@ public sealed class PdfShortNumberingTabTests {
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NumberedRunningStoriesKeepBoundedExportWhenPageOverridesConsumeTheirTextFrame(bool footer) {
+        using WordDocument document = WordDocument.Create();
+        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordList list = story.AddList(WordListStyle.Custom);
+        ConfigureShortNumbering(list, true);
+        list.AddItem("RUNNING"); document.AddParagraph("BODY");
+        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(200D, 300D)
+        });
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes,
+            new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        Assert.Contains("RUNNING", text); Assert.Contains("BODY", text);
+        Assert.InRange(bytes.Length, 1, 1_000_000);
+    }
+
+    [Theory]
+    [InlineData("body", WordListLevelAlignment.Right, WordListLevelSuffix.Nothing)]
+    [InlineData("body", WordListLevelAlignment.Center, WordListLevelSuffix.Nothing)]
+    [InlineData("body", WordListLevelAlignment.Right, WordListLevelSuffix.Space)]
+    [InlineData("body", WordListLevelAlignment.Center, WordListLevelSuffix.Space)]
+    [InlineData("table", WordListLevelAlignment.Right, WordListLevelSuffix.Nothing)]
+    [InlineData("table", WordListLevelAlignment.Center, WordListLevelSuffix.Nothing)]
+    [InlineData("table", WordListLevelAlignment.Right, WordListLevelSuffix.Space)]
+    [InlineData("table", WordListLevelAlignment.Center, WordListLevelSuffix.Space)]
+    [InlineData("header", WordListLevelAlignment.Right, WordListLevelSuffix.Nothing)]
+    [InlineData("header", WordListLevelAlignment.Center, WordListLevelSuffix.Nothing)]
+    [InlineData("header", WordListLevelAlignment.Right, WordListLevelSuffix.Space)]
+    [InlineData("header", WordListLevelAlignment.Center, WordListLevelSuffix.Space)]
+    public void AlignedNumberingAnchorsIncludeTheSpaceSuffixAndRetainItsText(
+        string scope, WordListLevelAlignment alignment, WordListLevelSuffix suffix) {
+        using WordDocument document = WordDocument.Create();
+        WordList list = scope == "header" ? document.HeaderDefaultOrCreate.AddList(WordListStyle.Custom) : document.AddCustomList();
+        ConfigureShortNumbering(list, false);
+        WordListLevel level = list.Numbering.Levels[0];
+        level.SetStartNumberingValue(9); level.IndentationLeft = 1800; level.IndentationHanging = 720;
+        level.LevelJustification = alignment; level.LevelSuffix = suffix;
+        level.OpenXmlElement.NumberingSymbolRunProperties!.FontSize = new FontSize { Val = "36" };
+        WordTableCell? cell = scope == "table" ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
+        WordParagraph first = cell == null ? list.AddItem("FIRST") : cell.Paragraphs[0];
+        WordParagraph second = cell == null ? list.AddItem("SECOND") : cell.AddParagraph("SECOND");
+        first.Text = "FIRST";
+        foreach (WordParagraph paragraph in new[] { first, second }) {
+            paragraph.FontFamily = "Courier New"; paragraph.FontSize = 9;
+            if (cell != null) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
+                new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
+        }
+        if (scope == "header") document.AddParagraph("BODY");
+        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, FontFamily = "Courier" });
+        using var pdf = PdfPigDocument.Open(bytes);
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        string visible = string.Concat(letters.Select(letter => letter.Value));
+        double shift = letters[visible.IndexOf("SECOND", StringComparison.Ordinal)].StartBaseLine.X -
+            letters[visible.IndexOf("FIRST", StringComparison.Ordinal)].StartBaseLine.X;
+        Assert.InRange(Math.Abs(shift - (alignment == WordListLevelAlignment.Center ? 5.4D : 0D)), 0D, 0.03D);
+        if (suffix == WordListLevelSuffix.Space) {
+            string text = OfficeIMO.Pdf.PdfReadDocument.Open(bytes,
+                new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+            Assert.Contains("9. FIRST", text); Assert.Contains("10. SECOND", text);
+        }
+    }
+
     private static PdfPigDocument OpenPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
         IncludePageNumbers = false, FontFamily = "Courier"
     }));

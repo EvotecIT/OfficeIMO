@@ -309,8 +309,11 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle,
                 nativeFontMap, includeSuffix: false);
-            if (nativeFontMap.MeasureText(markerRun) is { } width)
+            if (nativeFontMap.MeasureText(markerRun) is { } width) {
+                if (info.Value.LevelSuffix == WordListLevelSuffix.Space)
+                    width += ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap);
                 style.FirstLineIndent -= GetNativeMarkerAnchorShift(info.Value, width);
+            }
         }
 
         private static PdfCore.PdfTextRun CreateNativeListMarkerTextRun(

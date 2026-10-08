@@ -656,7 +656,12 @@ namespace OfficeIMO.Word.Pdf {
                 builder.Text(marker.Value.Marker);
                 if (markerInfo.HasValue) ResetNativeTextStyle(builder);
                 if (useAlignedMarkerColumn) {
-                    AddNativeInlineListMarkerSpacer(builder, trailingMarkerOffset);
+                    if (markerInfo?.LevelSuffix == WordListLevelSuffix.Space) {
+                        // Keep the real numbering space in extracted text as
+                        // well as using its measured Arial advance for layout.
+                        builder.Runs(new[] { CreateNativeListSpaceSuffixTextRun(paragraph, nativeDefaults,
+                            nativeFontMap, out _, out _) });
+                    } else AddNativeInlineListMarkerSpacer(builder, trailingMarkerOffset);
                 } else {
                     builder.Text(ResolveNativeInlineListMarkerSuffix(markerInfo?.LevelSuffix));
                 }

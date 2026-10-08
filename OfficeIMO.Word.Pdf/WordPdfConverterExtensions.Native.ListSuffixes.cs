@@ -65,20 +65,28 @@ namespace OfficeIMO.Word.Pdf {
         private static double ResolveNativeListSpaceSuffixWidth(WordParagraph paragraph,
             NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
             NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
+            PdfCore.PdfTextRun space = CreateNativeListSpaceSuffixTextRun(paragraph, nativeDefaults, nativeFontMap,
+                out double fontSize, out NativeTextSpacing spacing, tableRunStyleDefaults);
+            return Math.Max(0D, nativeFontMap?.MeasureText(space)
+                ?? EstimateNativeListMarkerWidth(" ", fontSize, spacing));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeListSpaceSuffixTextRun(WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
+            out double fontSize, out NativeTextSpacing spacing,
+            NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph,
                 tableRunStyleDefaults: tableRunStyleDefaults, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
-            double fontSize = info?.MarkerFontSize ?? style.FontSize ?? nativeDefaults.FontSize;
-            NativeTextSpacing spacing = info.HasValue
+            fontSize = info?.MarkerFontSize ?? style.FontSize ?? nativeDefaults.FontSize;
+            spacing = info.HasValue
                 ? ResolveNativeListMarkerTextSpacing(info.Value, style.ListMarkerTextSpacing) : style.ListMarkerTextSpacing;
             PdfCore.PdfStandardFont font = TryResolveNativeMappedFont("Arial", nativeFontMap, out var mappedFont)
                 ? mappedFont : PdfCore.PdfStandardFont.Helvetica;
             string? family = nativeFontMap?.TryGetNamedFontFamily("Arial", out string? namedFamily) == true
                 ? namedFamily : null;
-            PdfCore.PdfTextRun space = spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
+            return spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
                 fontSize: fontSize, font: font, fontFamily: family));
-            return Math.Max(0D, nativeFontMap?.MeasureText(space)
-                ?? EstimateNativeListMarkerWidth(" ", fontSize, spacing));
         }
     }
 }

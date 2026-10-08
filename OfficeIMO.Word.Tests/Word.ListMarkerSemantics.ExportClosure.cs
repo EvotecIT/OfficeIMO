@@ -224,7 +224,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        string text = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains(expected, text, StringComparison.Ordinal);
     }
 
@@ -239,7 +239,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("HeaderStyledMarker", StringComparison.Ordinal));
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
@@ -262,12 +262,13 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan reference = Assert.Single(spans, span => span.Text.Contains("PlainHeaderReference", StringComparison.Ordinal));
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         PdfTextSpan content = Assert.Single(spans, span => span.Text.Contains("IndentedHeaderItem", StringComparison.Ordinal));
         Assert.True(marker.X > reference.X + 70D, $"reference={reference.X}, marker={marker.X}");
-        Assert.InRange(Math.Abs(content.X - (marker.X + marker.Advance)), 0D, 0.5D);
+        Assert.InRange(Math.Abs(content.X - (reference.X + 108D)), 0D, 0.5D);
+        Assert.True(content.X >= marker.X + marker.Advance);
         Assert.True(content.X > reference.X + 95D,
             $"marker={marker.X}+{marker.Advance}, content={content.X}");
     }
@@ -296,15 +297,15 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(tenItem, list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan nine = Assert.Single(spans, span => span.Text == "9.");
         PdfTextSpan ten = Assert.Single(spans, span => span.Text == "10.");
         PdfTextSpan nineText = Assert.Single(spans, span => span.Text.Contains("HeaderNine", StringComparison.Ordinal));
         PdfTextSpan tenText = Assert.Single(spans, span => span.Text.Contains("HeaderTen", StringComparison.Ordinal));
         double expectedStartShift = alignment == WordListLevelAlignment.Right ? 10D : 5D;
         Assert.InRange(nine.X - ten.X, expectedStartShift - 1D, expectedStartShift + 1D);
-        Assert.True(Math.Abs(nineText.X - tenText.X) <= 1D,
-            $"alignment={alignment}, nineText={nineText.X}, tenText={tenText.X}");
+        double expectedTextShift = alignment == WordListLevelAlignment.Right ? 0D : expectedStartShift;
+        Assert.InRange(tenText.X - nineText.X, expectedTextShift - 1D, expectedTextShift + 1D);
     }
 
     [Fact]
@@ -358,7 +359,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddParagraph("Body");
 
         PdfTextSpan marker = Assert.Single(
-            PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans(),
+            PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans(),
             span => span.Text == "*");
         Assert.True(marker.Advance > 0D);
     }

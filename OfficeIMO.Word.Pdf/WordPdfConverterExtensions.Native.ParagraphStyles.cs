@@ -603,12 +603,12 @@ namespace OfficeIMO.Word.Pdf {
                 return (0D, 0D);
             }
 
-            double headerExpansion = UsesNativeRunningHeader(section) ? 0D : GetNativeHeaderFooterMarginExpansion(
+            double headerExpansion = UsesNativeRunningHeader(section, options) ? 0D : GetNativeHeaderFooterMarginExpansion(
                 listMarkers,
                 section.Header?.Default,
                 section.DifferentFirstPage ? section.Header?.First : null,
                 section.DifferentOddAndEvenPages ? section.Header?.Even : null);
-            double footerExpansion = UsesNativeRunningFooter(section) ? 0D : GetNativeFooterMarginExpansion(
+            double footerExpansion = UsesNativeRunningFooter(section, options) ? 0D : GetNativeFooterMarginExpansion(
                 listMarkers,
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
