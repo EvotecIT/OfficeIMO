@@ -23,6 +23,17 @@ internal static class OfficeShadowLayerPlanner {
     private const int MinimumBlurLayers = 6;
     private const int MaximumBlurLayers = 16;
 
+    // Published friend assemblies bind to this exact signature. Without source dimensions,
+    // preserve their original uninset shadow core while newer callers provide the dimension.
+    internal static IReadOnlyList<OfficeShadowLayer> Create(
+        double opacity,
+        double blurRadius,
+        double baseStrokeWidth,
+        bool hasFill,
+        bool hasStroke,
+        bool canExpand) => Create(
+            opacity, blurRadius, baseStrokeWidth, hasFill, hasStroke, canExpand, minimumShapeDimension: 0D);
+
     internal static IReadOnlyList<OfficeShadowLayer> Create(
         double opacity,
         double blurRadius,
