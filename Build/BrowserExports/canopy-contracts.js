@@ -115,6 +115,7 @@ globalThis.runCanopyContracts = async function ({ regular, bold, workerScript })
   const cursorView = canopyInlineView(); cursorView.id = 'officeimo-cursor'; cursorView.source = { kind: 'host', navigation: 'cursor' }; delete cursorView.rows;
   let held = false, changed = false, sourceSignal;
   const source = { navigation: 'cursor', async query(query, { signal }) {
+    canopyAssert(!Object.hasOwn(query, 'offset'), 'Native cursor source received an offset query field.');
     sourceSignal = signal; const offset = query.cursor ? Number(query.cursor) : 0;
     if (held && offset) await new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
     const rows = canopyInlineView().rows.slice(offset, offset + query.limit);
