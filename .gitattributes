@@ -170,3 +170,9 @@ OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -t
 # Predefined-font fixtures and pinned Adobe resources are byte-level evidence.
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -diff
 OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace
+
+# The dated tabular publication manifest pins raw and derived member bytes,
+# including captured CRLF and native report whitespace.
+Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md -text -whitespace
+Docs/benchmarks/officeimo.excel-tabular-2026-10-08/** -text -whitespace
+Docs/benchmarks/officeimo.excel-tabular-2026-10-08/raw-packets.zip -diff

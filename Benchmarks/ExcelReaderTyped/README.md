@@ -5,6 +5,10 @@ generated and real-data workloads. CSV and Arrow comparisons are explicit build
 options. It stays outside the normal solution and adds no runtime dependencies
 to OfficeIMO. BenchmarkDotNet 0.15.8 controls the measurements.
 
+The [8 October 2026 report](../../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
+records the captured Windows .NET 10 matrix, artifact and input identities,
+measurement samples, warnings, and first-row versus full-scan boundaries.
+
 The default input has one header and 50,000 records with `Name`, `Id`, `Date`, and
 `Value`. Names repeat from eight ASCII values, IDs run from 1 through 50,000, dates
 use `DateTime.FromOADate(45292 + index % 3650 + 0.25)`, and values use `index * 1.5`.

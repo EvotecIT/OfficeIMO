@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "reviewedUtc": "2026-10-08T22:07:41.6975455Z",
+  "status": "Passed",
+  "report": {
+    "path": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-deliverable\\officeimo.excel-tabular-2026-10-08.md",
+    "bytes": 33365,
+    "sha256": "440B8C4C312854CF35C5D7D1020C817172A7B1D98C2514F97CB088E8F1E916DF"
+  },
+  "scope": "One bounded writing-audit/readability and artifact-identity pass; no new source/API audit or benchmark execution",
+  "completePrimaryCases": 652,
+  "currentCases": 612,
+  "supplementaryCases": 78,
+  "primarySamples": 8610,
+  "supplementarySamples": 1170,
+  "primaryIdentitiesUnique": true,
+  "completeNativeTablesUnmodified": 166,
+  "checks": [
+    "Outcome leads with published gap/current scoped improvement and valid losses",
+    "Normal prose word/number/version spacing and explicit units; table/JSON precision preserved",
+    "Original/manual/automatic/factory/native/mapped/prefetch/async strategies stay distinct",
+    "Exact published/source-start/current/Core intervention artifacts stay distinct",
+    "No universal winner, statistical certainty, isolated-host or causal contamination claim",
+    "Actual source/input/ZIP payload versus container/output identities preserved",
+    "SST materialization correctly occurs during indexed-native-XLSX opening qualification before opener returns",
+    "Cold timing after Setup and subsequent diagnostic second-use allocation explicitly separate",
+    "Significant concurrent cold testhost CPU observation prominent with reliability limitation",
+    "All selected families, absent comparison engines and two actual API gaps explicit",
+    "No new backlog or source/package-publication claim",
+    "Native full tables unchanged, all raw samples/warnings/outliers retained",
+    "Relative public artifact links resolve; suite/notice links target installation repo paths",
+    "All prior preparation/stage members including original five drafts unchanged"
+  ],
+  "sourceBoundaryConfirmation": "Reader_costs: ExcelWorkbookDataReader constructor -> openSheet -> Utf8.TryCreateForUsedRange -> TryIndexRows -> ValidateIndexedCell -> SST.GetItems lazy full loader, during OpenDataReader. First Read selects qualified logical row; SharedStringFirstRow benchmark does not call GetValue/GetString.",
+  "archiveProof": {
+    "path": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-deliverable\\officeimo.excel-tabular-2026-10-08\\manifests\\archive-verification.json",
+    "bytes": 1208,
+    "sha256": "8D0297FBD35FB83010ECD77DB37187959BAD3DA0F38757944579A25EE504503C"
+  },
+  "cleanedExtractionBytes": 101336660,
+  "nativeOriginalsModified": false,
+  "sourceMutations": 0,
+  "externalActions": 0
+}
