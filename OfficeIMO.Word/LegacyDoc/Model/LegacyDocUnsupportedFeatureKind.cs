@@ -96,6 +96,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// A legacy OLE document property exists but is not projected into Open XML properties.
         /// </summary>
-        DocumentProperty
+        DocumentProperty,
+
+        /// <summary>A native list definition or instance cannot be faithfully projected.</summary>
+        Numbering
     }
 }

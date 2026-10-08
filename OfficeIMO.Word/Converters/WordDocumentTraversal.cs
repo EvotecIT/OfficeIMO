@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for traversing documents and resolving list markers.
     /// </summary>
-    public static class WordDocumentTraversal {
+    public static partial class WordDocumentTraversal {
         private static readonly AsyncLocal<ListInfoSnapshot?> ActiveListInfoSnapshot = new();
 
         private sealed class ListInfoSnapshot {
@@ -211,8 +211,7 @@ namespace OfficeIMO.Word {
             ListNumberingDefinition? definition = null;
             definitions.TryGetValue(numbering.NumberId, out definition);
             if (definition != null &&
-                definition.StartOverrides.TryGetValue(level, out int overrideValue) &&
-                (!definition.OverridesAreDefault || overrideValue != 1)) {
+                definition.StartOverrides.TryGetValue(level, out int overrideValue)) {
                 overrideStart = overrideValue;
                 start = overrideValue;
             }
@@ -302,68 +301,6 @@ namespace OfficeIMO.Word {
             _ => "\t"
         };
 
-        /// <summary>
-        /// Builds portable marker details for all effective list paragraphs in the document.
-        /// </summary>
-        internal static Dictionary<WordParagraph, ResolvedListMarker> BuildResolvedListMarkers(WordDocument document,
-            CancellationToken cancellationToken = default) {
-            Dictionary<WordParagraph, ResolvedListMarker> result = new(ParagraphReferenceComparer.Instance);
-            WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
-            IReadOnlyDictionary<int, ListNumberingDefinition> definitions = styleCatalog.ListDefinitions;
-            List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog, cancellationToken);
-
-            foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
-                Dictionary<int, int> indices = new();
-                Dictionary<int, WordNumberFormat?> formats = new();
-                int lastLevel = 0;
-                bool first = true;
-                foreach (WordParagraph item in listItems) {
-                    ListInfo? info = GetListInfo(item, definitions, styleCatalog);
-                    if (info == null) {
-                        continue;
-                    }
-
-                    int level = info.Value.Level;
-                    if (first) {
-                        lastLevel = level;
-                        first = false;
-                    }
-
-                    if (level < lastLevel) {
-                        foreach (int key in indices.Keys.Where(key => key > level).ToList()) {
-                            indices.Remove(key);
-                            formats.Remove(key);
-                        }
-                    }
-
-                    lastLevel = level;
-                    if (!indices.ContainsKey(level)) {
-                        indices[level] = info.Value.Start;
-                        formats[level] = info.Value.NumberFormat;
-                    }
-
-                    int currentIndex = indices[level];
-                    indices[level] = currentIndex + 1;
-
-                    string rawMarker;
-                    if (!info.Value.MarkerVisible) {
-                        rawMarker = string.Empty;
-                    } else if (info.Value.PictureBulletId.HasValue) {
-                        rawMarker = "•";
-                    } else {
-                        rawMarker = info.Value.Ordered
-                            ? BuildMarker(level, currentIndex, indices, formats, info.Value.LevelText)
-                            : (info.Value.LevelText ?? "•");
-                    }
-
-                    (string marker, bool useTextFont) = NormalizeListMarker(rawMarker, info.Value.MarkerFontFamily);
-                    result[item] = new ResolvedListMarker(info.Value, marker, useTextFont);
-                }
-            }
-
-            return result;
-        }
-
         private static (string Marker, bool UseTextFont) NormalizeListMarker(string marker, string? fontFamily) {
             string trimmed = marker.Trim();
             if (trimmed.Length == 0) {
@@ -395,47 +332,6 @@ namespace OfficeIMO.Word {
             return useTextFont && string.Equals(normalized, marker, StringComparison.Ordinal);
         }
 
-        /// <summary>
-        /// Builds a lookup of list numeric indices for all paragraphs in the document.
-        /// The returned index is the 1-based number of the item at its nesting level,
-        /// accounting for list continuation across unrelated content.
-        /// </summary>
-        public static Dictionary<WordParagraph, (int Level, int Index)> BuildListIndices(WordDocument document) {
-            Dictionary<WordParagraph, (int, int)> result = new(ParagraphReferenceComparer.Instance);
-            WordListNumberingResolver.StyleCatalog styleCatalog = WordListNumberingResolver.CreateStyleCatalog(document);
-            IReadOnlyDictionary<int, ListNumberingDefinition> definitions = styleCatalog.ListDefinitions;
-            List<List<WordParagraph>> itemsByStoryAndNumberId = BuildListItemsByStoryAndNumberId(document, styleCatalog);
-
-            foreach (List<WordParagraph> listItems in itemsByStoryAndNumberId) {
-                // Track current numbering per level within this list
-                Dictionary<int, int> indices = new();
-                int lastLevel = 0;
-                bool first = true;
-                foreach (WordParagraph item in listItems) {
-                    ListInfo? info = GetListInfo(item, definitions, styleCatalog);
-                    if (info == null) continue;
-
-                    int level = info.Value.Level;
-                    if (first) { lastLevel = level; first = false; }
-                    // If we moved to a shallower level, clear deeper counters so sublists restart
-                    if (level < lastLevel) {
-                        foreach (var key in indices.Keys.Where(k => k > level).ToList()) indices.Remove(key);
-                    }
-                    lastLevel = level;
-
-                    if (!indices.ContainsKey(level)) {
-                        indices[level] = info.Value.Start;
-                    }
-
-                    int currentIndex = indices[level];
-                    result[item] = (level, currentIndex);
-                    indices[level] = currentIndex + 1;
-                }
-            }
-
-            return result;
-        }
-
         internal static Dictionary<int, ListNumberingDefinition> BuildListNumberingDefinitions(MainDocumentPart? mainPart) {
             var result = new Dictionary<int, ListNumberingDefinition>();
             Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
@@ -443,12 +339,7 @@ namespace OfficeIMO.Word {
                 return result;
             }
 
-            var abstracts = new Dictionary<int, AbstractNum>();
-            foreach (AbstractNum abstractNum in numbering.Elements<AbstractNum>()) {
-                if (abstractNum.AbstractNumberId?.HasValue == true && !abstracts.ContainsKey(abstractNum.AbstractNumberId.Value)) {
-                    abstracts.Add(abstractNum.AbstractNumberId.Value, abstractNum);
-                }
-            }
+            Dictionary<int, AbstractNum> abstracts = WordListNumberingResolver.GetCanonicalAbstractDefinitions(numbering);
 
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
                 if (instance.NumberID?.Value == null) {
@@ -462,11 +353,6 @@ namespace OfficeIMO.Word {
                     : null;
 
                 var overrides = instance.Elements<LevelOverride>().ToList();
-                bool overridesAreDefault = overrides.Count >= 9 &&
-                    overrides.All(levelOverride => {
-                        var startOverrideValue = levelOverride.GetFirstChild<StartOverrideNumberingValue>();
-                        return startOverrideValue?.Val?.HasValue == true && startOverrideValue.Val.Value == 1;
-                    });
 
                 var startOverrides = new Dictionary<int, int>();
                 var levelOverrides = new Dictionary<int, Level>();
@@ -489,7 +375,8 @@ namespace OfficeIMO.Word {
                         }
 
                         levelOverrides.TryGetValue(level.LevelIndex.Value, out Level? overrideLevel);
-                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level);
+                        ListLevelDefinition definition = CreateLevelDefinition(level.LevelIndex.Value, overrideLevel ?? level,
+                            level.StartNumberingValue?.Val?.Value ?? 1, level.LevelRestart?.Val?.Value);
                         levels.Add(definition.Level, definition);
                     }
                 }
@@ -501,8 +388,8 @@ namespace OfficeIMO.Word {
 
                 result[numberId] = new ListNumberingDefinition(
                     numberId,
+                    abstractNum?.AbstractNumberId?.Value,
                     abstractNum != null ? WordListStyles.MatchStyle(abstractNum) : WordListStyle.Custom,
-                    overridesAreDefault,
                     startOverrides,
                     levels);
             }
@@ -510,15 +397,15 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel) {
-            // A full w:lvlOverride replaces the abstract level. A start-only override is
-            // applied separately, leaving this definition on the abstract level.
+        private static ListLevelDefinition CreateLevelDefinition(int level, Level effectiveLevel, int? abstractStart = null, int? restartLevel = null) {
+            // A full w:lvlOverride replaces level formatting. Its embedded w:start does
+            // not change the abstract start; w:startOverride is applied separately.
             Indentation? indentation = effectiveLevel.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
             NumberingSymbolRunProperties? markerProperties = effectiveLevel.GetFirstChild<NumberingSymbolRunProperties>();
 
             return new ListLevelDefinition(
                 level: level,
-                start: effectiveLevel.StartNumberingValue?.Val?.Value ?? 1,
+                start: abstractStart ?? effectiveLevel.StartNumberingValue?.Val?.Value ?? 1,
                 numberFormat: effectiveLevel.NumberingFormat?.Val?.Value,
                 levelText: effectiveLevel.LevelText?.Val?.Value,
                 leftIndentTwips: ParseOptionalInt32(indentation?.Left?.Value),
@@ -532,33 +419,8 @@ namespace OfficeIMO.Word {
                 markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
                 levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
-                pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value);
-        }
-
-        private static List<List<WordParagraph>> BuildListItemsByStoryAndNumberId(WordDocument document,
-            WordListNumberingResolver.StyleCatalog styleCatalog, CancellationToken cancellationToken = default) {
-            var result = new List<List<WordParagraph>>();
-            foreach (IEnumerable<WordParagraph> story in EnumerateListStories(document)) {
-                var itemsByNumberId = new Dictionary<int, List<WordParagraph>>();
-                foreach (WordParagraph paragraph in story) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!WordListNumberingResolver.TryResolve(paragraph, out WordListNumberingResolver.ResolvedNumbering numbering,
-                            styleCatalog, cancellationToken)) {
-                        continue;
-                    }
-
-                    int numberId = numbering.NumberId;
-                    if (!itemsByNumberId.TryGetValue(numberId, out List<WordParagraph>? items)) {
-                        items = new List<WordParagraph>();
-                        itemsByNumberId[numberId] = items;
-                    }
-
-                    items.Add(paragraph);
-                }
-                result.AddRange(itemsByNumberId.Values);
-            }
-
-            return result;
+                pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
+                restartLevel: restartLevel);
         }
 
         private static IEnumerable<IEnumerable<WordParagraph>> EnumerateListStories(WordDocument document) {
@@ -643,20 +505,20 @@ namespace OfficeIMO.Word {
         internal sealed class ListNumberingDefinition {
             internal ListNumberingDefinition(
                 int numberId,
+                int? abstractNumberId,
                 WordListStyle style,
-                bool overridesAreDefault,
                 IReadOnlyDictionary<int, int> startOverrides,
                 IReadOnlyDictionary<int, ListLevelDefinition> levels) {
                 NumberId = numberId;
+                AbstractNumberId = abstractNumberId;
                 Style = style;
-                OverridesAreDefault = overridesAreDefault;
                 StartOverrides = startOverrides;
                 Levels = levels;
             }
 
             internal int NumberId { get; }
+            internal int? AbstractNumberId { get; }
             internal WordListStyle Style { get; }
-            internal bool OverridesAreDefault { get; }
             internal IReadOnlyDictionary<int, int> StartOverrides { get; }
             internal IReadOnlyDictionary<int, ListLevelDefinition> Levels { get; }
         }
@@ -678,7 +540,8 @@ namespace OfficeIMO.Word {
                 int? markerCharacterSpacingTwips,
                 LevelJustificationValues? levelJustification,
                 LevelSuffixValues? levelSuffix,
-                int? pictureBulletId) {
+                int? pictureBulletId,
+                int? restartLevel) {
                 Level = level;
                 Start = start;
                 NumberFormat = numberFormat;
@@ -695,6 +558,7 @@ namespace OfficeIMO.Word {
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
+                RestartLevel = restartLevel;
             }
 
             internal int Level { get; }
@@ -713,6 +577,8 @@ namespace OfficeIMO.Word {
             internal LevelJustificationValues? LevelJustification { get; }
             internal LevelSuffixValues? LevelSuffix { get; }
             internal int? PictureBulletId { get; }
+            // Word uses the abstract level's restart rule and ignores it in a full override.
+            internal int? RestartLevel { get; }
         }
 
         private static double? ResolveListMarkerFontSize(NumberingSymbolRunProperties? markerProperties) {
@@ -760,7 +626,7 @@ namespace OfficeIMO.Word {
             public int GetHashCode(WordParagraph obj) => RuntimeHelpers.GetHashCode(obj._paragraph);
         }
 
-        private static string BuildMarker(int level, int index, Dictionary<int, int> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
+        private static string BuildMarker(int level, int index, Dictionary<int, long> indices, Dictionary<int, WordNumberFormat?> formats, string? pattern) {
             if (string.IsNullOrEmpty(pattern)) {
                 string formatted = FormatNumber(index, formats[level]);
                 return formatted + ".";
@@ -773,7 +639,7 @@ namespace OfficeIMO.Word {
                     return m.Value;
                 }
                 int lvl = placeholderLevel - 1;
-                int value = lvl == level ? index : indices.TryGetValue(lvl, out int val) ? val - 1 : 0;
+                int value = lvl == level ? index : indices.TryGetValue(lvl, out long val) ? checked((int)(val - 1)) : 0;
                 formats.TryGetValue(lvl, out WordNumberFormat? fmt);
                 return FormatNumber(value, fmt);
             });

@@ -128,7 +128,7 @@ public sealed class WordPdfRunSpacingReviewTests {
                 effective.RemoveAllChildren<NumberingSymbolRunProperties>();
                 effective.AddChild(properties, true);
                 document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
-                    .Elements<NumberingInstance>().First().Elements<LevelOverride>().Single(item => item.LevelIndex == 0).AddChild(effective, true);
+                    .Elements<NumberingInstance>().First().Append(new LevelOverride(effective) { LevelIndex = 0 });
             } else level._level.AddChild(properties, true);
         }
         WordParagraph item = list.AddItem("BODY");

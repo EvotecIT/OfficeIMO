@@ -62,6 +62,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             WriteInt32(stream, FcStshfOffset, body.HasStyleSheet ? body.StyleSheetOffsetInTableStream : 0);
             WriteInt32(stream, LcbStshfOffset, body.StyleSheet.Bytes.Length);
+            WriteInt32(stream, 0x2E2, body.ListTables.Definitions.Length == 0 ? 0 : body.ListDefinitionsOffsetInTableStream);
+            WriteInt32(stream, 0x2E6, body.ListTables.DefinitionHeaderLength);
+            WriteInt32(stream, 0x2EA, body.ListTables.Instances.Length == 0 ? 0 : body.ListInstancesOffsetInTableStream);
+            WriteInt32(stream, 0x2EE, body.ListTables.Instances.Length);
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);
             WriteInt32(stream, 0xFE, body.HasCharacterFormatting ? body.ChpxPlcLength : 0);
             WriteInt32(stream, FcPlcfBtePapxOffset, body.HasParagraphFormatting ? body.PapxPlcOffsetInTableStream : 0);
@@ -224,6 +228,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (fontTable.Length > 0) {
                 Buffer.BlockCopy(fontTable, 0, table, body.FontTableOffsetInTableStream, fontTable.Length);
+            }
+
+            if (body.ListTables.Definitions.Length > 0) {
+                Buffer.BlockCopy(body.ListTables.Definitions, 0, table, body.ListDefinitionsOffsetInTableStream, body.ListTables.Definitions.Length);
+                Buffer.BlockCopy(body.ListTables.Instances, 0, table, body.ListInstancesOffsetInTableStream, body.ListTables.Instances.Length);
             }
 
             body.FieldTables.WriteTableBytes(table, body.FieldTablesOffsetInTableStream);

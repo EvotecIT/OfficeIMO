@@ -133,6 +133,8 @@ public sealed class WordAllSeverityBatch13SecurityTests {
 
         stream.Position = 0;
         using WordDocument document = WordDocument.Load(stream);
+        Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListIndices(document));
+        Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListMarkers(document));
         Assert.Throws<InvalidDataException>(() =>
             document.ToMarkdown(new WordToMarkdownOptions { MaxListNestingDepth = 8 }));
         Assert.Throws<InvalidDataException>(() =>
