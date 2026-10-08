@@ -108,9 +108,9 @@ public sealed partial class AccessDocument {
         var diagnostics = new List<AccessDiagnostic> { new AccessDiagnostic("access.native-write.unsupported", "Template-free native Access writing is not qualified. No output is produced.") };
         if (target != Format) diagnostics.Add(new AccessDiagnostic("access.conversion.unsupported", "MDB/ACCDB conversion and persistence codecs are unavailable. Feature-loss diagnostics do not enable output."));
         if (target != Format || profile != Profile) {
-            if (Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)))
+            if (Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)) || Properties.Values.Any(value => value is AccessOpaqueValue))
                 diagnostics.Add(new AccessDiagnostic("access.conversion.loss.opaque-properties", "The target has no qualified mapping for this database's opaque property metadata; preservation cannot be assumed.", Id));
-            foreach (var table in Tables) if (table.Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)) || table.Columns.Any(x => x.Properties.Values.Any(value => value is AccessOpaqueValue)))
+            foreach (var table in Tables) if (table.Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)) || table.Properties.Values.Any(value => value is AccessOpaqueValue) || table.Columns.Any(x => x.Properties.Values.Any(value => value is AccessOpaqueValue)))
                 diagnostics.Add(new AccessDiagnostic("access.conversion.loss.opaque-properties", "The target has no qualified mapping for this table's opaque property metadata; preservation cannot be assumed.", table.Id));
         }
         foreach (var table in Tables) foreach (var column in table.Columns) {

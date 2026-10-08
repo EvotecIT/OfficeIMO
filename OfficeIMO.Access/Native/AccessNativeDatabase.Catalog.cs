@@ -14,7 +14,7 @@ internal sealed partial class AccessNativeDatabase {
                 if (_catalog.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access catalog exceeds MaxCatalogObjects.");
                 var record = new NativeCatalogRecord {
                     Id = Convert.ToInt32(RequiredField(catalog, rows, "Id", cancellation)),
-                    Name = Field(catalog, rows, "Name", cancellation) as string ?? throw new InvalidDataException("Native Access catalog name is missing."),
+                    Name = RequiredName(catalog, rows, "Name", cancellation),
                     Type = Convert.ToInt32(RequiredField(catalog, rows, "Type", cancellation)),
                     Flags = Convert.ToInt32(RequiredField(catalog, rows, "Flags", cancellation)),
                     Properties = Field(catalog, rows, "LvProp", cancellation) as byte[],
@@ -89,25 +89,33 @@ internal sealed partial class AccessNativeDatabase {
     }
     private static object RequiredField(AccessNativeTable table, IAccessRowCursor rows, string name, CancellationToken cancellation) =>
         Field(table, rows, name, cancellation) ?? throw new InvalidDataException($"Native Access system field '{table.Name}.{name}' is missing or null.");
+    private static string RequiredName(AccessNativeTable table, IAccessRowCursor rows, string name, CancellationToken cancellation) {
+        if (!(RequiredField(table, rows, name, cancellation) is string value)) throw new InvalidDataException($"Native Access system field '{table.Name}.{name}' is not a name.");
+        try { return AccessNamedObject.ValidateName(value); }
+        catch (ArgumentException exception) { throw new InvalidDataException($"Native Access system field '{table.Name}.{name}' has an invalid name.", exception); }
+    }
     private void LoadRelationships(CancellationToken cancellation) {
         if (_tables.TryGetValue("MSysRelationships", out var definition)) {
             RequireFields(definition, "szRelationship", "szReferencedObject", "szReferencedColumn", "szObject", "szColumn", "icolumn", "ccolumn", "grbit");
             var records = new Dictionary<string, List<NativeRelationshipField>>(StringComparer.OrdinalIgnoreCase);
             using (var rows = new AccessNativeRowCursor(definition, cancellation, rowLimit: checked((long)MaxCatalogObjects * 10))) while (rows.Read(cancellation)) {
-                string name = (string?)Field(definition, rows, "szRelationship", cancellation) ?? throw new InvalidDataException("Native Access relationship has no name.");
+                string name = RequiredName(definition, rows, "szRelationship", cancellation);
                 if (!records.TryGetValue(name, out var fields)) records.Add(name, fields = new List<NativeRelationshipField>());
                 if (records.Count > MaxCatalogObjects || fields.Count == 10) throw new InvalidDataException("Native Access relationship metadata exceeds its limit.");
                 fields.Add(new NativeRelationshipField {
-                    ParentTable = (string?)Field(definition, rows, "szReferencedObject", cancellation), ParentColumn = (string?)Field(definition, rows, "szReferencedColumn", cancellation),
-                    ChildTable = (string?)Field(definition, rows, "szObject", cancellation), ChildColumn = (string?)Field(definition, rows, "szColumn", cancellation),
+                    ParentTable = RequiredName(definition, rows, "szReferencedObject", cancellation), ParentColumn = RequiredName(definition, rows, "szReferencedColumn", cancellation),
+                    ChildTable = RequiredName(definition, rows, "szObject", cancellation), ChildColumn = RequiredName(definition, rows, "szColumn", cancellation),
                     Ordinal = Convert.ToInt32(RequiredField(definition, rows, "icolumn", cancellation)), Count = Convert.ToInt32(RequiredField(definition, rows, "ccolumn", cancellation)),
                     Flags = Convert.ToInt32(RequiredField(definition, rows, "grbit", cancellation))
                 });
             }
             foreach (var pair in records) {
                 var fields = pair.Value.OrderBy(x => x.Ordinal).ToArray();
-                if (fields.Length != fields[0].Count || fields.Where((x, i) => x.Ordinal != i || x.Count != fields.Length || x.Flags != fields[0].Flags).Any()) throw new InvalidDataException("Native Access relationship fields are incomplete or inconsistent.");
-                if (!_tables.TryGetValue(fields[0].ParentTable ?? "", out var parent) || parent.Model == null || !_tables.TryGetValue(fields[0].ChildTable ?? "", out var child) || child.Model == null) continue;
+                if (fields.Length != fields[0].Count || fields.Where((x, i) => x.Ordinal != i || x.Count != fields.Length || x.Flags != fields[0].Flags
+                    || !StringComparer.OrdinalIgnoreCase.Equals(x.ParentTable, fields[0].ParentTable) || !StringComparer.OrdinalIgnoreCase.Equals(x.ChildTable, fields[0].ChildTable)).Any()) throw new InvalidDataException("Native Access relationship fields are incomplete or inconsistent.");
+                if (!_catalog.Any(x => (x.Type == 1 || x.Type == 4 || x.Type == 6) && StringComparer.OrdinalIgnoreCase.Equals(x.Name, fields[0].ParentTable))
+                    || !_catalog.Any(x => (x.Type == 1 || x.Type == 4 || x.Type == 6) && StringComparer.OrdinalIgnoreCase.Equals(x.Name, fields[0].ChildTable))) throw new InvalidDataException("Native Access relationship refers to a missing table.");
+                if (!_tables.TryGetValue(fields[0].ParentTable, out var parent) || parent.Model == null || !_tables.TryGetValue(fields[0].ChildTable, out var child) || child.Model == null) continue;
                 var mappings = fields.Select(x => new AccessRelationshipField(parent.Model.Columns[x.ParentColumn!], child.Model.Columns[x.ChildColumn!])).ToArray();
                 _document.Relationships.AddNativeItem(new AccessRelationship(_document, pair.Key, mappings, fields[0].Flags));
             }
@@ -134,6 +142,6 @@ internal sealed partial class AccessNativeDatabase {
         internal byte[]? Properties; internal string? Source, ForeignTable, Connection;
     }
     private sealed class NativeRelationshipField {
-        internal string? ParentTable, ParentColumn, ChildTable, ChildColumn; internal int Ordinal, Count, Flags;
+        internal string ParentTable = string.Empty, ParentColumn = string.Empty, ChildTable = string.Empty, ChildColumn = string.Empty; internal int Ordinal, Count, Flags;
     }
 }

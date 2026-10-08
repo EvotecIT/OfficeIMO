@@ -46,6 +46,93 @@ public sealed class AccessNativeSafetyTests {
         Assert.Contains(document.AssessSave("target.mdb").Diagnostics, x => x.Code == "access.conversion.loss.opaque-properties" && x.ObjectId == table.Id);
         using var rows = table.OpenDataReader(); Assert.True(rows.Read()); Assert.Equal(int.MaxValue, rows["Whole"]);
     }
+    [Theory]
+    [InlineData("szRelationship")]
+    [InlineData("szReferencedObject")]
+    [InlineData("szReferencedColumn")]
+    [InlineData("szObject")]
+    [InlineData("szColumn")]
+    public void NullRelationshipNamesRejectEvenWhenTablesAreExcluded(string field) {
+        byte[] bytes = Source(); var row = RelationshipRow(bytes, field);
+        int nullBytes = (U16(bytes, row.Start) + 7) / 8;
+        bytes[row.End - nullBytes + row.Number / 8] &= (byte)~(1 << (row.Number % 8));
+        using var input = new MemoryStream(bytes);
+        var error = Assert.Throws<InvalidDataException>(() => AccessDocument.Load(input, new AccessLoadOptions { TableNames = new[] { "Scalars" } }));
+        Assert.Contains("missing or null", error.Message);
+    }
+    [Fact]
+    public void CompositeRelationshipMembersCannotNameDifferentTables() {
+        byte[] bytes = Source(); var row = RelationshipRow(bytes, "szReferencedObject");
+        int nullBytes = (U16(bytes, row.Start) + 7) / 8, offset = row.End - nullBytes - 4 - row.VariableIndex * 2;
+        int position = row.Start + U16(bytes, offset);
+        // Change one member's table identity, accepting either native Unicode representation in the fixture.
+        if (bytes[position] == 255 && bytes[position + 1] == 254) position += 2;
+        Assert.Equal((byte)'P', bytes[position]); bytes[position] = (byte)'X';
+        using var input = new MemoryStream(bytes);
+        var error = Assert.Throws<InvalidDataException>(() => AccessDocument.Load(input)); Assert.Contains("inconsistent", error.Message);
+    }
+    [Theory]
+    [InlineData("database")]
+    [InlineData("table")]
+    [InlineData("column")]
+    public void OpaqueValuesInEveryPropertyOwnerProduceNamedMappingLoss(string owner) {
+        byte[] bytes = Source("Generations/access2000.mdb"); string property = owner == "database" ? "AccessVersion" : "AllowZeroLength";
+        Assert.True(MakePropertyOpaque(bytes, property, owner == "table") > 0);
+        using var input = new MemoryStream(bytes); using var document = AccessDocument.Load(input); var table = document.Tables["Legacy"];
+        var properties = owner == "database" ? document.Properties : owner == "table" ? table.Properties : table.Columns["Link"].Properties;
+        Assert.Equal(99, Assert.IsType<AccessOpaqueValue>(properties[property]).NativeType);
+        Assert.Empty(document.Diagnostics); Assert.Empty(table.Diagnostics); Assert.NotNull(document.NativeProperties); Assert.NotNull(table.NativeProperties);
+        Guid identity = owner == "database" ? document.Id : table.Id;
+        Assert.Contains(document.AssessSave("target.accdb").Diagnostics, x => x.Code == "access.conversion.loss.opaque-properties" && x.ObjectId == identity);
+        using var rows = table.OpenDataReader(); Assert.True(rows.Read()); Assert.Equal("Zażółć 漢字", rows["Label"]);
+    }
+    private static (int Start, int End, int Number, int VariableIndex) RelationshipRow(byte[] bytes, string field) {
+        int table = Definition(bytes, "szRelationship"), start = table * 4096, count = U16(bytes, start + 45), indexes = I32(bytes, start + 51);
+        int columns = start + 63 + indexes * 12, position = columns + count * 25, number = -1, variable = -1;
+        for (int i = 0; i < count; i++) {
+            int length = U16(bytes, position); position += 2;
+            if (Encoding.Unicode.GetString(bytes, position, length) == field) { number = U16(bytes, columns + i * 25 + 5); variable = U16(bytes, columns + i * 25 + 7); }
+            position += length;
+        }
+        Assert.True(number >= 0);
+        for (int page = 1; page < bytes.Length / 4096; page++) {
+            int offset = page * 4096; if (bytes[offset] != 1 || I32(bytes, offset + 4) != table) continue;
+            for (int slot = 0; slot < U16(bytes, offset + 12); slot++) {
+                int record = U16(bytes, offset + 14 + slot * 2); if ((record & 0xe000) != 0) continue;
+                return (offset + record, slot == 0 ? offset + 4096 : offset + (U16(bytes, offset + 12 + slot * 2) & 8191), number, variable);
+            }
+        }
+        throw new InvalidOperationException("The independently produced relationship row was not found.");
+    }
+    private static int MakePropertyOpaque(byte[] bytes, string property, bool tableDefault) {
+        int changed = 0;
+        for (int signature = 0; signature < bytes.Length - 4; signature++) {
+            if (bytes[signature] != 'M' || bytes[signature + 1] != 'R' || bytes[signature + 2] != '2' || bytes[signature + 3] != 0) continue;
+            var names = new System.Collections.Generic.List<string>(); int position = signature + 4;
+            while (position <= bytes.Length - 6) {
+                int length = I32(bytes, position), type = U16(bytes, position + 4);
+                if (length < 6 || length > bytes.Length - position || type != 128 && type != 0 && type != 1 && type != 2) break;
+                int block = position + 6, end = position + length;
+                if (type == 128) {
+                    names.Clear(); for (int item = block; item < end;) { int size = U16(bytes, item); item += 2; names.Add(Encoding.Unicode.GetString(bytes, item, size)); item += size; }
+                } else if (length > 6) {
+                    int nameLength = I32(bytes, block), first = block + nameLength, last = first; bool found = false;
+                    for (int value = first; value < end; value += U16(bytes, value)) {
+                        last = value;
+                        if (names[U16(bytes, value + 4)] == property) { bytes[value + 3] = 99; changed++; found = true; }
+                    }
+                    if (found && tableDefault) {
+                        // Promote this valid column map to a table default map without changing its native LVAL length.
+                        int gap = nameLength - 6; Assert.True(gap > 0); bytes[position + 4] = 0; Write32(bytes, block, 6); bytes[block + 4] = bytes[block + 5] = 0;
+                        Array.Copy(bytes, first, bytes, block + 6, end - first); int finalValue = last - gap;
+                        Array.Copy(BitConverter.GetBytes((ushort)(U16(bytes, finalValue) + gap)), 0, bytes, finalValue, 2);
+                    }
+                }
+                position = end;
+            }
+        }
+        return changed;
+    }
     [Fact]
     public void CyclicAndTruncatedDefinitionChainsRejectBeforeUserDataRead() {
         byte[] cyclic = Source(); int definition = Definition(cyclic, "Precise") * 4096;

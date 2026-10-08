@@ -9,7 +9,7 @@ internal sealed partial class AccessNativeDatabase {
             int id = Convert.ToInt32(RequiredField(metadata, rows, "ComplexID", cancellation));
             if (definitions.ContainsKey(id) || definitions.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access complex definitions are ambiguous or exceed their limit.");
             definitions.Add(id, (Convert.ToInt32(RequiredField(metadata, rows, "ConceptualTableID", cancellation)), Convert.ToInt32(RequiredField(metadata, rows, "FlatTableID", cancellation)),
-                Convert.ToInt32(RequiredField(metadata, rows, "ComplexTypeObjectID", cancellation)), RequiredField(metadata, rows, "ColumnName", cancellation) as string));
+                Convert.ToInt32(RequiredField(metadata, rows, "ComplexTypeObjectID", cancellation)), RequiredName(metadata, rows, "ColumnName", cancellation)));
         }
         foreach (var table in _tables.Values.ToArray()) foreach (var column in table.Columns.Where(x => x.Type == 18)) {
             cancellation.ThrowIfCancellationRequested();
