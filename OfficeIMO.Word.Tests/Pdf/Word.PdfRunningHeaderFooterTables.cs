@@ -143,6 +143,61 @@ public partial class Word {
     [InlineData(false, true, true)]
     [InlineData(true, false, true)]
     [InlineData(true, true, true)]
+    public void RunningHeaderFooterUnseparatedSectionCountRetainsVisibilityAndNumberStyle(bool footer, bool table, bool hidden) {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        document.Sections[0].AddPageNumbering(5, WordNumberFormat.Decimal);
+        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordParagraph paragraph = table
+            ? CreateRunningStoryTable(story, string.Empty, 24, WordTextDirection.LeftToRightTopToBottom).Rows[0].Cells[0].Paragraphs[0]
+            : story.AddParagraph();
+        foreach (W.Run run in new[] {
+            new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
+            new W.Run(new W.FieldCode(" SECTIONPAGES \\* Roman ")),
+            new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End })
+        }) {
+            if (hidden) run.RunProperties = new W.RunProperties(new W.Vanish());
+            paragraph._paragraph.Append(run);
+        }
+        document.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); document.AddParagraph("BODY");
+        Assert.Empty(document.ValidateDocument());
+        using var pdf = OpenJoinedParagraphPdf(document);
+        Assert.Equal(2, pdf.NumberOfPages);
+        foreach (var page in pdf.GetPages()) {
+            if (hidden) Assert.DoesNotContain("II", page.Text);
+            else Assert.Contains("II", page.Text);
+            Assert.DoesNotContain("VI", page.Text);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void RunningHeaderFooterPageNumberElementsSurviveDocxAndNativeImport(bool footer, bool nativeDoc) {
+        using WordDocument source = CreateJoinedParagraphDocument();
+        source.Sections[0].AddPageNumbering(5, WordNumberFormat.Decimal);
+        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordParagraph paragraph = CreateRunningStoryTable(story, "PAGE", 24, WordTextDirection.LeftToRightTopToBottom).Rows[0].Cells[0].Paragraphs[0];
+        paragraph._paragraph.Append(new W.Run(new W.PageNumber()), new W.Run(new W.Text("/")),
+            new W.SimpleField(new W.Run(new W.Text("999"))) { Instruction = " NUMPAGES " });
+        source.AddParagraph("BODY"); source.AddParagraph().AddBreak(WordBreakType.Page); source.AddParagraph("BODY");
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
+        Assert.Empty(document.ValidateDocument());
+        using var pdf = OpenJoinedParagraphPdf(document);
+        Assert.Equal(2, pdf.NumberOfPages);
+        for (int page = 1; page <= 2; page++) Assert.Contains($"PAGE{page + 4}/2", pdf.GetPage(page).Text);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
     public void RunningHeaderFooterSectionCountsAreIndependentOfVisibleNumbering(bool footer, bool table, bool continuingSections) {
         using WordDocument document = CreateJoinedParagraphDocument();
         void AddStory(int sectionIndex, string label) {

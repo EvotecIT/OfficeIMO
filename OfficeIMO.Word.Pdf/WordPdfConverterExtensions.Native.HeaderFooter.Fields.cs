@@ -116,6 +116,13 @@ namespace OfficeIMO.Word.Pdf {
 
                         state.CollectingFieldCode = false;
                     } else if (fieldCharType == W.FieldCharValues.End) {
+                        // The separator is optional when a complex field has no cached result.
+                        if (state.CollectingFieldCode && TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(),
+                            out string? token, out PdfCore.PdfPageNumberStyle? style)) {
+                            hasFieldToken = true;
+                            if (!hidden) AppendNativeHeaderFooterVisibleFieldToken(builder, run, token!, style, state,
+                                ref pageNumberStyle, ref hasConflictingStyles);
+                        }
                         state.CollectingFieldCode = false;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
@@ -134,6 +141,13 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (state.CollectingFieldCode || state.SkippingFieldResult) {
                     // A recognized field token is emitted at its separator. Cached text is skipped.
+                    continue;
+                }
+
+                if (child is W.PageNumber) {
+                    hasFieldToken = true;
+                    if (!hidden) AppendNativeHeaderFooterVisibleFieldToken(builder, run, "{page}", null, state,
+                        ref pageNumberStyle, ref hasConflictingStyles);
                     continue;
                 }
 
@@ -184,7 +198,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (field?.FieldType == WordFieldType.SectionPages) {
-                token = "{pages}";
+                token = "{sectionpages}";
                 style = MapNativePageNumberFieldStyle(field.Field);
                 return true;
             }
