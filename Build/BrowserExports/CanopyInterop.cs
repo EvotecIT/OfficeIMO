@@ -56,7 +56,7 @@ internal static class CanopyInterop {
             await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });
             await session.Page.AddScriptTagAsync(new() { Content = script });
             JsonElement ordinary = await session.Page.EvaluateAsync<JsonElement>("args => runOrdinaryCanopyContracts(args)", new { regular, bold });
-            if (args.Contains("--canopy-scale")) {
+            if (args.Contains("--canopy-scale") || args.Contains("--canopy-pdf-scale")) {
                 await session.Page.GotoAsync(new Uri(host).AbsoluteUri);
                 await session.Page.AddScriptTagAsync(new() { Content = inputs["canopyx-reporting.js"] });
                 await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.CanopyXScript.Content });

@@ -121,11 +121,16 @@ globalThis.runCanopyContracts = async function ({ regular, bold, workerScript })
     return { protocol: 'canopyx/2', type: 'gridCursorPage', view: query.view, revision: changed ? 'r2' : 'r1', offset, total: null, matched: null, items: rows,
       ...(offset + rows.length < 24 ? { nextCursor: String(offset + rows.length) } : {}) };
   } };
-  const delivered = [];
+  const delivered = [], hostProgress = [];
   grid = await canopyMount(cursorView, { source, async onExport(event) {
     canopyAssert(event.capture.request === event.request, 'Host export did not receive the original capture.');
-    const chunks = [], result = await OfficeIMO.writeCanopyTo(event.capture, event.format, { write(bytes) { chunks.push(bytes.slice()); } }, { ...options, signal: event.signal });
-    event.reportProgress?.('generating', result.rows);
+    const progress = [], chunks = [], result = await OfficeIMO.writeCanopyTo(event.capture, event.format, { write(bytes) { chunks.push(bytes.slice()); } }, {
+      ...options, signal: event.signal, onProgress(progressEvent) {
+        progress.push(progressEvent.rows); event.reportProgress?.('generating', progressEvent.rows);
+      }
+    });
+    canopyAssert(progress.at(-1) === result.rows && progress.every((count, index) => !index || count >= progress[index - 1]), 'Native host progress lost its completion or monotonic count.');
+    hostProgress.push(progress.length);
     const bytes = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0)); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
     delivered.push(result); await canopySave('host-' + event.format, event.capture, event.format, options, bytes);
   } });
@@ -140,7 +145,12 @@ globalThis.runCanopyContracts = async function ({ regular, bold, workerScript })
   held = false; changed = true;
   const revisionError = await OfficeIMO.exportCanopy(cursor, 'csv', options).then(() => null, e => e);
   canopyAssert(revisionError && String(revisionError).includes('snapshot changed'), 'Native revision mismatch was ignored.');
-  changed = false; grid.destroy();
+  changed = false; held = true;
+  const closing = OfficeIMO.exportCanopy(cursor, 'xlsx', options);
+  setTimeout(() => grid.destroy(), 20);
+  const closeError = await closing.then(() => null, error => error);
+  canopyAssert(closeError?.name === 'AbortError' && sourceSignal.aborted, 'Native grid disposal did not cancel in-flight export I/O.');
+  held = false;
 
   const diagnosticView = canopyInlineView(); diagnosticView.rows = [{ id: 'custom', cells: { name: { value: 'Raw name', text: 'Captured text', className: 'custom' },
     url: '../offline-report.html', amount: 1, when: null, flag: false } }];
@@ -159,7 +169,7 @@ globalThis.runCanopyContracts = async function ({ regular, bold, workerScript })
     .then(() => { globalThis.canopyHostButtonComplete = true; }, error => { globalThis.canopyHostButtonError = String(error); }));
   document.querySelector('#fixture').prepend(button);
   return { files: 24, modes: ['classic', 'fallback', 'worker'], nativeCapture: 'semantic', cancellation: true, revisionMismatch: true,
-    selectedQuery: true, unknownCursorCount: true, hostCapture: delivered.length, diagnosticCodes: [...new Set(notices)] };
+    selectedQuery: true, unknownCursorCount: true, gridDisposal: true, hostCapture: delivered.length, hostProgress, diagnosticCodes: [...new Set(notices)] };
 };
 
 globalThis.runOrdinaryCanopyContracts = async function ({ regular, bold }) {

@@ -205,13 +205,17 @@ Host export callbacks can use the already-captured enumeration:
 
 ```typescript
 import { writeCanopyTo } from "@evotecit/officeimo/integrations/canopyx";
+import type { GridHostOptions } from "@evotecit/canopyx/reporting";
 
-const onExport = async ({ capture, format, signal }) => {
+const onExport: GridHostOptions["onExport"] = async ({ capture, format, signal, reportProgress }) => {
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") {
     throw new Error("Unsupported export format");
   }
   const destination = await openDestination(format); // Host-owned delivery.
-  await writeCanopyTo(capture, format, destination, { ...reportOptions, signal });
+  await writeCanopyTo(capture, format, destination, {
+    ...reportOptions, signal,
+    onProgress: progress => reportProgress?.("generating", progress.rows)
+  });
 };
 ```
 
