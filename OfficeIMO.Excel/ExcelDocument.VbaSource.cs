@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.OpenXml.Internal;
 
@@ -60,13 +61,39 @@ public partial class ExcelDocument {
                 && !string.Equals(existingName, workbookModules[0].Name, StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException("The VBA workbook module does not match the document's existing code name.", nameof(project));
             }
-            if (OfficeVbaProjectPartEditor.Apply(workbookPart, workbookPart.VbaProjectPart, bytes, options, out _)) {
+            OfficeVbaProjectPartEditor.EnsureCanApply(workbookPart.VbaProjectPart, bytes, options);
+            SpreadsheetDocumentType originalType = _spreadSheetDocument.DocumentType;
+            StringValue? originalCodeName = properties?.CodeName;
+            bool addedCodeName = workbookModules.Length == 1 && string.IsNullOrEmpty(existingName);
+            bool hadProperties = properties != null;
+            try {
                 if (workbookModules.Length == 1 && string.IsNullOrEmpty(existingName)) {
                     if (properties == null) { properties = new WorkbookProperties(); workbook.AddChild(properties, true); }
                     properties.CodeName = workbookModules[0].Name;
                 }
+                // Convert the carrier before replacing VBA, then use the resulting owner.
+                // ChangeDocumentType can replace WorkbookPart and its attached part objects.
                 EnsureMacroEnabledDocumentType();
-                MarkPackageDirty();
+                WorkbookPart current = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
+                bool changed = OfficeVbaProjectPartEditor.Apply(current, current.VbaProjectPart, bytes, options, out _);
+                if (changed || addedCodeName || originalType != _spreadSheetDocument.DocumentType) MarkPackageDirty();
+            } catch (Exception failure) {
+                try {
+                    WorkbookPart current = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing during recovery.");
+                    Workbook root = current.Workbook ?? throw new InvalidOperationException("Workbook root is missing during recovery.");
+                    WorkbookProperties? currentProperties = root.GetFirstChild<WorkbookProperties>();
+                    if (addedCodeName && currentProperties != null) {
+                        if (hadProperties) currentProperties.CodeName = originalCodeName;
+                        else root.RemoveChild(currentProperties);
+                    }
+                    if (_spreadSheetDocument.DocumentType != originalType) {
+                        root.Save(); _spreadSheetDocument.ChangeDocumentType(originalType);
+                        _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing after recovery.");
+                    }
+                } catch (Exception restorationFailure) {
+                    throw new AggregateException("The VBA update failed and Excel host metadata could not be restored. Discard this document instance.", failure, restorationFailure);
+                }
+                throw;
             }
         });
     }
