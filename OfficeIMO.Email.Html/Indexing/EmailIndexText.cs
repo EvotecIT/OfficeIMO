@@ -8,16 +8,20 @@ public static class EmailIndexText {
     public static EmailIndexTextResult Create(EmailDocument source, EmailIndexTextOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         var effective = options ?? new EmailIndexTextOptions();
+        if (!Enum.IsDefined(typeof(EmailConcealedTextPolicy), effective.ConcealedTextPolicy)) throw new ArgumentOutOfRangeException(nameof(effective.ConcealedTextPolicy));
         if (effective.MaxSourceChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxSourceChars));
         if (effective.MaxProjectionChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxProjectionChars));
         if (effective.MaxTextChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxTextChars));
         var builder = new EmailIndexTextBuilder(effective.MaxTextChars);
         var diagnostics = new List<EmailDiagnostic>();
         EmailBodySourceKind kind;
+        EmailBodyContentSafetyReport? safety = null;
         if (!string.IsNullOrEmpty(source.Body.Text) && (effective.PreferPlainText ||
             string.IsNullOrWhiteSpace(source.Body.Html) && string.IsNullOrWhiteSpace(source.Body.Rtf))) {
             kind = EmailBodySourceKind.PlainText;
             CheckSource(source.Body.Text!);
+            if (effective.InspectContentSafety || effective.ConcealedTextPolicy != EmailConcealedTextPolicy.Preserve)
+                EmailBodyContentSafety.InspectAndProject(string.Empty, source.Body.Text, effective.ConcealedTextPolicy, diagnostics, out safety);
             bool signature = false;
             using var reader = new StringReader(source.Body.Text!);
             string? line;
@@ -34,7 +38,9 @@ public static class EmailIndexText {
             var htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
             htmlOptions.Limits.MaxInputCharacters = effective.MaxProjectionChars;
             var projection = EmailBodyProjection.Create(source, new EmailBodyProjectionOptions {
-                IncludeResources = false, MaxBodySourceCharacters = effective.MaxSourceChars, HtmlOptions = htmlOptions });
+                IncludeResources = false, MaxBodySourceCharacters = effective.MaxSourceChars, HtmlOptions = htmlOptions,
+                InspectContentSafety = effective.InspectContentSafety, ConcealedTextPolicy = effective.ConcealedTextPolicy });
+            safety = projection.ContentSafety;
             kind = projection.SourceKind;
             diagnostics.AddRange(projection.Diagnostics);
             if (kind != EmailBodySourceKind.None) {
@@ -43,7 +49,9 @@ public static class EmailIndexText {
             }
         }
         if (builder.Truncated) diagnostics.Add(new EmailDiagnostic("EMAIL_INDEX_TEXT_TRUNCATED", "Indexing text reached its character limit.", location: "message/body"));
-        return builder.Build(kind, effective.ExcludeQuotes, effective.ExcludeSignatures, diagnostics.AsReadOnly());
+        EmailIndexTextResult result = builder.Build(kind, effective.ExcludeQuotes, effective.ExcludeSignatures, diagnostics.AsReadOnly());
+        result.ContentSafety = safety;
+        return result;
 
         void CheckSource(string value) {
             if (value.Length > effective.MaxSourceChars) throw new ArgumentException("The selected email body exceeds MaxSourceChars.", nameof(source));

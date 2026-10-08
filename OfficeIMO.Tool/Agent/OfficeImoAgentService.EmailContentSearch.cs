@@ -1,3 +1,4 @@
+using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
 
 namespace OfficeIMO.Tool.Agent;
@@ -29,6 +30,7 @@ internal sealed partial class OfficeImoAgentService {
         if (!IsEmailStoreSource(source)) throw new AgentUsageException("Email content search requires a mailbox file or directory.");
         using var session = EmailStoreSession.Open(source.Path, storeOptions, cancellationToken);
         EmailStoreContentSearchReport report;
+        var safety = new AgentContentSafetySummary();
         try {
             report = session.SearchContent(new EmailStoreContentQuery(new[] { query }, selectedFields,
                 metadataFilter: new EmailStoreQuery(folderId: folderId, includeDescendants: includeDescendants,
@@ -36,7 +38,8 @@ internal sealed partial class OfficeImoAgentService {
                     hasAttachments: hasAttachments, isRead: isRead),
                 maxItemsScanned: maxItemsScanned, maxResults: take,
                 maxDecodedPropertyBytesPerItem: maxDecodedBytes, maxSearchableCharactersPerItem: maxSearchableCharacters,
-                resumeFrom: resume), cancellationToken: cancellationToken);
+                resumeFrom: resume, bodyTextProjector: new EmailStoreHtmlBodyTextProjector(
+                    EmailConcealedTextPolicy.ExcludeRemovable, safety.Include)), cancellationToken: cancellationToken);
         } catch (ArgumentException exception) {
             throw new AgentUsageException(exception.Message);
         }
@@ -51,6 +54,7 @@ internal sealed partial class OfficeImoAgentService {
             Code = AgentJson.Limit(value.Code, 96), Severity = value.Severity.ToString(), Message = AgentJson.Limit(value.Message, 256)
         }).ToList();
         var result = new AgentEmailSearchResult {
+            ContentSafety = safety,
             SourceId = source.SourceId, Returned = hits.Count, ItemsScanned = report.ItemsScanned, ItemsSkipped = report.ItemsSkipped,
             ScanLimitReached = report.StoppedAtItemLimit, IsComplete = report.IsComplete, Truncated = !report.IsComplete,
             NextCheckpoint = report.NextCheckpoint?.Value, DiagnosticCount = session.Diagnostics.Count + report.Diagnostics.Count,

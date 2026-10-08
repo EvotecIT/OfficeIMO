@@ -99,6 +99,38 @@ concealment findings without returning original text or finding previews. An exp
 bypasses body projection. Recognized quote/signature exclusions are heuristics and do not establish authorship.
 Indexing does not remove every form of CSS-concealed text.
 
+For an AI or indexing view, choose `EmailConcealedTextPolicy.ExcludeRemovable` explicitly:
+
+```csharp
+EmailBodyProjectionResult view = EmailBodyProjection.Create(message,
+    new EmailBodyProjectionOptions {
+        IncludeResources = false,
+        ConcealedTextPolicy = EmailConcealedTextPolicy.ExcludeRemovable
+    });
+EmailBodyContentSafetyReport? evidence = view.ContentSafety;
+
+EmailIndexTextResult index = EmailIndexText.Create(message,
+    new EmailIndexTextOptions {
+        ConcealedTextPolicy = EmailConcealedTextPolicy.ExcludeRemovable
+    });
+```
+
+This policy omits exact physical HTML concealment findings the shared HTML owner can remove. Unicode-only
+evidence and non-primary metadata such as image descriptions remain intact.
+Report-only concealment remains in the view with a warning. An HTML body whose inspection fails or exceeds the
+source/finding limits is replaced by an omission notice. `Preserve` is the default; use `InspectContentSafety = true`
+to collect evidence while retaining content. These operations leave the original message and attachments intact.
+
+`ContentSafety` records selected-body instruction signals, concealment counts, omission/retention and inspection
+completion without returning private previews or decoded payloads. Instruction inspection covers one million
+source characters and one layer of printable UTF-8 Base64, with at most 32 candidates and 32,768 decoded
+characters. Wrapped tokens and Unicode format characters are inspected without rewriting source text. Further
+encodings, unsupported CSS and arbitrary obfuscation remain outside these heuristics; no findings is not a trust verdict.
+
+For semantic store search, pass `new EmailStoreHtmlBodyTextProjector(EmailConcealedTextPolicy.ExcludeRemovable)`
+as `bodyTextProjector` to `EmailStoreContentQuery`. The projector uses this same indexing owner. Its policy identity
+is bound into continuation checkpoints, so a checkpoint cannot resume under a different projection policy.
+
 Inspect the original HTML with `OfficeIMO.Html.HtmlContentSafety.Inspect`, review its findings, and pass
 an `OfficeIMO.ContentSafety.OfficeContentCleanupSelection` containing the chosen finding IDs as
 `cleanupSelection` to remove those exact findings before projection. This uses the shared content-safety
@@ -113,5 +145,6 @@ attributes. Finding text, hashes and previews are omitted. The original body is 
 The HTML source is bounded to one million UTF-16 units by default. `HtmlInspectionStatus` distinguishes a completed
 inspection from an oversized body, an unavailable inspection (including engine finding limits), a missing HTML
 body and catalog-only inspection. Finding samples that reach their bound remain explicit. A completed HTML
-inspection is not a malware verdict or proof that all content is safe; RTF/plain-text and unselected store items
-are not qualified by this adapter. Cancellation is observed before and after the shared synchronous HTML passes.
+inspection is not a malware verdict or proof that all content is safe. `BodyContentSafety` separately reports the
+selected HTML, RTF or plain-text body's bounded instruction evidence, including inline Base64; it does not qualify
+all MIME alternatives or unselected store items. Cancellation is observed before and after shared synchronous passes.

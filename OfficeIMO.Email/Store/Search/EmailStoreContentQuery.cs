@@ -15,7 +15,8 @@ public sealed class EmailStoreContentQuery {
         int snippetCharacters = 240,
         int progressInterval = 100,
         bool continueOnItemError = true,
-        EmailStoreContentSearchCheckpoint? resumeFrom = null) {
+        EmailStoreContentSearchCheckpoint? resumeFrom = null,
+        IEmailStoreBodyTextProjector? bodyTextProjector = null) {
         if (terms == null) throw new ArgumentNullException(nameof(terms));
         const EmailStoreContentSearchFields known = EmailStoreContentSearchFields.All;
         if (fields == EmailStoreContentSearchFields.None || (fields & ~known) != 0) {
@@ -34,6 +35,8 @@ public sealed class EmailStoreContentQuery {
         }
         if (snippetCharacters < 32) throw new ArgumentOutOfRangeException(nameof(snippetCharacters));
         if (progressInterval <= 0) throw new ArgumentOutOfRangeException(nameof(progressInterval));
+        if (bodyTextProjector != null && (string.IsNullOrWhiteSpace(bodyTextProjector.Identity) || bodyTextProjector.Identity.Length > 256))
+            throw new ArgumentException("Body projection requires a stable policy identity of at most 256 characters.", nameof(bodyTextProjector));
 
         string[] normalized = terms
             .Where(term => !string.IsNullOrWhiteSpace(term))
@@ -59,6 +62,8 @@ public sealed class EmailStoreContentQuery {
         ProgressInterval = progressInterval;
         ContinueOnItemError = continueOnItemError;
         ResumeFrom = resumeFrom;
+        BodyTextProjector = bodyTextProjector;
+        BodyTextProjectionIdentity = bodyTextProjector?.Identity;
         Signature = CreateSignature();
     }
 
@@ -86,6 +91,10 @@ public sealed class EmailStoreContentQuery {
     public bool ContinueOnItemError { get; }
     /// <summary>Optional checkpoint from a previous batch.</summary>
     public EmailStoreContentSearchCheckpoint? ResumeFrom { get; }
+    /// <summary>Optional format-owned projection. Null retains the built-in transport-only text extraction.</summary>
+    public IEmailStoreBodyTextProjector? BodyTextProjector { get; }
+
+    internal string? BodyTextProjectionIdentity { get; }
 
     internal string Signature { get; }
 
@@ -111,6 +120,8 @@ public sealed class EmailStoreContentQuery {
         AppendSignatureField(value, MaxSearchableCharactersPerItem.ToString(CultureInfo.InvariantCulture));
         AppendSignatureField(value, SnippetCharacters.ToString(CultureInfo.InvariantCulture));
         AppendSignatureField(value, ContinueOnItemError.ToString());
+        // Preserve existing checkpoint signatures for the default extraction policy.
+        if (BodyTextProjectionIdentity != null) AppendSignatureField(value, BodyTextProjectionIdentity);
         return EmailHashing.ComputeSha256HexLower(value.ToString());
     }
 

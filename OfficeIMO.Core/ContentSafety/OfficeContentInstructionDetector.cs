@@ -6,8 +6,8 @@ using System.Text;
 
 namespace OfficeIMO.ContentSafety;
 
-/// <summary>Performs bounded, explainable heuristic detection of instruction-like concealed text.</summary>
-public static class OfficeContentInstructionDetector {
+/// <summary>Performs bounded, explainable heuristic detection without modifying source text.</summary>
+public static partial class OfficeContentInstructionDetector {
     private static readonly SignalRule[] Rules = {
         new SignalRule("instruction-override", new[] { "ignore previous", "ignore prior", "disregard previous", "override instructions", "forget previous" }),
         new SignalRule("prompt-reference", new[] { "system prompt", "developer prompt", "hidden prompt", "reveal prompt", "show prompt" }),
@@ -20,16 +20,44 @@ public static class OfficeContentInstructionDetector {
 
     /// <summary>Returns deterministic signal identifiers without claiming that the text is malicious.</summary>
     public static IReadOnlyList<string> Detect(string text) {
+        return Analyze(text).Signals;
+    }
+
+    private static IReadOnlyList<string> DetectPlainText(string text) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         if (text.Length == 0) return Array.Empty<string>();
         string normalized = Normalize(text);
         var signals = new List<string>();
         foreach (SignalRule rule in Rules) {
-            if (rule.Phrases.Any(phrase => normalized.IndexOf(phrase, StringComparison.Ordinal) >= 0)) {
+            if (rule.Phrases.Any(phrase => HasPhrase(normalized, phrase))) {
                 signals.Add(rule.Id);
             }
         }
+        if (ContainsAny(normalized, "tool", "tools", "plugin", "plugins", "connector", "connectors") &&
+            ContainsAny(normalized, "list every", "list all", "enumerate all", "available to you", "you can access", "write access", "permission scopes", "write send modify")) {
+            signals.Add("tool-discovery");
+        }
+        if (ContainsAny(normalized, "contact list", "contacts", "address book", "email subjects", "recent subjects", "last 20") &&
+            ContainsAny(normalized, "collect", "gather", "retrieve", "include", "send", "paste", "forward", "compile", "submit", "append") &&
+            ContainsAny(normalized, "http", "https", "query string", "query parameters", "query parameter", "url", "endpoint")) {
+            signals.Add("private-data-transfer");
+        }
         return signals.AsReadOnly();
+    }
+
+    private static bool ContainsAny(string text, params string[] phrases) =>
+        phrases.Any(phrase => HasPhrase(text, phrase));
+
+    private static bool HasPhrase(string text, string phrase) {
+        for (int start = 0; start <= text.Length - phrase.Length;) {
+            int index = text.IndexOf(phrase, start, StringComparison.Ordinal);
+            if (index < 0) return false;
+            int end = index + phrase.Length;
+            if ((index == 0 || !char.IsLetterOrDigit(text[index - 1])) &&
+                (end == text.Length || !char.IsLetterOrDigit(text[end]))) return true;
+            start = index + 1;
+        }
+        return false;
     }
 
     private static string Normalize(string text) {

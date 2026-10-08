@@ -7,6 +7,7 @@ internal sealed partial class OfficeImoAgentService {
         AgentSourceRegistration source,
         OfficeDocumentReadResult document) {
         return new AgentInspectResult {
+            ContentSafety = AgentContentSafetySummary.FromDiagnostics(document.Diagnostics.Select(value => value.Code)),
             SourceId = source.SourceId,
             Path = source.Path,
             Kind = document.Kind.ToString(),
@@ -65,6 +66,7 @@ internal sealed partial class OfficeImoAgentService {
                 .ToArray()
         }).ToList();
         return new AgentSearchResult {
+            ContentSafety = AgentContentSafetySummary.FromDiagnostics(document.Diagnostics.Select(value => value.Code)),
             SourceId = source.SourceId,
             Query = AgentJson.Limit(query, 256),
             Returned = hits.Count,
@@ -108,6 +110,7 @@ internal sealed partial class OfficeImoAgentService {
             throw new AgentUsageException("Fetch cursor is beyond the available content.");
         }
         return new AgentFetchResult {
+            ContentSafety = AgentContentSafetySummary.FromDiagnostics(document.Diagnostics.Select(value => value.Code)),
             SourceId = source.SourceId,
             Id = id,
             Kind = resultKind,
