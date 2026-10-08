@@ -58,7 +58,7 @@ namespace OfficeIMO.Access {
         public int MaxPages { get; set; } = 16_384;
         /// <summary>Maximum catalog objects, including system and unknown objects.</summary>
         public int MaxCatalogObjects { get; set; } = 4096;
-        /// <summary>Maximum total native bytes decoded as catalog, schema, property and query metadata, including repeated references. The input snapshot is bounded separately.</summary>
+        /// <summary>Maximum total native bytes decoded as catalog, schema, property, query and application metadata, including repeated references and designer/macro parsing. The input snapshot is bounded separately.</summary>
         public int MaxMetadataBytes { get; set; } = 4 * 1024 * 1024;
         /// <summary>Maximum bytes materialized for a field or attachment.</summary>
         public int MaxValueBytes { get; set; } = 32 * 1024 * 1024;

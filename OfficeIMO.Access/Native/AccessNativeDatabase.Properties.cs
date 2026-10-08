@@ -54,7 +54,12 @@ namespace OfficeIMO.Access {
                 if ((type == 0 || macroMap && type == 3) && mapName.Length == 0) table.Properties = properties;
                 else if (type == 1) {
                     AccessColumn? column = table.Columns.Items.SingleOrDefault(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, mapName));
-                    if (column != null) { column.Properties = properties; column.IsRichText = values.TryGetValue("TextFormat", out object? format) && Convert.ToInt32(format) == 1; }
+                    if (column != null) {
+                        column.Properties = properties;
+                        column.IsRichText = values.TryGetValue("TextFormat", out object? format) && (format switch {
+                            byte code => code == 1, short code => code == 1, int code => code == 1, long code => code == 1, _ => false
+                        });
+                    }
                 }
             }
         }

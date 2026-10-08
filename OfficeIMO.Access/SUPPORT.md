@@ -60,7 +60,7 @@ Unsupported property maps, calculated values and application carriers stay exact
 
 ## Application and VBA inspection
 
-The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysAccessStorage` hierarchies. It retains native row/catalog identities, storage paths, base/delta/compiled streams and exact opaque payloads. Malformed hierarchy cycles, ambiguous paths and excessive metadata budgets fail explicitly. `DecodeApplicationObjects = false` leaves this inventory `NotDecoded` while preserving the full snapshot.
+The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysAccessStorage` hierarchies. It retains native row/catalog identities, storage paths, base/delta/compiled streams and exact opaque payloads. Malformed hierarchy cycles, ambiguous paths and excessive metadata budgets fail explicitly. Ambiguous object-directory slots leave their application group preserve-only. Directory, designer and macro parsing debit the aggregate metadata allowance before copying input, including unsupported representations. `DecodeApplicationObjects = false` leaves this inventory `NotDecoded` while preserving the full snapshot.
 
 | Content | Qualified interpretation | Preserve-only boundary |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysA
 
 `ChangeJournal` records modeled object identities, revisions and operations; rollback removes its entries. Loaded native documents remain immutable, so this journal does not imply an existing-file editor.
 
-VBA inspection shares one expansion allowance across the directory and module sources, bounded by `MaxMetadataBytes`. Bytes expanded before malformed source fails still consume that allowance. After exhaustion, declared module metadata remains available and unread source remains opaque with a limit diagnostic. Cancellation reaches module and compressed-chunk traversal.
+VBA inspection shares one expansion allowance across the directory and module sources, bounded by `MaxMetadataBytes`. Bytes expanded before malformed source fails still consume that allowance. Encoded module processing has a separate allowance derived from the supplied native stream bytes; repeated malformed source attempts consume it before copying input. After exhaustion, declared module metadata remains available and unread source remains opaque with a limit diagnostic. Cancellation reaches module and compressed-chunk traversal.
 
 ## Unchanged preservation
 

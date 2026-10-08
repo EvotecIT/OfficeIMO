@@ -34,7 +34,10 @@ namespace OfficeIMO.Access {
         private void LoadApplicationCollection(AccessObjectCollection<AccessApplicationObject> collection, int catalogType, string group,
             Dictionary<string, AccessStorageStream> streams, CancellationToken cancellation) {
             Dictionary<string, int>? slots = null;
-            if (streams.TryGetValue(group + "/\u0003DirData", out AccessStorageStream? directory)) slots = ReadObjectDirectory(directory.Payload.GetBytes());
+            if (streams.TryGetValue(group + "/\u0003DirData", out AccessStorageStream? directory)) {
+                AccountMetadata(directory.Payload.Length);
+                slots = ReadObjectDirectory(directory.Payload.GetBytes());
+            }
             foreach (AccessCatalogEntry? catalog in _document.Catalog.Where(x => x.NativeType == catalogType)) {
                 cancellation.ThrowIfCancellationRequested();
                 string? path = slots != null && slots.TryGetValue(catalog.Name, out int slot) ? group + "/" + slot.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" : null;
@@ -43,8 +46,10 @@ namespace OfficeIMO.Access {
                         : Array.AsReadOnly(streams.Where(x => x.Key.StartsWith(path, StringComparison.OrdinalIgnoreCase)).Select(x => x.Value).ToArray())
                 };
                 if (path != null && streams.TryGetValue(path + "Blob", out AccessStorageStream? blob)) {
-                    if (catalogType == -32766) model.ActionMacro = AccessNativeActionMacro.Read(blob.Payload.GetBytes());
-                    else model.Definition = AccessNativeDesigner.Read(blob.Payload.GetBytes(), MaxCatalogObjects, cancellation);
+                    AccountMetadata(blob.Payload.Length);
+                    byte[] payload = blob.Payload.GetBytes();
+                    if (catalogType == -32766) model.ActionMacro = AccessNativeActionMacro.Read(payload);
+                    else model.Definition = AccessNativeDesigner.Read(payload, MaxCatalogObjects, cancellation);
                 }
                 model.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic(model.ActionMacro != null ? "access.application.action-macro-inert" : model.Definition == null ? "access.application.preserve-only" : "access.application.partial-designer",
                     model.ActionMacro != null ? "The qualified single StopMacro action is read without execution; other action layouts remain preserve-only."
@@ -56,6 +61,7 @@ namespace OfficeIMO.Access {
         }
         private static Dictionary<string, int>? ReadObjectDirectory(byte[] bytes) {
             Dictionary<string, int> result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            HashSet<int> slots = new HashSet<int>();
             if (bytes.Length < 4 || U32(bytes, 0) != 0) return null;
             int offset = 4;
             while (offset < bytes.Length) {
@@ -66,7 +72,7 @@ namespace OfficeIMO.Access {
                 try { name = new System.Text.UnicodeEncoding(false, false, true).GetString(bytes, offset, length - 4); }
                 catch (System.Text.DecoderFallbackException) { return null; }
                 int slot = I32(bytes, offset + length - 4); offset += length;
-                if (slot < 0) return null;
+                if (slot < 0 || !slots.Add(slot)) return null;
                 if (result.ContainsKey(name)) return null; result.Add(name, slot);
             }
             return result;

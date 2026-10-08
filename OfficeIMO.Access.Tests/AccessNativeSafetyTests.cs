@@ -104,7 +104,24 @@ namespace OfficeIMO.Access.Tests {
             }
             throw new InvalidOperationException("The independently produced relationship row was not found.");
         }
-        private static int MakePropertyOpaque(byte[] bytes, string property, bool tableDefault) {
+        [Theory]
+        [InlineData(99)]
+        [InlineData(4)]
+        [InlineData(10)]
+        public void UnqualifiedTextFormatRetainsItsValueWithoutCoercion(byte nativeType) {
+            byte[] bytes = Source(); Assert.True(MakePropertyOpaque(bytes, "TextFormat", false, nativeType) > 0);
+            using MemoryStream input = new MemoryStream(bytes); using AccessDocument document = AccessDocument.Load(input);
+            AccessTable table = document.Tables["Scalars"]; AccessColumn notes = table.Columns["Notes"];
+            Assert.False(notes.IsRichText);
+            if (nativeType == 10) Assert.IsType<string>(notes.Properties["TextFormat"]);
+            else {
+                AccessOpaqueValue opaque = Assert.IsType<AccessOpaqueValue>(notes.Properties["TextFormat"]);
+                Assert.Equal((uint)nativeType, opaque.NativeType); Assert.Equal(new byte[] { 1, 0 }, opaque.GetBytes());
+            }
+            using AccessDataReader rows = table.OpenDataReader(); Assert.True(rows.Read()); Assert.Equal(int.MaxValue, rows["Whole"]);
+            using MemoryStream output = new MemoryStream(); document.Save(output); Assert.Equal(bytes, output.ToArray());
+        }
+        private static int MakePropertyOpaque(byte[] bytes, string property, bool tableDefault, byte nativeType = 99) {
             int changed = 0;
             for (int signature = 0; signature < bytes.Length - 4; signature++) {
                 if (bytes[signature] != 'M' || bytes[signature + 1] != 'R' || bytes[signature + 2] != '2' || bytes[signature + 3] != 0) continue;
@@ -118,8 +135,10 @@ namespace OfficeIMO.Access.Tests {
                     } else if (length > 6) {
                         int nameLength = I32(bytes, block), first = block + nameLength, last = first; bool found = false;
                         for (int value = first; value < end; value += U16(bytes, value)) {
+                            int valueLength = U16(bytes, value); if (valueLength < 8 || valueLength > end - value) break;
                             last = value;
-                            if (names[U16(bytes, value + 4)] == property) { bytes[value + 3] = 99; changed++; found = true; }
+                            int nameIndex = U16(bytes, value + 4);
+                            if (nameIndex < names.Count && names[nameIndex] == property) { bytes[value + 3] = nativeType; changed++; found = true; }
                         }
                         if (found && tableDefault) {
                             // Promote this valid column map to a table default map without changing its native LVAL length.

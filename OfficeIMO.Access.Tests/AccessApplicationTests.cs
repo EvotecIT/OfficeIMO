@@ -145,6 +145,35 @@ namespace OfficeIMO.Access.Tests {
             Assert.Equal(bytes, output.ToArray());
         }
 
+        [Theory]
+        [InlineData("Designer/designer-jet4.mdb")]
+        [InlineData("Designer/designer-ace12.accdb")]
+        public void AliasedApplicationSlotsKeepTheirGroupPreserveOnly(string name) {
+            byte[] bytes = File.ReadAllBytes(Fixture(name)); byte[] directory;
+            using (AccessDocument original = AccessDocument.Load(new MemoryStream(bytes)))
+                directory = original.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes();
+            int match = FindUniquePayload(bytes, directory), offset = 4;
+            int firstSlot = BitConverter.ToInt32(directory, offset + 2 + directory[offset + 1] - 4);
+            offset += 2 + directory[offset + 1]; int secondSlot = offset + 2 + directory[offset + 1] - 4;
+            Assert.NotEqual(firstSlot, BitConverter.ToInt32(directory, secondSlot));
+            Array.Copy(BitConverter.GetBytes(firstSlot), 0, bytes, match + secondSlot, 4);
+            Array.Copy(BitConverter.GetBytes(firstSlot), 0, directory, secondSlot, 4);
+            using MemoryStream input = new MemoryStream(bytes); using AccessDocument document = AccessDocument.Load(input);
+            Assert.Equal(2, document.Forms.Count);
+            Assert.All(document.Forms, form => { Assert.Null(form.StoragePath); Assert.Null(form.Definition); Assert.Empty(form.Streams); });
+            Assert.Equal(directory, document.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes());
+            Assert.NotNull(document.Reports["BoundReport"].StoragePath); Assert.Single(document.Macros["AutoExec"].ActionMacro!.Actions, "StopMacro");
+            Assert.Contains("Zażółć", Assert.Single(document.VbaProject.Modules).Source);
+            using MemoryStream output = new MemoryStream(); document.Save(output); Assert.Equal(bytes, output.ToArray());
+        }
+        [Fact]
+        public void DesignerParsingConsumesTheAggregateMetadataAllowance() {
+            string file = Fixture("Designer/designer-ace12.accdb");
+            using AccessDocument catalog = AccessDocument.Load(file, new AccessLoadOptions { MaxMetadataBytes = 44_000, DecodeApplicationObjects = false });
+            Assert.True(catalog.Tables["Contacts"].RowCount > 0);
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => AccessDocument.Load(file, new AccessLoadOptions { MaxMetadataBytes = 44_000 }));
+            Assert.Contains("MaxMetadataBytes", error.Message);
+        }
         [Fact]
         public void InvalidDesignerTextKeepsThePropertyOpaqueAndOtherDesignerMetadataReadable() {
             byte[] bytes = File.ReadAllBytes(Fixture("Designer/designer-ace12.accdb"));
