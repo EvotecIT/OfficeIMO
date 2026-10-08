@@ -16,7 +16,7 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
     Add-BenchmarkMetadata SampledMemory 'Opt-in PowerForge managed-heap/resident observations during operations. Maxima are observed lower bounds, include observer/host effects and do not isolate native allocations. Instrumented timing uses a separate run mode.'
     Add-BenchmarkMetadata AffinityPolicy 'Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.'
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
-    Add-BenchmarkMetadata RunnerSha256 (Get-FileHash ([PowerForge.PowerShellBenchmarkRunner].Assembly.Location) -Algorithm SHA256).Hash
+    Add-BenchmarkMetadata RunnerModuleSha256 (Get-FileHash (Get-Command Invoke-BenchmarkSuite).ImplementingType.Assembly.Location -Algorithm SHA256).Hash
     Add-BenchmarkMetadata WorkloadSha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.IWork.Benchmarks.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata SpecSha256 (Get-FileHash $specPath -Algorithm SHA256).Hash
     foreach ($name in 'OfficeIMO.Core', 'OfficeIMO.IWork', 'OfficeIMO.Word', 'OfficeIMO.Word.IWork', 'OfficeIMO.Excel', 'OfficeIMO.Excel.IWork', 'OfficeIMO.PowerPoint', 'OfficeIMO.PowerPoint.IWork') {

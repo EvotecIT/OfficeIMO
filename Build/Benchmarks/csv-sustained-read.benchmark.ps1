@@ -31,7 +31,7 @@ New-BenchmarkSuite 'officeimo-csv-sustained-read' {
     Add-BenchmarkMetadata BinarySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.CSV.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata CoreBinarySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Core.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata PowerForgeBinarySha256 (Get-FileHash ([PowerForge.BenchmarkMemoryProbe].Assembly.Location) -Algorithm SHA256).Hash
-    Add-BenchmarkMetadata PowerShellRunnerBinarySha256 (Get-FileHash ([PowerForge.PowerShellBenchmarkRunner].Assembly.Location) -Algorithm SHA256).Hash
+    Add-BenchmarkMetadata PowerShellRunnerModuleBinarySha256 (Get-FileHash (Get-Command Invoke-BenchmarkSuite).ImplementingType.Assembly.Location -Algorithm SHA256).Hash
     Add-BenchmarkMetadata WorkloadSha256 (Get-FileHash (Join-Path $PSScriptRoot 'CsvSustainedReadWorkload.cs') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata AffinityMask $(if ([OperatingSystem]::IsWindows() -or [OperatingSystem]::IsLinux()) { [Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64() } else { 'unqualified' })
     Add-BenchmarkMetadata Priority ([Diagnostics.Process]::GetCurrentProcess().PriorityClass.ToString())
