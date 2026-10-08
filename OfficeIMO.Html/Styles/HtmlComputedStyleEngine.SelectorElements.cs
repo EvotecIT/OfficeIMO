@@ -25,6 +25,7 @@ public static partial class HtmlComputedStyleEngine {
         public string LocalName => _element.LocalName ?? _element.TagName ?? string.Empty;
         public string NamespaceUri => _element.NamespaceUri ?? string.Empty;
         public string Id => _element.Id ?? string.Empty;
+        public bool IsQuirksMode => UsesQuirksIdClassMatching(_element.Owner);
         public OfficeIMO.Html.Css.IHtmlCssSelectorElement? ParentElement =>
             _element.ParentElement == null ? null : _cache.Get(_element.ParentElement);
         public object? SiblingParentIdentity => _element.Parent;
@@ -50,7 +51,7 @@ public static partial class HtmlComputedStyleEngine {
             }
             return false;
         }
-        public bool HasClass(string name) => _element.ClassList.Contains(name);
+        public bool HasClass(string name) => MatchesClass(_element, name);
         public IReadOnlyList<OfficeIMO.Html.Css.HtmlCssSelectorAttributeValue> Attributes => _attributes ??= _element.Attributes
             .Select(attribute => new OfficeIMO.Html.Css.HtmlCssSelectorAttributeValue(
                 attribute.LocalName ?? attribute.Name, attribute.NamespaceUri ?? string.Empty, attribute.Value))

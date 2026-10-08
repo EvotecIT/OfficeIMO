@@ -45,6 +45,9 @@ decoding rules and stream lifetime. This provider supplies label resolution.
 Native trees are constructed before node/depth budgets can be checked. Source
 length is checked first, and parser cancellation is cooperative. Query results use
 owned nodes, including detached nodes. Invalid selectors throw `ArgumentException`.
+Complete selector lists in the owned CSS subset use the owned matcher, including
+document-mode ID/class matching and inherited `:lang()` matching. Other selectors
+use the AngleSharp projection.
 Conversion exports the attached tree, including template content. A detached tree
 is materialized only when that tree is queried or serialized; unrelated detached
 trees do not affect conversion or document queries.

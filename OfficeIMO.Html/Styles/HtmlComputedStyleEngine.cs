@@ -422,7 +422,7 @@ public static partial class HtmlComputedStyleEngine {
             ParseCustomPropertyRegistrations(document, environment, budget);
         budget.ValidateRegistrationFanout(customPropertyRegistrations.Count, document.QuerySelectorAll("*").Length);
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
-        var ruleIndex = new StyleRuleIndex(rules, customPropertyRegistrations);
+        var ruleIndex = new StyleRuleIndex(rules, UsesQuirksIdClassMatching(document), customPropertyRegistrations);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
