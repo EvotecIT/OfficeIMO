@@ -30,8 +30,20 @@ public enum EmailRemoteResourcePolicy {
     AllowByConsumerResolver = 1
 }
 
+/// <summary>Controls concealed text in a derived body view; the original message is never edited.</summary>
+public enum EmailConcealedTextPolicy {
+    /// <summary>Retain source text and report inspection findings when requested.</summary>
+    Preserve = 0,
+    /// <summary>Omit exact removable HTML concealment findings. Omit the HTML body when inspection cannot complete.</summary>
+    ExcludeRemovable = 1
+}
+
 /// <summary>Options for the dependency-isolated email body projection.</summary>
 public sealed class EmailBodyProjectionOptions {
+    /// <summary>Inspect the selected body for bounded instruction and concealment evidence.</summary>
+    public bool InspectContentSafety { get; set; }
+    /// <summary>Concealed-text policy. Exclusion also enables content-safety inspection.</summary>
+    public EmailConcealedTextPolicy ConcealedTextPolicy { get; set; }
     /// <summary>Controls whether inline attachment resources are indexed.</summary>
     public bool IncludeResources { get; set; } = true;
     /// <summary>Retain resource references in projected markup. False removes them through the shared URL policy.</summary>
@@ -54,6 +66,9 @@ public sealed class EmailBodyProjectionOptions {
     public HtmlConversionDocumentOptions? HtmlOptions { get; set; }
 
     internal EmailBodyProjectionOptions CloneAndValidate() {
+        if (!Enum.IsDefined(typeof(EmailConcealedTextPolicy), ConcealedTextPolicy)) {
+            throw new ArgumentOutOfRangeException(nameof(ConcealedTextPolicy));
+        }
         if (!Enum.IsDefined(typeof(EmailBodySelectionPolicy), SelectionPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(SelectionPolicy));
         }
@@ -65,6 +80,8 @@ public sealed class EmailBodyProjectionOptions {
         if (MaxTotalResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes));
         if (MaxBodySourceCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBodySourceCharacters));
         return new EmailBodyProjectionOptions {
+            InspectContentSafety = InspectContentSafety,
+            ConcealedTextPolicy = ConcealedTextPolicy,
             IncludeResources = IncludeResources,
             IncludeResourceReferences = IncludeResourceReferences,
             MaxBodySourceCharacters = MaxBodySourceCharacters,
@@ -88,7 +105,7 @@ public sealed class EmailBodyProjectionResult {
     internal EmailBodyProjectionResult(EmailBodySourceKind sourceKind, string html,
         string? text, HtmlConversionDocument document, IReadOnlyList<EmailBodyResource> resources,
         IReadOnlyList<EmailDiagnostic> diagnostics, Uri? baseUri,
-        EmailBodyResourceIdentityIndex resourceIdentity) {
+        EmailBodyResourceIdentityIndex resourceIdentity, EmailBodyContentSafetyReport? contentSafety) {
         SourceKind = sourceKind;
         Html = html;
         Text = text;
@@ -97,6 +114,7 @@ public sealed class EmailBodyProjectionResult {
         Diagnostics = diagnostics;
         _baseUri = baseUri;
         _resourceIdentity = resourceIdentity ?? throw new ArgumentNullException(nameof(resourceIdentity));
+        ContentSafety = contentSafety;
     }
 
     /// <summary>Selected source body.</summary>
@@ -111,6 +129,8 @@ public sealed class EmailBodyProjectionResult {
     public IReadOnlyList<EmailBodyResource> Resources => _resources;
     /// <summary>Stable selection, RTF fallback, and safety diagnostics.</summary>
     public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
+    /// <summary>Bounded evidence for the selected body, without private text or decoded payloads. Null when inspection was not requested.</summary>
+    public EmailBodyContentSafetyReport? ContentSafety { get; }
 
     /// <summary>Resolves CID, content-location, resolved absolute URI, or filename without opening content.</summary>
     public EmailBodyResource? ResolveResource(string? reference, Uri? resolvedUri = null) =>
@@ -152,6 +172,14 @@ public static class EmailBodyProjection {
             diagnostics.Add(new EmailDiagnostic("EMAIL_BODY_MISSING",
                 "The message has no renderable HTML, RTF, or plain-text body.",
                 EmailDiagnosticSeverity.Warning, "message/body"));
+        }
+
+        EmailBodyContentSafetyReport? contentSafety = null;
+        if (sourceKind != EmailBodySourceKind.None &&
+            (effective.InspectContentSafety || effective.ConcealedTextPolicy != EmailConcealedTextPolicy.Preserve)) {
+            selectedHtml = EmailBodyContentSafety.InspectAndProject(selectedHtml,
+                sourceKind == EmailBodySourceKind.PlainText ? source.Body.Text : null,
+                effective.ConcealedTextPolicy, diagnostics, out contentSafety);
         }
 
         EmailAttachment[] resourceAttachments = effective.IncludeResources
@@ -208,7 +236,7 @@ public static class EmailBodyProjection {
             declaredResourceBytes += resource.Length;
         }
         return new EmailBodyProjectionResult(sourceKind, safeHtml, source.Body.Text,
-            document, projectedResources, diagnostics.AsReadOnly(), baseUri, resourceIdentity);
+            document, projectedResources, diagnostics.AsReadOnly(), baseUri, resourceIdentity, contentSafety);
     }
 
     private static string PlainTextHtml(string text) =>

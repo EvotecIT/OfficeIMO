@@ -97,14 +97,12 @@ internal sealed partial class OfficeImoAgentService {
         var diagnostics = result.Diagnostics.ToList();
         result.Metadata = metadata;
         result.Diagnostics = diagnostics;
+        // Reserve the cursor before measuring, so adding continuation cannot break the hard JSON bound.
+        result.NextCursor = cursor + result.Content.Length < result.ContentLength || result.Content.Length > 0
+            ? result.ContentLength : null;
         while (AgentJson.Measure(result) > maximumCharacters) {
             result.Truncated = true;
             int excess = AgentJson.Measure(result) - maximumCharacters;
-            if (result.Content.Length > 0) {
-                int remove = Math.Min(result.Content.Length, Math.Max(excess + 8, result.Content.Length / 8));
-                result.Content = result.Content.Substring(0, result.Content.Length - remove);
-                continue;
-            }
             if (diagnostics.Count > 0) {
                 diagnostics.RemoveAt(diagnostics.Count - 1);
                 continue;
@@ -117,13 +115,19 @@ internal sealed partial class OfficeImoAgentService {
                 result.Title = Reduce(result.Title);
                 continue;
             }
+            if (result.Content.Length > 0) {
+                int remove = Math.Min(result.Content.Length, Math.Max(excess + 8, result.Content.Length / 8));
+                result.Content = result.Content.Substring(0, result.Content.Length - remove);
+                continue;
+            }
             break;
         }
         int returnedUntil = cursor + result.Content.Length;
         if (returnedUntil < result.ContentLength) {
+            if (result.Content.Length == 0) throw new AgentUsageException("The output budget cannot fit content with its stable identifiers and safety evidence. Increase max output characters.");
             result.Truncated = true;
             result.NextCursor = returnedUntil;
-        }
+        } else result.NextCursor = null;
         EnsureWithinBudget(result, maximumCharacters);
     }
 
