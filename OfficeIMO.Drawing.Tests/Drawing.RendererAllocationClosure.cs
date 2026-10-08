@@ -330,6 +330,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(5.8D, false)]
+        [InlineData(6.2D, true)]
+        public void FractionalInterpolatedTileUsesItsPaintedBoundsBeforeAllocation(double offsetX, bool visible) {
+            var tile = new OfficeDrawing(1D, 1000D);
+            AddRectangle(tile, 0D, 0D, 1D, 1000D, OfficeColor.Black);
+            var child = new OfficeDrawing(10D, 1D).AddTilingPattern(tile,
+                new OfficeImagePlacement(0D, 0D, 10D, 1D), 1D, 1000D,
+                repeatX: false, repeatY: false, transform: new OfficeTransform(.6D, 0D, 0D, 1D, offsetX, 0D));
+            var drawing = new OfficeDrawing(10D, 1D).AddClippedDrawing(child, 6D, 0D,
+                OfficeClipPath.Rectangle(1D, 1D), -6D, 0D);
+            var options = new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10L };
+
+            if (visible) {
+                Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing, options));
+            } else {
+                OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, options);
+                for (int x = 0; x < image.Width; x++) Assert.Equal(0, image.GetPixel(x, 0).A);
+            }
+        }
+
+        [Theory]
         [InlineData(95L, false)]
         [InlineData(96L, true)]
         [InlineData(123L, true)]
