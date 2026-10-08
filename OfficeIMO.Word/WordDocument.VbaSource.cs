@@ -30,8 +30,7 @@ public partial class WordDocument {
             bytes = prepared.Write(options).GetBytes();
         }
         MainDocumentPart main = _wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-        VbaProjectPart part = main.VbaProjectPart ?? main.AddNewPart<VbaProjectPart>();
-        if (OfficeVbaProjectPartEditor.Apply(part, bytes, options) && part.VbaDataPart == null) {
+        if (OfficeVbaProjectPartEditor.Apply(main, main.VbaProjectPart, bytes, options, out VbaProjectPart part) && part.VbaDataPart == null) {
             VbaDataPart data = part.AddNewPart<VbaDataPart>();
             data.VbaSuppData = new DocumentFormat.OpenXml.Office.Word.VbaSuppData();
         }

@@ -33,6 +33,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OfficeVbaProjectPartEditor.cs" />
     <None Update="TestData\Vba\*.bin" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestData\Vba\*.LICENSE.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

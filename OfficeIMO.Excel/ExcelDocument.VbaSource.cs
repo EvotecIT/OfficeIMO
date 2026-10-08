@@ -60,8 +60,7 @@ public partial class ExcelDocument {
                 && !string.Equals(existingName, workbookModules[0].Name, StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException("The VBA workbook module does not match the document's existing code name.", nameof(project));
             }
-            VbaProjectPart part = workbookPart.VbaProjectPart ?? workbookPart.AddNewPart<VbaProjectPart>();
-            if (OfficeVbaProjectPartEditor.Apply(part, bytes, options)) {
+            if (OfficeVbaProjectPartEditor.Apply(workbookPart, workbookPart.VbaProjectPart, bytes, options, out _)) {
                 if (workbookModules.Length == 1 && string.IsNullOrEmpty(existingName)) {
                     if (properties == null) { properties = new WorkbookProperties(); workbook.AddChild(properties, true); }
                     properties.CodeName = workbookModules[0].Name;
