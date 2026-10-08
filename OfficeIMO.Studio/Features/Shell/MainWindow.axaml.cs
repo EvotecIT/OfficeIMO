@@ -47,6 +47,7 @@ public sealed partial class MainWindow : Window {
         InitializeChrome();
         InitializeAppleShell();
         InitializeDocumentTabInteractions();
+        DocumentWorkspace.Panes = TabHost.Panes;
         AttachOperationToast(ViewModel);
 
         SizeChanged += OnWindowSizeChanged;
@@ -257,6 +258,12 @@ public sealed partial class MainWindow : Window {
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
         if (CommandPalette.IsOpen) return;
+        if (e.Key == Key.F6 && TabHost.Panes.IsSplit && ViewModel.IsPdfWorkspaceMode && !ViewModel.IsComparisonOpen) {
+            TabHost.Panes.SwitchPane();
+            DocumentWorkspace.FocusActiveIndependentPane();
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.F9) {
             ViewModel.IsAssistantVisible = false;
             await ViewModel.Commands["FocusReading"].ExecuteAsync();

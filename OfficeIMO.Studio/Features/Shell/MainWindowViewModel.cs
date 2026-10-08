@@ -658,6 +658,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyList<PdfPageViewModel> pages,
         IReadOnlyList<PdfOrganizerPageViewModel> organizerPages,
         IReadOnlyCollection<int>? organizerSelection = null) {
+        IsReplacingReaderPresentation = true;
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
         ClearFormPreview();
         if (isDocumentTransition) SaveDocumentViewState();
@@ -741,6 +742,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         NotifyWorkspaceStateChanged();
 
         if (session is not null) ApplyFitZoom();
+        IsReplacingReaderPresentation = false;
+        ReaderPresentationReplaced?.Invoke(this, EventArgs.Empty);
     }
 
     private void ApplyFitZoom() {
@@ -779,7 +782,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private static int GetGridColumnCount(double availableWidth) =>
-        availableWidth >= 980D ? 4 : availableWidth >= 680D ? 3 : 2;
+        PdfReaderViewportLayout.GridColumnCount(availableWidth);
 
     private void ApplyZoom(double zoom) {
         zoom = Math.Round(zoom, 2);

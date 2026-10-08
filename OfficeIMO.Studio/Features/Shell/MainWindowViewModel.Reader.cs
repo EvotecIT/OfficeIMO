@@ -306,14 +306,7 @@ public sealed partial class MainWindowViewModel {
 
     private IReadOnlyList<PdfPageViewModel> GetSelectedSpread() {
         if (Pages.Count == 0) return [];
-        int selectedPageNumber = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, Pages.Count);
-        if (selectedPageNumber == 1) return [Pages[0]];
-
-        int firstPageNumber = selectedPageNumber % 2 == 0
-            ? selectedPageNumber
-            : selectedPageNumber - 1;
-        return firstPageNumber < Pages.Count
-            ? [Pages[firstPageNumber - 1], Pages[firstPageNumber]]
-            : [Pages[firstPageNumber - 1]];
+        var spread = PdfReaderViewportLayout.Spread(SelectedPage?.PageNumber ?? 1, Pages.Count);
+        return Pages.Skip(spread.StartIndex).Take(spread.Count).ToArray();
     }
 }

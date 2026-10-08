@@ -145,6 +145,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         // Comparing needs the width for two documents; the properties pane returns when the comparison closes.
         if (_document?.IsComparisonOpen == true) { SetPanes(NavigationPane.IsVisible && _compactLayout != true, false); return; }
         StudioDocumentMode mode = _document?.DocumentMode ?? StudioDocumentMode.View;
+        if (Panes?.IsSplit == true && mode == StudioDocumentMode.View) { SetPanes(false, false); return; }
         // Reading keeps the document details open on wide windows so switching to a task mode does not refit the page.
         bool inspector = mode is not StudioDocumentMode.Pages && (mode != StudioDocumentMode.View || _compactLayout != true);
         bool navigation = mode == StudioDocumentMode.Pages || _compactLayout != true;
@@ -176,7 +177,9 @@ public sealed partial class DocumentWorkspaceView : UserControl {
             if (NavigationTabs.SelectedIndex != 0) NavigationTabs.SelectedIndex = 0;
         }
         Grid.SetColumnSpan(NavigationPane, pagesGrid ? 2 : 1);
-        ReaderCanvas.IsVisible = !pagesGrid && _document?.HasDocument == true;
+        bool independent = Panes?.IsSplit == true && _document?.IsComparisonOpen != true;
+        ReaderCanvas.IsVisible = !independent && !pagesGrid && _document?.HasDocument == true;
+        IndependentPanes.IsVisible = independent && !pagesGrid && _document?.HasDocument == true;
         NavigationToggle.IsEnabled = !pagesGrid;
         UpdateOrganizerActionBar();
         NavigationPane.IsVisible = navigation;
