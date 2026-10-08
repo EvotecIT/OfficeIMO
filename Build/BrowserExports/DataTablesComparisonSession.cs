@@ -16,6 +16,7 @@ internal static class DataTablesComparisonSession {
         string? identity = null;
         JsonElement spec = default, measurement = default;
         FileStream? destination = null;
+        bool pdfScriptLoaded = false;
         var errors = new List<string>();
         Console.WriteLine("{\"ready\":true}");
         try {
@@ -37,6 +38,7 @@ internal static class DataTablesComparisonSession {
                             throw new ArgumentException("The A3 PDF comparison supports at most 20 readable columns.");
                         if (identity != stack + "/" + browser || session is null) {
                             if (session is not null) await session.DisposeAsync(); session = null;
+                            pdfScriptLoaded = false;
                             var engine = DataTablesInterop.Engines(new[] { "--engine=" + browser }).Single();
                             string output = Path.Combine(evidence, stack, browser); Directory.CreateDirectory(output);
                             session = await DataTablesInterop.OpenAsync(assets, manifest.RootElement, stack, engine, output);
@@ -53,7 +55,10 @@ internal static class DataTablesComparisonSession {
                         }
                         object? pdfFonts = null;
                         if (spec.GetProperty("format").GetString() == "pdf") {
-                            await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.PdfScript.Content });
+                            if (!pdfScriptLoaded) {
+                                await session.Page.AddScriptTagAsync(new() { Content = BrowserAssets.PdfScript.Content });
+                                pdfScriptLoaded = true;
+                            }
                             if (!await session.Page.EvaluateAsync<bool>("() => typeof pdfMake !== 'undefined'"))
                                 await session.Page.AddScriptTagAsync(new() { Path = Path.Combine(assets, manifest.RootElement.GetProperty("stacks").GetProperty(stack).GetProperty("pdfScript").GetString()!) });
                             string fontRoot = Path.Combine(repository, "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts");
@@ -117,7 +122,7 @@ internal static class DataTablesComparisonSession {
                 } catch (Exception error) {
                     if (session is not null) {
                         try { await session.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(15)); } catch { /* Caller also owns a bounded process lifetime. */ }
-                        session = null; identity = null;
+                        session = null; identity = null; pdfScriptLoaded = false;
                     }
                     Console.WriteLine(JsonSerializer.Serialize(new { ok = false, error = error.ToString() }));
                 }

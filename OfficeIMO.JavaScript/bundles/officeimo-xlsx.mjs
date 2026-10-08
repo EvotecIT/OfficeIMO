@@ -136,12 +136,12 @@ function taskYieldDue() {
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
     const scheduler = globalThis.scheduler;
-    // Boosted yield continuations can starve cancellation timers. A background task
-    // lets due timers and input run before the next bounded section of export work.
+    // A normal-priority task keeps the export progressing beside a busy host.
+    // It has no boosted continuation; due input and cancellation can still run.
     if (typeof scheduler?.postTask === "function")
         return scheduler.postTask(() => {
             taskDeadline = performance.now() + taskBudgetMs;
-        }, { priority: "background" });
+        }, { priority: "user-visible" });
     return new Promise(resolve => {
         setTimeout(function finish() {
             taskDeadline = performance.now() + taskBudgetMs;

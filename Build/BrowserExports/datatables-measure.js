@@ -54,6 +54,8 @@ globalThis.runDataTablesMeasurement = async function (lane, format, diagnosticYi
   };
   let completeBlob, failBlob;
   const completedBlob = new Promise((resolve, reject) => { completeBlob = resolve; failBlob = reject; });
+  // Generation may fail before Buttons' completion callback lets us await it.
+  void completedBlob.catch(() => {});
   const failedGeneration = event => { event.preventDefault(); failBlob(event.reason); };
   // Native PDF actions call Buttons' completion callback before asynchronous layout/encoding ends.
   URL.createObjectURL = function (blob) { comparisonBlob = blob; completeBlob(blob); return originalUrl.call(this, blob); };
