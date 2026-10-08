@@ -70,6 +70,36 @@ public sealed class DrawingRichTextParagraphTests {
     }
 
     [Theory]
+    [InlineData(OfficeTextOverflowBehavior.Clip)]
+    [InlineData(OfficeTextOverflowBehavior.Ellipsis)]
+    public void UnwrappedOverflowAfterAHardBreakIsReportedWithoutTrimmingTheFittingFirstLine(OfficeTextOverflowBehavior behavior) {
+        var layout = OfficeTextLayoutEngine.LayoutRichTextBlock(new[] {
+            new OfficeRichTextRun("x\nabcdefghijkl", 10, OfficeColor.Black)
+        }, 40, 80, 1.2, (value, size, _) => (value?.Length ?? 0) * size / 2,
+            wrap: false, shrinkToFit: false, minimumFontSize: 1, overflowBehavior: behavior);
+
+        Assert.True(layout.Clipped);
+        Assert.Equal(behavior == OfficeTextOverflowBehavior.Clip, layout.OnlyUnwrappedWidthOverflow);
+        Assert.Equal(new[] { "x", "abcdefghijkl" }, layout.Lines.Select(line => string.Concat(line.Segments.Select(segment => segment.Text))));
+        Assert.True(layout.Lines[1].Width > 40);
+    }
+
+    [Fact]
+    public void LaterUnwrappedParagraphLinesReportFrameOverflowAndRetainProjectionOverhang() {
+        var drawing = new OfficeDrawing(40, 80).AddRichTextParagraphs(new[] {
+            Paragraph("x\nabcdefghijkl")
+        }, 0, 0, 40, 80, wrapText: false);
+        var text = Assert.IsType<OfficeDrawingRichText>(Assert.Single(drawing.Elements));
+        var layout = OfficeDrawingTextLayout.Create(text, 40, 80, Measure);
+        var projected = OfficeDrawingTextLayout.CreateForProjection(text, 40, 80, Measure);
+
+        Assert.True(layout.Clipped);
+        Assert.False(projected.Clipped);
+        Assert.Equal(new[] { "x", "abcdefghijkl" }, layout.Lines.Select(line => string.Concat(line.Segments.Select(segment => segment.Text))));
+        Assert.Equal(layout.Lines.Select(line => line.Width), projected.Lines.Select(line => line.Width));
+    }
+
+    [Theory]
     [InlineData("longcaption", OfficeTextAlignment.Center, -8.5)]
     [InlineData("longcaption", OfficeTextAlignment.Right, -21)]
     [InlineData("fit", OfficeTextAlignment.Center, 11.5)]

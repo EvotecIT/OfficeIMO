@@ -14,6 +14,7 @@ public sealed partial class OfficeRasterCanvas {
             _scaledMetricFonts?.Clear();
             _textMeasurementCache?.Clear();
             _textLineInkBoundsCache?.Clear();
+            _textPaintBoundsCache?.Clear();
         }
     }
 

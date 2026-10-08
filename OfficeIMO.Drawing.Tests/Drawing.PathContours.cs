@@ -13,7 +13,7 @@ public class DrawingPathContourTests {
         Assert.Equal(curve, contours[0].Commands[1]); Assert.Equal(new OfficePoint(1, 2), contours[1].Commands[0].Point);
         Assert.Single(contours[2].Commands); Assert.Single(contours[3].Commands);
         var open = contours[0].OpenWithClosingEdge(); Assert.Equal(curve, open[1]);
-        Assert.Equal(OfficePathCommand.LineTo(1, 2), open[^1]); Assert.Equal(OfficePathCommandKind.Close, contours[0].Commands[^1].Kind);
+        Assert.Equal(OfficePathCommand.LineTo(1, 2), open[open.Count - 1]); Assert.Equal(OfficePathCommandKind.Close, contours[0].Commands[contours[0].Commands.Count - 1].Kind);
     }
 
     [Fact]

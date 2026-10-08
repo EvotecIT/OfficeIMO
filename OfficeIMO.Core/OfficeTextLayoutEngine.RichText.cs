@@ -402,9 +402,17 @@ public static partial class OfficeTextLayoutEngine {
         lineHeight = ResolveMaximumRichTextLineHeight(lines, lineHeight);
 
         bool clippedByOtherCauses = clipped;
-        bool unwrappedWidthOverflow = !wrap && lines.Count > 0 && lines[0].OffsetX + lines[0].Width > width + 0.01D;
+        bool unwrappedWidthOverflow = false;
+        if (!wrap) {
+            foreach (OfficeRichTextLine line in lines) {
+                if (line.OffsetX + line.Width > width + 0.01D) {
+                    unwrappedWidthOverflow = true;
+                    break;
+                }
+            }
+        }
         if (unwrappedWidthOverflow) {
-            if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
+            if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis && lines[0].OffsetX + lines[0].Width > width + 0.01D) {
                 lines[0] = TrimRichTextLineToWidthWithEllipsis(lines[0], Math.Max(0D, width - lines[0].OffsetX), measure);
             }
 

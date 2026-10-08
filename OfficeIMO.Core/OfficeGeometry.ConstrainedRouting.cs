@@ -29,7 +29,7 @@ public static partial class OfficeGeometry {
                 // Extend both departures together and couple the bridge displacement to that extension.
                 // This permits detours past intervening obstacles without a Cartesian grid of stub lengths.
                 for (int lane = 1; lane <= maxLanes; lane++) {
-                    double extension = lane * step;
+                    double extension = lane * (step > 0 ? step : 0.15);
                     OfficePoint extendedStart = ConnectorExit(startExit, startDirection, extension, 0, null);
                     OfficePoint extendedEnd = ConnectorExit(endExit, endDirection, extension, 0, null);
                     foreach (double offset in new[] { 0D, extension, -extension })

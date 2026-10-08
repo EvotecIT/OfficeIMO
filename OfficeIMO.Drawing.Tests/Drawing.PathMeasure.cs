@@ -10,7 +10,7 @@ public class DrawingPathMeasureTests {
             OfficePathCommand.LineTo(30, 0), OfficePathCommand.LineTo(30, 40) });
         Assert.Equal(70, path.Length); Assert.Equal(new OfficePoint(30, 20), path.PointAtLength(50));
         var sliced = path.Slice(20, 50);
-        Assert.Equal(new OfficePoint(20, 0), sliced[0].Point); Assert.Equal(new OfficePoint(30, 20), sliced[^1].Point);
+        Assert.Equal(new OfficePoint(20, 0), sliced[0].Point); Assert.Equal(new OfficePoint(30, 20), sliced[sliced.Count - 1].Point);
         Assert.Equal(new OfficePoint(0, 0), path.PointAtLength(-10)); Assert.Equal(new OfficePoint(30, 40), path.PointAtLength(100));
         Assert.Empty(path.Slice(50, 20)); Assert.Empty(path.Slice(70, 80));
     }
@@ -22,9 +22,9 @@ public class DrawingPathMeasureTests {
         var command = cubic ? OfficePathCommand.CubicBezierTo(0, 0, 0, 0, 100, 0) : OfficePathCommand.QuadraticBezierTo(0, 0, 100, 0);
         var path = new OfficePathMeasure(new[] { OfficePathCommand.MoveTo(0, 0), command });
         var slice = path.Slice(25, 75);
-        Assert.InRange(slice[0].Point.X, 24.98, 25.02); Assert.InRange(slice[^1].Point.X, 74.98, 75.02);
-        Assert.Equal(command.Kind, slice[^1].Kind);
-        Assert.Equal(0, slice[^1].Point.Y); Assert.Equal(0, slice[^1].ControlPoint1.Y);
+        Assert.InRange(slice[0].Point.X, 24.98, 25.02); Assert.InRange(slice[slice.Count - 1].Point.X, 74.98, 75.02);
+        Assert.Equal(command.Kind, slice[slice.Count - 1].Kind);
+        Assert.Equal(0, slice[slice.Count - 1].Point.Y); Assert.Equal(0, slice[slice.Count - 1].ControlPoint1.Y);
         var middle = new OfficePathMeasure(slice).PointAtLength(25);
         Assert.InRange(middle.X, 49.97, 50.03);
     }
