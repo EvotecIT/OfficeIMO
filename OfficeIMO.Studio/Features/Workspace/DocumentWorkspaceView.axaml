@@ -6,6 +6,7 @@
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+             xmlns:workspace="using:OfficeIMO.Studio.Features.Workspace"
              xmlns:comments="using:OfficeIMO.Studio.Features.Comments"
              x:Class="OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView"
              x:DataType="shell:MainWindowViewModel">
@@ -635,7 +636,7 @@
       <Grid x:Name="ReaderCanvas" Grid.Column="1" IsVisible="False" ColumnDefinitions="*,6,*" RowDefinitions="Auto,*">
         <!-- While comparing, both documents get a header of the same height so their pages start level. -->
         <Border Grid.Column="0" Classes="compareHeader" IsVisible="{Binding IsComparisonOpen}">
-          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Top">
             <PathIcon Data="{StaticResource IconDocument}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
             <TextBlock Grid.Column="1" Text="{Binding DocumentName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding DocumentName}" />
             <TextBlock Grid.Column="2" Text="{Binding PageStatusText}" Classes="muted" VerticalAlignment="Center" />
@@ -695,26 +696,7 @@
                       Background="{DynamicResource StudioBorderBrush}" ResizeDirection="Columns" />
 
         <Border Grid.Column="2" Classes="compareHeader" IsVisible="{Binding IsComparisonOpen}">
-          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-            <PathIcon Data="{StaticResource IconCompare}" Width="14" Height="14" Foreground="{DynamicResource StudioAccentBrush}" />
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" ToolTip.Tip="{Binding ComparisonSummary}">
-              <TextBlock Text="{Binding ComparisonDocumentName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-              <TextBlock Text="{Binding ComparisonSummary}" Classes="caption" TextTrimming="CharacterEllipsis" MaxLines="1"
-                         IsVisible="{Binding ComparisonSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            </StackPanel>
-            <TextBlock Grid.Column="2" Text="{Binding ComparisonPagePosition}" Classes="muted" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-              <Button Classes="tool" Content="{loc:Loc Comparison.Compare}" Command="{Binding ComparePagesCommand}" IsVisible="{Binding !IsComparingPages}" />
-              <Button Classes="tool" Content="{loc:Loc Comparison.Cancel}" Command="{Binding CancelPageComparisonCommand}" IsVisible="{Binding IsComparingPages}" />
-              <StackPanel Orientation="Horizontal" Spacing="2" IsVisible="{Binding HasComparisonDifferences}">
-                <Button Classes="icon" Command="{Binding PreviousComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Previous}" ToolTip.Tip="{loc:Loc Comparison.Previous}"><PathIcon Data="{StaticResource IconChevronLeft}" /></Button>
-                <ComboBox ItemsSource="{Binding ComparisonDifferences}" SelectedItem="{Binding SelectedComparisonDifference}" Width="150" AutomationProperties.Name="{loc:Loc Comparison.Differences}" />
-                <Button Classes="icon" Command="{Binding NextComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Next}" ToolTip.Tip="{loc:Loc Comparison.Next}"><PathIcon Data="{StaticResource IconChevronRight}" /></Button>
-              </StackPanel>
-              <ToggleButton Classes="icon" IsChecked="{Binding ShowComparisonDifferenceImage}" IsVisible="{Binding HasComparisonDifferenceImage}"
-                            AutomationProperties.Name="{loc:Loc Comparison.Highlight}" ToolTip.Tip="{loc:Loc Comparison.Highlight}"><PathIcon Data="{StaticResource IconHighlight}" /></ToggleButton>
-            </StackPanel>
-          </Grid>
+          <workspace:ComparisonReviewHeaderView />
         </Border>
 
         <Panel Grid.Row="1" Grid.Column="2" IsVisible="{Binding IsComparisonOpen}" Background="{DynamicResource StudioCanvasBrush}">

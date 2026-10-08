@@ -126,10 +126,10 @@ internal sealed partial class OfficeImoAgentService {
     });
 
     private string PreparePdfOutput(string path, IReadOnlyList<string> sources, bool isDirectory, bool overwrite,
-        string operation, int maximumCharacters) {
+        string operation, int maximumCharacters, string extension = ".pdf") {
         string destination = _pathPolicy.ResolveOutput(path);
-        if (!isDirectory && !Path.GetExtension(destination).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-            throw new AgentUsageException("PDF output must have the .pdf extension.");
+        if (!isDirectory && !Path.GetExtension(destination).Equals(extension, StringComparison.OrdinalIgnoreCase))
+            throw new AgentUsageException("Output must have the " + extension + " extension.");
         foreach (string source in sources) {
             if (OfficeImoToolPathSafety.PathsEqual(source, destination) ||
                 (isDirectory && OfficeImoToolPathSafety.IsSameOrChildPath(destination, source)))
@@ -146,12 +146,13 @@ internal sealed partial class OfficeImoAgentService {
 
     private static AgentPdfWorkflowResult PdfResult(string operation, OfficeWorkflowStatus status,
         OfficeWorkflowFailureKind failureKind, string? outputPath, long bytes, IReadOnlyList<AgentPdfArtifact> artifacts,
-        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics, int maximumCharacters, int words = 0) {
+        IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics, int maximumCharacters, int words = 0, string? summary = null) {
         var sampledArtifacts = artifacts.Take(25).ToList();
         var sampledDiagnostics = diagnostics.Take(10).Select(item => new AgentPdfDiagnostic {
             Code = AgentJson.Limit(item.Code, 80), Severity = item.Severity.ToString()
         }).ToList();
         var result = new AgentPdfWorkflowResult {
+            Summary = summary is null ? null : AgentJson.Limit(summary, 320),
             Operation = operation, Status = status.ToString(), Succeeded = status == OfficeWorkflowStatus.Completed,
             FailureKind = status == OfficeWorkflowStatus.Failed && failureKind == OfficeWorkflowFailureKind.None ? "OperationFailed" : failureKind.ToString(),
             OutputPath = outputPath, OutputBytes = bytes, ArtifactCount = artifacts.Count, AddedWordCount = words,
@@ -162,12 +163,13 @@ internal sealed partial class OfficeImoAgentService {
             result.Truncated = true;
             if (sampledArtifacts.Count > 0) sampledArtifacts.RemoveAt(sampledArtifacts.Count - 1);
             else if (sampledDiagnostics.Count > 0) sampledDiagnostics.RemoveAt(sampledDiagnostics.Count - 1);
+            else if (result.Summary is not null) result.Summary = null;
             else throw new AgentUsageException("Increase maxOutputCharacters for this workflow report.");
         }
         return result;
     }
 
-    private sealed class PdfRootPublicationGuard(AgentPathPolicy policy, IReadOnlyList<string> sources) : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
+    private sealed class PdfRootPublicationGuard(AgentPathPolicy policy, IReadOnlyList<string> sources, Action<CancellationToken>? validateSourceIds = null) : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
         public ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             _ = policy.ResolveOutput(directory);
@@ -175,6 +177,7 @@ internal sealed partial class OfficeImoAgentService {
         }
         public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
+            validateSourceIds?.Invoke(cancellationToken);
             string destination = policy.ResolveOutput(path);
             foreach (string source in sources) {
                 string current = policy.ResolveInput(source);

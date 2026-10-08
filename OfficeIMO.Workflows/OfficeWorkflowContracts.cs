@@ -198,6 +198,11 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Optional provider access for <see cref="ComparisonPath"/>.</summary>
     public OfficeWorkflowStreamInput? ComparisonStream { get; set; }
 
+    /// <summary>Ordered expected-page scope for Compare; null selects the whole primary document.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? ComparisonExpectedPages { get; set; }
+    /// <summary>Ordered actual-page scope for Compare; null selects the whole comparison document. Pages are paired by selection position.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? ComparisonActualPages { get; set; }
+
     /// <summary>Conversion route identifier from <see cref="OfficeWorkflowCatalog"/>.</summary>
     public string? ConversionRouteId { get; set; }
 

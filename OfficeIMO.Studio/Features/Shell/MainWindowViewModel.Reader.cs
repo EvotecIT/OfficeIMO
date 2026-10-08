@@ -118,11 +118,12 @@ public sealed partial class MainWindowViewModel {
         }
         _synchronizingComparison = true;
         try {
-            SelectedPage = Pages[Math.Clamp(value.PageNumber, 1, Pages.Count) - 1];
+            int? partner = GetComparisonPartner(value.PageNumber, actualSide: true);
+            SelectedPage = partner is { } number ? Pages.ElementAtOrDefault(number - 1) : null;
         } finally {
             _synchronizingComparison = false;
         }
-        SynchronizeDifferenceToPage(value.PageNumber);
+        SynchronizeDifferenceToPage(SelectedPage?.PageNumber);
     }
 
     [RelayCommand]
@@ -235,7 +236,8 @@ public sealed partial class MainWindowViewModel {
         if (_synchronizingComparison || !IsComparisonOpen || primaryPage is null || ComparisonPages.Count == 0) return;
         _synchronizingComparison = true;
         try {
-            ComparisonSelectedPage = ComparisonPages[Math.Clamp(primaryPage.PageNumber, 1, ComparisonPages.Count) - 1];
+            int? partner = GetComparisonPartner(primaryPage.PageNumber, actualSide: false);
+            ComparisonSelectedPage = partner is { } number ? ComparisonPages.ElementAtOrDefault(Math.Clamp(number, 1, ComparisonPages.Count) - 1) : null;
         } finally {
             _synchronizingComparison = false;
         }

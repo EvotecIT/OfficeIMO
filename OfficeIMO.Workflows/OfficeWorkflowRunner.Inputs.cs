@@ -51,6 +51,9 @@ public sealed partial class OfficeWorkflowRunner {
             request.Operation is not (OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan or OfficeWorkflowOperation.Compare or OfficeWorkflowOperation.AnalyzeWordImages)) {
             throw new ArgumentException("A provider input requires an explicit output destination.", nameof(request));
         }
+        if (request.Operation != OfficeWorkflowOperation.Compare &&
+            (request.ComparisonExpectedPages is not null || request.ComparisonActualPages is not null))
+            throw new ArgumentException("Comparison page scopes require a comparison operation.", nameof(request));
         if (request.ComparisonStream is not null && request.Operation != OfficeWorkflowOperation.Compare) {
             throw new ArgumentException("A comparison provider is valid only for a comparison operation.", nameof(request));
         }
@@ -201,7 +204,7 @@ public sealed partial class OfficeWorkflowRunner {
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
             request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization, providerPackage,
-            request.PageSelector, request.MaximumExtractedPages);
+            request.PageSelector, request.MaximumExtractedPages, request.ComparisonExpectedPages, request.ComparisonActualPages);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream, bool directoryPackage = false) {

@@ -8,6 +8,9 @@ internal static class WorkflowCommand {
 OfficeIMO.Tool - output and intake workflows
 
 Usage:
+  officeimo workflow compare <expected.pdf> <actual.pdf> --output <report.html>
+             [--expected-pages <selection>] [--actual-pages <selection>] [--force]
+             [--password-env <name>] [--comparison-password-env <name>]
   officeimo workflow optimize-images <input.docx|input.doc>... [--analyze]
              [--output <file> | --output-directory <folder>] [--format docx|doc|pdf]
              [--mode downsample|recompress|both] [--dpi <36-1200>] [--quality <1-100>] [--force]
@@ -46,6 +49,8 @@ Existing output is refused unless --force is supplied.
         Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null) {
         WorkflowCommandKind activeCommand = WorkflowCommandKind.Help;
         try {
+            if (args.FirstOrDefault() == "compare")
+                return await WorkflowCompareCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault()?.Equals("optimize-images", StringComparison.OrdinalIgnoreCase) == true)
                 return await WordImagesCommand.RunAsync(args.Skip(1).ToArray(), standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() == "batch")

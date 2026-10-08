@@ -18,6 +18,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
     private readonly Func<CancellationToken, Task<string?>> _pickSaveRedactionReport;
+    private readonly Func<CancellationToken, Task<string?>> _pickSaveComparisonReport;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly Func<CancellationToken, Task<byte[]?>> _pickImage;
@@ -128,7 +129,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickProvenanceFile = null,
         Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
-        bool supportsFolderNavigation = true) {
+        bool supportsFolderNavigation = true,
+        Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
@@ -139,6 +141,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         InitializeLocalizedReaderLayouts();
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
+        _pickSaveComparisonReport = pickSaveComparisonReport ?? (_ => Task.FromResult<string?>(null));
         _pickSaveRedactionReport = pickSaveRedactionReport ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));

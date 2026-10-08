@@ -478,3 +478,29 @@ dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- 
 ```
 
 The CLI remains a thin surface over the owning OfficeIMO packages; reusable conversion and extraction behavior belongs in those packages rather than in command handlers.
+
+### Selected PDF comparison reports
+
+```sh
+officeimo workflow compare current.pdf revised.pdf --output review.html \
+  --expected-pages 120-124,last --actual-pages 121-125,last
+```
+
+Each selector uses original document page numbers and preserves order. Null or an
+omitted selector selects the whole corresponding document. The comparison admits
+at most 100 selected pages per side. Pages pair by selection position; extra
+selected pages are unmatched. The standalone HTML report includes page links,
+selected scope, document totals, render limitations and snapshot SHA-256 values.
+It reports rendered appearance, without semantic or moved-page detection.
+Existing reports require `--force`. `--password-env` and
+`--comparison-password-env` read independently selected password environment
+variables; credentials stay out of the report.
+
+For MCP, inspect both PDFs first and pass their returned `sourceId` values to
+`officeimo_pdf_compare` as `sourceId` and `comparisonSourceId`, with an explicit
+separate `outputPath` ending in `.html`. Optional `expectedPages` and `actualPages`
+use the same selectors. Source ids are rechecked before capture and publication;
+changed sources require inspecting again. Both sources and the output remain
+within the host's allowed roots. `overwrite` explicitly permits replacing an
+existing report. Password variable names must be admitted by the trusted server
+host. The response contains bounded artifact metadata, not the embedded gallery.

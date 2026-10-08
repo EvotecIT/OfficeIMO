@@ -6,6 +6,7 @@ public sealed class AgentPdfWorkflowResult {
     public string Status { get; set; } = string.Empty;
     public string FailureKind { get; set; } = string.Empty;
     public bool Succeeded { get; set; }
+    public string? Summary { get; set; }
     public string? OutputPath { get; set; }
     public long OutputBytes { get; set; }
     public int ArtifactCount { get; set; }

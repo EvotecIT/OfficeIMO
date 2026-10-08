@@ -32,6 +32,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanMoveFormWidget));
         OnPropertyChanged(nameof(CanSetFormDefault));
         OnPropertyChanged(nameof(HasFormDrafts));
+        OnPropertyChanged(nameof(CanExportComparisonReport));
         OnPropertyChanged(nameof(HasUnassignedFormDrafts));
         OnPropertyChanged(nameof(CanApplyFormDrafts));
         OnPropertyChanged(nameof(IsDirty));

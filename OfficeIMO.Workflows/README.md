@@ -1896,6 +1896,26 @@ is a review aid; inspect the full saved document for whole-document fidelity.
 
 `RunAsync` also exposes PDF inspection, comparison, optimization, repair planning, repair, and sanitization through typed operations. `ExportPdfPagesAsync` exports selected PDF pages as images, `AssemblePdfAsync` combines supported PDFs, images, documents, folders, and ZIP archives, and `PdfPrintPlanner.Create` produces deterministic print-sheet placement plans.
 
+Compare selected rendered sequences and save the standalone report:
+
+```csharp
+OfficeWorkflowResult review = await OfficeWorkflow.Compare("current.pdf", "revised.pdf")
+    .ComparePages(PdfPageSelector.Parse("120-124,last"),
+        PdfPageSelector.Parse("121-125,last"))
+    .To("review.html")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+The request properties are `ComparisonExpectedPages` and
+`ComparisonActualPages`. Null selects all pages on that side. At most 100 selected
+pages per side are admitted, including repeats, with existing pixel and output
+budgets. Pages are paired by selection position; extra selected pages are
+unmatched. The health metrics distinguish total pages, selected source page
+numbers, paired pages and unmatched source pages. The report identifies both
+compared snapshots by SHA-256. It reports ordinal rendered appearance rather than
+semantic or moved-page changes. Neither input is rewritten; the output must be a
+separate HTML destination.
+
 Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
 `PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.

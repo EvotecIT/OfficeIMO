@@ -112,6 +112,7 @@ public sealed partial class MainWindow : Window {
                 new StudioFileType("Provenance assets", OfficeProvenanceWorkflowCatalog.All.SelectMany(item => item.Extensions).Select(extension => extension.TrimStart('.')).Distinct().ToArray()), token),
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
+            pickSaveComparisonReport: token => PickFileSafelyAsync(PickSaveComparisonReportAsync, token),
             pickSaveRedactionReport: token => PickFileSafelyAsync(PickSaveRedactionReportAsync, token),
             recentDocumentStore: _services.DocumentHistory.RecentDocuments,
             promptPdfPassword: PromptPdfPasswordAsync,
@@ -572,6 +573,18 @@ public sealed partial class MainWindow : Window {
             Title = _services.Localizer.Get("Redaction.ExportReport"),
             SuggestedFileName = "redaction-evidence.json", DefaultExtension = "json",
             FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"], MimeTypes = ["application/json"] }]
+        });
+        string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
+        return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;
+    }
+
+    private async Task<string?> PickSaveComparisonReportAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanSave) return null;
+        IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
+            Title = _services.Localizer.GetOrDefault("Comparison.ExportReport", "Export comparison report"),
+            SuggestedFileName = "comparison.html", DefaultExtension = "html",
+            FileTypeChoices = [new FilePickerFileType("HTML") { Patterns = ["*.html"], MimeTypes = ["text/html"] }]
         });
         string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
         return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;

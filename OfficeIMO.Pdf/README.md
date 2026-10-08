@@ -1286,6 +1286,38 @@ review. When setting a custom render scale or background, use the same values
 for `PageAlignment` and `Visual` so exact-page alignment remains valid review
 evidence.
 
+### Compare selected rendered page sequences
+
+Use independent page selectors to review short ranges from long PDFs without
+extracting temporary documents:
+
+```csharp
+PdfVisualComparisonReport report = source.Proof.CompareVisual(revised,
+    cancellationToken, options: new PdfVisualComparisonOptions {
+        ExpectedPages = PdfPageSelector.Parse("120-124,last"),
+        ActualPages = PdfPageSelector.Parse("121-125,last"),
+        MaxPages = 100
+    });
+string html = report.ToHtmlGallery("Section review", 96L * 1024 * 1024,
+    cancellationToken);
+```
+
+Selectors retain caller order and repeated pages. Their first entries form the
+first pair, their second entries form the second pair, and any remaining entries
+are unmatched. Null selects every page on that side. `ExpectedPageCount` and
+`ActualPageCount` are document totals; `ExpectedPageNumbers` and
+`ActualPageNumbers` contain the selected source pages. Each paired result retains
+both original page numbers. `UnmatchedExpectedPageNumbers` and
+`UnmatchedActualPageNumbers` describe selected entries without a partner.
+
+The standalone HTML gallery includes selected scope, totals, pair links, render
+limitations and SHA-256 identities of the compared snapshots. This comparison
+checks rendered appearances in the supplied order. It does not infer semantic
+changes or moved-page alignment; use the separate review APIs above when that
+analysis is needed. Selected-page, pixel, retained-image and HTML byte limits
+remain enforced. The legacy shared `selection` argument cannot be combined with
+independent selectors.
+
 ### Merge, reorder, delete, duplicate, move, and rotate
 
 ```csharp
