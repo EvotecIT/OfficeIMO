@@ -59,6 +59,8 @@ public sealed class OfficeVbaWriteOptions {
     public bool AllowSignatureRemoval { get; set; }
     /// <summary>Gets or sets the maximum complete compound-file output size; defaults to 64 MiB.</summary>
     public int MaximumProjectBytes { get; set; } = 64 * 1024 * 1024;
+    /// <summary>Gets or sets the aggregate existing VBA payload and child-part bytes retained for document-adapter recovery; defaults to 64 MiB.</summary>
+    public int MaximumRecoveryBytes { get; set; } = 64 * 1024 * 1024;
     /// <summary>Gets or sets the aggregate expanded directory and source limit; defaults to 64 MiB.</summary>
     public int MaximumExpandedBytes { get; set; } = 64 * 1024 * 1024;
 }

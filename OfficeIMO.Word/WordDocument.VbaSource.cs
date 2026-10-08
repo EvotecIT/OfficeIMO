@@ -32,9 +32,15 @@ public partial class WordDocument {
             bytes = prepared.Write(options).GetBytes();
         }
         MainDocumentPart main = _wordprocessingDocument.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-        if (OfficeVbaProjectPartEditor.Apply(main, main.VbaProjectPart, bytes, options, out VbaProjectPart part) && part.VbaDataPart == null) {
+        Action<VbaProjectPart>? initialize = main.VbaProjectPart?.VbaDataPart == null ? InitializeVbaData : null;
+        OfficeVbaProjectPartEditor.Apply(main, main.VbaProjectPart, bytes, options, out _, initialize);
+    }
+
+    private static void InitializeVbaData(VbaProjectPart part) {
+        if (part.VbaDataPart == null) {
             VbaDataPart data = part.AddNewPart<VbaDataPart>();
             data.VbaSuppData = new DocumentFormat.OpenXml.Office.Word.VbaSuppData();
+            data.VbaSuppData.Save();
         }
     }
 }

@@ -73,6 +73,14 @@ to 64 MiB. Configure `OfficeVbaReadOptions` and `OfficeVbaWriteOptions` for a
 different bounded workload. New module identifiers are ASCII VBA identifiers up
 to 31 characters; existing Unicode module identities remain readable.
 
+Document adapters retain a bounded recovery snapshot of the existing VBA payload
+and child parts while applying an update. `OfficeVbaWriteOptions.MaximumRecoveryBytes`
+controls that separate limit, which defaults to 64 MiB; `MaximumProjectBytes`
+continues to bound the new output, so a smaller replacement can replace a larger
+existing project. Recoverable storage failures restore the prior payload and
+child parts. If the backing storage also prevents restoration, the adapter throws
+an `AggregateException` containing both failures; discard that document instance.
+
 Word, Excel, and PowerPoint expose `ReadVbaProject()` and
 `SetVbaProject(OfficeVbaProject, ...)` over this same model. See their package
 READMEs for document usage. This API edits source and preserves existing form
