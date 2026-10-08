@@ -139,5 +139,56 @@
       "cla": "1378\u20131381 successful;1382 status not present in this snapshot. No legal/account action performed.",
       "merge": "Not performed; upstream maintainer acceptance remains separate."
     }
+  },
+  "runtimeQualification": {
+    "sourceCommit": "ec4b9ca7ac9ecb71066cd8ff908a05bedb324471",
+    "laneCommit": "2e5e2e4ba1cc2afafc3858c09bdc97a031e491b9",
+    "providerPins": {
+      "AngleSharp": "88eaf800519a815e9f2b8540853793a203e944f9",
+      "AngleSharp.Js": "01df7181bc933fff3d21c5f06d40ea7888004111",
+      "Jint": "77a87addbe78e9026c58594a2f27bb817d452832"
+    },
+    "sourceForkBackup": "AngleSharp remote branch fix/officeimo-runtime-1.8.3 matches the exact pin.",
+    "nativeGates": {
+      "default": 943,
+      "prefetched": 943,
+      "netstandard2": "0 warnings/0 errors"
+    },
+    "integratedWorkerGates": {
+      "net8.0": {
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0,
+        "trx": "integration/results/integrated-runtime-final-net8.trx"
+      },
+      "net10.0": {
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0,
+        "subsets": [
+          12,
+          8
+        ],
+        "trx": [
+          "integration/results/integrated-runtime-final-net10.trx",
+          "integration/results/integrated-runtime-transport-focus-net10.trx"
+        ],
+        "boundary": "Disjoint subsets match NET8 test IDs. Initial filter named two adjacent classes incorrectly; those cases were qualified once from the same compiled graph. Display names truncate long inline data, so identity uses distinct TRX test IDs."
+      }
+    },
+    "executionBoundary": "Serial test collections; ordinary request/startup deadlines unchanged. Prior startup failures remain separately retained, without an inferred cause.",
+    "compiledSourceChecks": 20,
+    "exactDeployedWorkerChecks": 22,
+    "localForkIdentityChecks": {
+      "PDB": 20,
+      "providerDllPdbCopies": 28,
+      "primaryWorkerCopies": 20
+    },
+    "longerDiagnosticBoundary": "15 assertions per framework use explicit 60-second requests; original-worker quirks setter failures reproduced. These are separate from ordinary-deadline gates.",
+    "claimsExcluded": [
+      "Full application/browser compatibility",
+      "Packaged worker distribution on every platform",
+      "Released static parser includes these retained-fork fixes"
+    ]
   }
 }
