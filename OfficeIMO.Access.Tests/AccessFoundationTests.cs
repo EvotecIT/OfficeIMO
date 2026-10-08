@@ -24,7 +24,7 @@ public sealed class AccessFoundationTests {
     public async Task IndependentNativeFixturesHaveBoundedInertHeaderEvidence(string name, AccessFormatProfile profile, AccessFileFormat format) {
         byte[] bytes = File.ReadAllBytes(Fixture(name));
         using var stream = new MemoryStream(bytes); stream.Position = 17;
-        using var document = await AccessDocument.LoadAsync(stream, new AccessLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        using var document = await AccessDocument.LoadAsync(stream, new AccessLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, DecodeCatalog = false });
         Assert.Equal(17, stream.Position); Assert.True(stream.CanRead);
         Assert.Equal(profile, document.Profile); Assert.Equal(format, document.Format);
         Assert.Equal(AccessCatalogStatus.NotDecoded, document.CatalogStatus);

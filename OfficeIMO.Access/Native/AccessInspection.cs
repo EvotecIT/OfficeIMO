@@ -8,7 +8,9 @@ public enum AccessCatalogStatus {
     /// <summary>New model; its collections contain the modeled objects.</summary>
     Modeled,
     /// <summary>The header is recognized, but object catalogs have not been decoded.</summary>
-    NotDecoded
+    NotDecoded,
+    /// <summary>Native catalog and selected table schemas are decoded; application payloads have separate qualification.</summary>
+    Decoded
 }
 
 /// <summary>Bounded, inert header evidence. It does not certify that the database is valid or unprotected.</summary>

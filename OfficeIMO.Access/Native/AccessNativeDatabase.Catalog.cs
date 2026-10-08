@@ -1,0 +1,130 @@
+using System.Collections.ObjectModel;
+using static OfficeIMO.Access.AccessNativeBinary;
+
+namespace OfficeIMO.Access;
+
+internal sealed partial class AccessNativeDatabase {
+    private readonly Dictionary<string, AccessNativeTable> _tables = new Dictionary<string, AccessNativeTable>(StringComparer.OrdinalIgnoreCase);
+    private readonly List<NativeCatalogRecord> _catalog = new List<NativeCatalogRecord>();
+    internal void LoadCatalog(CancellationToken cancellation) {
+        var catalog = Definition(2, "MSysObjects", cancellation);
+        using (var rows = new AccessNativeRowCursor(catalog, cancellation, rowLimit: MaxCatalogObjects)) {
+            while (rows.Read(cancellation)) {
+                if (_catalog.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access catalog exceeds MaxCatalogObjects.");
+                var record = new NativeCatalogRecord {
+                    Id = Convert.ToInt32(Field(catalog, rows, "Id", cancellation)),
+                    Name = Field(catalog, rows, "Name", cancellation) as string ?? throw new InvalidDataException("Native Access catalog name is missing."),
+                    Type = Convert.ToInt32(Field(catalog, rows, "Type", cancellation)),
+                    Flags = Convert.ToInt32(Field(catalog, rows, "Flags", cancellation)),
+                    Properties = Field(catalog, rows, "LvProp", cancellation) as byte[],
+                    Source = Field(catalog, rows, "Database", cancellation) as string,
+                    ForeignTable = Field(catalog, rows, "ForeignName", cancellation) as string,
+                    Connection = Field(catalog, rows, "Connect", cancellation) as string
+                };
+                _catalog.Add(record);
+                // Different catalog namespaces can legitimately reuse a name. Their typed collections check ambiguity independently.
+                var entry = new AccessCatalogEntry(_document, record.Name, record.Type, record.Flags) {
+                    NativeRecord = new AccessOpaqueValue(0, rows.Current.NativeBytes(), "Exact catalog row, including uninterpreted object metadata. Explicit raw inspection may contain credential-bearing metadata."),
+                    Owner = Field(catalog, rows, "Owner", cancellation) is byte[] owner ? new AccessOpaqueValue(9, owner, "Persisted security identifier; no authentication is performed.") : null
+                };
+                _document.Catalog.Items.Add(entry);
+            }
+        }
+        foreach (var record in _catalog.Where(x => x.Type == 2 && x.Name == "MSysDb")) {
+            var metadata = new AccessTable(_document, record.Name); LoadProperties(metadata, record.Properties, cancellation);
+            _document.Properties = metadata.Properties; _document.NativeProperties = metadata.NativeProperties;
+            _document.Diagnostics = metadata.Diagnostics;
+        }
+        foreach (var record in _catalog.Where(x => x.Type == 1)) {
+            cancellation.ThrowIfCancellationRequested();
+            if (record.Id <= 0) throw new InvalidDataException("Native Access local table has an invalid definition reference.");
+            bool system = (record.Flags & unchecked((int)0x80000002)) != 0;
+            if (!system && SelectedTables != null && !SelectedTables.Contains(record.Name)) continue;
+            var definition = Definition(record.Id & 0x00ffffff, record.Name, cancellation);
+            if (_tables.ContainsKey(record.Name)) throw new InvalidDataException("Native Access table names are ambiguous.");
+            _tables.Add(record.Name, definition);
+            var model = Model(definition, system);
+            LoadProperties(model, record.Properties, cancellation);
+            if (system) _document.SystemTables.AddNativeItem(model); else _document.Tables.AddNativeItem(model);
+        }
+        foreach (var record in _catalog.Where(x => x.Type == 4 || x.Type == 6)) {
+            if (SelectedTables != null && !SelectedTables.Contains(record.Name)) continue;
+            var table = new AccessTable(_document, record.Name) { LinkedTable = new AccessLinkedTableInfo(record.Source, record.ForeignTable, RedactConnection(record.Connection)) };
+            table.Columns.CatalogStatus = table.Indexes.CatalogStatus = AccessCatalogStatus.NotDecoded;
+            table.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.linked-table.inert", "Linked-table metadata is inspected without opening its source. External schema and rows are unavailable.", table.Id) });
+            _document.Tables.AddNativeItem(table);
+        }
+        _document.CatalogStatus = AccessCatalogStatus.Decoded;
+        _document.Tables.CatalogStatus = _document.SystemTables.CatalogStatus = _document.Catalog.CatalogStatus = AccessCatalogStatus.Decoded;
+        LoadComplexDefinitions(cancellation);
+        LoadRelationships(cancellation);
+        LoadQueries(cancellation);
+    }
+    private AccessTable Model(AccessNativeTable definition, bool system) {
+        var table = new AccessTable(_document, definition.Name) { NativeTable = definition, IsSystem = system }; definition.Model = table;
+        foreach (var native in definition.Columns) {
+            var column = new AccessColumn(table, native.Name, DataType(native), native.Type == 10 ? native.Size / 2 : (int?)null) {
+                IsAutoNumber = (native.Flags & 0x44) != 0, IsHyperlink = (native.Flags & 0x80) != 0, IsCalculated = native.Calculated,
+                Precision = native.Type == 16 ? native.Precision : (int?)null, Scale = native.Type == 16 ? native.Scale : (int?)null
+            };
+            native.Model = column; table.Columns.AddNativeItem(column);
+            native.RedactConnection = definition.Name == "MSysObjects" && native.Name == "Connect";
+            string? opaque = native.Calculated ? "calculated" : column.DataType == AccessDataType.Unknown ? "unknown-type" : native.Type == 16 && (native.Precision < 1 || native.Precision > 28 || native.Scale > 28) ? "decimal-precision" : null;
+            if (opaque != null) column.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.value.opaque." + opaque, "The field's native payload is retained exactly without evaluation, narrowing or coercion.", column.Id) });
+        }
+        foreach (var native in definition.Indexes) table.Indexes.AddNativeItem(new AccessIndex(table, native.Name,
+            native.Columns.Select(x => x.Model!).ToArray(), native.Type == 1, (native.Flags & 1) != 0, native.Type == 2, native.Descending));
+        table.Columns.CatalogStatus = table.Indexes.CatalogStatus = AccessCatalogStatus.Decoded;
+        return table;
+    }
+    private static object? Field(AccessNativeTable table, IAccessRowCursor rows, string name, CancellationToken cancellation) {
+        int ordinal = table.Columns.FindIndex(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, name));
+        return ordinal < 0 ? null : rows.GetValue(ordinal, cancellation);
+    }
+    private void LoadRelationships(CancellationToken cancellation) {
+        if (_tables.TryGetValue("MSysRelationships", out var definition)) {
+            var records = new Dictionary<string, List<NativeRelationshipField>>(StringComparer.OrdinalIgnoreCase);
+            using (var rows = new AccessNativeRowCursor(definition, cancellation, rowLimit: checked((long)MaxCatalogObjects * 10))) while (rows.Read(cancellation)) {
+                string name = (string?)Field(definition, rows, "szRelationship", cancellation) ?? throw new InvalidDataException("Native Access relationship has no name.");
+                if (!records.TryGetValue(name, out var fields)) records.Add(name, fields = new List<NativeRelationshipField>());
+                if (records.Count > MaxCatalogObjects || fields.Count == 10) throw new InvalidDataException("Native Access relationship metadata exceeds its limit.");
+                fields.Add(new NativeRelationshipField {
+                    ParentTable = (string?)Field(definition, rows, "szReferencedObject", cancellation), ParentColumn = (string?)Field(definition, rows, "szReferencedColumn", cancellation),
+                    ChildTable = (string?)Field(definition, rows, "szObject", cancellation), ChildColumn = (string?)Field(definition, rows, "szColumn", cancellation),
+                    Ordinal = Convert.ToInt32(Field(definition, rows, "icolumn", cancellation)), Count = Convert.ToInt32(Field(definition, rows, "ccolumn", cancellation)),
+                    Flags = Convert.ToInt32(Field(definition, rows, "grbit", cancellation))
+                });
+            }
+            foreach (var pair in records) {
+                var fields = pair.Value.OrderBy(x => x.Ordinal).ToArray();
+                if (fields.Length != fields[0].Count || fields.Where((x, i) => x.Ordinal != i || x.Count != fields.Length || x.Flags != fields[0].Flags).Any()) throw new InvalidDataException("Native Access relationship fields are incomplete or inconsistent.");
+                if (!_tables.TryGetValue(fields[0].ParentTable ?? "", out var parent) || parent.Model == null || !_tables.TryGetValue(fields[0].ChildTable ?? "", out var child) || child.Model == null) continue;
+                var mappings = fields.Select(x => new AccessRelationshipField(parent.Model.Columns[x.ParentColumn!], child.Model.Columns[x.ChildColumn!])).ToArray();
+                _document.Relationships.AddNativeItem(new AccessRelationship(_document, pair.Key, mappings, fields[0].Flags));
+            }
+        }
+        _document.Relationships.CatalogStatus = AccessCatalogStatus.Decoded;
+    }
+    internal static string? RedactConnection(string? connection) {
+        if (connection == null) return null;
+        // DbConnectionStringBuilder handles quoted semicolons and escaped credential values without provider activation.
+        try {
+            var builder = new System.Data.Common.DbConnectionStringBuilder();
+            string content = connection.TrimStart(';'); int separator = content.IndexOf(';');
+            string prefix = separator >= 0 && content.Substring(0, separator).IndexOf('=') < 0 ? content.Substring(0, separator + 1) : string.Empty;
+            builder.ConnectionString = content.Substring(prefix.Length);
+            foreach (string key in builder.Keys.Cast<string>().ToArray()) {
+                if (key.IndexOf(';') >= 0) return "[redacted: unparsed connection metadata]";
+                if (key.Equals("PWD", StringComparison.OrdinalIgnoreCase) || key.IndexOf("password", StringComparison.OrdinalIgnoreCase) >= 0 || key.Equals("UID", StringComparison.OrdinalIgnoreCase) || key.Equals("User ID", StringComparison.OrdinalIgnoreCase) || key.IndexOf("token", StringComparison.OrdinalIgnoreCase) >= 0 || key.IndexOf("secret", StringComparison.OrdinalIgnoreCase) >= 0) builder[key] = "[redacted]";
+            }
+            return prefix + builder.ConnectionString;
+        } catch (ArgumentException) { return "[redacted: unparsed connection metadata]"; }
+    }
+    private sealed class NativeCatalogRecord {
+        internal int Id, Type, Flags; internal string Name = string.Empty;
+        internal byte[]? Properties; internal string? Source, ForeignTable, Connection;
+    }
+    private sealed class NativeRelationshipField {
+        internal string? ParentTable, ParentColumn, ChildTable, ChildColumn; internal int Ordinal, Count, Flags;
+    }
+}

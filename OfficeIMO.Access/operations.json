@@ -14,7 +14,7 @@
     {
       "operation": "model.rows.read",
       "supported": true,
-      "boundary": "Forward-only DbDataReader over modeled rows; omitted values remain distinguishable from explicit nulls."
+      "boundary": "Forward-only DbDataReader over modeled or qualified native tables; modeled input retains omitted/null distinctions."
     },
     {
       "operation": "native.header.inspect",
@@ -23,13 +23,18 @@
     },
     {
       "operation": "native.catalog.read",
-      "supported": false,
-      "boundary": "No native table, query, relationship or application catalog decoding. Loaded collections are NotDecoded."
+      "supported": true,
+      "boundary": "Unprotected Jet4 and ACE12/14/16/17 catalog, selected table/column properties, index definitions, relationships and inert links. System/unknown catalog entries remain separate; application payloads and VBA are NotDecoded."
     },
     {
       "operation": "native.rows.read",
-      "supported": false,
-      "boundary": "Native Jet/ACE row codecs are not qualified."
+      "supported": true,
+      "boundary": "Bounded forward-only native scans, deleted/overflow/fragmented rows, lazy fields and incremental binary streams. Qualified scalar/Unicode/Memo/OLE, complex values, attachments, BigInt and extended-date profiles; calculated/unknown values retain bytes and diagnostics."
+    },
+    {
+      "operation": "native.query.records.read",
+      "supported": true,
+      "boundary": "Exact inert query records and typed parameter inventory. Simple single-table SELECT and two-part UNION SQL reconstruction is qualified; other query SQL remains explicitly unavailable."
     },
     {
       "operation": "native.create",
@@ -44,7 +49,7 @@
     {
       "operation": "native.convert",
       "supported": false,
-      "boundary": "MDB/ACCDB feature/loss mapping is not qualified."
+      "boundary": "Known complex-field, rich-text, BigInt and extended-date target losses are diagnosed. Native conversion and persistence remain unavailable."
     },
     {
       "operation": "application.objects.read",

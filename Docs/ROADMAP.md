@@ -543,7 +543,7 @@ These are outside P10 and must not displace unfinished baseline milestones: Prim
 
 ## Microsoft Access document library
 
-Extend `OfficeIMO.Access` into a native document library for `.accdb` and `.mdb`, covering database content and the application objects stored with it. The [current model and inspection contract](../OfficeIMO.Access/SUPPORT.md) defines the delivered foundation; native catalog/data decoding and writing remain unsupported. The [Access design](officeimo.access-design.md) defines codec ownership, the DbaClientX boundary and the remaining qualification contracts.
+Extend `OfficeIMO.Access` into a native document library for `.accdb` and `.mdb`, covering database content and the application objects stored with it. The [current native reader and model contract](../OfficeIMO.Access/SUPPORT.md) defines the delivered foundation and MDB/ACCDB reading. Application-payload decoding, preservation and native writing remain open. The [Access design](officeimo.access-design.md) defines codec ownership, the DbaClientX boundary and the remaining qualification contracts.
 
 The milestones below are the complete planned baseline, in dependency order. Each names a usable result and its closure evidence. A table reader, opaque application-object preservation, an ACE wrapper or a self-round-trip cannot close a native editing/creation milestone. Delivered contracts move to the package README and `OfficeIMO.Access/SUPPORT.md`; remaining work stays here. [Access implementation discipline](../AGENTS.md#access-implementation-discipline) owns task kickoff, handoff and scope-change rules.
 
@@ -566,8 +566,6 @@ The disposable Windows DAO and Access producer routes are qualified for the synt
 
 | ID | Deliverable | Prerequisites | Result at exit |
 | --- | --- | --- | --- |
-| A02 | Modern ACCDB reading and structured values | [A01 foundation contract](../OfficeIMO.Access/SUPPORT.md#qualified-foundation), qualified A00 fixtures | Useful portable schema/data inspection and streaming read product |
-| A03 | Jet 4 MDB reading and common model | A02 | Both main file families read through the same API with generation-specific evidence |
 | A04 | Application objects, VBA and opaque preservation | A02/A03 | Inert object inventory, supported typed read and proven no-op preservation |
 | A05 | Template-free native creation | A01/A03/A04 and A00 writer evidence | Independently opened fresh MDB and ACCDB files with schema/data/index/relationship content |
 | A06 | Native edits, structural safety and conversion | A04/A05 | Safe same-profile editing and explicit-loss MDB/ACCDB conversion |
@@ -581,28 +579,19 @@ A02 is the first useful read product, A06 the native database-lifecycle mileston
 
 ### A00 — Feasibility baseline
 
-The selected native route, profile/producer corpus, independent schema/object/report oracles and successful seed-free MDB/ACCDB catalog/table creation spikes are owned by the [feasibility contract](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility). The fixed creation probe is independently opened and consumed through DAO; it does not enable a production writer. Remaining native application carriers, general creation/editing, signature/protection variants, modern complex fields and the unavailable Jet 3 producer are explicit A04–A09 criteria below.
+The selected native route, profile/producer corpus, independent schema/object/report oracles and successful seed-free MDB/ACCDB catalog/table creation spikes are owned by the [feasibility contract](../OfficeIMO.Access/SUPPORT.md#independent-corpus-and-native-feasibility). The fixed creation probe is independently opened and consumed through DAO; it does not enable a production writer. Remaining native application carriers, general creation/editing, signature/protection variants, additional complex profiles and the unavailable Jet 3 producer are explicit A04–A09 criteria below.
 
 ### A01 — Foundation contract
 
-The public model/lifecycle/inspection examples and qualified failure behavior are owned by the [package README](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md#qualified-foundation). Remaining native row, object and persistence work belongs to A02–A09; support claims must stay within the generated operation catalog.
+The public model/lifecycle/inspection examples and qualified failure behavior are owned by the [package README](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md#qualified-foundation). Remaining object and persistence work belongs to A04–A09; support claims must stay within the generated operation catalog.
 
 ### A02 — Modern ACCDB reading and structured values
 
-- [ ] Decode the qualified ACE catalog, table/column properties, rows, deleted/overflow/fragmented storage, indexes and relationships into the shared model. Preserve system/unknown objects without presenting them as ordinary user tables.
-- [ ] Implement bounded metadata-only/selective inspection and forward-only typed table readers with deterministic schema, first-row access, explicit lifetime and cancellation. Keep large payloads lazy.
-- [ ] Qualify numeric precision, Currency/Decimal, Unicode/code pages, null/empty distinctions, date/time variants, GUID/AutoNumber, long text/binary, rich text, hyperlinks, lookup keys, attachments and multivalued fields. Newer feature profiles remain separate; unsupported values retain exact bytes and diagnostics.
-- [ ] Inspect linked-table definitions and credentials safely without resolving targets. Cover malformed page chains, truncated objects, duplicate/ambiguous names and cycles through credible fixtures.
-
-Acceptance: independent Access/DAO or another qualified decoder agrees on schema, row counts and typed values for every supported feature/profile. Complex values retain structure and bytes. Large-table readers satisfy deterministic limits/cancellation without full-file model materialization.
+The delivered catalog/schema/row readers, resource limits, scalar/structured values, redacted inert links and independent corpus evidence are owned by the [native reader contract](../OfficeIMO.Access/SUPPORT.md#native-reader-contract), [profile matrix](../OfficeIMO.Access/SUPPORT.md#profiles-and-qualification-boundaries) and [executable API examples](../OfficeIMO.Access/README.md). Application payloads and native persistence remain separate milestones.
 
 ### A03 — Jet 4 MDB reading and common model
 
-- [ ] Implement Jet 4 catalog/page/row/index and generation-specific property decoding through the same public model and streaming contracts as A02.
-- [ ] Qualify Access 2000/2002/2003 fixtures, legacy text encodings, Memo/OLE values, query objects, relationships, user/security metadata and generation-specific numeric/date behavior.
-- [ ] Establish the explicit MDB-versus-ACCDB feature mapping used later by conversion. Modern complex fields and unsupported properties must produce named losses rather than lossy automatic coercion.
-
-Acceptance: independently produced MDB and ACCDB files reach identical model semantics where formats overlap. File routing rejects mislabeled/cross-family data correctly, and no second public model or parser exists in DbaClientX/hosts.
+Jet 4 catalog/properties/rows, Access format 9/10 fixtures, inert query/security/link metadata and shared API semantics are owned by the [native reader contract](../OfficeIMO.Access/SUPPORT.md#native-reader-contract). The [MDB/ACCDB feature assessment](../OfficeIMO.Access/SUPPORT.md#mdb-and-accdb-feature-assessment) names target losses; it does not enable conversion. Jet 3 legacy encoding/lifecycle remains A09.
 
 ### A04 — Application objects, VBA and opaque preservation
 

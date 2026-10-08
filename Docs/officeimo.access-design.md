@@ -1,6 +1,6 @@
 # OfficeIMO.Access design
 
-This is the architecture and API direction for `OfficeIMO.Access`. The typed model, document lifecycle, operation assessment and bounded header inspection foundation are implemented; its current contract and qualification limits live in [Access support](../OfficeIMO.Access/SUPPORT.md). Native catalog decoding and writing remain open. Ordered delivery work and acceptance criteria live only in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
+This is the architecture and API direction for `OfficeIMO.Access`. The typed model, document lifecycle, operation assessment, bounded inspection and native MDB/ACCDB catalog/schema/row readers are implemented. Their current contract and qualification limits live in [Access support](../OfficeIMO.Access/SUPPORT.md). Application-payload decoding, preservation and native writing remain open. Ordered delivery work and acceptance criteria live only in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
 
 The product goal is to create, read, inspect, edit, preserve, and write Access files through one typed document model. Tables and rows are part of that model alongside saved queries, relationships, forms, reports, action macros, VBA modules, resources, and application metadata. Reading database rows alone does not satisfy this goal.
 
@@ -52,7 +52,7 @@ A thin `AsFluent()` surface may compose these operations after the typed API is 
 
 ## Lifecycle and API direction
 
-The [package README](../OfficeIMO.Access/README.md) and executable verification consumer define the implemented foundation API. The following example illustrates the intended native persistence and reading workflow; its save and native table-reading operations remain unsupported until their codec milestones are qualified.
+The [package README](../OfficeIMO.Access/README.md) and executable verification consumer define the implemented model and native reader API. The following example illustrates the intended persistence workflow; its `RequireNoLoss` and `Save` calls remain blocked until a native writer is qualified. Reading qualified unprotected MDB/ACCDB tables is implemented.
 
 ```csharp
 using OfficeIMO;

@@ -8,13 +8,19 @@ if (-not $scratchRoot) { throw 'Configure and verify a development scratch volum
 ./OfficeIMO.Access.Verification/New-AccessCorpus.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-table-corpus')
 ./OfficeIMO.Access.Verification/New-AccessApplicationCorpus.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-application-corpus')
 ./OfficeIMO.Access.Verification/New-AccessProfileCorpus.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-profile-corpus')
+./OfficeIMO.Access.Verification/New-AccessReaderCorpus.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-reader-corpus')
+./OfficeIMO.Access.Verification/New-AccessGenerationCorpus.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-generation-corpus')
 ./OfficeIMO.Access.Verification/Test-NativeBootstrap.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-bootstrap-control')
 ./OfficeIMO.Access.Verification/Test-NativeCreation.ps1 -OutputDirectory (Join-Path $scratchRoot 'access-native-creation') -ArtifactsDirectory (Join-Path $scratchRoot 'access-verification-build')
 ```
 
 `Test-NativeBootstrap` is a failed-creation negative control; its rejection is not writer qualification. `Test-NativeCreation` generates MDB and ACCDB pages from logical definitions without seeds, then independently observes tables, typed rows, primary/foreign indexes, index seek and relationships through DAO. Constraint violations are tested on separate owned copies. The resulting manifest and expected-value exports qualify a fixed feasibility spike; the production package still has no native Save codec. The generator can also run portably through `--bootstrap <fresh-directory>`; DAO consumption requires Windows.
 
-The application corpus creates and exports a simple form/report, inert module and `StopMacro`, exports the report to PDF, and releases its owned application. The profile corpus creates only synthetic protection inputs, BigInt values and an extended date/time field definition; it records the unavailable Jet 3 producer. Signature, native application-carrier, complex-field and protection-codec qualification remain explicit later-milestone work.
+The application corpus creates and exports a simple form/report, inert module and `StopMacro`, exports the report to PDF, and releases its owned application. The profile corpus creates only synthetic protection inputs, BigInt values and an extended date/time field definition; it records the unavailable Jet 3 producer. Signature, native application-carrier and protection-codec qualification remain explicit later-milestone work.
+
+The reader corpus qualifies typed scalars, deleted/grown rows, composite relationships/indexes, rich text, lookup properties, multivalued text and attachment metadata/bytes. It uses the installed ACE OLE DB engine only to define Decimal precision/scale, then independently observes persisted data through read-only DAO. The generation corpus uses Access format 9/10 MDB creation and read-only DAO observations for legacy values and saved queries. It also qualifies calculated-field opaque representations, Large Number and extended dates. A controlled scale-seven extended-date value mutation is explicitly labeled in its manifest and independently consumed by DAO; the host's producer persists scale zero. Neither producer route enters the shipped library or its dependency graph.
+
+The executable consumer exercises the public native API, `DataTable.Load`, selective schema loading, incremental binary access, structured values, redacted inert links, precision-sensitive modern values and unsupported query/persistence behavior. The checked-in fixture manifests own hashes, byte sizes, provenance and observations.
 
 Run the consumer and generate the operation contract from the canonical library catalog:
 

@@ -5,31 +5,36 @@ using System.Globalization;
 
 namespace OfficeIMO.Access;
 
-/// <summary>Forward-only modeled-row reader. Disposal releases an edit-blocking lease; this slice does not decode native rows.</summary>
+/// <summary>Forward-only typed reader for modeled or qualified native rows. Disposal releases its document lease.</summary>
 public sealed class AccessDataReader : DbDataReader {
     private readonly AccessTable _table;
     private readonly CancellationToken _cancellation;
-    private int _row = -1;
+    private readonly IAccessRowCursor _cursor;
     private bool _closed;
-    internal AccessDataReader(AccessTable table, CancellationToken cancellation) { _table = table; _cancellation = cancellation; table.Document.AcquireReader(); }
+    internal AccessDataReader(AccessTable table, CancellationToken cancellation, IAccessRowCursor? cursor = null) {
+        _table = table; _cancellation = cancellation; table.Document.AcquireReader();
+        try { _cursor = cursor ?? (table.NativeTable == null ? new AccessModeledRowCursor(table) : new AccessNativeRowCursor(table.NativeTable, cancellation)); }
+        catch { table.Document.ReleaseReader(); throw; }
+    }
     private void Check() {
         if (_closed) throw new ObjectDisposedException(nameof(AccessDataReader));
         _table.EnsureAttached(); _cancellation.ThrowIfCancellationRequested();
     }
     private AccessColumn Column(int ordinal) { Check(); return _table.Columns[ordinal]; }
-    private Dictionary<string, object?> Current {
-        get { Check(); if (_row < 0 || _row >= _table.Rows.Count) throw new InvalidOperationException("Call Read before accessing a current row."); return _table.Rows[_row]; }
-    }
     /// <summary>Distinguishes an omitted input value from an explicit null.</summary>
-    public bool IsSpecified(int ordinal) => Current.ContainsKey(Column(ordinal).Name);
+    public bool IsSpecified(int ordinal) { Column(ordinal); return _cursor.IsSpecified(ordinal); }
     /// <inheritdoc />
-    public override bool Read() { Check(); if (_row < _table.Rows.Count) _row++; return _row < _table.Rows.Count; }
+    public override bool Read() { Check(); return _cursor.Read(_cancellation); }
     /// <inheritdoc />
-    public override Task<bool> ReadAsync(CancellationToken cancellationToken) { cancellationToken.ThrowIfCancellationRequested(); return Task.FromResult(Read()); }
+    public override Task<bool> ReadAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested(); Check();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(_cancellation, cancellationToken);
+        return Task.FromResult(_cursor.Read(linked.Token));
+    }
     /// <inheritdoc />
     public override int FieldCount { get { Check(); return _table.Columns.Count; } }
     /// <inheritdoc />
-    public override bool HasRows { get { Check(); return _table.Rows.Count != 0; } }
+    public override bool HasRows { get { Check(); return _cursor.HasRows; } }
     /// <inheritdoc />
     public override bool IsClosed => _closed;
     /// <inheritdoc />
@@ -48,20 +53,23 @@ public sealed class AccessDataReader : DbDataReader {
         throw new IndexOutOfRangeException($"No field named '{name}'.");
     }
     /// <inheritdoc />
-    public override object GetValue(int ordinal) => Current.TryGetValue(Column(ordinal).Name, out object? value) ? AccessTable.CopyValue(value) ?? DBNull.Value : DBNull.Value;
+    public override object GetValue(int ordinal) { Column(ordinal); return AccessTable.CopyValue(_cursor.GetValue(ordinal, _cancellation)) ?? DBNull.Value; }
     /// <inheritdoc />
     public override int GetValues(object[] values) {
         if (values == null) throw new ArgumentNullException(nameof(values));
         int count = Math.Min(values.Length, FieldCount); for (int i = 0; i < count; i++) values[i] = GetValue(i); return count;
     }
     /// <inheritdoc />
-    public override bool IsDBNull(int ordinal) => GetValue(ordinal) == DBNull.Value;
+    public override bool IsDBNull(int ordinal) { Column(ordinal); return _cursor.IsNull(ordinal); }
     /// <inheritdoc />
     public override Type GetFieldType(int ordinal) => Column(ordinal).DataType switch {
         AccessDataType.AutoNumber or AccessDataType.Int32 => typeof(int),
         AccessDataType.ShortText or AccessDataType.LongText => typeof(string), AccessDataType.Currency => typeof(decimal),
         AccessDataType.Double => typeof(double), AccessDataType.Boolean => typeof(bool), AccessDataType.DateTime => typeof(DateTime),
-        AccessDataType.Guid => typeof(Guid), AccessDataType.Binary => typeof(byte[]), _ => throw new NotSupportedException()
+        AccessDataType.Guid => typeof(Guid), AccessDataType.Binary => typeof(byte[]), AccessDataType.Byte => typeof(byte),
+        AccessDataType.Int16 => typeof(short), AccessDataType.Int64 => typeof(long), AccessDataType.Single => typeof(float),
+        AccessDataType.Decimal => Column(ordinal).Precision < 1 || Column(ordinal).Precision > 28 || Column(ordinal).Scale > 28 ? typeof(AccessOpaqueValue) : typeof(decimal), AccessDataType.ExtendedDateTime => typeof(DateTime),
+        AccessDataType.Complex => Column(ordinal).ComplexDefinition == null ? typeof(AccessOpaqueValue) : typeof(AccessComplexValue), AccessDataType.Unknown => typeof(AccessOpaqueValue), _ => throw new NotSupportedException()
     };
     /// <inheritdoc />
     public override string GetDataTypeName(int ordinal) => Column(ordinal).DataType.ToString();
@@ -96,7 +104,17 @@ public sealed class AccessDataReader : DbDataReader {
     /// <inheritdoc />
     public override string GetString(int ordinal) => (string)GetValue(ordinal);
     /// <inheritdoc />
-    public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => CopyRange((byte[])GetValue(ordinal), dataOffset, buffer, bufferOffset, length);
+    public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) {
+        using var stream = GetStream(ordinal);
+        if (dataOffset < 0 || dataOffset > stream.Length) throw new ArgumentOutOfRangeException(nameof(dataOffset));
+        if (buffer == null) return stream.Length;
+        if (bufferOffset < 0 || length < 0 || bufferOffset > buffer.Length - length) throw new ArgumentOutOfRangeException(nameof(bufferOffset));
+        var skip = new byte[checked((int)Math.Min(dataOffset, 8192))]; long remaining = dataOffset;
+        while (remaining > 0) { int read = stream.Read(skip, 0, (int)Math.Min(skip.Length, remaining)); if (read == 0) throw new InvalidDataException("Native Access binary value is truncated."); remaining -= read; }
+        return stream.Read(buffer, bufferOffset, length);
+    }
+    /// <inheritdoc />
+    public override Stream GetStream(int ordinal) { Column(ordinal); return _cursor.OpenBinary(ordinal, _cancellation); }
     /// <inheritdoc />
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => CopyRange(GetString(ordinal).ToCharArray(), dataOffset, buffer, bufferOffset, length);
     private static long CopyRange<T>(T[] source, long dataOffset, T[]? buffer, int bufferOffset, int length) {
@@ -107,7 +125,7 @@ public sealed class AccessDataReader : DbDataReader {
         Array.Copy(source, dataOffset, buffer, bufferOffset, count); return count;
     }
     /// <inheritdoc />
-    public override void Close() { if (_closed) return; _closed = true; _table.Document.ReleaseReader(); }
+    public override void Close() { if (_closed) return; _closed = true; try { _cursor.Dispose(); } finally { _table.Document.ReleaseReader(); } }
     /// <inheritdoc />
     protected override void Dispose(bool disposing) { if (disposing) Close(); base.Dispose(disposing); }
 }

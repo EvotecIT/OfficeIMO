@@ -44,13 +44,33 @@ public sealed class AccessCreateOptions : DocumentCreateOptions {
 
 /// <summary>Bounded native inspection and document ownership options.</summary>
 public sealed class AccessLoadOptions : DocumentLoadOptions {
+    /// <summary>Decode qualified native catalogs and schema. Rows and long values remain lazy. False retains header-only inspection.</summary>
+    public bool DecodeCatalog { get; set; } = true;
+    /// <summary>Optional case-insensitive user-table selection. Null loads every user-table definition.</summary>
+    public IReadOnlyCollection<string>? TableNames { get; set; }
     /// <summary>Maximum bytes snapshotted from input, including a non-seekable stream.</summary>
     public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum physical pages accepted before any catalog decoding.</summary>
     public int MaxPages { get; set; } = 16_384;
+    /// <summary>Maximum catalog objects, including system and unknown objects.</summary>
+    public int MaxCatalogObjects { get; set; } = 4096;
+    /// <summary>Maximum total native bytes decoded as catalog, schema, property and query metadata, including repeated references. The input snapshot is bounded separately.</summary>
+    public int MaxMetadataBytes { get; set; } = 4 * 1024 * 1024;
+    /// <summary>Maximum bytes materialized for a field or attachment.</summary>
+    public int MaxValueBytes { get; set; } = 32 * 1024 * 1024;
+    /// <summary>Maximum rows traversed by one reader, including complex-value scans.</summary>
+    public long MaxRows { get; set; } = 1_000_000;
+    /// <summary>Maximum links followed in a table-definition, overflow or long-value chain.</summary>
+    public int MaxChainLength { get; set; } = 16_384;
     internal void Validate() {
         if (MaxInputBytes < 1 || MaxInputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
         if (MaxPages < 1) throw new ArgumentOutOfRangeException(nameof(MaxPages));
+        if (MaxCatalogObjects < 1) throw new ArgumentOutOfRangeException(nameof(MaxCatalogObjects));
+        if (MaxMetadataBytes < 63) throw new ArgumentOutOfRangeException(nameof(MaxMetadataBytes));
+        if (MaxValueBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxValueBytes));
+        if (MaxRows < 1) throw new ArgumentOutOfRangeException(nameof(MaxRows));
+        if (MaxChainLength < 1) throw new ArgumentOutOfRangeException(nameof(MaxChainLength));
+        if (TableNames != null) foreach (string name in TableNames) AccessNamedObject.ValidateName(name);
         if (!Enum.IsDefined(typeof(DocumentAccessMode), AccessMode)) throw new ArgumentOutOfRangeException(nameof(AccessMode));
         if (!Enum.IsDefined(typeof(DocumentPersistenceMode), PersistenceMode)) throw new ArgumentOutOfRangeException(nameof(PersistenceMode));
         if (PackageSecurity != null) throw new NotSupportedException("Access databases are paged database files. PackageSecurity is not an Access protection policy.");

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Access and DAO",
+  "license": "MIT (synthetic OfficeIMO fixtures)",
+  "files": [
+    {
+      "path": "access2000.mdb",
+      "accessFileFormat": 9,
+      "accessVersion": "08.50",
+      "sha256": "311ab3b4ddb3853a5659c4e315878fe83e43f7eadc04c0c3a9ad12361d7382be",
+      "length": 208896,
+      "linkedTarget": "Synthetic self-link; native readers must never resolve it",
+      "daoObservation": {
+        "consumer": "DAO independent read-only reopen",
+        "values": {
+          "Id": 1,
+          "Label": "Zażółć 漢字",
+          "Notes": "Legacy Memo",
+          "Link": "Caption#https://example.invalid/path#section#Tooltip",
+          "Occurred": "2000-02-29T12:34:56"
+        },
+        "queries": {
+          "LegacyNames": "SELECT Id, Label\r\nFROM Legacy\r\nORDER BY Id;\r\n",
+          "LegacyRawUnion": "SELECT Id FROM Legacy UNION ALL SELECT Id FROM Legacy;\r\n",
+          "LegacyStarExpression": "SELECT Id+1 AS NextId, *\r\nFROM Legacy;\r\n",
+          "LegacyGrouped": "SELECT Label, Count(*) AS Total\r\nFROM Legacy\r\nGROUP BY Label;\r\n"
+        }
+      }
+    },
+    {
+      "path": "access2002-2003.mdb",
+      "accessFileFormat": 10,
+      "accessVersion": "09.50",
+      "sha256": "5126cecbfede2b96a0517f8c4fa0a31759924ff49ea976bda31554aa1a093aaa",
+      "length": 208896,
+      "linkedTarget": "Synthetic self-link; native readers must never resolve it",
+      "daoObservation": {
+        "consumer": "DAO independent read-only reopen",
+        "values": {
+          "Id": 1,
+          "Label": "Zażółć 漢字",
+          "Notes": "Legacy Memo",
+          "Link": "Caption#https://example.invalid/path#section#Tooltip",
+          "Occurred": "2000-02-29T12:34:56"
+        },
+        "queries": {
+          "LegacyNames": "SELECT Id, Label\r\nFROM Legacy\r\nORDER BY Id;\r\n",
+          "LegacyRawUnion": "SELECT Id FROM Legacy UNION ALL SELECT Id FROM Legacy;\r\n",
+          "LegacyStarExpression": "SELECT Id+1 AS NextId, *\r\nFROM Legacy;\r\n",
+          "LegacyGrouped": "SELECT Label, Count(*) AS Total\r\nFROM Legacy\r\nGROUP BY Label;\r\n"
+        }
+      }
+    },
+    {
+      "path": "extended-values.accdb",
+      "sha256": "ceacf8798f4454d3caad8eed4de296182a1d2b5b51521306891d3828341c8cdf",
+      "length": 188416,
+      "headerVersion": 6,
+      "daoObservation": {
+        "date": "01/02/0002 03:04:05.0000000",
+        "large": 9223372036854775807
+      }
+    },
+    {
+      "path": "fractional-values.accdb",
+      "producer": "Controlled 42-byte value mutation of the Access/DAO source",
+      "consumer": "DAO read-only reopen",
+      "sha256": "7398ee9bc524775c46d1afecf783f67869da76f20875259d0ade24b31c0dcf41",
+      "length": 188416,
+      "daoObservation": {
+        "date": "01/02/0002 03:04:05.1234567",
+        "large": 9223372036854775807
+      }
+    },
+    {
+      "path": "calculated-ace14.accdb",
+      "sha256": "5509a63a2fdceb85e7943e9926c4b6e59851cbaa41cf5912bd1c1fe281459ff9",
+      "length": 188416,
+      "headerVersion": 3,
+      "daoObservation": {
+        "id": 41,
+        "value": 42
+      },
+      "nativeContract": "Exact calculated representation and expression metadata; OfficeIMO does not evaluate it"
+    }
+  ]
+}

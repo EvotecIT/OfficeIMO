@@ -1,6 +1,6 @@
 # Access support and feasibility
 
-The current public contract is a typed model and inert header inspection. [CAPABILITIES.md](CAPABILITIES.md) and [operations.json](operations.json) are generated from `AccessCapabilities.cs`; supported native operations require independent evidence in addition to header recognition. The executable consumer in `OfficeIMO.Access.Verification` owns the example contract.
+The public contract covers a typed model, bounded native inspection and portable catalog/schema/row reading for qualified unprotected Jet 4 and ACE layouts. [CAPABILITIES.md](CAPABILITIES.md) and [operations.json](operations.json) are generated from `AccessCapabilities.cs`. The executable consumer in `OfficeIMO.Access.Verification` owns the public example contract. Native persistence and application-payload decoding remain unsupported.
 
 ## Qualified foundation
 
@@ -12,14 +12,50 @@ Foundation tests cover stream ownership and position, byte/page budgets, malform
 
 | Profile | Header code / page size | Independent producer evidence | Current operations |
 | --- | --- | --- | --- |
-| Jet 4 MDB | `1` / 4096 | DAO 16 synthetic indexed tables, values, relationship and parameter query; Access 16 forms, report, inert VBA module and PDF output | Header inspection; no native catalog/data decoding or writing |
-| ACE 12 ACCDB | `2` / 4096 | Same independent workflow | Header inspection; no native catalog/data decoding or writing |
+| Jet 4 MDB | `1` / 4096 | DAO 16 tables, typed values, indexes, relationships and queries; Access format 9 (2000) and 10 (2002/2003) files | Catalog, schema, properties, rows, index definitions, relationships and query records |
+| ACE 12 ACCDB | `2` / 4096 | DAO 16 scalar/fragmented tables, attachments and multivalued fields, read-only schema/value exports | Same read API, plus qualified structured values |
 | Jet 3 MDB | `0` / 2048 | Representative Access 97 producer fixture still required | Header recognition only |
-| ACE 14 | `3`, subversion `1` / 4096 | DAO password-required database, independently reopened with a synthetic password; encryption requested at creation | Header inspection; no protection decoding or decryption |
-| ACE 16 | `5` / 4096 | DAO BigInt field and independently observed `5,000,000,000` value | Header inspection; no native value decoding |
-| ACE 17 | `6` / 4096 | DAO extended date/time field definition (type `26`); no precision-value fixture | Header inspection; no native value decoding |
+| ACE 14 | `3`, subversion `1` / 4096 | DAO calculated field and independent value observation; separate password-required fixture | Unprotected catalog/rows; calculated payload is exact opaque data with diagnostics. Protected catalogs remain unavailable |
+| ACE 16 | `5` / 4096 | DAO BigInt definition and independently observed `5,000,000,000` value | Catalog/rows and native signed 64-bit integers |
+| ACE 17 | `6` / 4096 | DAO type `26` values outside ordinary Date/Time range and controlled fractional probe independently read by DAO | Catalog/rows, Large Number and Date/Time Extended with scale-sensitive 100 ns precision |
 
-Generation codes are physical compatibility gates, not a claim about the producing application's marketing version. Later producer applications can create older profiles. Unknown signatures/generations are rejected before a page size is assumed. Inspection diagnoses the catalog as not decoded, protection as not assessed, and structure as not validated beyond page alignment. Compiled databases, add-ins, signed packages, ADP and database templates have no qualified lifecycle in this slice.
+Generation codes are physical compatibility gates, not a claim about the producing application's marketing version. Modern Access produced the format 9/10 fixtures; this is not execution evidence from original Access 2000/2003 applications. Unknown signatures/generations are rejected before a page size is assumed. Header-only inspection keeps catalogs not decoded, protection not assessed and structure unvalidated beyond alignment. Loading an unprotected supported profile decodes the catalog separately. Path loading rejects cross-family suffixes and compiled/add-in/package/template suffixes; stream loading uses content. No reader operation authenticates users or decrypts protected pages.
+
+## Native reader contract
+
+The A02/A03 reader uses one schema and `DbDataReader` API for MDB and ACCDB. Required system catalogs are separate from selected user tables. The catalog retains unknown object types and exact native records; form/report/macro/VBA payload collections remain `NotDecoded` even when tables are decoded. Linked definitions expose redacted connection metadata and never open their targets. Explicit raw catalog records may contain credentials and require caller-controlled handling.
+
+| Feature | Qualified read behavior and evidence |
+| --- | --- |
+| Catalog and properties | Table/column names, storage flags, database code page/sort metadata and MR2 property maps; unknown maps retain exact bytes and diagnostics |
+| Rows | Forward-only owned-page scans with deleted rows skipped, overflow pointers followed, fragmented/grown row layout and declared live-count verification at EOF |
+| Indexes and relationships | Primary/unique/foreign flags, ordered fields, descending members and composite cascade relationships; index-root page validation. Index key lookup and constraint execution are outside this reader contract |
+| Numeric values | Boolean, Byte, Int16, Int32/AutoNumber, Single, Double, Currency, qualified Decimal precision up to 28 and Large Number Int64. Wider/undeclared Decimal precision retains opaque bytes |
+| Text and binary | Jet 4/ACE UTF-16 and compressed Unicode, Polish/Arabic/CJK/emoji, null versus empty, Memo/long text, inline/chained OLE and binary bytes. Database code-page metadata is retained; Jet 3 legacy byte encodings remain unqualified |
+| Dates and identities | Ordinary Date/Time including pre-epoch/leap dates, GUID and extended Date/Time with persisted scale 0–7; dates have unspecified timezone |
+| Field presentation | Rich-text markup, hyperlink strings and lookup properties/keys retained without rendering, navigation or value substitution |
+| Complex values | Multivalued text and attachments retain parent key, typed backing schema/rows and exact encoded content; attachment decode checks the native envelope, zlib checksum and expansion limit. Other backing structures expose native rows without claiming a qualified convenience interpretation |
+| Queries | Exact native records and parameter inventory; qualified simple single-table SELECT (including wildcard/expressions) and two-part UNION reconstruction. Other shapes keep `HasSql=false` and diagnostics; no SQL is executed |
+| Calculated/unknown fields | Exact `AccessOpaqueValue`, expression metadata and column diagnostics; no evaluation or silent coercion |
+| Security metadata | Catalog owner SID bytes and system permission records are inspectable; no authentication, permission enforcement or security-policy changes |
+
+Loading retains one bounded file snapshot, rather than mapping the file or materializing all rows. Defaults are 64 MiB input, 16,384 pages, 4,096 catalog objects, 4 MiB total decoded metadata, 32 MiB per value/attachment, one million rows traversed per reader and 16,384 chain links. Total metadata accounting includes repeated references. Table selection limits user-schema decoding; required system metadata still consumes its budget. Row/field decoding is lazy. `IsDBNull` does not load a long value, and binary streams advance through native chunks. Attachment content and ordinary `GetValue` binary access allocate only when requested. Complex scans count every backing row traversed against their row limit.
+
+Readers expose deterministic schema before the first row and support `DataTable.Load`. Cancellation and document disposal invalidate traversal/streams. Native documents are immutable, including loads requested with read/write access. Malformed definition/overflow/long-value chains, bad page/row references, truncation, duplicate schema names and excessive budgets fail explicitly. A damaged late user row does not prevent opening its earlier valid rows; failure occurs when the scan reaches it. This bounds the qualification claim to traversed/decoded structures, rather than certifying every page on load.
+
+## MDB and ACCDB feature assessment
+
+`AssessSave` records the following named target losses before any future codec can write. All native save/conversion operations remain unsupported; these assessments never authorize automatic flattening.
+
+| Feature/target | Diagnostic code |
+| --- | --- |
+| Attachments, multivalued and other complex fields to MDB | `access.conversion.loss.complex.<kind>` |
+| Rich text to MDB | `access.conversion.loss.rich-text` |
+| Large Number to Jet or ACE 12/14 | `access.conversion.loss.large-number` |
+| Date/Time Extended to profiles other than ACE 17 | `access.conversion.loss.extended-date` |
+| Calculated field to Jet or ACE 12 | `access.conversion.loss.calculated` |
+
+Unsupported property maps, calculated values and application carriers stay exact opaque metadata or explicitly undecoded. The unavailable writer blocks persistence and preservation claims for these definitions, including unknown properties whose semantic conversion is not established.
 
 ## Reusable owners
 
@@ -40,7 +76,11 @@ Generation codes are physical compatibility gates, not a claim about the produci
 
 The table corpus is checked in with independent expected-value exports. Schema, index definitions and relationships are observed after a read-only DAO reopen. Application-object fixtures and exports are also project-owned synthetic evidence. Access creates and re-exports a form, report, inert VBA module and inert `StopMacro` action macro in both file families. Macro text import uses the `SaveAsText` envelope rather than clipboard XML. No macro or module is executed.
 
-`New-AccessProfileCorpus.ps1` creates the profile/protection corpus under `Fixtures/Profiles`. DAO rejects an open without the synthetic password and independently reopens the protected files with it. OfficeIMO still reports protection as not assessed and does not decrypt these files. Modern feature definitions raise the physical header compatibility gates independently of the producer's application version. Jet 3 creation through the installed engine fails with “Could not find installable ISAM”; a genuine legacy producer remains required. Signature carriers, calculated/complex fields, precision-sensitive extended date values and additional protection variants remain qualification work in A04/A09.
+`New-AccessProfileCorpus.ps1` creates the profile/protection corpus under `Fixtures/Profiles`. DAO rejects an open without the synthetic password and independently reopens the protected files with it. OfficeIMO still reports protection as not assessed and does not decrypt these files. Modern feature definitions raise the physical header compatibility gates independently of the producer's application version. Jet 3 creation through the installed engine fails with “Could not find installable ISAM”; a genuine legacy producer remains required. Signature carriers and additional protection variants remain qualification work in A04/A09.
+
+`New-AccessReaderCorpus.ps1` produces [the scalar/complex corpus](../OfficeIMO.Access.Tests/Fixtures/Readers/manifest.json), including deleted/grown rows, composite indexes/relationships, Unicode/Memo/OLE, exact Currency/Decimal boundaries, rich text, lookup properties, multivalued text and attachment files. The installed ACE OLE DB engine defines Decimal precision/scale in this validation-only producer; DAO independently reopens the files read-only and exports schema, rows, complex children and decoded attachment bytes. Neither engine is a product dependency.
+
+`New-AccessGenerationCorpus.ps1` produces [the generation corpus](../OfficeIMO.Access.Tests/Fixtures/Generations/manifest.json). Access explicitly creates format 9 and 10 MDB files; independent read-only DAO observations retain their values and saved query text. Synthetic self/password links are inventory-only. Separate DAO-produced ACE files cover calculated representations, Int64 and extended dates. The installed producer persists the extended date at scale zero; a controlled 42-byte mutation creates the seven-digit fractional probe, and an independent read-only DAO consumer confirms all fractional digits. The manifest distinguishes this controlled mutation from an Access-produced value. Native reader tests compare the persisted scale and do not silently round it.
 
 `Test-NativeBootstrap.ps1` is a negative control: it writes a header and page-type skeleton without copying a seed file. DAO rejects both MDB and ACCDB controls (`0x800A0C0F`). This proves that header recognition is insufficient; it does **not** prove template-free native creation. No native writer is enabled by this result.
 

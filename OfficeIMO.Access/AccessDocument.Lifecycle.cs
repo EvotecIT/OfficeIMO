@@ -23,7 +23,8 @@ public sealed partial class AccessDocument {
     public static AccessInspection Inspect(string path, AccessLoadOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new AccessLoadOptions(); options.Validate(); cancellationToken.ThrowIfCancellationRequested();
         using var stream = File.OpenRead(path);
-        return InspectBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
+        var inspection = InspectBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
+        ValidateSourcePath(path, inspection); return inspection;
     }
     /// <summary>Inspects caller-owned input. Seekable input starts at zero and its position is restored.</summary>
     public static AccessInspection Inspect(Stream stream, AccessLoadOptions? options = null, CancellationToken cancellationToken = default) {
@@ -31,31 +32,48 @@ public sealed partial class AccessDocument {
         return InspectBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
     }
     private static AccessInspection InspectBytes(byte[] bytes, AccessLoadOptions options, CancellationToken cancellationToken) => AccessInspection.Read(bytes, options, cancellationToken);
-    private static AccessDocument FromInspection(AccessInspection inspection, AccessLoadOptions options) {
-        var document = new AccessDocument(inspection.Format, options.AccessMode, inspection);
-        document._inputLimit = options.MaxInputBytes; document._pageLimit = options.MaxPages; return document;
+    private static void ValidateSourcePath(string path, AccessInspection inspection) {
+        string extension = Path.GetExtension(path).ToLowerInvariant();
+        if (extension != ".mdb" && extension != ".accdb") throw new NotSupportedException("Native Access source paths require .mdb or .accdb. Use stream inspection for an independently identified payload.");
+        if ((extension == ".mdb") != (inspection.Format == AccessFileFormat.Mdb)) throw new InvalidDataException("The Access source extension and detected file family disagree.");
     }
-    /// <summary>Loads header evidence into an inert model. Native object collections remain NotDecoded.</summary>
+    private static AccessDocument FromBytes(byte[] bytes, AccessLoadOptions options, CancellationToken cancellationToken, string? path = null) {
+        var inspection = InspectBytes(bytes, options, cancellationToken);
+        if (path != null) ValidateSourcePath(path, inspection);
+        var document = new AccessDocument(inspection.Format, options.AccessMode, inspection);
+        document._inputLimit = options.MaxInputBytes; document._pageLimit = options.MaxPages;
+        try {
+            if (options.DecodeCatalog) {
+                var native = new AccessNativeDatabase(document, bytes, options);
+                document.NativeDatabase = native;
+                if (native.CanDecode(out string reason)) native.LoadCatalog(cancellationToken);
+                else document.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.catalog.unavailable", reason) });
+            }
+            return document;
+        } catch { document.Dispose(); throw; }
+    }
+    /// <summary>Loads a bounded native catalog and selected schemas. User rows and large field values are decoded on demand.</summary>
     public static AccessDocument Load(string path, AccessLoadOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new AccessLoadOptions(); options.Validate();
-        var document = FromInspection(Inspect(path, options, cancellationToken), options); document._path = Path.GetFullPath(path); return document;
+        using var stream = File.OpenRead(path);
+        var document = FromBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken, path); document._path = Path.GetFullPath(path); return document;
     }
-    /// <summary>Loads caller-owned input without retaining or closing it. Native catalogs remain NotDecoded.</summary>
+    /// <summary>Loads caller-owned input into a bounded immutable snapshot without retaining or closing the stream.</summary>
     public static AccessDocument Load(Stream stream, AccessLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new AccessLoadOptions(); options.Validate(); return FromInspection(Inspect(stream, options, cancellationToken), options);
+        options ??= new AccessLoadOptions(); options.Validate(); return FromBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
     }
     /// <summary>Asynchronously snapshots a bounded file and inspects its native header.</summary>
     public static async Task<AccessDocument> LoadAsync(string path, AccessLoadOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new AccessLoadOptions(); options.Validate(); cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options.MaxInputBytes).ConfigureAwait(false);
-        var document = FromInspection(InspectBytes(bytes, options, cancellationToken), options); document._path = Path.GetFullPath(path); return document;
+        var document = FromBytes(bytes, options, cancellationToken, path); document._path = Path.GetFullPath(path); return document;
     }
     /// <summary>Asynchronously snapshots caller-owned input, retaining its seekable position and leaving it open.</summary>
     public static async Task<AccessDocument> LoadAsync(Stream stream, AccessLoadOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new AccessLoadOptions(); options.Validate();
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options.MaxInputBytes).ConfigureAwait(false);
-        return FromInspection(InspectBytes(bytes, options, cancellationToken), options);
+        return FromBytes(bytes, options, cancellationToken);
     }
     /// <summary>Checks a loaded path against its full snapshot identity. Stream snapshots have no retained external source.</summary>
     public void ValidateSourceIdentity(CancellationToken cancellationToken = default) {
@@ -88,7 +106,15 @@ public sealed partial class AccessDocument {
         bool jet = profile == AccessFormatProfile.Jet3 || profile == AccessFormatProfile.Jet4;
         if (jet != (target == AccessFileFormat.Mdb)) throw new ArgumentException("The Access target profile and file family disagree.", nameof(options));
         var diagnostics = new List<AccessDiagnostic> { new AccessDiagnostic("access.native-write.unsupported", "Template-free native Access writing is not qualified. No output is produced.") };
-        if (target != Format) diagnostics.Add(new AccessDiagnostic("access.conversion.unsupported", "MDB/ACCDB conversion has no qualified feature/loss mapping. Allow loss does not enable an unavailable codec."));
+        if (target != Format) diagnostics.Add(new AccessDiagnostic("access.conversion.unsupported", "MDB/ACCDB conversion and persistence codecs are unavailable. Feature-loss diagnostics do not enable output."));
+        foreach (var table in Tables) foreach (var column in table.Columns) {
+            string? feature = target == AccessFileFormat.Mdb && column.DataType == AccessDataType.Complex ? "complex." + (column.ComplexDefinition?.Kind.ToString().ToLowerInvariant() ?? "unknown")
+                : column.DataType == AccessDataType.Int64 && (jet || profile == AccessFormatProfile.Ace12 || profile == AccessFormatProfile.Ace14) ? "large-number"
+                : column.DataType == AccessDataType.ExtendedDateTime && profile != AccessFormatProfile.Ace17 ? "extended-date"
+                : target == AccessFileFormat.Mdb && column.IsRichText ? "rich-text" : null;
+            if (column.IsCalculated && (jet || profile == AccessFormatProfile.Ace12)) feature = "calculated";
+            if (feature != null) diagnostics.Add(new AccessDiagnostic("access.conversion.loss." + feature, "The requested target lacks this field's native feature. No implicit flattening, narrowing or precision loss is accepted.", column.Id));
+        }
         if (CatalogStatus == AccessCatalogStatus.NotDecoded) diagnostics.Add(new AccessDiagnostic("access.catalog.not-decoded", "The source catalog and opaque application objects have not been decoded or qualified for preservation."));
         return new AccessOperationReport(Id, Revision, target, profile, diagnostics.AsReadOnly());
     }

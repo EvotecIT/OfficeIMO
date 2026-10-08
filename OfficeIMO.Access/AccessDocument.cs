@@ -10,6 +10,7 @@ public sealed partial class AccessDocument : IDisposable {
     private Stream? _destination;
     private long _inputLimit;
     private int _pageLimit;
+    internal AccessNativeDatabase? NativeDatabase;
 
     private AccessDocument(AccessFileFormat format, DocumentAccessMode accessMode, AccessInspection? inspection) {
         Format = format; AccessMode = accessMode; Inspection = inspection;
@@ -20,7 +21,12 @@ public sealed partial class AccessDocument : IDisposable {
         Forms = new AccessObjectCollection<AccessApplicationObject>(this);
         Reports = new AccessObjectCollection<AccessApplicationObject>(this);
         Macros = new AccessObjectCollection<AccessApplicationObject>(this);
+        SystemTables = new AccessObjectCollection<AccessTable>(this);
+        Catalog = new AccessObjectCollection<AccessCatalogEntry>(this);
         VbaProject = new AccessVbaProjectInfo(CatalogStatus);
+        Tables.CatalogStatus = Queries.CatalogStatus = Relationships.CatalogStatus = CatalogStatus;
+        SystemTables.CatalogStatus = Catalog.CatalogStatus = CatalogStatus;
+        Forms.CatalogStatus = Reports.CatalogStatus = Macros.CatalogStatus = CatalogStatus;
     }
     /// <summary>Unique model identity.</summary>
     public Guid Id { get; } = Guid.NewGuid();
@@ -31,7 +37,7 @@ public sealed partial class AccessDocument : IDisposable {
     /// <summary>Whether an edit scope must finish before reads or assessment.</summary>
     public bool HasActiveUpdate => _update != null;
     /// <summary>Whether the loaded catalog is decoded or the objects are a new model.</summary>
-    public AccessCatalogStatus CatalogStatus { get; }
+    public AccessCatalogStatus CatalogStatus { get; internal set; }
     /// <summary>Selected or detected file family.</summary>
     public AccessFileFormat Format { get; }
     /// <summary>Selected or detected physical generation.</summary>
@@ -44,6 +50,20 @@ public sealed partial class AccessDocument : IDisposable {
     public AccessInspection? Inspection { get; }
     /// <summary>Modeled tables; native catalog decoding is a separate capability.</summary>
     public AccessTableCollection Tables { get; }
+    /// <summary>System and hidden table definitions, separate from ordinary user tables. Opening them never executes database logic.</summary>
+    public AccessObjectCollection<AccessTable> SystemTables { get; }
+    /// <summary>Inert native catalog entries, including system and unknown objects. Catalog inventory does not decode application payloads.</summary>
+    public AccessObjectCollection<AccessCatalogEntry> Catalog { get; }
+    /// <summary>Document-level decoding limits and unsupported-content diagnostics.</summary>
+    public IReadOnlyList<AccessDiagnostic> Diagnostics { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessDiagnostic>());
+    /// <summary>Persisted database properties, including the AccessVersion format marker. Expressions remain inert.</summary>
+    public IReadOnlyDictionary<string, object?> Properties { get; internal set; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?>());
+    /// <summary>Exact database property map, including unqualified chunks.</summary>
+    public AccessOpaqueValue? NativeProperties { get; internal set; }
+    /// <summary>Stored legacy database code page. Jet4/ACE text values use Unicode; this marker does not authorize lossy decoding.</summary>
+    public int? CodePage { get; internal set; }
+    /// <summary>Stored collation identifier. Reading metadata does not implement engine sorting or query evaluation.</summary>
+    public int? SortOrder { get; internal set; }
     /// <summary>Inert modeled query definitions.</summary>
     public AccessQueryCollection Queries { get; }
     /// <summary>Typed modeled relationships.</summary>
@@ -63,7 +83,8 @@ public sealed partial class AccessDocument : IDisposable {
             return Array.AsReadOnly(AccessCapabilities.Operations.Select(operation => {
                 bool enabled = operation.IsSupported;
                 if (operation.Operation == "model.edit") enabled &= CatalogStatus == AccessCatalogStatus.Modeled && AccessMode == DocumentAccessMode.ReadWrite;
-                if (operation.Operation == "model.rows.read") enabled &= CatalogStatus == AccessCatalogStatus.Modeled;
+                if (operation.Operation == "model.rows.read") enabled &= CatalogStatus != AccessCatalogStatus.NotDecoded;
+                if (operation.Operation == "native.catalog.read" || operation.Operation == "native.rows.read" || operation.Operation == "native.query.records.read") enabled &= CatalogStatus == AccessCatalogStatus.Decoded;
                 return new AccessOperationCapability(operation.Operation, enabled, operation.Boundary);
             }).ToArray());
         }
@@ -73,7 +94,7 @@ public sealed partial class AccessDocument : IDisposable {
     internal void EnsureMutable() {
         EnsureNotDisposed();
         if (AccessMode == DocumentAccessMode.ReadOnly) throw new InvalidOperationException("This Access document is read-only.");
-        if (CatalogStatus == AccessCatalogStatus.NotDecoded) throw new NotSupportedException("Native Access catalog editing is not qualified. This document contains header evidence only.");
+        if (CatalogStatus != AccessCatalogStatus.Modeled) throw new NotSupportedException("Native Access editing is not qualified. Loaded native documents are immutable.");
         if (_readers != 0) throw new InvalidOperationException("Close Access data readers before modifying the document.");
         if (Revision == long.MaxValue) throw new InvalidOperationException("The model revision limit was reached.");
     }
@@ -101,7 +122,7 @@ public sealed partial class AccessDocument : IDisposable {
     /// <summary>Discards pending model edits and releases the document. Caller-owned streams remain open.</summary>
     public void Dispose() {
         if (_disposed) return;
-        _update?.Dispose(); _disposed = true; _destination = null;
+        _update?.Dispose(); _disposed = true; _destination = null; NativeDatabase?.Dispose(); NativeDatabase = null;
     }
 }
 

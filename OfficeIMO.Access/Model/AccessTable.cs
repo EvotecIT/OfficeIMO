@@ -21,7 +21,23 @@ public enum AccessDataType {
     /// <summary>128-bit identifier.</summary>
     Guid,
     /// <summary>Binary data. Values are copied at the model boundary.</summary>
-    Binary
+    Binary,
+    /// <summary>Unsigned 8-bit integer.</summary>
+    Byte,
+    /// <summary>Signed 16-bit integer.</summary>
+    Int16,
+    /// <summary>32-bit floating-point value.</summary>
+    Single,
+    /// <summary>Fixed-precision decimal value. Values beyond CLR Decimal retain an exact numeric representation.</summary>
+    Decimal,
+    /// <summary>Signed 64-bit Large Number.</summary>
+    Int64,
+    /// <summary>Structured native complex value, such as an attachment or multivalued field.</summary>
+    Complex,
+    /// <summary>Extended native date/time whose precision is retained explicitly.</summary>
+    ExtendedDateTime,
+    /// <summary>Unqualified native field; exact field bytes are retained as an opaque value.</summary>
+    Unknown
 }
 
 /// <summary>Input field values. A missing key differs from an explicit null.</summary>
@@ -33,6 +49,7 @@ public sealed class AccessRowValues : Dictionary<string, object?> {
 /// <summary>A typed table in a document model.</summary>
 public sealed class AccessTable : AccessNamedObject {
     internal readonly List<Dictionary<string, object?>> Rows = new List<Dictionary<string, object?>>();
+    internal AccessNativeTable? NativeTable;
     internal AccessTable(AccessDocument document, string name) : base(document, name) {
         Columns = new AccessColumnCollection(this); Indexes = new AccessIndexCollection(this);
     }
@@ -41,7 +58,17 @@ public sealed class AccessTable : AccessNamedObject {
     /// <summary>Typed index definitions.</summary>
     public AccessIndexCollection Indexes { get; }
     /// <summary>Number of modeled rows, without reading any native table.</summary>
-    public long RowCount { get { EnsureAttached(); return Rows.Count; } }
+    public long RowCount { get { EnsureAttached(); if (IsLinked) throw new NotSupportedException("Linked-table row counts require a separately authorized provider; targets are never resolved by the document codec."); return NativeTable?.RowCount ?? Rows.Count; } }
+    /// <summary>Whether this is a system or hidden table kept outside the user-table collection.</summary>
+    public bool IsSystem { get; internal set; }
+    /// <summary>Whether this definition refers to an external table whose target is never opened.</summary>
+    public bool IsLinked => LinkedTable != null;
+    /// <summary>Inert, credential-redacted linked-table metadata, or null for a local table.</summary>
+    public AccessLinkedTableInfo? LinkedTable { get; internal set; }
+    /// <summary>Persisted table properties; unknown property values retain their raw representation.</summary>
+    public IReadOnlyDictionary<string, object?> Properties { get; internal set; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?>());
+    /// <summary>Exact persisted property-map bytes, including uninterpreted chunks. Null for a new model or an absent map.</summary>
+    public AccessOpaqueValue? NativeProperties { get; internal set; }
     /// <summary>Appends validated values to the model, retaining omitted fields separately from explicit nulls.</summary>
     public void AppendRow(AccessRowValues values) {
         EnsureAttached(); Document.EnsureMutable();
@@ -58,6 +85,7 @@ public sealed class AccessTable : AccessNamedObject {
     /// <summary>Opens a forward-only reader over modeled rows. Its lease blocks edits until disposal.</summary>
     public AccessDataReader OpenDataReader(CancellationToken cancellationToken = default) {
         EnsureAttached(); cancellationToken.ThrowIfCancellationRequested();
+        if (IsLinked) throw new NotSupportedException("Linked tables are inert metadata; no target connection is opened.");
         return new AccessDataReader(this, cancellationToken);
     }
 }
@@ -89,6 +117,22 @@ public sealed class AccessColumn : AccessNamedObject {
     public AccessDataType DataType { get; }
     /// <summary>Maximum text length, or null for other types.</summary>
     public int? MaxLength { get; }
+    /// <summary>Whether the native field allocates an engine-generated integer or GUID. Reading does not allocate new values.</summary>
+    public bool IsAutoNumber { get; internal set; }
+    /// <summary>Whether this native text field stores hyperlink syntax. Its stored text is retained unchanged.</summary>
+    public bool IsHyperlink { get; internal set; }
+    /// <summary>Whether this native memo field has rich-text formatting. Reading does not render or strip markup.</summary>
+    public bool IsRichText { get; internal set; }
+    /// <summary>Whether the native field is calculated. Loading never evaluates its expression.</summary>
+    public bool IsCalculated { get; internal set; }
+    /// <summary>Native structured-field definition, or null for a scalar/model field.</summary>
+    public AccessComplexDefinition? ComplexDefinition { get; internal set; }
+    /// <summary>Native numeric precision, or null when no precision is declared.</summary>
+    public int? Precision { get; internal set; }
+    /// <summary>Native numeric scale, or null when no scale is declared.</summary>
+    public int? Scale { get; internal set; }
+    /// <summary>Persisted field properties, including required/default/validation and lookup metadata. Expressions remain inert.</summary>
+    public IReadOnlyDictionary<string, object?> Properties { get; internal set; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?>());
     internal void ValidateValue(object? value) {
         if (value == null) return;
         bool valid = DataType switch {
@@ -100,7 +144,10 @@ public sealed class AccessColumn : AccessNamedObject {
             AccessDataType.DateTime => value is DateTime,
             AccessDataType.Boolean => value is bool,
             AccessDataType.Guid => value is Guid,
-            AccessDataType.Binary => value is byte[], _ => false
+            AccessDataType.Binary => value is byte[], AccessDataType.Byte => value is byte,
+            AccessDataType.Int16 => value is short, AccessDataType.Int64 => value is long,
+            AccessDataType.Single => value is float single && !float.IsNaN(single) && !float.IsInfinity(single),
+            AccessDataType.Decimal => value is decimal, _ => false
         };
         if (!valid) throw new ArgumentException($"Value for '{Name}' does not satisfy {DataType}.");
     }
