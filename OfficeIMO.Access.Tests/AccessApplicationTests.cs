@@ -166,6 +166,30 @@ namespace OfficeIMO.Access.Tests {
             Assert.Equal(bytes, output.ToArray());
         }
 
+        [Fact]
+        public void InvalidDataMacroTextKeepsTheDatabaseReadableAndNativePayloadExact() {
+            byte[] bytes = File.ReadAllBytes(Fixture("Designer/designer-ace12.accdb"));
+            byte[] marker = System.Text.Encoding.Unicode.GetBytes("Inert synthetic data macro");
+            int match = FindUniquePayload(bytes, marker);
+            bytes[match] = 0; bytes[match + 1] = 0xD8;
+            byte[] macroPayload;
+            using (AccessDocument original = AccessDocument.Load(new MemoryStream(File.ReadAllBytes(Fixture("Designer/designer-ace12.accdb"))))) {
+                macroPayload = original.Catalog["Contacts"].NativePayloads["LvExtra"].GetBytes();
+            }
+            int payloadMatch = FindUniquePayload(macroPayload, marker);
+            macroPayload[payloadMatch] = 0; macroPayload[payloadMatch + 1] = 0xD8;
+            using MemoryStream input = new MemoryStream(bytes);
+            using AccessDocument document = AccessDocument.Load(input);
+            Assert.Empty(document.DataMacros);
+            Assert.Contains(document.Diagnostics, x => x.Code == "access.data-macro.opaque");
+            Assert.Equal(macroPayload, document.Catalog["Contacts"].NativePayloads["LvExtra"].GetBytes());
+            Assert.True(document.Tables["Contacts"].RowCount > 0);
+            Assert.Equal("Synthetic form 1", document.Forms["BoundForm1"].Definition!.Caption);
+            Assert.Contains("Zażółć", Assert.Single(document.VbaProject.Modules).Source);
+            using MemoryStream output = new MemoryStream(); document.Save(output);
+            Assert.Equal(bytes, output.ToArray());
+        }
+
         private static int FindUniquePayload(byte[] bytes, byte[] payload) {
             int match = -1;
             for (int offset = 0; offset <= bytes.Length - payload.Length; offset++) {

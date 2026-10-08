@@ -8,7 +8,11 @@ namespace OfficeIMO.Access {
             List<AccessDataMacroInfo> macros = new List<AccessDataMacroInfo>();
             foreach (AccessCatalogEntry? entry in _document.Catalog.Where(x => x.NativeType == 1 && x.NativePayloads.ContainsKey("LvExtra"))) {
                 AccessTable metadata = new AccessTable(_document, entry.Name);
-                LoadProperties(metadata, entry.NativePayloads["LvExtra"].GetBytes(), cancellation, macroMap: true);
+                try { LoadProperties(metadata, entry.NativePayloads["LvExtra"].GetBytes(), cancellation, macroMap: true); }
+                catch (InvalidDataException exception) when (exception.InnerException is System.Text.DecoderFallbackException) {
+                    AddApplicationDiagnostic("access.data-macro.opaque", "Invalid data-macro text remains in its exact native catalog payload.");
+                    continue;
+                }
                 foreach (KeyValuePair<string, object?> property in metadata.Properties) {
                     if (!(property.Value is string xml)) continue;
                     try {

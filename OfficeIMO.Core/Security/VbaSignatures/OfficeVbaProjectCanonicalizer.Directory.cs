@@ -253,10 +253,9 @@ internal static partial class OfficeVbaProjectCanonicalizer {
             if (!TryReadFixedRecord(0x002B, out _)) return false;
             string streamName;
             try {
-                streamName = unicodeStream.Length > 0
-                    ? Encoding.Unicode.GetString(unicodeStream).TrimEnd('\0')
-                    : Encoding.ASCII.GetString(ansiStream).TrimEnd('\0');
+                streamName = new UnicodeEncoding(false, false, true).GetString(unicodeStream);
             } catch (DecoderFallbackException) { return false; }
+            if (streamName.Length == 0 || streamName.IndexOf('\0') >= 0) return false;
             uint textOffset = ReadUInt32(textOffsetBytes, 0);
             if (textOffset > int.MaxValue) return false;
             model = new ModuleModel {

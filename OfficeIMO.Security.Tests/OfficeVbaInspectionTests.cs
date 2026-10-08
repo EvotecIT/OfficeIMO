@@ -102,7 +102,30 @@ namespace OfficeIMO.Security.Tests {
 
         private static byte[] Directory(params string[] names) => Directory(1252, names);
 
-        private static byte[] Directory(ushort codePage, params string[] names) {
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void MalformedDirectoryStreamIdentityCannotBindReplacementNamedSource(int malformedKind) {
+            byte[] unicodeStream = malformedKind == 0 ? new byte[] { 0, 0xD8 }
+                : malformedKind == 1 ? new byte[] { 0x42 }
+                : malformedKind == 2 ? Array.Empty<byte>() : Encoding.Unicode.GetBytes("Broken\0");
+            byte[] ansiStream = malformedKind == 2 ? new byte[] { 0xC9 } : Encoding.ASCII.GetBytes("Broken");
+            byte[] directory = Directory(1252, unicodeStream, ansiStream, "Broken");
+            Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
+                ["VBA/dir"] = Literal(directory),
+                ["VBA/\uFFFD"] = Literal(Encoding.ASCII.GetBytes("Unrelated replacement-named source")),
+                ["VBA/?"] = Literal(Encoding.ASCII.GetBytes("Unrelated ASCII-fallback source")),
+                ["VBA/Broken"] = Literal(Encoding.ASCII.GetBytes("Unrelated null-trimmed source"))
+            };
+            OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 100);
+            Assert.NotNull(result.Limitation); Assert.Empty(result.Modules); Assert.Null(result.Name);
+        }
+
+        private static byte[] Directory(ushort codePage, params string[] names) => Directory(codePage, null, null, names);
+
+        private static byte[] Directory(ushort codePage, byte[]? unicodeStreamName, byte[]? ansiStreamName, params string[] names) {
             List<byte> bytes = new List<byte>();
             Sized(bytes, 0x0001, new byte[4]); Sized(bytes, 0x0002, new byte[] { 9, 4, 0, 0 });
             Sized(bytes, 0x0003, new byte[] { (byte)codePage, (byte)(codePage >> 8) }); Sized(bytes, 0x0004, Encoding.ASCII.GetBytes("Project"));
@@ -113,7 +136,7 @@ namespace OfficeIMO.Security.Tests {
             Sized(bytes, 0xF, new byte[] { (byte)names.Length, 0 }); Sized(bytes, 0x13, new byte[2]);
             foreach (string name in names) {
                 Sized(bytes, 0x19, Encoding.ASCII.GetBytes(name)); Sized(bytes, 0x47, Encoding.Unicode.GetBytes(name));
-                Sized(bytes, 0x1A, Encoding.ASCII.GetBytes(name)); Sized(bytes, 0x32, Encoding.Unicode.GetBytes(name));
+                Sized(bytes, 0x1A, ansiStreamName ?? Encoding.ASCII.GetBytes(name)); Sized(bytes, 0x32, unicodeStreamName ?? Encoding.Unicode.GetBytes(name));
                 Sized(bytes, 0x1C, Array.Empty<byte>()); Sized(bytes, 0x48, Array.Empty<byte>());
                 Sized(bytes, 0x31, new byte[4]); Sized(bytes, 0x1E, new byte[4]); Sized(bytes, 0x2C, new byte[2]);
                 U16(bytes, 0x21); U32(bytes, 0); U16(bytes, 0x2B); U32(bytes, 0);
