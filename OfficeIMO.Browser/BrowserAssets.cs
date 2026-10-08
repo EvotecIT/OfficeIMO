@@ -32,4 +32,10 @@ public static class BrowserAssets {
 
     /// <summary>The optional standalone DataTables ES module, including its document writers.</summary>
     public static BrowserAsset DataTablesModule { get; } = new BrowserAsset("officeimo-datatables.mjs");
+
+    /// <summary>The optional CanopyX portable grid capture integration, including its document writers.</summary>
+    public static BrowserAsset CanopyXScript { get; } = new BrowserAsset("officeimo-canopyx.js");
+
+    /// <summary>The optional standalone CanopyX ES module, including its document writers.</summary>
+    public static BrowserAsset CanopyXModule { get; } = new BrowserAsset("officeimo-canopyx.mjs");
 }

@@ -108,6 +108,30 @@ public sealed class OfficeConversionBatchTests {
         Assert.Contains("Replacement text", pdf.GetPage(1).Text);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WordCheckpointsDistinguishImplicitWhitespaceFromExplicitCollapse(bool legacyBoolean) {
+        using var scope = new BatchDirectory();
+        string source = Path.Combine(scope.Input, "spaces.docx");
+        using (var word = WordDocument.Create(source)) { word.AddParagraph("ALPHA   BETA"); word.Save(); }
+        var pdfOptions = new PdfOptions();
+        var request = new OfficeConversionBatchRequest { InputPaths = [source], OutputDirectory = scope.Output,
+            CheckpointDirectory = scope.State, ConversionOptions = new() {
+                Word = new() { IncludePageNumbers = false, PdfOptions = pdfOptions }
+            } };
+        var runner = new OfficeWorkflowRunner();
+        Assert.Equal(1, (await runner.RunBatchAsync(request)).Completed);
+        Assert.Equal(1, (await runner.RunBatchAsync(request)).Reused);
+        byte[] original = File.ReadAllBytes(Path.Combine(scope.Output, "spaces.docx.pdf"));
+        if (legacyBoolean) pdfOptions.PreserveTextWhitespace = false;
+        else pdfOptions.TextWhitespaceMode = PdfTextWhitespaceMode.Collapse;
+        var changed = await runner.RunBatchAsync(request);
+        Assert.Equal(0, changed.Reused);
+        Assert.Equal(1, changed.Failed);
+        Assert.Equal(original, File.ReadAllBytes(Path.Combine(scope.Output, "spaces.docx.pdf")));
+    }
+
     [Fact]
     public async Task HtmlCheckpointsIncludeLocalStylesheetContent() {
         using var scope = new BatchDirectory();

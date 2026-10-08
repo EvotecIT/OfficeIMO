@@ -3,8 +3,8 @@
   "generatedFrom": "Build/CorpusEvidence/corpus-evidence.json",
   "summary": {
     "corpusCount": 5,
-    "recordCount": 67,
-    "verifiedArtifactCount": 95
+    "recordCount": 71,
+    "verifiedArtifactCount": 99
   },
   "corpora": [
     {
@@ -34,8 +34,8 @@
       "id": "word-evidence",
       "owner": "OfficeIMO.Word",
       "manifest": "OfficeIMO.TestAssets/Documents/Word/EvidenceCorpus/corpus-manifest.json",
-      "manifestSha256": "332764b9db30d3e678f60b06248a38a6729f5fe48e42778974e2cb75322207f7",
-      "recordCount": 10,
+      "manifestSha256": "c27b1956af41059f512c834dc27e57abd1bbf40f1e4a8d69f9262fb5cc3aad5d",
+      "recordCount": 14,
       "diffPolicy": {
         "kind": "package-and-semantic",
         "stableFields": [

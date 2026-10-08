@@ -7,6 +7,27 @@
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+## Header and footer content
+
+Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. During layout, including pagination stabilization, running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks; exceeding this limit throws `InvalidDataException`. This bounds retained layout assets; transient callback/decoder allocations and opt-in image optimization or PDF/X conversion during serialization use their own policies.
+
+```csharp
+var document = PdfDocument.Create(document => document.Page(page => {
+    page.Header(header => header.Content(content => content
+        .Table(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
+        distanceFromEdge: 18, bodyGap: 6));
+    page.Footer(footer => footer.Content(context => content => content
+        .Paragraph(paragraph => paragraph.Text($"Page {context.PageNumber} of {context.DocumentPages}")),
+        distanceFromEdge: 18));
+    page.Content(content => content.Paragraph(paragraph => paragraph.Text("Report content")));
+}));
+document.Save("report.pdf");
+```
+
+The page-context overload supplies visible and physical page numbers, section-relative page position, section and document page counts, and the current content width. `SectionPages` counts physical pages in the current page group independently of numbering restarts. `TotalPages` retains the existing `{pages}` meaning: the last visible number in the current numbering sequence. `FormatPageNumber` follows the configured number style or an explicit override. The factory must be deterministic because page totals can require pagination to stabilize. Running content cannot create pages: page breaks, page canvases, deferred content and other unbounded flow are rejected. The measured stories must leave positive space for the document body.
+
+Running stories are marked as pagination artifacts. Their fonts, images, drawing resources and links use the document's normal PDF resource owners. A later `Text` or `Zones` call replaces rich content for that variant.
+
 ## Literal text to PDF
 
 `PdfPlainTextConverter` renders TXT content without interpreting Markdown or HTML:
@@ -65,6 +86,23 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 `document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
 ## Paragraph font size and line spacing
+
+`PdfOptions.TextWhitespaceMode` controls ordinary spaces in flow text.
+`Collapse`, the default, keeps one separator between words and discards leading
+spaces. `Preserve` retains leading and repeated spaces within a line, counts each
+space during justification, and discards excess spacing at an automatic wrap.
+`Preformatted` retains literal spacing even when it creates additional blank
+lines. Tabs and explicit line breaks keep their separate behavior.
+
+```csharp
+var options = new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
+var document = PdfDocument.Create(options);
+document.Content.Paragraph(p => p.Text("  First   second"));
+document.Save("preserved-spacing.pdf");
+```
+
+The existing `PreserveTextWhitespace` property remains available. Setting it to
+`true` selects `Preformatted`; setting it to `false` selects `Collapse`.
 
 Paragraphs can use a fallback font size independently of the document default:
 

@@ -206,6 +206,7 @@ public sealed partial class PdfOptions {
     internal bool HasFirstPageFooterImageContent => _firstPageFooterImages != null && _firstPageFooterImages.Count > 0;
     internal bool HasEvenPageFooterImageContent => _evenPageFooterImages != null && _evenPageFooterImages.Count > 0;
     internal bool HasHeaderContentForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: true) != null) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
                 (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
@@ -224,6 +225,7 @@ public sealed partial class PdfOptions {
     }
 
     internal bool HasHeaderTextContentForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: true) != null) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
                 (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
@@ -242,6 +244,7 @@ public sealed partial class PdfOptions {
     }
 
     internal bool HasFooterContentForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: false) != null) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
                 (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
@@ -260,6 +263,7 @@ public sealed partial class PdfOptions {
     }
 
     internal bool HasFooterTextContentForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: false) != null) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
                 (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
@@ -311,6 +315,7 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> GetHeaderImagesForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: true) != null) return System.Array.Empty<PdfHeaderFooterImage>();
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return _firstPageHeaderImages != null ? _firstPageHeaderImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
         }
@@ -323,6 +328,7 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> GetHeaderShapesForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: true) != null) return System.Array.Empty<PdfHeaderFooterShape>();
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return _firstPageHeaderShapes != null ? _firstPageHeaderShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
         }
@@ -368,6 +374,7 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> GetFooterImagesForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: false) != null) return System.Array.Empty<PdfHeaderFooterImage>();
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return _firstPageFooterImages != null ? _firstPageFooterImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
         }
@@ -380,6 +387,7 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> GetFooterShapesForPage(int pageNumber) {
+        if (GetRunningContentForPage(pageNumber, isHeader: false) != null) return System.Array.Empty<PdfHeaderFooterShape>();
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return _firstPageFooterShapes != null ? _firstPageFooterShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
         }
@@ -399,12 +407,14 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetHeaderSegmentsForCompose() {
+        HeaderContent = null;
         _headerSegments = new System.Collections.Generic.List<FooterSegment>();
         ShowHeader = true;
         return _headerSegments;
     }
 
     internal void ClearHeaderSegmentsForCompose() {
+        HeaderContent = null;
         _headerSegments = null;
     }
 
@@ -525,31 +535,37 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetFirstPageHeaderSegmentsForCompose() {
+        FirstPageHeaderContent = null;
         _firstPageHeaderSegments = new System.Collections.Generic.List<FooterSegment>();
         DifferentFirstPageHeaderFooter = true;
         return _firstPageHeaderSegments;
     }
 
     internal void ClearFirstPageHeaderSegmentsForCompose() {
+        FirstPageHeaderContent = null;
         _firstPageHeaderSegments = null;
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetEvenPageHeaderSegmentsForCompose() {
+        EvenPageHeaderContent = null;
         _evenPageHeaderSegments = new System.Collections.Generic.List<FooterSegment>();
         DifferentOddAndEvenPagesHeaderFooter = true;
         return _evenPageHeaderSegments;
     }
 
     internal void ClearEvenPageHeaderSegmentsForCompose() {
+        EvenPageHeaderContent = null;
         _evenPageHeaderSegments = null;
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetFooterSegmentsForCompose() {
+        FooterContent = null;
         _footerSegments = new System.Collections.Generic.List<FooterSegment>();
         return _footerSegments;
     }
 
     internal void ClearFooterSegmentsForCompose() {
+        FooterContent = null;
         _footerSegments = null;
     }
 
@@ -666,22 +682,26 @@ public sealed partial class PdfOptions {
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetFirstPageFooterSegmentsForCompose() {
+        FirstPageFooterContent = null;
         _firstPageFooterSegments = new System.Collections.Generic.List<FooterSegment>();
         DifferentFirstPageHeaderFooter = true;
         return _firstPageFooterSegments;
     }
 
     internal void ClearFirstPageFooterSegmentsForCompose() {
+        FirstPageFooterContent = null;
         _firstPageFooterSegments = null;
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetEvenPageFooterSegmentsForCompose() {
+        EvenPageFooterContent = null;
         _evenPageFooterSegments = new System.Collections.Generic.List<FooterSegment>();
         DifferentOddAndEvenPagesHeaderFooter = true;
         return _evenPageFooterSegments;
     }
 
     internal void ClearEvenPageFooterSegmentsForCompose() {
+        EvenPageFooterContent = null;
         _evenPageFooterSegments = null;
     }
 

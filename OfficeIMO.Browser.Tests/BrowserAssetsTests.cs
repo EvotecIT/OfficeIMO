@@ -20,10 +20,13 @@ public sealed class BrowserAssetsTests {
     [InlineData("officeimo-pdf.mjs")]
     [InlineData("officeimo-datatables.js")]
     [InlineData("officeimo-datatables.mjs")]
+    [InlineData("officeimo-canopyx.js")]
+    [InlineData("officeimo-canopyx.mjs")]
     public void EmbeddedAssetAndHashedNameDescribeExactShippedBytes(string name) {
         BrowserAsset asset = new[] { BrowserAssets.Script, BrowserAssets.XlsxScript, BrowserAssets.CsvScript,
             BrowserAssets.Module, BrowserAssets.XlsxModule, BrowserAssets.CsvModule,
-            BrowserAssets.DataTablesScript, BrowserAssets.DataTablesModule, BrowserAssets.PdfScript, BrowserAssets.PdfModule }.Single(a => a.FileName == name);
+            BrowserAssets.DataTablesScript, BrowserAssets.DataTablesModule, BrowserAssets.PdfScript, BrowserAssets.PdfModule,
+            BrowserAssets.CanopyXScript, BrowserAssets.CanopyXModule }.Single(a => a.FileName == name);
         byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", name));
         byte[] actual = new UTF8Encoding(false).GetBytes(asset.Content);
         Assert.Equal(expected, actual);

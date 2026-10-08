@@ -16,7 +16,9 @@ internal static class ImageResamplingExpectations {
             [(ImageBenchmarkScenarios.LineArt.Id, OfficeRasterResamplingMode.Lanczos3)] = "FC62671C5CB1DCB4",
             [(ImageBenchmarkScenarios.AlphaGraphic.Id, OfficeRasterResamplingMode.Bilinear)] = "E1CA0A78512109FE",
             [(ImageBenchmarkScenarios.AlphaGraphic.Id, OfficeRasterResamplingMode.Area)] = "64A5D2AAFEFC68FA",
-            [(ImageBenchmarkScenarios.AlphaGraphic.Id, OfficeRasterResamplingMode.Lanczos3)] = "CE8EF8FB3D082605"
+            // Shared sinc(x)*sinc(x/3) evaluation changes half-step RGB rounding by
+            // one level versus the expanded formula; independently qualified alpha is unchanged.
+            [(ImageBenchmarkScenarios.AlphaGraphic.Id, OfficeRasterResamplingMode.Lanczos3)] = "EB5A8C48833A4FD8"
         };
 
     internal static void Validate(

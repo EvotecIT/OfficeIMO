@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft DAO; installed ACE OLE DB for the ANSI-92 Decimal definition",
+  "bitness": 64,
+  "license": "MIT (synthetic OfficeIMO fixtures)",
+  "files": [
+    {
+      "path": "values-jet4.mdb",
+      "headerVersion": 1,
+      "length": 233472,
+      "sha256": "5d716b2d5bae65c1fe3ee719a1e6ecaee313e69c352ece0d73f96034d219c5b1",
+      "expected": "values-jet4.mdb.expected.json",
+      "expectedSha256": "439b665c8de7bc524a936742a0b8cd39a6ed0a2b803e42d70987bb16ef825ce2"
+    },
+    {
+      "path": "values-ace.accdb",
+      "headerVersion": 2,
+      "length": 405504,
+      "sha256": "bce1fb6f93f7f9ac3884858151855c6c2dba5e38494d6d642cff0f1b0c8ce0cc",
+      "expected": "values-ace.accdb.expected.json",
+      "expectedSha256": "ce913e519254601e00e2228938f05d6db655707caa0438831cf2313a927ea815"
+    }
+  ],
+  "failures": [],
+  "engineVersion": "16.0"
+}

@@ -1,5 +1,6 @@
 import { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
+import { copyExportLink } from "../core/links.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
 
 /** A link attached to an existing cell. Its value and presentation remain ordinary cell data. */
@@ -25,12 +26,9 @@ export function cellPosition(reference: string): { row: number; column: number }
 
 export function copyHyperlink(link: Hyperlink, policy: InvalidCharacterPolicy): Hyperlink {
   cellPosition(link.cell);
-  if (typeof link.target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
-    throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-  const url = new URL(link.target);
-  if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password)) throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-  return Object.freeze({ cell: link.cell, target: url.href,
-    ...(link.tooltip === undefined ? {} : { tooltip: cleanXml(link.tooltip, policy) }) });
+  const copied = copyExportLink(link);
+  return Object.freeze({ cell: link.cell, target: copied.target,
+    ...(copied.tooltip === undefined ? {} : { tooltip: cleanXml(copied.tooltip, policy) }) });
 }
 
 export function copyImage(image: WorksheetImage, policy: InvalidCharacterPolicy): WorksheetImage {

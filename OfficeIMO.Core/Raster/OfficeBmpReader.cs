@@ -35,7 +35,7 @@ public static class OfficeBmpReader {
 
             OfficeRasterImage result = new OfficeRasterImage(layout.Width, layout.Height);
             int bytesPerPixel = layout.BitsPerPixel / 8;
-            bool hasAlphaChannel = layout.BitsPerPixel == 32 && HasNonZeroAlpha(
+            bool hasAlphaChannel = layout.ExplicitAlpha || layout.UseLegacyAlpha && layout.BitsPerPixel == 32 && HasNonZeroAlpha(
                 source, layout.PixelOffset, layout.Width, layout.Height, layout.RowStride, cancellationToken);
             for (int y = 0; y < layout.Height; y++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -114,7 +114,18 @@ public static class OfficeBmpReader {
         int planes = ReadUInt16LittleEndian(bytes, 26);
         int bitsPerPixel = ReadUInt16LittleEndian(bytes, 28);
         int compression = ReadInt32LittleEndian(bytes, 30);
-        if (width <= 0 || signedHeight == 0 || planes != 1 || compression != BiRgbCompression ||
+        bool bitfields = compression == 3 || compression == 6;
+        bool explicitAlpha = false;
+        if (bitfields) {
+            int maskOffset = BitmapFileHeaderSize + 40;
+            int requiredMasks = compression == 6 || dibHeaderSize >= 56 ? 16 : 12;
+            if (bitsPerPixel != 32 || maskOffset > bytes.Length - requiredMasks || pixelOffset < maskOffset + requiredMasks ||
+                ReadUInt32LittleEndian(bytes, maskOffset) != 0x00FF0000U ||
+                ReadUInt32LittleEndian(bytes, maskOffset + 4) != 0x0000FF00U ||
+                ReadUInt32LittleEndian(bytes, maskOffset + 8) != 0x000000FFU) return false;
+            if (requiredMasks == 16) { uint alphaMask = ReadUInt32LittleEndian(bytes, maskOffset + 12); if (alphaMask != 0 && alphaMask != 0xFF000000U) return false; explicitAlpha = alphaMask != 0; }
+        }
+        if (width <= 0 || signedHeight == 0 || signedHeight == int.MinValue || planes != 1 || compression != BiRgbCompression && !bitfields ||
             (bitsPerPixel != 24 && bitsPerPixel != 32)) return false;
 
         int height = Math.Abs(signedHeight);
@@ -133,7 +144,7 @@ public static class OfficeBmpReader {
                 out _)) return false;
 
         layout = new BmpLayout(
-            pixelOffset, width, height, rowStride, bitsPerPixel, signedHeight < 0);
+            pixelOffset, width, height, rowStride, bitsPerPixel, signedHeight < 0, explicitAlpha, compression == BiRgbCompression);
         return true;
     }
 
@@ -174,13 +185,17 @@ public static class OfficeBmpReader {
             int height,
             int rowStride,
             int bitsPerPixel,
-            bool topDown) {
+            bool topDown,
+            bool explicitAlpha = false,
+            bool useLegacyAlpha = false) {
             PixelOffset = pixelOffset;
             Width = width;
             Height = height;
             RowStride = rowStride;
             BitsPerPixel = bitsPerPixel;
             TopDown = topDown;
+            ExplicitAlpha = explicitAlpha;
+            UseLegacyAlpha = useLegacyAlpha;
         }
 
         internal int PixelOffset { get; }
@@ -189,5 +204,7 @@ public static class OfficeBmpReader {
         internal int RowStride { get; }
         internal int BitsPerPixel { get; }
         internal bool TopDown { get; }
+        internal bool ExplicitAlpha { get; }
+        internal bool UseLegacyAlpha { get; }
     }
 }

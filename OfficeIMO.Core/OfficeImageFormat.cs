@@ -35,5 +35,9 @@ public enum OfficeImageFormat {
     /// <summary>AV1 Image File Format still-item container.</summary>
     Avif,
     /// <summary>JPEG XR / HD Photo image in the tagged container format.</summary>
-    JpegXr
+    JpegXr,
+    /// <summary>Portable bitmap, graymap, or pixmap.</summary>
+    PortableMap,
+    /// <summary>Truevision TGA raster image.</summary>
+    Tga
 }

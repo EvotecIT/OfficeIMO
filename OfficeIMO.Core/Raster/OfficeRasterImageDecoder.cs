@@ -179,13 +179,15 @@ public static partial class OfficeRasterImageDecoder {
                 OfficeImageFormat.Png => OfficePngReader.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image, pngValidation),
                 OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(
-                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image,
+                    new OfficeJpegDecodeOptions(false, false, ignoreExifOrientation: !effective.ApplyExifOrientation)),
                 OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
                 OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
                 OfficeImageFormat.JpegXr => OfficeJpegXrDecoder.TryDecode(bytes, effective, out image),
                 OfficeImageFormat.Avif => OfficeAvifCodec.TryDecode(bytes, effective, out image, out avifCallerCodecEligible),
+                OfficeImageFormat.Icon => OfficeIconDecoder.TryDecode(bytes, effective, out image),
                 _ => false
             };
         }

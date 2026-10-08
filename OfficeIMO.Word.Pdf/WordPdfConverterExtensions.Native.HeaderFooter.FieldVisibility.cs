@@ -4,7 +4,11 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool HasVisibleNativeHeaderFooterFieldResult(W.FieldChar separator, WordParagraph paragraph) {
+        private static bool HasVisibleNativeHeaderFooterFieldResult(W.FieldChar separator, WordParagraph paragraph) =>
+            TryGetVisibleNativeHeaderFooterFieldResult(separator, paragraph, out _);
+
+        private static bool TryGetVisibleNativeHeaderFooterFieldResult(W.FieldChar separator, WordParagraph paragraph, out W.Run? resultRun) {
+            resultRun = null;
             OpenXmlElement story = GetNativeHeaderFooterFieldStory(separator);
             int depth = 1;
             bool hasCachedText = false;
@@ -19,11 +23,16 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 } else if (depth == 1 && element is W.Text && element.Ancestors<W.Run>().FirstOrDefault() is W.Run run) {
                     hasCachedText = true;
-                    if (!IsNativeHiddenHeaderFooterSourceRun(run, paragraph)) return true;
+                    if (!IsNativeHiddenHeaderFooterSourceRun(run, paragraph)) {
+                        resultRun = run;
+                        return true;
+                    }
                 }
             }
-            return !hasCachedText && !IsNativeHiddenHeaderFooterSourceRun(
-                endingRun ?? separator.Ancestors<W.Run>().First(), paragraph);
+            W.Run uncachedRun = endingRun ?? separator.Ancestors<W.Run>().First();
+            if (hasCachedText || IsNativeHiddenHeaderFooterSourceRun(uncachedRun, paragraph)) return false;
+            resultRun = uncachedRun;
+            return true;
         }
 
         private static bool IsNativeHiddenHeaderFooterSourceRun(W.Run run, WordParagraph fallback) {
