@@ -114,6 +114,11 @@ internal static partial class ResourceResolver {
                 continue;
             }
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
+                if (fontResource.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined) {
+                    TryBuildCidWidthMap(fontVal, objects, out CidWidthMap? widths);
+                    map[kv.Key] = bytes => SumPredefinedCidWidths(bytes, widths, predefined);
+                    continue;
+                }
                 if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
                     var localMap = cidMap!;
                     map[kv.Key] = bytes => SumWidthsCid(bytes, localMap);
@@ -581,7 +586,8 @@ internal static partial class ResourceResolver {
             type3,
             isVerticalWriting,
             fontWeight,
-            fontDescriptorFlags);
+            fontDescriptorFlags,
+            ResolvePredefinedCMap(fontVal, objects));
         if (embeddedProgram == null) return resource;
         // Drawing scenes carry Unicode text. Programs that select glyphs by character code or CID
         // receive a Unicode cmap so rendering uses the embedded outlines instead of a substitute.
