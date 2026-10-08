@@ -33,14 +33,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && !segment.Run.IsFlowMarker) _flowContentCount++;
         }
 
-        internal void RemoveAt(int index) {
+        internal void RemoveAt(int index, bool preserveScopeContent = false) {
             InlineSegment removed = Segments[index];
             if (Segments[index].Run.RunningStringElement == null
                 && Segments[index].Run.RunningElementAssignment == null
                 && !Segments[index].Run.IsFlowMarker) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
-            if (_inlineEdges.Count > 0) RebuildInlineEdges(removed);
+            if (_inlineEdges.Count > 0) RebuildInlineEdges(removed, preserveScopeContent);
         }
 
         internal void SetSegmentWidth(int index, double width) {

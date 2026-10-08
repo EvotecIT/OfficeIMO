@@ -16,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (run.Style.HyphenateLimitLast == "always"
             && isFinalContentToken
             && line.HasFlowContent
-            && MeasureInlineText(token.PaintText, run.Style) <= line.AvailableWidth + 0.0001D) {
+            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style)) <= line.AvailableWidth + 0.0001D) {
             CommitFloatLine(lines, ref line, ref y, context, lineHeight);
         }
         if (line.HasFlowContent && run.Style.HyphenateLimitZone > 0D
@@ -31,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
             bool selectedIsBreak = false;
-            if (MeasureInlineText(token.PaintText.Substring(start), run.Style) <= available + 0.0001D) {
+            if (line.PreviewAdvance(run, MeasureInlineText(token.PaintText.Substring(start), run.Style)) <= line.AvailableWidth + 0.0001D) {
                 selectedEnd = token.PaintText.Length;
             } else if (hyphenationAllowed) {
                 selectedEnd = SelectHyphenationBreak(token.PrimaryBreaks, token.PaintText, start, available, run.Style);
@@ -46,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 double remainingWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style);
                 double previousY = y;
-                MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, remainingWidth);
+                MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, line.PreviewAdvance(run, remainingWidth));
                 if (y > previousY + 0.0001D) continue;
                 if (AllowsEmergencyTokenBreak(run.Style)) return false;
                 string paintRemainder = token.PaintText.Substring(start);
@@ -90,14 +90,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
-            if (!line.HasFlowContent && chunkWidth > line.AvailableWidth + 0.0001D) {
-                MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, chunkWidth);
+            bool completesToken = end == paintToken.Length;
+            if (!line.HasFlowContent && line.PreviewAdvance(run, chunkWidth, completesToken) > line.AvailableWidth + 0.0001D) {
+                MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, line.PreviewAdvance(run, chunkWidth, completesToken));
             }
-            if (chunkWidth > line.AvailableWidth + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
+            if (InlineLine.PreviewEmptyLineAdvance(run, chunkWidth, completesToken) > line.AvailableWidth + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
                 if (start == 0 && followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                     CommitFloatLine(lines, ref line, ref y, context, lineHeight);
                 }
-                AddBrokenFloatToken(lines, ref line, ref y, context, lineHeight, run, paintChunk);
+                AddBrokenFloatToken(lines, ref line, ref y, context, lineHeight, run, paintChunk, completesToken);
                 start = end;
                 continue;
             }

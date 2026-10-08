@@ -39,13 +39,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 double contentX = x;
                 double contentWidth = width;
+                double paintOffsetX = run.PaintOffsetX;
                 HtmlInlineEdgeScope? scope = run.InlineEdgeScopes.FirstOrDefault(edge => ReferenceEquals(edge.Owner, current));
                 if (scope != null && _currentInlineEdgeGeometry.TryGetValue(scope, out var edgeGeometry)) {
                     contentX = edgeGeometry.Left;
                     contentWidth = Math.Max(0D, edgeGeometry.Right - edgeGeometry.Left);
+                    paintOffsetX = scope.PaintOffsetX;
                 }
                 currentBounds.Include(
-                    contentX + run.PaintOffsetX,
+                    contentX + paintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, contentWidth),
                     Math.Max(0.01D, height), run.PaintOffsetY);
@@ -84,12 +86,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     bounds[current] = entry;
                 }
                 HtmlInlineEdgeScope? scope = run.InlineEdgeScopes.FirstOrDefault(edge => ReferenceEquals(edge.Owner, current));
+                double paintOffsetX = run.PaintOffsetX;
                 if (scope != null && _currentInlineEdgeGeometry.TryGetValue(scope, out var edgeGeometry)) {
                     x = edgeGeometry.Left;
                     width = Math.Max(0D, edgeGeometry.Right - edgeGeometry.Left);
+                    paintOffsetX = scope.PaintOffsetX;
                 }
                 entry.Bounds.Include(
-                    x + run.PaintOffsetX,
+                    x + paintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, width),
                     Math.Max(0.01D, height), run.PaintOffsetY);

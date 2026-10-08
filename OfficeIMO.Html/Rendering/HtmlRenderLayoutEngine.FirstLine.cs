@@ -112,6 +112,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle runFirstLineStyle = firstLineStyle.Clone();
             // Language comes from the originating element, not a CSS pseudo-element.
             runFirstLineStyle.Language = run.Style.Language;
+            // ::first-line changes eligible font/paint properties. It must not
+            // replace the originating run's whitespace and tab-stop contract.
+            runFirstLineStyle.PreserveWhitespace = run.Style.PreserveWhitespace;
+            runFirstLineStyle.BreakSpaces = run.Style.BreakSpaces;
+            runFirstLineStyle.PreventTextWrapping = run.Style.PreventTextWrapping;
+            runFirstLineStyle.TabSize = run.Style.TabSize;
+            runFirstLineStyle.TabSizeIsLength = run.Style.TabSizeIsLength;
             IReadOnlyList<string> tokens = Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
@@ -128,7 +135,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 HtmlRenderBoxStyle tokenStyle = run.IsFirstLetter ? run.Style : runFirstLineStyle;
                 string measuredToken = !run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token;
-                double tokenWidth = MeasureInlineText(measuredToken, tokenStyle);
+                double tokenWidth = tokenStyle.PreserveWhitespace && measuredToken.IndexOf('\t') >= 0
+                    ? MeasureTabExpandedText(measuredToken, tokenStyle, previewLine.PreviewContentStart(run))
+                    : MeasureInlineText(measuredToken, tokenStyle);
                 double remainingWidth = Math.Max(0D, width - previewLine.PreviewAdvance(run, 0D, false));
                 bool preventWrapping = parentStyle.PreventTextWrapping || run.Style.PreventTextWrapping;
                 bool moveWholeToken = !preventWrapping && hasContent && !IsWhitespaceToken(token)
@@ -143,7 +152,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (!preventWrapping
-                    && tokenWidth > remainingWidth
+                    && previewLine.PreviewAdvance(run, tokenWidth) > width
                     && !IsWhitespaceToken(token)
                     && remainingWidth > 0.0001D
                     && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, remainingWidth, out int split, out HyphenationToken? prepared)) {

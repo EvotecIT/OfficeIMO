@@ -10,8 +10,26 @@ public sealed partial class HtmlRenderingTests {
     public void NamedPageRebuildSharesOneLayoutOperationBudget() {
         const string content = "<div style='display:flex'><p>BudgetMarker</p><p>OtherMarker</p></div>";
         var options = new HtmlRenderOptions { Mode=HtmlRenderMode.Paged, PageSize=new OfficePageSize(200d/96d,400d/96d),
-            Margins=HtmlRenderMargins.All(0), MaxLayoutOperations=6 };
-        Assert.Single(HtmlRenderTestDriver.Render("<style>body{margin:0}p{margin:0}</style>"+content, options).Pages);
+            Margins=HtmlRenderMargins.All(0), MaxLayoutOperations=64 };
+        string singlePass = "<style>body{margin:0}p{margin:0}</style>" + content;
+        Assert.Single(HtmlRenderTestDriver.Render(singlePass, options).Pages);
+        // Calibrate the public single-pass admission boundary. Traversal can gain
+        // valid checkpoints without turning this cumulative-budget test into an
+        // assertion about an incidental number of internal layout operations.
+        int lower = 1;
+        int upper = options.MaxLayoutOperations;
+        while (lower < upper) {
+            options.MaxLayoutOperations = lower + (upper - lower) / 2;
+            try {
+                HtmlRenderTestDriver.Render(singlePass, options);
+                upper = options.MaxLayoutOperations;
+            } catch (HtmlDomLimitException limit) {
+                Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), limit.LimitSource);
+                lower = options.MaxLayoutOperations + 1;
+            }
+        }
+        options.MaxLayoutOperations = lower;
+        Assert.Single(HtmlRenderTestDriver.Render(singlePass, options).Pages);
         options.PageSize = new OfficePageSize(400d/96d,400d/96d);
         var error = Assert.Throws<HtmlDomLimitException>(() => HtmlRenderTestDriver.Render(
             "<style>@page named{size:200px 400px;margin:0}body{page:named;margin:0}p{margin:0}</style>"+content, options));

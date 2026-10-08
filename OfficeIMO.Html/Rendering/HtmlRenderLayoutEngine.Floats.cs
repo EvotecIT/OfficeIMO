@@ -172,14 +172,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
                 double atomicWidth = run.AtomicBlock.Width;
-                if (!line.HasFlowContent && atomicWidth > line.AvailableWidth + 0.0001D) {
-                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, atomicWidth);
-                }
                 if (!paragraphStyle.PreventTextWrapping
                     && !runPreventsWrapping
                     && line.HasFlowContent
                     && line.PreviewAdvance(run, atomicWidth) > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                }
+                if (!line.HasFlowContent && line.PreviewAdvance(run, atomicWidth) > line.AvailableWidth + 0.0001D) {
+                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, atomicWidth));
                 }
                 line.Add(new InlineSegment(string.Empty, atomicWidth, run));
                 continue;
@@ -221,7 +221,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
-                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
+                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.PreviewContentStart(run)) : 0D;
                 string expandedToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
                 string normalizedLogicalToken = !preserveWhitespace && whitespace ? " " : logicalToken;
                 HyphenationToken hyphenation = run.PreparedHyphenation.HasValue
@@ -234,8 +234,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double prefixWidth = MeasureInlineText(paintToken, run.Style);
                     if (line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
                         CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
-                    if (!line.HasFlowContent && prefixWidth > line.AvailableWidth + 0.0001D)
-                        MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, prefixWidth);
+                    if (!line.HasFlowContent && line.PreviewAdvance(run, prefixWidth) > line.AvailableWidth + 0.0001D)
+                        MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, prefixWidth));
                     line.Add(new InlineSegment(paintToken, prefixWidth, run, hyphenation.LogicalText));
                     line.EndsWithHyphenation = run.FirstLineHyphen.Length > 0;
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
@@ -278,19 +278,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
-                    && (measured > line.AvailableWidth || breakAllIntoRemainingSpace)) {
+                    && (InlineLine.PreviewEmptyLineAdvance(run, measured) > line.AvailableWidth || breakAllIntoRemainingSpace)) {
                     if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                         CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     }
                     AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, paintToken);
                     continue;
                 }
-                if (!preventTokenWrapping && !whitespace && measured > line.AvailableWidth && !line.HasFlowContent) {
-                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, measured);
-                }
                 if (!preventTokenWrapping && line.HasFlowContent && line.PreviewAdvance(run, measured) > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (whitespace && !preserveWhitespace) continue;
+                }
+                if (!preventTokenWrapping && !whitespace && line.PreviewAdvance(run, measured) > line.AvailableWidth && !line.HasFlowContent) {
+                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, measured));
                 }
                 if (hasTabs) {
                     AddTabExpandedSegments(line, normalizedToken, normalizedToken, run);
@@ -341,7 +341,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double rangeWidth = range.Sum(static segment => segment.Advance);
             bool canClearObstruction = context.NextBottomAfter(y) > y + 0.0001D;
             if (startedAfterContent || canClearObstruction) {
-                while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart);
+                while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
                 if (rangeWidth > line.AvailableWidth + 0.0001D) {
                     MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, rangeWidth);
@@ -374,10 +374,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatContext context,
         double lineHeight,
         HtmlInlineRun run,
-        string token) {
+        string token,
+        bool completesToken = true) {
+        int consumed = 0;
         foreach (string value in OfficeTextElements.Enumerate(token)) {
+            consumed += value.Length;
             double elementWidth = MeasureInlineText(value, run.Style);
-            if (line.HasFlowContent && line.PreviewAdvance(run, elementWidth) > line.AvailableWidth) {
+            if (line.HasFlowContent && line.PreviewAdvance(run, elementWidth, completesToken && consumed == token.Length) > line.AvailableWidth) {
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
             }
             line.Add(new InlineSegment(value, elementWidth, run));

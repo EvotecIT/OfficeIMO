@@ -5,18 +5,20 @@ namespace OfficeIMO.Html;
 // Each layout pass owns its scopes. Painted glyph/atomic widths remain positive;
 // these signed advances describe the space consumed by their enclosing inline boxes.
 internal sealed class HtmlInlineEdgeScope {
-    internal HtmlInlineEdgeScope(IElement owner, HtmlRenderBoxStyle style) {
+    internal HtmlInlineEdgeScope(IElement owner, HtmlRenderBoxStyle style, double paintOffsetX) {
         Owner = owner;
         Style = style;
         Start = style.MarginLeft + style.PaddingLeft + style.BorderLeftWidth;
         End = style.MarginRight + style.PaddingRight + style.BorderRightWidth;
         Clone = style.BoxDecorationBreak == "clone";
+        PaintOffsetX = paintOffsetX;
     }
     internal IElement Owner { get; }
     internal HtmlRenderBoxStyle Style { get; }
     internal double Start { get; }
     internal double End { get; }
     internal bool Clone { get; }
+    internal double PaintOffsetX { get; }
     internal object? FirstContent { get; set; }
     internal object? LastContent { get; set; }
     internal bool Closed { get; set; }
@@ -34,7 +36,7 @@ internal sealed class HtmlInlineEdgeBoundary {
 internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _reportedInlineEdgeFallbacks = new();
     private readonly Dictionary<HtmlInlineEdgeScope, (double Left, double Right)> _currentInlineEdgeGeometry = new();
-    private HtmlInlineEdgeScope? ResolveInlineEdgeScope(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle) {
+    private HtmlInlineEdgeScope? ResolveInlineEdgeScope(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, double paintOffsetX) {
         if (style.Display != "inline" || style.MarginLeft == 0D && style.MarginRight == 0D && style.HorizontalInsets == 0D) return null;
         if (style.Direction == "rtl" || parentStyle.Direction == "rtl" || style.WritingMode != "horizontal-tb") {
             if (_reportedInlineEdgeFallbacks.Add(element)) _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported,
@@ -44,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
             return null;
         }
-        return new HtmlInlineEdgeScope(element, style);
+        return new HtmlInlineEdgeScope(element, style, paintOffsetX);
     }
 
     private static HtmlInlineRun CreateInlineEdgeBoundary(HtmlInlineEdgeScope scope, bool opening,
@@ -137,6 +139,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return result;
         }
 
+        internal static double PreviewEmptyLineAdvance(HtmlInlineRun run, double contentWidth, bool completesToken = true) {
+            double result = contentWidth;
+            foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) {
+                if (scope.Clone || scope.FirstContent == null) result += scope.Start;
+                if (scope.Clone) result += scope.End;
+            }
+            if (completesToken && run.InlineTokenEndsRun) result += run.InlineClosingAdvance;
+            return result;
+        }
+
+        // Tab stops are measured from the formatting line's start. A cloned end
+        // is reserved in Width but moves after the next segment, so it does not
+        // precede that segment's text or tab.
+        internal double PreviewContentStart(HtmlInlineRun run) {
+            double result = Width;
+            foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) {
+                if (_inlineEdges.ContainsKey(scope)) {
+                    if (scope.Clone) result -= scope.End;
+                } else if (scope.Clone || scope.FirstContent == null) result += scope.Start;
+            }
+            return result;
+        }
+
         private void AddInlineEdges(InlineSegment segment) {
             if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null
                 || segment.Run.PositionedMarkerElement != null || segment.Run.IsFlowMarker) return;
@@ -194,27 +219,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        private void RebuildInlineEdges(InlineSegment removed) {
+        private void RebuildInlineEdges(InlineSegment removed, bool preserveScopeContent) {
             foreach (HtmlInlineEdgeScope scope in removed.Run.InlineEdgeScopes) {
-                if (ReferenceEquals(scope.FirstContent, removed)) {
+                if (!preserveScopeContent && ReferenceEquals(scope.FirstContent, removed)) {
                     scope.FirstContent = Segments.FirstOrDefault(segment => segment.Run.InlineEdgeScopes.Contains(scope));
                 }
+                if (!preserveScopeContent && ReferenceEquals(scope.LastContent, removed)) {
+                    scope.LastContent = Segments.LastOrDefault(segment => segment.Run.InlineEdgeScopes.Contains(scope));
+                }
             }
-            var closed = new HashSet<HtmlInlineEdgeScope>(_inlineEdges.Where(pair => pair.Value.Closed).Select(pair => pair.Key));
             _inlineEdges.Clear();
             Width = Segments.Sum(segment => segment.Width);
             foreach (InlineSegment segment in Segments) {
                 segment.LeadingAdvance = 0D;
                 segment.TrailingAdvance = 0D;
                 AddInlineEdges(segment);
-            }
-            foreach (HtmlInlineEdgeScope scope in closed) {
-                if (!_inlineEdges.TryGetValue(scope, out InlineEdgeFragment? fragment)) continue;
-                fragment.Closed = true;
-                if (!scope.Clone) {
-                    fragment.Last.TrailingAdvance += scope.End;
-                    Width += scope.End;
-                }
             }
         }
 
