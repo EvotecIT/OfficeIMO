@@ -184,7 +184,9 @@ internal static partial class PdfWriter {
                 AutoFitTextProfile textProfile = textProfiles[rowIndex * cols + cell.Column];
                 bool splitMinimumCamelCase = useLargeDenseCamelCaseCap || useLargeDenseDelimitedCodeCap;
                 string[] tokens = GetAutoFitMinimumWidthTokens(cell.Text, splitCamelCase: splitMinimumCamelCase);
-                double measuredTextWidth = style.AutoFitWidthUsesContentMinimum
+                double orientedTextWidth = cell.TextRotation != 0
+                    ? MeasureOrientedTableTextWidth(cell, rowStandardFont, rowSize, GetTableLeading(style, rowSize), options) : 0D;
+                double measuredTextWidth = cell.TextRotation != 0 ? orientedTextWidth : style.AutoFitWidthUsesContentMinimum
                     ? MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options, wholeLine: true)
                     : cols == 1
                     ? measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi
@@ -204,11 +206,11 @@ internal static partial class PdfWriter {
                         preferredWidths[c] = requestedPerColumn;
                     }
                 }
-                if (style.AutoFitWidthUsesContentMinimum) {
+                if (style.AutoFitWidthUsesContentMinimum || cell.TextRotation != 0) {
                     // Imported grids grow for unbreakable words and objects.
                     // Generic PDF technical-text heuristics are not a minimum
                     // width contract for an authored document table.
-                    double wordWidth = MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options);
+                    double wordWidth = cell.TextRotation != 0 ? orientedTextWidth : MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options);
                     // Subtracting the padding again during layout must not
                     // round the inner width below the measured word width.
                     double minimum = Math.Max(1D, Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding + .001D);
