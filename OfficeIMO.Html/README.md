@@ -727,6 +727,14 @@ foreach (HtmlResourceSessionEntry resource in session.Resources) {
 
 The session owns one immutable policy and limit snapshot for the operation. It deduplicates canonical requests, validates MIME types, enforces request/count/per-resource/total-byte/import-depth budgets, and records accepted resource digests. Synchronous rendering uses the configured synchronous package resolver; application/network resolution remains an explicit asynchronous boundary.
 
+The session checks its resource URL policy before invoking a resolver, even when a
+manifest was planned under a more permissive policy. It also checks reported final
+URIs before accepting content. Resolvers must enforce that policy while following
+redirects. `ResourceTimeout` cancels the resolver's token; cancellation is
+cooperative, so a callback that ignores the token delays completion until it returns.
+Content returned after the deadline is rejected. Use an isolated worker when a hard
+termination boundary is required.
+
 When an implicit section takes its title from a heading, `section.TitleHeading`
 retains that heading's level, rich runs, style and source location. It remains
 separate from `section.Blocks`, which contains the section body. If the heading

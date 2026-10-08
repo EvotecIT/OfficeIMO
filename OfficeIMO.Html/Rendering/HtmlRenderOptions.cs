@@ -133,7 +133,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     // by the synchronous rendering API.
     internal HtmlRenderSynchronousResourceResolver? SynchronousResourceResolver { get; set; }
 
-    /// <summary>Maximum time allowed for one resolver invocation.</summary>
+    /// <summary>Deadline after which one resolver invocation's cancellation token is cancelled.</summary>
+    /// <remarks>Resolvers must observe cancellation. The renderer waits for each callback to return and rejects content returned after the deadline.</remarks>
     public TimeSpan ResourceTimeout { get; set; } = TimeSpan.FromSeconds(30D);
 
     /// <summary>Maximum asynchronous resolver invocations allowed to run concurrently.</summary>

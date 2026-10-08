@@ -66,7 +66,8 @@ public sealed partial class HtmlResourceSession {
     /// <summary>Asynchronous application resolver snapshot owned by this operation.</summary>
     public HtmlRenderResourceResolver? Resolver { get; }
 
-    /// <summary>Maximum duration of one resolver invocation.</summary>
+    /// <summary>Deadline after which one resolver invocation's cancellation token is cancelled.</summary>
+    /// <remarks>Cancellation is cooperative. The session waits for the resolver to return, and rejects content returned after the deadline.</remarks>
     public TimeSpan ResourceTimeout { get; }
 
     /// <summary>Maximum concurrent asynchronous resolver invocations.</summary>
@@ -455,7 +456,7 @@ public sealed class HtmlResourceSessionEntry {
     public string Sha256 { get; }
 }
 
-internal static class HtmlRenderResourceLoader {
+internal static partial class HtmlRenderResourceLoader {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
     private readonly struct ResourceResolution {
@@ -579,6 +580,7 @@ internal static class HtmlRenderResourceLoader {
         ResourceResolver resolver,
         bool archiveResources = false) {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
+        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(result.ResourcePolicy);
         var seen = new HashSet<string>(HtmlResourceSeenKeyComparer.Instance);
         var pending = new Queue<PendingResource>();
         foreach (HtmlResourceReference reference in manifest.Resources) {
@@ -610,6 +612,11 @@ internal static class HtmlRenderResourceLoader {
                 if (!reference.IsAllowed || !(IsLoadableKind(reference.Kind) || archiveResources && reference.Kind == HtmlResourceKind.Media) || reference.ResolvedSource.Length == 0) continue;
                 if (!archiveResources && reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
                 if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
+                if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? uri)) {
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, OfficeConversionLossKind.Omission);
+                    continue;
+                }
+                if (!ApproveResourceUri(reference, uri, resourcePolicy, diagnostics, finalUri: false)) continue;
                 if (result.AcceptedResourceCount >= result.MaxResourceCount) {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + result.MaxResourceCount, OfficeConversionLossKind.Omission);
                     stop = true;
@@ -618,11 +625,6 @@ internal static class HtmlRenderResourceLoader {
                 if (!result.TryReserveRequest(reference)) {
                     stop = true;
                     break;
-                }
-
-                if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? uri)) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUriInvalid, "A policy-approved resource could not be represented as an absolute URI.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource, OfficeConversionLossKind.Omission);
-                    continue;
                 }
 
                 if (markAttemptedBeforeResolve) {
@@ -678,23 +680,7 @@ internal static class HtmlRenderResourceLoader {
 
                 Uri resourceUri = item.Uri;
                 if (resource.FinalUri?.IsAbsoluteUri == true) {
-                    string approvedFinalSource = HtmlUrlPolicyEvaluator.ResolveUrl(
-                        resource.FinalUri.AbsoluteUri,
-                        baseUri: null,
-                        HtmlResourceUrlPolicy.Create(result.ResourcePolicy));
-                    if (!Uri.TryCreate(approvedFinalSource, UriKind.Absolute, out Uri? approvedFinalUri)
-                        || !approvedFinalUri.Equals(resource.FinalUri)) {
-                        diagnostics.Add(
-                            ComponentName,
-                            GetPolicyRejectionCode(reference.Kind),
-                            "A resolver-reported final resource URI was rejected by the configured URL policy.",
-                            HtmlDiagnosticSeverity.Warning,
-                            reference.Source,
-                            resource.FinalUri.AbsoluteUri,
-                            OfficeConversionLossKind.Omission);
-                        continue;
-                    }
-
+                    if (!ApproveResourceUri(reference, resource.FinalUri, resourcePolicy, diagnostics, finalUri: true)) continue;
                     resourceUri = resource.FinalUri;
                 }
 
@@ -757,6 +743,7 @@ internal static class HtmlRenderResourceLoader {
             var request = new HtmlRenderResourceRequest(uri, reference.Source, reference.Kind,
                 tryReserveAdditionalRequest);
             ResourceResolution resolution = await resolver(request, timeout.Token).ConfigureAwait(false);
+            timeout.Token.ThrowIfCancellationRequested();
             return new CompletedResolution(pending, uri, resolution, null);
         } catch (Exception exception) {
             return new CompletedResolution(pending, uri, default, exception);
@@ -831,18 +818,6 @@ internal static class HtmlRenderResourceLoader {
 
             pending.Enqueue(new PendingResource(reference, importDepth + 1));
         }
-    }
-
-    private static string GetPolicyRejectionCode(HtmlResourceKind kind) {
-        return kind switch {
-            HtmlResourceKind.Image => "ImageResourceRejectedByPolicy",
-            HtmlResourceKind.Stylesheet => "StylesheetResourceRejectedByPolicy",
-            HtmlResourceKind.Hyperlink => "HyperlinkRejectedByPolicy",
-            HtmlResourceKind.Script => "ScriptResourceRejectedByPolicy",
-            HtmlResourceKind.Media => "MediaResourceRejectedByPolicy",
-            HtmlResourceKind.Font => "FontResourceRejectedByPolicy",
-            _ => "HtmlResourceRejectedByPolicy"
-        };
     }
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>

@@ -170,6 +170,13 @@ Results distinguish native handling, approximation, omission, unsupported behavi
 
 Separate CPU work from asynchronous I/O; expose cooperative cancellation on both. Define reusable-result disposal and thread-safety explicitly. Use interfaces at real substitution boundaries such as parser providers, resource fetchers, text shaping and output sinks; do not make every internal layout node an extensibility point.
 
+Resource sessions revalidate planned URLs against their operation policy before
+resolver dispatch and validate reported final URIs before accepting content.
+Application resolvers enforce the policy on each redirect they follow. Resource
+deadlines cancel the callback token and reject late content; the operation still
+waits for callbacks to return. A hard termination boundary belongs to the isolated
+runtime worker rather than the in-process resolver contract.
+
 ### Source and DOM contract
 
 Own node identity, namespaces, attributes, text, comments, doctype, document mode, template contents, fragments and parse diagnostics. A fragment parse accepts an explicit context element. HTML parsing and XML/XHTML parsing are separate modes; do not treat malformed HTML as XML with permissive flags. HTML tokenizer states and tree construction follow the [HTML parsing standard](https://html.spec.whatwg.org/multipage/parsing.html).
