@@ -48,61 +48,19 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
-## Visio native page lengths
+## Word content-control form locks
 
-Page dimensions, margins, layout grid distances and routing distances now read
-and write native cached lengths in inches. The XML `U` attribute selects the
-display unit; it does not change the unit of a cached length. Public page
-properties retain their inch-based values, and setters that accept a unit keep
-their existing conversion behavior. Untouched valid native length cells retain
-their cache spelling, unit, formula and producer error through saving and copying.
+`FillContentControlValues` rejects supplied values for content-locked controls
+before applying any form values. `ValidateContentControlValues` reports these
+targets as `WordContentControlFormIssueKind.LockedControl`. Remove locked fields
+from the supplied map to fill only editable fields; when validating a partial
+map, pass `requireAllControls: false`.
 
-Older OfficeIMO files can contain metric display values in these native caches.
-Loading follows the native inch contract rather than guessing whether a file
-was written incorrectly. For an affected file, assign the known intended page
-dimensions and distances before saving. For example, an intended 210 mm width
-is `page.Width = 210 / 25.4`; do not apply this correction to native files that
-already store inch-based caches.
-
-## Visio page coordinates
-
-`VisioShape.GetAbsolutePoint()` and `GetBounds()` now include cached reflections and every containing group, matching their page-coordinate contract. `GetShapeBounds()` and `GetPageShapeBounds()` agree. Remove caller-side loops that transform the result through parents again. Shape `PinX` and `PinY` still use parent coordinates.
-
-Selection alignment, distribution and grid placement use the transformed rectangle's page bounds, including noncentered local pins and rotation. Grid cell sizes use those bounds. Code comparing layouts must allow the corrected placement of reflected or grouped shapes. Coordinate operations throw `InvalidDataException` when a native reflection has neither a finite cache nor a constant numeric formula.
-
-## Visio preview layer selection
-
-SVG and raster previews now honor layer `Visible` flags by default. Use `LayerMode = VisioLayerRenderMode.All` on SVG, PNG or image-export options, or `.LayerMode(VisioLayerRenderMode.All)` on a fluent builder, to retain the previous behavior of including every layer. `Printable` uses `Print` flags independently of screen visibility. Reader and semantic PDF extraction still include hidden content.
-
-Newly created native layer rows now use zero-based indices, matching their membership positions. Existing imported row identities are retained. Code inspecting new package/XML rows must no longer assume that their indices start at 1.
-
-## Visio layer and hyperlink edits
-
-Assigning a `VisioLayer` or `VisioHyperlink` value now replaces its imported formula, native null condition and producer error, even when assigning the current value. Leave a property untouched when its source formula must survive. Untouched cells and units remain preserved.
-
-Consumers inspecting layer XML must use each saved row's `IX` rather than assume that saving renumbers rows consecutively. Loaded row identities are retained, while `LayerMember` continues to use zero-based positions in the page layer list. Reordering the list rewrites membership positions.
-
-New unnamed hyperlinks choose unused `Row_n` names rather than always deriving the name from their list position. Read the saved name or set a unique `RowName` when other code must reference that row. Copies retain allocated source names, and inherited master names are reserved unless an explicit local name overrides them. Imported numeric-only rows retain their source identity.
-
-## Visio Open XML font values
-
-Consumers inspecting VSDX/VSSX/VSTX XML directly must read `FaceName.NameU` and family names in cached font cells instead of numeric `FaceName.ID`/`Name` mappings. Constant numeric font formulas are written as `FONT("family")`, preserving `GUARD(...)` where present. Public `FontFamily` properties keep their existing usage, and legacy XML export retains numeric identities. Loading accepts older OfficeIMO numeric Open XML files.
-
-## Visio text background values
-
-`VisioTextStyle.BackgroundTransparency` remains a percentage: `15` means 15% transparent. Native `TextBkgndTrans` caches use fractions, so OfficeIMO writes `0.15` for that value. Older OfficeIMO-written files can contain percentage caches such as `15`; loading follows native units and exposes those as `1500`. Assign the intended percentage to `BackgroundTransparency` before saving such files. Untouched source caches and formulas remain preserved.
-
-Native `TextBkgnd` values `0` and `255` disable the text background. A zero-alpha `BackgroundColor` explicitly disables it; indexed native backgrounds use the document palette with the native index offset. Explicit background assignments replace the retained source cell, including its old formula and error state.
-
-## Visio preview diagnostics in PDF conversion
-
-Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `RequireNoLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
-
-## Visio connector endpoints
-
-`VisioConnector.From` and `To`, and inspection snapshot `FromId` and `ToId`, are nullable because imported and authored connectors can have free ends. Check for null before accessing an attached shape; use `StartPoint` and `EndPoint` for resolved page coordinates in inches. Assigning a point detaches that end. Existing shape-to-shape creation overloads still attach both ends.
-
-Connector geometry in saved files now uses its native local transform. Consumers reading XML geometry directly must apply Pin/LocPin/Angle to obtain page coordinates. Reader text represents unattached endpoints with coordinates instead of empty shape IDs. Topology `edge` records append start X/Y and end X/Y columns after the label; absent shape IDs remain empty.
+Controls with `sdtLocked` remain fillable. That lock prevents deleting the
+control, while `contentLocked` and `sdtContentLocked` prevent content edits.
+Picture and repeating-section replacements also reject operations that would
+remove locked nested controls. Use direct control setters for intentional
+authoring changes that bypass form-fill safeguards.
 
 ## XPS radial focal points
 
@@ -173,6 +131,62 @@ Use `XpsPage.ReplaceStoryFragmentsMarkup()` and
 content referenced by StoryFragments, update both detached trees and call
 `page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
 commit together. Page-only edits that leave dangling native names are rejected.
+
+## Visio native page lengths
+
+Page dimensions, margins, layout grid distances and routing distances now read
+and write native cached lengths in inches. The XML `U` attribute selects the
+display unit; it does not change the unit of a cached length. Public page
+properties retain their inch-based values, and setters that accept a unit keep
+their existing conversion behavior. Untouched valid native length cells retain
+their cache spelling, unit, formula and producer error through saving and copying.
+
+Older OfficeIMO files can contain metric display values in these native caches.
+Loading follows the native inch contract rather than guessing whether a file
+was written incorrectly. For an affected file, assign the known intended page
+dimensions and distances before saving. For example, an intended 210 mm width
+is `page.Width = 210 / 25.4`; do not apply this correction to native files that
+already store inch-based caches.
+
+## Visio page coordinates
+
+`VisioShape.GetAbsolutePoint()` and `GetBounds()` now include cached reflections and every containing group, matching their page-coordinate contract. `GetShapeBounds()` and `GetPageShapeBounds()` agree. Remove caller-side loops that transform the result through parents again. Shape `PinX` and `PinY` still use parent coordinates.
+
+Selection alignment, distribution and grid placement use the transformed rectangle's page bounds, including noncentered local pins and rotation. Grid cell sizes use those bounds. Code comparing layouts must allow the corrected placement of reflected or grouped shapes. Coordinate operations throw `InvalidDataException` when a native reflection has neither a finite cache nor a constant numeric formula.
+
+## Visio preview layer selection
+
+SVG and raster previews now honor layer `Visible` flags by default. Use `LayerMode = VisioLayerRenderMode.All` on SVG, PNG or image-export options, or `.LayerMode(VisioLayerRenderMode.All)` on a fluent builder, to retain the previous behavior of including every layer. `Printable` uses `Print` flags independently of screen visibility. Reader and semantic PDF extraction still include hidden content.
+
+Newly created native layer rows now use zero-based indices, matching their membership positions. Existing imported row identities are retained. Code inspecting new package/XML rows must no longer assume that their indices start at 1.
+
+## Visio layer and hyperlink edits
+
+Assigning a `VisioLayer` or `VisioHyperlink` value now replaces its imported formula, native null condition and producer error, even when assigning the current value. Leave a property untouched when its source formula must survive. Untouched cells and units remain preserved.
+
+Consumers inspecting layer XML must use each saved row's `IX` rather than assume that saving renumbers rows consecutively. Loaded row identities are retained, while `LayerMember` continues to use zero-based positions in the page layer list. Reordering the list rewrites membership positions.
+
+New unnamed hyperlinks choose unused `Row_n` names rather than always deriving the name from their list position. Read the saved name or set a unique `RowName` when other code must reference that row. Copies retain allocated source names, and inherited master names are reserved unless an explicit local name overrides them. Imported numeric-only rows retain their source identity.
+
+## Visio Open XML font values
+
+Consumers inspecting VSDX/VSSX/VSTX XML directly must read `FaceName.NameU` and family names in cached font cells instead of numeric `FaceName.ID`/`Name` mappings. Constant numeric font formulas are written as `FONT("family")`, preserving `GUARD(...)` where present. Public `FontFamily` properties keep their existing usage, and legacy XML export retains numeric identities. Loading accepts older OfficeIMO numeric Open XML files.
+
+## Visio text background values
+
+`VisioTextStyle.BackgroundTransparency` remains a percentage: `15` means 15% transparent. Native `TextBkgndTrans` caches use fractions, so OfficeIMO writes `0.15` for that value. Older OfficeIMO-written files can contain percentage caches such as `15`; loading follows native units and exposes those as `1500`. Assign the intended percentage to `BackgroundTransparency` before saving such files. Untouched source caches and formulas remain preserved.
+
+Native `TextBkgnd` values `0` and `255` disable the text background. A zero-alpha `BackgroundColor` explicitly disables it; indexed native backgrounds use the document palette with the native index offset. Explicit background assignments replace the retained source cell, including its old formula and error state.
+
+## Visio preview diagnostics in PDF conversion
+
+Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `RequireNoLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
+
+## Visio connector endpoints
+
+`VisioConnector.From` and `To`, and inspection snapshot `FromId` and `ToId`, are nullable because imported and authored connectors can have free ends. Check for null before accessing an attached shape; use `StartPoint` and `EndPoint` for resolved page coordinates in inches. Assigning a point detaches that end. Existing shape-to-shape creation overloads still attach both ends.
+
+Connector geometry in saved files now uses its native local transform. Consumers reading XML geometry directly must apply Pin/LocPin/Angle to obtain page coordinates. Reader text represents unattached endpoints with coordinates instead of empty shape IDs. Topology `edge` records append start X/Y and end X/Y columns after the label; absent shape IDs remain empty.
 
 ## Static HTML rendering and capability profiles
 
