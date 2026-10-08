@@ -9,7 +9,7 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 ## Header and footer content
 
-Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. Running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks per generation; exceeding this limit throws `InvalidDataException`.
+Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. During layout, including pagination stabilization, running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks; exceeding this limit throws `InvalidDataException`. This bounds retained layout assets; transient callback/decoder allocations and opt-in image optimization or PDF/X conversion during serialization use their own policies.
 
 ```csharp
 var document = PdfDocument.Create();
