@@ -8,7 +8,7 @@ using OfficeIMO.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Security.Tests {
-    public sealed class OfficeVbaCarrierRecoveryTests {
+    public sealed partial class OfficeVbaCarrierRecoveryTests {
         [Theory]
         [InlineData("excel", false)]
         [InlineData("word", false)]
@@ -150,6 +150,8 @@ namespace OfficeIMO.Security.Tests {
             internal bool FailPayloadWrite;
             internal bool FailSignatureDelete;
             internal bool FailDataWrite;
+            internal bool FailProjectDelete;
+            internal bool FailDataDelete;
             internal int PayloadWriteFailures;
             internal RecoveryPackage() : base(FileAccess.ReadWrite) { }
             protected override PackagePart CreatePartCore(Uri uri, string contentType, CompressionOption compression) {
@@ -158,6 +160,12 @@ namespace OfficeIMO.Security.Tests {
             protected override PackagePart GetPartCore(Uri uri) => Wrap(_storage.GetPart(uri));
             protected override PackagePart[] GetPartsCore() => _storage.GetParts().Select(Wrap).ToArray();
             protected override void DeletePartCore(Uri uri) {
+                if (FailDataDelete && _storage.PartExists(uri) && _storage.GetPart(uri).ContentType == "application/vnd.ms-word.vbaData+xml") {
+                    FailDataDelete = false; throw new IOException("Synthetic supplemental data deletion failure.");
+                }
+                if (FailProjectDelete && _storage.PartExists(uri) && _storage.GetPart(uri).ContentType == "application/vnd.ms-office.vbaProject") {
+                    FailProjectDelete = false; throw new IOException("Synthetic project deletion failure.");
+                }
                 if (FailSignatureDelete && _storage.PartExists(uri) && _storage.GetPart(uri).ContentType.Contains("vbaProjectSignatureAgile")) {
                     FailSignatureDelete = false; throw new IOException("Synthetic signature deletion failure.");
                 }

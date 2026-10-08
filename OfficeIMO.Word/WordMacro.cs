@@ -157,8 +157,8 @@ namespace OfficeIMO.Word {
                 remaining = OfficeVbaProjectInspector.GetModuleNames(changed).Count;
             }
             // Check signature policy before either replacing or deleting the project part.
-            OfficeIMO.OpenXml.Internal.OfficeVbaProjectPartEditor.Apply(vbaPart, changed, new OfficeVbaWriteOptions());
-            if (remaining == 0) RemoveMacros(document);
+            if (remaining == 0) OfficeIMO.OpenXml.Internal.OfficeVbaProjectPartEditor.Remove(mainPart!, vbaPart, new OfficeVbaWriteOptions());
+            else OfficeIMO.OpenXml.Internal.OfficeVbaProjectPartEditor.Apply(vbaPart, changed, new OfficeVbaWriteOptions());
         }
 
         /// <summary>
