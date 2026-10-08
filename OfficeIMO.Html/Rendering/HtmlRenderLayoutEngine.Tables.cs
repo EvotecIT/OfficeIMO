@@ -72,9 +72,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         IElement? continuationRow = FindOwningTableRow(table, continuationTarget);
+        int skippedBodyRows = 0;
         if (continuationRow != null) {
             int continuationIndex = bodyRows.FindIndex(row => ReferenceEquals(row, continuationRow));
-            if (continuationIndex > 0) bodyRows.RemoveRange(0, continuationIndex);
+            if (continuationIndex > 0) {
+                // An authored table minimum distributes surplus across the full
+                // table. Preserve that sizing before removing earlier rows.
+                if (style.ExplicitHeight.HasValue) skippedBodyRows = continuationIndex;
+                else bodyRows.RemoveRange(0, continuationIndex);
+            }
         }
         var rows = new List<IElement>(headerRows.Count + bodyRows.Count + footerRows.Count);
         rows.AddRange(headerRows);
@@ -92,7 +98,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bottomCaptionHeight = caption != null && caption.Side == "bottom" ? caption.Height : 0D;
             tableY = style.MarginTop + topCaptionHeight;
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.EmptyTable, "A table contained no renderable rows or cells.", HtmlDiagnosticSeverity.Info, source);
-            double emptyTableHeight = Math.Max(1D, style.VerticalInsets);
+            double emptyTableHeight = ResolveTableMinimumHeight(style);
             var emptyVisuals = new List<HtmlRenderVisual>();
             if (caption != null && caption.Side == "top") AppendTableCaption(emptyVisuals, caption, style.MarginLeft, style.MarginTop);
             AddBoxPaint(emptyVisuals, style, style.MarginLeft, tableY, tableWidth, emptyTableHeight, table);
@@ -158,7 +164,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderBoxStyle rowStyle = rowStyles[row];
             var cellLayouts = new List<TableCellLayout>();
             int column = 0;
-            double rowHeight = 0D;
+            double rowHeight = Math.Max(0D, rowStyle.ExplicitHeight ?? 0D);
             foreach (IElement cell in EnumerateVisibleTableCells(row)) {
                 int requestedColumnSpan = ReadSpan(cell.GetAttribute("colspan"), 1000);
                 column = FindAvailableColumn(occupiedColumns, column, requestedColumnSpan);
@@ -172,7 +178,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
                 HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, cellStyle, depth + 1);
-                double cellHeight = Math.Max(cellStyle.LineHeight, inline.Height) + cellStyle.VerticalInsets;
+                double cellHeight = ResolveTableCellMinimumHeight(cellStyle, inline);
                 if (rowSpan == 1) rowHeight = Math.Max(rowHeight, cellHeight);
                 cellLayouts.Add(new TableCellLayout(cell, cellStyle, inline, column, columnSpan, rowSpan, cellOuterWidth, cellHeight));
                 for (int occupiedColumn = column; occupiedColumn < column + columnSpan; occupiedColumn++) {
@@ -195,7 +201,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             DecrementOccupancy(occupiedColumns);
         }
 
+        ResolveTableBaselines(rowLayouts);
         ResolveSpanningRowHeights(rowLayouts, verticalSpacing);
+        ApplyTableMinimumHeight(rowLayouts, style, verticalSpacing);
+        ResolveTableCellContentOffsets(rowLayouts, verticalSpacing);
+        if (skippedBodyRows > 0) rowLayouts.RemoveRange(headerRows.Count, skippedBodyRows);
 
         double rowsHeight = verticalSpacing * (rowLayouts.Count + 1);
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) rowsHeight += rowLayouts[rowIndex].Height;
@@ -255,13 +265,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddBoxBackground(rowVisuals, row.Style, rowPaintX, rowY, rowPaintWidth, row.Height, 0D, row.Element, rowSource, rowSource);
             AddElementNamedDestination(navigationDestinations, row.Element, rowPaintX, rowY, navigationDestinations.Count);
             foreach (TableCellLayout cell in row.Cells) {
-                double cellX = contentX + horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
+                double logicalCellX = horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
+                double cellX = contentX + (style.Direction == "rtl" ? contentWidth - logicalCellX - cell.Width : logicalCellX);
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);
                 var cellVisuals = new List<HtmlRenderVisual>();
                 AddBoxPaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element, paintSeparateBorders);
                 AddElementNamedDestination(navigationDestinations, cell.Element, cellX, rowY, navigationDestinations.Count);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
-                double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
+                double textY = rowY + cell.ContentOffsetY;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
                 }
@@ -448,10 +459,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static void ApplyTableCellFallbackInsets(HtmlRenderBoxStyle cellStyle, int legacyBorderWidth) {
-        if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
-            cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
-        }
-
         if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
             cellStyle.Borders = legacyBorderWidth > 0
                 ? HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(128, 128, 128))
@@ -621,7 +628,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static void AddTableRowInternalBreakOffsets(ICollection<double> breakOffsets, TableRowLayout row, double rowY) {
         var candidates = new SortedSet<double>();
         foreach (TableCellLayout cell in row.Cells) {
-            double contentTop = cell.Style.BorderTopWidth + cell.Style.PaddingTop;
+            double contentTop = cell.ContentOffsetY;
             double finalSafeOffset = cell.Inline.Height - cell.Style.LineHeight + 0.0001D;
             foreach (double offset in cell.Inline.BreakOffsets) {
                 if (offset <= finalSafeOffset) candidates.Add(contentTop + offset);
@@ -631,8 +638,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (double candidate in candidates) {
             bool safeForEveryCell = true;
             foreach (TableCellLayout cell in row.Cells) {
-                double contentTop = cell.Style.BorderTopWidth + cell.Style.PaddingTop;
+                double contentTop = cell.ContentOffsetY;
                 double relative = candidate - contentTop;
+                if (relative <= 0.0001D) continue;
                 if (relative >= cell.Inline.Height - 0.0001D) continue;
                 if (!cell.Inline.BreakOffsets.Any(offset => Math.Abs(offset - relative) <= 0.0001D)) {
                     safeForEveryCell = false;
@@ -773,6 +781,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal HtmlRenderBoxStyle? GroupStyle { get; }
         internal IReadOnlyList<TableCellLayout> Cells { get; }
         internal double Height { get; set; }
+        internal double Baseline { get; set; }
         internal bool IsHeader { get; }
         internal bool IsFooter { get; }
     }
@@ -797,5 +806,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int RowSpan { get; }
         internal double Width { get; }
         internal double MinimumHeight { get; }
+        internal double ContentOffsetY { get; set; }
     }
 }

@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderBoxStyle {
     internal string Display = "block";
+    internal string TableVerticalAlignment = "baseline";
     internal string StringSet = string.Empty;
     internal bool DisplayWasSpecified;
     internal bool PaintVisible = true;

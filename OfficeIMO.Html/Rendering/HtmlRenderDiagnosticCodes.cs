@@ -6,6 +6,8 @@ namespace OfficeIMO.Html;
 /// Stable diagnostic codes emitted by the first-party HTML renderer.
 /// </summary>
 public static class HtmlRenderDiagnosticCodes {
+    /// <summary>An intrinsic box-size keyword used auto sizing or omitted a minimum or maximum constraint.</summary>
+    public const string IntrinsicSizeUnsupported = "HtmlRenderIntrinsicSizeUnsupported";
     /// <summary>A fragment hyperlink referenced an element that is absent from the document.</summary>
     public const string HyperlinkTargetUnavailable = "HtmlRenderHyperlinkTargetUnavailable";
     /// <summary>A serialized shadow tree was flattened for static rendering without shadow-scoped CSS or live behavior.</summary>
@@ -272,6 +274,7 @@ public static class HtmlRenderDiagnosticCodes {
         ComplexTextShapingUnsupported,
         InlinePaintEffectUnsupported,
         FlexLayoutPending,
+        IntrinsicSizeUnsupported,
         FlexValueUnsupported,
         FloatValueUnsupported,
         MultiColumnLimitExceeded,
