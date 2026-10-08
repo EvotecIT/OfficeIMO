@@ -34,5 +34,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="TestData\Vba\*.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestData\Vba\*.LICENSE.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -566,6 +566,7 @@ presentation.SetVbaProject(project);
 ```
 
 Existing projects can be read, edited, and applied through the same model.
+Document modules bound to Word or Excel are rejected before the project part changes.
 Changed signed projects require explicit
 `OfficeVbaWriteOptions.AllowSignatureRemoval`; unchanged bytes retain signatures.
 Save macro content only to matching macro-enabled Open XML package formats such

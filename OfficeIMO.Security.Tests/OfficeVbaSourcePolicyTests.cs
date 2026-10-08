@@ -11,6 +11,34 @@ namespace OfficeIMO.Security.Tests;
 
 public sealed class OfficeVbaSourcePolicyTests {
     [Fact]
+    public void EditingOfficeAuthoredFormCodePreservesTheNestedDesignerAndItsMetadata() {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Vba", "Excel-nested-form.bin"));
+        var project = OfficeVbaProject.Load(bytes);
+        Assert.Equal(OfficeVbaModuleKind.Designer, project.GetModule("FrmNested").Kind);
+        string? identity = OfficeVbaText.GetBaseIdentity(project.GetModule("FrmNested").Source);
+        Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? original, out _));
+        project.SetModuleSource("FrmNested", "Public Function FormSentinel() As Long\r\nFormSentinel = 42\r\nEnd Function\r\n");
+        byte[] written = project.Write().GetBytes();
+        Assert.True(OfficeCompoundFileReader.TryRead(written, out OfficeCompoundFile? edited, out _));
+        var designerStreams = original!.Streams.Where(stream => stream.Key.StartsWith("FrmNested/", StringComparison.OrdinalIgnoreCase)).ToArray();
+        Assert.Equal(17, designerStreams.Length);
+        foreach (var stream in designerStreams) Assert.Equal(stream.Value, edited!.Streams[stream.Key]);
+        foreach (var entry in original.Entries.Where(entry => entry.Path == "FrmNested" || entry.Path.StartsWith("FrmNested/", StringComparison.OrdinalIgnoreCase))) {
+            var preserved = Assert.Single(edited!.Entries, candidate => candidate.Path == entry.Path);
+            Assert.Equal(entry.ObjectType, preserved.ObjectType);
+            Assert.Equal(entry.ClassId, preserved.ClassId);
+            Assert.Equal(entry.StateBits, preserved.StateBits);
+            Assert.Equal(entry.CreationTime, preserved.CreationTime);
+            Assert.Equal(entry.ModifiedTime, preserved.ModifiedTime);
+        }
+        var loaded = OfficeVbaProject.Load(written);
+        Assert.Equal(identity, OfficeVbaText.GetBaseIdentity(loaded.GetModule("FrmNested").Source));
+        Assert.Contains("FormSentinel = 42", loaded.GetModule("FrmNested").Source);
+        Assert.Throws<NotSupportedException>(() => loaded.DeleteModule("FrmNested"));
+        Assert.Throws<NotSupportedException>(() => loaded.RenameModule("FrmNested", "RenamedForm"));
+    }
+
+    [Fact]
     public void EditsPreserveOpaqueStreamsAndUnchangedModuleBytes() {
         var project = OfficeVbaProject.Create();
         project.AddModule("Helpers", "'initial\r\n");

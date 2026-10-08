@@ -16,6 +16,9 @@ public sealed partial class PowerPointPresentation {
         ThrowIfDisposed();
         if (project == null) throw new ArgumentNullException(nameof(project));
         options ??= new OfficeVbaWriteOptions();
+        if (project.Modules.Any(module => module.Kind == OfficeVbaModuleKind.Document)) {
+            throw new ArgumentException("PowerPoint source projects cannot contain document modules bound to another Office host.", nameof(project));
+        }
         byte[] bytes = project.Write(options).GetBytes();
         var part = _presentationPart.VbaProjectPart ?? _presentationPart.AddNewPart<DocumentFormat.OpenXml.Packaging.VbaProjectPart>();
         OfficeVbaProjectPartEditor.Apply(part, bytes, options);

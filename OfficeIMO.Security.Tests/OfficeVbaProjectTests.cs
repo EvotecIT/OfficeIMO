@@ -9,6 +9,51 @@ namespace OfficeIMO.Security.Tests;
 
 public sealed class OfficeVbaProjectTests {
     [Fact]
+    public void DocumentAdaptersRejectForeignDocumentModulesBeforeAddingAProjectPart() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var wordProject = OfficeVbaProject.Load(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Vba", "Word-authored.bin")));
+        using var excel = ExcelDocument.Create();
+        excel.AddWorksheet("Data");
+        Assert.Throws<ArgumentException>(() => excel.SetVbaProject(wordProject));
+        Assert.Null(excel.ReadVbaProject());
+        using var presentation = PowerPointPresentation.Create();
+        Assert.Throws<ArgumentException>(() => presentation.SetVbaProject(wordProject));
+        Assert.Null(presentation.ReadVbaProject());
+        var excelProject = OfficeVbaProject.Create();
+        excelProject.AddDocumentModule("ThisWorkbook", "", new Guid("00020819-0000-0000-C000-000000000046"));
+        using var word = WordDocument.Create();
+        Assert.Throws<ArgumentException>(() => word.SetVbaProject(excelProject));
+        Assert.Null(word.ReadVbaProject());
+    }
+
+    [Fact]
+    public void ExcelSheetModulesRequireExistingUniqueCodeNamesAndMatchingHostTypes() {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-vba-binding-" + Guid.NewGuid().ToString("N") + ".xlsm");
+        var project = OfficeVbaProject.Create();
+        project.AddDocumentModule("DataCode", "", new Guid("00020820-0000-0000-C000-000000000046"));
+        try {
+            using (var excel = ExcelDocument.Create(path)) {
+                excel.AddWorksheet("Display Name");
+                Assert.Throws<ArgumentException>(() => excel.SetVbaProject(project));
+                Assert.Null(excel.ReadVbaProject());
+                excel.Save();
+            }
+            using (var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(path, true)) {
+                package.WorkbookPart!.WorksheetParts.Single().Worksheet!.SheetProperties =
+                    new DocumentFormat.OpenXml.Spreadsheet.SheetProperties { CodeName = "DataCode" };
+            }
+            using (var excel = ExcelDocument.Load(path)) {
+                excel.SetVbaProject(project);
+                Assert.Equal("DataCode", Assert.Single(excel.ReadVbaProject()!.Modules).Name);
+                var wrongType = OfficeVbaProject.Create();
+                wrongType.AddDocumentModule("DataCode", "", new Guid("00020821-0000-0000-C000-000000000046"));
+                Assert.Throws<ArgumentException>(() => excel.SetVbaProject(wrongType));
+                Assert.Contains("00020820", excel.ReadVbaProject()!.GetModule("DataCode").Source);
+            }
+        } finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
     public void UnchangedWritesEnforceExpandedBudgetAndRetainBytesWhenWithinIt() {
         var project = OfficeVbaProject.Create();
         Assert.Throws<InvalidDataException>(() => project.Write(new OfficeVbaWriteOptions { MaximumExpandedBytes = 1 }));

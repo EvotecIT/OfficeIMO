@@ -22,6 +22,21 @@ public partial class ExcelDocument {
         Locking.ExecuteWrite(EnsureLock(), () => {
             WorkbookPart workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
             Workbook workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook root is missing.");
+            foreach (OfficeVbaModule module in project.Modules.Where(module => module.Kind == OfficeVbaModuleKind.Document)) {
+                string? identity = OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source);
+                if (string.Equals(identity, "0{00020819-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) continue;
+                int matchingSheets;
+                if (string.Equals(identity, "0{00020820-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) {
+                    matchingSheets = workbookPart.WorksheetParts.Count(part => string.Equals(
+                        part.Worksheet?.SheetProperties?.CodeName?.Value, module.Name, StringComparison.OrdinalIgnoreCase));
+                } else if (string.Equals(identity, "0{00020821-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) {
+                    matchingSheets = workbookPart.ChartsheetParts.Count(part => string.Equals(
+                        part.Chartsheet?.ChartSheetProperties?.CodeName?.Value, module.Name, StringComparison.OrdinalIgnoreCase));
+                } else {
+                    throw new ArgumentException("The VBA document module has no supported Excel host identity.", nameof(project));
+                }
+                if (matchingSheets != 1) throw new ArgumentException("The VBA sheet module must match exactly one existing sheet code name and type.", nameof(project));
+            }
             OfficeVbaModule[] workbookModules = project.Modules.Where(module => module.Kind == OfficeVbaModuleKind.Document
                 && string.Equals(OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source),
                     "0{00020819-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)).ToArray();
