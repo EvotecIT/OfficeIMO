@@ -6,6 +6,38 @@ public sealed class AccessCreationTests {
     private static byte[] Save(AccessDocument document, AccessSaveOptions? options = null) { using var output = new MemoryStream(); document.Save(output, options); Assert.True(output.CanWrite); return output.ToArray(); }
 
     [Theory]
+    [InlineData(AccessFileFormat.Mdb, false)]
+    [InlineData(AccessFileFormat.Accdb, false)]
+    [InlineData(AccessFileFormat.Mdb, true)]
+    [InlineData(AccessFileFormat.Accdb, true)]
+    public void UserOwnerAndSidFieldsKeepTheirDeclaredStorage(AccessFileFormat format, bool variableMember) {
+        using var database = AccessDocument.Create(new AccessCreateOptions { Format = format });
+        var table = database.Tables.Add("Items"); table.Columns.Add("Owner", AccessDataType.Int32); table.Columns.Add("SID", AccessDataType.Guid);
+        Guid sid = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef"); var row = new AccessRowValues { ["Owner"] = 123, ["SID"] = sid };
+        if (variableMember) { table.Columns.Add("Note", AccessDataType.ShortText); row["Note"] = "Separate variable payload"; }
+        table.AppendRow(row); database.AssessSave().RequireNoLoss();
+        using var source = AccessDocument.Load(new MemoryStream(Save(database))); using var reader = source.Tables["Items"].OpenDataReader();
+        Assert.True(reader.Read()); Assert.Equal(123, reader["Owner"]); Assert.Equal(sid, reader["SID"]);
+        if (variableMember) Assert.Equal("Separate variable payload", reader["Note"]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CreatedStreamsFlushRewindAndReplaceWithoutClosing(bool associated) {
+        using var destination = new FlushObservingStream(); destination.Write(new byte[100000], 0, 100000); destination.Position = 7;
+        using var document = associated ? AccessDocument.Create(destination) : AccessDocument.Create();
+        if (associated) document.Save(); else document.Save(destination);
+        Assert.Equal(0, destination.Position); Assert.Equal(1, destination.FlushCalls); Assert.True(destination.CanWrite); Assert.True(destination.Length < 100000);
+        using var source = AccessDocument.Load(destination); Assert.Empty(source.Tables);
+    }
+
+    private sealed class FlushObservingStream : MemoryStream {
+        internal int FlushCalls;
+        public override void Flush() { FlushCalls++; base.Flush(); }
+    }
+
+    [Theory]
     [InlineData(AccessFileFormat.Mdb)]
     [InlineData(AccessFileFormat.Accdb)]
     public void NativeCreationPreservesSchemaValuesAndModelOmission(AccessFileFormat format) {

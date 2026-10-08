@@ -16,6 +16,7 @@ internal sealed partial class AccessNativeWriter {
         internal readonly int Size;
         internal readonly bool Variable;
         internal bool AutoNumber;
+        internal bool IsSystemSid;
         internal byte Precision, Scale;
         internal readonly List<int> LongPages = new List<int>();
     }

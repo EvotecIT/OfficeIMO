@@ -21,7 +21,8 @@ internal sealed partial class AccessNativeWriter {
             writer.Write(column.Type); writer.Write(1625); writer.Write((short)block.Number);
             writer.Write((short)block.Variable); writer.Write((short)block.Number);
             writer.Write(column.Type == 16 ? column.Precision | (column.Scale << 8) : column.Type == 10 || column.Type == 12 ? 1033 : 0);
-            byte flags = (byte)(column.Name == "Owner" || column.Name == "SID" ? 0x32 : column.Variable ? 2 : 3);
+            byte flags = (byte)(column.Variable ? 2 : 3);
+            if (column.IsSystemSid) flags |= 0x30;
             if (table.Name.StartsWith("MSys", StringComparison.Ordinal)) flags |= 0x10;
             if (column.AutoNumber) flags |= 4;
             writer.Write(flags); writer.Write((byte)0); writer.Write(0);

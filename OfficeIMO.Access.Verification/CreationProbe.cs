@@ -45,9 +45,10 @@ internal static class CreationProbe {
         using (var keys = AccessDocument.Create(new AccessCreateOptions { Format = format })) {
             var table = keys.Tables.Add("KeyValues");
             table.Columns.Add("Id", AccessDataType.Byte); table.Columns.Add("Small", AccessDataType.Int16); table.Columns.Add("Name", AccessDataType.ShortText, 100);
+            table.Columns.Add("Owner", AccessDataType.Int32); table.Columns.Add("SID", AccessDataType.Guid);
             table.Indexes.AddPrimaryKey("PK_KeyValues", "Id"); table.Indexes.AddUnique("NameKey", "Name"); table.Indexes.AddUnique("CompositeKey", "Small", "Id");
             string[] names = { "", "_", "Alpha Beta", "Alpha_Beta", " alpha", "Gamma ", "Z9" };
-            for (int i = 0; i < names.Length; i++) table.AppendRow(new AccessRowValues { ["Id"] = (byte)(i + 1), ["Small"] = (short)(short.MinValue + i), ["Name"] = names[i] });
+            for (int i = 0; i < names.Length; i++) table.AppendRow(new AccessRowValues { ["Id"] = (byte)(i + 1), ["Small"] = (short)(short.MinValue + i), ["Name"] = names[i], ["Owner"] = 123, ["SID"] = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef") });
             var tree = keys.Tables.Add("Tree"); tree.Columns.Add("Id", AccessDataType.Int32); tree.Columns.Add("ParentId", AccessDataType.Int32); tree.Indexes.AddPrimaryKey("PK_Tree", "Id");
             keys.Relationships.Add("TreeParent", tree.Columns["Id"], tree.Columns["ParentId"]);
             tree.AppendRow(new AccessRowValues { ["Id"] = 1, ["ParentId"] = null }); tree.AppendRow(new AccessRowValues { ["Id"] = 2, ["ParentId"] = 1 });

@@ -132,7 +132,7 @@ public sealed partial class AccessDocument {
                 return new AccessOperationReport(Id, Revision, target, profile, failures.AsReadOnly());
             }
         }
-        var diagnostics = new List<AccessDiagnostic> { new AccessDiagnostic("access.native-write.unsupported", "Template-free native Access writing is not qualified. No output is produced.") };
+        var diagnostics = new List<AccessDiagnostic> { new AccessDiagnostic("access.native-write.unsupported", "The requested existing-file edit or target-profile codec is not qualified. No output is produced.") };
         if (target != Format) diagnostics.Add(new AccessDiagnostic("access.conversion.unsupported", "MDB/ACCDB conversion and persistence codecs are unavailable. Feature-loss diagnostics do not enable output."));
         if (target != Format || profile != Profile) {
             if (Diagnostics.Any(x => x.Code.StartsWith("access.properties.", StringComparison.Ordinal)) || Properties.Values.Any(value => value is AccessOpaqueValue))
@@ -141,7 +141,7 @@ public sealed partial class AccessDocument {
                 diagnostics.Add(new AccessDiagnostic("access.conversion.loss.opaque-properties", "The target has no qualified mapping for this table's opaque property metadata; preservation cannot be assumed.", table.Id));
         }
         AddTargetFeatureDiagnostics(diagnostics, target, profile);
-        if (CatalogStatus == AccessCatalogStatus.NotDecoded) diagnostics.Add(new AccessDiagnostic("access.catalog.not-decoded", "The source catalog and opaque application objects have not been decoded or qualified for preservation."));
+        if (CatalogStatus == AccessCatalogStatus.NotDecoded) diagnostics.Add(new AccessDiagnostic("access.catalog.not-decoded", "The source catalog is not decoded and cannot be rebuilt for this target."));
         return new AccessOperationReport(Id, Revision, target, profile, diagnostics.AsReadOnly());
     }
     private void AddTargetFeatureDiagnostics(ICollection<AccessDiagnostic> diagnostics, AccessFileFormat target, AccessFormatProfile profile) {
@@ -184,11 +184,10 @@ public sealed partial class AccessDocument {
         AssessSave(options, cancellationToken).RequireNoLoss();
         ValidateSourceIdentity(cancellationToken); cancellationToken.ThrowIfCancellationRequested();
         if (Inspection != null) OfficeStreamWriter.WriteAllBytes(stream, NativeDatabase!.Snapshot());
-        else {
-            if (!stream.CanWrite) throw new ArgumentException("The destination must be writable.", nameof(stream));
-            if (stream.CanSeek) { stream.Position = 0; stream.SetLength(0); }
-            WriteNative(stream, cancellationToken);
-        }
+        else OfficeStreamWriter.Write(stream, destination => {
+            WriteNative(destination, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+        });
     }
     /// <summary>Saves qualified native output and returns a completed, failed or cancelled task. Encoding is synchronous.</summary>
     public Task SaveAsync(string path, AccessSaveOptions? options = null, CancellationToken cancellationToken = default) {

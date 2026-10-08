@@ -14,7 +14,7 @@ try {
                     $rs=$db.OpenRecordset('KeyValues',1)
                     try {
                         $rs.Index='NameKey'; $names=@('', '_', 'alpha beta', 'ALPHA_BETA', ' alpha', 'gamma', 'z9')
-                        for($i=0;$i -lt $names.Length;$i++) { $rs.Seek('=',$names[$i]); if($rs.NoMatch -or $rs.Fields.Item('Id').Value -ne $i+1) { throw "Text collation seek differs for '$($names[$i])'." } }
+                        for($i=0;$i -lt $names.Length;$i++) { $rs.Seek('=',$names[$i]); if($rs.NoMatch -or $rs.Fields.Item('Id').Value -ne $i+1) { throw "Text collation seek differs for '$($names[$i])'." }; if($rs.Fields.Item('Owner').Value -ne 123 -or [string]$rs.Fields.Item('SID').Value -ne '{guid {01234567-89AB-CDEF-0123-456789ABCDEF}}') { throw 'Ordinary Owner/SID field storage differs.' } }
                         $rs.Index='CompositeKey'
                         for($i=0;$i -lt $names.Length;$i++) { $rs.Seek('=',[short]([short]::MinValue+$i),[byte]($i+1)); if($rs.NoMatch -or $rs.Fields.Item('Id').Value -ne $i+1) { throw 'Signed Int16/Byte composite seek differs.' } }
                     } finally { $rs.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($rs)|Out-Null }
@@ -62,6 +62,8 @@ try {
                 $rs.Index = 'PK_Contacts'
                 foreach ($id in @(1,2,400,401,4999,5000)) { $rs.Seek('=',$id); if ($rs.NoMatch -or $rs.Fields.Item('DisplayName').Value -ne ('Contact'+($id-1).ToString('D5'))) { throw "Primary index seek failed for $id." } }
                 $rs.Seek('=',1)
+                if ([decimal]$rs.Fields.Item('Amount').Value -ne [decimal]::Parse('-1.2345',[Globalization.CultureInfo]::InvariantCulture) -or [datetime]$rs.Fields.Item('CreatedAt').Value -ne [datetime]::new(2026,1,2,3,4,5) -or -not [bool]$rs.Fields.Item('Active').Value) { throw 'Independent Currency/DateTime/Boolean differs.' }
+                if ([string]$rs.Fields.Item('Identifier').Value -ne '{guid {01234567-89AB-CDEF-0123-456789ABCDEF}}' -or [double]$rs.Fields.Item('Ratio').Value -ne -1.25 -or [single]$rs.Fields.Item('SingleValue').Value -ne 1.5 -or [short]$rs.Fields.Item('Small').Value -ne -32768 -or [byte]$rs.Fields.Item('Octet').Value -ne 255) { throw 'Independent GUID/floating/integer values differ.' }
                 if ([decimal]$rs.Fields.Item('Precise').Value -ne [decimal]::Parse('1234567890123456789.123456789',[Globalization.CultureInfo]::InvariantCulture)) { throw 'Independent Decimal precision differs.' }
                 $notes = [string]$rs.Fields.Item('Notes').Value
                 $expectedNotes = -join (1..1000 | ForEach-Object { "Ł🙂 Synthetic text`r`n" })
