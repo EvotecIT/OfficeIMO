@@ -543,13 +543,27 @@ public sealed class MailboxDirectorySessionTests(Xunit.Abstractions.ITestOutputH
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        using Process? process = Process.Start(startInfo);
-        if (process == null) return false;
+        Process? process;
+        try {
+            process = Process.Start(startInfo);
+        } catch (System.ComponentModel.Win32Exception exception) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe could not start (native error {0}).", exception.NativeErrorCode);
+            return false;
+        }
+        using var processScope = process;
+        if (process == null) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe did not start.");
+            return false;
+        }
         if (!process.WaitForExit(10_000)) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe timed out.");
             process.Kill();
             return false;
         }
-        if (process.ExitCode != 0) return false;
+        if (process.ExitCode != 0) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe exited with code {0}.", process.ExitCode);
+            return false;
+        }
 
         // fsutil can return zero even when setting the flag failed (for example, access denied).
         // Verify behavior independently of the product's path-identity implementation.
