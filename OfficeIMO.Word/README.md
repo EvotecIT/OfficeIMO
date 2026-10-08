@@ -110,6 +110,8 @@ PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when th
 
 `document.CompatibilitySettings.SplitPageBreakAndParagraphMark` controls the blank line after a manual page break that ends a paragraph. In older Word layout, enabling it moves the paragraph mark and its line height onto the next page. DOCX retains both explicit values; Word 2013 compatibility mode ignores the stored option during layout. Native DOC import uses the legacy enabled behavior and retains that layout when saved as DOCX. Native DOC saving rejects an explicitly disabled value; save as DOCX to retain it.
 
+`document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop` controls whether a list's paragraph indent acts as an implicit numbering tab stop. In Word 2003, 2007 and 2010 compatibility modes, enabling it lets an explicit numbering tab position determine the first line while continuation lines retain the paragraph indent. Word 2013 compatibility mode ignores the stored flag during PDF layout. DOCX retains explicit true and false values. Native DOC imports project their effective legacy behavior as enabled; native DOC saving rejects an explicitly disabled value. Save as DOCX when that stored value must be retained.
+
 ## Page sizes and orientation
 
 Set a section's paper preset and orientation through `PageSettings`:

@@ -854,6 +854,8 @@ The viewport scales with the rendered cell dimensions and preserves cell links a
 
 ### Floating tables
 
+Set `PdfTableStyle.HorizontalOffset` to translate a table after alignment or floating placement. The value is measured in points: positive values move right and negative values move left. Translation preserves the available table width, column widths and vertical flow, including page continuations and tables inside rows or section columns.
+
 Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.
 
 Floating placement ignores the table's flow spacing (`SpacingBefore` and `SpacingAfter`). Deferred tables apply their top anchor once across all batches. Vertical `Inside` alignment uses the top edge on odd output pages and the bottom edge on even pages; `Outside` reverses those edges. Center, bottom, inside, and outside alignment require an eager table because a deferred table's total height is not known before its rows are streamed. Floating placement is supported in document flow; tables inside row columns reject `Position`, and Word multi-column sections retain an approximation diagnostic.
