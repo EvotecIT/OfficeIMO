@@ -1193,7 +1193,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Normalizes_HeaderFooter_Table_Cell_LineBreaks() {
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_HeaderFooter_Table_Cell_Paragraph_Lines() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCellLineBreak.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCellLineBreak.pdf");
 
@@ -1210,10 +1210,17 @@ public partial class Word {
             });
         }
 
-        string text = PdfTextExtractor.ExtractAllText(pdfPath);
-        string normalizedText = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
-        Assert.Contains("Native header first Native header second", normalizedText);
+        using var pdf = PdfPigDocument.Open(pdfPath);
+        // The normal document extractor excludes pagination artifacts. Inspect
+        // visible page text here because header story content is the contract.
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Native header first", text);
+        Assert.Contains("Native header second", text);
         Assert.Contains("Native header newline body", text);
+        var words = pdf.GetPage(1).GetWords();
+        var first = Assert.Single(words, word => word.Text == "first");
+        var second = Assert.Single(words, word => word.Text == "second");
+        Assert.True(first.BoundingBox.Bottom > second.BoundingBox.Top);
     }
 
     [Fact]

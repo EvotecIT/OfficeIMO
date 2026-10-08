@@ -68,6 +68,7 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Sections, page setup, headers, and footers | Projected, including supported tables in default, first-page, and even-page stories |
 | Bookmarks and supported internal/external hyperlinks | Projected |
 | Static and supported field display results | Projected |
+| SECTIONPAGES fields | Projected as editable fields, retaining the source instruction, format switches and cached result |
 | Footnotes and endnotes, including supported formatting | Projected |
 | Comments with readable comment tables | Projected |
 | Revision-tracking settings | Projected |
@@ -84,6 +85,8 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
 
 Default, first-page, and even-page headers and footers retain supported tables as editable rows and cells, alongside ordinary story paragraphs. Their tables use the same width, merge, border, palette-shading, nesting, and formatting limits as body tables. Hyperlinks and inline pictures resolve against the containing header or footer part, including pictures within supported nested tables.
+
+SECTIONPAGES fields remain editable through native import and save in the body, supported table cells, headers, footers, footnotes and endnotes. Simple and supported adjacent-run complex fields retain their instruction, format switches, cached result and result formatting. The binary writer emits the parsed SECTIONPAGES field type. A field without a cached result receives a placeholder of `1`; import and native saving do not calculate pagination. `InspectFields()` exposes the imported instruction and cached text, and the existing typed `AddField(WordFieldType.SectionPages, ...)` API authors the field. Layout-dependent field evaluation and PDF rendering have separate contracts.
 
 Lists retain supported native numbering formats, marker text, alignment, suffixes, paragraph/run formatting, abstract starting values and per-instance start or formatting overrides. An explicit instance restart takes precedence over the abstract start. Native definitions contain level 0 alone or all nine levels; starts range from 0 through 32,767 and instance IDs from 1 through 32,767. Sparse instance IDs keep their paragraph references. A marker can contain at most one placeholder per available level: one at level 0, two at level 1, up to nine at level 8. Linked numbering styles, picture bullets, section-break restarts, unsupported level properties and references to absent instances or levels raise `NotSupportedException` before output is committed. Missing or malformed binary list tables produce a `Numbering` entry in `LegacyDocUnsupportedFeatures`; review that loss before explicitly allowing output.
 

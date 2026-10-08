@@ -524,6 +524,11 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (legacyRun.IsSectionPages) {
+                    AddLegacyDocSectionPages(paragraph, legacyRun, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.IsStaticDisplayField) {
                     AddLegacyDocStaticDisplayField(paragraph, legacyRun, bookmarks);
                     continue;
@@ -595,6 +600,11 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.IsNumPages) {
                 AddLegacyDocNumberOfPages(paragraph, legacyRun, bookmarks);
+                return;
+            }
+
+            if (legacyRun.IsSectionPages) {
+                AddLegacyDocSectionPages(paragraph, legacyRun, bookmarks);
                 return;
             }
 
@@ -943,22 +953,6 @@ namespace OfficeIMO.Word {
                 eastAsiaLanguage: source.EastAsiaLanguage,
                 picture: source.Picture,
                 revision: source.Revision);
-        }
-
-        private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var run = new Run(new DocumentFormat.OpenXml.Wordprocessing.PageNumber());
-            paragraph._paragraph.Append(run);
-            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
-        }
-
-        private static void AddLegacyDocNumberOfPages(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var simpleField = new SimpleField { Instruction = " NUMPAGES  " };
-            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text);
-            paragraph._paragraph.Append(simpleField);
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
         private static void AddLegacyDocStaticDisplayField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
