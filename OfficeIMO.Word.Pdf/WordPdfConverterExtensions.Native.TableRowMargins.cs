@@ -16,11 +16,11 @@ namespace OfficeIMO.Word.Pdf {
             bool hasMinimum = false, hasFixed = false;
             for (int row = 0; row < sourceRows.Count; row++) {
                 double top = GetNativeTableRowMargin(layout, style, row, top: true);
-                ApplyNativeRowTopMargin(layout, style, row, top);
+                double bottom = GetNativeTableRowMargin(layout, style, row, top: false);
+                ApplyNativeRowVerticalMargins(layout, style, row, top, bottom);
                 W.TableRowHeight? height = sourceRows[row]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
                 if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
                 double points = height.Val.Value / 20D;
-                double bottom = GetNativeTableRowMargin(layout, style, row, top: false);
                 if (height.HeightType?.Value == W.HeightRuleValues.Exact) {
                     fixedHeights[row] = points + bottom;
                     hasFixed = true;
@@ -33,8 +33,8 @@ namespace OfficeIMO.Word.Pdf {
             if (hasMinimum) style.RowMinHeights = minimums;
         }
 
-        /// <summary>Word top-aligned neighbors share the row's largest top margin.</summary>
-        private static void ApplyNativeRowTopMargin(TableLayout layout, PdfCore.PdfTableStyle style, int row, double top) {
+        /// <summary>Word neighbors use the row's largest effective vertical margins for their text alignment frame.</summary>
+        private static void ApplyNativeRowVerticalMargins(TableLayout layout, PdfCore.PdfTableStyle style, int row, double top, double bottom) {
             int column = layout.GetRowStartColumn(row);
             foreach (WordTableCell cell in layout.Rows[row]) {
                 if (IsNativeHorizontalMergeContinuation(cell)) continue;
@@ -43,11 +43,12 @@ namespace OfficeIMO.Word.Pdf {
                     PdfCore.PdfCellPadding? padding = null;
                     style.CellPaddings?.TryGetValue((row, column), out padding);
                     double ownTop = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
-                    if (ownTop < top) {
+                    double ownBottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+                    if (ownTop < top || ownBottom < bottom) {
                         // Replace the effective PDF value without modifying source cells or caller-owned padding objects.
                         style.CellPaddings ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
                         style.CellPaddings[(row, column)] = new PdfCore.PdfCellPadding {
-                            Left = padding?.Left, Right = padding?.Right, Bottom = padding?.Bottom, Top = top
+                            Left = padding?.Left, Right = padding?.Right, Bottom = bottom, Top = top
                         };
                     }
                 }

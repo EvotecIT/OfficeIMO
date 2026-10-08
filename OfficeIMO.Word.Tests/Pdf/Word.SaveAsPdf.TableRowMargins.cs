@@ -7,6 +7,34 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, WordTableVerticalAlignment.Center)]
+    [InlineData(true, WordTableVerticalAlignment.Center)]
+    [InlineData(false, WordTableVerticalAlignment.Bottom)]
+    [InlineData(true, WordTableVerticalAlignment.Bottom)]
+    public void SaveAsPdf_UnspacedNeighborsShareTheirVerticalMarginAlignmentFrame(bool minimum, WordTableVerticalAlignment alignment) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 1, 2, 0);
+        WordTableRow row = table.Rows[0];
+        if (minimum) row.MinimumHeight = 2400;
+        else row.Height = 2400;
+        row.Cells[0].MarginTopWidth = 120;
+        row.Cells[0].MarginBottomWidth = 0;
+        row.Cells[1].MarginTopWidth = 0;
+        row.Cells[1].MarginBottomWidth = 180;
+        foreach (WordTableCell cell in row.Cells) cell.VerticalAlignment = alignment;
+        using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+        Assert.Single(pdf.GetPages());
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        Assert.Equal(2, words.Length);
+        double first = words.Single(word => word.Text == "Frame0").Letters[0].StartBaseLine.Y;
+        double next = words.Single(word => word.Text == "Frame1").Letters[0].StartBaseLine.Y;
+        Assert.Equal(first, next, 3);
+    }
+
+    [Theory]
     [InlineData(false, 0, 120D)]
     [InlineData(true, 0, 120D)]
     [InlineData(false, 1, 129D)]
