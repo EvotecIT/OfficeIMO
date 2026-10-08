@@ -170,7 +170,7 @@ const reportOptions = {
   },
   columnOptions: {
     amount: { format: "#,##0.00", width: 18 },
-    updated: { format: "yyyy-mm-dd hh:mm:ss.000", width: 28 }
+    updated: { format: "yyyy-mm-dd hh:mm:ss.000", width: 42, wrapText: true }
   },
   xlsx: { sheet: { title: { text: "Inventory" }, table: {} } },
   limits: { maxRows: 250_000, maxCells: 5_000_000 }

@@ -8,7 +8,7 @@ function canopyFonts(regular, bold) {
 function canopyOptions(fonts) {
   return { tones: { neutral: {}, warning: { background: 'FFF2CC', color: '9C6500' }, danger: { background: 'FFC7CE', color: '9C0006', bold: true },
     success: { background: 'E2F0D9' }, info: { background: 'DDEBF7', color: '1F4E78' } },
-    columnOptions: { amount: { width: 16, format: '0.00' }, when: { width: 30, format: 'yyyy-mm-dd hh:mm:ss.000' } },
+    columnOptions: { amount: { width: 16, format: '0.00' }, when: { width: 42, wrapText: true, format: 'yyyy-mm-dd hh:mm:ss.000' } },
     pdf: { fonts, fontSize: 9, pageNumbers: false }, xlsx: { dateMode: 'utc' } };
 }
 async function canopySave(name, capture, format, options, bytes) {
@@ -31,7 +31,7 @@ function canopyInlineView() {
     rows: Array.from({ length: 24 }, (_, i) => ({ id: 'r' + i, tone: i === 0 ? 'success' : undefined, cells: {
       name: { value: (i % 2 ? 'Archive ' : 'Current ') + i, text: (i === 1 ? '=literal Archive ' : (i % 2 ? 'Archive Łódź ' : 'Current Łódź ')) + i, title: 'Record _x0041_ 🧪' },
       url: 'https://example.com/report/' + i + '#details', amount: { value: i + .5, text: (i + .5).toFixed(2) + ' USD' },
-      when: i === 2 ? '2026-10-08T12:34:56.1234567+02:00' : '2026-10-08T12:34:56.123Z', flag: i % 2 === 0
+      when: i === 2 ? '2026-10-08T12:34:56.1234567+02:00' : i === 3 ? '2026-10-08T12:34Z' : i === 4 ? '2026-10-08T12:34:56.123456789Z' : '2026-10-08T12:34:56.123Z', flag: i % 2 === 0
     } })) };
 }
 async function canopyMount(view, options = {}) {

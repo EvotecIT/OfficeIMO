@@ -54,6 +54,8 @@ export interface CanopySourceOptions {
   readonly unsupportedPresentation?: "reject" | "text";
   /** XLSX: preserve uses typed Dates where exact and literal ISO text for greater precision. */
   readonly datetime?: "preserve" | "typed" | "text";
+  /** The same clock used by the XLSX writer; defaults to the native capture's timeZone. */
+  readonly xlsx?: Pick<XlsxOptions, "dateMode">;
   readonly signal?: AbortSignal;
   /** Synchronous notification; throwing aborts enumeration. No unbounded diagnostic list is retained. */
   readonly onDiagnostic?: (diagnostic: CanopyDiagnostic) => void;

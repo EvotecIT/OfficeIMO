@@ -68,22 +68,44 @@ test("Canopy unsupported presentation rejects by default and explicit text mode 
 
 test("Canopy explicit datetime intent preserves ISO precision and rejects invalid typed dates", async () => {
   const input = value => capture([{ id: "r", cells: { Seen: cell(value, "Resolved clock") } }], [column("Seen", "datetime")]);
-  for (const iso of ["2024-02-29T12:34:56.123+02:00", "2026-10-08T01:02:03Z", "2026-10-08T01:02:03.1230000-05:30"]) {
+  for (const iso of ["2024-02-29T12:34:56.123+02:00", "2026-10-08T01:02:03Z", "2026-10-08T01:02:03.123000000-05:30", "2026-10-08T12:34Z", "2026-12-31T24:00Z"]) {
     const [[value]] = await collect(createCanopyExport(input(iso), "xlsx"));
     assert.ok(value.value instanceof Date); assert.equal(value.value.getTime(), new Date(iso).getTime());
     assert.equal(value.text, "Resolved clock");
   }
   const precise = "2026-10-08T12:34:56.1234567+02:00";
+  const nano = "2026-10-08T12:34:56.123456789Z";
+  assert.equal((await collect(createCanopyExport(input(nano), "xlsx")))[0][0].value, nano);
+  await assert.rejects(collect(createCanopyExport(input(nano), "xlsx", { datetime: "typed" })), /sub-millisecond/);
   assert.equal((await collect(createCanopyExport(input(precise), "xlsx")))[0][0].value, precise);
   await assert.rejects(collect(createCanopyExport(input(precise), "xlsx", { datetime: "typed" })), /sub-millisecond/);
   const ancient = "0001-01-01T00:00:00Z";
   assert.equal((await collect(createCanopyExport(input(ancient), "xlsx")))[0][0].value, ancient);
   await assert.rejects(collect(createCanopyExport(input(ancient), "xlsx", { datetime: "typed" })), /1900 through 9999/);
   assert.equal((await collect(createCanopyExport(input(precise), "xlsx", { datetime: "text" })))[0][0].value, precise);
-  for (const invalid of ["2023-02-29T01:00:00Z", "2026-10-08T24:00:00Z", "2026-10-08T01:00:00+24:00", "Yesterday", "2026-10-08T01:00:00"]) {
+  for (const invalid of ["2023-02-29T01:00:00Z", "2026-10-08T24:00:01Z", "2026-10-08T24:00:00.000001Z", "2026-10-08T01:00:00+24:00", "Yesterday", "2026-10-08T01:00:00"]) {
     await assert.rejects(collect(createCanopyExport(input(invalid), "xlsx")), /datetime/);
   }
   assert.equal((await collect(createCanopyExport(input(precise), "xlsx", { datetime: "text" })))[0][0].value, precise);
+});
+
+test("Canopy preservation uses the writer's effective local or UTC year at both Excel boundaries", async () => {
+  const previous = process.env.TZ;
+  try {
+    for (const [zone, iso, year] of [["America/New_York", "1900-01-01T00:00:00Z", 1899], ["Pacific/Auckland", "9999-12-31T23:00:00Z", 10000]]) {
+      process.env.TZ = zone;
+      assert.equal(new Date(iso).getFullYear(), year);
+      const local = capture([{ id: "r", cells: { Seen: cell(iso) } }], [column("Seen", "datetime")], { timeZone: "local" });
+      assert.equal((await collect(createCanopyExport(local, "xlsx")))[0][0].value, iso);
+      await assert.rejects(exportCanopy(local, "xlsx", { datetime: "typed" }), /1900 through 9999/);
+      const workbook = await readZip(await exportCanopy(local, "xlsx"));
+      assert.ok(workbook.get("xl/worksheets/sheet1.xml").content.includes(iso));
+      assert.ok((await collect(createCanopyExport(local, "xlsx", { xlsx: { dateMode: "utc" } })))[0][0].value instanceof Date);
+      await exportCanopy(local, "xlsx", { xlsx: { dateMode: "utc" } });
+      const utc = { ...local, request: { ...local.request, timeZone: "utc" } };
+      assert.equal((await collect(createCanopyExport(utc, "xlsx", { xlsx: { dateMode: "local" } })))[0][0].value, iso);
+    }
+  } finally { if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous; }
 });
 
 test("Canopy recordCount is checked without retaining IDs or recalculating selection", async () => {

@@ -12,6 +12,8 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
     (request.values !== "raw" && request.values !== "display") || (request.timeZone !== "utc" && request.timeZone !== "local") || typeof request.revision !== "string")
     throw new TypeError("Invalid portable CanopyX capture metadata.");
   const policy = options.unsupportedPresentation ?? (format === "csv" ? "text" : "reject"), dateMode = options.datetime ?? "preserve", notify = options.onDiagnostic;
+  const clock = options.xlsx?.dateMode ?? request.timeZone;
+  if (clock !== "utc" && clock !== "local") throw new TypeError("XLSX dateMode must be utc or local.");
   if (policy !== "reject" && policy !== "text") throw new TypeError("unsupportedPresentation must be reject or text.");
   if (dateMode !== "preserve" && dateMode !== "typed" && dateMode !== "text") throw new TypeError("datetime must be preserve, typed or text.");
   if (notify !== undefined && typeof notify !== "function") throw new TypeError("onDiagnostic must be a synchronous function.");
@@ -73,7 +75,7 @@ export function createCanopyExport(capture: CanopyCapture, format: CanopyFormat,
           throw new TypeError("A portable Canopy GridExportCell with scalar value and resolved text is required.");
         diagnostics(cell.diagnostics, row.id, spec.id);
         let value: import("../../core/index.js").CellValue = values === "display" ? cell.text : cell.value;
-        if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode);
+        if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle ? { ...rowStyle, ...cellStyle } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
         // This also avoids a frozen wrapper for every cell in large CSV captures.
