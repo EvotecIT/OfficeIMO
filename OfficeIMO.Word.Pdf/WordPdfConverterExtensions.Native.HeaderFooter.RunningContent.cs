@@ -75,6 +75,13 @@ public static partial class WordPdfConverterExtensions {
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter) {
         IReadOnlyList<WordElement> elements = story == null ? Array.Empty<WordElement>() : CollapseNativeParagraphElements(story.Elements);
+        // Running callbacks are evaluated while the PDF is written, after the
+        // operation report is captured. Discover approximation diagnostics now.
+        if (story != null)
+            foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
+                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
+                RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
+                    "header/footer paragraph");
         bool addPageNumber = isFooter && options?.IncludePageNumbers == true &&
             (story == null || GetNativeHeaderFooterText(story, listMarkers, fontMap, options)?.HasPageTokens != true);
         return context => content => {
