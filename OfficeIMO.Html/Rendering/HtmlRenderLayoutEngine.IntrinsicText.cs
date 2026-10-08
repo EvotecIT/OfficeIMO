@@ -243,6 +243,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
+            CheckCancellation();
             if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
                 if (text.Data.Length > 0 && parentStyle.Font.Size > 0D) result.Add(new IntrinsicTextRun(text.Data, parentStyle));
@@ -250,6 +251,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (node is not IElement child || ShouldSkipElement(child)) continue;
             EnsureDepth(depth, child);
+            // Empty descendants and cached style/text measurements still cost
+            // traversal work before they contribute intrinsic content.
+            ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(child));
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             childStyle = PrepareButtonChildStyle(child, childStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
