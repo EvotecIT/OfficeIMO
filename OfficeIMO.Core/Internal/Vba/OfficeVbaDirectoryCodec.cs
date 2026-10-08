@@ -21,11 +21,11 @@ internal static class OfficeVbaDirectoryCodec {
         internal readonly List<ModuleModel> Modules = new();
 
         internal static bool TryParse(byte[] bytes, int maximumBytes,
-            out DirectoryModel? model, out string detail) {
+            out DirectoryModel? model, out string detail, bool includeSignatureTranscripts = true) {
             model = null;
             var reader = new DirectoryReader(bytes);
             var parsed = new DirectoryModel();
-            var v3 = new BoundedBuffer(maximumBytes);
+            var v3 = new BoundedBuffer(maximumBytes, includeSignatureTranscripts);
             if (!reader.TryReadSized(0x0001, out _, out byte[] sysKindHeader, includeData: false)
                 || !v3.TryAppend(sysKindHeader)) {
                 detail = "The VBA directory has invalid project system or locale records.";
@@ -345,9 +345,11 @@ internal static class OfficeVbaDirectoryCodec {
 
     private sealed class BoundedBuffer {
         private readonly int _maximum;
+        private readonly bool _enabled;
         private readonly MemoryStream _stream = new();
-        internal BoundedBuffer(int maximum) => _maximum = maximum;
+        internal BoundedBuffer(int maximum, bool enabled = true) { _maximum = maximum; _enabled = enabled; }
         internal bool TryAppend(byte[] bytes) {
+            if (!_enabled) return true;
             if (bytes.Length > _maximum - _stream.Length) return false;
             _stream.Write(bytes, 0, bytes.Length);
             return true;

@@ -22,9 +22,22 @@ public partial class ExcelDocument {
         Locking.ExecuteWrite(EnsureLock(), () => {
             WorkbookPart workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
             Workbook workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook root is missing.");
+            var sheetNames = workbookPart.WorksheetParts.Select(part => part.Worksheet?.SheetProperties?.CodeName?.Value)
+                .Concat(workbookPart.ChartsheetParts.Select(part => part.Chartsheet?.ChartSheetProperties?.CodeName?.Value))
+                .Where(name => !string.IsNullOrEmpty(name)).ToArray();
+            string? workbookName = workbook.GetFirstChild<WorkbookProperties>()?.CodeName?.Value;
+            if (sheetNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != sheetNames.Length
+                || !string.IsNullOrEmpty(workbookName) && sheetNames.Contains(workbookName, StringComparer.OrdinalIgnoreCase)) {
+                throw new ArgumentException("Excel workbook and sheet code names must be unique.", nameof(project));
+            }
             foreach (OfficeVbaModule module in project.Modules.Where(module => module.Kind == OfficeVbaModuleKind.Document)) {
                 string? identity = OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source);
-                if (string.Equals(identity, "0{00020819-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(identity, "0{00020819-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) {
+                    if (sheetNames.Contains(module.Name, StringComparer.OrdinalIgnoreCase)) {
+                        throw new ArgumentException("The VBA workbook module name collides with an existing sheet code name.", nameof(project));
+                    }
+                    continue;
+                }
                 int matchingSheets;
                 if (string.Equals(identity, "0{00020820-0000-0000-C000-000000000046}", StringComparison.OrdinalIgnoreCase)) {
                     matchingSheets = workbookPart.WorksheetParts.Count(part => string.Equals(

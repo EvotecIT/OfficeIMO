@@ -21,7 +21,7 @@ namespace OfficeIMO.Core.Internal {
 
             if (compoundFile.Streams.TryGetValue("VBA/dir", out byte[]? compressed)
                 && OfficeVbaCompression.TryDecompress(compressed, 64 * 1024 * 1024, out byte[] directory, out _)
-                && OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, 64 * 1024 * 1024, out var model, out _)
+                && OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, 64 * 1024 * 1024, out var model, out _, includeSignatureTranscripts: false)
                 && model != null) {
                 try {
                     return model.Modules.Select(module => module.UnicodeName.Length > 0

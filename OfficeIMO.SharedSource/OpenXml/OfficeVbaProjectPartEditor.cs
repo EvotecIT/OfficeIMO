@@ -14,7 +14,7 @@ internal static class OfficeVbaProjectPartEditor {
     }
 
     internal static bool Apply(VbaProjectPart part, byte[] bytes, OfficeVbaWriteOptions options) {
-        if (Read(part, options.MaximumProjectBytes).SequenceEqual(bytes)) return false;
+        if (IsUnchanged(part, bytes)) return false;
         OpenXmlPart[] signatures = part.Parts.Where(pair =>
             pair.OpenXmlPart.RelationshipType.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0
             || pair.OpenXmlPart.ContentType.IndexOf("vbaProjectSignature", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -26,5 +26,15 @@ internal static class OfficeVbaProjectPartEditor {
         part.FeedData(input);
         foreach (OpenXmlPart signature in signatures) part.DeletePart(signature);
         return true;
+    }
+
+    private static bool IsUnchanged(VbaProjectPart part, byte[] bytes) {
+        using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
+        if (input.CanSeek && input.Length != bytes.LongLength) return false;
+        try {
+            return OfficeStreamReader.ReadAllBytes(input, Math.Max(1L, bytes.LongLength)).SequenceEqual(bytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            return false;
+        }
     }
 }

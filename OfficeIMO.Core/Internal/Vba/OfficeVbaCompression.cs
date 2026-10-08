@@ -124,6 +124,10 @@ internal static class OfficeVbaCompression {
                 byte flags = input[position++];
                 for (int bit = 0; bit < 8 && position < chunkEnd; bit++) {
                     if ((flags & 1 << bit) == 0) {
+                        if (decompressed.Count - chunkOutputStart >= 4096) {
+                            detail = "The compressed VBA chunk expands beyond 4096 bytes.";
+                            return false;
+                        }
                         if (decompressed.Count >= maximumOutputBytes) {
                             detail = "The expanded MS-OVBA container exceeds the configured byte limit.";
                             return false;

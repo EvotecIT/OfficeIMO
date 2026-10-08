@@ -45,6 +45,7 @@ internal static class OfficeVbaText {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (source.IndexOf('\0') >= 0) throw new ArgumentException("VBA source cannot contain NUL characters reserved for compression padding.", nameof(source));
         string[] lines = source.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        ValidateClassAttributes(lines);
         // VBE .cls exports have a designer preamble; the compound module holds only attributes and code.
         if (lines.Length > 0 && lines[0].TrimStart().StartsWith("VERSION ", StringComparison.OrdinalIgnoreCase)) {
             int firstAttribute = Array.FindIndex(lines, line => line.StartsWith("Attribute VB_Name", StringComparison.OrdinalIgnoreCase));
@@ -57,10 +58,9 @@ internal static class OfficeVbaText {
         else lines = new[] { expected }.Concat(lines).ToArray();
         if (existingSource != null) {
             if (kind == OfficeVbaModuleKind.Document || kind == OfficeVbaModuleKind.Designer) {
-                string? persistedBase = existingSource.Replace("\r\n", "\n").Split('\n')
-                    .FirstOrDefault(line => line.StartsWith("Attribute VB_Base", StringComparison.OrdinalIgnoreCase));
-                string? suppliedBase = lines.FirstOrDefault(line => line.StartsWith("Attribute VB_Base", StringComparison.OrdinalIgnoreCase));
-                if (persistedBase != null && suppliedBase != null && !persistedBase.Trim().Equals(suppliedBase.Trim(), StringComparison.OrdinalIgnoreCase)) {
+                string? persistedBase = GetBaseIdentity(existingSource);
+                string? suppliedBase = GetBaseIdentity(string.Join("\r\n", lines));
+                if (persistedBase != null && suppliedBase != null && !persistedBase.Equals(suppliedBase, StringComparison.OrdinalIgnoreCase)) {
                     throw new InvalidDataException("Source replacement cannot change a host document or form designer's base identity.");
                 }
             }
@@ -100,12 +100,32 @@ internal static class OfficeVbaText {
     }
 
     internal static string? GetBaseIdentity(string source) {
-        foreach (string line in source.Replace("\r\n", "\n").Split('\n')) {
-            if (!line.StartsWith("Attribute VB_Base = \"", StringComparison.OrdinalIgnoreCase)) continue;
-            int end = line.LastIndexOf('"');
-            return end > 21 ? line.Substring(21, end - 21) : null;
+        string[] lines = source.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        ValidateClassAttributes(lines);
+        foreach (string line in lines) {
+            if (!string.Equals(GetClassAttributeName(line), "VB_Base", StringComparison.OrdinalIgnoreCase)) continue;
+            string value = line.Substring(line.IndexOf('=') + 1).Trim();
+            return value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"'
+                ? value.Substring(1, value.Length - 2) : null;
         }
         return null;
+    }
+
+    private static void ValidateClassAttributes(string[] lines) {
+        var attributes = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string line in lines) {
+            string? name = GetClassAttributeName(line);
+            if (name != null && !attributes.Add(name)) throw new InvalidDataException("VBA source repeats a class attribute: " + name + ".");
+        }
+    }
+
+    private static string? GetClassAttributeName(string line) {
+        string text = line.TrimStart();
+        if (!text.StartsWith("Attribute", StringComparison.OrdinalIgnoreCase) || text.Length <= 9 || !char.IsWhiteSpace(text[9])) return null;
+        int equals = text.IndexOf('=');
+        if (equals < 10) return null;
+        string name = text.Substring(9, equals - 9).Trim();
+        return name.StartsWith("VB_", StringComparison.OrdinalIgnoreCase) && name.IndexOf('.') < 0 ? name : null;
     }
 
     private static bool IsLetter(char value) => value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z';
