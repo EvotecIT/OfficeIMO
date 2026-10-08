@@ -13,14 +13,14 @@ internal static partial class PdfWriter {
                     if (segment.LeadingIsTab) runs.Add(PdfTextRun.Tab(segment.LeadingTabLeader, segment.LeadingTabAlignment));
                     if (segment.InlineElement != null) {
                         if (segment.LeadingSpace && !segment.LeadingIsTab) {
-                            runs.Add(BuildTextRunFromWrappedSegment(" ", segment));
+                            runs.Add(BuildTextRunFromWrappedSegment(new string(' ', segment.LeadingSpaceCount), segment));
                         }
 
                         runs.Add(PdfTextRun.Inline(segment.InlineElement));
                         continue;
                     }
 
-                    string text = (segment.LeadingSpace && !segment.LeadingIsTab ? " " : string.Empty) + segment.Text;
+                    string text = (segment.LeadingSpace && !segment.LeadingIsTab ? new string(' ', segment.LeadingSpaceCount) : string.Empty) + segment.Text;
                     if (text.Length == 0) {
                         continue;
                     }

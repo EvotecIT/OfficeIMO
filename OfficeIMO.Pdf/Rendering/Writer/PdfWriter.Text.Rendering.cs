@@ -161,7 +161,7 @@ internal static partial class PdfWriter {
                 if (seg.LeadingSpace) {
                     w += seg.LeadingAdvance;
                     if (seg.LeadingSpaceIsExpandable) {
-                        gapsCount++;
+                        gapsCount += seg.LeadingSpaceCount;
                     }
                 }
 
@@ -182,7 +182,7 @@ internal static partial class PdfWriter {
                 double leadingAdvance = 0D;
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance;
-                    leadingAdvance = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    leadingAdvance = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing * s.LeadingSpaceCount : 0);
                     xCursor += leadingAdvance;
                 }
 
@@ -245,7 +245,7 @@ internal static partial class PdfWriter {
                 if (seg.LeadingSpace) {
                     w += seg.LeadingAdvance;
                     if (seg.LeadingSpaceIsExpandable) {
-                        gapsCount++;
+                        gapsCount += seg.LeadingSpaceCount;
                     }
                 }
                 baseLineW += w;
@@ -302,7 +302,7 @@ internal static partial class PdfWriter {
 
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance;
-                    double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing * s.LeadingSpaceCount : 0);
                     if (s.LeadingUnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.LeadingSpaceIsExpandable) {
                         PdfColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? PdfColor.Black;
                         double underlineY = lineY + s.LeadingDecorationTextRise - s.LeadingDecorationFontSize * 0.15;
