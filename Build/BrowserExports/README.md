@@ -102,7 +102,7 @@ The opt-in matrix crosses plain/styled XLSX and CSV at 10,000, 100,000, 250,000 
 ```powershell
 dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/qualification" --qualify --full
 # A smaller reproduction; --keep retains artifacts deliberately.
-dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/smoke" --qualify --engine=WebKit --rows=10000 --keep
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/smoke" --qualify --rows=10000 --keep
 ```
 
 The caller-owned sink sends at most 64 KiB to the host per delivery. Each artifact is independently checked before removal: CSV uses `OfficeIMO.CSV.OpenDataReader`; XLSX uses forward-only ZIP/XML traversal to verify every typed cell, coordinate, count and cached total. Preservation chunks reconstruct the complete source text. The 10,000-row XLSX cases additionally run the Open XML SDK validator and both OfficeIMO readers; the rich adapter uses an explicit 64 MiB per-part XML budget. Larger cases avoid whole-worksheet DOM validation and report that distinction. Failure cases must leave an unfinished archive, with partial bytes owned by the destination. Reports retain hashes, browser versions, validation results, output bytes, first-byte/source counts, timer gaps and heap samples where the engine exposes them.
