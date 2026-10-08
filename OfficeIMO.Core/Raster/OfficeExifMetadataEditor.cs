@@ -10,6 +10,8 @@ internal static class OfficeExifMetadataEditor {
         double dpiX,
         double dpiY,
         out byte[] rewritten) {
+        OfficeUnsignedRational.FromPositiveDouble(dpiX, nameof(dpiX));
+        OfficeUnsignedRational.FromPositiveDouble(dpiY, nameof(dpiY));
         if (!OfficeImageOrientationNormalizer.TryNeutralizeExifOrientation(exif, out rewritten)) return false;
         int tiffOffset = HasExifPrefix(rewritten) ? 6 : 0;
         int tiffLength = rewritten.Length - tiffOffset;
@@ -94,10 +96,9 @@ internal static class OfficeExifMetadataEditor {
             : (uint)(bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3]);
 
     private static void WriteRational(byte[] bytes, int offset, double value, bool littleEndian) {
-        const uint denominator = 1000U;
-        uint numerator = checked((uint)Math.Round(value * denominator));
-        WriteUInt32(bytes, offset, numerator, littleEndian);
-        WriteUInt32(bytes, offset + 4, denominator, littleEndian);
+        OfficeRational rational = OfficeUnsignedRational.FromPositiveDouble(value);
+        WriteUInt32(bytes, offset, rational.Numerator, littleEndian);
+        WriteUInt32(bytes, offset + 4, rational.Denominator, littleEndian);
     }
 
     private static void WriteUInt16(byte[] bytes, int offset, int value, bool littleEndian) {

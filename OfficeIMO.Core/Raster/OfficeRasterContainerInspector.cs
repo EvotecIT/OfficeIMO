@@ -85,6 +85,16 @@ public static class OfficeRasterContainerInspector {
                 if (enforceAllTiffPagePixelLimits && !OfficeAvifCodec.TryDecode(encodedBytes, effective, out _)) return false;
                 container = CreateStatic(imageInfo);
                 return true;
+            case OfficeImageFormat.Icon:
+                return OfficeIconDecoder.TryInspect(encodedBytes, effective, out container);
+            case OfficeImageFormat.PortableMap:
+                if (!OfficePortableMapCodec.TryDecode(encodedBytes, effective, out inspectedImage)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
+            case OfficeImageFormat.Tga:
+                if (!OfficeTgaCodec.TryDecode(encodedBytes, effective, out inspectedImage)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
             default:
                 return false;
         }
@@ -273,7 +283,8 @@ public static class OfficeRasterContainerInspector {
             imageInfo.Height,
             frames.ToArray(),
             loopCount,
-            background);
+            background,
+            playCount: hasLoopExtension ? (loopCount == 0 ? 0 : loopCount + 1) : 1);
         return true;
     }
 
