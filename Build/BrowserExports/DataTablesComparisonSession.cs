@@ -21,6 +21,7 @@ internal static class DataTablesComparisonSession {
         Console.WriteLine("{\"ready\":true}");
         try {
             while (await Console.In.ReadLineAsync() is { } line) {
+                bool completedTransfer = false;
                 try {
                     using var request = JsonDocument.Parse(line); JsonElement command = request.RootElement;
                     string operation = command.GetProperty("command").GetString()!;
@@ -92,6 +93,7 @@ internal static class DataTablesComparisonSession {
                         await using (destination = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 65536, FileOptions.Asynchronous))
                             await session.Page.EvaluateAsync("() => deliverDataTablesMeasurement()");
                         destination = null;
+                        completedTransfer = true;
                         object proof;
                         try { proof = format == "pdf" ? DataTablesPdfComparisonVerifier.Verify(path, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean())
                             : DataTablesComparisonVerifier.Verify(path, format, spec.GetProperty("rows").GetInt32(), spec.GetProperty("columns").GetInt32(), spec.GetProperty("unique").GetBoolean(),
@@ -120,7 +122,9 @@ internal static class DataTablesComparisonSession {
                     } else throw new ArgumentException("Unknown comparison command.");
                     Console.WriteLine(JsonSerializer.Serialize(new { ok = true, result }));
                 } catch (Exception error) {
-                    if (session is not null) {
+                    // Independent reader failures must not discard the browser warmup.
+                    // Preparation, generation, transfer and page errors still reset it.
+                    if (session is not null && (!completedTransfer || errors.Count != 0)) {
                         try { await session.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(15)); } catch { /* Caller also owns a bounded process lifetime. */ }
                         session = null; identity = null; pdfScriptLoaded = false;
                     }
