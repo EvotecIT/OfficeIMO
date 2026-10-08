@@ -100,8 +100,9 @@ public sealed partial class MainWindowViewModel {
         PdfRedactionMarkViewModel[] candidates = marks.Select(mark => new PdfRedactionMarkViewModel(mark.Area,
             new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height),
             mark.Description, textSelection)).ToArray();
-        if (candidates.Any(HasRedactionPolicyConflict)) {
-            ReportRedactionPolicyConflict();
+        PdfRedactionMarkViewModel? conflict = candidates.Select(FindRedactionPolicyConflict).FirstOrDefault(existing => existing is not null);
+        if (conflict is not null) {
+            ReportRedactionPolicyConflict(conflict);
             return;
         }
         if (RedactionMarks.Count + marks.Count > 2000) {
@@ -117,8 +118,8 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void AddRedactionMark(PdfRedactionMarkViewModel mark, bool update = true) {
-        if (HasRedactionPolicyConflict(mark)) {
-            ReportRedactionPolicyConflict();
+        if (FindRedactionPolicyConflict(mark) is { } conflict) {
+            ReportRedactionPolicyConflict(conflict);
             return;
         }
         if (RedactionMarks.Count >= 2000) {
@@ -132,16 +133,22 @@ public sealed partial class MainWindowViewModel {
         if (update) InvalidateReviewedRedactions();
     }
 
-    private bool HasRedactionPolicyConflict(PdfRedactionMarkViewModel mark) =>
-        RedactionMarks.Any(existing => existing.PageNumber == mark.PageNumber && existing.Bounds == mark.Bounds &&
+    private PdfRedactionMarkViewModel? FindRedactionPolicyConflict(PdfRedactionMarkViewModel mark) {
+        // Ignore numerical noise at shared edges; touching areas do not overlap.
+        const double tolerance = 1e-7;
+        return RedactionMarks.FirstOrDefault(existing => existing.PageNumber == mark.PageNumber &&
+            existing.Bounds.Left < mark.Bounds.Right - tolerance && existing.Bounds.Right > mark.Bounds.Left + tolerance &&
+            existing.Bounds.Top < mark.Bounds.Bottom - tolerance && existing.Bounds.Bottom > mark.Bounds.Top + tolerance &&
             (existing.Area.ContentScope != mark.Area.ContentScope || existing.Area.AppearanceMode != mark.Area.AppearanceMode ||
              existing.TextSelection != mark.TextSelection));
+    }
 
-    private void ReportRedactionPolicyConflict() {
+    private void ReportRedactionPolicyConflict(PdfRedactionMarkViewModel conflict) {
         InvalidateReviewedRedactions();
+        SelectedRedactionMark = conflict;
         RedactionSearchExpanded = true;
         ErrorMessage = _localizer.GetOrDefault("Redaction.SearchPolicyConflict",
-            "A matching area already uses different redaction options. Remove that mark and search again to use the selected options, then review.");
+            "This area overlaps a mark with different redaction options. Remove the selected mark and add the area again to use the new options, then review.");
     }
 
     private void OnRedactionMarkChanged(object? sender, PropertyChangedEventArgs args) {

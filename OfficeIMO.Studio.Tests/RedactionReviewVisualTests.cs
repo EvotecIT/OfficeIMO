@@ -33,30 +33,37 @@ public sealed class RedactionReviewVisualTests {
                     var model = window.ViewModel;
                     model.ShowProtectModeCommand.Execute(null);
                     model.RedactionSearchText = "private account";
-                    model.RedactionSearchMatchedTextOnly = true;
-                    model.RedactionSearchPreserveUnderlay = true;
                     await model.SearchRedactionsCommand.ExecuteAsync(null);
+                    PdfRedactionMarkViewModel original = Assert.Single(model.RedactionMarks);
                     await model.ReviewRedactionsCommand.ExecuteAsync(null);
                     Assert.True(model.CanApplyReviewedRedactions);
                     model.RedactionSearchExpanded = true;
                     await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
                         () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
                     var inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
+                    var exact = inspector.GetVisualDescendants().OfType<CheckBox>()
+                        .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionMatchedTextOnly");
+                    exact.BringIntoView();
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
+                    Click(window, exact);
+                    Assert.True(model.RedactionSearchMatchedTextOnly);
                     var underlay = inspector.GetVisualDescendants().OfType<CheckBox>()
                         .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionPreserveUnderlay");
-                    Assert.True(underlay.IsChecked);
+                    Assert.False(underlay.IsChecked);
                     underlay.BringIntoView();
                     await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
                         () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
                     Click(window, underlay);
-                    Assert.False(model.RedactionSearchPreserveUnderlay);
+                    Assert.True(model.RedactionSearchPreserveUnderlay);
                     var search = inspector.GetVisualDescendants().OfType<Button>()
                         .Single(button => ReferenceEquals(button.Command, model.SearchRedactionsCommand));
                     Click(window, search);
                     if (model.SearchRedactionsCommand.ExecutionTask is { } searchTask) await searchTask;
                     window.UpdateLayout();
                     Assert.True(model.HasError);
-                    Assert.Single(model.RedactionMarks);
+                    Assert.Same(original, Assert.Single(model.RedactionMarks));
+                    Assert.Same(original, model.SelectedRedactionMark);
                     var apply = inspector.GetVisualDescendants().OfType<Button>()
                         .Single(button => ReferenceEquals(button.Command, model.ApplyPendingRedactionCommand));
                     Assert.False(apply.IsEnabled);

@@ -8,12 +8,80 @@ using OfficeIMO.Studio.Features.Shell;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class RedactionReviewTests {
+    [Fact]
+    public async Task CompatibleOverlapsAndSeparatePoliciesRemainReviewableUntilAConflictingSearch() {
+        using var files = new TestFiles();
+        await File.WriteAllBytesAsync(files.Input, CreateSource());
+        using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+        await model.OpenDocumentAsync(files.Input);
+        model.SetOrganizerSelection([model.OrganizerPages[0]]);
+        model.RedactionSearchSelectedPagesOnly = true;
+        model.RedactionSearchMatchedTextOnly = true;
+        model.RedactionSearchPreserveUnderlay = true;
+        model.RedactionSearchText = "private account";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        PdfRedactionMarkViewModel original = Assert.Single(model.RedactionMarks);
+        model.RedactionSearchText = "account";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(2, model.RedactionMarks.Count);
+        model.RedactionSearchPreserveUnderlay = false;
+        model.RedactionSearchText = "First";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(3, model.RedactionMarks.Count);
+        model.SetOrganizerSelection([model.OrganizerPages[1]]);
+        model.RedactionSearchText = "private account";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(4, model.RedactionMarks.Count);
+        await model.ReviewRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.CanApplyReviewedRedactions, model.PendingRedactionSummary);
+        model.SelectedRedactionMark = model.RedactionMarks[3];
+        model.SetOrganizerSelection([model.OrganizerPages[0]]);
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.HasError);
+        Assert.Equal(4, model.RedactionMarks.Count);
+        Assert.Same(original, model.SelectedRedactionMark);
+        Assert.False(model.CanApplyReviewedRedactions);
+    }
+
+    [Fact]
+    public async Task DrawnAreaCannotIntroduceAnOverlappingPolicyConflict() {
+        using var files = new TestFiles();
+        await File.WriteAllBytesAsync(files.Input, CreateSource());
+        using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+        await model.OpenDocumentAsync(files.Input);
+        model.SetOrganizerSelection([model.OrganizerPages[0]]);
+        model.RedactionSearchSelectedPagesOnly = true;
+        model.RedactionSearchMatchedTextOnly = true;
+        model.RedactionSearchPreserveUnderlay = true;
+        model.RedactionSearchText = "private account";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        PdfRedactionMarkViewModel original = Assert.Single(model.RedactionMarks);
+        await model.ReviewRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.CanApplyReviewedRedactions);
+        model.BeginRedactionCommand.Execute(null);
+        Rect bounds = original.Bounds;
+        model.Pages[0].CompleteEditorGesture(new PdfEditorGesture(1,
+            bounds.Left + 1, bounds.Top + 1, bounds.Right - 1, bounds.Bottom - 1, []));
+        await WaitUntilAsync(() => model.HasError || model.RedactionMarks.Count != 1);
+        Assert.True(model.HasError);
+        Assert.Same(original, Assert.Single(model.RedactionMarks));
+        Assert.Same(original, model.SelectedRedactionMark);
+        Assert.False(model.CanApplyReviewedRedactions);
+    }
+
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public async Task RepeatedSearchWithDifferentRemovalPolicyRequiresExplicitMarkReplacement(bool preserveUnderlay, bool precise) {
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public async Task RepeatedSearchWithDifferentRemovalPolicyRequiresExplicitMarkReplacement(bool preserveUnderlay, bool precise, bool changeSelection) {
         using var files = new TestFiles();
         byte[] image = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
@@ -43,12 +111,14 @@ public sealed class RedactionReviewTests {
         await model.ReviewRedactionsCommand.ExecuteAsync(null);
         Assert.True(model.CanApplyReviewedRedactions, model.PendingRedactionSummary);
 
-        model.RedactionSearchPreserveUnderlay = !preserveUnderlay;
+        if (changeSelection) model.RedactionSearchMatchedTextOnly = !precise;
+        else model.RedactionSearchPreserveUnderlay = !preserveUnderlay;
         model.RedactionSearchSelectedPagesOnly = false;
         await model.SearchRedactionsCommand.ExecuteAsync(null);
         Assert.True(model.HasError);
         Assert.False(model.CanApplyReviewedRedactions);
         Assert.Same(original, Assert.Single(model.RedactionMarks));
+        Assert.Same(original, model.SelectedRedactionMark);
         Assert.Equal("Reviewed reason", original.Reason);
         Assert.Equal(preserveUnderlay ? PdfRedactionContentScope.TextOnly : PdfRedactionContentScope.TextAndUnderlay,
             original.Area.ContentScope);
@@ -65,8 +135,11 @@ public sealed class RedactionReviewTests {
         await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
         PdfDocument saved = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output));
-        Assert.DoesNotContain("private account", saved.Read().Text, StringComparison.Ordinal);
-        Assert.Equal(preserveUnderlay ? 0 : 1, saved.Images.Placements().Count);
+        string savedText = saved.Read().Text;
+        Assert.DoesNotContain("private account", savedText, StringComparison.Ordinal);
+        if (model.RedactionSearchMatchedTextOnly) Assert.Contains("Before", savedText, StringComparison.Ordinal);
+        else Assert.DoesNotContain("Before", savedText, StringComparison.Ordinal);
+        Assert.Equal(model.RedactionSearchPreserveUnderlay ? 1 : 0, saved.Images.Placements().Count);
         Assert.Equal(source, await File.ReadAllBytesAsync(files.Input));
     }
 
