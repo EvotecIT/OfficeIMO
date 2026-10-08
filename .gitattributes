@@ -3,6 +3,13 @@
 ###############################################################################
 * text=auto
 
+# Access producer exports and expected-value captures have manifest-bound bytes.
+OfficeIMO.Access.Tests/Fixtures/** -text -whitespace
+OfficeIMO.Access.Tests/Fixtures/**/*.mdb -diff
+OfficeIMO.Access.Tests/Fixtures/**/*.accdb -diff
+OfficeIMO.Access.Tests/Fixtures/**/*.pdf -diff
+OfficeIMO.Access.Tests/Fixtures/**/manifest.json text eol=lf diff
+
 # Browser assets are generated and hashed from canonical UTF-8/LF bytes.
 OfficeIMO.Browser/** text eol=lf
 OfficeIMO.JavaScript/** text eol=lf
