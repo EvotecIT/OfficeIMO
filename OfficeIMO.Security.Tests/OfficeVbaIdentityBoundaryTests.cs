@@ -132,6 +132,7 @@ public sealed class OfficeVbaIdentityBoundaryTests {
         Assert.Equal(new[] { "First", "Second" }, project.References.Select(reference => reference.Name));
         byte[] bytes = project.Write().GetBytes();
         project = OfficeVbaProject.Load(bytes);
+        Assert.Equal(new[] { "First", "Second" }, project.References.Select(reference => reference.Name));
         project.AddRegisteredReference("AlreadyPresent", first, path: "C:\\another.tlb");
         Assert.False(project.HasChanges);
         Assert.Equal(bytes, project.Write().GetBytes());
