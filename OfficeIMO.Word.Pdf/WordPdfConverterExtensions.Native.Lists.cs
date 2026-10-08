@@ -92,6 +92,11 @@ namespace OfficeIMO.Word.Pdf {
             // The paragraph path retains that per-item position instead of a shared column.
             if (info.Value.LevelSuffix is WordListLevelSuffix.Space or WordListLevelSuffix.Nothing) return false;
 
+            // A legacy numbering tab may move only the first line beyond the
+            // hanging indent. The paragraph path preserves that independent
+            // continuation indent; list blocks use one shared text column.
+            if (IgnoresNativeNumberingIndentStop(paragraph)) return false;
+
             // The inline paragraph path carries marker run typography. List blocks
             // expose a uniform marker font but do not carry width or tracking.
             NativeResolvedTextStyle paragraphTextStyle = ResolveNativeTextRunStyle(paragraph,

@@ -4,9 +4,13 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private static bool IgnoresNativeNumberingIndentStop(WordParagraph paragraph) =>
+            !UsesModernNativeWordLayout(paragraph._document)
+            && paragraph._document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop;
+
         private static double ResolveNativeListTabBodyPosition(WordParagraph paragraph,
             double markerEnd, double textIndent, NativeDocumentDefaults nativeDefaults) {
-            if (markerEnd <= textIndent + 0.01D) return textIndent;
+            if (!IgnoresNativeNumberingIndentStop(paragraph) && markerEnd <= textIndent + 0.01D) return textIndent;
             var stops = new Dictionary<int, WordTabStop>();
             W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
             if (levelTabs != null) {

@@ -186,6 +186,9 @@ namespace OfficeIMO.Word {
             // later compatibility storage contains a disabled option. Project
             // that effective layout into the editable DOCX model.
             document.CompatibilitySettings.SplitPageBreakAndParagraphMark = true;
+            // Native DOC numbering advances to an authored/default tab rather
+            // than treating the hanging indent as an implicit numbering stop.
+            document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop = true;
             if (legacyDocument.DefaultTabStop != null) document.Settings.DefaultTabStop = legacyDocument.DefaultTabStop.Value;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
