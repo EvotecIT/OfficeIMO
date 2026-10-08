@@ -62,7 +62,9 @@ namespace OfficeIMO.Access {
                 if (bytes.Length - offset < 2 || bytes[offset] != 4) return null;
                 int length = bytes[offset + 1]; offset += 2;
                 if (length < 6 || (length & 1) != 0 || offset > bytes.Length - length) return null;
-                string name = new System.Text.UnicodeEncoding(false, false, true).GetString(bytes, offset, length - 4);
+                string name;
+                try { name = new System.Text.UnicodeEncoding(false, false, true).GetString(bytes, offset, length - 4); }
+                catch (System.Text.DecoderFallbackException) { return null; }
                 int slot = I32(bytes, offset + length - 4); offset += length;
                 if (slot < 0) return null;
                 if (result.ContainsKey(name)) return null; result.Add(name, slot);

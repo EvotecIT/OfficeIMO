@@ -33,6 +33,7 @@ namespace OfficeIMO.Core.Internal {
                     else {
                         try { source = Decode(expanded, model.CodePage); }
                         catch (NotSupportedException) { limitation = "The module source code page is not supported; its stream remains opaque."; }
+                        catch (DecoderFallbackException) { limitation = "The module source is not valid for its declared code page; its stream remains opaque."; }
                     }
                 }
                 modules.Add(new OfficeVbaModule(name, module.StreamName, module.TypeId == 0x0021, module.TextOffset,

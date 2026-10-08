@@ -79,10 +79,33 @@ namespace OfficeIMO.Security.Tests {
             return bytes.ToArray();
         }
 
-        private static byte[] Directory(params string[] names) {
+        [Fact]
+        public void InvalidUtf8SourceRetainsProjectInventoryAndLaterValidSource() {
+            byte[] directory = Directory(65001, "Broken", "Later");
+            byte[] later = Encoding.UTF8.GetBytes("Zażółć");
+            Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
+                ["VBA/dir"] = Literal(directory),
+                ["VBA/Broken"] = Literal(new byte[] { 0xC3, 0x28 }),
+                ["VBA/Later"] = Literal(later)
+            };
+            OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2 + later.Length);
+            Assert.Null(result.Limitation);
+            Assert.Equal("Project", result.Name); Assert.Equal(65001, result.CodePage);
+            Assert.Equal(2, result.Modules.Count);
+            Assert.Equal("Broken", result.Modules[0].Name); Assert.Equal("Broken", result.Modules[0].StreamName);
+            Assert.Null(result.Modules[0].Source); Assert.Contains("declared code page", result.Modules[0].Limitation);
+            Assert.Equal("Zażółć", result.Modules[1].Source); Assert.Null(result.Modules[1].Limitation);
+            OfficeVbaInspection bounded = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
+            Assert.Equal(2, bounded.Modules.Count);
+            Assert.Null(bounded.Modules[1].Source); Assert.Contains("byte limit", bounded.Modules[1].Limitation);
+        }
+
+        private static byte[] Directory(params string[] names) => Directory(1252, names);
+
+        private static byte[] Directory(ushort codePage, params string[] names) {
             List<byte> bytes = new List<byte>();
             Sized(bytes, 0x0001, new byte[4]); Sized(bytes, 0x0002, new byte[] { 9, 4, 0, 0 });
-            Sized(bytes, 0x0003, new byte[] { 0xE4, 4 }); Sized(bytes, 0x0004, Encoding.ASCII.GetBytes("Project"));
+            Sized(bytes, 0x0003, new byte[] { (byte)codePage, (byte)(codePage >> 8) }); Sized(bytes, 0x0004, Encoding.ASCII.GetBytes("Project"));
             foreach (ushort id in new ushort[] { 5, 0x40, 6, 0x3D }) Sized(bytes, id, Array.Empty<byte>());
             Sized(bytes, 7, new byte[4]); Sized(bytes, 8, new byte[4]);
             U16(bytes, 9); U32(bytes, 4); U32(bytes, 1); U16(bytes, 0);

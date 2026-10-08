@@ -113,5 +113,68 @@ namespace OfficeIMO.Access.Tests {
             using (document.BeginUpdate()) { table.AppendRow(new AccessRowValues { ["Id"] = 1 }); Assert.Equal(table.Id, document.ChangeJournal.Last().ObjectId); Assert.Equal("row.append", document.ChangeJournal.Last().Operation); }
             Assert.Equal(revision, document.Revision); Assert.Equal(before, document.ChangeJournal); Assert.Equal(0, table.RowCount);
         }
+
+        [Theory]
+        [InlineData("Designer/designer-jet4.mdb")]
+        [InlineData("Designer/designer-ace12.accdb")]
+        public void InvalidApplicationDirectoryNameKeepsObjectsAndNativeBytesPreserveOnly(string name) {
+            byte[] bytes = File.ReadAllBytes(Fixture(name));
+            byte[] directory;
+            using (AccessDocument original = AccessDocument.Load(new MemoryStream(bytes))) {
+                directory = original.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes();
+                Assert.NotNull(original.Forms["BoundForm1"].StoragePath);
+            }
+            int match = FindUniquePayload(bytes, directory);
+            Assert.Equal(4, directory[4]);
+            // The first UTF-16 character follows the four-byte directory prefix and entry header.
+            bytes[match + 6] = 0; bytes[match + 7] = 0xD8;
+            directory[6] = 0; directory[7] = 0xD8;
+            using MemoryStream input = new MemoryStream(bytes);
+            using AccessDocument document = AccessDocument.Load(input);
+            Assert.Equal(2, document.Forms.Count);
+            Assert.All(document.Forms, form => {
+                Assert.Null(form.StoragePath); Assert.Null(form.Definition); Assert.Empty(form.Streams);
+                Assert.Contains(form.Diagnostics, x => x.Code == "access.application.preserve-only");
+            });
+            Assert.Equal(directory, document.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes());
+            Assert.NotNull(document.Reports["BoundReport"].StoragePath);
+            Assert.Single(document.Macros["AutoExec"].ActionMacro!.Actions, "StopMacro");
+            Assert.Contains("Zażółć", Assert.Single(document.VbaProject.Modules).Source);
+            Assert.True(document.Tables["Contacts"].RowCount > 0);
+            using MemoryStream output = new MemoryStream(); document.Save(output);
+            Assert.Equal(bytes, output.ToArray());
+        }
+
+        [Fact]
+        public void InvalidDesignerTextKeepsThePropertyOpaqueAndOtherDesignerMetadataReadable() {
+            byte[] bytes = File.ReadAllBytes(Fixture("Designer/designer-ace12.accdb"));
+            byte[] caption;
+            using (AccessDocument original = AccessDocument.Load(new MemoryStream(bytes))) {
+                caption = original.Forms["BoundForm1"].Definition!.Properties.Single(x => Equals(x.Value, "Synthetic form 1")).Payload.GetBytes();
+            }
+            int match = FindUniquePayload(bytes, caption);
+            bytes[match] = 0; bytes[match + 1] = 0xD8;
+            caption[0] = 0; caption[1] = 0xD8;
+            using MemoryStream input = new MemoryStream(bytes);
+            using AccessDocument document = AccessDocument.Load(input);
+            AccessDesignerNode definition = Assert.IsType<AccessDesignerNode>(document.Forms["BoundForm1"].Definition);
+            Assert.Null(definition.Caption); Assert.Equal("Contacts", definition.RecordSource);
+            AccessDesignerProperty property = Assert.Single(definition.Properties, x => x.Payload.GetBytes().SequenceEqual(caption));
+            Assert.IsType<AccessOpaqueValue>(property.Value);
+            Assert.Equal("Synthetic form 2", document.Forms["BoundForm2"].Definition!.Caption);
+            using MemoryStream output = new MemoryStream(); document.Save(output);
+            Assert.Equal(bytes, output.ToArray());
+        }
+
+        private static int FindUniquePayload(byte[] bytes, byte[] payload) {
+            int match = -1;
+            for (int offset = 0; offset <= bytes.Length - payload.Length; offset++) {
+                int index = 0;
+                while (index < payload.Length && bytes[offset + index] == payload[index]) index++;
+                if (index != payload.Length) continue;
+                Assert.Equal(-1, match); match = offset;
+            }
+            Assert.True(match >= 0); return match;
+        }
     }
 }

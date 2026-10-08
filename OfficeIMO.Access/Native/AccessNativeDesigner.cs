@@ -35,15 +35,22 @@ namespace OfficeIMO.Access {
             if (depth != 0) throw new InvalidDataException("Designer child terminator is missing.");
             return new AccessDesignerNode(kind, properties.ToArray(), children.ToArray());
         }
-        private static object Decode(uint type, byte[] bytes) => type switch {
-            1 when bytes.Length == 1 => bytes[0] != 0,
-            2 when bytes.Length == 1 => bytes[0],
-            3 when bytes.Length == 2 => (short)I16(bytes, 0),
-            4 when bytes.Length == 4 => I32(bytes, 0),
-            6 when bytes.Length == 4 => BitConverter.ToSingle(bytes, 0),
-            7 when bytes.Length == 8 => F64(bytes, 0),
-            10 or 12 when (bytes.Length & 1) == 0 && bytes.Length > 0 => new System.Text.UnicodeEncoding(false, false, true).GetString(bytes).TrimEnd('\0'),
-            _ => new AccessOpaqueValue(unchecked((byte)type), bytes, "Unknown or implicit-default native designer property remains uninterpreted.")
-        };
+        private static object Decode(uint type, byte[] bytes) {
+            try {
+                return type switch {
+                    1 when bytes.Length == 1 => bytes[0] != 0,
+                    2 when bytes.Length == 1 => bytes[0],
+                    3 when bytes.Length == 2 => (short)I16(bytes, 0),
+                    4 when bytes.Length == 4 => I32(bytes, 0),
+                    6 when bytes.Length == 4 => BitConverter.ToSingle(bytes, 0),
+                    7 when bytes.Length == 8 => F64(bytes, 0),
+                    10 or 12 when (bytes.Length & 1) == 0 && bytes.Length > 0 => new System.Text.UnicodeEncoding(false, false, true).GetString(bytes).TrimEnd('\0'),
+                    _ => new AccessOpaqueValue(unchecked((byte)type), bytes, "Unknown or implicit-default native designer property remains uninterpreted.")
+                };
+            }
+            catch (System.Text.DecoderFallbackException) {
+                return new AccessOpaqueValue(unchecked((byte)type), bytes, "The native designer text is not valid UTF-16; its property remains uninterpreted.");
+            }
+        }
     }
 }
