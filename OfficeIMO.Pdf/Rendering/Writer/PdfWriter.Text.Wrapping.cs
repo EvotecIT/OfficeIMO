@@ -402,7 +402,7 @@ internal static partial class PdfWriter {
                     lastLine[lastLine.Count - 1].InlineElement is PdfInlineBox { IsTextSpacer: true } &&
                     TryAppendMultilingualLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle,
                         color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline,
-                        Math.Max(1D, currentMaxWidth - lineWidth))) {
+                        Math.Max(0D, currentMaxWidth - lineWidth))) {
                     if (hadNewline) {
                         MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                         StartNewLine();
