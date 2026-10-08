@@ -87,7 +87,7 @@ Lists retain supported native numbering formats, marker text, alignment, suffixe
 
 Supported nested tables retain their cell boundaries, multiple paragraphs per cell, widths and row/cell settings. Native output containing nested tables declares the Word 2000 binary format so Microsoft Word interprets the nested grid. Documents without nested tables retain the Word 97 format declaration.
 
-Table layout retains each format's default. A DOC table without an AutoFit flag imports with `LayoutMode` set to `Fixed`. When saving DOCX content as DOC, an omitted layout setting retains DOCX's AutoFit behavior. Explicit and supported inherited layout settings take precedence over that default.
+Table layout retains each format's default. A DOC table without an AutoFit flag imports with `LayoutMode` set to `Fixed`. When saving DOCX content as DOC, an omitted layout setting retains DOCX's AutoFit behavior. `LayoutMode` reads direct settings, named table styles, their base styles and the document's default table style. Explicit and supported inherited layout settings take precedence over the format default. PDF conversion also retains the effective layout algorithm; preferred cell widths remain sizing inputs when layout defaults to AutoFit.
 
 The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet, including multiple, exact and at-least line spacing. Exact line spacing accepts 1–31,680 twips; exact zero is unrepresentable in DOC and is rejected before writing output. Paragraph boundaries are retained even when adjacent paragraphs have identical formatting.
 

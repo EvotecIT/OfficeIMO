@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
             bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
-                table, table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
+                table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
             var cellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
