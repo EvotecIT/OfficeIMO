@@ -46,9 +46,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       let blob;
       if (format === "xlsx") {
-        const book = OfficeIMO.createWorkbook({ creator: "HtmlForgeX example" });
+        const book = new OfficeIMO.Workbook({ creator: "HtmlForgeX example" });
         const headerStyle = book.styles.add({ font: { bold: true, color: "FFFFFF" }, fill: { color: "203864" }, verticalAlignment: "center" });
-        await book.addSheet("Current view", { columns, freezeHeader: true, freezeColumns: 1,
+        await book.addWorksheet("Current view", { columns, freezeHeader: true, freezeColumns: 1,
           table: { name: "CurrentView", style: "TableStyleMedium9" }, headerStyle, headerHeight: 28, rowHeight: 22,
           cellStyle: ({ column, value }) => column.header === "Latency (ms)" && value > 20
             ? { fill: { color: "FCE4D6" }, font: { color: "9C0006", bold: true } } : undefined }).addRows(rows());

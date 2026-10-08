@@ -1,6 +1,25 @@
 {
   "schemaVersion": 1,
   "cases": [
+    { "name": "table-api", "producer": "table-helper", "sheets": [
+      { "name": "Domain report", "title": { "text": "Domain values" }, "freezeHeader": true,
+        "columns": [ { "header": "Name", "key": "name", "groups": ["Results"] },
+          { "header": "Amount", "key": "amount", "groups": ["Results"], "type": "number", "format": "0.00" },
+          { "header": "Seen", "key": "seen", "groups": ["Results"], "type": "date", "format": "yyyy-mm-dd" } ],
+        "table": { "name": "DomainValues", "style": "TableStyleMedium2" },
+        "footer": { "values": ["Total"], "totals": { "amount": "sum" } }, "print": { "repeatHeaders": true },
+        "conditionalFormats": [{ "type": "cellIs", "range": { "column": "amount" }, "operator": "greaterThan", "value": 100, "style": { "fill": { "color": "FFC7CE" } } }],
+        "rows": [["Łódź 🧪", 12.5, { "kind": "date", "value": "2026-10-07T00:00:00Z" }], ["Warsaw", 125.75, { "kind": "date", "value": "2026-10-08T00:00:00Z" }]],
+        "expected": { "A4": "Łódź 🧪", "B4": 12.5, "C4": { "kind": "date", "value": "2026-10-07T00:00:00Z" }, "A5": "Warsaw", "B5": 125.75, "B6": 138.25 }
+      }
+    ] },
+    { "name": "automatic-width-budget", "options": { "limits": { "maxBufferedCells": 4, "maxBufferedCharacters": 50 } }, "sheets": [
+      { "name": "Budget", "columns": [{ "header": "Name" }, { "header": "Amount", "key": "amount", "format": "0.00" }, { "header": "Seen", "type": "date", "format": "yyyy-mm-dd" }],
+        "autoSize": {}, "footer": { "totals": { "amount": "sum" } },
+        "rows": [["Łódź 🧪", 12.5, { "kind": "date", "value": "2026-10-07T00:00:00Z" }], ["second", 7.5, null]],
+        "expected": { "A2": "Łódź 🧪", "B2": 12.5, "B3": 7.5, "B4": 20 }
+      }
+    ] },
     { "name": "conditional-report", "options": { "limits": { "maxConditionalFormats": 10, "maxDifferentialStyles": 4 } },
       "styles": [{ "font": { "bold": true, "italic": true, "underline": true }, "border": { "left": { "style": "thin", "color": "0000FF" } } }], "sheets": [
       { "name": "Live report", "title": { "text": "Live report highlights", "height": 30 },

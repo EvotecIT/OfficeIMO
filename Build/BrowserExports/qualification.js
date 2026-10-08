@@ -30,16 +30,19 @@ async function runQualificationCase(args) {
       if (used === buffer.length) await flush();
     }
   } };
-  const { ExportCell, createWorkbook, writeCsvTo } = OfficeIMO;
+  const { ExportCell, writeXlsxTo, writeCsvTo } = OfficeIMO;
+  let projected = 0;
   const columns = Array.from({ length: args.columns }, (_, c) => ({ header: "Column " + c, key: "c" + c,
+    value: row => { projected++; return row.data.values[c]; },
     type: ["number", "string", "boolean", "date"][c % 4], ...(c % 4 === 0 ? { format: "0.00" } : {}), ...(c % 4 === 3 ? { format: "yyyy-mm-dd" } : {}),
     ...(args.styled ? { groups: [c < args.columns / 2 ? "Identity" : "Metrics"] } : {}) }));
   function makeRow(r) {
-    return columns.map((_, c) => {
+    const values = columns.map((_, c) => {
       let value = c % 4 === 0 ? r * args.columns + c : c % 4 === 1 ? args.unique ? "Unique " + r + ": Łódź🧪" : "Site " + r % 8 : c % 4 === 2 ? r % 2 === 0 : new Date(Date.UTC(2026, 0, 1 + r % 28));
       if (args.longText && r === 100 && c === 1) value = "a".repeat(32766) + "🧪" + "Łódź\r\nשלום_x0041_".repeat(2500);
       return args.styled && c % 4 === 0 ? new ExportCell(value, { text: String(value), presentation: r % 3 === 0 ? { background: "FFF2CC", bold: true } : { color: "1F4E78" } }) : value;
     });
+    return { data: { values }, unselected: { domainObject: true } };
   }
   let pageAborted = false, maxPageRows = 0;
   async function fetchPage(first) {
@@ -63,20 +66,19 @@ async function runQualificationCase(args) {
   let result, rejected = null;
   try {
     const options = { signal: controller.signal, ...(args.resourceLimit ? { limits: { maxRows: 5 } } : {}) };
-    if (args.format === "csv") await writeCsvTo(source(), sink, { ...options, columns });
+    if (args.format === "csv") result = await writeCsvTo(source(), sink, { ...options, columns });
     else {
-      const book = createWorkbook({ ...options, sink, dateMode: "utc", oversizedText: "preserve" });
       const conditionalFormats = args.conditional ? [
         { type: "cellIs", range: { column: "c0" }, operator: "greaterThan", value: 1000, style: { fill: { color: "C6EFCE" } } },
         { type: "expression", range: { column: 1, through: args.columns }, formula: "$A" + (args.styled ? 3 : 2) + ">1000", style: { font: { bold: true } }, stopIfTrue: true },
         { type: "colorScale", range: { column: "c0" }, stops: [{ threshold: { type: "min" }, color: "F8696B" }, { threshold: { type: "max" }, color: "63BE7B" }] },
         { type: "dataBar", range: { column: "c0" }, color: "638EC6" }
       ] : [];
-      const sheet = book.addSheet("Qualified", { columns, conditionalFormats, ...(args.styled ? { table: { name: "QualifiedData" }, freezeHeader: true,
+      result = await writeXlsxTo(source(), sink, { ...options, columns, dateMode: "utc", oversizedText: "preserve",
+        sheet: { name: "Qualified", conditionalFormats, ...(args.styled ? { table: { name: "QualifiedData" }, freezeHeader: true,
         autoSize: { sampleRows: 100, minWidth: 8, maxWidth: 40 }, alternatingRowStyle: { fill: { color: "E2F0D9" } },
         footer: { values: ["Totals"], totals: Object.fromEntries(columns.flatMap((_, c) => c % 4 === 0 ? [["c" + c, "sum"]] : [])), style: { font: { bold: true } } },
-        print: { repeatHeaders: true, paper: "A4", orientation: "landscape" } } : {}) });
-      await sheet.addRows(source()); result = await book.finish();
+        print: { repeatHeaders: true, paper: "A4", orientation: "landscape" } } : {}) } });
     }
     await flush();
   } catch (error) {
@@ -88,8 +90,9 @@ async function runQualificationCase(args) {
   if (args.pendingPage && (!pageAborted || !returned || pages !== 2)) throw new Error("Pending page cancellation did not release the producer.");
   if (maxPageRows > 256) throw new Error("Source paging exceeded its bound.");
   if (!rejected && produced !== args.rows) throw new Error("Source row count differs.");
+  if (!rejected && (projected !== args.rows * args.columns || result.rows !== args.rows || result.columns !== args.columns || result.bytes !== outputBytes)) throw new Error("Table projection or completion counts differ.");
   if (!rejected && args.rows >= 10000 && firstByteRows >= args.rows) throw new Error("Output was buffered until source completion.");
-  return { ...args, workerScript: undefined, qualificationScript: undefined, result, produced, returned, pages, maxPageRows, pageAborted, outputBytes, writes, maxChunk,
+  return { ...args, workerScript: undefined, qualificationScript: undefined, result, produced, projected, returned, pages, maxPageRows, pageAborted, outputBytes, writes, maxChunk,
     firstByteRows, elapsedMs: performance.now() - started, peakHeapBytes: peakHeap, maxTimerGapMs: maxGap, rejected };
 }
 async function runQualificationWorker(args) {

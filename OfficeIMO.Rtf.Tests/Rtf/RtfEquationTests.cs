@@ -116,14 +116,14 @@ public sealed class RtfEquationTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph._paragraph.Append(new Hyperlink(
-            new Run(new Text("link-prefix ")),
+            new Run(new Text("link-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new M.OfficeMath(new M.Run(new M.Text("linked"))),
             new SdtRun(
                 new SdtProperties(new SdtId { Val = 2076 }),
                 new SdtContentRun(
-                    new Run(new Text(" nested-prefix ")),
+                    new Run(new Text(" nested-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new M.OfficeMath(new M.Run(new M.Text("nested"))),
-                    new Run(new Text(" nested-suffix ")))),
+                    new Run(new Text(" nested-suffix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }))),
             new Run(new Text("link-suffix"))) {
             Anchor = "target"
         });
@@ -228,7 +228,7 @@ public sealed class RtfEquationTests {
             new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
             new Run(new FieldCode(" HYPERLINK \\l \"target\" ")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
-            new Run(new Text("prefix ")),
+            new Run(new Text("prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new M.OfficeMath(new M.Run(new M.Text("captured-equation"))),
             new SimpleField(new Run(new Text("simple-equation"))) {
                 Instruction = " EQ \\f(s,t) "
@@ -236,15 +236,15 @@ public sealed class RtfEquationTests {
             new SdtRun(
                 new SdtProperties(new SdtId { Val = 2080 }),
                 new SdtContentRun(
-                    new Run(new Text(" controlled-prefix ")),
+                    new Run(new Text(" controlled-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new M.OfficeMath(new M.Run(new M.Text("controlled-equation"))))),
             new InsertedRun(
-                new Run(new Text(" revised-prefix ")),
+                new Run(new Text(" revised-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new M.OfficeMath(new M.Run(new M.Text("revised-equation")))) {
                 Id = "2081",
                 Author = "Reviewer"
             },
-            new Run(new Text(" suffix")),
+            new Run(new Text(" suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
         RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
@@ -275,17 +275,17 @@ public sealed class RtfEquationTests {
             new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
             new InsertedRun(
                 new Hyperlink(
-                    new Run(new Text("linked-prefix ")),
+                    new Run(new Text("linked-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new M.OfficeMath(new M.Run(new M.Text("linked-equation"))),
-                    new Run(new Text(" linked-suffix"))) {
+                    new Run(new Text(" linked-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) {
                     Anchor = "inner"
                 },
                 new SdtRun(
                     new SdtProperties(new SdtId { Val = 2082 }),
                     new SdtContentRun(
-                        new Run(new Text(" controlled-prefix ")),
+                        new Run(new Text(" controlled-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new M.OfficeMath(new M.Run(new M.Text("controlled-equation"))),
-                        new Run(new Text(" controlled-suffix"))))) {
+                        new Run(new Text(" controlled-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })))) {
                 Id = "2083",
                 Author = "Reviewer"
             },
@@ -373,9 +373,9 @@ public sealed class RtfEquationTests {
         paragraph._paragraph.Append(new SdtRun(
             new SdtProperties(new SdtId { Val = 2076 }),
             new SdtContentRun(
-                new Run(new Text("control-prefix ")),
+                new Run(new Text("control-prefix ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new M.OfficeMath(new M.Run(new M.Text("controlled"))),
-                new Run(new Text(" control-suffix")))));
+                new Run(new Text(" control-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }))));
         paragraph.AddText(" after");
 
         RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);

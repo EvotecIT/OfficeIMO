@@ -1,4 +1,4 @@
-import type { Column } from "../core/index.js";
+import type { ProjectionColumn } from "../internal/columns.js";
 import { cleanXml, escapeXml, escapeOoxmlAttribute } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
 import { cellPosition } from "./attachments.js";
@@ -11,7 +11,7 @@ import type { StyleRegistry } from "./styles.js";
 interface Target { readonly first: number; readonly last: number; readonly reference?: string; readonly bottom?: number; }
 /** @internal Validated metadata, without workbook registrations. */
 export interface PreparedRule { readonly target: Target; readonly type: string; readonly attributes: string; readonly body: string; readonly style?: ConditionalStyle; }
-function target(range: ConditionalRange, columns: readonly Column[]): Target {
+function target(range: ConditionalRange, columns: readonly ProjectionColumn[]): Target {
   if (typeof range === "string") {
     const parts = range.split(":");
     if (parts.length > 2) throw new TypeError("Conditional ranges require one uppercase A1 cell or rectangle.");
@@ -65,7 +65,7 @@ function ordered(values: readonly ConditionalThreshold[]): void {
   }
 }
 /** @internal Compile bounded metadata once, outside the row hot path. */
-export function prepareConditionalFormats(rules: readonly ConditionalFormat[] | undefined, columns: readonly Column[], policy: InvalidCharacterPolicy): readonly PreparedRule[] {
+export function prepareConditionalFormats(rules: readonly ConditionalFormat[] | undefined, columns: readonly ProjectionColumn[], policy: InvalidCharacterPolicy): readonly PreparedRule[] {
   if (rules === undefined) return [];
   if (!Array.isArray(rules)) throw new TypeError("conditionalFormats must be an array.");
   return (rules as readonly ConditionalFormat[]).map(rule => {

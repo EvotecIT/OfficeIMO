@@ -204,9 +204,19 @@ public sealed class DrawingPositionedTextTransformTests {
     [Fact]
     public void TransformedClippedTextCannotAllocateAnUnboundedOffscreenLayer() {
         var drawing = new OfficeDrawing(10, 10).AddClippedPositionedText("and", 0, 0, 100000, 100000,
-            0, 0, OfficeClipPath.Rectangle(10, 10), new OfficeImageFrameTransform(90, 0, 0));
+            0, 0, OfficeClipPath.Rectangle(10, 10), new OfficeImageFrameTransform(90, 5, 5));
         Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
             new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10000 }));
+    }
+
+    [Fact]
+    public void TransformedClippedTextOutsideThePageDoesNotAllocateAnOffscreenLayer() {
+        var drawing = new OfficeDrawing(10, 10).AddClippedPositionedText("and", 0, 0, 100000, 100000,
+            0, 0, OfficeClipPath.Rectangle(10, 10), new OfficeImageFrameTransform(90, 0, 0));
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 100 });
+        for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++)
+            Assert.Equal(0, image.GetPixel(x, y).A);
     }
 
     private sealed class VerticalGlyphProvider : IOfficeTextShapingProvider {

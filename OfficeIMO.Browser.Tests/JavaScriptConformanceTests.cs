@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.TestAssets;
@@ -50,9 +51,10 @@ public sealed class JavaScriptConformanceTests {
         }
     }
 
-    private static string FindRepository() {
-        for (DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.JavaScript", "package.json"))) return directory.FullName;
+    private static string FindRepository([CallerFilePath] string sourceFile = "") {
+        foreach (string start in new[] { Path.GetDirectoryName(sourceFile)!, AppContext.BaseDirectory })
+            for (DirectoryInfo? directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.JavaScript", "package.json"))) return directory.FullName;
         throw new InvalidOperationException("Run this test from a source checkout after npm ci and npm run build in OfficeIMO.JavaScript.");
     }
 }

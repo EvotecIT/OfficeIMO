@@ -1,0 +1,91 @@
+{
+  "license": "MIT (JSZip's MIT option)",
+  "role": "Opt-in browser interoperability and export comparisons; excluded from npm and NuGet artifacts.",
+  "stacks": {
+    "bundled": {
+      "dataTables": "2.3.7",
+      "buttons": "3.2.6",
+      "select": "3.1.3",
+      "colReorder": "2.1.2",
+      "scripts": [
+        "jquery-3.7.1.js",
+        "datatables-2.3.7.js",
+        "buttons-3.2.6.js",
+        "html5-3.2.6.js",
+        "select-3.1.3.js",
+        "colreorder-2.1.2.js",
+        "jszip-3.10.1.js"
+      ]
+    },
+    "current": {
+      "dataTables": "3.1.3",
+      "buttons": "4.1.2",
+      "select": "4.1.1",
+      "colReorder": "3.1.2",
+      "scripts": [
+        "datatables-3.1.3.js",
+        "buttons-4.1.2.js",
+        "select-4.1.1.js",
+        "colreorder-3.1.2.js",
+        "jszip-3.10.1.js"
+      ]
+    }
+  },
+  "assets": [
+    {
+      "name": "jquery-3.7.1.js",
+      "url": "https://code.jquery.com/jquery-3.7.1.min.js",
+      "sha256": "fc9a93dd241f6b045cbff0481cf4e1901becd0e12fb45166a8f17f95823f0b1a"
+    },
+    {
+      "name": "jszip-3.10.1.js",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+      "sha256": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
+    },
+    {
+      "name": "datatables-2.3.7.js",
+      "url": "https://cdn.datatables.net/2.3.7/js/dataTables.js",
+      "sha256": "37f0ad9730686e718e18bcd5a266693038455cf5e1cd1cc06ffc8d1e5988e4c5"
+    },
+    {
+      "name": "buttons-3.2.6.js",
+      "url": "https://cdn.datatables.net/buttons/3.2.6/js/dataTables.buttons.js",
+      "sha256": "0943a4dc964d37059c660cc068a2fd5dc392221c19156a07fe78f7bb86f5a429"
+    },
+    {
+      "name": "html5-3.2.6.js",
+      "url": "https://cdn.datatables.net/buttons/3.2.6/js/buttons.html5.js",
+      "sha256": "63e954685f250a17005dfe98c9ffbe365dd864e9e4bd64a76bae012f6acce1a1"
+    },
+    {
+      "name": "select-3.1.3.js",
+      "url": "https://cdn.datatables.net/select/3.1.3/js/dataTables.select.js",
+      "sha256": "07479107c926d2a25453b2130c41fcdedfc8451207e08dcf1fd2d76487a6dbb1"
+    },
+    {
+      "name": "colreorder-2.1.2.js",
+      "url": "https://cdn.datatables.net/colreorder/2.1.2/js/dataTables.colReorder.js",
+      "sha256": "b641ed831262303875b42ec2a05fbebfeebb24252c084375bd2d1ad3d9900383"
+    },
+    {
+      "name": "datatables-3.1.3.js",
+      "url": "https://cdn.datatables.net/3.1.3/js/dataTables.js",
+      "sha256": "93d095c6d269f3d9f367fc3516244131b5f02d31bce2758fc961066bf3567429"
+    },
+    {
+      "name": "buttons-4.1.2.js",
+      "url": "https://cdn.datatables.net/buttons/4.1.2/js/dataTables.buttons.js",
+      "sha256": "44de192e367901c0b7970ee602e734299f0cafae8beef6f5481c4650c1ad9f86"
+    },
+    {
+      "name": "select-4.1.1.js",
+      "url": "https://cdn.datatables.net/select/4.1.1/js/dataTables.select.js",
+      "sha256": "730cd1aaff520834ee2ac1dd2500b379946aeb8c7d4dbe88357b13a9cdb9286a"
+    },
+    {
+      "name": "colreorder-3.1.2.js",
+      "url": "https://cdn.datatables.net/colreorder/3.1.2/js/dataTables.colReorder.js",
+      "sha256": "b153d3177a1538e540d28e8f8937ff09a8b6812a0abadc8ddcfdcf231f2ca6a8"
+    }
+  ]
+}

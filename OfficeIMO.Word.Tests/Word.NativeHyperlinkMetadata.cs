@@ -24,18 +24,18 @@ namespace OfficeIMO.Tests {
             byte[] docx = source.ToBytes();
             NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
             Assert.Contains("line breaks", error.Message, StringComparison.Ordinal);
-            using var before = new ZipArchive(new MemoryStream(docx), ZipArchiveMode.Read);
-            using var after = new ZipArchive(new MemoryStream(source.ToBytes()), ZipArchiveMode.Read);
-            Assert.Equal(before.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal),
-                after.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal));
-            foreach (ZipArchiveEntry entry in before.Entries) {
-                using var expected = new MemoryStream();
-                using var actual = new MemoryStream();
+            using var expected = new ZipArchive(new MemoryStream(docx), ZipArchiveMode.Read);
+            using var actual = new ZipArchive(new MemoryStream(source.ToBytes()), ZipArchiveMode.Read);
+            Assert.Equal(expected.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal),
+                actual.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal));
+            foreach (ZipArchiveEntry entry in expected.Entries) {
                 using Stream expectedPart = entry.Open();
-                using Stream actualPart = after.GetEntry(entry.FullName)!.Open();
-                expectedPart.CopyTo(expected);
-                actualPart.CopyTo(actual);
-                Assert.Equal(expected.ToArray(), actual.ToArray());
+                using Stream actualPart = actual.GetEntry(entry.FullName)!.Open();
+                using var expectedBytes = new MemoryStream();
+                using var actualBytes = new MemoryStream();
+                expectedPart.CopyTo(expectedBytes);
+                actualPart.CopyTo(actualBytes);
+                Assert.Equal(expectedBytes.ToArray(), actualBytes.ToArray());
             }
             Assert.Empty(source.ValidateDocument());
         }

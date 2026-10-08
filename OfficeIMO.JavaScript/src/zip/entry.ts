@@ -13,7 +13,11 @@ const crcTable = new Uint32Array(256).map((_, index) => {
 /** Incremental CRC-32/ISO-HDLC, also usable by a future reader. */
 export class Crc32 {
   private crc = 0xffffffff;
-  update(bytes: Uint8Array): void { for (const byte of bytes) this.crc = crcTable[(this.crc ^ byte) & 255]! ^ (this.crc >>> 8); }
+  update(bytes: Uint8Array): void {
+    let crc = this.crc;
+    for (let index = 0; index < bytes.length; index++) crc = crcTable[(crc ^ bytes[index]!) & 255]! ^ (crc >>> 8);
+    this.crc = crc;
+  }
   get value(): number { return (this.crc ^ 0xffffffff) >>> 0; }
 }
 

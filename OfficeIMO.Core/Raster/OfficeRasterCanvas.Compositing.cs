@@ -13,6 +13,8 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        transform = ScaleCoordinates(transform);
+
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
@@ -20,6 +22,7 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
