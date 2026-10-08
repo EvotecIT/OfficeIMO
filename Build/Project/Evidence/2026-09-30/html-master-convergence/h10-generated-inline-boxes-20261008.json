@@ -6,15 +6,16 @@
   "milestone": "H10ReferenceSystemsGeneratedInlineBoxes",
   "publication": {
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2937",
-    "state": "OPEN; original failed/canceled jobs have one bounded rerun queued; current-head completion remains held",
-    "delayedCurrentHeadGate": "complete paginated feedback on current head; no actionable findings; CI still held",
+    "state": "MERGED; exact-head CI and delayed complete feedback passed",
+    "delayedCurrentHeadGate": "Complete threads/nested comments/reviews/raw comments/reactions; no actionable or unresolved feedback",
     "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
     "initialCompleteFeedback": {
       "threads": 0,
       "unresolved": 0,
       "CI": "queued/running; no failure at initialsnapshot",
       "snapshot": "Ignore/H10ReferenceAppearanceQualification-20261007/generated-inline-publication-immediate.log"
-    }
+    },
+    "mergeCommit": "aa76ce78a935f74f1680fc3785e029f2474b14c7"
   },
   "contract": [
     "Nonempty generated inline-block has its own box and inner text formatting context",
@@ -244,7 +245,7 @@
     "qualification": "../OfficeIMO-html-generated-inline-boxes/Ignore/GeneratedInlineBoxQualification",
     "independentControls": "Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/footer-placement-20261008"
   },
-  "next": "settle exact-head CI/delayed feedback, preserve proof, adopt accepted owner and remove only merged dedicated checkout",
+  "next": "Complete clean engine four-profile acceptance and generated-output cleanup. Wider typography, resource/native/profile/manual-accessibility and historical timing criteria remain on Docs/ROADMAP.md.",
   "storage20261008": {
     "finishCleanupVerifiedTargets": 143,
     "logicalBytesRemoved": 3239388617,
@@ -438,5 +439,62 @@
     "archiveSha256": "3d85682a610631bd285b67fb7eed7f2690ae150dd97848dd9aa7c3f37dff5c1d",
     "sourceRemoved": false,
     "removalHeld": "exact-head CI rerun and accepted merge; fresh clean/handles/ancestry and archive preflight required"
+  },
+  "acceptedSettlement20261008": {
+    "observedUtc": "2026-10-08T07:04:15.993603+00:00",
+    "pr": 2937,
+    "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+    "mergeCommit": "aa76ce78a935f74f1680fc3785e029f2474b14c7",
+    "mergedAt": "2026-10-08T06:57:06Z",
+    "currentHeadChecks": {
+      "success": 95,
+      "skipped": 3,
+      "failed": 0,
+      "pending": 0
+    },
+    "delayedFeedbackComplete": true,
+    "unresolvedThreads": 0,
+    "pendingManualReview": false,
+    "parentRerun": {
+      "run": 37713849433,
+      "attempt": 2,
+      "conclusion": "success",
+      "allowanceExhausted": true,
+      "originalFailureRetained": true,
+      "rootCauseClaim": "Original setup/Studio root causes are not declared fixed by a successful rerun."
+    },
+    "actualTrxReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/rerun-actual-trx-acceptance-0645-20261008.json",
+    "uniqueProofArchive": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-generated-bd100b2f2/evidence.zip",
+    "freshPreservationReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/fresh-preservation-success-before-removal-20261008.json",
+    "checkoutRemoved": true,
+    "removalReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-pr-worktree-removal-20261008.json",
+    "engineAdoption": {
+      "source": "68b0400e863d03a9165c907a0a98453c6b7da399",
+      "contractDeltasExactAcceptedPatchIds": true,
+      "scope": "Exact approved owner corrections; unrelated accepted master additions are excluded",
+      "qualification": "Affected integration regressions and H4 pass on both frameworks; normal netstandard build passes. Clean four-profile replay remains pending.",
+      "focusedTests": {
+        "net8.0": 488,
+        "net10.0": 488,
+        "H4EachFramework": 8,
+        "failed": 0,
+        "skipped": 0,
+        "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-owner-integration-20261008/combined-framework-acceptance.json"
+      },
+      "normalStandardBuild": {
+        "warnings": 0,
+        "errors": 0
+      }
+    },
+    "combinedSourceReview": "Both exact published deltas retain their completed full/targeted reviews. No new behavior, API or dependency is introduced by this integration. Affected CSS/generated/font/H4 regressions and independently checked composed page paint protect the combination.",
+    "branchCleanup": {
+      "onlyLocalAndRemoteHtmlBranch": "feature/html-engine",
+      "ownedPrCheckoutsAbsent": true,
+      "olderRedundantRemoteCheckpointsRemoved": [
+        "fix/html-math-auto",
+        "fix/html-pdf-accessibility"
+      ],
+      "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-pr-worktree-removal-20261008.json"
+    }
   }
 }

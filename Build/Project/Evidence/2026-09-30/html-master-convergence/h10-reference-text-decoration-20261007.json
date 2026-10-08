@@ -2,7 +2,7 @@
   "schema": 1,
   "observedUtc": "2026-10-07T18:33:05.793786+00:00",
   "milestone": "H10 Reference Systems decoration and card-heading appearance",
-  "status": "local candidate qualification complete; publication and hosted merge gates remain",
+  "status": "Merged focused correction; engine integration qualification in progress. Exact thickness, offset and overline paint remain open.",
   "source": "2d930f0beabfcbe77d666967ec028939826f50cf",
   "base": "4467d2f09dd1cab22797adb8d89f9d7e50b78f91",
   "baseline": "b597c463a4ab27456c791d045702ed8cc0b71dd0",
@@ -283,8 +283,9 @@
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2930",
     "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
     "initialFeedback": "complete paginated threads/reviews/raw/issue comments/reactions, zero findings",
-    "state": "OPEN; original failed/canceled jobs have one bounded rerun queued; current-head completion remains held",
-    "delayedCurrentHeadGate": "complete paginated feedback on current head; no actionable findings; CI still held"
+    "state": "MERGED; exact-head CI and delayed complete feedback passed",
+    "delayedCurrentHeadGate": "Complete threads/nested comments/reviews/raw comments/reactions; no actionable or unresolved feedback",
+    "mergeCommit": "bb4b0043ca00df2c73211f4f30e3215ffb8e0dea"
   },
   "integrationPreflight": {
     "uncommittedMergeTree": "3a64dd219631864e28da19abdb43b66b7a42df6f",
@@ -514,5 +515,63 @@
     "repeatRerun": "never rerun these parents again; diagnose concrete failures",
     "newSourcePatch": false,
     "reviewerOnlyUnchangedCount": 0
-  }
+  },
+  "acceptedSettlement20261008": {
+    "observedUtc": "2026-10-08T07:04:15.987982+00:00",
+    "pr": 2930,
+    "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
+    "mergeCommit": "bb4b0043ca00df2c73211f4f30e3215ffb8e0dea",
+    "mergedAt": "2026-10-08T06:56:45Z",
+    "currentHeadChecks": {
+      "success": 95,
+      "skipped": 3,
+      "failed": 0,
+      "pending": 0
+    },
+    "delayedFeedbackComplete": true,
+    "unresolvedThreads": 0,
+    "pendingManualReview": false,
+    "parentRerun": {
+      "run": 37713553719,
+      "attempt": 2,
+      "conclusion": "success",
+      "allowanceExhausted": true,
+      "originalFailureRetained": true,
+      "rootCauseClaim": "Original setup/Studio root causes are not declared fixed by a successful rerun."
+    },
+    "actualTrxReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/rerun-actual-trx-acceptance-0645-20261008.json",
+    "uniqueProofArchive": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-decoration-e62f99d29/evidence.zip",
+    "freshPreservationReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/fresh-preservation-success-before-removal-20261008.json",
+    "checkoutRemoved": true,
+    "removalReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-pr-worktree-removal-20261008.json",
+    "engineAdoption": {
+      "source": "68b0400e863d03a9165c907a0a98453c6b7da399",
+      "contractDeltasExactAcceptedPatchIds": true,
+      "scope": "Exact approved owner corrections; unrelated accepted master additions are excluded",
+      "qualification": "Affected integration regressions and H4 pass on both frameworks; normal netstandard build passes. Clean four-profile replay remains pending.",
+      "focusedTests": {
+        "net8.0": 488,
+        "net10.0": 488,
+        "H4EachFramework": 8,
+        "failed": 0,
+        "skipped": 0,
+        "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-owner-integration-20261008/combined-framework-acceptance.json"
+      },
+      "normalStandardBuild": {
+        "warnings": 0,
+        "errors": 0
+      }
+    },
+    "combinedSourceReview": "Both exact published deltas retain their completed full/targeted reviews. No new behavior, API or dependency is introduced by this integration. Affected CSS/generated/font/H4 regressions and independently checked composed page paint protect the combination.",
+    "branchCleanup": {
+      "onlyLocalAndRemoteHtmlBranch": "feature/html-engine",
+      "ownedPrCheckoutsAbsent": true,
+      "olderRedundantRemoteCheckpointsRemoved": [
+        "fix/html-math-auto",
+        "fix/html-pdf-accessibility"
+      ],
+      "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-pr-worktree-removal-20261008.json"
+    }
+  },
+  "next": "Complete clean engine four-profile acceptance and generated-output cleanup. Wider typography, resource/native/profile/manual-accessibility and historical timing criteria remain on Docs/ROADMAP.md."
 }
