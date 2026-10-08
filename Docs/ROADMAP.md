@@ -541,6 +541,158 @@ Acceptance: every adopted baseline milestone and operation claim has traceable e
 
 These are outside P10 and must not displace unfinished baseline milestones: Primavera XER/P6 XML, MPD/MDB archival import, pre-Project-98 formats, online/server connectors, and new standalone applications. Password-protected native read/write and signature creation remain separate qualification work unless a named profile is explicitly adopted. Detection and safe rejection of unsupported protection remain baseline requirements. New candidates enter this roadmap with a named owner, user outcome, dependencies, and acceptance evidence before implementation.
 
+## Microsoft Access document library
+
+Create `OfficeIMO.Access` as a native document library for `.accdb` and `.mdb`, covering database content and the application objects stored with it. The [Access design](officeimo.access-design.md) defines the proposed API, codec ownership, DbaClientX boundary and qualification contracts. No Access package or native support is currently implemented.
+
+The milestones below are the complete planned baseline, in dependency order. Each names a usable result and its closure evidence. A table reader, opaque application-object preservation, an ACE wrapper or a self-round-trip cannot close a native editing/creation milestone. Delivered contracts move to the package README and `OfficeIMO.Access/SUPPORT.md`; remaining work stays here. [Access implementation discipline](../AGENTS.md#access-implementation-discipline) owns task kickoff, handoff and scope-change rules.
+
+### Baseline and decisions
+
+| Area | Planned boundary | Decision/evidence owner |
+| --- | --- | --- |
+| Native formats | ACE-family `.accdb`, Jet 4 `.mdb` and a later Jet 3/Access 97 lifecycle; producer/header/feature profiles are separately qualified | A00 pins layouts/builds and fixture access; A02/A03/A05/A06/A09 qualify operations |
+| Public API | One typed `AccessDocument`, stable object identities, lazy data/payload access, explicit edits/saves and report-returning operations; fluent wrappers share that model | A01 compiles and freezes representative public examples |
+| Application objects | Saved queries, relationships, forms/reports/controls, standalone/embedded/data macros, VBA modules/references, resources and event bindings | A04 read/preserve; A07 typed edit/native authoring |
+| Execution | File operations remain inert. Provider-backed SQL execution belongs to DbaClientX; static report expression evaluation is explicit and bounded | A08 rendering profile; A10 optional provider integration |
+| Dependencies | Native `OfficeIMO.Access` uses existing shared owners without a new external runtime dependency | A00 records technical/licensing feasibility; any added engine/driver or normal toolchain needs explicit approval |
+| Protection | Detection/safe rejection starts in A01. A09 qualifies named encrypted/password and direct-VBA-signature profiles for read/write or inspect/validate/sign operations | A00 establishes profiles and isolated oracle route; unqualified carriers remain blocked |
+| Validation | Independent Access-produced fixtures, external schema/data/object observations, and Access reopen/edit/re-save for native output; portable engine tests are separate | A00 establishes the oracle and fixture manifest; every milestone extends it |
+| Expansion | Earlier Access generations, compiled-file authoring/decompilation, `.adp`, add-in/distribution-package lifecycle, live multi-user engine behavior and general VBA execution are outside this baseline | Separate adoption with an owner, useful workflow, dependency impact and acceptance evidence |
+
+An Access installation is an oracle candidate, not proven automation availability. A00 must verify the disposable test route and record gaps before promising writer/form/report qualification. The native-first boundary is the proposed baseline; infeasible native work requires a concrete product decision rather than silently substituting a different implementation.
+
+### Delivery sequence
+
+| ID | Deliverable | Prerequisites | Result at exit |
+| --- | --- | --- | --- |
+| A00 | Native feasibility, profiles and independent corpus | Source/reuse inventory and Access oracle discovery | Evidence-backed codec route, fixture manifest, first native-write spikes and explicit unresolved decisions |
+| A01 | Typed model, lifecycle and operation reports | A00 profile/ownership decisions | Compiling public API examples and bounded inspect/failure behavior |
+| A02 | Modern ACCDB reading and structured values | A01, qualified A00 fixtures | Useful portable schema/data inspection and streaming read product |
+| A03 | Jet 4 MDB reading and common model | A02 | Both main file families read through the same API with generation-specific evidence |
+| A04 | Application objects, VBA and opaque preservation | A02/A03 | Inert object inventory, supported typed read and proven no-op preservation |
+| A05 | Template-free native creation | A01/A03/A04 and A00 writer evidence | Independently opened fresh MDB and ACCDB files with schema/data/index/relationship content |
+| A06 | Native edits, structural safety and conversion | A04/A05 | Safe same-profile editing and explicit-loss MDB/ACCDB conversion |
+| A07 | Forms, reports, macros and VBA authoring | A04/A06 | Qualified typed edits and new native application objects, including module/event integrity |
+| A08 | Explicit expressions, static previews and report output | A07 and qualified Drawing/destination owners | Bounded report evaluation/rendering with supplied data and native visual comparisons |
+| A09 | Protection and declared legacy/profile completion | A03/A06/A07; A00 protection/legacy evidence | Named encryption/signature operations and Jet 3 lifecycle qualified independently |
+| A10 | Reader, conversion, host and optional database integration | Relevant A02-A09 capability; shared-owner/package readiness | Thin end-to-end consumers with truthful per-host operation claims |
+| A11 | Package, platform and complete-baseline qualification | Every adopted A00-A10 criterion; approved optional branches | Current documentation, executable evidence and a release-ready candidate |
+
+A02 is the first useful read product, A06 the native database-lifecycle milestone, and A07/A08 the application-object/report milestone. They may be delivered independently with bounded support claims. A11 closes the complete adopted baseline. Dates and effort estimates follow A00's writer, corpus and oracle evidence; they are not inferred from the existing VBA infrastructure.
+
+### A00 — Native feasibility, profiles and independent corpus
+
+- [ ] Inventory existing lifecycle, binary I/O, VBA/OVBA, payload/security, preservation, compatibility, Drawing and DbaClientX boundaries. Confirm the physical database codecs need an Access owner and identify reusable missing primitives before adding code.
+- [ ] Pin the Jet 4, ACE and later Jet 3 profiles, representative producer builds, application-object storage, VBA/signature carriers, encryption/password variants and modern feature flags. Record read/create/edit/write/convert/render feasibility independently; do not infer a complete format specification from extension lists.
+- [ ] Establish an isolated Windows Access/DAO oracle with startup and active content disabled, then produce legal/sanitized fixtures and independently export schema, values, queries, object definitions and report output. Record source/build/profile, licensing, hashes, expected outcomes and limitations in a machine-readable manifest. Verify that the oracle opens without changing trust policy or touching user databases.
+- [ ] Prove minimal independently consumed, template-free MDB and ACCDB creation: catalog/allocation, one indexed table, typed rows and a relationship. Also probe native storage/creation for one simple form, report, action macro and VBA module; record unresolved codec risks separately from the already proven table path.
+- [ ] Assess the managed native route, optional ACE/DAO provider route and independent comparison engines for coverage, license, platform, deployment and maintenance effects. Record selected native profiles and concrete escalation alternatives without introducing an unapproved runtime dependency.
+
+Acceptance: the feasibility result and corpus manifest identify actual successful probes, failed probes, missing evidence and their consequences. Any unresolved native writer or application-object blocker has a named required decision or experiment; it cannot be marked complete by selecting read-only support. Publish the qualified baseline evidence into the owning support contract when that owner is created.
+
+Next deliverable: A01's compiling typed API and inspect slice after its required profile/ownership decisions are resolved. Independent fixture and oracle work continues for any held writer criterion.
+
+### A01 — Typed model, lifecycle and operation reports
+
+- [ ] Implement the root model and typed table/column/index/relationship/query/object identities, source profile, revision, capabilities and object-specific diagnostics. Keep Jet/ACE records out of the public API; introduce only types reached by this slice.
+- [ ] Compile executable examples for create/add-schema/append-row/assess-save, read-only load/stream rows, query-definition inspection, form/report metadata, VBA inventory and strict-loss conversion against the proposed public contracts. Native operations without a qualified codec must return precise unsupported results until their milestone lands.
+- [ ] Apply existing access/persistence/conflict/loss vocabulary, path/stream ownership, disposal, lazy-reader leases, edit commit/rollback, explicit profile selection and sync/async cancellation contracts. Prove omission-versus-null, object identity and stale-revision behavior.
+- [ ] Implement bounded header/profile detection, inert metadata inspection, checked offsets/resource budgets, corruption/protection diagnostics and source identity checks. Create the machine-readable operation catalog and support matrix from real evidence, with unsupported operations visible.
+
+Acceptance: a real external consumer compiles the intended API and exercises implemented inspect/lifecycle contracts. Unsupported writes fail before output; read-only mutations, unavailable destinations, malformed input and cancellation release resources. Freeze the example contract before further public API expansion.
+
+### A02 — Modern ACCDB reading and structured values
+
+- [ ] Decode the qualified ACE catalog, table/column properties, rows, deleted/overflow/fragmented storage, indexes and relationships into the shared model. Preserve system/unknown objects without presenting them as ordinary user tables.
+- [ ] Implement bounded metadata-only/selective inspection and forward-only typed table readers with deterministic schema, first-row access, explicit lifetime and cancellation. Keep large payloads lazy.
+- [ ] Qualify numeric precision, Currency/Decimal, Unicode/code pages, null/empty distinctions, date/time variants, GUID/AutoNumber, long text/binary, rich text, hyperlinks, lookup keys, attachments and multivalued fields. Newer feature profiles remain separate; unsupported values retain exact bytes and diagnostics.
+- [ ] Inspect linked-table definitions and credentials safely without resolving targets. Cover malformed page chains, truncated objects, duplicate/ambiguous names and cycles through credible fixtures.
+
+Acceptance: independent Access/DAO or another qualified decoder agrees on schema, row counts and typed values for every supported feature/profile. Complex values retain structure and bytes. Large-table readers satisfy deterministic limits/cancellation without full-file model materialization.
+
+### A03 — Jet 4 MDB reading and common model
+
+- [ ] Implement Jet 4 catalog/page/row/index and generation-specific property decoding through the same public model and streaming contracts as A02.
+- [ ] Qualify Access 2000/2002/2003 fixtures, legacy text encodings, Memo/OLE values, query objects, relationships, user/security metadata and generation-specific numeric/date behavior.
+- [ ] Establish the explicit MDB-versus-ACCDB feature mapping used later by conversion. Modern complex fields and unsupported properties must produce named losses rather than lossy automatic coercion.
+
+Acceptance: independently produced MDB and ACCDB files reach identical model semantics where formats overlap. File routing rejects mislabeled/cross-family data correctly, and no second public model or parser exists in DbaClientX/hosts.
+
+### A04 — Application objects, VBA and opaque preservation
+
+- [ ] Read saved query definitions, parameters and dependencies; forms/reports/sections/controls; record/control/row sources; startup settings; resource/OLE metadata; and standalone/embedded/data macro definitions for the qualified layouts.
+- [ ] Add the Access storage adapter to the existing VBA owner. Recover module/reference metadata and source where available; retain compiled, locked, designer and unknown content with explicit limits. Keep VBA and Access action macros distinct.
+- [ ] Build object-to-native provenance, dependency maps and change journals. Detect hidden/system/unknown objects and report the safety impact on edits rather than silently omitting them.
+- [ ] Qualify unchanged whole-file identity and object/payload preservation independently from typed read semantics. Protect signed/protected sources and keep links, code, AutoExec and data macros inert.
+
+Acceptance: independent object exports/application observations agree with the supported typed inventory, and no-op saves preserve the promised bytes. An uninterpreted object is labeled preserve-only; source extraction never implies compilation, execution or recovery of missing compiled-source text.
+
+### A05 — Template-free native creation
+
+- [ ] Write valid Jet 4 and qualified ACE headers, catalogs, page/allocation structures, table/column metadata, typed rows, long-value storage, indexes, primary keys and relationships directly from the model.
+- [ ] Qualify row allocation/deletion state, AutoNumber seeds, unique/foreign-key behavior, collation/code-page metadata, database properties and required system catalog objects. Cover empty and multi-table databases, fragmented/overflow data and boundary-size writes.
+- [ ] Create native files from an in-memory model without shipping/copying blank databases or calling ACE/Access. Reopen, edit and re-save the output in Access; independently decode its schema, values and relationships.
+
+Acceptance: fresh `.mdb` and `.accdb` outputs open without repair and retain intended data/schema after an independent application save. The native writer rejects unsupported authored features before committing output. Existing-file patching alone cannot close this milestone.
+
+### A06 — Native edits, structural safety and conversion
+
+- [ ] Implement qualified row insert/update/delete, schema/object rename/add/remove, property/index/relationship edits and edit-scope rollback. Validate affected query/control/module references, AutoNumber/index state, declared schema rules and unknown dependency blockers.
+- [ ] Preserve untouched objects and rebuild changed storage without dangling references. Native row edits never trigger data macros implicitly; block paths whose required validation/calculation/macro semantics cannot be preserved under the explicit edit policy.
+- [ ] Add strict default assess/save/copy, exclusive offline source checks, atomic staged path commits and fault/cancellation proof. Reject stale or concurrently changed sources and active database writers without overriding database locks.
+- [ ] Convert MDB/ACCDB profiles through the common model with operation-level reports for attachments, multivalued/lookup values, unsupported types, protection, signatures and application objects. An allowed omission/flattening remains explicit in the result.
+
+Acceptance: Access opens changed/generated files without repair, independently observes the edit, and preserves unrelated application objects after re-save. Exercise row and structural edits separately, rollback, destination failure, cancellation and stale-source conflicts. Strict conversion blocks known loss; explicit-loss conversion reports every accepted loss.
+
+### A07 — Forms, reports, macros and VBA authoring
+
+- [ ] Extend the qualified native application-object codecs to typed create/edit/delete of sections, labels/text boxes/buttons/images, bound controls, common form/report properties and stable object/event references. Preserve unsupported controls and block unsafe interactions with them.
+- [ ] Author saved select/action/crosstab/union/pass-through query definitions and typed parameters without executing them. Preserve original SQL for unsupported grammar, qualify dependency-aware structural edits against Access's query design and reopened state, and block unproven rename/reference rewrites rather than replacing text across arbitrary SQL/VBA.
+- [ ] Create/edit standalone and embedded macro actions and the qualified table-data-macro subset, retaining action arguments and event associations. Saving their definitions never invokes them.
+- [ ] Create/edit VBA module source and references through shared project primitives, with explicit cache/signature invalidation and no execution. Verify new/edited projects reopen in the VBE and compile in an isolated oracle when source compilation is part of the claim.
+- [ ] Qualify a complete small native application in both supported file families: related tables, a saved parameter query, a bound form, a grouped report, a macro and a module/event binding. Separate modern-only object features and their conversion losses.
+
+Acceptance: Access can inspect, edit and re-save newly authored and edited application objects, with independent object exports/state comparisons. Copied opaque blobs satisfy preservation only. Neither ACE/COM generation nor object-text export closes native authoring.
+
+### A08 — Explicit expressions, static previews and report output
+
+- [ ] Define a bounded Access expression profile with explicit supplied data, parameter values, locale/collation/date context and supported pure functions. Qualify null/coercion, conditional/aggregate, formatting and field-reference semantics; reject user VBA functions, host references and side effects outside the profile.
+- [ ] Produce static form previews and paginated report output through existing Drawing/font/layout and PDF/HTML/image owners. Cover sections, repeated headers/footers, grouping, bounds, labels, images, supported controls and page geometry.
+- [ ] Keep saved-query/provider execution optional and caller-controlled. A report with an unresolved record source or event-dependent layout reports a blocker; it must not render an empty or guessed success.
+- [ ] Compare representative all-page output with native Access PDF/image exports, preserving content and geometry before applying documented visual tolerances. Qualify alternate fonts, Unicode, short/long datasets and unsupported control/expression diagnostics.
+
+Acceptance: a supplied-data report workflow produces the documented content, grouping, calculations and page layout on supported hosts. Static preview does not claim interactive Access forms, event execution or full application compatibility.
+
+### A09 — Protection and declared legacy/profile completion
+
+- [ ] Qualify the A00-selected password/encryption profiles with independently produced input and native protected output, explicit key/password ownership and accurate failure behavior. Handle legacy user-level security/workgroup metadata without implicit authentication or policy changes.
+- [ ] Inspect, preserve, validate, remove and create the selected direct Access VBA signature carriers through shared security primitives and an Access adapter. Qualify producer-version differences and mutation/invalidation policy; keep `.accdc` distribution signing outside these claims.
+- [ ] Implement and qualify Jet 3/Access 97 read, native new-file creation, safe edits, save-back and conversion for the declared subset. Obtain a real legacy producer/consumer oracle or keep the affected criterion open; modern Access rejection of an old file is not a legacy writer proof.
+- [ ] Complete adopted modern profile variants, complex-field/protection interactions and malformed signed/encrypted inputs. Use ephemeral certificates and in-memory keys for routine security evidence.
+
+Acceptance: protection and legacy operations have independent producer/consumer evidence per named profile and operation. Detection/rejection remains truthful for every unqualified variant. Reading-only, signature presence alone and general Office VBA signing tests do not close the corresponding native write/validation criteria.
+
+### A10 — Reader, conversion, host and optional database integration
+
+- [ ] Add `OfficeIMO.Reader.Access` over the native owner, with bounded selected-table/object extraction, provenance and diagnostics. Wire native capabilities into the existing format/operation/conversion catalogs and command discovery.
+- [ ] Implement thin table-to-CSV/Excel and supported schema/application/report-to-Word/HTML/PDF workflows using existing destination owners. Distinguish row export, object inventory, static preview and evaluated report output.
+- [ ] Integrate qualified inspect/extract/convert/edit operations into Workflows, CLI/MCP and Studio with appropriate file authorization, previews, diagnostics and confirmation for meaningful mutations. Validate runnable UI and error/empty/protected states; qualify browser operations separately from desktop/.NET registration.
+- [ ] Define the optional DbaClientX Access provider/bridge for a named query or data-movement consumer. Present driver/dependency/license/architecture/host constraints for approval before production integration; reuse provider-neutral reader/transaction contracts and avoid a second native parser. If no provider is approved, native scans and document conversion still ship, and provider execution remains explicitly unavailable.
+- [ ] Prove packed owner/adapter consumers and package ordering independently. Published-package lag holds only dependent consumer steps; no version probes or local compatibility bridges are added to hosts.
+
+Acceptance: installed/packed consumers exercise the advertised native workflows through thin hosts, with runtime evidence for each claimed UI/platform. Optional provider execution has its own live/transaction and package proof when adopted. A host capability listing does not establish execution support.
+
+### A11 — Package, platform and complete-baseline qualification
+
+- [ ] Reconcile every A00-A10 criterion and profile/feature/operation row with fixture and oracle evidence. Resolve validated in-scope defects, complete a risk-appropriate independent review of codec/API/preservation/security behavior, and retain precise limits for deliberately unsupported profiles.
+- [ ] Qualify the base package and optional adapters on the repository's applicable target frameworks and Windows/Linux/macOS. Test trimming/NativeAOT and browser claims separately; inspect direct/transitive dependencies, native assets, license inventory and public example consumers.
+- [ ] Establish opt-in performance/resource evidence for metadata-only inspection, first row/full scans, complex values, no-op save, structural edits, creation, rendering, cancellation and repeated-operation retained memory. Keep deterministic bounds in correctness CI and host timing/memory measurements outside it.
+- [ ] Complete package README examples, source-driven support/operation catalogs, Reader/conversion discovery, fixture attribution and any required migration instructions. Validate install examples against published packages when publication is authorized; use PowerForge's existing release owner and version bindings.
+- [ ] Demonstrate end-to-end acceptance: independent MDB/ACCDB input to inspect/extract/edit/preserve/native save; template-free native application creation to Access reopen/edit/re-save; strict and explicit-loss generation conversion; supplied-data report to validated output; and the approved optional data-provider workflow.
+
+Acceptance: every adopted baseline criterion has decisive evidence, no validated in-scope correctness defect remains, and current source/API/package/host documentation agrees. Earlier bounded milestones may ship, but they cannot be reported as completion of OfficeIMO.Access. Source readiness, PR merge, package publication and installed/live proof remain separate gates.
+
 ## Additional formats and product boundaries
 
 - [ ] Establish independent application/producer validation for each adopted legacy generation before claiming its read, edit, or write operation.
