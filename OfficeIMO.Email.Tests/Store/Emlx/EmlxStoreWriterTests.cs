@@ -93,7 +93,7 @@ public sealed class EmlxStoreWriterTests {
         document.Properties["Emlx:Flag:AttachmentCount"] = 37;
         document.Properties["Emlx:IsPartial"] = true;
 
-        byte[] bytes = new EmailStoreEmlxWriter().ToBytes(document);
+        byte[] bytes = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn))).ToBytes(document);
         using var stream = new MemoryStream(bytes);
         EmailDocument loaded = new EmailStoreReader().Read(stream, "partial.emlx")
             .Store.Folders.Single().Items.Single().Document;

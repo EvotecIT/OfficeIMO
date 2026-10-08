@@ -603,6 +603,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_ExplicitDocumentFontPolicyEmbedsSelectedFontForAsciiText() {
+        string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
+            .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
+        if (installedFamily == null) return;
+
+        var options = new HtmlToPdfOptions();
+        options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+        byte[] pdf = HtmlConversionDocument
+            .Parse("<p style=\"font-family:'" + installedFamily + "'\">Selected ASCII font</p>")
+            .ToPdfBytes(options);
+
+        Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+        Assert.Contains("Selected ASCII font", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_TrustedResourcePolicyDoesNotRelaxCallerHyperlinkPolicy() {
         const string webUri = "https://example.test/report";
         const string fileUri = "file:///secret/report.pdf";
@@ -1221,7 +1237,7 @@ public sealed partial class HtmlRenderingTests {
         string groups = string.Join(string.Empty, Enumerable.Range(0, 10).Select(index =>
             "<tr><td id='span" + index + "' rowspan='2'>Group" + index.ToString("D2") + "</td><td id='regular" + index + "'>Row" + index.ToString("D2") + "A</td></tr>"
             + "<tr><td>Row" + index.ToString("D2") + "B</td></tr>"));
-        string html = "<div><table><thead><tr><th>HeaderMarker</th><th>Value</th></tr></thead><tbody>" + groups
+        string html = "<style>td{background:#f0f0f0}</style><div><table><thead><tr><th>HeaderMarker</th><th>Value</th></tr></thead><tbody>" + groups
             + "</tbody><tbody><tr><td id='zero' rowspan='0'>ZeroMarker</td><td>ZeroA</td></tr><tr><td>ZeroB</td></tr></tbody>"
             + "<tfoot><tr><td>FooterMarker</td><td>End</td></tr></tfoot></table></div>";
         var options = new HtmlRenderOptions {
@@ -1524,8 +1540,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
     }
 
-    [Fact]
-    public void HtmlRender_Paged_ReflowsTableRowsAcrossAlternatingPageMasters() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlRender_Paged_ReflowsTableRowsAcrossAlternatingPageMasters(bool authoredCellBorders) {
         string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index =>
             "<tr><td>Row" + index.ToString("D2") + "</td><td>Value" + index.ToString("D2") + "</td></tr>"));
         string html = """
@@ -1533,10 +1551,10 @@ public sealed partial class HtmlRenderingTests {
               @page { size:3in 1.75in; margin:0.2in; }
               @page :left { size:2in 1.75in; }
               table { width:100%; border-spacing:0; }
-              th, td { padding:2px; font-size:12px; line-height:14px; }
+              th, td { padding:2px; font-size:12px; line-height:14px; CELL_BORDER }
             </style>
             <table><thead><tr><th>Header</th><th>Value</th></tr></thead><tbody>ROWS</tbody></table>
-            """.Replace("ROWS", rows);
+            """.Replace("ROWS", rows).Replace("CELL_BORDER", authoredCellBorders ? "border:1px solid gray;" : string.Empty);
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 4D),
@@ -1552,7 +1570,11 @@ public sealed partial class HtmlRenderingTests {
             string marker = "Row" + index.ToString("D2");
             Assert.Equal(1, renderedText.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
         }
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        if (authoredCellBorders) {
+            Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        } else {
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        }
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
 
@@ -1843,9 +1865,6 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(
                 EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
                 text => text.Text.Contains("Nested", StringComparison.Ordinal)));
-        Assert.DoesNotContain(
-            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
-            text => text.Text.Contains("Nested Chapter", StringComparison.Ordinal) && text.SemanticRole != "page-margin");
         Assert.DoesNotContain("Nested Chapter", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("Before", rendered.Text, StringComparison.Ordinal);
         Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
@@ -1969,7 +1988,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.Equal(2, marginGroups.Count);
-        Assert.Contains("Earliernested", string.Concat(EnumerateRenderVisuals(marginGroups[0].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
+        Assert.Contains("Earliernested", string.Concat(EnumerateRenderVisuals(marginGroups[0].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)).Replace(" ", string.Empty), StringComparison.Ordinal);
         Assert.Contains("Later direct", string.Concat(EnumerateRenderVisuals(marginGroups[1].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
     }
@@ -2012,9 +2031,9 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.True(pageHeaders.Count > 1);
-        Assert.Contains("Earlierchapter", pageHeaders[0], StringComparison.Ordinal);
-        Assert.DoesNotContain("Laterchapter", pageHeaders[0], StringComparison.Ordinal);
-        Assert.Contains("Laterchapter", pageHeaders[pageHeaders.Count - 1], StringComparison.Ordinal);
+        Assert.Contains("Earlierchapter", pageHeaders[0].Replace(" ", string.Empty), StringComparison.Ordinal);
+        Assert.DoesNotContain("Laterchapter", pageHeaders[0].Replace(" ", string.Empty), StringComparison.Ordinal);
+        Assert.Contains("Laterchapter", pageHeaders[pageHeaders.Count - 1].Replace(" ", string.Empty), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
     }
 

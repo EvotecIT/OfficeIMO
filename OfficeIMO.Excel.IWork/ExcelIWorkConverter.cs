@@ -84,13 +84,18 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
+        if (editable && settings.FindUnacceptedDestinationOmission(destinationDiagnostics) is { } omission) {
+            destinationLimitation = omission;
+            editable = false;
+        }
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
-                diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {
+                diagnostic.Severity != IWorkDiagnosticSeverity.Information)
+                || destinationDiagnostics.Any(diagnostic => diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION",
-                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source diagnostics describe incomplete details.")
+                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source and destination diagnostics describe incomplete details.")
             }).ToArray();
         }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
@@ -131,6 +136,10 @@ public static partial class ExcelIWorkConverter {
                 }
             }
             if (editable) {
+                // All worksheets share one workbook stylesheet; keep its lookup and save scope
+                // across the entire projection instead of repeating work for each source table.
+                using IDisposable? styleBatch = preparedTables!.Count > 0
+                    ? preparedTables.Values.First().BeginStyleBatch() : null;
                 for (int sheetIndex = 0; sheetIndex < projection.Sheets.Count; sheetIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkNumbersSheet sourceSheet = projection.Sheets[sheetIndex];
@@ -229,17 +238,10 @@ public static partial class ExcelIWorkConverter {
                             double width = PointsToExcelColumnWidth(table.DefaultColumnWidth.Value);
                             sheet.SetDefaultColumnWidthExact(width);
                         }
-                        foreach (var row in table.RowHeights) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            sheet.SetRowHeightExact(row.Key, row.Value);
-                        }
+                        sheet.SetImportedRowLayout(table.RowHeights, table.HiddenRows, cancellationToken);
                         foreach (var column in table.ColumnWidths) {
                             cancellationToken.ThrowIfCancellationRequested();
                             sheet.SetColumnWidth(column.Key, PointsToExcelColumnWidth(column.Value));
-                        }
-                        foreach (int row in table.HiddenRows) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            sheet.SetRowHidden(row, true);
                         }
                         foreach (int column in table.HiddenColumns) {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -386,6 +388,8 @@ public static partial class ExcelIWorkConverter {
                     if (TableParagraphStyles(table).Any(style => style.TextStyle.FontSizePoints is double size
                         && (!IsFinite(size) || size < 1d || size > 409d)))
                         return $"Numbers table '{table.Name}' contains a font size outside the XLSX-supported range of 1 to 409 points.";
+                    if (TableParagraphStyles(table).Any(style => style.TextStyle.FontName is { Length: > 255 }))
+                        return $"Numbers table '{table.Name}' contains a font name longer than the bounded XLSX conversion limit of 255 characters.";
                 }
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
@@ -425,6 +429,11 @@ public static partial class ExcelIWorkConverter {
                             .Any(run => run.Style.FontSizePoints is double size
                                 && (!IsFinite(size) || size < 1d || size > 409d))) {
                         return $"Numbers table '{table.Name}' contains a rich-text font size outside the XLSX-supported range of 1 to 409 points.";
+                    }
+                    if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
+                        && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                            .Any(run => run.Style.FontName is { Length: > 255 })) {
+                        return $"Numbers table '{table.Name}' contains a rich-text font name longer than the bounded XLSX conversion limit of 255 characters.";
                     }
                     string? text = cell.Kind == IWorkCellKind.Error
                         ? cell.DisplayText

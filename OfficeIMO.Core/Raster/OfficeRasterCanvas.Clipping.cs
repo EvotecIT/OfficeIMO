@@ -17,9 +17,33 @@ public sealed partial class OfficeRasterCanvas {
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipRectangle(double x, double y, double width, double height) {
         OfficeRasterClipRegion? previous = _clipRegion;
-        OfficeRasterClipRectangle next = OfficeRasterClipRectangle.FromBounds(x, y, width, height);
+        OfficeRasterClipRectangle next = OfficeRasterClipRectangle.FromBounds(
+            x * CoordinateScaleX, y * CoordinateScaleY, width * CoordinateScaleX, height * CoordinateScaleY);
         _clipRegion = OfficeRasterClipRegion.Rectangle(next, previous);
         return new ClipScope(this, previous);
+    }
+
+    /// <summary>
+    /// Clips renderer-owned rectangular polygons using their original pixel-centre coverage.
+    /// Unlike the public rectangular clip, this excludes boundary pixels whose centres lie outside the polygon.
+    /// </summary>
+    internal IDisposable PushClipRectangleAtPixelCentres(double left, double top, double right, double bottom) {
+        left *= CoordinateScaleX; right *= CoordinateScaleX;
+        top *= CoordinateScaleY; bottom *= CoordinateScaleY;
+        OfficeRasterClipRegion? previous = _clipRegion;
+        var next = new OfficeRasterClipRectangle(
+            ResolvePixelCentreBoundary(left, Width),
+            ResolvePixelCentreBoundary(top, Height),
+            ResolvePixelCentreBoundary(right, Width),
+            ResolvePixelCentreBoundary(bottom, Height));
+        _clipRegion = OfficeRasterClipRegion.Rectangle(next, previous);
+        return new ClipScope(this, previous);
+    }
+
+    private static int ResolvePixelCentreBoundary(double edge, int limit) {
+        if (edge <= 0.5D) return 0;
+        if (edge >= limit + 0.5D) return limit;
+        return (int)Math.Ceiling(edge - 0.5D);
     }
 
     /// <summary>
@@ -30,7 +54,7 @@ public sealed partial class OfficeRasterCanvas {
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipPolygon(IReadOnlyList<OfficePoint> points) {
         OfficeRasterClipRegion? previous = _clipRegion;
-        _clipRegion = OfficeRasterClipRegion.Polygon(points, previous);
+        _clipRegion = OfficeRasterClipRegion.Polygon(ScaleCoordinates(points), previous);
         return new ClipScope(this, previous);
     }
 
@@ -42,7 +66,7 @@ public sealed partial class OfficeRasterCanvas {
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipPolygonsEvenOdd(IReadOnlyList<IReadOnlyList<OfficePoint>> contours) {
         OfficeRasterClipRegion? previous = _clipRegion;
-        _clipRegion = OfficeRasterClipRegion.Polygons(contours, OfficeFillRule.EvenOdd, previous);
+        _clipRegion = OfficeRasterClipRegion.Polygons(ScaleCoordinates(contours), OfficeFillRule.EvenOdd, previous);
         return new ClipScope(this, previous);
     }
 
@@ -54,12 +78,31 @@ public sealed partial class OfficeRasterCanvas {
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipPolygonsNonZero(IReadOnlyList<IReadOnlyList<OfficePoint>> contours) {
         OfficeRasterClipRegion? previous = _clipRegion;
-        _clipRegion = OfficeRasterClipRegion.Polygons(contours, OfficeFillRule.NonZero, previous);
+        _clipRegion = OfficeRasterClipRegion.Polygons(ScaleCoordinates(contours), OfficeFillRule.NonZero, previous);
         return new ClipScope(this, previous);
     }
 
     private bool IsPixelInsideClip(int x, int y) =>
         _clipRegion == null || _clipRegion.Contains(x, y);
+
+    /// <summary>Conservatively tests a complete affine surface against the physical canvas and current clip.</summary>
+    internal bool IntersectsVisibleSurface(OfficeTransform transform, double width, double height) =>
+        IntersectsVisibleBounds(ScaleCoordinates(transform).TransformRectangleBounds(0D, 0D, width, height));
+
+    /// <summary>Tests current clip bounds against the canvas pixel centres; overlapping bounds remain inconclusive.</summary>
+    internal bool HasVisibleClipBounds => IntersectsVisibleBounds((0D, 0D, Width, Height));
+
+    private bool IntersectsVisibleBounds((double Left, double Top, double Right, double Bottom) bounds) {
+        // Overflowed corner arithmetic is inconclusive, never proof of invisibility.
+        if (double.IsNaN(bounds.Left) || double.IsNaN(bounds.Top) ||
+            double.IsNaN(bounds.Right) || double.IsNaN(bounds.Bottom)) return true;
+        // A reflected surface can include its maximum edge: the inverse maps that
+        // edge to source coordinate zero. Preserve boundary pixel centres.
+        double left = Math.Max(.5D, bounds.Left), top = Math.Max(.5D, bounds.Top);
+        double right = Math.Min(Width - .5D, bounds.Right), bottom = Math.Min(Height - .5D, bounds.Bottom);
+        if (_clipRegion != null) _clipRegion.IntersectBounds(ref left, ref top, ref right, ref bottom, _cancellationToken);
+        return right >= left && bottom >= top;
+    }
 
     private readonly struct OfficeRasterClipRectangle {
         internal OfficeRasterClipRectangle(int left, int top, int right, int bottom) {
@@ -110,14 +153,50 @@ public sealed partial class OfficeRasterCanvas {
             _previous = previous;
         }
 
-        internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) =>
-            new OfficeRasterClipRegion(rectangle, null, OfficeFillRule.EvenOdd, previous);
+        internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) {
+            if (previous != null && previous._rectangle.HasValue) {
+                rectangle = OfficeRasterClipRectangle.Intersect(rectangle, previous._rectangle.Value);
+                previous = previous._previous;
+            }
+            return new OfficeRasterClipRegion(rectangle, null, OfficeFillRule.EvenOdd, previous);
+        }
 
         internal static OfficeRasterClipRegion Polygon(IReadOnlyList<OfficePoint> points, OfficeRasterClipRegion? previous) =>
             new OfficeRasterClipRegion(null, new[] { points }, OfficeFillRule.EvenOdd, previous);
 
         internal static OfficeRasterClipRegion Polygons(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) =>
             new OfficeRasterClipRegion(null, contours, fillRule, previous);
+
+        internal void IntersectBounds(ref double left, ref double top, ref double right, ref double bottom,
+            System.Threading.CancellationToken cancellationToken) {
+            _previous?.IntersectBounds(ref left, ref top, ref right, ref bottom, cancellationToken);
+            if (_rectangle.HasValue) {
+                OfficeRasterClipRectangle rectangle = _rectangle.Value;
+                // Rectangles store half-open integer pixel ranges, so an empty
+                // range stays empty even when surface bounds meet at an edge.
+                left = Math.Max(left, rectangle.Left + .5D); top = Math.Max(top, rectangle.Top + .5D);
+                right = Math.Min(right, rectangle.Right - .5D); bottom = Math.Min(bottom, rectangle.Bottom - .5D);
+            } else {
+                double clipLeft = double.PositiveInfinity, clipTop = double.PositiveInfinity;
+                double clipRight = double.NegativeInfinity, clipBottom = double.NegativeInfinity;
+                if (_contours != null) foreach (IReadOnlyList<OfficePoint> contour in _contours) {
+                    if (contour.Count < 3) continue;
+                    foreach (OfficePoint point in contour) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (double.IsNaN(point.X) || double.IsNaN(point.Y)) return;
+                        clipLeft = Math.Min(clipLeft, point.X); clipTop = Math.Min(clipTop, point.Y);
+                        clipRight = Math.Max(clipRight, point.X); clipBottom = Math.Max(clipBottom, point.Y);
+                    }
+                }
+                if (clipRight <= clipLeft || clipBottom <= clipTop) {
+                    left = top = double.PositiveInfinity;
+                    right = bottom = double.NegativeInfinity;
+                    return;
+                }
+                left = Math.Max(left, clipLeft); top = Math.Max(top, clipTop);
+                right = Math.Min(right, clipRight); bottom = Math.Min(bottom, clipBottom);
+            }
+        }
 
         internal bool Contains(int x, int y) {
             if (_previous != null && !_previous.Contains(x, y)) {

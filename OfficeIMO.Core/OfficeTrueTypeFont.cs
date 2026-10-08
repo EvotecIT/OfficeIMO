@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram, IOfficeMathFontProgram, IOfficeMathGlyphProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
     private const int MaxFontCacheEntries = 1024;
@@ -30,6 +30,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _hhea;
     private readonly int _hmtx;
     private readonly OfficeOpenTypeKerning _kerning;
+    private readonly OfficeOpenTypeTracking? _tracking;
     private readonly OfficeOpenTypeColorGlyphs? _colorGlyphs;
     private readonly int _loca;
     private readonly int _maxp;
@@ -48,6 +49,10 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
     private readonly string _fingerprint;
+    /// <summary>Static font math design metrics, when the selected face supplies a valid MATH table.</summary>
+    public OfficeMathFontConstants? MathConstants { get; }
+    OfficeMathGlyphData? IOfficeMathGlyphProgram.MathGlyphData => _mathGlyphData;
+    private readonly OfficeMathGlyphData? _mathGlyphData;
 
     private OfficeTrueTypeFont(
         byte[] data,
@@ -102,7 +107,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 }
             }
         }
+        _tracking = tables.TryGetValue("trak", out int trackingOffset)
+            ? OfficeOpenTypeTracking.Parse(data, trackingOffset, tableLengths["trak"]) : null;
         _unitsPerEm = ReadUInt16(_data, _head + 18);
+        MathConstants = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int mathOffset)
+            ? OfficeOpenTypeMathConstants.TryRead(data, mathOffset, tableLengths["MATH"], _unitsPerEm)
+            : null;
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = reader != null && _variationModel.IsVariable
             ? OfficeOpenTypeMvarMetrics.TryParse(reader, _variationModel)
@@ -112,6 +122,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _lineGap = checked(ReadInt16(_data, _hhea + 8) + (mvar?.HorizontalLineGapDelta ?? 0));
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
+        _fixedGlyphTables = new FixedGlyphTables(tables, tableLengths);
+        _mathGlyphData = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int glyphMathOffset)
+            ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, tableLengths["MATH"], _numGlyphs) : null;
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
         _variations = variationModel != null && variationModel.IsVariable
             ? OfficeTrueTypeVariations.Parse(data, tables, variationModel, _numGlyphs)
@@ -119,7 +132,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     /// <inheritdoc />
-    public string Fingerprint => _fingerprint;
+    public string Fingerprint => _trackingEvaluationScale == 1D ? _fingerprint
+        : _fingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
 
@@ -278,6 +292,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (collectionIndex.HasValue && collectionIndex.Value > 0) return null;
             var standalone = TryLoad(data, 0, null);
             return standalone != null && standalone.MatchesName(faceName) ? standalone : null;
+        } catch (InvalidDataException) {
+            return null;
         } catch (ArgumentOutOfRangeException) {
             return null;
         } catch (IndexOutOfRangeException) {
@@ -345,19 +361,24 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     public double Measure(string text, double fontSize) {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
+        double tracking = HorizontalTracking(fontSize);
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         var glyphs = new List<int>();
         var scalars = new List<int>();
+        var textIndexes = new List<int>();
         for (int index = 0; index < text.Length;) {
+            int textIndex = index;
             int glyph = ReadMappedGlyph(text, ref index, out int scalar);
             if (glyph < 0) continue;
+            textIndexes.Add(textIndex);
             glyphs.Add(glyph);
             scalars.Add(scalar);
         }
+        bool[]? boundaries = TrackingBoundaries(text, textIndexes);
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
         for (int index = 0; index < glyphs.Count; index++) {
             width += checked(AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
-                             positioning[index].XAdvance) * scale;
+                             positioning[index].XAdvance) * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
         return width;
     }
@@ -365,25 +386,32 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     internal IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) {
         var widths = new double[elements.Count];
         double scale = ScaleFor(fontSize);
+        double tracking = HorizontalTracking(fontSize);
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         var glyphs = new List<int>();
         var scalars = new List<int>();
         var elementIndexes = new List<int>();
+        var textIndexes = new List<int>();
+        int sourceOffset = 0;
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
             for (int textIndex = 0; textIndex < text.Length;) {
+                int sourceIndex = sourceOffset + textIndex;
                 int glyph = ReadMappedGlyph(text, ref textIndex, out int scalar);
                 if (glyph < 0) continue;
+                textIndexes.Add(sourceIndex);
                 glyphs.Add(glyph);
                 scalars.Add(scalar);
                 elementIndexes.Add(elementIndex);
             }
+            sourceOffset += text.Length;
         }
+        bool[]? boundaries = TrackingBoundaries(string.Concat(elements), textIndexes);
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
         for (int index = 0; index < glyphs.Count; index++) {
             widths[elementIndexes[index]] += checked(
                 AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
-                positioning[index].XAdvance) * scale;
+                positioning[index].XAdvance) * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
         return widths;
     }
@@ -422,14 +450,18 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
         var scale = ScaleFor(fontSize);
         var cursor = x;
+        double tracking = HorizontalTracking(fontSize);
         var baseline = y + _ascender * scale;
         int pointCount = 0;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         var glyphs = new List<(ushort Glyph, int Scalar)>();
+        var textIndexes = new List<int>();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
+            int textIndex = index;
             int glyph = ReadMappedGlyph(text, ref index, out int scalar);
             if (glyph < 0) continue;
+            textIndexes.Add(textIndex);
             glyphs.Add((checked((ushort)glyph), scalar));
         }
 
@@ -439,6 +471,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             glyphIds.Add(glyph);
             scalars.Add(scalar);
         }
+        bool[]? boundaries = TrackingBoundaries(text, textIndexes);
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
 
         for (int index = 0; index < glyphs.Count; index++) {
@@ -459,7 +492,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             int positionedAdvance = checked(
                 AdvanceWidth(glyph, variationWorkBudget, cancellationToken) +
                 positioning[index].XAdvance);
-            cursor += positionedAdvance * scale;
+            cursor += positionedAdvance * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
 
         return contours;
@@ -1160,7 +1193,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                     font = TryLoad(path);
                 }
 
-                if (font != null && font.HasGlyphs("OfficeIMO 0123456789")) {
+                if (font != null && font.HasFamilyKey(NormalizeFontFamilyKey(family))
+                    && font.HasGlyphs("OfficeIMO 0123456789")) {
                     return new FontFamilyResolution(font, path);
                 }
             }
@@ -1201,6 +1235,10 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> ExpandGenericFontFamily(string family) {
+        if (OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family)) {
+            foreach (string candidate in OfficeSystemFontFamilyAliases.Expand(family)) yield return candidate;
+            yield break;
+        }
         string key = NormalizeFontFamilyKey(family);
         if (key == "sansserif" || key == "sans") {
             yield return "Aptos";
@@ -1253,7 +1291,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         yield return family;
     }
 
-    private static IEnumerable<string> CandidateFamilyPaths(string family) {
+    internal static IEnumerable<string> CandidateFamilyPaths(string family) {
         string key = NormalizeFontFamilyKey(family);
         foreach (string path in CandidateKnownFamilyPaths(key)) {
             yield return path;
@@ -1265,9 +1303,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidateKnownFamilyPaths(string key) {
+        if (key == "sfns") yield return "/System/Library/Fonts/SFNS.ttf";
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows)) {
             string fonts = Path.Combine(windows, "Fonts");
+            if (key == "cambria" || key == "cambriamath") {
+                yield return Path.Combine(fonts, "cambria.ttc");
+            }
             if (key == "aptos") {
                 yield return Path.Combine(fonts, "aptos.ttf");
                 yield return Path.Combine(fonts, "aptosdisplay.ttf");
@@ -1400,11 +1442,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidatePaths() {
+        // Prefer a conventional embeddable TrueType face on macOS. The variable SF system
+        // faces are useful for measurement but cannot satisfy every PDF font-program route.
+        yield return "/System/Library/Fonts/Supplemental/Arial.ttf";
+        yield return "/Library/Fonts/Arial.ttf";
         yield return "/System/Library/Fonts/SFNS.ttf";
         yield return "/System/Library/Fonts/SFCompact.ttf";
         yield return "/System/Library/Fonts/HelveticaNeue.ttc";
         yield return "/System/Library/Fonts/Geneva.ttf";
-        yield return "/Library/Fonts/Arial.ttf";
         yield return "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
         yield return "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf";
         var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);

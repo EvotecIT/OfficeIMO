@@ -70,19 +70,39 @@
     {{ end }}
   {{ end }}
 {{ end }}
-<section class="imo-download-choice" id="studio-downloads" aria-labelledby="studio-download-title">
+{{ studio_msi_x64_url = "" }}
+{{ studio_msi_arm64_url = "" }}
+{{ if studio_msi_x64 }}{{ studio_msi_x64_url = studio_msi_x64.downloadUrl }}{{ end }}
+{{ if studio_msi_arm64 }}{{ studio_msi_arm64_url = studio_msi_arm64.downloadUrl }}{{ end }}
+{{ if data.studio_installer_downloads && data.studio_installer_downloads.artifacts }}
+  {{ for installer in data.studio_installer_downloads.artifacts }}
+    {{ if studio_msi_x64 && installer.sourceUrl == studio_msi_x64.downloadUrl }}{{ studio_msi_x64_url = installer.downloadUrl }}{{ end }}
+    {{ if studio_msi_arm64 && installer.sourceUrl == studio_msi_arm64.downloadUrl }}{{ studio_msi_arm64_url = installer.downloadUrl }}{{ end }}
+  {{ end }}
+{{ end }}
+{{ studio_stores = null }}
+{{ if data.applications && data.applications.studio }}{{ studio_stores = data.applications.studio.stores }}{{ end }}
+{{ download_icon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-4-4 4 4 4-4M4 16h12"/></svg>' }}
+<section class="imo-download-choice imo-download-choice--featured" id="studio-downloads" aria-labelledby="studio-download-title">
   <div><p class="imo-application-eyebrow">Desktop</p><h2 id="studio-download-title">Studio</h2><p>Read, review, and organize documents visually.</p><a href="/studio/">See the workspace →</a></div>
   <div>
+    {{ if studio_stores }}
+    <h3>Get it from a store</h3>
+    <p>Store installs keep Studio up to date automatically.</p>
+    {{ stores = studio_stores }}{{ store_filter = "all" }}{{ include "sections/store-badges" }}
+    <h3 class="imo-download-subhead">Or download for Windows</h3>
+    {{ else }}
     <h3>Windows downloads</h3>
+    {{ end }}
     {{ if studio_msi_x64 && studio_msi_arm64 && studio_zip_x64 && studio_zip_arm64 }}
       <p>OfficeIMO Studio {{ string.replace studio_windows_release.tag "Studio-v" "v" }}. Choose an installer or a portable ZIP for your processor.</p>
       {{ if studio_windows_release.tag == "Studio-v0.1.9765" }}<p>Arm64 installation and runtime testing for version 0.1.9765 is pending.</p>{{ end }}
       {{ if studio_windows_release.tag == "Studio-v0.1.9767" }}<p>Arm64 installation and runtime testing for version 0.1.9767 is pending.</p>{{ end }}
       <dl class="imo-channel-list">
-        <div><dt>Windows x64</dt><dd><a href="{{ studio_msi_x64.downloadUrl }}">Windows x64 MSI installer</a> · <a href="{{ studio_zip_x64.downloadUrl }}">Windows x64 portable ZIP</a></dd></div>
-        <div><dt>Windows Arm64</dt><dd><a href="{{ studio_msi_arm64.downloadUrl }}">Windows Arm64 MSI installer</a> · <a href="{{ studio_zip_arm64.downloadUrl }}">Windows Arm64 portable ZIP</a></dd></div>
+        <div><dt>Windows x64</dt><dd><a class="imo-download-link" href="{{ studio_msi_x64_url }}" aria-label="Windows x64 MSI installer">{{ download_icon }}MSI installer</a><a class="imo-download-link" href="{{ studio_zip_x64.downloadUrl }}" aria-label="Windows x64 portable ZIP">{{ download_icon }}Portable ZIP</a></dd></div>
+        <div><dt>Windows Arm64</dt><dd><a class="imo-download-link" href="{{ studio_msi_arm64_url }}" aria-label="Windows Arm64 MSI installer">{{ download_icon }}MSI installer</a><a class="imo-download-link" href="{{ studio_zip_arm64.downloadUrl }}" aria-label="Windows Arm64 portable ZIP">{{ download_icon }}Portable ZIP</a></dd></div>
       </dl>
-      <p><a href="{{ studio_windows_release.url }}">Release notes and checksums</a></p>
+      <p class="imo-download-meta">MSI installers are hosted by Evotec, as the Microsoft Store requires. Prefer GitHub? The same files, release notes, and checksums are on <a href="{{ studio_windows_release.url }}">GitHub Releases</a>.</p>
     {{ else }}
       <p><a href="/studio/">Explore Studio</a> and use the source build guide to run it on Windows.</p>
     {{ end }}
@@ -97,10 +117,10 @@
       {{ if studio_linux_release.tag == "Studio-v0.1.9765" }}<p>Arm64 installation and runtime testing for version 0.1.9765 is pending.</p>{{ end }}
       {{ if studio_linux_release.tag == "Studio-v0.1.9767" }}<p>Arm64 installation and runtime testing for version 0.1.9767 is pending.</p>{{ end }}
       <dl class="imo-channel-list">
-        <div><dt>Linux x64</dt><dd><a href="{{ studio_deb_x64.downloadUrl }}">Linux x64 DEB package</a> · <a href="{{ studio_linux_zip_x64.downloadUrl }}">Linux x64 portable ZIP</a></dd></div>
-        <div><dt>Linux Arm64</dt><dd><a href="{{ studio_deb_arm64.downloadUrl }}">Linux Arm64 DEB package</a> · <a href="{{ studio_linux_zip_arm64.downloadUrl }}">Linux Arm64 portable ZIP</a></dd></div>
+        <div><dt>Linux x64</dt><dd><a class="imo-download-link" href="{{ studio_deb_x64.downloadUrl }}" aria-label="Linux x64 DEB package">{{ download_icon }}DEB package</a><a class="imo-download-link" href="{{ studio_linux_zip_x64.downloadUrl }}" aria-label="Linux x64 portable ZIP">{{ download_icon }}Portable ZIP</a></dd></div>
+        <div><dt>Linux Arm64</dt><dd><a class="imo-download-link" href="{{ studio_deb_arm64.downloadUrl }}" aria-label="Linux Arm64 DEB package">{{ download_icon }}DEB package</a><a class="imo-download-link" href="{{ studio_linux_zip_arm64.downloadUrl }}" aria-label="Linux Arm64 portable ZIP">{{ download_icon }}Portable ZIP</a></dd></div>
       </dl>
-      <p><a href="{{ studio_linux_release.url }}">Release notes and checksums</a></p>
+      <p class="imo-download-meta"><a href="{{ studio_linux_release.url }}">Release notes and checksums</a></p>
     {{ else }}
       <p>Use the <a href="https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme">source build guide</a> to run Studio on Linux.</p>
     {{ end }}
@@ -113,12 +133,12 @@
     {{ if studio_macos_app_x64 && studio_macos_app_arm64 }}
       <p>OfficeIMO Studio {{ string.replace studio_macos_release.tag "Studio-v" "v" }}. Choose the application ZIP for your processor.</p>
       <dl class="imo-channel-list">
-        <div><dt>Intel Mac</dt><dd><a href="{{ studio_macos_app_x64.downloadUrl }}">Intel Mac application ZIP</a></dd></div>
-        <div><dt>Apple silicon</dt><dd><a href="{{ studio_macos_app_arm64.downloadUrl }}">Apple silicon application ZIP</a></dd></div>
+        <div><dt>Intel Mac</dt><dd><a class="imo-download-link" href="{{ studio_macos_app_x64.downloadUrl }}" aria-label="Intel Mac application ZIP">{{ download_icon }}Application ZIP</a></dd></div>
+        <div><dt>Apple silicon</dt><dd><a class="imo-download-link" href="{{ studio_macos_app_arm64.downloadUrl }}" aria-label="Apple silicon application ZIP">{{ download_icon }}Application ZIP</a></dd></div>
       </dl>
-      <p><a href="{{ studio_macos_release.url }}">Release notes and checksums</a></p>
+      <p class="imo-download-meta"><a href="{{ studio_macos_release.url }}">Release notes and checksums</a></p>
     {{ else }}
-      <p>Use the <a href="https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme">source build guide</a> to run Studio on macOS.</p>
+      <p>Studio is coming to the Mac App Store. Until then, use the <a href="https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme">source build guide</a> to run it on macOS.</p>
     {{ end }}
   </div>
 </section>

@@ -221,7 +221,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         string expected = field == 4 ? "First" : "42";
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult();
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
@@ -229,7 +229,7 @@ public sealed partial class IWorkBoundaryTests {
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult();
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.Equal(field == 4, automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
@@ -238,7 +238,7 @@ public sealed partial class IWorkBoundaryTests {
             if (field == 4) Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
             else Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult();
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.Equal(field == 4, automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);

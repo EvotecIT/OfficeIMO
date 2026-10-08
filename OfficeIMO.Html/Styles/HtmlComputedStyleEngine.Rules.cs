@@ -9,6 +9,7 @@ public static partial class HtmlComputedStyleEngine {
     private const string MarkerPseudoSentinel = "[data-officeimo-internal-marker-pseudo]";
     private const string FootnoteCallPseudoSentinel = "[data-officeimo-internal-footnote-call-pseudo]";
     private const string FootnoteMarkerPseudoSentinel = "[data-officeimo-internal-footnote-marker-pseudo]";
+    private const string PlaceholderPseudoSentinel = "[data-officeimo-internal-placeholder-pseudo]";
     private const string GeneratedContentSentinelPrefix = "__officeimo_generated_content_";
 
     private static IReadOnlyList<StyleRule> ParseStyleRules(
@@ -19,7 +20,7 @@ public static partial class HtmlComputedStyleEngine {
         var layers = new CascadeLayerRegistry();
         // Raw recovery supplements declarations AngleSharp cannot retain. Match each
         // parsed author rule once so recovery neither duplicates it nor charges it twice.
-        var parsedRuleMatches = new Dictionary<string, int>(StringComparer.Ordinal);
+        var parsedRuleMatches = new ParsedSelectorRegistry();
         var parser = new CssParser(new CssParserOptions {
             IsIncludingUnknownDeclarations = true
         });
@@ -42,12 +43,22 @@ public static partial class HtmlComputedStyleEngine {
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectManagedPseudoElements(parseCss);
-            parseCss = PreserveFontShorthandDeclarations(parseCss);
+            parseCss = PreserveManagedDeclarations(parseCss);
+            Dictionary<string, Queue<OfficeIMO.Html.Css.HtmlCssQualifiedRule>> ownedRules;
+            OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext;
+            try {
+                OfficeIMO.Html.Css.HtmlCssStyleSheet ownedSheet = OfficeIMO.Html.Css.HtmlCssSyntaxParser.ParseStyleSheet(
+                    parseCss, budget.CreateStylesheetSyntaxOptions());
+                namespaceContext = OfficeIMO.Html.Css.HtmlCssNamespaceContext.FromStyleSheet(ownedSheet);
+                ownedRules = IndexOwnedQualifiedRules(ownedSheet, namespaceContext, environment, budget);
+            } catch (OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
+                throw budget.TranslateSyntaxLimit(exception);
+            }
             var stylesheet = parser.ParseStyleSheet(parseCss);
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, 1, null, null, null);
+                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, namespaceContext, 1, null, null, null);
             }
-            AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, parsedRuleMatches, environment, budget);
+            AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, parsedRuleMatches, environment, budget, namespaceContext);
         }
 
         return rules;
@@ -70,14 +81,17 @@ public static partial class HtmlComputedStyleEngine {
     private static void AddStyleRules(
         AngleSharp.Css.Dom.ICssRule rule,
         ICollection<StyleRule> rules,
-        IDictionary<string, int> parsedRuleMatches,
+        ParsedSelectorRegistry parsedRuleMatches,
         MediaEnvironment environment,
         HtmlCssProcessingBudget budget,
         CascadeLayerRegistry layers,
+        IDictionary<string, Queue<OfficeIMO.Html.Css.HtmlCssQualifiedRule>> ownedRules,
+        OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext,
         int depth,
         string? currentLayer,
         IReadOnlyList<string>? parentSelectors,
-        IReadOnlyList<ContainerRuleCondition>? containerConditions) {
+        IReadOnlyList<ContainerRuleCondition>? containerConditions,
+        OfficeIMO.Html.Css.HtmlCssQualifiedRule? ownedRuleOverride = null) {
         budget.RecordNestingDepth(depth);
         var layerRule = rule as AngleSharp.Css.Dom.ICssLayerRule;
         if (layerRule != null) {
@@ -87,7 +101,7 @@ public static partial class HtmlComputedStyleEngine {
             }
             (string layerName, _) = layers.RegisterBlock(layerRule.Name, currentLayer);
             foreach (var childRule in layerRule.Rules) {
-                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, layerName, parentSelectors, containerConditions);
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, namespaceContext, depth + 1, layerName, parentSelectors, containerConditions);
             }
             return;
         }
@@ -105,7 +119,7 @@ public static partial class HtmlComputedStyleEngine {
                 new ContainerRuleCondition(containerName, containerQuery)
             };
             foreach (var childRule in containerRule.Rules) {
-                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors, nestedConditions);
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, namespaceContext, depth + 1, currentLayer, parentSelectors, nestedConditions);
             }
             return;
         }
@@ -113,10 +127,24 @@ public static partial class HtmlComputedStyleEngine {
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
             IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(
-                RestoreManagedPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors);
-            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
+                RestoreManagedPseudoElements(styleRule.SelectorText ?? string.Empty), parentSelectors, budget);
+            OfficeIMO.Html.Css.HtmlCssQualifiedRule? ownedRule = ownedRuleOverride ?? TryTakeOwnedQualifiedRule(
+                ownedRules, resolvedSelectors, namespaceContext);
+            IReadOnlyList<string>? ownedResolvedSelectors = ownedRule == null ? null : ResolveNestedSelectors(
+                RestoreManagedPseudoElements(ownedRule.PreludeText), parentSelectors, budget);
+            if (ownedRuleOverride != null && ownedResolvedSelectors != null) {
+                TryConsumeOwnedQualifiedRule(ownedRules, ownedResolvedSelectors, namespaceContext, ownedRuleOverride);
+            }
+            if (TryAddInterleavedOwnedStyleRules(styleRule, resolvedSelectors, ownedResolvedSelectors,
+                    rules, parsedRuleMatches,
+                    environment, budget, layers, ownedRules, namespaceContext, depth, currentLayer,
+                    containerConditions, ownedRule, parentSelectors == null)) return;
+            AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget,
+                currentLayer == null ? null : layers.GetOrder(currentLayer), currentLayer, containerConditions,
+                ownedRule, namespaceContext, parentSelectors == null, ownedResolvedSelectors: ownedResolvedSelectors);
             foreach (var childRule in styleRule.Rules) {
-                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
+                AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, namespaceContext,
+                    depth + 1, currentLayer, ownedResolvedSelectors ?? resolvedSelectors, containerConditions);
             }
             return;
         }
@@ -136,7 +164,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors, containerConditions);
+            AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, namespaceContext, depth + 1, currentLayer, parentSelectors, containerConditions);
         }
     }
 
@@ -144,21 +172,50 @@ public static partial class HtmlComputedStyleEngine {
         AngleSharp.Css.Dom.ICssStyleRule styleRule,
         IReadOnlyList<string> resolvedSelectors,
         ICollection<StyleRule> rules,
-        IDictionary<string, int> parsedRuleMatches,
+        ParsedSelectorRegistry parsedRuleMatches,
         HtmlCssProcessingBudget budget,
         CascadeLayerOrder? layerOrder,
-        IReadOnlyList<ContainerRuleCondition>? containerConditions) {
+        string? layerName,
+        IReadOnlyList<ContainerRuleCondition>? containerConditions,
+        OfficeIMO.Html.Css.HtmlCssQualifiedRule? ownedRule,
+        OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext,
+        bool canUseProviderSelectorObjects,
+        Dictionary<string, StyleDeclaration>? ownedDeclarationsOverride = null,
+        bool recordParsedRule = true,
+        IReadOnlyList<string>? ownedResolvedSelectors = null) {
         if (resolvedSelectors.Count == 0) return;
-        string[] selectors = resolvedSelectors.ToArray();
-        foreach (string selector in selectors) {
-            budget.RecordRule(styleRule.Style.Length);
-            RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector));
+        string[] providerSelectors = resolvedSelectors.ToArray();
+        string[] ownedSelectors = ownedRule == null
+            ? Array.Empty<string>()
+            : (ownedResolvedSelectors ?? resolvedSelectors).ToArray();
+        bool useOwnedSelectors = CanUseOwnedSelectors(ownedSelectors, namespaceContext);
+        bool useOwnedSelectorSources = useOwnedSelectors || CanUseHybridSelectors(ownedSelectors, namespaceContext);
+        string[] selectors = useOwnedSelectorSources ? ownedSelectors : providerSelectors;
+        IReadOnlyList<AngleSharp.Css.Dom.ISelector?> providerSelectorObjects = useOwnedSelectors || !canUseProviderSelectorObjects
+            ? Enumerable.Repeat<AngleSharp.Css.Dom.ISelector?>(null, selectors.Length).ToArray()
+            : GetProviderSelectorObjects(styleRule, selectors);
+        bool[] retainedSelectors = selectors.Select(budget.CanRetainSelector).ToArray();
+        for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
+            string selector = selectors[selectorIndex];
+            budget.RecordRuleCandidate();
+            if (recordParsedRule) {
+                RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector), providerSelectorObjects[selectorIndex]);
+            }
+        }
+        Dictionary<string, StyleDeclaration>? ownedDeclarations = ownedRule == null
+            ? null
+            : ownedDeclarationsOverride ?? TryCreateOwnedDeclarations(ownedRule);
+        if (!retainedSelectors.Any(retained => retained)) return;
+        for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
+            if (retainedSelectors[selectorIndex])
+                budget.RecordRule(ownedDeclarations?.Count ?? styleRule.Style.Length);
         }
 
-        var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
-        for (int i = 0; i < styleRule.Style.Length; i++) {
+        var declarations = ownedDeclarations ?? new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
+        string? providerCssText = null;
+        for (int i = 0; ownedDeclarations == null && i < styleRule.Style.Length; i++) {
             string parsedPropertyName = styleRule.Style[i];
-            string propertyName = RestoreFontShorthandName(parsedPropertyName);
+            string propertyName = RestoreManagedDeclarationName(parsedPropertyName);
             if (!string.IsNullOrWhiteSpace(propertyName)
                 && (SupportedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal))) {
                 bool important = string.Equals(styleRule.Style.GetPropertyPriority(parsedPropertyName), "important", StringComparison.OrdinalIgnoreCase);
@@ -169,44 +226,105 @@ public static partial class HtmlComputedStyleEngine {
                 declarations[propertyName] = candidate;
             }
         }
+        if (ownedDeclarations == null && ownedRule != null) RetainAuthoredProviderFallbackDeclarations(ownedRule, declarations);
 
         // AngleSharp can retain a var()-backed shorthand while enumerating only empty
         // expanded longhands. Query supported properties directly so the cascade keeps
         // the authored shorthand for custom-property resolution.
-        foreach (string propertyName in SupportedProperties) {
-            if (declarations.ContainsKey(propertyName)) continue;
-            string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
-            if (string.IsNullOrWhiteSpace(propertyValue)) continue;
-            declarations[propertyName] = new StyleDeclaration(
-                propertyName,
-                RestoreProtectedDeclarationValue(propertyValue),
-                string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
+        if (ownedDeclarations == null) {
+            ProviderDeclarationQuery providerQueries = budget.ProviderDeclarationQueries.For(styleRule.Style);
+            foreach (string propertyName in SupportedProperties) {
+                if (declarations.ContainsKey(propertyName) || !providerQueries.CanHaveValue(propertyName)) continue;
+                // AngleSharp can synthesize shorthands from longhands (for
+                // example border-top from border-color). Such projections
+                // must not reset an earlier authored border width or style.
+                if ((propertyName is "flex" or "border" or "border-top" or "border-right" or "border-bottom" or "border-left")
+                    && !HasAuthoredDeclaration(ownedRule, providerCssText ??= styleRule.CssText, propertyName)) continue;
+                string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
+                if (string.IsNullOrWhiteSpace(propertyValue)) continue;
+                declarations[propertyName] = new StyleDeclaration(
+                    propertyName,
+                    RestoreProtectedDeclarationValue(propertyValue),
+                    string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
+            }
         }
-        RemoveSyntheticAnimationName(styleRule.CssText, declarations);
-        AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
+        if (ownedDeclarations == null) {
+            RemoveSyntheticAnimationName(providerCssText ??= styleRule.CssText, declarations);
+            AddRetainedUnknownDeclarations(providerCssText, declarations);
+        }
 
         int declarationOrder = 0;
         foreach (StyleDeclaration declaration in declarations.Values.OrderBy(item => item.DeclarationOrder)) declaration.DeclarationOrder = declarationOrder++;
 
-        foreach (string selector in selectors) {
-            if (declarations.Count > 0) {
-                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder, containerConditions));
+        for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
+            string selector = selectors[selectorIndex];
+            if (retainedSelectors[selectorIndex] && declarations.Count > 0) {
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder,
+                    layerName, containerConditions, namespaceContext, providerSelectorObjects[selectorIndex]));
                 if (declarations.ContainsKey("string-set")) {
-                    RecordParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector));
+                    RecordParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector), providerSelectorObjects[selectorIndex]);
                 }
             }
         }
     }
 
-    private static IReadOnlyList<string> ResolveNestedSelectors(string selectorText, IReadOnlyList<string>? parentSelectors) {
+    private static IReadOnlyList<AngleSharp.Css.Dom.ISelector?> GetProviderSelectorObjects(
+        AngleSharp.Css.Dom.ICssStyleRule styleRule,
+        IReadOnlyList<string> selectors) {
+        var result = new AngleSharp.Css.Dom.ISelector?[selectors.Count];
+        if (selectors.Count > 1) {
+            var visitor = new ProviderSelectorListVisitor();
+            styleRule.Selector.Accept(visitor);
+            IReadOnlyList<AngleSharp.Css.Dom.ISelector> list = visitor.Selectors;
+            if (list.Count != selectors.Count) return result;
+            for (int index = 0; index < selectors.Count; index++)
+                if (!TryParsePseudoElementSelector(selectors[index], out _, out _)) result[index] = list[index];
+        } else if (selectors.Count == 1 && !TryParsePseudoElementSelector(selectors[0], out _, out _)) {
+            result[0] = styleRule.Selector;
+        }
+        return result;
+    }
+
+    private sealed class ProviderSelectorListVisitor : AngleSharp.Css.ISelectorVisitor {
+        private IReadOnlyList<AngleSharp.Css.Dom.ISelector>? _selectors;
+        internal IReadOnlyList<AngleSharp.Css.Dom.ISelector> Selectors =>
+            _selectors ?? Array.Empty<AngleSharp.Css.Dom.ISelector>();
+        public void List(IEnumerable<AngleSharp.Css.Dom.ISelector> selectors) => _selectors ??= selectors.ToArray();
+        public void Attribute(string name, string operation, string? value) { }
+        public void Type(string name) { }
+        public void Id(string id) { }
+        public void Child(string name, int step, int offset, AngleSharp.Css.Dom.ISelector kind) { }
+        public void Class(string name) { }
+        public void PseudoClass(string name) { }
+        public void PseudoElement(string name) { }
+        public void Combinator(IEnumerable<AngleSharp.Css.Dom.ISelector> selectors, IEnumerable<string> combinators) { }
+        public void Many(IEnumerable<AngleSharp.Css.Dom.ISelector> selectors) { }
+    }
+
+    private static IReadOnlyList<string> ResolveNestedSelectors(
+        string selectorText,
+        IReadOnlyList<string>? parentSelectors,
+        HtmlCssProcessingBudget budget) {
         string[] children = SplitSelectorList(selectorText)
             .Select(selector => selector.Trim())
             .Where(selector => selector.Length > 0)
             .ToArray();
-        if (parentSelectors == null || parentSelectors.Count == 0) return children;
-        string parent = parentSelectors.Count == 1
-            ? parentSelectors[0]
-            : ":is(" + string.Join(",", parentSelectors) + ")";
+        long resolvedCharacters = children.Length == 0 ? 0L : children.Length - 1L;
+        if (parentSelectors == null || parentSelectors.Count == 0) {
+            foreach (string child in children) resolvedCharacters += child.Length;
+            budget.ValidateResolvedSelectorList(children.Length, resolvedCharacters);
+            return children;
+        }
+        long parentCharacters = 5L + parentSelectors.Count - 1L;
+        foreach (string parentSelector in parentSelectors) parentCharacters += parentSelector.Length;
+        foreach (string child in children) {
+            long nestingSelectors = CountNestingSelectorTokens(child);
+            resolvedCharacters += nestingSelectors > 0
+                ? child.Length + nestingSelectors * (parentCharacters - 1L)
+                : parentCharacters + 1L + child.Length;
+        }
+        budget.ValidateResolvedSelectorList(children.Length, resolvedCharacters);
+        string parent = ":is(" + string.Join(",", parentSelectors) + ")";
         var resolved = new List<string>(children.Length);
         foreach (string child in children) {
             string nested = ReplaceNestingSelectorTokens(child, parent, out bool replaced);
@@ -215,6 +333,39 @@ public static partial class HtmlComputedStyleEngine {
                 : parent + " " + child);
         }
         return resolved.AsReadOnly();
+    }
+
+    private static int CountNestingSelectorTokens(string selector) {
+        int count = 0;
+        char quote = '\0';
+        int attributeDepth = 0;
+        for (int index = 0; index < selector.Length; index++) {
+            char current = selector[index];
+            if (current == '\\') {
+                if (index + 1 < selector.Length) index++;
+                continue;
+            }
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current == '/' && index + 1 < selector.Length && selector[index + 1] == '*') {
+                int commentEnd = selector.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                if (commentEnd < 0) break;
+                index = commentEnd + 1;
+                continue;
+            }
+            if (current is '\'' or '"') {
+                quote = current;
+            } else if (current == '[') {
+                attributeDepth++;
+            } else if (current == ']' && attributeDepth > 0) {
+                attributeDepth--;
+            } else if (current == '&' && attributeDepth == 0) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static string ReplaceNestingSelectorTokens(string selector, string parent, out bool replaced) {
@@ -359,7 +510,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.IsNullOrEmpty(css)
             || css.IndexOf("::marker", StringComparison.OrdinalIgnoreCase) < 0
                 && css.IndexOf("::footnote-call", StringComparison.OrdinalIgnoreCase) < 0
-                && css.IndexOf("::footnote-marker", StringComparison.OrdinalIgnoreCase) < 0) return css;
+                && css.IndexOf("::footnote-marker", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::placeholder", StringComparison.OrdinalIgnoreCase) < 0
+                && css.IndexOf("::-webkit-input-placeholder", StringComparison.OrdinalIgnoreCase) < 0) return css;
         var result = new System.Text.StringBuilder(css.Length + 16);
         char quote = '\0';
         for (int index = 0; index < css.Length;) {
@@ -383,7 +536,9 @@ public static partial class HtmlComputedStyleEngine {
                 index = end;
                 continue;
             }
-            if (TryProtectPseudoElement(css, index, "::footnote-marker", FootnoteMarkerPseudoSentinel, result, out int consumed)
+            if (TryProtectPseudoElement(css, index, "::-webkit-input-placeholder", PlaceholderPseudoSentinel, result, out int consumed)
+                || TryProtectPseudoElement(css, index, "::placeholder", PlaceholderPseudoSentinel, result, out consumed)
+                || TryProtectPseudoElement(css, index, "::footnote-marker", FootnoteMarkerPseudoSentinel, result, out consumed)
                 || TryProtectPseudoElement(css, index, "::footnote-call", FootnoteCallPseudoSentinel, result, out consumed)
                 || TryProtectPseudoElement(css, index, "::marker", MarkerPseudoSentinel, result, out consumed)) {
                 index += consumed;
@@ -416,7 +571,8 @@ public static partial class HtmlComputedStyleEngine {
     private static string RestoreManagedPseudoElements(string selector) =>
         selector.Replace(MarkerPseudoSentinel, "::marker")
             .Replace(FootnoteCallPseudoSentinel, "::footnote-call")
-            .Replace(FootnoteMarkerPseudoSentinel, "::footnote-marker");
+            .Replace(FootnoteMarkerPseudoSentinel, "::footnote-marker")
+            .Replace(PlaceholderPseudoSentinel, "::placeholder");
 
     private static string PreserveRevertLayerDeclarations(string css) {
         const string keyword = "revert-layer";
@@ -699,9 +855,10 @@ public static partial class HtmlComputedStyleEngine {
         int end,
         IReadOnlyDictionary<int, int> closures,
         ICollection<StyleRule> rules,
-        IDictionary<string, int> parsedRuleMatches,
+        ParsedSelectorRegistry parsedRuleMatches,
         MediaEnvironment environment,
-        HtmlCssProcessingBudget budget) {
+        HtmlCssProcessingBudget budget,
+        OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext) {
         int cursor = start;
         while (cursor < end) {
             SkipRawWhitespaceAndComments(css, ref cursor, end);
@@ -720,15 +877,15 @@ public static partial class HtmlComputedStyleEngine {
             if (prelude.StartsWith("@media", StringComparison.OrdinalIgnoreCase)) {
                 string condition = prelude.Substring(6).Trim();
                 if (IsApplicableMedia(condition, environment)) {
-                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, parsedRuleMatches, environment, budget);
+                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, parsedRuleMatches, environment, budget, namespaceContext);
                 }
             } else if (prelude.StartsWith("@supports", StringComparison.OrdinalIgnoreCase)) {
                 string condition = prelude.Substring(9).Trim();
                 if (IsApplicableSupports(condition)) {
-                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, parsedRuleMatches, environment, budget);
+                    AddRawRetainedStyleRules(css, open + 1, close, closures, rules, parsedRuleMatches, environment, budget, namespaceContext);
                 }
             } else if (!prelude.StartsWith("@", StringComparison.Ordinal)) {
-                AddRawRetainedStyleRule(prelude, css.Substring(open + 1, close - open - 1), rules, parsedRuleMatches, budget);
+                AddRawRetainedStyleRule(prelude, css.Substring(open + 1, close - open - 1), rules, parsedRuleMatches, budget, namespaceContext);
             }
             cursor = close + 1;
         }
@@ -738,14 +895,15 @@ public static partial class HtmlComputedStyleEngine {
         string selectorText,
         string body,
         ICollection<StyleRule> rules,
-        IDictionary<string, int> parsedRuleMatches,
-        HtmlCssProcessingBudget budget) {
+        ParsedSelectorRegistry parsedRuleMatches,
+        HtmlCssProcessingBudget budget,
+        OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext) {
         var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
         foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(body))) {
             int separator = declaration.IndexOf(':');
             if (separator <= 0) continue;
             string propertyName = declaration.Substring(0, separator).Trim();
-            if (!string.Equals(propertyName, "string-set", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!ShouldRetainRawDeclaration(propertyName, declaration.Substring(separator + 1))) continue;
             string value = declaration.Substring(separator + 1).Trim();
             value = StripTrailingImportant(value, out bool important);
             if (value.Length > 0 && IsSupportedDeclarationValue(propertyName, value)) {
@@ -757,28 +915,75 @@ public static partial class HtmlComputedStyleEngine {
             .Select(selector => selector.Trim())
             .Where(selector => selector.Length > 0)
             .ToArray();
-        foreach (string selector in selectors) {
-            bool parsedRule = TryConsumeParsedRule(parsedRuleMatches, ParsedRuleKey(selector));
-            if (TryConsumeParsedRule(parsedRuleMatches, ParsedRetainedRuleKey(selector))) continue;
-            if (!parsedRule) budget.RecordRule(declarations.Count);
-            rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations));
+        string[] parsedKeys = selectors.Select(ParsedRuleKey).ToArray();
+        if (selectors.Length == 0) return;
+        bool providerAcceptedAll = parsedRuleMatches.CanConsumeAll(parsedKeys);
+        if (!providerAcceptedAll && !CanUseOwnedSelectors(selectors, namespaceContext)) return;
+        for (int index = 0; index < selectors.Length; index++) {
+            string selector = selectors[index];
+            AngleSharp.Css.Dom.ISelector? providerSelector = null;
+            if (providerAcceptedAll) {
+                parsedRuleMatches.TryConsume(parsedKeys[index], out providerSelector);
+                if (parsedRuleMatches.TryConsume(ParsedRetainedRuleKey(selector), out _)) continue;
+            } else {
+                budget.RecordRuleCandidate();
+                if (budget.CanRetainSelector(selector)) budget.RecordRule(declarations.Count);
+            }
+            if (budget.CanRetainSelector(selector)) {
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations,
+                    namespaceContext: namespaceContext, providerSelector: providerSelector));
+            }
         }
     }
 
-    private static void RecordParsedRule(
-        IDictionary<string, int> parsedRuleMatches,
-        string key) {
-        parsedRuleMatches.TryGetValue(key, out int count);
-        parsedRuleMatches[key] = count + 1;
+    private static bool ShouldRetainRawDeclaration(string propertyName, string rawValue) {
+        if (string.Equals(propertyName, "string-set", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(propertyName, "grid-template-columns", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(propertyName, "grid-template-rows", StringComparison.OrdinalIgnoreCase)) return false;
+        string value = StripTrailingImportant(rawValue.Trim(), out _);
+        return value.Equals("subgrid", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("subgrid ", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("subgrid[", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool TryConsumeParsedRule(
-        IDictionary<string, int> parsedRuleMatches,
-        string key) {
-        if (!parsedRuleMatches.TryGetValue(key, out int count) || count <= 0) return false;
-        if (count == 1) parsedRuleMatches.Remove(key);
-        else parsedRuleMatches[key] = count - 1;
-        return true;
+    private static void RecordParsedRule(
+        ParsedSelectorRegistry parsedRuleMatches,
+        string key,
+        AngleSharp.Css.Dom.ISelector? providerSelector) => parsedRuleMatches.Record(key, providerSelector);
+
+    private sealed class ParsedSelectorRegistry {
+        private readonly Dictionary<string, Queue<AngleSharp.Css.Dom.ISelector?>> _selectors =
+            new Dictionary<string, Queue<AngleSharp.Css.Dom.ISelector?>>(StringComparer.Ordinal);
+
+        internal void Record(string key, AngleSharp.Css.Dom.ISelector? selector) {
+            if (!_selectors.TryGetValue(key, out Queue<AngleSharp.Css.Dom.ISelector?>? queue)) {
+                queue = new Queue<AngleSharp.Css.Dom.ISelector?>();
+                _selectors.Add(key, queue);
+            }
+            queue.Enqueue(selector);
+        }
+
+        internal bool CanConsumeAll(IEnumerable<string> keys) {
+            var required = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (string key in keys) {
+                required.TryGetValue(key, out int count);
+                required[key] = count + 1;
+            }
+            foreach (KeyValuePair<string, int> item in required)
+                if (!_selectors.TryGetValue(item.Key, out Queue<AngleSharp.Css.Dom.ISelector?>? queue)
+                    || queue.Count < item.Value) return false;
+            return true;
+        }
+
+        internal bool TryConsume(string key, out AngleSharp.Css.Dom.ISelector? selector) {
+            if (!_selectors.TryGetValue(key, out Queue<AngleSharp.Css.Dom.ISelector?>? queue) || queue.Count == 0) {
+                selector = null;
+                return false;
+            }
+            selector = queue.Dequeue();
+            if (queue.Count == 0) _selectors.Remove(key);
+            return true;
+        }
     }
 
     private static string ParsedRuleKey(string selector) => "rule\u001f" + selector.Trim();
@@ -856,6 +1061,43 @@ public static partial class HtmlComputedStyleEngine {
                 StringComparison.OrdinalIgnoreCase)) return;
         }
         declarations.Remove("animation-name");
+    }
+
+    private static bool HasAuthoredDeclaration(
+        OfficeIMO.Html.Css.HtmlCssQualifiedRule? ownedRule,
+        string cssText,
+        string propertyName) {
+        if (ownedRule?.Declarations.Any(declaration => string.Equals(
+                RestoreManagedDeclarationName(declaration.Name), propertyName, StringComparison.OrdinalIgnoreCase)) == true) return true;
+        int open = cssText.IndexOf('{');
+        int close = cssText.LastIndexOf('}');
+        if (open < 0 || close <= open) return false;
+        foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(cssText.Substring(open + 1, close - open - 1)))) {
+            int separator = declaration.IndexOf(':');
+            if (separator > 0 && string.Equals(declaration.Substring(0, separator).Trim(), propertyName,
+                    StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
+    private static void RetainAuthoredProviderFallbackDeclarations(
+        OfficeIMO.Html.Css.HtmlCssQualifiedRule ownedRule,
+        IDictionary<string, StyleDeclaration> declarations) {
+        for (int index = 0; index < ownedRule.Declarations.Count; index++) {
+            OfficeIMO.Html.Css.HtmlCssDeclaration declaration = ownedRule.Declarations[index];
+            string propertyName = declaration.Name.Trim().ToLowerInvariant();
+            // Supported layout and image keywords can be lost by the retained
+            // provider when another declaration makes the whole rule use this path.
+            if (propertyName is not ("display" or "flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference" or "text-transform"
+                or "image-orientation" or "image-resolution")) continue;
+            string value = RestoreProtectedDeclarationValue(StripCssCommentsOutsideStrings(
+                OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(declaration, UnboundedPropertyTokenization).AuthoredValue).Trim());
+            if (!IsSupportedDeclarationValue(propertyName, value)) continue;
+            var candidate = new StyleDeclaration(propertyName, value, declaration.IsImportant) { DeclarationOrder = index + 1 };
+            if (declarations.TryGetValue(propertyName, out StyleDeclaration? existing)
+                && existing.IsImportant && !candidate.IsImportant) continue;
+            declarations[propertyName] = candidate;
+        }
     }
 
     private static void SetDeclarationInSourceOrder(

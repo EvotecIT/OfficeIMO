@@ -6,6 +6,19 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfHtmlTableRowMetadataTests {
     [Fact]
+    public void NestedTableLegacyMarkerDoesNotChangeContainingRow() {
+        RtfDocument imported = HtmlConversionDocument.Parse(
+            "<table><tr><td><table><tr class='officeimo-rtf-html'><td>Nested</td></tr></table></td></tr></table>")
+            .ToRtfDocument();
+
+        RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(imported.Blocks));
+        RtfTableRow outerRow = Assert.Single(outer.Rows);
+        Assert.True(outerRow.KeepTogether);
+        RtfTable inner = Assert.Single(Assert.Single(outerRow.Cells).Blocks.OfType<RtfTable>());
+        Assert.False(Assert.Single(inner.Rows).KeepTogether);
+    }
+
+    [Fact]
     public void LegacyFragmentWithCellMetadataPreservesSplittableRows() {
         var source = RtfDocument.Create();
         var row = source.AddTable(1, 1).Rows[0];

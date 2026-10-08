@@ -323,7 +323,27 @@ public sealed partial class PdfOptions {
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"));
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: true);
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true);
+        (_fallbackOwnedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(normalizedFamily);
         return this;
+    }
+
+    // Only mappings still carrying the previous fallback's bytes, generated face
+    // names and synthesis choices may be replaced. A later caller owns the whole family.
+    internal bool IsRegisteredFallbackFontFamily(PdfStandardFont family, PdfEmbeddedFontFallbackCandidate candidate) {
+        if (_fallbackOwnedFontFamilies?.Contains(PdfStandardFontMapper.GetFontFamily(family)) != true) return false;
+        bool found = false;
+        for (int style = 0; style < 4; style++) {
+            PdfStandardFont font = PdfStandardFontMapper.GetStyledFont(family,
+                bold: (style & 1) != 0, italic: (style & 2) != 0);
+            if (!TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embedded) || embedded == null) continue;
+            string face = style == 0 ? "Regular" : style == 1 ? "Bold" : style == 2 ? "Italic" : "BoldItalic";
+            if (embedded.FontName != BuildFontFamilyFaceName(candidate.FontName, face)
+                || embedded.SyntheticOblique != ((style & 2) != 0)
+                || (!ReferenceEquals(embedded.DataSnapshot, candidate.DataSnapshot)
+                    && !embedded.DataSnapshot.SequenceEqual(candidate.DataSnapshot))) return false;
+            found = true;
+        }
+        return found;
     }
 
     private PdfOptions RegisterFontFamilyCore(
@@ -342,7 +362,8 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
-    /// Registers a planned embedded-font fallback set into its generated standard-font family slots.
+    /// Registers a planned embedded-font fallback set while preserving existing compatibility-slot font families.
+    /// Occupied compatibility slots are resolved when fallback runs are rendered.
     /// </summary>
     /// <param name="fallbackSet">Fallback set that pairs prioritized embedded font candidates with generated font slots.</param>
     public PdfOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
@@ -354,11 +375,13 @@ public sealed partial class PdfOptions {
     private void SetCallerEmbeddedFontFallbacks(
         PdfEmbeddedFontFallbackSet? fallbackSet) {
         if (fallbackSet == null) {
+            ReleasePreviousFallbackFontSlots(_embeddedFontFallbacks);
             _embeddedFontFallbacks = null;
             _renderingProfileDeclaredFallbackCandidates = null;
             return;
         }
 
+        PdfEmbeddedFontFallbackSet? previous = _embeddedFontFallbacks;
         PdfEmbeddedFontFallbackSet prepared = fallbackSet.Clone();
         if (!prepared.UsesNamedFontFamilies
             && _renderingProfileOwnedNamedFamilyNames?.Count > 0) {
@@ -372,14 +395,16 @@ public sealed partial class PdfOptions {
                 Array.Empty<PdfEmbeddedFontFamily>(),
                 prepared,
                 OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay,
-                prepared.Candidates.Select(candidate => candidate.FontName));
+                prepared.Candidates.Select(candidate => candidate.FontName),
+                replacingAutomaticFallbacks: true);
         }
         if (prepared.UsesNamedFontFamilies) {
             ValidateRenderingProfileFamilyCapacity(
                 Array.Empty<PdfEmbeddedFontFamily>(),
                 prepared,
                 OfficeIMO.Drawing.OfficeRenderingProfileApplyMode.Overlay,
-                prepared.Candidates.Select(candidate => candidate.FontName));
+                prepared.Candidates.Select(candidate => candidate.FontName),
+                replacingAutomaticFallbacks: true);
             foreach (PdfEmbeddedFontFallbackCandidate candidate in prepared.Candidates) {
                 // Release stale profile ownership before the caller's active set is installed.
                 // Otherwise registration can filter the newly assigned candidate itself.
@@ -388,8 +413,13 @@ public sealed partial class PdfOptions {
         }
 
         _renderingProfileDeclaredFallbackCandidates = null;
+        ReleasePreviousFallbackFontSlots(previous);
         _embeddedFontFallbacks = prepared;
-        _embeddedFontFallbacks.RegisterFonts(this);
+        if (prepared.UsesNamedFontFamilies) {
+            prepared.RegisterFonts(this);
+        } else {
+            prepared.RegisterUnoccupiedFontSlots(this);
+        }
     }
 
     private static bool TryLoadOfficeFontFamily(string familyName, out PdfEmbeddedFontFamily? embeddedFamily) {

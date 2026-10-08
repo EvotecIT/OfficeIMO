@@ -50,9 +50,12 @@ internal static partial class IcsCalendarCodec {
             !isEvent && !IsStoreProjectableTaskMethod(effectiveMethod) || methodWouldChange) {
             document.MimeSemanticProjectionIsIncomplete = true;
         }
-        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location, effectiveMethod);
-        else ProjectTask(activeProperties, document, diagnostics, location);
-        TryProjectTypedRecurrence(text, document, isEvent, diagnostics, location);
+        OutlookTimeZoneDefinition? embeddedTimeZone = activeProperties.Any(property =>
+            property.Name == "DTSTART" && property.Parameters.ContainsKey("TZID"))
+            ? ResolveEmbeddedComponentTimeZone(text, isEvent, diagnostics, location, document) : null;
+        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location, effectiveMethod, embeddedTimeZone);
+        else ProjectTask(activeProperties, document, diagnostics, location, embeddedTimeZone);
+        TryProjectTypedRecurrence(text, document, isEvent, diagnostics, location, embeddedTimeZone);
         document.MimeSemanticProjectionIsIncomplete |= HasIncompleteTimestampProjection(
             activeProperties, document, isEvent, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
@@ -63,15 +66,15 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static void ProjectEvent(IReadOnlyList<IcsProperty> properties, EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location, string? method) {
+        IList<EmailDiagnostic> diagnostics, string location, string? method, OutlookTimeZoneDefinition? timeZone) {
         var appointment = document.Appointment ?? new OutlookAppointment();
         document.OutlookItemKind = OutlookItemKind.Appointment;
         document.MessageClass = MessageClassForMethod(method, properties);
         document.Appointment = appointment;
         ApplyCommon(properties, document);
 
-        appointment.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out bool allDay);
-        appointment.End = ParseDate(GetProperty(properties, "DTEND"), diagnostics, location, out _);
+        appointment.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out bool allDay, timeZone);
+        appointment.End = ParseDate(GetProperty(properties, "DTEND"), diagnostics, location, out _, timeZone);
         appointment.IsAllDay = allDay;
         appointment.Location = Unescape(GetValue(properties, "LOCATION"));
         appointment.Sequence = ParseInt(GetValue(properties, "SEQUENCE"));
@@ -114,15 +117,15 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static void ProjectTask(IReadOnlyList<IcsProperty> properties, EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, OutlookTimeZoneDefinition? timeZone) {
         var task = document.Task ?? new OutlookTask();
         document.OutlookItemKind = OutlookItemKind.Task;
         document.MessageClass = "IPM.Task";
         document.Task = task;
         ApplyCommon(properties, document);
-        task.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out _);
-        task.Due = ParseDate(GetProperty(properties, "DUE"), diagnostics, location, out _);
-        task.CompletedAt = ParseDate(GetProperty(properties, "COMPLETED"), diagnostics, location, out _);
+        task.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out _, timeZone);
+        task.Due = ParseDate(GetProperty(properties, "DUE"), diagnostics, location, out _, timeZone);
+        task.CompletedAt = ParseDate(GetProperty(properties, "COMPLETED"), diagnostics, location, out _, timeZone);
         if (double.TryParse(GetValue(properties, "PERCENT-COMPLETE"), NumberStyles.Float,
             CultureInfo.InvariantCulture, out double percent)) task.PercentComplete = percent / 100d;
         string? status = GetValue(properties, "STATUS");

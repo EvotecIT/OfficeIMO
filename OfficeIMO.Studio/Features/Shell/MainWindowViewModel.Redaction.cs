@@ -16,6 +16,10 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty] private bool _redactionSearchRegex;
     [ObservableProperty] private bool _redactionSearchMatchCase;
     [ObservableProperty] private bool _redactionSearchSelectedPagesOnly;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RedactionSearchScopeDescription))]
+    private bool _redactionSearchMatchedTextOnly;
+    [ObservableProperty] private bool _redactionSearchPreserveUnderlay;
     [ObservableProperty] private PdfRedactionMarkViewModel? _selectedRedactionMark;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRedactionEvidence))]
@@ -31,6 +35,9 @@ public sealed partial class MainWindowViewModel {
     public bool CanApplyReviewedRedactions => _pendingRedactionPlan is { IsReviewable: true } && CanReviewRedactions;
     public bool HasRedactionEvidence => LastRedactionSummary is not null;
     public bool CanExportRedactionEvidence => LastRedactionCopyPath is not null && HasRedactionEvidence;
+    public string RedactionSearchScopeDescription => RedactionSearchMatchedTextOnly
+        ? _localizer.GetOrDefault("Redaction.PreciseSearchScope", "Search marks only the matched text. Unsupported glyph mappings are refused. Options apply to new search marks.")
+        : _localizer.GetOrDefault("Redaction.SearchScope", "Search marks each matching line, including surrounding text on that line. Inspect the highlighted areas before applying.");
 
     [RelayCommand]
     private async Task SaveVerifiedRedactionCopyAsync(CancellationToken cancellationToken) {
@@ -74,40 +81,77 @@ public sealed partial class MainWindowViewModel {
         string text = RedactionSearchText;
         bool regex = RedactionSearchRegex;
         bool matchCase = RedactionSearchMatchCase;
+        PdfRedactionTextSelection textSelection = RedactionSearchMatchedTextOnly
+            ? PdfRedactionTextSelection.MatchedGlyphs : PdfRedactionTextSelection.LogicalBlocks;
+        PdfRedactionContentScope contentScope = RedactionSearchPreserveUnderlay
+            ? PdfRedactionContentScope.TextOnly : PdfRedactionContentScope.TextAndUnderlay;
         int[]? pages = RedactionSearchSelectedPagesOnly
             ? OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray() : null;
         if (pages is { Length: 0 }) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.SelectPages", "Select at least one page in the page organizer.");
             return;
         }
-        IReadOnlyList<PdfRedactionMarkViewModel>? marks = null;
+        IReadOnlyList<PdfRedactionCandidate>? marks = null;
         bool succeeded = await RunStandaloneAsync(async token => {
-            marks = await workspace.SearchRedactionMarksAsync(text, regex, matchCase, pages, token).ConfigureAwait(true);
+            marks = await workspace.SearchRedactionMarksAsync(text, regex, matchCase, pages, token, textSelection, contentScope).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || marks is null || generation != _redactionPlanGeneration ||
             !ReferenceEquals(_workspace, workspace) || revision != workspace.Revision) return;
-        if (RedactionMarks.Count + marks.Count > 2000) {
+        PdfRedactionMarkViewModel[] candidates = marks.Select(mark => new PdfRedactionMarkViewModel(mark.Area,
+            new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height),
+            mark.Description, textSelection)).ToArray();
+        PdfRedactionMarkViewModel? conflict = candidates.Select(FindRedactionPolicyConflict).FirstOrDefault(existing => existing is not null);
+        if (conflict is not null) {
+            ReportRedactionPolicyConflict(conflict);
+            return;
+        }
+        HashSet<(int PageNumber, Avalonia.Rect Bounds)> existingBounds = RedactionMarks.Select(mark => (mark.PageNumber, mark.Bounds)).ToHashSet();
+        PdfRedactionMarkViewModel[] additions = candidates.DistinctBy(mark => (mark.PageNumber, mark.Bounds))
+            .Where(mark => !existingBounds.Contains((mark.PageNumber, mark.Bounds))).ToArray();
+        if (RedactionMarks.Count + additions.Length > 2000) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.TooManyMarks", "A review can contain at most 2,000 marks. Narrow the search or remove some marks.");
             return;
         }
         _pendingRedactionWorkspace = workspace;
         _pendingRedactionRevision = revision;
-        foreach (PdfRedactionMarkViewModel mark in marks) AddRedactionMark(mark, update: false);
+        foreach (PdfRedactionMarkViewModel mark in additions) AddRedactionMark(mark, update: false);
         InvalidateReviewedRedactions();
         if (marks.Count > 0) RedactionSearchExpanded = false;
-        OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching line(s). Review the marked areas before applying.", marks.Count);
+        OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching area(s). Review the marked areas before applying.", marks.Count);
     }
 
     private void AddRedactionMark(PdfRedactionMarkViewModel mark, bool update = true) {
+        if (FindRedactionPolicyConflict(mark) is { } conflict) {
+            ReportRedactionPolicyConflict(conflict);
+            return;
+        }
+        if (RedactionMarks.Any(existing => existing.PageNumber == mark.PageNumber && existing.Bounds == mark.Bounds)) return;
         if (RedactionMarks.Count >= 2000) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.TooManyMarks", "A review can contain at most 2,000 marks. Narrow the search or remove some marks.");
             return;
         }
-        if (RedactionMarks.Any(existing => existing.PageNumber == mark.PageNumber && existing.Bounds == mark.Bounds)) return;
         mark.PropertyChanged += OnRedactionMarkChanged;
         RedactionMarks.Add(mark);
         SelectedRedactionMark ??= mark;
         if (update) InvalidateReviewedRedactions();
+    }
+
+    private PdfRedactionMarkViewModel? FindRedactionPolicyConflict(PdfRedactionMarkViewModel mark) {
+        // Ignore numerical noise at shared edges; touching areas do not overlap.
+        const double tolerance = 1e-7;
+        return RedactionMarks.FirstOrDefault(existing => existing.PageNumber == mark.PageNumber &&
+            existing.Bounds.Left < mark.Bounds.Right - tolerance && existing.Bounds.Right > mark.Bounds.Left + tolerance &&
+            existing.Bounds.Top < mark.Bounds.Bottom - tolerance && existing.Bounds.Bottom > mark.Bounds.Top + tolerance &&
+            (existing.Area.ContentScope != mark.Area.ContentScope || existing.Area.AppearanceMode != mark.Area.AppearanceMode ||
+             existing.TextSelection != mark.TextSelection));
+    }
+
+    private void ReportRedactionPolicyConflict(PdfRedactionMarkViewModel conflict) {
+        InvalidateReviewedRedactions();
+        SelectedRedactionMark = conflict;
+        RedactionSearchExpanded = true;
+        ErrorMessage = _localizer.GetOrDefault("Redaction.SearchPolicyConflict",
+            "This area overlaps a mark with different redaction options. Remove the selected mark and add the area again to use the new options, then review.");
     }
 
     private void OnRedactionMarkChanged(object? sender, PropertyChangedEventArgs args) {
@@ -146,8 +190,7 @@ public sealed partial class MainWindowViewModel {
             return;
         }
         PdfRedactionArea[] areas = RedactionMarks.Where(mark => mark.IsIncluded)
-            .Select(mark => new PdfRedactionArea(mark.Area.PageNumber, mark.Area.X, mark.Area.Y,
-                mark.Area.Width, mark.Area.Height, mark.Reason.Trim(), mark.Area.ContentScope, mark.Area.AppearanceMode)).ToArray();
+            .Select(mark => mark.Area.WithLabel(mark.Reason.Trim())).ToArray();
         PdfRedactionPlan? plan = null;
         bool succeeded = await RunStandaloneAsync(async token => {
             plan = await workspace.PlanRedactionsAsync(areas, token).ConfigureAwait(true);

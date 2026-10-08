@@ -15,7 +15,8 @@ public sealed class EpubChapter {
     public string Path { get; internal set; } = string.Empty;
 
     /// <summary>
-    /// OPF manifest item id for this chapter when known.
+    /// OPF manifest item id of the extracted resource when known. When an unsupported
+    /// spine resource selects a fallback, this is the fallback resource's id.
     /// </summary>
     public string? ManifestId { get; internal set; }
 

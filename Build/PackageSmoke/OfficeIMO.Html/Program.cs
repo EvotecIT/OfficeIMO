@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Providers;
 using OfficeIMO.Markdown.Html;
@@ -88,7 +89,7 @@ if (!galleryResult.IsReadOnly || !galleryResult.Diagnostics.IsReadOnly) {
     throw new InvalidOperationException("The packed gallery-result snapshot is not frozen.");
 }
 
-var parsed = AngleSharpHtmlParser.Instance.Parse("<!DOCTYPE odd@name><h1 id='title'>Original</h1>", new HtmlParseOptions());
+var parsed = HtmlDocumentEngine.Default.ParseDocument("<!DOCTYPE odd@name><h1 id='title'>Original</h1>");
 var changed = parsed.Edit(edit => {
     var title = edit.QuerySelector("#title")!;
     title.TextContent = "Packed edit";
@@ -99,12 +100,80 @@ if (parsed.QuerySelector("#title")!.TextContent != "Original" || changed.QuerySe
     throw new InvalidOperationException("Packed owned document/edit/Markdown contract failed.");
 if (typeof(HtmlDocument).Assembly.GetReferencedAssemblies().Any(name => name.Name!.StartsWith("AngleSharp", StringComparison.Ordinal) || name.Name == "OfficeIMO.Core"))
     throw new InvalidOperationException("The owned HTML leaf references a parser or drawing implementation.");
+if (!changed.OuterHtml.Contains("Packed edit") || !conversion.ToSvg().Contains("<svg"))
+    throw new InvalidOperationException("Packed HTML serialization or SVG export failed.");
 byte[] foundationPng = conversion.ToPng();
 if (foundationPng.Length < 8 || foundationPng[0] != 137 || foundationPng[1] != 80)
     throw new InvalidOperationException("Packed owned document image rendering failed.");
 var foundationPdf = PdfReadDocument.Open(conversion.ToPdfBytes());
 if (!foundationPdf.ExtractText().Contains("Packed edit"))
     throw new InvalidOperationException("Packed owned document PDF text was lost.");
+
+HtmlRenderRequest imageRequest = HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.ScreenFullPage,
+    HtmlRenderEncoder.Png,
+    new HtmlRenderOptions { ViewportWidth = 480D });
+HtmlRenderResult retained = HtmlRenderEngine.Execute(conversion, imageRequest);
+retained = retained.WithAdditionalDiagnostics(new[] {
+    new HtmlDiagnostic("PackageSmoke", "RetainedBoundary", "Packed retained-result evidence",
+        HtmlDiagnosticSeverity.Info, "package-smoke.html")
+});
+HtmlRenderSurface retainedSurface = retained.GetSurface(0);
+if (retained.Surfaces.Count != 1 || retained.OutputSurfaces.Count != 1 ||
+    retained.ExportImage().Bytes.Length < 8 || retainedSurface.CreateDrawing().Width <= 0D ||
+    !retainedSurface.TryMapToSource(1D, 1D, out HtmlRenderSourcePoint? mappedSource) ||
+    mappedSource == null || mappedSource.SourcePageNumber != 1 ||
+    retained.Request.ProfileId != "screen-full-page-v1" ||
+    !retained.DeclaredProviderIds.Contains(HtmlCapabilityProviderIds.OfficeIMOHtml))
+    throw new InvalidOperationException("Packed explicit HTML render request contract failed.");
+HtmlRenderArchiveResult renderArchive = retained.ExportArchive(new HtmlRenderArchiveOptions {
+    MaximumArchiveBytes = 16 * 1024 * 1024
+});
+if (renderArchive.EncodedLength < 1 || renderArchive.Manifest.Pages.Count != 1 ||
+    renderArchive.Manifest.PageSet != HtmlRenderPageSetMode.Selected ||
+    renderArchive.Manifest.FirstPageIndex != 0 || renderArchive.Manifest.PageCount != 1 ||
+    !renderArchive.Manifest.Diagnostics.Any(diagnostic => diagnostic.Code == "RetainedBoundary") ||
+    renderArchive.Manifest.Pages[0].HasLoss != renderArchive.Manifest.Pages[0].EncodingDiagnostics.Any(
+        diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None) ||
+    string.IsNullOrWhiteSpace(renderArchive.Manifest.Pages[0].Sha256))
+    throw new InvalidOperationException("Packed HTML render archive contract failed.");
+
+HtmlPdfRenderRequestResult explicitPdf = conversion.RenderToPdfResult(HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.ScreenMediaPaged,
+    HtmlRenderEncoder.Pdf,
+    new HtmlToPdfOptions()));
+byte[] explicitPdfBytes = explicitPdf.ToBytes();
+if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
+    explicitPdfBytes.Length < 4 || System.Text.Encoding.ASCII.GetString(explicitPdfBytes, 0, 4) != "%PDF")
+    throw new InvalidOperationException("Packed explicit HTML-to-PDF request contract failed.");
+
+var tracedDocument = HtmlConversionDocument.Parse(
+    "<style>@namespace svg url('http://www.w3.org/2000/svg');" +
+    "[data-tone='IMPORTANT' i] { & > .missing, & > .notice:last-child:is(.notice):not(.blocked) " +
+    "{ color:hsl(210 50 40 / 75%); opacity:calc(.2 + .3); width:calc(20px + 10%); } }" +
+    "svg|svg { & > svg|a:first-child { visibility:hidden; } }</style>" +
+    "<section data-tone='important'><p class='notice'>Status</p></section><svg><a id='packed-svg'>Asset</a></svg>");
+var tracedElement = tracedDocument.Document.QuerySelector(".notice")
+    ?? throw new InvalidOperationException("The packed cascade-trace element was not parsed.");
+HtmlComputedStyle tracedStyle = HtmlComputedStyleEngine.Compute(tracedDocument, new HtmlComputedStyleOptions {
+    IncludeCascadeTraces = true
+})[tracedElement];
+OfficeIMO.Html.Css.HtmlCssCascadeTrace? colorTrace = tracedStyle.GetCascadeTrace("color");
+HtmlComputedStyle svgStyle = HtmlComputedStyleEngine.Compute(tracedDocument)[
+    tracedDocument.Document.QuerySelector("#packed-svg")!];
+if (!tracedStyle.TryGetTypedValue("width", out OfficeIMO.Html.Css.HtmlCssPropertyValue? typedWidth) ||
+    OfficeIMO.Html.Css.HtmlCssMathResolver.ResolveLength(typedWidth!.MathExpression!,
+        new OfficeIMO.Html.Css.HtmlCssLengthResolutionContext { PercentageReference = 200D }).Value != 40D)
+    throw new InvalidOperationException("The packed typed computed length contract failed.");
+if (tracedStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || tracedStyle.GetValue("opacity") != "0.5" ||
+    svgStyle.GetValue("visibility") != "hidden" ||
+    colorTrace?.Candidates.Count != 1 || colorTrace.Candidates[0].Decision != OfficeIMO.Html.Css.HtmlCssCascadeDecision.Selected ||
+    colorTrace.Candidates[0].Source != OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule)
+    throw new InvalidOperationException("The packed owned selector, typed computed-value or cascade-trace contract failed.");
+
+PackedMhtmlContract.Verify(foundationPng);
+PackedSiteBundleContract.Verify(foundationPng);
+PackedMathContract.Verify();
 
 Console.WriteLine("OfficeIMO HTML packed API smoke passed on " +
     System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription + ".");

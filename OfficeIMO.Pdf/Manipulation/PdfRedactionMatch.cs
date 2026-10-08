@@ -75,4 +75,7 @@ public sealed class PdfRedactionMatch {
     public string? ResourceName { get; }
 
     internal PdfImagePlacement? ImagePlacement { get; }
+
+    internal bool RequiresRemoval => Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
+        Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation;
 }

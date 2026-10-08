@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-09-27",
+  "sourceHead": "f6f2c27560eef79162e7c3ea9cbc51008688bc80",
+  "worktreeDirtyDuringRuns": false,
+  "scope": "Font-face loss attribution; no visual or resource-budget acceptance claimed.",
+  "publicApiProbe": {
+    "runtime": ".NET 10 / SDK 10.0.112",
+    "fontSha256": "bbdf64d63b504073dfa1ab6eb6dec1dba693422355b18d165bed3d369d9c8105",
+    "resolver": "Returns the existing RobotoFlex fixture for /good.ttf and null for every other URI; no network.",
+    "reproducer": "using System.Text.Json;\nusing OfficeIMO.Html;\n\nbyte[] font = File.ReadAllBytes(args[0]);\nvar results = new List<object>();\nforeach (var scenario in new[] {\n    (\"unused-family\", \"Good\", \"\"),\n    (\"unavailable-primary\", \"Missing,Good\", \"\"),\n    (\"unused-fallback\", \"Good,Missing\", \"\"),\n    (\"hidden-family\", \"Good\", \"<p style='display:none;font-family:Missing'>Hidden text</p>\")\n}) {\n    var options = new HtmlRenderOptions {\n        ResourceResolver = (request, token) => Task.FromResult<HtmlResolvedResource?>(\n            request.Uri.AbsolutePath == \"/good.ttf\" ? new HtmlResolvedResource(font, \"font/ttf\") : null)\n    };\n    var source = HtmlConversionDocument.Parse(\"<style>@font-face{font-family:Good;src:url(https://font.example/good.ttf)}\"\n        + \"@font-face{font-family:Missing;src:url(https://font.example/missing.ttf)}\"\n        + \"p{font-family:\" + scenario.Item2 + \"}</style><p>Visible text</p>\" + scenario.Item3);\n    HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(source, options);\n    results.Add(new { name=scenario.Item1, requestedFamilies=scenario.Item2, rendered.HasLoss,\n        text=rendered.Pages.SelectMany(p=>p.Visuals).OfType<HtmlRenderText>().Select(t=>new {t.Text,t.Font.FamilyName}),\n        diagnostics=rendered.Diagnostics });\n}\nawait File.WriteAllTextAsync(args[1], JsonSerializer.Serialize(new { sourceHead=args[2], results }, new JsonSerializerOptions {WriteIndented=true}));\nConsole.WriteLine(\"Four font-usage attribution cases completed.\");\n",
+    "results": [
+      {
+        "scenario": "unused-family",
+        "requestedFamilies": "Good",
+        "expectedHasLoss": false,
+        "actualHasLoss": true,
+        "selectedText": [
+          {
+            "Text": "Visible text",
+            "FamilyName": "Good"
+          }
+        ],
+        "unavailableFaces": [
+          {
+            "Component": "OfficeIMO.Html.Renderer",
+            "Code": "HtmlRenderFontFaceUnavailable",
+            "Message": "No usable source from an @font-face rule was available to the renderer.",
+            "Severity": 1,
+            "Source": "Missing",
+            "Detail": "url(https://font.example/missing.ttf)",
+            "LossKind": 1,
+            "Provenance": {
+              "SourceAddress": "Missing",
+              "SourceLine": 0,
+              "SourceColumn": 0,
+              "TargetAddress": "OfficeIMO.Html.Renderer"
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "unavailable-primary",
+        "requestedFamilies": "Missing,Good",
+        "expectedHasLoss": true,
+        "actualHasLoss": true,
+        "selectedText": [
+          {
+            "Text": "Visible text",
+            "FamilyName": "Good"
+          }
+        ],
+        "unavailableFaces": [
+          {
+            "Component": "OfficeIMO.Html.Renderer",
+            "Code": "HtmlRenderFontFaceUnavailable",
+            "Message": "No usable source from an @font-face rule was available to the renderer.",
+            "Severity": 1,
+            "Source": "Missing",
+            "Detail": "url(https://font.example/missing.ttf)",
+            "LossKind": 1,
+            "Provenance": {
+              "SourceAddress": "Missing",
+              "SourceLine": 0,
+              "SourceColumn": 0,
+              "TargetAddress": "OfficeIMO.Html.Renderer"
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "unused-fallback",
+        "requestedFamilies": "Good,Missing",
+        "expectedHasLoss": false,
+        "actualHasLoss": true,
+        "selectedText": [
+          {
+            "Text": "Visible text",
+            "FamilyName": "Good"
+          }
+        ],
+        "unavailableFaces": [
+          {
+            "Component": "OfficeIMO.Html.Renderer",
+            "Code": "HtmlRenderFontFaceUnavailable",
+            "Message": "No usable source from an @font-face rule was available to the renderer.",
+            "Severity": 1,
+            "Source": "Missing",
+            "Detail": "url(https://font.example/missing.ttf)",
+            "LossKind": 1,
+            "Provenance": {
+              "SourceAddress": "Missing",
+              "SourceLine": 0,
+              "SourceColumn": 0,
+              "TargetAddress": "OfficeIMO.Html.Renderer"
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "hidden-family",
+        "requestedFamilies": "Good",
+        "expectedHasLoss": false,
+        "actualHasLoss": true,
+        "selectedText": [
+          {
+            "Text": "Visible text",
+            "FamilyName": "Good"
+          }
+        ],
+        "unavailableFaces": [
+          {
+            "Component": "OfficeIMO.Html.Renderer",
+            "Code": "HtmlRenderFontFaceUnavailable",
+            "Message": "No usable source from an @font-face rule was available to the renderer.",
+            "Severity": 1,
+            "Source": "Missing",
+            "Detail": "url(https://font.example/missing.ttf)",
+            "LossKind": 1,
+            "Provenance": {
+              "SourceAddress": "Missing",
+              "SourceLine": 0,
+              "SourceColumn": 0,
+              "TargetAddress": "OfficeIMO.Html.Renderer"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "frozenWai": {
+    "sourceSha256": "e412cfda033d9aa02b7abd455ae0fab917c2e44ba0ad0f4bc83f233877a4397d",
+    "profile": "Paged render, zero margins, archive-only resources; font audit does not enable installed-document-font embedding.",
+    "registeredFaces": [
+      {
+        "FamilyName": "Noto Sans",
+        "ResourceFamilyName": "Noto Sans",
+        "Descriptor": {
+          "Weight": 400,
+          "StretchPercent": 100,
+          "Slant": 0,
+          "ObliqueAngleDegrees": 0
+        },
+        "Fingerprint": "sha256:8e356ead0d5c0d78172000d13b5893728a2a77664b3cfad74c0a120d2b2efc08:face=auto"
+      },
+      {
+        "FamilyName": "Noto Sans",
+        "ResourceFamilyName": "Noto Sans__officeimo_e623ebd3",
+        "Descriptor": {
+          "Weight": 400,
+          "StretchPercent": 100,
+          "Slant": 1,
+          "ObliqueAngleDegrees": 0
+        },
+        "Fingerprint": "sha256:0a3760402a55d13be4a0e325b66ed80f7fbfdbe62d95682bca157650d141a0d5:face=auto"
+      },
+      {
+        "FamilyName": "Noto Sans",
+        "ResourceFamilyName": "Noto Sans__officeimo_6b56ab00",
+        "Descriptor": {
+          "Weight": 600,
+          "StretchPercent": 100,
+          "Slant": 0,
+          "ObliqueAngleDegrees": 0
+        },
+        "Fingerprint": "sha256:d76f1a2371e9e35dc1e63d914d5f2e5a6ebfde9ab8c38146b4068cb400d40bbf:face=auto"
+      },
+      {
+        "FamilyName": "Noto Sans Mono",
+        "ResourceFamilyName": "Noto Sans Mono",
+        "Descriptor": {
+          "Weight": 400,
+          "StretchPercent": 100,
+          "Slant": 0,
+          "ObliqueAngleDegrees": 0
+        },
+        "Fingerprint": "sha256:6ba5b10c28860e58a4f34b9a30aaecd867585c1b3d3c7e2dbc676ede6872cd37:face=auto"
+      }
+    ],
+    "textRunCount": 190,
+    "selectedFamilyCounts": {
+      "Noto Sans": 143,
+      "Noto Sans__officeimo_6b56ab00": 28,
+      "Noto Sans__officeimo_e623ebd3": 3,
+      "Noto Sans Mono": 14,
+      "\"Noto Sans\", \"Trebuchet MS\", \"Helvetica Neue\", Arial, sans-serif": 2
+    },
+    "unavailableFaceDiagnostics": [
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "Noto Sans",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notosans/notosans-bolditalic.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notosans/notosans-bolditalic.woff\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "Noto Sans",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      },
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "Noto Sans Mono",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notosansmono/notosansmono-bold.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notosansmono/notosansmono-bold.woff\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "Noto Sans Mono",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      },
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "Noto Naskh Arabic Minimal",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular-minimal.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular-minimal.woff\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "Noto Naskh Arabic Minimal",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      },
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "Noto Naskh Arabic Minimal",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold-minimal.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold-minimal.woff\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "Noto Naskh Arabic Minimal",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      },
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "Noto Naskh Arabic",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular.woff\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "Noto Naskh Arabic",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      },
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "Noto Naskh Arabic",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold.woff\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "Noto Naskh Arabic",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      },
+      {
+        "Component": "OfficeIMO.Html.Renderer",
+        "Code": "HtmlRenderFontFaceUnavailable",
+        "Message": "No usable source from an @font-face rule was available to the renderer.",
+        "Severity": 1,
+        "Source": "able",
+        "Detail": "url(\"https://www.w3.org/WAI/assets/button-icons/fonts/able.ttf?dqripi\") format(\"truetype\"), url(\"https://www.w3.org/WAI/assets/button-icons/fonts/able.woff?dqripi\") format(\"woff\")",
+        "LossKind": 1,
+        "Provenance": {
+          "SourceAddress": "able",
+          "SourceLine": 0,
+          "SourceColumn": 0,
+          "TargetAddress": "OfficeIMO.Html.Renderer"
+        }
+      }
+    ],
+    "diagnosticCounts": {
+      "HtmlRenderResourceUnavailable": 20,
+      "HtmlRenderStylesheetUrlResourcesPending": 1,
+      "HtmlRenderFontFaceUnavailable": 7,
+      "HtmlRenderSvgContentUnsupported": 7,
+      "HtmlRenderOverflowScrollSnapshot": 3
+    }
+  },
+  "conclusion": "Final selected families are identical across all four scenarios, so post-render family absence cannot distinguish an unused declaration from an unavailable primary. Preserve request/face-selection context before fallback to classify the loss. Do not suppress existing warnings solely using final output families.",
+  "fontLossAttributionAcceptance": false,
+  "fidelityAcceptance": false,
+  "resourceAcceptance": false,
+  "h10Complete": false
+}

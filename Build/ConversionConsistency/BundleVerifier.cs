@@ -8,12 +8,17 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 namespace OfficeIMO.ConversionConsistency;
 
 internal static class BundleVerifier {
+    // Keep grid fitting explicit when comparing supplied glyph outlines across
+    // Chromium's platform-specific font backends.
+    private const string SvgFontHinting = "none";
+
     internal static async Task<GateReport> VerifyAsync(string output, string rasterizer, CancellationToken cancellationToken) {
         EvidenceBundle bundle = GateJson.Read<EvidenceBundle>(Path.Combine(output, "bundle.json"));
         if (bundle.SchemaVersion != 1 || bundle.Cases.Count == 0) throw new InvalidDataException("Unsupported or empty bundle.");
         string version = await ArtifactPaths.RunAsync(rasterizer, new[] { "-v" }, cancellationToken: cancellationToken);
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(
             maximumBrowserInstances: 1, maximumQueuedCaptures: 4, networkPolicy: HtmlBrowserNetworkPolicy.Offline,
+            browserArguments: new[] { "--font-render-hinting=" + SvgFontHinting },
             setupTimeout: TimeSpan.FromSeconds(45)));
         string browserVersion = "";
         var reports = new List<CaseReport>();
@@ -28,7 +33,7 @@ internal static class BundleVerifier {
             using var parsed = PdfPigDocument.Open(pdf);
             if (parsed.NumberOfPages != item.Contract.Pages.Count)
                 errors.Add($"PDF page count: expected {item.Contract.Pages.Count}, got {parsed.NumberOfPages}.");
-            foreach (OfficeImageExportFormat format in Enum.GetValues<OfficeImageExportFormat>()) {
+            foreach (OfficeImageExportFormat format in ComparedImageFormats.All) {
                 var sequence = item.Images.Where(image => image.Format == format.ToString()).Select(image => image.Page).Order().ToArray();
                 if (!sequence.SequenceEqual(Enumerable.Range(1, item.Contract.Pages.Count)))
                     errors.Add(format + " page sequence is missing, duplicated, or unexpected.");
@@ -109,7 +114,9 @@ internal static class BundleVerifier {
                     item.PdfRoute, item.Contract.ComparePdfPixels, false, item.Contract.Limitations));
             }
         }
-        return new GateReport(1, bundle.Commit, bundle.FontSha256, version, browserVersion, reports.All(item => item.Passed), reports);
+        return new GateReport(1, bundle.Commit, bundle.FontSha256, version, browserVersion, reports.All(item => item.Passed), reports) {
+            SvgFontHinting = SvgFontHinting
+        };
     }
 
     private static string CheckedArtifact(string output, string relative, string hash) {

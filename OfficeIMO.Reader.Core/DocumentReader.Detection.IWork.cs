@@ -113,7 +113,7 @@ internal static partial class DocumentReaderEngine {
 
     private static bool HasNestedIWorkDocument(byte[] payload, ushort compression,
         uint expectedLength, int maxEntries, CancellationToken cancellationToken) {
-        byte[]? nestedBytes = InflateNestedIndex(payload, compression, expectedLength,
+        byte[]? nestedBytes = InflateBoundedContainerEntry(payload, compression, expectedLength,
             cancellationToken);
         if (nestedBytes == null) return false;
         using var nested = new MemoryStream(nestedBytes, writable: false);
@@ -134,14 +134,14 @@ internal static partial class DocumentReaderEngine {
             if (!ReadExact(nested, name, 0, name.Length)) return false;
             long next = nested.Position + extraLength + commentLength;
             if (next < nested.Position || next > nested.Length) return false;
-            if (NormalizeZipEntryName(name) == "document.iwa" &&
+            if (NormalizeZipEntryName(name) is "document.iwa" or "index/document.iwa" &&
                 ReadUInt32(header, 24) > 0) return true;
             nested.Position = next;
         }
         return false;
     }
 
-    private static byte[]? InflateNestedIndex(byte[] payload, ushort compression,
+    private static byte[]? InflateBoundedContainerEntry(byte[] payload, ushort compression,
         uint expectedLength, CancellationToken cancellationToken) {
         if (compression == 0) return payload.Length == expectedLength ? payload : null;
         using var source = new MemoryStream(payload, writable: false);

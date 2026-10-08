@@ -90,8 +90,15 @@ public sealed class OfficeRasterDecodeOptions {
     /// <summary>Cancellation observed while reading, parsing, or decoding the request.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
+    /// <summary>Whether orientation-aware decoders normalize EXIF display orientation; defaults to true.</summary>
+    /// <remarks>Set false to retain JPEG and TIFF stored sample order for workflows that apply orientation explicitly.
+    /// This does not add orientation processing to formats whose decoder already returns stored sample order.</remarks>
+    public bool ApplyExifOrientation { get; set; } = true;
+
     internal long RetainedManagedBytes { get; set; }
     internal long MaximumInspectionWorkPixels { get; set; } = OfficeRasterGuards.MaximumPixels;
+    /// <summary>Owned fixed-page adapters use TIFF sample order instead of its optional display orientation.</summary>
+    internal bool IgnoreTiffOrientation { get; set; }
 
     internal OfficeRasterDecodeOptions WithAdditionalRetainedManagedBytes(long bytes) {
         if (bytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(bytes));
@@ -102,6 +109,8 @@ public sealed class OfficeRasterDecodeOptions {
             MaximumEncodedBytes = MaximumEncodedBytes,
             MaximumDecodedPixels = MaximumDecodedPixels,
             MaximumInspectionWorkPixels = MaximumInspectionWorkPixels,
+            IgnoreTiffOrientation = IgnoreTiffOrientation,
+            ApplyExifOrientation = ApplyExifOrientation,
             CancellationToken = CancellationToken,
             RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
         };

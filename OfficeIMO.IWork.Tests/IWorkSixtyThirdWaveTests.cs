@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
                 wideOffsets: wideOffsets, duplicatePopulatedOffset: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Empty(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);

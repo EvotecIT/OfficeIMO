@@ -38,12 +38,12 @@ public sealed class StudioIWorkConversionTests {
             Assert.False(job.AllowIncompleteVisualPreview);
             Assert.False(job.AllowPartialEditableReconstruction);
             await queue.RunQueueCommand.ExecuteAsync(null);
-            // These native styles contain paragraph layout that requires explicit partial acceptance.
-            Assert.Equal(ConversionJobState.Failed, job.State);
-            Assert.False(job.HasOutput);
-            job.AllowPartialEditableReconstruction = true;
-            await queue.RetryFailedCommand.ExecuteAsync(null);
             if (route == "keynote-pptx") {
+                // This table deck includes pagination that requires explicit partial acceptance.
+                Assert.Equal(ConversionJobState.Failed, job.State);
+                Assert.False(job.HasOutput);
+                job.AllowPartialEditableReconstruction = true;
+                await queue.RetryFailedCommand.ExecuteAsync(null);
                 Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
                     diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
             }
@@ -55,8 +55,25 @@ public sealed class StudioIWorkConversionTests {
                 Assert.Equal("Widget", table.GetCell(1, 0).Text);
                 for (int row = 0; row < 3; row++)
                     for (int column = 0; column < 3; column++) Assert.True(table.GetCell(row, column).NoFill);
+            } else if (route == "pages-docx") {
+                using var saved = OfficeIMO.Word.WordDocument.Load(job.OutputPath!);
+                Assert.Contains(saved.Paragraphs, paragraph => paragraph.Text == "hello pages");
+            } else {
+                using var saved = OfficeIMO.Excel.ExcelDocument.Load(job.OutputPath!);
+                var sheet = Assert.Single(saved.Sheets);
+                Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
+                Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
+                Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
             }
             Assert.True(job.HasConversionEvidence);
+            var facts = job.ConversionEvidence!.Facts;
+            Assert.Equal("EditableReconstruction", facts["projectionKind"]);
+            Assert.Equal((route == "keynote-pptx").ToString(), facts["partialEditableReconstruction"]);
+            if (route != "keynote-pptx") {
+                Assert.False(job.AllowPartialEditableReconstruction);
+                Assert.Equal("0", facts["omittedSourceUnitCount"]);
+                Assert.Equal("0", facts["unassessedSourceUnitCount"]);
+            }
             Assert.Equal(64, job.SourceFingerprint.Length);
             Assert.Contains(job.Diagnostics, item => item.Code == "SourceSnapshot" && item.Details.GetValueOrDefault("snapshotKind") == (directory ? "DirectoryPackage" : "FileBytes"));
             Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Details.GetValueOrDefault("lossKind") == "Unassessed");
@@ -102,10 +119,13 @@ public sealed class StudioIWorkConversionTests {
                 window.UpdateLayout();
                 acceptance.BringIntoView();
                 await Dispatcher.UIThread.InvokeAsync(() => window.UpdateLayout(), DispatcherPriority.Background);
+                // Hit testing needs the rendered scroll clip even when captures are disabled.
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                window.UpdateLayout();
                 Assert.True(acceptance.IsEffectivelyVisible && acceptance.IsEnabled);
+                Capture(window, "apple-acceptance-" + width + "-" + fontSize);
                 Point point = acceptance.TranslatePoint(new Point(10, acceptance.Bounds.Height / 2), window)!.Value;
                 Assert.InRange(point.X, 0, width); Assert.InRange(point.Y, 0, height);
-                Capture(window, "apple-acceptance-" + width + "-" + fontSize);
                 var hit = window.InputHitTest(point) as Visual;
                 Assert.True(ReferenceEquals(hit, acceptance)
                     || hit?.GetVisualAncestors().Contains(acceptance) == true,
@@ -244,11 +264,11 @@ public sealed class StudioIWorkConversionTests {
 
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "IWork", name);
     private static void Capture(Window window, string name) {
+        using var frame = window.CaptureRenderedFrame();
+        Assert.NotNull(frame);
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
         if (string.IsNullOrWhiteSpace(output)) return;
         Directory.CreateDirectory(output);
-        using var frame = window.CaptureRenderedFrame();
-        Assert.NotNull(frame);
         frame.Save(Path.Combine(output, name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 }

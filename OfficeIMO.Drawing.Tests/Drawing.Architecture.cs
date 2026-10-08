@@ -264,17 +264,6 @@ public class DrawingArchitectureTests {
         return false;
     }
 
-    private static string LocateRepositoryRoot() {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
-                Directory.Exists(Path.Combine(directory.FullName, "OfficeIMO.Core"))) {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Unable to locate the OfficeIMO repository root.");
-    }
+    private static string LocateRepositoryRoot() =>
+        RepositoryTestPaths.Find();
 }

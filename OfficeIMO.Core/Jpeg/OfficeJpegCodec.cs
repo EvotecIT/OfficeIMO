@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Dependency-free baseline and progressive JPEG decoder plus JPEG encoder.</summary>
+/// <summary>Dependency-free eight/twelve-bit DCT and two-through-sixteen-bit Huffman/arithmetic lossless JPEG decoder plus JPEG encoder.</summary>
 public static partial class OfficeJpegCodec {
     /// <summary>Returns whether the payload starts with the JPEG start-of-image marker.</summary>
     public static bool IsJpeg(byte[]? encodedBytes) =>
@@ -54,7 +54,10 @@ public static partial class OfficeJpegCodec {
         out int width,
         out int height,
         out int componentCount,
-        OfficeJpegDecodeOptions options = default) {
+        OfficeJpegDecodeOptions options = default,
+        CancellationToken cancellationToken = default,
+        long retainedManagedBytes = 0L,
+        bool preserveRaw16 = false, bool samplesLittleEndian = true) {
         components = Array.Empty<byte>();
         width = 0;
         height = 0;
@@ -68,7 +71,7 @@ public static partial class OfficeJpegCodec {
                 out componentCount,
                 requestedColorTransform,
                 usePdfColorTransformDefault,
-                options);
+                options, cancellationToken, retainedManagedBytes, preserveRaw16, samplesLittleEndian);
             return true;
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException || ex is OverflowException) {
             components = Array.Empty<byte>();

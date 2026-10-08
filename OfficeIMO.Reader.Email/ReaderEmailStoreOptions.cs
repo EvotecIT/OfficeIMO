@@ -4,6 +4,8 @@ namespace OfficeIMO.Reader.Email;
 
 /// <summary>Options for projecting email stores through OfficeIMO.Reader.</summary>
 public sealed class ReaderEmailStoreOptions {
+    /// <summary>Controls concealed HTML in derived item content. Selected bodies are inspected under either policy.</summary>
+    public OfficeIMO.Email.EmailConcealedTextPolicy ConcealedTextPolicy { get; set; }
     private int _maxItems = 1_000;
 
     /// <summary>
@@ -28,9 +30,13 @@ public sealed class ReaderEmailStoreOptions {
     public EmailStoreItemReadOptions? ItemReadOptions { get; set; }
 
     /// <summary>
-    /// Whether PST/OST attachment payloads use session-bound streams instead of resident byte arrays.
+    /// Whether store attachment payloads use session-bound streams instead of resident byte arrays.
     /// Enabled by default for bounded large-store ingestion.
     /// </summary>
+    /// <remarks>
+    /// Streamed attachments expose metadata in Reader assets; supported text is projected while the session is open.
+    /// Set this to false to request resident asset payloads. An explicit streaming item-read preference still applies.
+    /// </remarks>
     public bool StreamAttachmentContent { get; set; } = true;
 
     /// <summary>Maximum matching items fully projected into one Reader result. Default: 1,000.</summary>

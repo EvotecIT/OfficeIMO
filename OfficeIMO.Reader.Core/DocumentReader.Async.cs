@@ -13,7 +13,7 @@ internal static partial class DocumentReaderEngine {
 
     /// <summary>
     /// Asynchronously reads a file into normalized chunks. Native async handlers are awaited directly;
-    /// synchronous format parsing runs after the input has been read asynchronously.
+    /// synchronous path handlers run on a worker while preserving their file-specific behavior.
     /// </summary>
     public static async Task<IReadOnlyList<ReaderChunk>> ReadAsync(
         string path,
@@ -38,16 +38,15 @@ internal static partial class DocumentReaderEngine {
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
+            await ValidateUnchangedPathSourceAsync(source, cancellationToken).ConfigureAwait(false);
             return EnrichChunks(ReaderReadScope.Complete(result).Chunks, source, opt.ComputeHashes, cancellationToken);
         }
 
-        if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
-            return await Task.Run<IReadOnlyList<ReaderChunk>>(
-                () => Read(path, opt, cancellationToken).ToArray(),
-                cancellationToken).ConfigureAwait(false);
-        }
-        using var stream = OpenAsyncReadStream(path);
-        return await ReadAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
+        if (resolution.Handler == null) throw CreateUnsupportedInputException(path, resolution.Detection);
+        // File handlers may use physical paths, timestamps and container-relative identities.
+        // A stream delegate is not necessarily equivalent to the file delegate.
+        return await Task.Run<IReadOnlyList<ReaderChunk>>(
+            () => Read(path, opt, cancellationToken).ToArray(), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -129,21 +128,18 @@ internal static partial class DocumentReaderEngine {
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
             ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
+            SourceInfo source = await BuildSourceInfoFromPathAsync(path,
+                ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
-            SourceInfo source = await BuildSourceInfoFromPathAsync(path,
-                ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
+            await ValidateUnchangedPathSourceAsync(source, cancellationToken).ConfigureAwait(false);
             return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection));
         }
 
-        if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
-            return await Task.Run(
-                () => ReadDocument(path, opt, cancellationToken),
-                cancellationToken).ConfigureAwait(false);
-        }
-        using var stream = OpenAsyncReadStream(path);
-        return await ReadDocumentAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
+        if (resolution.Handler == null) throw CreateUnsupportedInputException(path, resolution.Detection);
+        return await Task.Run(
+            () => ReadDocument(path, opt, cancellationToken), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

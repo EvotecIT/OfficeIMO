@@ -118,7 +118,51 @@ public class CsvColumnMappingOptionsTests {
         Assert.DoesNotContain("secret-source", error.Message);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DatabaseNullsHaveTheSameMeaningAcrossExplicitMappingPaths(bool parallel) {
+        using var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Note", typeof(string));
+        table.Rows.Add(DBNull.Value, DBNull.Value);
+        table.Rows.Add(7, "present");
+        using var reader = table.CreateDataReader();
+        Action<RowMapper<NullableItem>> configure = map => map
+            .FromColumn<int?>("Id", (row, value) => { row.Id = value; return row; })
+            .FromColumn<string?>("Note", (row, value) => { row.Note = value; return row; });
+
+        NullableItem[] rows = parallel
+            ? reader.RowsAsParallel(configure, new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 }).ToArray()
+            : reader.RowsAs(configure).ToArray();
+
+        Assert.Null(rows[0].Id);
+        Assert.Null(rows[0].Note);
+        Assert.Equal(7, rows[1].Id);
+        Assert.Equal("present", rows[1].Note);
+    }
+
+    public sealed class NullableItem {
+        public int? Id { get; set; } = 42;
+        public string? Note { get; set; } = "initialized";
+    }
+
 #if NET8_0_OR_GREATER
+    [Fact]
+    public async Task AsyncExplicitMappingPreservesDatabaseNulls() {
+        using var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Note", typeof(string));
+        table.Rows.Add(DBNull.Value, DBNull.Value);
+        using var reader = table.CreateDataReader();
+        await foreach (NullableItem row in reader.RowsAsAsync<NullableItem>(map => map
+                           .FromColumn<int?>("Id", (item, value) => { item.Id = value; return item; })
+                           .FromColumn<string?>("Note", (item, value) => { item.Note = value; return item; }))) {
+            Assert.Null(row.Id);
+            Assert.Null(row.Note);
+        }
+    }
+
     [Fact]
     public async Task AsyncMappingUsesSamePerColumnControls() {
         using var reader = CsvDocument.OpenTextDataReader(Text, new CsvLoadOptions { Delimiter = ';' });

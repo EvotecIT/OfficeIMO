@@ -14,6 +14,8 @@ public partial class Html {
         Assert.Equal("Only title", section.Title);
         Assert.Equal(HtmlSemanticSectionTitleSource.Heading, section.TitleSource);
         Assert.Empty(section.Blocks);
+        Assert.Equal("Only title", section.TitleHeading!.Text);
+        Assert.Equal(1, section.TitleHeading.Level);
     }
 
     [Fact]
@@ -24,6 +26,7 @@ public partial class Html {
         Assert.Equal("Imported 1", section.Title);
         Assert.Equal(HtmlSemanticSectionTitleSource.Generated, section.TitleSource);
         Assert.Empty(section.Blocks);
+        Assert.Null(section.TitleHeading);
     }
 
     [Fact]
@@ -737,6 +740,19 @@ public partial class Html {
         Assert.Equal(2, semantic.Resources.Count);
         Assert.Equal(2, HtmlConversionDocument.Parse("<p><img src='data:image/png;base64,AA=='></p><table><tr><td><img src='data:image/png;base64,AQ=='></td></tr></table>")
             .AnalyzeFor(HtmlConversionTarget.Excel).Get(HtmlSemanticFeature.Images).OccurrenceCount);
+    }
+
+    [Fact]
+    public void SemanticDocument_RetainsPolicyApprovedImageHyperlinks() {
+        HtmlSemanticDocument semantic = HtmlConversionDocument.Parse("""
+            <p><a href="https://example.test/guide"><img src="data:image/png;base64,AA==" alt="guide"></a>
+            <a href="javascript:alert(1)"><img src="data:image/png;base64,AQ==" alt="unsafe"></a></p>
+            """).SemanticDocument;
+
+        Assert.Equal("https://example.test/guide", Assert.Single(semantic.ResourceOccurrences,
+            resource => resource.AlternateText == "guide").Hyperlink);
+        Assert.Null(Assert.Single(semantic.ResourceOccurrences,
+            resource => resource.AlternateText == "unsafe").Hyperlink);
     }
 
     [Fact]

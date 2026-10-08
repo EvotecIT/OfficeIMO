@@ -18,18 +18,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static void RenderRasterImage(OfficeRasterCanvas canvas, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, System.Threading.CancellationToken cancellationToken) {
-            double scale = options.Scale;
-            var decodeOptions = new OfficeRasterDecodeOptions { CancellationToken = cancellationToken };
-            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, decodeOptions, out OfficeRasterImage? raster, out _) || raster == null) {
-                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source);
-                cancellationToken.ThrowIfCancellationRequested();
-                fallbackCodec.TryDecode(image.Bytes, image.ContentType, out raster);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            if (raster != null) {
-                canvas.DrawImage(raster, CreateImageProjection(image, scale));
-            }
+            var drawingImage = new OfficeDrawingImage(image.Bytes, image.ContentType, CreateImageProjection(image, options.Scale));
+            OfficeDrawingRasterRenderer.RenderImage(
+                canvas,
+                drawingImage,
+                1D,
+                new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source),
+                options.MaximumRasterPixels,
+                cancellationToken,
+                diagnosticSource: image.Source);
         }
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
@@ -41,12 +38,25 @@ namespace OfficeIMO.Excel {
 
             string clipId = "xl-image-clip-" + (++index).ToString(System.Globalization.CultureInfo.InvariantCulture);
             OfficeImageProjection projection = CreateImageProjection(image, scale);
+            string safeUri = string.Empty;
+            bool linked = image.HyperlinkUri != null
+                && OfficeDrawingLinkPolicy.TryNormalize(image.HyperlinkUri.OriginalString, out safeUri);
+            if (linked) {
+                builder.Append("<a href=\"").Append(EscapeXml(safeUri)).Append("\">");
+            } else if (image.HyperlinkUri != null) {
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ImageHyperlinkUnsupported,
+                    "The picture hyperlink target is not supported by the safe SVG link policy; the image is retained without an interactive link.",
+                    image.Source));
+            }
             OfficeSvgImageRenderer.AppendImageInViewport(
                 builder,
                 dataUri,
                 projection,
                 clipId,
                 new OfficeImagePlacement(0D, 0D, snapshot.Width * scale, snapshot.Height * scale));
+            if (linked) builder.Append("</a>");
         }
 
         private static OfficeImageProjection CreateImageProjection(ExcelVisualImage image, double scale) =>

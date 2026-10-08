@@ -40,14 +40,16 @@ internal sealed partial class PdfStandardSecurityHandler {
     private PdfDictionary EncryptDictionary(int objectNumber, int generation, PdfDictionary dictionary) {
         var encrypted = new PdfDictionary { HasIncompleteSyntax = dictionary.HasIncompleteSyntax };
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
-            encrypted.Items[item.Key] = EncryptObject(objectNumber, generation, item.Value);
+            encrypted.Items[item.Key] = IsSignatureContents(dictionary, item.Key)
+                ? item.Value
+                : EncryptObject(objectNumber, generation, item.Value);
         }
 
         return encrypted;
     }
 
     private byte[] EncryptData(int objectNumber, int generation, byte[] data, PdfCryptMethod method) {
-        if (method == PdfCryptMethod.Identity || data.Length == 0) {
+        if (method == PdfCryptMethod.Identity) {
             return data;
         }
 

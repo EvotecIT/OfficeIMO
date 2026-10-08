@@ -68,6 +68,7 @@ internal static class MboxStreamReader {
             }
 
             if (envelope == null) {
+                if (totalBytes == 0) yield break;
                 throw new InvalidDataException(
                     "EMAIL_MBOX_ENVELOPE_MISSING: The mailbox does not begin with an mbox From separator.");
             }

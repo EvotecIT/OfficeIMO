@@ -33,6 +33,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             var labels = layer.GetFirstChild<C.DataLabels>();
             if (labels?.GetFirstChild<C.Separator>() is C.Separator separator && string.IsNullOrEmpty(separator.Text))
                 throw new NotSupportedException("An empty native data label separator cannot be projected.");
+            if (labels?.GetFirstChild<C.Separator>()?.Text?.Length > OfficeChartLayout.MaximumDataLabelSeparatorCharacters)
+                throw new NotSupportedException("The native data label separator exceeds the supported rendered-text limit.");
             var current = new LabelLayout {
                 Values = LabelFlag<C.ShowValue>(labels), Categories = LabelFlag<C.ShowCategoryName>(labels),
                 SeriesNames = LabelFlag<C.ShowSeriesName>(labels), Percentages = layer is C.PieChart or C.DoughnutChart && LabelFlag<C.ShowPercent>(labels),

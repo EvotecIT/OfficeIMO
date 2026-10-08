@@ -133,6 +133,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_CoverPage_Property_ContentControls() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageProperties.pdf");
         var options = new WordToPdfOptions {
@@ -148,14 +149,14 @@ public partial class Word {
             document.AddParagraph("Native property body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Native property title", text);
         Assert.Contains("Native property company", text);
         Assert.Contains("Native property body", text);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
     }
 
     [Fact]
@@ -238,6 +239,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_CoverPage_Inline_Property_ContentControls() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageInlineProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageInlineProperties.pdf");
         var options = new WordToPdfOptions {
@@ -255,18 +257,19 @@ public partial class Word {
             document.AddParagraph("Native inline property body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Native inline title", text);
         Assert.Contains("Native inline company", text);
         Assert.Contains("Native inline property body", text);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
     }
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Resolves_CoverPage_TextBox_Property_Placeholders() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxProperties.pdf");
         var options = new WordToPdfOptions {
@@ -288,7 +291,7 @@ public partial class Word {
             document.AddParagraph("Native textbox property body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
@@ -297,11 +300,12 @@ public partial class Word {
         Assert.Contains("Native textbox company", text);
         Assert.Contains("Native textbox property body", text);
         Assert.DoesNotContain("[Document title]", text);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
     }
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Resolves_Vml_TextBox_Alias_And_Caps() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxAliasCaps.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxAliasCaps.pdf");
         var options = new WordToPdfOptions {
@@ -320,14 +324,14 @@ public partial class Word {
             document.AddParagraph("Native alias caps body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("NATIVE MIXED CASE COMPANY", text);
         Assert.Contains("Native alias caps body", text);
         Assert.DoesNotContain("[bound company placeholder]", text);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
     }
 
     [Fact]
@@ -363,6 +367,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Drawing_On_First_Page() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDrawing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDrawing.pdf");
         var options = new WordToPdfOptions {
@@ -377,7 +382,7 @@ public partial class Word {
             document.AddParagraph("Native VML cover body");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -390,7 +395,7 @@ public partial class Word {
         string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
         Assert.Contains(" re", pageContent);
         Assert.Contains("1 1 0 rg", pageContent, StringComparison.Ordinal);
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
     }
 
     [Fact]
@@ -1090,6 +1095,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Image_Watermark_To_Pdf_Watermark() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeImageWatermark.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeImageWatermark.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -1105,10 +1111,10 @@ public partial class Word {
             document.AddParagraph("Native image watermark body text");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeWatermarkImageUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeWatermarkImageUnsupported");
         string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Im", pageContent, StringComparison.Ordinal);
 
@@ -1121,16 +1127,18 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeVmlTextRunFonts.docx"));
         var paragraph = new Paragraph(
             new Run(
-                new RunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }),
-                new Text("Monospace VML text")));
+                new RunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "32" }),
+                new Text("Monospace VML text"), new Break(), new Text("Next line")));
         Paragraph textBoxParagraph = CreateNativeVmlTextBoxParagraph(paragraph);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
 
         var runs = (IReadOnlyList<PdfTextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
 
-        PdfTextRun run = Assert.Single(runs);
-        Assert.Equal("Monospace VML text", run.Text);
-        Assert.Equal(PdfStandardFont.Courier, run.Font);
+        Assert.Equal(new[] { "Monospace VML text", "\n", "Next line" }, runs.Select(run => run.Text));
+        Assert.All(runs, run => {
+            Assert.Equal(PdfStandardFont.Courier, run.Font);
+            Assert.Equal(16D, run.FontSize);
+        });
     }
 
     [Fact]
@@ -1185,7 +1193,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Normalizes_HeaderFooter_Table_Cell_LineBreaks() {
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_HeaderFooter_Table_Cell_Paragraph_Lines() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCellLineBreak.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCellLineBreak.pdf");
 
@@ -1202,14 +1210,22 @@ public partial class Word {
             });
         }
 
-        string text = PdfTextExtractor.ExtractAllText(pdfPath);
-        string normalizedText = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
-        Assert.Contains("Native header first Native header second", normalizedText);
+        using var pdf = PdfPigDocument.Open(pdfPath);
+        // The normal document extractor excludes pagination artifacts. Inspect
+        // visible page text here because header story content is the contract.
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Native header first", text);
+        Assert.Contains("Native header second", text);
         Assert.Contains("Native header newline body", text);
+        var words = pdf.GetPage(1).GetWords();
+        var first = Assert.Single(words, word => word.Text == "first");
+        var second = Assert.Single(words, word => word.Text == "second");
+        Assert.True(first.BoundingBox.Bottom > second.BoundingBox.Top);
     }
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Charts_Through_Shared_Renderer() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart.pdf");
         var options = new WordToPdfOptions {
@@ -1230,10 +1246,10 @@ public partial class Word {
             Assert.Equal(new[] { "Passed", "Failed" }, categories);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart", text);
 
@@ -1267,6 +1283,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Inline_Word_Charts_After_Text_Run() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.pdf");
         var options = new WordToPdfOptions {
@@ -1281,10 +1298,10 @@ public partial class Word {
             document.AddParagraph("After inline chart");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Before inline chart", text);
         Assert.Contains("After inline chart", text);
@@ -1327,6 +1344,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Pie_DataLabels() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieDataLabels.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieDataLabels.pdf");
         var options = new WordToPdfOptions {
@@ -1347,10 +1365,10 @@ public partial class Word {
             Assert.True((bool)layout.GetType().GetProperty("ShowDataLabelPercentages")!.GetValue(layout)!);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("1; 100%", text);
         Assert.Contains("0; 0%", text);
@@ -1390,6 +1408,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Cartesian_DataLabels() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordCartesianDataLabels.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordCartesianDataLabels.pdf");
         var options = new WordToPdfOptions {
@@ -1426,10 +1445,10 @@ public partial class Word {
             Assert.Equal("#,##0.0", layout.GetType().GetProperty("AxisNumberFormat")!.GetValue(layout));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Q1; 10.0", text);
         Assert.Contains("Q2; 20.0", text);
@@ -1562,6 +1581,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Chart_AxisTitles() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisTitles.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisTitles.pdf");
         var options = new WordToPdfOptions {
@@ -1582,10 +1602,10 @@ public partial class Word {
             Assert.Equal("Score Axis", layout.GetType().GetProperty("ValueAxisTitle")!.GetValue(layout));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Quarter Axis", text);
         Assert.Contains("Score Axis", text);
@@ -1594,6 +1614,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Line_Chart_NoMarkers() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordLineNoMarkers.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordLineNoMarkers.pdf");
         var options = new WordToPdfOptions {
@@ -1617,16 +1638,17 @@ public partial class Word {
             Assert.False((bool)layout.GetType().GetProperty("ShowMarkers")!.GetValue(layout)!);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After line no markers", text);
     }
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Bar_Chart_Series_Colors() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordBarChartColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordBarChartColors.pdf");
         var options = new WordToPdfOptions {
@@ -1646,10 +1668,10 @@ public partial class Word {
             Assert.Equal(OfficeColor.ParseHex("#E69F00"), palette[1]);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After bar colors", text);
 
@@ -1660,6 +1682,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Area_And_Plot_Area_Colors() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAreaColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAreaColors.pdf");
         var options = new WordToPdfOptions {
@@ -1687,10 +1710,10 @@ public partial class Word {
             Assert.Equal(OfficeColor.ParseHex("#1f4e79"), style.GetType().GetProperty("PlotAreaBorderColor")!.GetValue(style));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart area colors", text);
 
@@ -1703,6 +1726,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Axis_And_Gridline_Colors() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisGridColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisGridColors.pdf");
         var options = new WordToPdfOptions {
@@ -1735,10 +1759,10 @@ public partial class Word {
             Assert.Equal(OfficeColor.ParseHex("#00ff00"), style.GetType().GetProperty("GridLineColor")!.GetValue(style));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After axis grid colors", text);
 
@@ -1770,6 +1794,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Title_Color() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.pdf");
         var options = new WordToPdfOptions {
@@ -1798,10 +1823,10 @@ public partial class Word {
             Assert.Equal(OfficeColor.ParseHex("#cc0066"), style.GetType().GetProperty("TitleColor")!.GetValue(style));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart title color", text);
 
@@ -1811,6 +1836,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Category_Label_Skip() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLabelSkip.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLabelSkip.pdf");
         var options = new WordToPdfOptions {
@@ -1834,16 +1860,17 @@ public partial class Word {
             Assert.Equal(4, (int)layout.GetType().GetProperty("MaximumHorizontalCategoryAxisLabels")!.GetValue(layout)!);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After label skip chart", text);
     }
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Does_Not_Invent_Word_Chart_Legend() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoLegend.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoLegend.pdf");
         var options = new WordToPdfOptions {
@@ -1867,10 +1894,10 @@ public partial class Word {
             Assert.False((bool)layout.GetType().GetProperty("ShowLegend")!.GetValue(layout)!);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After no legend chart", text);
         Assert.DoesNotContain("NoLegendSeries", text, StringComparison.Ordinal);
@@ -1878,6 +1905,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Bottom_Legend_Position() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartBottomLegend.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartBottomLegend.pdf");
         var options = new WordToPdfOptions {
@@ -1901,10 +1929,10 @@ public partial class Word {
             Assert.Equal(OfficeChartLegendPosition.Bottom, layout.GetType().GetProperty("LegendPosition")!.GetValue(layout));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After bottom legend chart", text);
         Assert.Contains("BottomLegendSeries", text);
@@ -1912,6 +1940,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Left_Legend_Position() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLeftLegend.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLeftLegend.pdf");
         var options = new WordToPdfOptions {
@@ -1935,10 +1964,10 @@ public partial class Word {
             Assert.Equal(OfficeChartLegendPosition.Left, layout.GetType().GetProperty("LegendPosition")!.GetValue(layout));
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After left legend chart", text);
         Assert.Contains("LeftLegendSeries", text);
@@ -1946,6 +1975,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Scheme_Series_Colors() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartSchemeColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartSchemeColors.pdf");
         var options = new WordToPdfOptions {
@@ -1976,10 +2006,10 @@ public partial class Word {
             Assert.Equal(OfficeColor.ParseHex("#203864"), palette[0]);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After scheme chart colors", text);
 
@@ -1989,6 +2019,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Pie_Chart_Slice_Colors() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieChartColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieChartColors.pdf");
         var options = new WordToPdfOptions {
@@ -2009,10 +2040,10 @@ public partial class Word {
             Assert.Equal(OfficeColor.ParseHex("#868e96"), palette[2]);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After pie colors", text);
 
@@ -2024,6 +2055,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Word_Chart_Title_Band() {
+        OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleBand.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleBand.pdf");
         var options = new WordToPdfOptions {
@@ -2041,10 +2073,10 @@ public partial class Word {
             Assert.Equal(31D, (double)layout.GetType().GetProperty("TitleTopPadding")!.GetValue(layout)!);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
         }
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart title band", text);
     }

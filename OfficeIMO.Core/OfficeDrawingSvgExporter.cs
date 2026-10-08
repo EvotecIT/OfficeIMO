@@ -150,7 +150,7 @@ public static partial class OfficeDrawingSvgExporter {
                     string? fillGradientId = null;
                     if (drawingShape.Shape.FillRadialGradient != null) {
                         fillGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        sb.AppendRadialGradientDefinition(fillGradientId, drawingShape.Shape.FillRadialGradient);
+                        AppendRadialPaintDefinition(sb, fillGradientId, drawingShape.Shape.FillRadialGradient, drawingShape, cancellationToken);
                     } else if (drawingShape.Shape.FillGradient != null) {
                         fillGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
                         sb.AppendLinearGradientDefinition(fillGradientId, drawingShape.Shape.FillGradient);
@@ -159,7 +159,7 @@ public static partial class OfficeDrawingSvgExporter {
                     string? strokeGradientId = null;
                     if (drawingShape.Shape.StrokeRadialGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        sb.AppendRadialGradientDefinition(strokeGradientId, drawingShape.Shape.StrokeRadialGradient);
+                        AppendRadialPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeRadialGradient, drawingShape, cancellationToken);
                     } else if (drawingShape.Shape.StrokeGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
                         sb.AppendLinearGradientDefinition(strokeGradientId, drawingShape.Shape.StrokeGradient);
@@ -198,7 +198,10 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget, textMetrics);
                     break;
                 case OfficeDrawingLink link:
-                    sb.Append("<a").AppendAttribute("href", link.Uri);
+                    if (!OfficeDrawingLinkPolicy.TryNormalize(link.Uri, out string safeUri)) {
+                        throw new InvalidOperationException("Drawing contains an unsafe interactive link URI.");
+                    }
+                    sb.Append("<a").AppendAttribute("href", safeUri);
                     if (link.AlternativeText != null) sb.AppendAttribute("aria-label", link.AlternativeText);
                     sb.Append("><rect x=\"").Append(Format(link.X))
                         .Append("\" y=\"").Append(Format(link.Y))
@@ -354,7 +357,8 @@ public static partial class OfficeDrawingSvgExporter {
             baseStrokeWidth,
             hasFill,
             hasStroke,
-            OfficeShadowLayerPlanner.CanExpand(shape));
+            OfficeShadowLayerPlanner.CanExpand(shape),
+            Math.Min(shape.Width, shape.Height));
         var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
         for (int index = 0; index < layers.Count; index++) {
             OfficeShadowLayer layer = layers[index];
@@ -365,7 +369,7 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {
         OfficeShape shape = drawingShape.Shape;
-        OfficeShape shadowShape = layer.Expansion > 0D
+        OfficeShape shadowShape = Math.Abs(layer.Expansion) > 0.000000001D
             ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
             : shape.Clone();
         shadowShape.Shadow = null;

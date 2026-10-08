@@ -15,7 +15,7 @@ public sealed partial class OfficeRasterCanvas {
     internal bool PreservePaintedGlyphOrder { get; set; }
     private Dictionary<ShapedTextKey, OfficeTextShapingResult?>? _shapedTextCache;
     private Dictionary<ShapedTextKey, OfficeManagedTextFallback>? _managedTextCache;
-    private readonly OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
+    private OfficeCffOperationBudget _cffOperationBudget = new OfficeCffOperationBudget();
 
     private bool TryGetShapedTextRun(
         string text,
@@ -70,6 +70,7 @@ public sealed partial class OfficeRasterCanvas {
             cloneFontData: false,
             fontProgramCacheKey: font,
             featureSettings: resolvedFeatures));
+        _cancellationToken.ThrowIfCancellationRequested();
         OfficeTextShapingResult? resolved = result;
         if (cache.Count >= MaxShapedTextCacheEntries) cache.Clear();
         cache[key] = resolved;
@@ -93,13 +94,8 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeColor? decorationColor = null) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return true;
-        IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, out OfficeFontStyle resolvedStyle);
-        if (font == null ||
-            !TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out OfficeTextShapingResult run) ||
-            !HasUsableVerticalPositioning(run)) {
-            ReportTextShapingFallback(incomplete: true);
-            return false;
-        }
+        if (!TryResolveVerticalTextRun(text, fontSize, style, fontFamily, featureSettings,
+            out IOfficeFontProgram font, out OfficeFontStyle resolvedStyle, out OfficeTextShapingResult run)) return false;
 
         double size = Math.Max(1D, fontSize);
         double originX = x + width / 2D;
@@ -113,7 +109,7 @@ public sealed partial class OfficeRasterCanvas {
             foreach (OfficeColorGlyphContours layer in colorLayers) {
                 inkBottom = Math.Max(inkBottom, FindMaximumContourY(layer.Contours));
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
-                FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
+                FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
             }
             DrawVerticalTextDecorations(originX, y, height, inkBottom, size, style,
                 underlineStyle, strikethroughStyle, decorationColor ?? color);
@@ -132,10 +128,26 @@ public sealed partial class OfficeRasterCanvas {
         AlignVerticalContoursToTop(contours, y);
         double contourBottom = FindMaximumContourY(contours);
         if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
-        FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
+        FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
         DrawVerticalTextDecorations(originX, y, height, contourBottom, size, style,
             underlineStyle, strikethroughStyle, decorationColor ?? color);
         return true;
+    }
+
+    internal bool CanDrawVerticalText(string text, double fontSize, OfficeFontStyle style,
+        string? fontFamily, OfficeTextFeatureSettings? featureSettings) =>
+        string.IsNullOrEmpty(text) || TryResolveVerticalTextRun(text, fontSize, style, fontFamily, featureSettings,
+            out _, out _, out _);
+
+    private bool TryResolveVerticalTextRun(string text, double fontSize, OfficeFontStyle style,
+        string? fontFamily, OfficeTextFeatureSettings? featureSettings, out IOfficeFontProgram font,
+        out OfficeFontStyle resolvedStyle, out OfficeTextShapingResult run) {
+        font = ResolveTextFont(text, fontFamily, style, fontSize, out resolvedStyle)!;
+        run = null!;
+        if (font != null && TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out run) &&
+            HasUsableVerticalPositioning(run)) return true;
+        ReportTextShapingFallback(incomplete: true);
+        return false;
     }
 
     private void DrawVerticalTextDecorations(

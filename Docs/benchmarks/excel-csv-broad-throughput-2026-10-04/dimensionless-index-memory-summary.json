@@ -1,0 +1,463 @@
+{
+  "Workers": 144,
+  "Net8ValidationWorkers": 24,
+  "Comparisons": [
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Numeric-Public-25000-Utf16-False-Prefetch-False",
+      "BeforeCallerBytes": 5346496.0,
+      "AfterCallerBytes": 5356144.0,
+      "BeforeAllThreadBytes": 5555013.333333333,
+      "AfterAllThreadBytes": 5460880.0,
+      "BeforeRetainedBytes": 4239885.333333333,
+      "AfterRetainedBytes": 4238392.0,
+      "BeforeCallerRange": [
+        5346408.0,
+        5346584.0
+      ],
+      "AfterCallerRange": [
+        5323360.0,
+        5421664.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Numeric-Public-25000-Utf16-True-Prefetch-False",
+      "BeforeCallerBytes": 1886493.3333333333,
+      "AfterCallerBytes": 1883154.6666666667,
+      "BeforeAllThreadBytes": 2076357.3333333333,
+      "AfterAllThreadBytes": 2133712.0,
+      "BeforeRetainedBytes": 354466.6666666667,
+      "AfterRetainedBytes": 343661.3333333333,
+      "BeforeCallerRange": [
+        1882320.0,
+        1894680.0
+      ],
+      "AfterCallerRange": [
+        1882584.0,
+        1884280.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000",
+      "BeforeCallerBytes": 554141.3333333334,
+      "AfterCallerBytes": 518522.6666666667,
+      "BeforeAllThreadBytes": 646418.6666666666,
+      "AfterAllThreadBytes": 557853.3333333334,
+      "BeforeRetainedBytes": 1290330.6666666667,
+      "AfterRetainedBytes": 1179024.0,
+      "BeforeCallerRange": [
+        553576.0,
+        555024.0
+      ],
+      "AfterCallerRange": [
+        518336.0,
+        518800.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000000",
+      "BeforeCallerBytes": 2103578.6666666665,
+      "AfterCallerBytes": 2103816.0,
+      "BeforeAllThreadBytes": 5907744.0,
+      "AfterAllThreadBytes": 5384298.666666667,
+      "BeforeRetainedBytes": 382637.3333333333,
+      "AfterRetainedBytes": 365728.0,
+      "BeforeCallerRange": [
+        2103480.0,
+        2103752.0
+      ],
+      "AfterCallerRange": [
+        2103696.0,
+        2103896.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-25000",
+      "BeforeCallerBytes": 6682005.333333333,
+      "AfterCallerBytes": 6664821.333333333,
+      "BeforeAllThreadBytes": 6992018.666666667,
+      "AfterAllThreadBytes": 6873562.666666667,
+      "BeforeRetainedBytes": 7739024.0,
+      "AfterRetainedBytes": 7763776.0,
+      "BeforeCallerRange": [
+        6681312.0,
+        6682992.0
+      ],
+      "AfterCallerRange": [
+        6631816.0,
+        6730304.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-250000",
+      "BeforeCallerBytes": 42818293.333333336,
+      "AfterCallerBytes": 42784960.0,
+      "BeforeAllThreadBytes": 44564264.0,
+      "AfterAllThreadBytes": 44377629.333333336,
+      "BeforeRetainedBytes": 42455072.0,
+      "AfterRetainedBytes": 42451034.666666664,
+      "BeforeCallerRange": [
+        42784856.0,
+        42884824.0
+      ],
+      "AfterCallerRange": [
+        42784888.0,
+        42785096.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Numeric-Public-25000-Utf16-False-Prefetch-False",
+      "BeforeCallerBytes": 5392298.666666667,
+      "AfterCallerBytes": 5369744.0,
+      "BeforeAllThreadBytes": 5385880.0,
+      "AfterAllThreadBytes": 5361869.333333333,
+      "BeforeRetainedBytes": 3696829.3333333335,
+      "AfterRetainedBytes": 3696090.6666666665,
+      "BeforeCallerRange": [
+        5392208.0,
+        5392368.0
+      ],
+      "AfterCallerRange": [
+        5369440.0,
+        5370096.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Numeric-Public-25000-Utf16-True-Prefetch-False",
+      "BeforeCallerBytes": 1900669.3333333333,
+      "AfterCallerBytes": 1900357.3333333333,
+      "BeforeAllThreadBytes": 1899725.3333333333,
+      "AfterAllThreadBytes": 1902149.3333333333,
+      "BeforeRetainedBytes": 214818.66666666666,
+      "AfterRetainedBytes": 215317.33333333334,
+      "BeforeCallerRange": [
+        1900160.0,
+        1901536.0
+      ],
+      "AfterCallerRange": [
+        1900320.0,
+        1900416.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000",
+      "BeforeCallerBytes": 592432.0,
+      "AfterCallerBytes": 550373.3333333334,
+      "BeforeAllThreadBytes": 576085.3333333334,
+      "AfterAllThreadBytes": 531277.3333333334,
+      "BeforeRetainedBytes": 487677.3333333333,
+      "AfterRetainedBytes": 469008.0,
+      "BeforeCallerRange": [
+        592272.0,
+        592720.0
+      ],
+      "AfterCallerRange": [
+        550048.0,
+        550800.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000000",
+      "BeforeCallerBytes": 2139178.6666666665,
+      "AfterCallerBytes": 2135053.3333333335,
+      "BeforeAllThreadBytes": 2625250.6666666665,
+      "AfterAllThreadBytes": 2660642.6666666665,
+      "BeforeRetainedBytes": 248224.0,
+      "AfterRetainedBytes": 246122.66666666666,
+      "BeforeCallerRange": [
+        2134944.0,
+        2147416.0
+      ],
+      "AfterCallerRange": [
+        2134968.0,
+        2135160.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-25000",
+      "BeforeCallerBytes": 6741306.666666667,
+      "AfterCallerBytes": 6685050.666666667,
+      "BeforeAllThreadBytes": 6767533.333333333,
+      "AfterAllThreadBytes": 6693760.0,
+      "BeforeRetainedBytes": 6609930.666666667,
+      "AfterRetainedBytes": 6590541.333333333,
+      "BeforeCallerRange": [
+        6741080.0,
+        6741568.0
+      ],
+      "AfterCallerRange": [
+        6684888.0,
+        6685176.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-250000",
+      "BeforeCallerBytes": 42816674.666666664,
+      "AfterCallerBytes": 42816544.0,
+      "BeforeAllThreadBytes": 43036586.666666664,
+      "AfterAllThreadBytes": 43027189.333333336,
+      "BeforeRetainedBytes": 42317672.0,
+      "AfterRetainedBytes": 42317296.0,
+      "BeforeCallerRange": [
+        42816624.0,
+        42816736.0
+      ],
+      "AfterCallerRange": [
+        42816488.0,
+        42816648.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Numeric-Public-25000-Utf16-False-Prefetch-False",
+      "BeforeCallerBytes": 5735416.0,
+      "AfterCallerBytes": 5702624.0,
+      "BeforeAllThreadBytes": 5854826.666666667,
+      "AfterAllThreadBytes": 5785597.333333333,
+      "BeforeRetainedBytes": 3546504.0,
+      "AfterRetainedBytes": 3604626.6666666665,
+      "BeforeCallerRange": [
+        5727192.0,
+        5739528.0
+      ],
+      "AfterCallerRange": [
+        5698512.0,
+        5710848.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Numeric-Public-25000-Utf16-True-Prefetch-False",
+      "BeforeCallerBytes": 2267576.0,
+      "AfterCallerBytes": 2267592.0,
+      "BeforeAllThreadBytes": 2393786.6666666665,
+      "AfterAllThreadBytes": 2392813.3333333335,
+      "BeforeRetainedBytes": 546549.3333333334,
+      "AfterRetainedBytes": 582120.0,
+      "BeforeCallerRange": [
+        2263464.0,
+        2275800.0
+      ],
+      "AfterCallerRange": [
+        2263480.0,
+        2275816.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-1000",
+      "BeforeCallerBytes": 938192.0,
+      "AfterCallerBytes": 904880.0,
+      "BeforeAllThreadBytes": 996888.0,
+      "AfterAllThreadBytes": 950906.6666666666,
+      "BeforeRetainedBytes": 872848.0,
+      "AfterRetainedBytes": 821181.3333333334,
+      "BeforeCallerRange": [
+        938192.0,
+        938192.0
+      ],
+      "AfterCallerRange": [
+        902816.0,
+        909008.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-1000000",
+      "BeforeCallerBytes": 2485880.0,
+      "AfterCallerBytes": 2485904.0,
+      "BeforeAllThreadBytes": 4210258.666666667,
+      "AfterAllThreadBytes": 4249533.333333333,
+      "BeforeRetainedBytes": 610586.6666666666,
+      "AfterRetainedBytes": 616093.3333333334,
+      "BeforeCallerRange": [
+        2483816.0,
+        2490008.0
+      ],
+      "AfterCallerRange": [
+        2483840.0,
+        2490032.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-25000",
+      "BeforeCallerBytes": 7068346.666666667,
+      "AfterCallerBytes": 7018981.333333333,
+      "BeforeAllThreadBytes": 7238576.0,
+      "AfterAllThreadBytes": 7155186.666666667,
+      "BeforeRetainedBytes": 6465725.333333333,
+      "AfterRetainedBytes": 5393541.333333333,
+      "BeforeCallerRange": [
+        7066696.0,
+        7071648.0
+      ],
+      "AfterCallerRange": [
+        7015936.0,
+        7022128.0
+      ]
+    },
+    {
+      "Host": "evomini",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-250000",
+      "BeforeCallerBytes": 43165240.0,
+      "AfterCallerBytes": 43171440.0,
+      "BeforeAllThreadBytes": 43828365.333333336,
+      "AfterAllThreadBytes": 43862973.333333336,
+      "BeforeRetainedBytes": 42708528.0,
+      "AfterRetainedBytes": 42706504.0,
+      "BeforeCallerRange": [
+        43165240.0,
+        43165240.0
+      ],
+      "AfterCallerRange": [
+        43165264.0,
+        43177600.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Numeric-Public-25000-Utf16-False-Prefetch-False",
+      "BeforeCallerBytes": 5710384.0,
+      "AfterCallerBytes": 5677776.0,
+      "BeforeAllThreadBytes": 5737272.0,
+      "AfterAllThreadBytes": 5692792.0,
+      "BeforeRetainedBytes": 3971480.0,
+      "AfterRetainedBytes": 3969088.0,
+      "BeforeCallerRange": [
+        5706272.0,
+        5718608.0
+      ],
+      "AfterCallerRange": [
+        5677776.0,
+        5677776.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Numeric-Public-25000-Utf16-True-Prefetch-False",
+      "BeforeCallerBytes": 2214472.0,
+      "AfterCallerBytes": 2214488.0,
+      "BeforeAllThreadBytes": 2242349.3333333335,
+      "AfterAllThreadBytes": 2239397.3333333335,
+      "BeforeRetainedBytes": 487344.0,
+      "AfterRetainedBytes": 487344.0,
+      "BeforeCallerRange": [
+        2214472.0,
+        2214472.0
+      ],
+      "AfterCallerRange": [
+        2214488.0,
+        2214488.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-1000",
+      "BeforeCallerBytes": 910008.0,
+      "AfterCallerBytes": 863664.0,
+      "BeforeAllThreadBytes": 922056.0,
+      "AfterAllThreadBytes": 871754.6666666666,
+      "BeforeRetainedBytes": 764352.0,
+      "AfterRetainedBytes": 743456.0,
+      "BeforeCallerRange": [
+        905896.0,
+        918232.0
+      ],
+      "AfterCallerRange": [
+        863664.0,
+        863664.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-1000000",
+      "BeforeCallerBytes": 2456312.0,
+      "AfterCallerBytes": 2460448.0,
+      "BeforeAllThreadBytes": 2836392.0,
+      "AfterAllThreadBytes": 2852400.0,
+      "BeforeRetainedBytes": 523568.0,
+      "AfterRetainedBytes": 521037.3333333333,
+      "BeforeCallerRange": [
+        2448592.0,
+        2460928.0
+      ],
+      "AfterCallerRange": [
+        2448616.0,
+        2471776.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-25000",
+      "BeforeCallerBytes": 7065688.0,
+      "AfterCallerBytes": 7001088.0,
+      "BeforeAllThreadBytes": 7098530.666666667,
+      "AfterAllThreadBytes": 7028984.0,
+      "BeforeRetainedBytes": 6890376.0,
+      "AfterRetainedBytes": 6867112.0,
+      "BeforeCallerRange": [
+        7065688.0,
+        7065688.0
+      ],
+      "AfterCallerRange": [
+        6996976.0,
+        7009312.0
+      ]
+    },
+    {
+      "Host": "EVOMAGIC",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-250000",
+      "BeforeCallerBytes": 43137232.0,
+      "AfterCallerBytes": 43137760.0,
+      "BeforeAllThreadBytes": 43277058.666666664,
+      "AfterAllThreadBytes": 43273629.333333336,
+      "BeforeRetainedBytes": 42601896.0,
+      "AfterRetainedBytes": 42600336.0,
+      "BeforeCallerRange": [
+        43130016.0,
+        43140840.0
+      ],
+      "AfterCallerRange": [
+        43130040.0,
+        43142376.0
+      ]
+    }
+  ],
+  "Policy": "Three fresh workers per side/runtime/host; first complete read; producer validates every projected field; actual .NET8 validators are separate; canonical PowerForge sampling; no outlier removal; no warmed-time claim"
+}

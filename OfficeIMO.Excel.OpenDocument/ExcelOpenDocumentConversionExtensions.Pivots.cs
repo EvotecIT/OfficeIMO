@@ -47,6 +47,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         long remainingIndexWork = 32_000_000;
         var omittedCellsBySheet = new Dictionary<string, List<(int Row, int Column)>>(StringComparer.Ordinal);
         var headersBySheet = new Dictionary<string, Dictionary<int, List<(int Column, string Name)>>>(StringComparer.Ordinal);
+        SharedStringCache? sharedStrings = null;
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
             if (!neededHeaderRows.ContainsKey(worksheet.Name)) continue;
             if (!convertedCellsBySheet.TryGetValue(worksheet.Name, out HashSet<(int Row, int Column)>? convertedCells)) continue;
@@ -62,7 +63,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (remainingIndexWork <= 0) return 0;
                 if (!relevant) continue;
                 if (!convertedCells.Contains((cell.Row, cell.Column))) omitted.Add((cell.Row, cell.Column));
-                if (neededRows?.Contains(cell.Row) == true && sourceSheet?.TryGetCellText(cell.Row, cell.Column, out string? text) == true
+                if (neededRows?.Contains(cell.Row) == true && sourceSheet != null
+                    && sourceSheet.TryGetCellText(cell.Row, cell.Column,
+                        sharedStrings ??= sourceSheet.BuildCellTextSharedStringSnapshot(), out string? text)
                     && !string.IsNullOrWhiteSpace(text)) {
                     if (!headerRows.TryGetValue(cell.Row, out List<(int Column, string Name)>? headers)) {
                         headers = new List<(int Column, string Name)>();
@@ -337,6 +340,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (header == null) return true;
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var exactNames = new HashSet<string>(StringComparer.Ordinal);
+        SharedStringCache sharedStrings = target.BuildCellTextSharedStringSnapshot();
         long nextColumn = firstColumn;
         foreach (OdsCellRun cell in header.CellRuns) {
             if (cell.StartColumn > lastColumn) break;
@@ -348,7 +352,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             string name = value.DisplayText;
             if (value.Kind == OdsCellValueKind.Empty || string.IsNullOrWhiteSpace(name)
                 || name != name.Trim() || !names.Add(name) || end > start
-                || !target.TryGetCellText((int)(firstRow + 1), (int)(start + 1), out string projectedName)
+                || !target.TryGetCellText((int)(firstRow + 1), (int)(start + 1), sharedStrings, out string projectedName)
                 || !string.Equals(projectedName, name, StringComparison.Ordinal))
                 return true;
             exactNames.Add(name);

@@ -6,8 +6,41 @@ namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
     private sealed class NoteMappingStats {
+        internal sealed class ImageCopyBudget {
+            internal long Limit = 64L * 1024 * 1024;
+            internal long Used;
+            internal bool Exhausted;
+
+            internal bool TryReserve(int byteCount) {
+                if (Exhausted) return false;
+                if (byteCount > Limit - Used) {
+                    Exhausted = true;
+                    return false;
+                }
+                Used += byteCount;
+                Exhausted = Used >= Limit;
+                return true;
+            }
+
+            internal void Refund(int byteCount) {
+                Used -= byteCount;
+                Exhausted = Used >= Limit;
+            }
+        }
+
         internal NoteMappingStats(WordDocument? source = null) {
             WordSource = source;
+            W.Styles? styles = source?.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (styles != null) {
+                foreach (W.Style style in styles.Elements<W.Style>()) {
+                    string? id = style.StyleId?.Value;
+                    if (id != null && id.Length > 0 && !WordStylesById.ContainsKey(id))
+                        WordStylesById.Add(id, style);
+                    if (DefaultWordParagraphStyleId == null &&
+                        style.Type?.Value == W.StyleValues.Paragraph && style.Default?.Value == true)
+                        DefaultWordParagraphStyleId = id;
+                }
+            }
             W.Body? body = source?.OpenXmlDocument.MainDocumentPart?.Document?.Body;
             if (body != null) {
                 foreach (W.Run run in body.Descendants<W.Run>()) {
@@ -36,7 +69,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 }
             }
             if (source != null) {
-                var seenFootnoteDefinitions = new HashSet<long>();
+                var seenFootnoteDefinitions = new SortedSet<long>();
                 foreach (W.Footnote note in source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
                     .Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>()) {
                     if ((note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal) &&
@@ -45,7 +78,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                         UnreferencedFootnoteDefinitions++;
                     if (note.Id != null && !FootnoteBodies.ContainsKey(note.Id.Value)) FootnoteBodies.Add(note.Id.Value, note);
                 }
-                var seenEndnoteDefinitions = new HashSet<long>();
+                var seenEndnoteDefinitions = new SortedSet<long>();
                 foreach (W.Endnote note in source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
                     .Elements<W.Endnote>() ?? Enumerable.Empty<W.Endnote>()) {
                     if ((note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal) &&
@@ -57,30 +90,28 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
         }
 
-        private static void AddAnchor(Dictionary<long, List<W.Run>> index, long id, W.Run run) {
+        private static void AddAnchor(SortedDictionary<long, List<W.Run>> index, long id, W.Run run) {
             if (!index.TryGetValue(id, out List<W.Run>? anchors)) index.Add(id, anchors = new List<W.Run>());
             anchors.Add(run);
         }
 
         internal IReadOnlyList<W.Run> Anchors(OdtNoteKind kind, long? id) {
             if (!id.HasValue) return Array.Empty<W.Run>();
-            Dictionary<long, List<W.Run>> index = kind == OdtNoteKind.Footnote ? FootnoteAnchors : EndnoteAnchors;
+            SortedDictionary<long, List<W.Run>> index = kind == OdtNoteKind.Footnote ? FootnoteAnchors : EndnoteAnchors;
             return index.TryGetValue(id.Value, out List<W.Run>? runs) ? runs : Array.Empty<W.Run>();
         }
 
         internal DocumentFormat.OpenXml.OpenXmlElement? Body(OdtNoteKind kind, long? id) {
             if (!id.HasValue) return null;
-            Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement> index = kind == OdtNoteKind.Footnote
+            SortedDictionary<long, DocumentFormat.OpenXml.OpenXmlElement> index = kind == OdtNoteKind.Footnote
                 ? FootnoteBodies : EndnoteBodies;
             return index.TryGetValue(id.Value, out DocumentFormat.OpenXml.OpenXmlElement? note) ? note : null;
         }
 
-        private readonly Dictionary<long, List<W.Run>> FootnoteAnchors = new Dictionary<long, List<W.Run>>();
-        private readonly Dictionary<long, List<W.Run>> EndnoteAnchors = new Dictionary<long, List<W.Run>>();
-        private readonly Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement> FootnoteBodies =
-            new Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement>();
-        private readonly Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement> EndnoteBodies =
-            new Dictionary<long, DocumentFormat.OpenXml.OpenXmlElement>();
+        private readonly SortedDictionary<long, List<W.Run>> FootnoteAnchors = new();
+        private readonly SortedDictionary<long, List<W.Run>> EndnoteAnchors = new();
+        private readonly SortedDictionary<long, DocumentFormat.OpenXml.OpenXmlElement> FootnoteBodies = new();
+        private readonly SortedDictionary<long, DocumentFormat.OpenXml.OpenXmlElement> EndnoteBodies = new();
         internal int SeenWordFootnotes;
         internal int SeenWordEndnotes;
         internal int UnreferencedFootnoteDefinitions;
@@ -103,10 +134,14 @@ public static partial class WordOpenDocumentConversionExtensions {
         internal bool HasOdtDefaultNoteReferenceFormatting;
         internal int CurrentSectionIndex;
         internal WordDocument? WordSource;
+        internal ImageCopyBudget Images = new();
+        internal readonly Dictionary<string, W.Style> WordStylesById = new(StringComparer.OrdinalIgnoreCase);
+        internal readonly Dictionary<string, bool> InheritedAnchorStyleFormatting = new(StringComparer.OrdinalIgnoreCase);
+        internal string? DefaultWordParagraphStyleId;
         internal readonly Dictionary<int, int> FootnotesBySection = new Dictionary<int, int>();
         internal readonly Dictionary<int, int> EndnotesBySection = new Dictionary<int, int>();
-        internal readonly HashSet<long> ProcessedFootnoteIds = new HashSet<long>();
-        internal readonly HashSet<long> ProcessedEndnoteIds = new HashSet<long>();
+        internal readonly SortedSet<long> ProcessedFootnoteIds = new();
+        internal readonly SortedSet<long> ProcessedEndnoteIds = new();
     }
 
     private static void CopyWordNotes(WordRunSnapshot run, OdtParagraph target, NoteMappingStats notes) {
@@ -144,25 +179,27 @@ public static partial class WordOpenDocumentConversionExtensions {
         return notes.Anchors(kind, referenceId).Any(run =>
             run.RunProperties?.ChildElements.Any(child =>
                 child is not W.RunStyle style || style.Val?.Value != defaultStyle) == true ||
-            HasInheritedWordAnchorStyleFormatting(notes.WordSource, run));
+            HasInheritedWordAnchorStyleFormatting(notes, run));
     }
 
-    private static bool HasInheritedWordAnchorStyleFormatting(WordDocument? source, W.Run run) {
-        W.Styles? styles = source?.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        if (styles == null) return false;
+    private static bool HasInheritedWordAnchorStyleFormatting(NoteMappingStats notes, W.Run run) {
+        if (notes.WordStylesById.Count == 0) return false;
         string? id = run.Ancestors<W.Paragraph>().FirstOrDefault()?.ParagraphProperties?
             .ParagraphStyleId?.Val?.Value;
-        if (id == null) id = styles.Elements<W.Style>().FirstOrDefault(style =>
-            style.Type?.Value == W.StyleValues.Paragraph && style.Default?.Value == true)?.StyleId?.Value;
+        if (id == null) id = notes.DefaultWordParagraphStyleId;
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool hasFormatting = false;
         while (id != null && visited.Add(id)) {
-            W.Style? style = styles.Elements<W.Style>().FirstOrDefault(candidate =>
-                string.Equals(candidate.StyleId?.Value, id, StringComparison.OrdinalIgnoreCase));
-            if (style == null) break;
-            if (style.StyleRunProperties?.HasChildren == true) return true;
+            if (notes.InheritedAnchorStyleFormatting.TryGetValue(id, out hasFormatting)) break;
+            if (!notes.WordStylesById.TryGetValue(id, out W.Style? style)) break;
+            if (style.StyleRunProperties?.HasChildren == true) {
+                hasFormatting = true;
+                break;
+            }
             id = style.BasedOn?.Val?.Value;
         }
-        return false;
+        foreach (string visitedId in visited) notes.InheritedAnchorStyleFormatting[visitedId] = hasFormatting;
+        return hasFormatting;
     }
 
     private static bool HasAmbiguousWordNotePosition(WordRunSnapshot run) =>
@@ -423,7 +460,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         settings.StartNumber.HasValue || settings.NumberingFormat.HasValue;
 
     private static bool HasSectionEndnoteSettings(WordEndnoteSettings settings) =>
-        settings.Position.HasValue || settings.NumberingRestart.HasValue ||
+        // Placement is document-wide and checked from authored settings above.
+        // The section view also exposes the effective default when none is stored.
+        settings.NumberingRestart.HasValue ||
         settings.StartNumber.HasValue || settings.NumberingFormat.HasValue;
 
     private static void CountOdtNoteConfigurationLoss(OdtDocument source, NoteMappingStats notes) {
@@ -458,6 +497,11 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasInheritedNoteStyleFormatting(W.Styles styles, W.Style normal) {
+        var stylesById = new Dictionary<string, W.Style>(StringComparer.OrdinalIgnoreCase);
+        foreach (W.Style style in styles.Elements<W.Style>()) {
+            string? id = style.StyleId?.Value;
+            if (id != null && id.Length > 0 && !stylesById.ContainsKey(id)) stylesById.Add(id, style);
+        }
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         W.Style? current = normal;
         while (current != null) {
@@ -466,8 +510,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             string? baseId = current.BasedOn?.Val?.Value;
             if (baseId == null || baseId.Length == 0) return false;
             if (!visited.Add(baseId)) return true;
-            current = styles.Elements<W.Style>().FirstOrDefault(candidate =>
-                string.Equals(candidate.StyleId?.Value, baseId, StringComparison.OrdinalIgnoreCase));
+            stylesById.TryGetValue(baseId, out current);
             if (current == null) return true;
         }
         return false;
@@ -507,7 +550,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
         if (paragraphs.Any(paragraph => ContainsUnsupportedNoteBodyInline(paragraph.InlineNodes)))
             notes.UnsupportedBodyContent++;
-        string text = string.Join("\n", paragraphs.Select(paragraph => paragraph.Text));
+        string text = OdfTextCodec.ReadJoined(paragraphs.Select(paragraph => paragraph.Element));
         if (source.Kind == OdtNoteKind.Footnote) {
             target.AddFootNote(text);
             notes.ConvertedFootnotes++;

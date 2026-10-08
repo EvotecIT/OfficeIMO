@@ -9,6 +9,48 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData("body", false)]
+        [InlineData("table", false)]
+        [InlineData("control", false)]
+        [InlineData("heading", false)]
+        [InlineData("body", true)]
+        [InlineData("table", true)]
+        [InlineData("control", true)]
+        [InlineData("heading", true)]
+        public void SaveAsPdf_PreservesFootnoteAndEndnoteWithTheSameDisplayNumber(string context, bool nativeDoc) {
+            string path = Path.Combine(_directoryWithFiles, "SameNumberNotes" + context + ".pdf");
+            using var document = WordDocument.Create();
+            document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
+            WordParagraph paragraph = context == "table"
+                ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
+                : document.AddParagraph("SameNumberMarker");
+            paragraph.AddFootNote("FootnoteBody");
+            paragraph.AddEndNote("EndnoteBody");
+            if (context == "heading") paragraph.Style = WordParagraphStyles.Heading7;
+            foreach (var run in paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Run>()) {
+                int size = run.Elements<DocumentFormat.OpenXml.Wordprocessing.FootnoteReference>().Any() ? 14 :
+                    run.Elements<DocumentFormat.OpenXml.Wordprocessing.EndnoteReference>().Any() ? 16 : 0;
+                if (size == 0) continue;
+                run.RunProperties ??= new DocumentFormat.OpenXml.Wordprocessing.RunProperties();
+                run.RunProperties.FontSize = new DocumentFormat.OpenXml.Wordprocessing.FontSize { Val = (size * 2).ToString() };
+            }
+            if (context == "control") {
+                var content = new DocumentFormat.OpenXml.Wordprocessing.SdtContentBlock(paragraph._paragraph!.CloneNode(true));
+                paragraph._paragraph.InsertBeforeSelf(new DocumentFormat.OpenXml.Wordprocessing.SdtBlock(content));
+                paragraph._paragraph.Remove();
+            }
+            using var imported = nativeDoc ? WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc))) : null;
+            (imported ?? document).SaveAsPdf(path, new WordToPdfOptions { IncludePageNumbers = false });
+            var spans = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
+            var marker = Assert.Single(spans, span => span.Text.Contains("SameNumberMarker"));
+            Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
+            var references = spans.Where(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize)
+                .OrderBy(span => span.FontSize).ToArray();
+            Assert.Equal(14D * .65D, references[0].FontSize, precision: 3);
+            Assert.Equal(16D * .65D, references[1].FontSize, precision: 3);
+        }
+
         [Fact]
         public void SaveAsPdf_Renders_Footnotes_And_PageNumbers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfFootnotes.docx");
@@ -75,9 +117,9 @@ namespace OfficeIMO.Tests {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Native footnote here1", allText);
-                Assert.Contains("Native endnote here1", allText);
+                Assert.Contains("Native endnote herei", allText);
                 Assert.Contains("1 Native footnote text", normalizedText);
-                Assert.Contains("1 Native endnote text", normalizedText);
+                Assert.Contains("i Native endnote text", normalizedText);
                 Assert.Contains("Native after notes", allText);
             }
         }

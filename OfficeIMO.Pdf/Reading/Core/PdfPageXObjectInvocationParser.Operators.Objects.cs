@@ -94,7 +94,9 @@ internal static partial class PdfPageXObjectInvocationParser {
                             _state.StrokeDashPattern,
                             GetActiveMcid(),
                             HasArtifactContent(),
-                            _state.ImagePaintEffectState));
+                            _state.ImagePaintEffectState,
+                            new PdfTextStateSnapshot(_textFont, _textSize, _textLeading, _textCharSpacing,
+                                _textWordSpacing, _textHScale, _textRise, _textRenderingMode)));
                     }
 
                     break;

@@ -5,15 +5,21 @@ internal static partial class EpubReader {
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
     private const string ContainerNamespaceUri = "urn:oasis:names:tc:opendocument:xmlns:container";
     private const string XmlEncryptionNamespaceUri = "http://www.w3.org/2001/04/xmlenc#";
+    private const string XhtmlNamespaceUri = "http://www.w3.org/1999/xhtml";
+    private const string SvgNamespaceUri = "http://www.w3.org/2000/svg";
+    private const string NcxNamespaceUri = "http://www.daisy.org/z3986/2005/ncx/";
+    private const string EpubTypesNamespaceUri = "http://www.idpf.org/2007/ops";
 
-    private static bool IsName(XElement element, string expectedLocalName) {
-        return string.Equals(element.Name.LocalName, expectedLocalName, StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsXhtmlNamespace(string value) => value.Length == 0 || value == XhtmlNamespaceUri;
 
-    private static string GetAttribute(XElement element, string attributeName) {
-        var attr = element.Attributes().FirstOrDefault(a => string.Equals(a.Name.LocalName, attributeName, StringComparison.OrdinalIgnoreCase));
-        return attr?.Value ?? string.Empty;
-    }
+    private static bool IsXhtmlName(XElement element, string localName) =>
+        IsXhtmlNamespace(element.Name.NamespaceName) && element.Name.LocalName == localName;
+
+    private static bool IsNcxName(XElement element, string localName) =>
+        element.Name.NamespaceName == NcxNamespaceUri && element.Name.LocalName == localName;
+
+    private static string GetEpubType(XElement element) =>
+        element.Attribute(XName.Get("type", EpubTypesNamespaceUri))?.Value ?? string.Empty;
 
     private static bool IsOpfName(XElement element, string expectedLocalName) =>
         string.Equals(element.Name.NamespaceName, OpfNamespaceUri, StringComparison.Ordinal)
@@ -169,6 +175,7 @@ internal static partial class EpubReader {
             MaxNavigationDepth = source.MaxNavigationDepth,
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
+            MaxTotalTextCharacters = source.MaxTotalTextCharacters,
             MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
             IncludeRawHtml = source.IncludeRawHtml,
             IncludeResourceData = source.IncludeResourceData,
@@ -194,6 +201,7 @@ internal static partial class EpubReader {
             normalized.MaxChapterBytes = 1;
         }
         if (normalized.MaxTotalRawHtmlBytes < 1) normalized.MaxTotalRawHtmlBytes = 1;
+        if (normalized.MaxTotalTextCharacters < 1) normalized.MaxTotalTextCharacters = 1;
         if (normalized.MaxResources < 1) normalized.MaxResources = 1;
         if (normalized.MaxResourceBytes < 1) normalized.MaxResourceBytes = 1;
         if (normalized.MaxTotalResourceBytes < 1) normalized.MaxTotalResourceBytes = 1;

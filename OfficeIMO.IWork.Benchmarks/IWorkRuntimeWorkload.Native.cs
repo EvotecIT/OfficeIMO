@@ -14,11 +14,12 @@ public sealed partial class IWorkRuntimeWorkload {
     public IWorkRuntimeWorkload(string kind, string corpusRoot) {
         _kind = Enum.Parse<IWorkDocumentKind>(kind, ignoreCase: false);
         var (name, hash, units) = _kind switch {
-            IWorkDocumentKind.Pages => ("simple.pages", "5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E", 3),
-            IWorkDocumentKind.Numbers => ("simple.numbers", "D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B", 9),
-            _ => throw new ArgumentException("Native runtime fixtures currently support Pages and Numbers.", nameof(kind))
+            IWorkDocumentKind.Pages => ("nim-iwork/simple.pages", "5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E", 3),
+            IWorkDocumentKind.Numbers => ("nim-iwork/simple.numbers", "D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B", 9),
+            IWorkDocumentKind.Keynote => ("native-exports/keynote-colors-v15.4.key", "D9C7C5D0B1BB2BFF80E44EA683239601DCC5C2E632205AD8611BB0110F3502F1", 2),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
-        _input = File.ReadAllBytes(Path.Combine(corpusRoot, "nim-iwork", name));
+        _input = File.ReadAllBytes(Path.Combine(corpusRoot, name.Replace('/', Path.DirectorySeparatorChar)));
         InputSha256 = Convert.ToHexString(SHA256.HashData(_input));
         if (InputSha256 != hash) throw new InvalidDataException("Native runtime fixture differs from its qualified hash.");
         _units = units;
@@ -29,10 +30,10 @@ public sealed partial class IWorkRuntimeWorkload {
         VerifiedUnits = 0;
         if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {
-                if (!pages.HasRecoverableContent) throw new InvalidDataException("Native Pages content is unavailable.");
+                if (!pages.HasEditableContent) throw new InvalidDataException("Native Pages content is incomplete.");
                 ValidateNativeText(pages.Body.Paragraphs.Select(paragraph => paragraph.Text));
             } else if (_projection is IWorkNumbersProjection numbers) {
-                if (!numbers.HasRecoverableContent) throw new InvalidDataException("Native Numbers content is unavailable.");
+                if (!numbers.HasEditableContent) throw new InvalidDataException("Native Numbers content is incomplete.");
                 IWorkTable table = numbers.Sheets.Single().Tables.Single();
                 if (table.RowCount != 3 || table.ColumnCount != 3 || table.Cells.Count != 9)
                     throw new InvalidDataException("Native Numbers dimensions or cell count mismatch.");
@@ -45,6 +46,8 @@ public sealed partial class IWorkRuntimeWorkload {
                         VerifiedUnits++;
                     }
                 }
+            } else if (_projection is IWorkKeynoteProjection keynote) {
+                ValidateNativeKeynote(keynote);
             } else throw new InvalidDataException("Missing native projection.");
         } else if (_operation == "ConvertSave" && _output is { Length: > 0 }) {
             using var saved = new MemoryStream(_output, writable: false);
@@ -52,6 +55,8 @@ public sealed partial class IWorkRuntimeWorkload {
                 using var document = WordprocessingDocument.Open(saved, false);
                 ValidateNativeText(document.MainDocumentPart!.Document!.Body!
                     .Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>().Select(paragraph => paragraph.InnerText));
+            } else if (_kind == IWorkDocumentKind.Keynote) {
+                ValidateNativeKeynoteOutput(saved);
             } else {
                 using var document = SpreadsheetDocument.Open(saved, false);
                 var workbook = document.WorkbookPart!;

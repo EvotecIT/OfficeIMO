@@ -2858,7 +2858,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, document.Sections.Count);
             Assert.Equal("Before continuous section", Assert.Single(document.Sections[0].Paragraphs).Text);
             Assert.Equal(sectionText, Assert.Single(document.Sections[1].Paragraphs).Text);
-            Assert.Equal(GetSectionMarkValue(expectedSectionTypeKey), GetParagraphSectionType(document));
+            Assert.Equal(GetSectionMarkValue(expectedSectionTypeKey).ToOfficeEnum(), document.Sections[1].BreakType);
         }
 
         [Fact]
@@ -4854,7 +4854,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(20, lcbPlcfSed);
                 Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed));
                 Assert.Equal(ccpText, BitConverter.ToInt32(tableStream, fcPlcfSed + 4));
-                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed + 10));
+                int defaultSectionOffset = BitConverter.ToInt32(tableStream, fcPlcfSed + 10);
+                Assert.InRange(defaultSectionOffset, 512, wordDocumentStream.Length - 2);
+                Assert.Equal(0, BitConverter.ToUInt16(wordDocumentStream, defaultSectionOffset));
                 Assert.Equal(ccpHdd - 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 8));
                 Assert.Equal(ccpHdd + 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 4));
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
@@ -5382,7 +5384,7 @@ namespace OfficeIMO.Tests {
                 int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
                 int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
                 Assert.True(fcDop > 0);
-                Assert.Equal(8, lcbDop);
+                Assert.Equal(500, lcbDop);
                 Assert.Equal(1, BitConverter.ToUInt16(tableStream, fcDop) & 0x0001);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -8040,7 +8042,7 @@ namespace OfficeIMO.Tests {
                     var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
                     style.Append(new StyleName { Val = "Native DOC Palette Shading Table" });
                     style.Append(new BasedOn { Val = "TableNormal" });
-                    style.Append(new StyleTableProperties(
+                    style.Append(new StyleTableCellProperties(
                         new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
@@ -8123,7 +8125,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(360, formattedCellParagraph.IndentationBefore);
                 Assert.Equal("Plain", plainCellParagraph.Text);
                 Assert.Null(plainCellParagraph.ParagraphAlignment);
-                Assert.Null(plainCellParagraph.LineSpacingAfter);
+                Assert.Equal(0, plainCellParagraph.LineSpacingAfter);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8800,13 +8802,13 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Default sides", row.Cells[0].Paragraphs[0].Text);
                 Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Null(row.Cells[0].MarginLeftWidth);
+                Assert.Equal((short)108, row.Cells[0].MarginLeftWidth);
                 Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Null(row.Cells[0].MarginRightWidth);
+                Assert.Equal((short)108, row.Cells[0].MarginRightWidth);
                 Assert.Equal("Specific sides", row.Cells[1].Paragraphs[0].Text);
-                Assert.Null(row.Cells[1].MarginTopWidth);
+                Assert.Equal((short)0, row.Cells[1].MarginTopWidth);
                 Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-                Assert.Null(row.Cells[1].MarginBottomWidth);
+                Assert.Equal((short)0, row.Cells[1].MarginBottomWidth);
                 Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
             } finally {
                 DeleteIfExists(docPath);
@@ -8968,7 +8970,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_IgnoresZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_PreservesZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -8984,15 +8986,15 @@ namespace OfficeIMO.Tests {
                 }
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
-                Assert.False(
+                Assert.True(
                     ContainsBytePattern(wordDocumentStream, 0x33, 0xD6, 0x06),
-                    "Expected native DOC save to omit sprmTCellSpacingDefault for zero auto table cell spacing.");
+                    "Expected native DOC save to preserve explicit zero spacing as sprmTCellSpacingDefault.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Null(reloadedTable.StyleDetails!.CellSpacing);
+                Assert.Equal((short)0, reloadedTable.StyleDetails!.CellSpacing);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("No spacing", row.Cells[0].Paragraphs[0].Text);
             } finally {
@@ -9159,7 +9161,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("NoTop", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Null(reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal(WordBorderStyle.Nil, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
                 Assert.Equal("Inherited", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].Borders.TopColorHex);
@@ -9257,13 +9259,15 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
 
                     var firstColumnTableProperties = new TableStyleConditionalFormattingTableProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" },
                         new TableBorders(
                             new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U },
                             new BottomBorder { Val = BorderValues.Double, Color = "0000FF", Size = 8U },
                             new RightBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
                             new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00FF00", Size = 6U }));
-                    style.Append(new TableStyleProperties(firstColumnTableProperties) { Type = TableStyleOverrideValues.FirstColumn });
+                    style.Append(new TableStyleProperties(firstColumnTableProperties,
+                        new TableStyleConditionalFormattingTableCellProperties(new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" })) {
+                        Type = TableStyleOverrideValues.FirstColumn
+                    });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
                     WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
@@ -9365,8 +9369,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(untouchedCell.FitText);
                 Assert.True(untouchedCell.WrapText);
                 Assert.False(untouchedCell.HideMark);
-                Assert.Null(untouchedCell.MarginTopWidth);
-                Assert.Null(untouchedCell.MarginLeftWidth);
+                Assert.Equal((short)0, untouchedCell.MarginTopWidth);
+                Assert.Equal((short)108, untouchedCell.MarginLeftWidth);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -10184,7 +10188,7 @@ namespace OfficeIMO.Tests {
                     var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
                     baseStyle.Append(new StyleName { Val = "Native DOC Base Shading Table" });
                     baseStyle.Append(new BasedOn { Val = "TableNormal" });
-                    baseStyle.Append(new StyleTableProperties(
+                    baseStyle.Append(new StyleTableCellProperties(
                         new Shading {
                             Val = ShadingPatternValues.Clear,
                             Fill = "FF0000"
@@ -11753,7 +11757,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Before continuous section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal(sectionText, Assert.Single(reloaded.Sections[1].Paragraphs).Text);
-                Assert.Equal(sectionBreakType, GetParagraphSectionType(reloaded));
+                Assert.Equal(sectionBreakType.ToOfficeEnum(), reloaded.Sections[1].BreakType);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -12021,7 +12025,7 @@ namespace OfficeIMO.Tests {
                 int fcDop = BitConverter.ToInt32(wordDocumentStream, 0x192);
                 int lcbDop = BitConverter.ToInt32(wordDocumentStream, 0x196);
                 Assert.True(fcDop > 0);
-                Assert.Equal(56, lcbDop);
+                Assert.Equal(500, lcbDop);
                 Assert.Equal(0u, (BitConverter.ToUInt32(tableStream, fcDop + 52) >> 16) & 0x3);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -12068,28 +12072,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("720", lineNumbering.Distance?.Value);
                 Assert.Equal(4, (int?)lineNumbering.Start?.Value);
                 Assert.Equal(LineNumberRestartValues.NewPage, lineNumbering.Restart?.Value);
-            } finally {
-                DeleteIfExists(docPath);
-            }
-        }
-
-        [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnequalSectionColumnsBeforeCreatingFile() {
-            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-
-            try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Unequal columns");
-                document.Sections[0].ColumnCount = 2;
-                Columns columns = document.Sections[0]._sectionProperties.GetFirstChild<Columns>()!;
-                columns.EqualWidth = false;
-                columns.Append(new Column { Width = "3000", Space = "360" });
-                columns.Append(new Column { Width = "4000", Space = "0" });
-
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-
-                Assert.Contains("equal-width section columns", exception.Message);
-                Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -12235,7 +12217,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }
 
-        private static class LegacyDocTestBuilder {
+        private static partial class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 const int textOffset = 0x800;
@@ -16816,13 +16798,6 @@ namespace OfficeIMO.Tests {
             }
 
             return false;
-        }
-
-        private static SectionMarkValues? GetParagraphSectionType(WordDocument document) {
-            return document._wordprocessingDocument.MainDocumentPart!.Document.Body!
-                .Elements<Paragraph>()
-                .Select(paragraph => paragraph.ParagraphProperties?.SectionProperties?.GetFirstChild<SectionType>()?.Val?.Value)
-                .FirstOrDefault(value => value != null);
         }
 
         private static SectionMarkValues GetSectionMarkValue(string key) {

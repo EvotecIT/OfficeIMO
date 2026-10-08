@@ -4,8 +4,19 @@ namespace OfficeIMO.Drawing;
 /// Controls bounded SVG import limits for trusted inputs that legitimately contain many elements.
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
+    /// <summary>Retains source identifiers as paint-neutral metadata for owned format adapters.</summary>
+    internal bool RetainSourceElementIds { get; set; }
+    /// <summary>Uses the first containing ellipse for native point-focus radial Pad fields.</summary>
+    internal bool UseFirstRadialIntersection { get; set; }
     /// <summary>Cancellation observed during SVG import and managed filter processing.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
+
+    /// <summary>
+    /// Font family used by SVG text that does not declare one. The default preserves
+    /// the existing shared-drawing contract; browser-oriented hosts can select a
+    /// generic family that matches their user-agent profile.
+    /// </summary>
+    public string DefaultFontFamily { get; set; } = "Arial";
 
     /// <summary>
     /// Scoped font faces available when SVG text must be converted to painted vector outlines.
@@ -13,11 +24,26 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// </summary>
     public OfficeFontFaceCollection Fonts { get; } = new OfficeFontFaceCollection();
 
+    /// <summary>Operation-scoped attribution callback for displayed SVG text before font fallback. It is not retained by output scenes.</summary>
+    internal System.Action<string, string?, OfficeFontFaceDescriptor>? FontTextUsageObserver { get; set; }
+
     /// <summary>
     /// Optional caller-owned renderer for bounded inline XHTML inside SVG <c>foreignObject</c> elements.
     /// The returned drawing must use the exact viewport dimensions supplied by the context.
     /// </summary>
     public OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; set; }
+
+    /// <summary>
+    /// Width of a caller-resolved SVG viewport, in CSS pixels. Supply with
+    /// <see cref="ViewportHeight"/> when a host layout owns the viewport size.
+    /// </summary>
+    public double? ViewportWidth { get; set; }
+
+    /// <summary>
+    /// Height of a caller-resolved SVG viewport, in CSS pixels. Supply with
+    /// <see cref="ViewportWidth"/> when a host layout owns the viewport size.
+    /// </summary>
+    public double? ViewportHeight { get; set; }
 
     /// <summary>Default maximum number of descendant and expanded reference elements.</summary>
     public const int DefaultMaximumElements = 10000;
@@ -53,6 +79,9 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// Maximum number of descendant and expanded reference elements. Increase this only for trusted SVG input.
     /// </summary>
     public int MaximumElements { get; set; } = DefaultMaximumElements;
+
+    /// <summary>Maximum geometric path/polygon commands, including expanded references. Defaults to 20000; explicitly bounded fixed-page imports can request up to 1000000. Text, effects, and raster safety retain their separate limits.</summary>
+    public int MaximumGeometryCommands { get; set; } = 20000;
 
     /// <summary>Maximum SVG viewport width or height. Increase this only for trusted SVG input.</summary>
     public double MaximumViewportDimension { get; set; } = DefaultMaximumViewportDimension;

@@ -20,7 +20,7 @@ foreach (var report in conversion.SourceConversionReports)
         Console.WriteLine($"{finding.Code}: {finding.Message}");
 ```
 
-Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature.
+Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature. Supported binary DOC SECTIONPAGES fields retain their editable instruction and cached result during import; PDF header/footer fields use calculated section counts during pagination.
 
 ## Install
 
@@ -82,9 +82,25 @@ document.SaveAsPdf("report.pdf", new WordToPdfOptions {
 
 Table borders follow the Word style and direct cell settings: `nil` suppresses a shared edge while `none` yields to the opposing border. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
 
+Set `cell.TextDirection` to `WordTextDirection.TopToBottomRightToLeft` or `WordTextDirection.BottomToTopLeftToRight` to export Latin cell text with a quarter turn. Borders and padding retain their physical page axes, and inline pictures remain upright at their authored size. Automatic turned text rows use paragraph-mark size and line spacing instead of increasing their height with the visible run font; exact row heights retain their source box. Automatic column widths use the visible text's cross-axis line box. A turned cell's text, objects and links are consumed on its first row fragment when a neighboring cell continues onto another page. Flow, column and canvas tables share the resolved text shrink scale.
+
+East Asian vertical glyph layout and exact automatic sizing for cells with hidden end marks or embedded objects remain outside the qualified mapping. Font metrics and source compatibility settings can still affect absolute cell geometry.
+
+Inline pictures in table cells retain their position among the paragraph's text, including multiple pictures in one run. Their authored display dimensions and alternative descriptions pass to the shared PDF layout; exact-height lines can clip them. Mixed picture runs retain visible text, and hidden runs suppress their pictures in body content, tables, headers and footers. Nested-table content is flattened, so preserving its pictures does not preserve nested table frames.
+
 Ordinary underlining includes spaces between words. Word's explicit *underline words only* style continues to leave those spaces clear.
 
+Word text extraction honors `xml:space`: leading and trailing XML whitespace is significant only when the text node declares `preserve`. PDF export omits insignificant text-node edges. Internal spaces, non-breaking spaces, explicit tabs and line breaks retain their meaning in the Word model. Reading text and exporting PDF leave the source XML unchanged; text authored through the Word APIs preserves supplied spaces. The PDF flow engine can still collapse preserved edge or consecutive spaces in body text and table cells.
+
 Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
+
+Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
+table, paragraph and character styles, with direct formatting and explicit resets
+taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
+paragraphs, including generated page fields, retain the effective values. Width scaling preserves font height;
+tracking remains an advance in page points. These saved run settings do not
+implement the separate dynamic table-cell Fit Text policy. Font substitution can
+still change exact line endings and glyph appearance.
 
 ### Preserve fonts from a trusted template
 
@@ -99,6 +115,20 @@ document.SaveAsPdf("template.pdf", options).RequireSuccess();
 Both system-font and document-font embedding must be allowed. This setting retains the template's individual font families; `FontFamily` instead selects a conversion-wide default. Substitution warnings identify when the resource policy disables embedding, separately from an unavailable font. Local-file and remote-resource access remain governed by their own policy settings.
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
+
+Section columns use the shared PDF flow engine for equal and unequal widths, continuous section transitions and final-page balancing. Paragraph keep, widow and spacing settings remain active inside the column frame. Tables split at row or supported cell-content boundaries, and repeated headers stay with their first body row. Signed table indentation is retained during DOCX/native DOC authoring and PDF placement; an explicit zero indent overrides inherited table-style indentation.
+
+Tables with positive cell spacing retain an outer perimeter and separate cell borders, including table shading in the gaps and different border colors, widths and supported patterns. The frame follows table alignment, indentation, merged cells, page and column continuation, and repeating headers. Exact row heights retain partially visible text through cell clipping; minimum heights allow content to grow. Set `table.StyleDetails.CellSpacing` in twips to author the spacing. An imported explicit automatic or percentage spacing value clears inherited spacing. Floating tables and nested table layout remain subject to the native engine's supported paths.
+
+Paragraph border spacing positions the border outside the text frame without adding horizontal text padding. Borders spanning columns or pages keep their side strokes; their top belongs to the first fragment and their bottom to the last. Native DOC compatibility can produce different fragment capacities from modern DOCX. These mappings preserve the supported source settings; font substitution and unsupported layout features can still change pagination.
+
+Line spacing follows document defaults, table styles, paragraph styles and direct formatting, including built-in headings. Automatic spacing uses the effective paragraph and run fonts after substitution or embedding; exact and minimum spacing retain their point units. Rich body and table paragraphs use their own font size during measurement and pagination. A large run on another line or a large paragraph mark does not impose a minimum font size on every rich line. Authored line breaks retain their run formatting, so larger blank lines can expand minimum spacing. Exact spacing keeps a fixed advance; minimum spacing can expand for larger runs or inline elements. An authored line value without a rule uses automatic spacing. A rule without a numeric line value inherits the complete spacing pair. Font substitution can still change line advances. First-baseline placement, baseline offsets between mixed-size lines, clipping within exact-height lines and exact Word pagination remain limited.
+
+Empty paragraphs retain a blank line when their paragraph mark is visible, including paragraphs whose text runs are all hidden. Their line metrics use the paragraph mark and inherited typography. A hidden mark removes the empty line and its paragraph spacing; an explicit visible mark overrides a hidden paragraph style. An image, shape or inline group rendered in paragraph flow reserves its object height once; a following empty paragraph retains its own blank line. Adjacent text paragraphs in the body, columns, block content controls and individual table cells join across hidden paragraph marks. Joined text uses the first paragraph's alignment and spacing before, the final paragraph's spacing after, and each source run's own inherited typography. Lists, headings, decorated paragraphs, explicit page or column breaks, and object paragraphs retain separate boundaries and emit a warning. Cell joining also retains boundaries when an explicit PDF table style supplies unresolved paragraph typography. Joining in headers and footers remains limited.
+
+Missing table margin sides retain Word's standard zero vertical and 5.4-point horizontal padding. Document table styles, direct table margins and individual cell overrides retain their precedence, including explicit zero values; configured PDF defaults supply missing sides when selected. Unnamed tables use the document's default table style. The built-in `TableNormal` and `NormalTable` definitions contribute no authored child formatting, matching Word's treatment of those definitions as style bases. Native DOC saving resolves custom default table styles and materializes effective padding without changing the source XML.
+
+Object-only paragraphs retain direct and inherited spacing before and after their flow objects, collapsing that spacing with adjacent paragraphs. Hidden shapes with a resolved flow height reserve that height without drawing the shape. Positioned-shape placement remains subject to the renderer's supported anchor and wrapping mappings.
 
 ### Export to bytes or streams
 
@@ -210,17 +240,26 @@ pdf.SaveAsWord(
 
 ## What it exports
 
-- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents.
+- Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings, including hanging and legal negative left/right indents. Built-in Word heading levels 1–9 use the same level mapping as the table of contents in body and column flow. Set `WordToPdfOptions.PdfOptions.TaggedStructureMode` to `PdfTaggedStructureMode.CatalogMarkers` to retain explicit numeric levels during PDF reading and editable Word import, including skipped levels. Tagged PDF uses standard-compatible role mappings for levels 7–9. Untagged output retains the bookmark hierarchy, whose nesting depth cannot identify skipped numeric levels.
 - Word-authored text bullets use portable marker characters. Picture bullets currently use a text bullet in PDF output and report `NativePictureBulletTextFallback` with the source picture-bullet identifier; the embedded marker image is not rendered.
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
+- Tables in headers and footers retain their cell widths, borders, paragraph flow and supported text direction. The selected default, first-page or even-page story controls body reservation using the authored distance from the page edge. PAGE, SECTIONPAGES and NUMPAGES fields retain their individual number styles and are calculated during pagination, including fields without cached results. Form controls remain static text in these stories.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
 - DrawingML groups of supported preset shapes retain nested child coordinates and scaling. Non-wrapping groups behind text preserve page- or margin-relative positions and paragraph-relative vertical anchors. Paragraph anchors follow pagination, columns, and floating-table clearance; list paragraphs retain both their marker and the group.
 
 - Unrotated, uncropped `InFrontOfText` images with explicit page-relative offsets inside the page bounds. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow. Overlapping foreground images follow `WordImage.ZOrder`; images with equal values retain document order.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
+Section gutters reserve space at the left, right, or top of the body frame according to the document settings. Mirrored margins swap the left and right body margins on even visible page numbers, including section numbering restarts. Margin-relative shape groups follow that frame; page-relative groups retain their absolute coordinates. A top gutter uses the same horizontal margins on both page sides, matching Word. An explicit `WordToPdfOptions.Margins` replaces the authored margins, gutter, and mirroring.
+
+Header/footer stories containing tables or SECTIONPAGES fields use the shared bounded PDF flow engine. SECTIONPAGES counts physical pages in the section independently of visible numbering and restarts. Stories must fit on the physical page and leave a positive body frame; page breaks and other unbounded content cannot create pages from a header or footer. Exact text metrics, overflow in very short turned cells, floating table positioning and nested table frames remain subject to the native renderer's limits.
+
 For imported groups with unsupported DrawingML geometry, fixed-position export uses the document's VML fallback when available and reports `NativeShapeGroupVmlFallback`. Supported groups with other wrapping or anchor modes are placed in document flow with `NativeShapeGroupFlowed`; groups that cannot be rendered report `NativeShapeGroupUnsupported`. Arbitrary custom geometry, rotation, flips, foreground stacking, and exact text wrapping around groups remain limited.
+
+Next-page section starts create a new page. Odd/even starts use the continuing page number to insert a blank page when needed, then apply the new section's numbering restart. An odd/even start advances a conflicting restart to the next matching number. Next-page starts with an explicit restart also align the section start with that number's parity. Compatible continuous sections share a page. Embedded page breaks preserve text, run formatting, hyperlinks and explicit bookmark targets on both sides of the break, including consecutive blank pages. Fields spanning paragraphs retain their result visibility through page and column splits; hidden field instructions and their breaks do not create pages. A section mark without body content retains its editable formatting and anchors without adding a blank body line or an extra page. Column layout and changes in page geometry remain subject to the native layout engine's supported paths.
+
+Footnote and endnote reference labels preserve decimal, Roman and letter formats, starting numbers, continuous numbering and section restarts. Word's letter-note sequence continues as `aa`, `bb`, `cc` after `z`. A zero DOCX starting number displays `0` for decimal notes and a blank first label for Roman or letter notes, then continues at `1`, `i` or `a` in the selected case. The same label appears beside the reference and its note text. Footnote bodies follow their section in document flow. Endnote placement follows the document-wide setting: section-end notes follow their section, and document-end notes follow the final section, including notes referenced in earlier sections. An omitted document-wide position means document-end; section-level endnote positions are ignored as they are in Word. The existing `AddEndnoteProperties(position: ...)` methods update placement for the whole document, preserving section numbering during a position-only edit. `EndnoteSettings.Position` reports the effective document placement. Native DOC import and save preserve that setting. Physical bottom-of-page footnote placement remains approximated; page-based numbering restart reports `NativeNotePageRestartApproximated`. Other numbering formats use decimal labels and report `NativeNoteNumberFormatUnsupported`.
 
 ## What it imports
 
@@ -233,6 +272,18 @@ For imported groups with unsupported DrawingML geometry, fixed-position export u
 - Per-operation import warnings through `PdfWordConversionResult.Report`. `HasLoss` and `RequireNoLoss()` use typed approximation, omission, and failure evidence even when a diagnostic is informational. The table-only profile reports visible text outside detected tables as `PdfTextContentNotImported` instead of treating an intentionally narrow extraction as lossless.
 
 ## Options and diagnostics
+
+Word export preserves source-significant leading and repeated spaces in paragraphs
+and table cells. When spaces reach the end of a line, their excess is discarded
+before the next word rather than creating additional blank lines. Trailing spaces
+do not shift centered or right-aligned text.
+
+The converter selects `PdfTextWhitespaceMode.Preserve` unless the supplied
+`PdfOptions` explicitly sets a whitespace policy. Set `TextWhitespaceMode` to
+`Collapse` to normalize flow spacing, or to `Preformatted` for literal spacing.
+The existing `PreserveTextWhitespace = true` setting selects `Preformatted` and
+an explicit `false` selects `Collapse`. Options are cloned before export, so the
+converter does not change the caller's settings.
 
 For a PDF whose page appearance matters more than editability, use visual pages:
 

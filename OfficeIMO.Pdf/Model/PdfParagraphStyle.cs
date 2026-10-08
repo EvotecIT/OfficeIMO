@@ -8,6 +8,7 @@ public class PdfParagraphStyle {
     internal PdfCanvasBlock? AnchoredCanvas { get; set; }
     private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new();
     private double? _lineHeight;
+    private double? _fontSize;
     private double _leftIndent;
     private double _rightIndent;
     private double _firstLineIndent;
@@ -17,7 +18,19 @@ public class PdfParagraphStyle {
     private int _minimumOrphanLines;
     private int _minimumWidowLines;
 
-    /// <summary>Line advance multiplier relative to the paragraph font size. When null the writer uses the default line height.</summary>
+    /// <summary>Fallback font size and empty-line font size in points. When null the writer uses the current default font size.</summary>
+    public double? FontSize {
+        get => _fontSize;
+        set {
+            ValidateOptionalPositiveFiniteValue(value, nameof(FontSize), "Paragraph font size must be a positive finite value.");
+            _fontSize = value;
+        }
+    }
+
+    /// <summary>Explicit line spacing. When set, this overrides <see cref="LineHeight"/>.</summary>
+    public PdfLineSpacing? LineSpacing { get; set; }
+
+    /// <summary>Line advance multiplier relative to the paragraph font size. Used when <see cref="LineSpacing"/> is null. When null the writer uses the default line height.</summary>
     public double? LineHeight {
         get => _lineHeight;
         set {
@@ -109,6 +122,8 @@ public class PdfParagraphStyle {
     public PdfParagraphStyle Clone() {
         var clone = new PdfParagraphStyle {
             AnchoredCanvas = AnchoredCanvas,
+            FontSize = FontSize,
+            LineSpacing = LineSpacing,
             LineHeight = LineHeight,
             LeftIndent = LeftIndent,
             RightIndent = RightIndent,

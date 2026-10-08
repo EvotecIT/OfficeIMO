@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Pdf {
         [ThreadStatic]
         private static int _nativeStructuredDocumentTagDepth;
 
-        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, options);
             RenderNativeStructuredBlockContent(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas, nativeDefaults, nativeFontMap);
 
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (_nativeStructuredDocumentTagDepth >= MaximumNativeStructuredDocumentTagDepth) {
                 throw new InvalidDataException(
                     $"Structured document tag nesting exceeds the supported limit of {MaximumNativeStructuredDocumentTagDepth} levels.");
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (TryGetNativeStructuredBlockPropertyValue(document, sdtBlock, out string? propertyValue)) {
                 pdf.Paragraph(builder => builder.Text(propertyValue!));
                 return;
@@ -47,6 +47,9 @@ namespace OfficeIMO.Word.Pdf {
                 if (element is WordFootNote) {
                     continue;
                 }
+
+                if (TryRenderNativeJoinedParagraphs(pdf, elements, ref i, getMarker,
+                    footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
 
                 RenderNativeElement(
                     pdf,
@@ -119,24 +122,25 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IReadOnlyList<int> GetNativeStructuredBlockFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById) {
-            var numbers = GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById).ToList();
-            var leadingNumbers = new List<int>();
+        private static IReadOnlyList<int> GetNativeStructuredBlockFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById) {
+            var seenKeys = new HashSet<long>();
+            var numbers = GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById, seenKeys).ToList();
+            var leadingKeys = new List<long>();
             int previousIndex = index - 1;
             while (previousIndex >= 0 && (elements[previousIndex] is WordFootNote || elements[previousIndex] is WordEndNote)) {
                 long? key = GetNativeNoteKey(elements[previousIndex]);
-                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number)) {
-                    leadingNumbers.Add(number);
-                }
+                if (key.HasValue) leadingKeys.Add(key.Value);
 
                 previousIndex--;
             }
 
             if (previousIndex < 0) {
-                numbers.AddRange(leadingNumbers);
+                foreach (long key in leadingKeys) {
+                    if (footnoteNumbersById.TryGetValue(key, out int number) && seenKeys.Add(key)) numbers.Add(number);
+                }
             }
 
-            return numbers.Distinct().ToList();
+            return numbers;
         }
 
         private static bool IsNativeCanvasOnlyVmlParagraph(W.Paragraph paragraph) {
@@ -220,7 +224,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativePageBreakSeparator(W.Paragraph paragraph) =>
-            paragraph.ParagraphProperties?.PageBreakBefore != null ||
+            ReadNativeOnOff(paragraph.ParagraphProperties?.PageBreakBefore) == true ||
             paragraph.Descendants<W.Break>().Any(breakElement => breakElement.Type?.Value == W.BreakValues.Page);
 
         private static string? GetNativeBuiltInPropertyValue(WordDocument document, W.SdtProperties? properties) {

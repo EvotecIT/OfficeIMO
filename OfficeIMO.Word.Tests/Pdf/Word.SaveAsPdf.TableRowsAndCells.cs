@@ -309,11 +309,13 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Cell_NoWrap_Text() {
+    public void SaveAsPdf_OfficeIMOEngine_Wraps_Fixed_Table_Cells_Regardless_Of_NoWrap() {
         double wrappedGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellWrapText", wrapText: true);
         double noWrapGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapText", wrapText: false);
+        double explicitOffGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapOff", wrapText: true, explicitNoWrapOff: true);
 
-        Assert.True(wrappedGap > noWrapGap + 16D, $"Expected Word no-wrap table cell text to avoid vertical wrapping in native PDF output. Wrapped gap: {wrappedGap:0.##}; no-wrap gap: {noWrapGap:0.##}.");
+        Assert.Equal(wrappedGap, noWrapGap, precision: 3);
+        Assert.Equal(wrappedGap, explicitOffGap, precision: 3);
     }
 
     [Fact]
@@ -352,7 +354,8 @@ public partial class Word {
             else table.Rows[0].Height = 360;
             table.Rows[0].Cells[0].Width = 2200;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-            table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
+            // Keep enough wrapped lines to exceed the minimum height under font substitution too.
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon Phi Chi Psi Omega";
             table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
 
             document.Save();
@@ -585,7 +588,7 @@ public partial class Word {
         return tableY - afterY;
     }
 
-    private double RenderNativeTableCellWrapTextGap(string fileNamePrefix, bool wrapText) {
+    private double RenderNativeTableCellWrapTextGap(string fileNamePrefix, bool wrapText, bool explicitNoWrapOff = false) {
         const string tableMarker = "Start";
         const string afterMarker = "After";
         string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
@@ -600,6 +603,9 @@ public partial class Word {
             cell.Width = 900;
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.WrapText = wrapText;
+            if (explicitNoWrapOff) {
+                cell._tableCell.TableCellProperties!.AddChild(new NoWrap { Val = OnOffOnlyValues.Off }, true);
+            }
             cell.Paragraphs[0].Text = tableMarker + " Alpha Beta Gamma Delta Epsilon";
 
             WordParagraph after = document.AddParagraph(afterMarker);
@@ -1376,7 +1382,9 @@ public partial class Word {
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
-                Margins = PdfCore.PageMargins.Uniform(72)
+                Margins = PdfCore.PageMargins.Uniform(72),
+                FontFamily = "Helvetica",
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
         }
 
@@ -1388,8 +1396,11 @@ public partial class Word {
 
         double firstGap = alpha.BoundingBox.Bottom - beta.BoundingBox.Bottom;
         double secondGap = beta.BoundingBox.Bottom - gamma.BoundingBox.Bottom;
-        Assert.InRange(firstGap, 13D, 18D);
-        Assert.InRange(secondGap, 13D, 18D);
+        // TableGrid has single spacing. The substituted Helvetica face advances
+        // at 1.15 times the document's declared 11pt size, rather than Calibri metrics.
+        // The style's half-point border adds a quarter point on each side.
+        Assert.Equal(11D * 1.15D + .5D, firstGap, precision: 3);
+        Assert.Equal(firstGap, secondGap, precision: 3);
     }
 
     private (double LeftX, double RightX) RenderNativeTableCellDefaultTabStop(int defaultTabStopTwips, string fileName) {
@@ -1859,6 +1870,13 @@ public partial class Word {
         Assert.Equal("Column span metadata", horizontal.Contents);
         Assert.Equal("Row span metadata", vertical.Contents);
         Assert.True(horizontal.Width > 110D);
-        Assert.True(vertical.Height > 30D);
+        using PdfPigDocument mergedPdf = PdfPigDocument.Open(bytes);
+        var mergedWords = mergedPdf.GetPage(1).GetWords().ToList();
+        var upper = Assert.Single(mergedWords, word => word.Text == "Upper");
+        var lower = Assert.Single(mergedWords, word => word.Text == "Lower");
+        double rowPitch = upper.BoundingBox.Bottom - lower.BoundingBox.Bottom;
+        Assert.True(vertical.Height >= rowPitch * 1.9D);
+        Assert.True(vertical.Y1 <= lower.BoundingBox.Bottom);
+        Assert.True(vertical.Y2 >= upper.BoundingBox.Top);
     }
 }

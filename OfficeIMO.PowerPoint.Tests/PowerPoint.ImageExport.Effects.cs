@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 20, 20, 60, 30);
             shape.FillColor = "E0F2FE";
             shape.OutlineColor = "0284C7";
-            shape.SetShadow("000000", distancePoints: 8, angleDegrees: 45, transparencyPercent: 0);
+            shape.SetShadow("000000", distancePoints: 16, angleDegrees: 45, transparencyPercent: 0);
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(new PowerPointImageExportOptions { Scale = 1D });
             OfficeDrawingShape drawingShape = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), element =>
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(drawingShape.Shape.Shadow);
             Assert.Equal(OfficeColor.FromRgb(0, 0, 0), drawingShape.Shape.Shadow!.Color);
             Assert.Equal(1D, drawingShape.Shape.Shadow.Opacity, precision: 3);
-            Assert.Equal(8D / Math.Sqrt(2D), drawingShape.Shape.Shadow.OffsetX, precision: 3);
-            Assert.Equal(8D / Math.Sqrt(2D), drawingShape.Shape.Shadow.OffsetY, precision: 3);
+            Assert.Equal(16D / Math.Sqrt(2D), drawingShape.Shape.Shadow.OffsetX, precision: 3);
+            Assert.Equal(16D / Math.Sqrt(2D), drawingShape.Shape.Shadow.OffsetY, precision: 3);
             Assert.Equal(4D, drawingShape.Shape.Shadow.BlurRadius, precision: 3);
 
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
@@ -41,8 +41,10 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 1D });
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            // The sample lies inside the opaque shadow, beyond the foreground shape
+            // and the blur transition. Test the halo separately outside its hard bounds.
             Assert.Equal(OfficeColor.FromRgb(0, 0, 0), image!.GetPixel(83, 53));
-            Assert.True(ContainsVisibleNonWhitePixel(image!, 87, 35, 8, 14), "Expected blurred shadow halo pixels outside the hard shadow bounds.");
+            Assert.True(ContainsVisibleNonWhitePixel(image!, 93, 35, 8, 14), "Expected blurred shadow halo pixels outside the hard shadow bounds.");
             AssertNoUnexpectedDiagnostics(png.Diagnostics);
         }
 

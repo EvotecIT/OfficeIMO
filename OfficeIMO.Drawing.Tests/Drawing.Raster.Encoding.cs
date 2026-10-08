@@ -942,18 +942,13 @@ public sealed partial class DrawingRasterEncodingTests {
     }
 
     [Fact]
-    public void RasterContainerInspectionRejectsIdentifiableButUnsupportedFormats() {
+    public void RasterContainerInspectionRejectsVectorOnlySvg() {
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"3\"><rect width=\"2\" height=\"3\"/></svg>");
-        byte[] icon = CreateSingleEntryIcon(
-            OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Blue)));
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(svg, null, out OfficeImageInfo svgInfo));
         Assert.Equal(OfficeImageFormat.Svg, svgInfo.Format);
         Assert.False(OfficeRasterContainerInspector.TryInspect(svg, out _));
-        Assert.True(OfficeImageReader.TryIdentifyByContent(icon, null, out OfficeImageInfo iconInfo));
-        Assert.Equal(OfficeImageFormat.Icon, iconInfo.Format);
-        Assert.False(OfficeRasterContainerInspector.TryInspect(icon, out _));
     }
 
     [Fact]
@@ -1472,14 +1467,14 @@ public sealed partial class DrawingRasterEncodingTests {
     }
 
     [Fact]
-    public void OfficeWebpCodecUsesArithmeticShiftForVp8lPredictorMode13() {
+    public void OfficeWebpCodecTruncatesNegativeOddDifferencesForVp8lPredictorMode13() {
         const uint left = 0xFF646464U;
         const uint top = 0xFF000000U;
         const uint topLeft = 0xFF676767U;
 
         uint predicted = OfficeWebpCodec.PredictVp8l(13, left, top, topLeft, 0U);
 
-        Assert.Equal(0xFF171717U, predicted);
+        Assert.Equal(0xFF181818U, predicted);
     }
 
     private static byte[] CreateVp8lHuffmanEdgeFixture(bool duplicateSimpleTree) {

@@ -218,15 +218,17 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
-    public void PersistedSignatureCompletionDerivesBoundedAppearanceAndContentsBudgets() {
+    public void PersistedSignatureCompletionKeepsOrdinaryStreamBudgets() {
         PdfLoadOptions input = PdfIncrementalUpdater.ResolveCompletionReadOptions(null);
         PdfLoadOptions completion = PdfIncrementalUpdater.ResolvePersistedCompletionReadOptions(
-            input, 300 * 1024 * 1024, 1_020_000);
+            input, 1_020_000);
 
         Assert.Equal(input.Limits.MaxInputBytes, completion.Limits.MaxInputBytes);
         Assert.Equal(input.Limits.MaxIndirectObjects + 64, completion.Limits.MaxIndirectObjects);
         Assert.Equal(input.Limits.MaxRevisions + 1, completion.Limits.MaxRevisions);
-        Assert.Equal(300 * 1024 * 1024, completion.Limits.MaxRawStreamBytes);
+        Assert.Equal(PdfReadLimits.Default.MaxRawStreamBytes, completion.Limits.MaxRawStreamBytes);
+        Assert.Equal(PdfReadLimits.Default.MaxDecodedStreamBytes, completion.Limits.MaxDecodedStreamBytes);
+        Assert.Equal(PdfReadLimits.Default.MaxTotalDecodedStreamBytes, completion.Limits.MaxTotalDecodedStreamBytes);
         Assert.True(completion.Limits.MaxObjectCharacters >= 1_020_000);
     }
 
@@ -240,9 +242,9 @@ public class PdfIncrementalInputLimitTests {
         };
 
         PdfLoadOptions completion = PdfIncrementalUpdater.ResolvePersistedCompletionReadOptions(
-            input, 300 * 1024 * 1024, 1_020_000);
+            input, 1_020_000);
 
-        Assert.Equal(300 * 1024 * 1024, completion.Limits.MaxRawStreamBytes);
+        Assert.Equal(PdfReadLimits.Default.MaxRawStreamBytes, completion.Limits.MaxRawStreamBytes);
         Assert.Equal(1024, completion.Limits.MaxDecodedStreamBytes);
         Assert.Equal(2048, completion.Limits.MaxTotalDecodedStreamBytes);
     }
@@ -308,6 +310,26 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
+    public void PersistedSignatureCompletionRejectsReservationLargerThanProducerLimit() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Bounded persisted reservation")).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source);
+        byte[] marker = System.Text.Encoding.ASCII.GetBytes("/Contents <");
+        int markerOffset = preparation.PreparedPdf.AsSpan().IndexOf(marker);
+        Assert.True(markerOffset > 0);
+        int hexStart = markerOffset + marker.Length;
+        int hexEnd = Array.IndexOf(preparation.PreparedPdf, (byte)'>', hexStart);
+        Assert.True(hexEnd > hexStart);
+        byte[] oversized = preparation.PreparedPdf.AsSpan(0, hexStart).ToArray()
+            .Concat(System.Text.Encoding.ASCII.GetBytes(new string('0', 2 * 1024 * 1024 + 2)))
+            .Concat(preparation.PreparedPdf.AsSpan(hexEnd).ToArray())
+            .ToArray();
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIncrementalUpdater.ApplyExternalSignature(oversized, new byte[] { 0x30, 0x01, 0x00 }));
+        Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
+    }
+
+    [Fact]
     public void SignatureCompletionAdmitsTheAddedFieldAtTheSourceFieldLimit() {
         byte[] source = PdfDocument.Create().TextField("Existing", value: "Ada").ToBytes();
         var readOptions = new PdfLoadOptions {
@@ -357,12 +379,20 @@ public class PdfIncrementalInputLimitTests {
     }
 
     [Fact]
-    public void PersistedSignatureCompletionKeepsDefaultAllowanceWithNonLimitOptions() {
+    public void PersistedSignatureCompletionPreservesEveryCallerInputLimit() {
         var strictOptions = new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict };
         PdfLoadOptions completion = PdfIncrementalUpdater.ResolveCompletionReadOptions(strictOptions);
 
         Assert.Equal(PdfParsingMode.Strict, completion.ParsingMode);
-        Assert.Equal(PdfIncrementalUpdater.DefaultMaxPreparedSignatureBytes, completion.Limits.MaxInputBytes);
+        Assert.Equal(PdfExternalSignatureOptions.DefaultMaxInputBytes, completion.Limits.MaxInputBytes);
+        Assert.Equal(PdfIncrementalUpdater.DefaultMaxPreparedSignatureBytes,
+            PdfIncrementalUpdater.ResolveCompletionReadOptions(null).Limits.MaxInputBytes);
+
+        var explicitlyDefaultCap = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = PdfExternalSignatureOptions.DefaultMaxInputBytes }
+        };
+        Assert.Equal(PdfExternalSignatureOptions.DefaultMaxInputBytes,
+            PdfIncrementalUpdater.ResolveCompletionReadOptions(explicitlyDefaultCap).Limits.MaxInputBytes);
 
         var lowerExplicitCap = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = 1024 }

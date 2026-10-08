@@ -9,149 +9,56 @@ namespace OfficeIMO.Excel.Pdf {
         private static void AddWorksheetCanvasPages(
             PdfCore.PdfDocument pdf,
             ExcelDocument document,
-            WorksheetPdfExportPlan plan,
+            IReadOnlyList<WorksheetPdfExportPlan> plans,
             ExcelToPdfOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
             PdfCore.PdfStandardFont defaultFontFamily) {
-            object?[,] values = plan.ExportData.Values;
-            int columns = values.GetLength(1);
-            PdfCore.PageSize pageSize = GetEffectivePageSize(options, plan.PageSetup);
-            PdfCore.PageMargins margins = GetEffectiveMargins(options, plan.PageSetup);
+            WorksheetPdfExportPlan firstPlan = plans[0];
+            PdfCore.PageSize pageSize = GetEffectivePageSize(options, firstPlan.PageSetup);
+            PdfCore.PageMargins margins = GetEffectiveMargins(options, firstPlan.PageSetup);
             double headingHeight = options.IncludeSheetHeadings ? WorksheetHeadingHeight : 0D;
             double availableWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
             double availableHeight = Math.Max(1D, pageSize.Height - margins.Top - margins.Bottom - headingHeight);
-            IReadOnlyList<TableChunk> chunks = plan.HasTable
-                ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight)
-                : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
-
             pdf.Section(page => {
-                ApplyWorksheetPageSetup(page, plan.PageSetup, options);
-                ApplyWorksheetHeaderFooter(page, plan.HeaderFooter, plan.SheetName, document.FilePath, options);
-                page.Content(content => content.Item(item => item.Bookmark(plan.BookmarkName)));
-                for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
-                    if (chunkIndex > 0) {
-                        page.Content(content => content.Item(item => item.PageBreak()));
-                    }
+                ApplyWorksheetPageSetup(page, firstPlan.PageSetup, options);
+                ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, document.FilePath, options);
+                for (int areaIndex = 0; areaIndex < plans.Count; areaIndex++) {
+                    WorksheetPdfExportPlan plan = plans[areaIndex];
+                    int columns = plan.ExportData.Values.GetLength(1);
+                    double worksheetScale = ResolveWorksheetPlanScale(plan, columns, availableWidth, availableHeight);
+                    IReadOnlyList<TableChunk> chunks = plan.HasTable
+                        ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight, worksheetScale)
+                        : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
+                    // Vertical pages share the same column projection. Keep one per horizontal
+                    // segment for this print area instead of copying all source rows on every page.
+                    if (areaIndex > 0) page.Content(content => content.Item(item => item.PageBreak()));
+                    page.Content(content => content.Item(item => item.Bookmark(plan.BookmarkName)));
+                    for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                        if (chunkIndex > 0) {
+                            page.Content(content => content.Item(item => item.PageBreak()));
+                        }
 
-                    TableChunk chunk = chunks[chunkIndex];
-                    bool firstPageForSheet = chunkIndex == 0;
-                    page.Canvas(canvas => RenderWorksheetScene(
-                        canvas,
-                        plan,
-                        chunk,
-                        options,
-                        sheetDestinations,
-                        cellDestinations,
-                        defaultFontFamily,
-                        margins,
-                        availableWidth,
-                        availableHeight,
-                        headingHeight,
-                        firstPageForSheet,
-                        document.DateSystem));
+                        TableChunk chunk = chunks[chunkIndex];
+                        bool firstPageForSheet = areaIndex == 0 && chunkIndex == 0;
+                        page.Canvas(canvas => RenderWorksheetScene(
+                            canvas,
+                            plan,
+                            chunk,
+                            options,
+                            sheetDestinations,
+                            cellDestinations,
+                            defaultFontFamily,
+                            margins,
+                            availableWidth,
+                            availableHeight,
+                            worksheetScale,
+                            headingHeight,
+                            firstPageForSheet,
+                            document.DateSystem));
+                    }
                 }
             });
-        }
-
-        private static IReadOnlyList<TableChunk> CreateWorksheetSceneChunks(
-            WorksheetPdfExportPlan plan,
-            ExcelToPdfOptions options,
-            int columns,
-            double availableWidth,
-            double availableHeight) {
-            IReadOnlyList<TableChunk> requested = CreateTableChunks(plan, options, columns);
-            double authoredScale = GetWorksheetAuthoredScale(plan.PageSetup);
-            bool fitWidth = IsFitToWidth(plan.PageSetup);
-            bool fitHeight = IsFitToHeight(plan.PageSetup);
-            var chunks = new List<TableChunk>();
-
-            foreach (TableChunk requestedChunk in requested) {
-                IReadOnlyList<(int Start, int Count)> columnSegments = fitWidth
-                    ? new[] { (requestedChunk.StartColumn, requestedChunk.ColumnCount) }
-                    : SplitWorksheetColumns(plan, requestedChunk.StartColumn, requestedChunk.ColumnCount, availableWidth / authoredScale);
-
-                foreach ((int startColumn, int columnCount) in columnSegments) {
-                    IReadOnlyList<IReadOnlyList<int>> rowSegments = fitHeight
-                        ? new[] { requestedChunk.RowIndexes }
-                        : SplitWorksheetRows(plan, requestedChunk.RowIndexes, requestedChunk.HeaderRowCount, availableHeight / authoredScale);
-                    foreach (IReadOnlyList<int> rowIndexes in rowSegments) {
-                        int headerRows = Math.Min(requestedChunk.HeaderRowCount, rowIndexes.Count);
-                        chunks.Add(new TableChunk(rowIndexes, headerRows, startColumn, columnCount));
-                    }
-                }
-            }
-
-            return chunks.Count == 0 ? requested : chunks;
-        }
-
-        private static IReadOnlyList<(int Start, int Count)> SplitWorksheetColumns(
-            WorksheetPdfExportPlan plan,
-            int startColumn,
-            int columnCount,
-            double maximumWidth) {
-            if (columnCount <= 0) {
-                return new[] { (startColumn, columnCount) };
-            }
-
-            var result = new List<(int Start, int Count)>();
-            int segmentStart = startColumn;
-            int segmentCount = 0;
-            double segmentWidth = 0D;
-            for (int column = startColumn; column < startColumn + columnCount; column++) {
-                double width = GetExportedColumnWidthPoints(plan, column);
-                if (segmentCount > 0 && segmentWidth + width > maximumWidth) {
-                    result.Add((segmentStart, segmentCount));
-                    segmentStart = column;
-                    segmentCount = 0;
-                    segmentWidth = 0D;
-                }
-
-                segmentWidth += width;
-                segmentCount++;
-            }
-
-            if (segmentCount > 0) {
-                result.Add((segmentStart, segmentCount));
-            }
-
-            return result;
-        }
-
-        private static IReadOnlyList<IReadOnlyList<int>> SplitWorksheetRows(
-            WorksheetPdfExportPlan plan,
-            IReadOnlyList<int> rowIndexes,
-            int headerRowCount,
-            double maximumHeight) {
-            if (rowIndexes.Count == 0) {
-                return new[] { rowIndexes };
-            }
-
-            int headerRows = Math.Min(headerRowCount, rowIndexes.Count);
-            var headerIndexes = rowIndexes.Take(headerRows).ToList();
-            double headerHeight = headerIndexes.Sum(row => GetExportedRowHeightPoints(plan, row));
-            double bodyCapacity = Math.Max(1D, maximumHeight - headerHeight);
-            var result = new List<IReadOnlyList<int>>();
-            var currentBody = new List<int>();
-            double currentHeight = 0D;
-            for (int index = headerRows; index < rowIndexes.Count; index++) {
-                int row = rowIndexes[index];
-                double height = GetExportedRowHeightPoints(plan, row);
-                if (currentBody.Count > 0 && currentHeight + height > bodyCapacity) {
-                    result.Add(headerIndexes.Concat(currentBody).ToList());
-                    currentBody.Clear();
-                    currentHeight = 0D;
-                }
-
-                currentBody.Add(row);
-                currentHeight += height;
-            }
-
-            if (currentBody.Count > 0 || result.Count == 0) {
-                result.Add(headerIndexes.Concat(currentBody).ToList());
-            }
-
-            return result;
         }
 
         private static void RenderWorksheetScene(
@@ -165,6 +72,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PageMargins margins,
             double availableWidth,
             double availableHeight,
+            double worksheetScale,
             double headingHeight,
             bool firstPageForSheet,
             ExcelDateSystem dateSystem) {
@@ -196,25 +104,27 @@ namespace OfficeIMO.Excel.Pdf {
             // title or a thin image strip visible when the anchor is in the last exported row.
             double unscaledSceneWidth = Math.Max(tableWidth, objectBounds.Right);
             double unscaledSceneHeight = Math.Max(tableHeight, objectBounds.Bottom);
-            double scale = ResolveWorksheetSceneScale(plan.PageSetup, unscaledSceneWidth, unscaledSceneHeight, availableWidth, availableHeight);
+            double scale = ResolveWorksheetSceneScale(plan.PageSetup, unscaledSceneWidth, unscaledSceneHeight, availableWidth, availableHeight, worksheetScale);
             double clipWidth = Math.Min(availableWidth, unscaledSceneWidth * scale);
             double clipHeight = Math.Min(availableHeight, unscaledSceneHeight * scale);
 
             canvas.Clip(sceneX, sceneY, Math.Max(1D, clipWidth), Math.Max(1D, clipHeight), clipped => {
                 if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) {
-                    PdfCore.PdfTableStyle tableStyle = CreateWorksheetSceneTableStyle(plan, chunk, options, columnWidths, rowHeights, scale);
+                    SheetExportData data = SelectPageCells(plan, chunk, options);
+                    int[] pageRows = Enumerable.Range(0, chunk.RowIndexes.Count).ToArray();
+                    PdfCore.PdfTableStyle tableStyle = CreateWorksheetSceneTableStyle(plan, data, chunk, options, columnWidths, rowHeights, scale);
                     clipped.Table(
                         CreatePdfRows(
-                            plan.ExportData.Values,
-                            plan.ExportData.Styles,
-                            plan.ExportData.Hyperlinks,
-                            plan.ExportData.CellReferences,
-                            plan.ExportData.StructuredTables,
-                            plan.ExportData.MergedCells,
+                            data.Values,
+                            data.Styles,
+                            data.Hyperlinks,
+                            data.CellReferences,
+                            data.StructuredTables,
+                            data.MergedCells,
                             imagesByCellReference: null,
-                            chunk.RowIndexes,
-                            chunk.StartColumn,
-                            chunk.ColumnCount,
+                            pageRows,
+                            0,
+                            chunk.ColumnIndexes.Count,
                             options.EmptyCellText,
                             sheetDestinations,
                             cellDestinations,
@@ -237,6 +147,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static PdfCore.PdfTableStyle CreateWorksheetSceneTableStyle(
             WorksheetPdfExportPlan plan,
+            SheetExportData data,
             TableChunk chunk,
             ExcelToPdfOptions options,
             IReadOnlyList<double> columnWidths,
@@ -245,17 +156,20 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfTableStyle style = CreateTableStyle(
                 options,
                 plan.PageSetup,
-                chunk.RowIndexes,
+                Enumerable.Range(0, chunk.RowIndexes.Count).ToArray(),
                 chunk.HeaderRowCount,
-                plan.ExportData.Styles,
-                plan.ExportData.ConditionalFills,
-                plan.ExportData.CellReferences,
-                plan.ExportData.StructuredTables,
-                plan.ExportData.ColumnWidths,
-                plan.ExportData.RowHeights,
-                chunk.StartColumn,
-                chunk.ColumnCount);
+                data.Styles,
+                data.ConditionalFills,
+                data.CellReferences,
+                data.StructuredTables,
+                data.ColumnWidths,
+                data.RowHeights,
+                0,
+                chunk.ColumnIndexes.Count);
             style.HeaderFill = null;
+            ApplyGeneralCellAlignments(style, data.Values, Enumerable.Range(0, chunk.RowIndexes.Count).ToArray());
+            style.RightAlignNumeric = false;
+            style.HeaderBold = false;
             style.HeaderTextColor = null;
             style.FooterFill = null;
             style.RowStripeFill = null;
@@ -273,6 +187,7 @@ namespace OfficeIMO.Excel.Pdf {
             style.HeaderFontSize = style.FontSize;
             style.FooterFontSize = style.FontSize;
             style.LineHeight = 1D;
+            style.VerticalAlignments = Enumerable.Repeat(PdfCore.PdfCellVerticalAlign.Bottom, chunk.ColumnIndexes.Count).ToList();
             style.MinRowHeight = 0D;
             style.MaxWidth = null;
             style.PreserveWidth = true;
@@ -285,8 +200,8 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static List<double> CreateWorksheetSceneColumnWidths(WorksheetPdfExportPlan plan, TableChunk chunk) {
-            var widths = new List<double>(chunk.ColumnCount);
-            for (int column = chunk.StartColumn; column < chunk.StartColumn + chunk.ColumnCount; column++) {
+            var widths = new List<double>(chunk.ColumnIndexes.Count);
+            foreach (int column in chunk.ColumnIndexes) {
                 widths.Add(GetExportedColumnWidthPoints(plan, column));
             }
 
@@ -369,8 +284,9 @@ namespace OfficeIMO.Excel.Pdf {
             double sceneWidth,
             double sceneHeight,
             double availableWidth,
-            double availableHeight) {
-            double scale = GetWorksheetAuthoredScale(pageSetup);
+            double availableHeight,
+            double worksheetScale) {
+            double scale = worksheetScale;
             if (IsFitToWidth(pageSetup) || sceneWidth * scale > availableWidth) {
                 scale = Math.Min(scale, availableWidth / Math.Max(1D, sceneWidth));
             }
@@ -552,14 +468,9 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
-            int firstSourceColumn = GetOriginalColumnNumber(references, chunk.StartColumn, Math.Min(plan.ExportedRows, references.GetLength(0)));
-            if (firstSourceColumn <= 0 || sourceColumn < firstSourceColumn) {
-                return false;
-            }
-
             int localColumn = -1;
-            for (int index = 0; index < chunk.ColumnCount; index++) {
-                int exportedColumn = chunk.StartColumn + index;
+            for (int index = 0; index < chunk.ColumnIndexes.Count; index++) {
+                int exportedColumn = chunk.ColumnIndexes[index];
                 if (GetOriginalColumnNumber(references, exportedColumn, Math.Min(plan.ExportedRows, references.GetLength(0))) == sourceColumn) {
                     localColumn = index;
                     break;
@@ -585,7 +496,11 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            for (int column = firstSourceColumn; column < sourceColumn; column++) {
+            // A final page can display repeated titles followed by a distant body segment.
+            // Omitted source columns do not occupy space on that page; only the genuine
+            // trailing gap beyond the last exported column contributes additional width.
+            x = columnWidths.Sum();
+            for (int column = lastSourceColumn + 1; column < sourceColumn; column++) {
                 x += GetWorksheetColumnWidthPoints(plan.Geometry, column);
             }
 

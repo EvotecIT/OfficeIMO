@@ -263,6 +263,8 @@ internal static partial class MsgWriter {
         string? value = header?.Value;
         if (!string.IsNullOrWhiteSpace(value)) return value!;
         int localeId = document.MessageMetadata.LocaleId ?? 1033;
+        // Zero is unspecified. Default only the derived language, preserving the raw locale.
+        if (localeId == 0) return "en-US";
         try {
             return CultureInfo.GetCultureInfo(localeId).Name;
         } catch (CultureNotFoundException) {

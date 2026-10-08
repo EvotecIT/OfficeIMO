@@ -12,6 +12,18 @@ outline-rendering tests.
 
 Copyright 2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)
 
+## OpenSans-Bold.ttf
+
+The report conversion-consistency fixture supplies this Open Sans bold face
+alongside the regular face so authored bold text uses the same font in PDF,
+SVG and raster output. It is a test-only asset under the SIL Open Font License
+1.1 in `OFL-1.1.txt`.
+
+- Fixture source: https://github.com/googlefonts/opensans/blob/bd7e37632246368c60fdcbd374dbf9bad11969b6/fonts/ttf/OpenSans-Bold.ttf
+- SHA-256: `27da758f4dcac9a65abe914c13b463b42982b9909bc65713424099f4810bd1e6`
+
+Copyright 2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)
+
 ## SourceSansPro-Regular.otf
 
 This static CFF1 fixture is from Adobe Source Sans Pro and is licensed under

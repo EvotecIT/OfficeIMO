@@ -110,10 +110,13 @@ internal static class PdfStandardFontDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildCidFontType2DescendantObject(PdfTrueTypeFontProgram font, int descriptorObjectId) {
+    internal static string BuildCidFontType2DescendantObject(PdfTrueTypeFontProgram font, int descriptorObjectId, int cidToGlyphMapObjectId = 0) {
         Guard.NotNull(font, nameof(font));
         if (descriptorObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(descriptorObjectId), "PDF font descriptor object number must be positive.");
+        }
+        if (cidToGlyphMapObjectId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(cidToGlyphMapObjectId), "PDF CID-to-glyph map object number cannot be negative.");
         }
 
         var sb = new StringBuilder();
@@ -140,7 +143,13 @@ internal static class PdfStandardFontDictionaryBuilder {
             AppendUsedGlyphWidths(sb, font, usedGlyphIds);
         }
 
-        sb.Append("] /CIDToGIDMap /Identity >>\n");
+        foreach (var mapping in font.GetUsedAsciiCharacterMappings()) {
+            sb.Append(' ').Append(mapping.CharacterCode.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Append(" [").Append(font.GetGlyphWidth1000(mapping.GlyphId).ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(']');
+        }
+        sb.Append("] /CIDToGIDMap ")
+            .Append(cidToGlyphMapObjectId == 0 ? "/Identity" : PdfSyntaxEscaper.IndirectReference(cidToGlyphMapObjectId))
+            .Append(" >>\n");
         return sb.ToString();
     }
 

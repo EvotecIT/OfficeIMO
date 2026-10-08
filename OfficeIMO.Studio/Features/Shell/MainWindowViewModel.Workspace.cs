@@ -388,6 +388,7 @@ public sealed partial class MainWindowViewModel {
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
         if (ConversionWorkbench.BatchExport.IsBusy) ConversionWorkbench.BatchExport.CancelCommand.Execute(null);
         if (InvoiceWorkbench.CanCancel) InvoiceWorkbench.CancelCommand.Execute(null);
+        if (BookWorkbench.IsBusy) BookWorkbench.CancelCommand.Execute(null);
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
         if (ProvenanceWorkbench.CanCancel) ProvenanceWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
@@ -404,7 +405,7 @@ public sealed partial class MainWindowViewModel {
         ClearObjectSelection();
         int selectedPage = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, _workspace.Pages.Count);
         PdfDocumentSession session = PdfDocumentSession.FromWorkspace(_workspace);
-        var sceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
+        var sceneCoordinator = new PageSceneCoordinator((page, token) => session.LoadPageSceneAsync(page, token, OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback));
         var renderCoordinator = new PageRenderCoordinator(session.RenderPageAsync);
         PdfPageViewModel[] pages = session.Pages.Select(page => new PdfPageViewModel(
             page.PageNumber,

@@ -138,13 +138,15 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     /// <summary>
     /// Reads only the small set of source properties needed for browsing and search when the format supports it.
-    /// A summary already carried by <paramref name="reference"/> is returned without another source read.
+    /// A complete summary already carried by <paramref name="reference"/> is returned without another source read.
+    /// Partial PST/OST contents-table rows are enriched from the bounded message metadata properties.
     /// </summary>
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
         CancellationToken cancellationToken = default) {
         if (reference == null) throw new ArgumentNullException(nameof(reference));
         ThrowIfDisposed();
-        return reference.Summary ?? _backend.ReadSummary(reference, cancellationToken);
+        return reference.Summary is { RequiresSourceRead: false } summary
+            ? summary : _backend.ReadSummary(reference, cancellationToken);
     }
 
     /// <summary>
@@ -237,7 +239,7 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     private static EmailStoreSession OpenCore(Stream stream, string? sourceName,
         EmailStoreReaderOptions options, bool leaveOpen, long originalPosition,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool isSnapshot = false) {
         if (stream.Length > options.MaxInputBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
                 stream.Length, options.MaxInputBytes);
@@ -252,16 +254,14 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new PstStoreSessionBackend(stream, format, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Olm:
-                    backend = new MaterializedEmailStoreSessionBackend(
-                        new OlmStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    backend = new OlmStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Emlx:
-                    backend = new MaterializedEmailStoreSessionBackend(
-                        new EmlxStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    backend = new EmlxStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Mbox:
                     backend = new MboxStoreSessionBackend(
-                        stream, sourceName, options, cancellationToken);
+                        stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 default:
                     throw new InvalidDataException("The source is not a supported email-store artifact.");

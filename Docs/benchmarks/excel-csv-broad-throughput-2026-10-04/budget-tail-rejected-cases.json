@@ -1,0 +1,52 @@
+{
+  "Public-1000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 1000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-25000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-250000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 250000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-1000000": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 1000000,
+      "Operation": "AllRows"
+    }
+  },
+  "Public-249999": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Setup": "SetupOfficeIMO",
+    "Method": "OfficeIMO",
+    "Properties": {
+      "RowCount": 249999,
+      "Operation": "AllRows"
+    }
+  }
+}

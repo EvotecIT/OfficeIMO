@@ -125,7 +125,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IScanTextRecognitionService? scanTextRecognition = null,
         Func<CancellationToken, Task<string?>>? pickPrintOutput = null,
         Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null,
-        Func<CancellationToken, Task<string?>>? pickProvenanceFile = null) {
+        Func<CancellationToken, Task<string?>>? pickProvenanceFile = null,
+        Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
+        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
+        bool supportsFolderNavigation = true) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
@@ -166,9 +169,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             string.Equals(Path.GetExtension(_services.Storage.Describe(path).Name), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
                 ? _openDocumentInTab(path, token)
                 : _openUri(new Uri(path));
-        OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message);
+        OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message, supportsFolderNavigation);
         Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication,
-            folder => _openUri(new Uri(folder)));
+            supportsFolderNavigation ? folder => _openUri(new Uri(folder)) : null);
+        BookWorkbench = new BookWorkbenchViewModel(() => FileDialogs, _services.Storage,
+            bookPublicationGuard == null ? publicationGuard : new StudioProtectedPublicationGuard(_services.Storage, bookPublicationGuard),
+            confirmBookChanges ?? _confirmUnsavedChanges, _localizer);
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
@@ -195,7 +201,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             jobHistory: _services.Jobs, storage: _services.Storage,
             recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
             readPrintSnapshot: ReadPrintSnapshotAsync, pickPrintOutput: pickPrintOutput);
-        ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, publicationGuard: publicationGuard);
+        ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, runner: null,
+            publicationGuard: publicationGuard, jobHistory: _services.Jobs);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OcrWorkbench = new SearchablePdfOcrViewModel(
@@ -216,6 +223,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         ConversionWorkbench.BatchExport.PropertyChanged += OnWorkflowPropertyChanged;
         InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        BookWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
         ProvenanceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -295,13 +303,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
     partial void OnIsOpeningChanged(bool value) {
         OnPropertyChanged(nameof(CanStartDocumentTransition));
         OnPropertyChanged(nameof(CanCancelOperation));
+        NotifyFormNavigation();
     }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? oldValue, PdfPageViewModel? newValue) {
@@ -365,7 +374,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
             PdfDocumentSession session = PdfDocumentSession.FromWorkspace(candidateWorkspace);
 
-            candidateSceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
+            candidateSceneCoordinator = new PageSceneCoordinator((page, token) => session.LoadPageSceneAsync(page, token, OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback));
             candidateRenderCoordinator = new PageRenderCoordinator(session.RenderPageAsync);
             candidatePages = session.Pages
                 .Select(page => new PdfPageViewModel(
@@ -462,7 +471,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         return true;
     }
 
-    internal Task<bool> PrepareCloseDocumentAsync() => PrepareDocumentTransitionAsync();
+    internal async Task<bool> PrepareCloseDocumentAsync() =>
+        await BookWorkbench.PrepareCloseAsync().ConfigureAwait(true) && await PrepareDocumentTransitionAsync().ConfigureAwait(true);
 
     internal void CancelPreparedClose() => _discardOnNextTransition = false;
 
@@ -531,6 +541,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ApplyZoom(Math.Min(3D, Zoom + 0.25D));
     }
 
+    /// <summary>Applies bounded touch zoom through the same page and render-cache policy as toolbar zoom.</summary>
+    internal void SetTouchZoom(double zoom) {
+        if (!double.IsFinite(zoom)) return;
+        _zoomMode = ViewerZoomMode.Custom;
+        ApplyZoom(Math.Clamp(zoom, 0.25D, 3D));
+    }
+
     [RelayCommand]
     private void ZoomOut() {
         _zoomMode = ViewerZoomMode.Custom;
@@ -581,6 +598,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.BatchExport.PropertyChanged -= OnWorkflowPropertyChanged;
         InvoiceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        BookWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         ProvenanceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
@@ -588,6 +606,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
         InvoiceWorkbench.Dispose();
+        BookWorkbench.Dispose();
         Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
@@ -781,7 +800,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
             OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) == OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(fullPath));
         if (existing is not null) RecentDocuments.Remove(existing);
-        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) { StorageReference = _services.Storage.Describe(fullPath) });
+        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) {
+            StorageReference = _services.Storage.Describe(fullPath), LocalDocuments = _services.LocalDocuments
+        });
         while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
         _recentDocumentStore?.Save(RecentDocuments);
         OnPropertyChanged(nameof(HasRecentDocuments));

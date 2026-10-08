@@ -8,21 +8,34 @@ public sealed class IWorkConvertCommandTests {
     [Theory]
     [InlineData("nim-iwork/simple.pages", "docx")]
     [InlineData("nim-iwork/simple.numbers", "xlsx")]
-    public async Task Apple_partial_acceptance_publishes_default_OOXML_destination_with_typed_fidelity(string fixture, string target) {
+    public async Task Complete_Apple_conversion_publishes_default_OOXML_destination_with_typed_fidelity(string fixture, string target) {
         using var files = new Files(fixture);
-        var rejected = await RunAsync("convert", files.Input);
-        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, rejected.Code);
-        Assert.False(File.Exists(Path.ChangeExtension(files.Input, "." + target)));
-        var result = await RunAsync("convert", files.Input, "--allow-partial");
+        var result = await RunAsync("convert", files.Input);
         Assert.Equal(0, result.Code);
         using JsonDocument json = JsonDocument.Parse(result.Output);
         Assert.True(json.RootElement.GetProperty("succeeded").GetBoolean());
         string destination = json.RootElement.GetProperty("outputPath").GetString()!;
         Assert.Equal("." + target, Path.GetExtension(destination));
         Assert.True(File.Exists(destination));
-        Assert.Contains(json.RootElement.GetProperty("conversionEvidence").GetProperty("fidelityDiagnostics").EnumerateArray(),
+        JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
+        JsonElement facts = evidence.GetProperty("facts");
+        Assert.Equal("EditableReconstruction", facts.GetProperty("projectionKind").GetString());
+        Assert.Equal("False", facts.GetProperty("partialEditableReconstruction").GetString());
+        Assert.Equal("0", facts.GetProperty("omittedSourceUnitCount").GetString());
+        Assert.Equal("0", facts.GetProperty("unassessedSourceUnitCount").GetString());
+        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("lossKind").GetString() == "Unassessed");
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "OutputReopened");
+        if (target == "docx") {
+            using var document = OfficeIMO.Word.WordDocument.Load(destination);
+            Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "hello pages");
+        } else {
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(destination);
+            var sheet = Assert.Single(document.Sheets);
+            Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
+            Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+        }
     }
 
     [Fact]
@@ -67,9 +80,9 @@ public sealed class IWorkConvertCommandTests {
         using var files = new Files("nim-iwork/simple.numbers");
         string destination = Path.ChangeExtension(files.Input, ".xlsx");
         File.WriteAllText(destination, "keep me");
-        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, (await RunAsync("convert", files.Input, destination, "--allow-partial")).Code);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, (await RunAsync("convert", files.Input, destination)).Code);
         Assert.Equal("keep me", File.ReadAllText(destination));
-        Assert.Equal(0, (await RunAsync("convert", files.Input, destination, "--force", "--allow-partial")).Code);
+        Assert.Equal(0, (await RunAsync("convert", files.Input, destination, "--force")).Code);
         using var document = OfficeIMO.Excel.ExcelDocument.Load(destination);
         Assert.Single(document.Sheets);
     }
@@ -117,8 +130,8 @@ public sealed class IWorkConvertCommandTests {
         ZipFile.ExtractToDirectory(archive, files.Input);
         string input = files.Input + (trailingSeparator ? Path.DirectorySeparatorChar : string.Empty);
         string destination = Path.ChangeExtension(files.Input, ".xlsx");
-        var result = explicitDestination ? await RunAsync("convert", input, destination, "--allow-partial")
-            : await RunAsync("convert", input, "--allow-partial");
+        var result = explicitDestination ? await RunAsync("convert", input, destination)
+            : await RunAsync("convert", input);
         Assert.Equal(0, result.Code);
         using var json = JsonDocument.Parse(result.Output);
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), item =>

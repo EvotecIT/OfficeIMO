@@ -17,6 +17,14 @@ public sealed class PdfRedactionSearchOptions {
     /// <summary>Case-sensitive literal matching when true.</summary>
     public bool MatchCase { get; set; }
 
+    /// <summary>Selection granularity for literal and regular-expression criteria. Defaults to complete logical blocks.</summary>
+    /// <remarks>MatchedGlyphs requires native encoded glyph evidence and cannot be combined with logical-kind criteria.</remarks>
+    public PdfRedactionTextSelection TextSelection { get; set; }
+
+    /// <summary>Intersecting-content policy applied to generated areas. Defaults to text and underlay removal.</summary>
+    /// <remarks>Choose TextOnly to preserve images and artwork underneath text-search marks.</remarks>
+    public PdfRedactionContentScope ContentScope { get; set; } = PdfRedactionContentScope.TextAndUnderlay;
+
     /// <summary>Timeout applied independently to every regular-expression match.</summary>
     public TimeSpan RegexTimeout { get; set; } = TimeSpan.FromSeconds(2);
 

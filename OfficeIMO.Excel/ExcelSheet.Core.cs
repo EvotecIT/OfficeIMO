@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel {
 
             // Add a WorksheetPart to the WorkbookPart.
             WorksheetPart worksheetPart = workbookpart.AddNewPart<WorksheetPart>();
-            worksheetPart.Worksheet = new Worksheet(new SheetData());
+            worksheetPart.Worksheet = new Worksheet(CreateDefaultSheetViews(), new SheetData());
 
             // Add Sheets to the Workbook.
             var spWorkbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
@@ -571,7 +571,7 @@ namespace OfficeIMO.Excel {
             return ResolveRichValueError(cell, cell.CellValue?.InnerText) ?? string.Empty;
         }
 
-        private SharedStringCache BuildCellTextSharedStringSnapshot() {
+        internal SharedStringCache BuildCellTextSharedStringSnapshot() {
             if (_spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
                 return SharedStringCache.Build(_spreadSheetDocument);
             }

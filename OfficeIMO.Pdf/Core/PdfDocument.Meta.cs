@@ -282,6 +282,8 @@ public sealed partial class PdfDocument {
     private void AddBlock(IPdfBlock block) {
         EnsureGeneratedDocument();
         Guard.NotNull(block, nameof(block));
+        if (block is TableBlock { Style: { BorderFrame: not null, Position: null, ConsumesVerticalFlow: true } } table)
+            block = new ContainerBlock(table);
         CurrentBlockSink(block);
     }
 
@@ -430,9 +432,8 @@ public sealed partial class PdfDocument {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
-            readOptions ?? ReadOptions,
-            pdf.LongLength);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
+            readOptions ?? ReadOptions, inputBytes, pdf);
         PdfReadDocument? readDocument = validatedReadDocument;
         PdfArtifactSnapshot output = readDocument is null
             ? PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out readDocument)
@@ -464,9 +465,8 @@ public sealed partial class PdfDocument {
         }
 #endif
 
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
-            readOptions ?? ReadOptions,
-            pdf.LongLength);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
+            readOptions ?? ReadOptions, inputBytes, pdf);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, outputPageCount, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(

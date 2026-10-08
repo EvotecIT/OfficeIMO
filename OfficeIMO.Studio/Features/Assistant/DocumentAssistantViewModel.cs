@@ -25,6 +25,7 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     private OfficeAiDocument? _preparedDocument;
     private OfficeAiEvidenceReadiness? _readiness;
     private string? _snapshotHash;
+    private OfficeAiOperation _promptOperation = OfficeAiOperation.Ask;
     private int _generation;
     private bool _disposed;
 
@@ -49,8 +50,10 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
 
     [RelayCommand]
     private void UsePrompt(string? prompt) {
-        if (!IsBusy && prompt is "Summary" or "Actions" or "KeyFacts")
+        if (!IsBusy && prompt is "Summary" or "Actions" or "KeyFacts") {
             Question = _localizer.Get("Assistant.Prompt." + prompt);
+            _promptOperation = prompt == "Summary" ? OfficeAiOperation.Summarize : OfficeAiOperation.Ask;
+        }
     }
     [ObservableProperty] private string _question = string.Empty;
     [ObservableProperty] private string _status = string.Empty;
@@ -63,12 +66,12 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
     internal OfficeAiDocument? PreparedDocument => _preparedDocument;
     public bool CanPrepare => !_disposed && !IsBusy;
     public bool CanReviewAnswer => !_disposed && !IsBusy && LastAnswerText.Length > 0 && _source?.IsCurrent() == true;
-    public bool CanOpenOcr => !_disposed && !IsBusy && _readiness?.PagesWithoutText.Count > 0 && OpenOcr is not null;
+    public bool CanOpenOcr => !_disposed && !IsBusy && _readiness is not null && _source?.IsCurrent() == true && OpenOcr is not null;
     public bool CanAsk => !_disposed && !IsBusy && Connections.CanUse && (Connections.IsLocal || AllowRemoteProcessing)
         && _preparedDocument is not null && _readiness?.HasText == true && _source?.IsCurrent() == true
         && !string.IsNullOrWhiteSpace(Question) && Question.Length <= 8000;
 
-    partial void OnQuestionChanged(string value) => Refresh();
+    partial void OnQuestionChanged(string value) { _promptOperation = OfficeAiOperation.Ask; Refresh(); }
     partial void OnAllowRemoteProcessingChanged(bool value) { if (!value && IsBusy) Cancel(); Refresh(); }
     partial void OnCurrentPageOnlyChanged(bool value) {
         ResetContext();
@@ -94,6 +97,7 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
         int generation = _generation;
         long connectionRevision = Connections.Revision;
         string question = Question.Trim();
+        OfficeAiOperation operation = _promptOperation;
         ShowConnections = false;
         IOfficeAiExecutor? executor = null;
         try {
@@ -114,7 +118,7 @@ internal sealed partial class DocumentAssistantViewModel : ObservableObject, IDi
                 if (Current()) Status = _localizer.FormatOrDefault("Assistant.Progress", "{0} · {1}/{2} batches", value.Stage, value.CompletedBatches, value.TotalBatches);
             });
             OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(document, new OfficeAiRequest {
-                Instruction = question, ConversationContext = context,
+                Operation = operation, Instruction = question, ConversationContext = context,
                 Pages = source.Page.HasValue ? [source.Page.Value] : [], AllowRemoteProcessing = AllowRemoteProcessing
             }, progress, cancellation.Token);
             if (!Current() || result.SnapshotHash != document.SnapshotHash) return;

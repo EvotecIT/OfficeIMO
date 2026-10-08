@@ -159,5 +159,11 @@ public enum PdfReadLimitKind {
     TextSearchFlowComparisons = 51,
 
     /// <summary>Work spent detecting table cell boundaries for text search on one page.</summary>
-    TextSearchTableDetectionWork = 52
+    TextSearchTableDetectionWork = 52,
+
+    /// <summary>Aggregate pixels sampled from function shadings on one page.</summary>
+    FunctionShadingPixels = 53,
+
+    /// <summary>Aggregate calculator work spent sampling function shadings on one page.</summary>
+    FunctionShadingEvaluationWork = 54
 }

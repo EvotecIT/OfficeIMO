@@ -9,6 +9,7 @@ on:
       - "global.json"
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
+      - "Build/WebsiteBrowserContract/**"
       - ".github/workflows/website-ci.yml"
   workflow_dispatch:
 
@@ -26,6 +27,7 @@ jobs:
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@b53912c9f79e3b53b938a9ca8e94290461002a1b
     with:
       website_root: Website
+      authenticate_public_github_data: true
       pipeline_config: Website/pipeline.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}

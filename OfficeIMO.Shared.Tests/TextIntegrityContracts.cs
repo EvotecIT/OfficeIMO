@@ -6,6 +6,33 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class TextIntegrityContracts {
+    [Theory]
+    [InlineData("gbeng")]
+    [InlineData("gbsct")]
+    [InlineData("gbwls")]
+    public void SubdivisionFlagsRetainExactFindingsWithoutDangerousTextVerdict(string region) {
+        string flag = "\U0001F3F4" + string.Concat(region.Select(c => char.ConvertFromUtf32(0xE0000 + c))) + "\U000E007F";
+        string text = "prefix " + flag + " suffix";
+        OfficeTextIntegrityReport report = OfficeTextIntegrityInspector.Inspect(text);
+        Assert.False(report.HasPotentiallyDangerousFindings);
+        Assert.Equal(6, report.Findings.Count);
+        Assert.All(report.Findings, finding => {
+            Assert.Equal(OfficeTextIntegrityRisk.ContextDependent, finding.Risk);
+            Assert.Equal(OfficeTextIntegrityFindingKind.UnicodeTag, finding.Kind);
+            Assert.Equal(2, finding.TextLength);
+            Assert.Equal(finding.CodePoint, char.ConvertToUtf32(text, finding.TextOffset));
+        });
+        Assert.Equal(text, OfficeTextIntegrityCleaner.RemoveSelected(text, Array.Empty<OfficeTextIntegrityFinding>()));
+        Assert.True(OfficeTextIntegrityInspector.Inspect(text + "\U000E0061").HasPotentiallyDangerousFindings);
+        Assert.True(OfficeTextIntegrityInspector.Inspect(flag.Substring(0, flag.Length - 2)).HasPotentiallyDangerousFindings);
+    }
+
+    [Fact]
+    public void ArbitraryTagPayloadAfterFlagRemainsDangerous() {
+        Assert.True(OfficeTextIntegrityInspector.Inspect(
+            "\U0001F3F4\U000E0067\U000E0062\U000E0061\U000E0062\U000E0063\U000E007F").HasPotentiallyDangerousFindings);
+    }
+
     [Fact]
     public void InspectionReportsExactUnicodeSignalsWithoutAuthorshipClaims() {
         string text = "\uFEFFstart\u200Bfa\u200Crsi\u200D \u202Eabc\u202C \U000E0061\u00A0tail";

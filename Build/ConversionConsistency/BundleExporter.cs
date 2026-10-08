@@ -16,6 +16,9 @@ internal static class BundleExporter {
             throw new InvalidDataException("No matching cases or duplicate case identifiers.");
         byte[] fontBytes = File.ReadAllBytes(ArtifactPaths.Resolve(repository, suite.FontPath));
         var fonts = new OfficeFontFaceCollection().Add(suite.FontFamily, fontBytes).AddFallbackFamily(suite.FontFamily);
+        byte[]? boldFontBytes = suite.BoldFontPath == null
+            ? null : File.ReadAllBytes(ArtifactPaths.Resolve(repository, suite.BoldFontPath));
+        if (boldFontBytes != null) fonts.Add(suite.FontFamily, boldFontBytes, OfficeFontStyle.Bold);
         var profile = new OfficeRenderingProfile("conversion-consistency", fonts, OfficeManagedTextShapingProvider.Instance);
         var provenance = await ArtifactPaths.ProvenanceAsync(repository);
         Directory.CreateDirectory(output);
@@ -35,7 +38,7 @@ internal static class BundleExporter {
             var images = new List<ImageArtifact>();
             var diagnostics = new List<string>(exported.Diagnostics);
             var diagnosticDetails = new HashSet<string>(StringComparer.Ordinal);
-            foreach (OfficeImageExportFormat format in Enum.GetValues<OfficeImageExportFormat>()) {
+            foreach (OfficeImageExportFormat format in ComparedImageFormats.All) {
                 int page = 0;
                 foreach (OfficeImageExportResult image in exported.Images(format)) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -53,7 +56,9 @@ internal static class BundleExporter {
             });
         }
         GateJson.Write(Path.Combine(output, "bundle.json"), new EvidenceBundle(1, provenance.Commit, provenance.DiffHash,
-            ArtifactPaths.Hash(fontBytes), suite.FontFamily, suite.Dpi, nameof(OfficeManagedTextShapingProvider), "#ffffff", cases, provenance.Untracked));
+            ArtifactPaths.Hash(fontBytes), suite.FontFamily, suite.Dpi, nameof(OfficeManagedTextShapingProvider), "#ffffff", cases, provenance.Untracked) {
+            BoldFontSha256 = boldFontBytes == null ? null : ArtifactPaths.Hash(boldFontBytes)
+        });
     }
 }
 

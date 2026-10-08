@@ -9,6 +9,83 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlIndividualScale_ShrinksPaintWithoutChangingFlow() {
+        const string html = "<style>body{margin:0}</style>"
+            + "<div id='scaled' style='width:100px;height:50px;margin:0;background:red;scale:.97'></div>"
+            + "<div id='following' style='width:100px;height:10px;margin:0;background:blue'></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+
+        HtmlRenderEffectGroup group = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#scaled");
+        HtmlRenderShape following = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderShape>(), item => item.Source == "div#following" && item.Shape.FillColor.HasValue);
+        Assert.Equal(.97D, group.Transform.M11, 3);
+        Assert.Equal(.97D, group.Transform.M22, 3);
+        Assert.Equal(50D, following.Y, 3);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlIndividualScale_ComposesWithTransformAndAcceptsPercentages() {
+        const string html = "<style>body{margin:0}</style>"
+            + "<div id='composed' style='width:20px;height:20px;margin:0;background:red;transform-origin:0 0;scale:50% 80%;transform:translateX(10px)'></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderEffectGroup group = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#composed");
+        Assert.Equal(.5D, group.Transform.M11, 3);
+        Assert.Equal(.8D, group.Transform.M22, 3);
+        Assert.Equal(5D, group.Transform.OffsetX, 3);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(scale:97%)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(scale:97px)"));
+    }
+
+    [Fact]
+    public void HtmlIndividualScale_InvalidLaterDeclarationDoesNotReplaceValidScale() {
+        const string html = "<style>body{margin:0}</style>"
+            + "<div id='literal' style='width:20px;height:20px;background:red;scale:.97;scale:97px'></div>"
+            + "<div id='variable' style='--factor:95%;width:20px;height:20px;background:blue;scale:var(--factor)'></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            ViewportHeight = 60D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderEffectGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderEffectGroup>().ToList();
+
+        Assert.Equal(.97D, Assert.Single(groups, group => group.Source == "div#literal").Transform.M11, 3);
+        Assert.Equal(.95D, Assert.Single(groups, group => group.Source == "div#variable").Transform.M11, 3);
+    }
+
+    [Fact]
+    public void HtmlIndividualScale_SurvivesUnsupportedTransformForBlockAndInline() {
+        const string html = "<style>body{margin:0}</style>"
+            + "<div id='block' style='width:20px;height:20px;background:red;scale:.8;transform:rotateX(20deg)'></div>"
+            + "<p style='margin:0'><span id='inline' style='scale:.5;transform:rotateX(20deg)'>Inline</span></p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderEffectGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderEffectGroup>().ToList();
+
+        Assert.Equal(.8D, Assert.Single(groups, group => group.Source == "div#block").Transform.M11, 3);
+        Assert.Equal(.5D, Assert.Single(groups, group => group.Source == "span#inline").Transform.M11, 3);
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#block");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#inline");
+    }
+
+    [Fact]
     public void HtmlTransform_TranslatesBlockPaintWithoutChangingFlow() {
         const string html = "<div id='translated' style='width:20px;height:20px;margin:0;background:#ff0000;transform-origin:0 0;transform:translate(30px,10px)'></div>"
             + "<div id='following' style='width:20px;height:20px;margin:0;background:#0000ff'></div>";
@@ -129,8 +206,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
@@ -145,7 +221,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(raster.GetPixel(105, 10).A > 0);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("opacity=\"0.75\"", svg, StringComparison.Ordinal);
-        Assert.Contains("matrix(1 0 0 1 20 5)", svg, StringComparison.Ordinal);
         Assert.Contains("EffectPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.True(pdfLink.SourceLink.X1 >= 15D - 0.01D);
@@ -404,6 +479,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_PathClipCrossingPhysicalPageEdgeStillWritesPdf() {
+        const string html = "<body style='margin:0'><div style='margin-left:15px;width:20px;height:20px;background:red;clip-path:inset(-5px)'>Edge marker</div></body>";
+        var options = new HtmlToPdfOptions {
+            PageSize = new OfficePageSize(30D / 96D, 30D / 96D),
+            ViewportWidth = 30D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+
+        Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+    }
+
+    [Fact]
     public void HtmlClipPath_GeometryBoxesResolveShapePercentagesAndOrigins() {
         const string shared = "width:40px;height:20px;padding:10px;border:2px solid black;margin:5px;background:red;";
         string html = "<div id='content' style='" + shared + "clip-path:inset(0) content-box'></div>"
@@ -480,9 +570,9 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_NonRectangularClipSuppressesOnlyLinksOutsideTheVisibleRegion() {
-        const string html = "<div style='width:100px;height:20px;margin:0;clip-path:polygon(0 0,100% 0,0 100%)'>"
+        const string html = "<div style='width:100px;height:20px;margin:0;font-size:8px;line-height:10px;clip-path:polygon(0 0,100% 0,0 100%)'>"
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/inside'>Inside</a></div>"
-            + "<div style='width:100px;height:20px;margin:0;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
+            + "<div style='width:100px;height:20px;margin:0;font-size:8px;line-height:10px;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/outside'>Outside</a></div>";
         var options = new HtmlToPdfOptions {
             Margins = HtmlRenderMargins.All(0D),

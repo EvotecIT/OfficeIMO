@@ -1,0 +1,114 @@
+// Opt-in artifact qualification. Timing is diagnostic; no host-dependent pass/fail thresholds.
+async function runQualificationCase(args) {
+  if (args.worker) return runQualificationWorker(args);
+  if (args.cancelAfterRows === null) delete args.cancelAfterRows;
+  const nativeCompression = globalThis.CompressionStream;
+  if (args.fallback) globalThis.CompressionStream = class { constructor() { throw new TypeError("Qualification: deflate-raw unavailable"); } };
+  const controller = new AbortController(), failure = new Error("qualification cancellation");
+  let produced = 0, returned = false, pages = 0, outputBytes = 0, writes = 0, firstByteRows = null, maxChunk = 0, maxGap = 0;
+  let peakHeap = performance.memory?.usedJSHeapSize ?? null;
+  let previous = performance.now();
+  const timer = setInterval(() => { const now = performance.now(); maxGap = Math.max(maxGap, now - previous); previous = now; if (peakHeap !== null) peakHeap = Math.max(peakHeap, performance.memory.usedJSHeapSize); }, 10);
+  let timeout;
+  const started = performance.now();
+  let buffer = new Uint8Array(65536), used = 0;
+  async function flush() {
+    if (!used) return;
+    let binary = "";
+    for (let i = 0; i < used; i += 8192) binary += String.fromCharCode(...buffer.subarray(i, Math.min(used, i + 8192)));
+    await globalThis.acceptQualificationChunk(btoa(binary));
+    if (args.slowSink) await new Promise(resolve => setTimeout(resolve, 1));
+    used = 0;
+  }
+  const sink = { async write(bytes) {
+    firstByteRows ??= produced; outputBytes += bytes.length; maxChunk = Math.max(maxChunk, bytes.length); writes++;
+    if (args.hangSink) { timeout = setTimeout(() => controller.abort(failure), 50); await new Promise(() => {}); }
+    let offset = 0;
+    while (offset < bytes.length) {
+      const count = Math.min(bytes.length - offset, buffer.length - used);
+      buffer.set(bytes.subarray(offset, offset + count), used); used += count; offset += count;
+      if (used === buffer.length) await flush();
+    }
+  } };
+  const { ExportCell, writeXlsxTo, writeCsvTo } = OfficeIMO;
+  let projected = 0;
+  const columns = Array.from({ length: args.columns }, (_, c) => ({ header: "Column " + c, key: "c" + c,
+    value: row => { projected++; return row.data.values[c]; },
+    type: ["number", "string", "boolean", "date"][c % 4], ...(c % 4 === 0 ? { format: "0.00" } : {}), ...(c % 4 === 3 ? { format: "yyyy-mm-dd" } : {}),
+    ...(args.styled ? { groups: [c < args.columns / 2 ? "Identity" : "Metrics"] } : {}) }));
+  function makeRow(r) {
+    const values = columns.map((_, c) => {
+      let value = c % 4 === 0 ? r * args.columns + c : c % 4 === 1 ? args.unique ? "Unique " + r + ": Łódź🧪" : "Site " + r % 8 : c % 4 === 2 ? r % 2 === 0 : new Date(Date.UTC(2026, 0, 1 + r % 28));
+      if (args.longText && r === 100 && c === 1) value = "a".repeat(32766) + "🧪" + "Łódź\r\nשלום_x0041_".repeat(2500);
+      return args.styled && c % 4 === 0 ? new ExportCell(value, { text: String(value), presentation: r % 3 === 0 ? { background: "FFF2CC", bold: true } : { color: "1F4E78" } }) : value;
+    });
+    return { data: { values }, unselected: { domainObject: true } };
+  }
+  let pageAborted = false, maxPageRows = 0;
+  async function fetchPage(first) {
+    pages++;
+    if (args.pendingPage && pages === 2) {
+      timeout = setTimeout(() => controller.abort(failure), 50);
+      await new Promise((_, reject) => controller.signal.addEventListener("abort", () => { pageAborted = true; reject(controller.signal.reason); }, { once: true }));
+    } else if (args.delayedPages) await new Promise(resolve => setTimeout(resolve, 1));
+    else await Promise.resolve();
+    const page = Array.from({ length: Math.min(256, args.rows - first) }, (_, i) => makeRow(first + i));
+    maxPageRows = Math.max(maxPageRows, page.length); return page;
+  }
+  async function* source() {
+    try {
+      for (let first = 0; first < args.rows; first += 256) for (const row of await fetchPage(first)) {
+        if (args.cancelAfterRows !== undefined && produced === args.cancelAfterRows) controller.abort(failure);
+        produced++; yield row;
+      }
+    } finally { returned = true; }
+  }
+  let result, rejected = null;
+  try {
+    const options = { signal: controller.signal, ...(args.resourceLimit ? { limits: { maxRows: 5 } } : {}) };
+    if (args.format === "csv") result = await writeCsvTo(source(), sink, { ...options, columns });
+    else {
+      const conditionalFormats = args.conditional ? [
+        { type: "cellIs", range: { column: "c0" }, operator: "greaterThan", value: 1000, style: { fill: { color: "C6EFCE" } } },
+        { type: "expression", range: { column: 1, through: args.columns }, formula: "$A" + (args.styled ? 3 : 2) + ">1000", style: { font: { bold: true } }, stopIfTrue: true },
+        { type: "colorScale", range: { column: "c0" }, stops: [{ threshold: { type: "min" }, color: "F8696B" }, { threshold: { type: "max" }, color: "63BE7B" }] },
+        { type: "dataBar", range: { column: "c0" }, color: "638EC6" }
+      ] : [];
+      result = await writeXlsxTo(source(), sink, { ...options, columns, dateMode: "utc", oversizedText: "preserve",
+        sheet: { name: "Qualified", conditionalFormats, ...(args.styled ? { table: { name: "QualifiedData" }, freezeHeader: true,
+        autoSize: { sampleRows: 100, minWidth: 8, maxWidth: 40 }, alternatingRowStyle: { fill: { color: "E2F0D9" } },
+        footer: { values: ["Totals"], totals: Object.fromEntries(columns.flatMap((_, c) => c % 4 === 0 ? [["c" + c, "sum"]] : [])), style: { font: { bold: true } } },
+        print: { repeatHeaders: true, paper: "A4", orientation: "landscape" } } : {}) } });
+    }
+    await flush();
+  } catch (error) {
+    rejected = error.code ?? error.message;
+    if (!(error === failure || args.resourceLimit && error.code === "RESOURCE_LIMIT")) throw error;
+  } finally { clearInterval(timer); clearTimeout(timeout); globalThis.CompressionStream = nativeCompression; buffer = null; }
+  if (produced && !returned) throw new Error("The row iterator was not returned.");
+  if ((args.cancelAfterRows !== undefined || args.hangSink || args.resourceLimit || args.pendingPage) && !rejected) throw new Error("Expected failure did not occur.");
+  if (args.pendingPage && (!pageAborted || !returned || pages !== 2)) throw new Error("Pending page cancellation did not release the producer.");
+  if (maxPageRows > 256) throw new Error("Source paging exceeded its bound.");
+  if (!rejected && produced !== args.rows) throw new Error("Source row count differs.");
+  if (!rejected && (projected !== args.rows * args.columns || result.rows !== args.rows || result.columns !== args.columns || result.bytes !== outputBytes)) throw new Error("Table projection or completion counts differ.");
+  if (!rejected && args.rows >= 10000 && firstByteRows >= args.rows) throw new Error("Output was buffered until source completion.");
+  return { ...args, workerScript: undefined, qualificationScript: undefined, result, produced, projected, returned, pages, maxPageRows, pageAborted, outputBytes, writes, maxChunk,
+    firstByteRows, elapsedMs: performance.now() - started, peakHeapBytes: peakHeap, maxTimerGapMs: maxGap, rejected };
+}
+async function runQualificationWorker(args) {
+  const bootstrap = `const pending = new Map(); let sequence = 0;
+globalThis.acceptQualificationChunk = chunk => new Promise((resolve, reject) => { const id = ++sequence; pending.set(id, {resolve,reject}); postMessage({id,chunk}); });
+onmessage = async event => { if (event.data.ack) { const p = pending.get(event.data.ack); pending.delete(event.data.ack); event.data.error ? p.reject(new Error(event.data.error)) : p.resolve(); return; }
+try { postMessage({result:await runQualificationCase(event.data)}); } catch (error) { postMessage({error:error.stack || String(error)}); } };`;
+  const url = URL.createObjectURL(new Blob([args.workerScript, "\n", args.qualificationScript, "\n", bootstrap], { type: "text/javascript" }));
+  const worker = new Worker(url);
+  try { return await new Promise((resolve, reject) => {
+    worker.onerror = event => reject(new Error(event.message));
+    worker.onmessage = async event => {
+      const message = event.data;
+      if (message.chunk !== undefined) { try { await globalThis.acceptQualificationChunk(message.chunk); worker.postMessage({ack:message.id}); } catch (error) { worker.postMessage({ack:message.id,error:String(error)}); } }
+      else if (message.error) reject(new Error(message.error)); else resolve({...message.result,worker:true});
+    };
+    worker.postMessage({...args,worker:false,workerScript:undefined,qualificationScript:undefined});
+  }); } finally { worker.terminate(); URL.revokeObjectURL(url); }
+}

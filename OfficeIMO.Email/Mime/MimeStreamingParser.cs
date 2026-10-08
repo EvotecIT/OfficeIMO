@@ -5,11 +5,12 @@ namespace OfficeIMO.Email;
 /// The established MIME parser then applies the complete semantic projection to the bounded skeleton.
 /// </summary>
 internal sealed class MimeStreamingParser {
-    private readonly Stream _input;
+    private readonly MimeReadCursor _input;
     private readonly EmailReaderOptions _options;
     private readonly IList<EmailDiagnostic> _diagnostics;
     private readonly CancellationToken _cancellationToken;
-    private readonly EmailReadWorkspace _workspace;
+    private readonly EmailReadWorkspace? _workspace;
+    private readonly List<MimeSourcePart>? _sourceParts;
     private readonly EmailProcessingBudget _budget;
     private readonly List<ExternalPart> _externalParts = new List<ExternalPart>();
     private int _analyzedPartCount;
@@ -20,14 +21,25 @@ internal sealed class MimeStreamingParser {
     private bool _hasRtfBody;
 
     private MimeStreamingParser(Stream input, EmailReaderOptions options,
-        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace workspace,
-        EmailProcessingBudget budget) {
-        _input = input;
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken, EmailReadWorkspace? workspace,
+        EmailProcessingBudget budget, List<MimeSourcePart>? sourceParts = null) {
+        _input = new MimeReadCursor(input);
         _options = options;
         _diagnostics = diagnostics;
         _cancellationToken = cancellationToken;
         _workspace = workspace;
         _budget = budget;
+        _sourceParts = sourceParts;
+    }
+
+    /// <summary>Inspects bounded MIME ranges without decoding or retaining attachment payloads.</summary>
+    internal static IReadOnlyList<MimeSourcePart> InspectParts(Stream input, EmailReaderOptions options,
+        IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        var parts = new List<MimeSourcePart>();
+        var parser = new MimeStreamingParser(input, options, diagnostics, cancellationToken, null,
+            new EmailProcessingBudget(options), parts);
+        parser.AnalyzeMessage(input.Position, input.Length, 0, "message");
+        return parts;
     }
 
     internal static EmailDocument Parse(Stream input, EmailReaderOptions options,
@@ -48,12 +60,12 @@ internal sealed class MimeStreamingParser {
     private void AnalyzeMessage(long start, long end, int depth, string location) {
         if (depth > _options.MaxNestedMessageDepth) return;
         HeaderSection section = ReadHeaders(start, end, location);
-        AnalyzeEntity(section.Headers, section.BodyStart, end, 0, location,
+        AnalyzeEntity(section.Headers, section.Start, section.BodyStart, end, 0, location,
             defaultContentType: "text/plain", preferredBodyContentId: null,
             isRelatedSibling: false, isDefaultRelatedRoot: false);
     }
 
-    private void AnalyzeEntity(IReadOnlyList<EmailHeader> headers, long bodyStart, long end,
+    private void AnalyzeEntity(IReadOnlyList<EmailHeader> headers, long headerStart, long bodyStart, long end,
         int depth, string location, string defaultContentType, string? preferredBodyContentId,
         bool isRelatedSibling, bool isDefaultRelatedRoot) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -70,6 +82,7 @@ internal sealed class MimeStreamingParser {
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
             defaultContentType, _diagnostics, location);
+        _sourceParts?.Add(new MimeSourcePart(headers, contentType.Value, headerStart, bodyStart, end, location));
         MimeValue disposition = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Disposition"),
             string.Empty, _diagnostics, location);
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
@@ -108,7 +121,7 @@ internal sealed class MimeStreamingParser {
                     partPreferredBodyContentId = MimeParser.TrimAngleBrackets(
                         MimeHeaderParser.GetValue(child.Headers, "Content-ID"));
                 }
-                AnalyzeEntity(child.Headers, child.BodyStart, part.End, depth + 1, partLocation,
+                AnalyzeEntity(child.Headers, child.Start, child.BodyStart, part.End, depth + 1, partLocation,
                     childDefaultContentType, partPreferredBodyContentId, isRelated, partIsDefaultRelatedRoot);
             }
             return;
@@ -174,10 +187,11 @@ internal sealed class MimeStreamingParser {
             }
         }
         int length = checked((int)(headerEnd - start));
+        if (_sourceParts != null) _budget.CountDecodedPropertyBytes(length);
         byte[] bytes = ReadRange(start, length);
         var headers = new List<EmailHeader>();
         int bodyOffset = MimeHeaderParser.Parse(bytes, 0, bytes.Length, _options, headers, _diagnostics, location);
-        return new HeaderSection(headers, checked(start + bodyOffset));
+        return new HeaderSection(start, headers, checked(start + bodyOffset));
     }
 
     private IReadOnlyList<Segment> SplitMultipart(long start, long end, string boundary, string location) {
@@ -227,7 +241,7 @@ internal sealed class MimeStreamingParser {
         for (int index = 0; index < _externalParts.Count; index++) {
             _cancellationToken.ThrowIfCancellationRequested();
             ExternalPart part = _externalParts[index];
-            string? path = _options.IncludeAttachmentContent ? _workspace.CreateContentPath() : null;
+            string? path = _options.IncludeAttachmentContent ? _workspace!.CreateContentPath() : null;
             try {
                 long decodedLength;
                 if (path != null) {
@@ -242,7 +256,7 @@ internal sealed class MimeStreamingParser {
                 _budget.CountAttachmentBytes(decodedLength);
                 part.Length = decodedLength;
                 if (path != null) {
-                    part.Source = _workspace.RegisterContent(
+                    part.Source = _workspace!.RegisterContent(
                         string.Concat("mime/", index.ToString("D8", CultureInfo.InvariantCulture)),
                         path, decodedLength);
                 }
@@ -286,24 +300,28 @@ internal sealed class MimeStreamingParser {
 
     private Base64Analysis AnalyzeBase64(long start, long end) {
         _input.Position = start;
+        var buffer = new byte[64 * 1024];
         long compact = 0;
         int padding = 0;
         bool sawPadding = false;
         bool valid = true;
         while (_input.Position < end) {
-            if ((compact & 0xFFFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
-            int current = _input.ReadByte();
-            if (current < 0) break;
-            byte value = (byte)current;
-            if (IsWhiteSpace(value)) continue;
-            compact++;
-            if (value == '=') {
-                sawPadding = true;
-                padding++;
-            } else if (sawPadding || DecodeBase64Value(value) < 0) {
-                valid = false;
-                break;
+            _cancellationToken.ThrowIfCancellationRequested();
+            int read = _input.Read(buffer, 0, (int)Math.Min(buffer.Length, end - _input.Position));
+            if (read == 0) throw new EndOfStreamException("The MIME attachment ended unexpectedly.");
+            for (int index = 0; index < read; index++) {
+                byte value = buffer[index];
+                if (IsWhiteSpace(value)) continue;
+                compact++;
+                if (value == '=') {
+                    sawPadding = true;
+                    padding++;
+                } else if (sawPadding || DecodeBase64Value(value) < 0) {
+                    valid = false;
+                    break;
+                }
             }
+            if (!valid) break;
         }
         int remainder = (int)(compact % 4);
         if (padding > 2 || padding > 0 && remainder != 0 || padding == 0 && remainder == 1) valid = false;
@@ -312,37 +330,38 @@ internal sealed class MimeStreamingParser {
 
     private long DecodeBase64(long start, long end, Stream output) {
         _input.Position = start;
-        var quartet = new byte[4];
+        var input = new byte[64 * 1024];
+        var compact = new byte[64 * 1024];
+        var decoded = new byte[48 * 1024];
         int count = 0;
         long written = 0;
         while (_input.Position < end) {
-            if ((_input.Position - start & 0xFFFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
-            int current = _input.ReadByte();
-            if (current < 0) break;
-            byte value = (byte)current;
-            if (IsWhiteSpace(value)) continue;
-            quartet[count++] = value;
-            if (count == 4) {
-                WriteBase64Quartet(quartet, 4, output, ref written);
-                count = 0;
+            _cancellationToken.ThrowIfCancellationRequested();
+            int read = _input.Read(input, 0, (int)Math.Min(input.Length, end - _input.Position));
+            if (read == 0) throw new EndOfStreamException("The MIME attachment ended unexpectedly.");
+            for (int index = 0; index < read; index++) {
+                byte value = input[index];
+                if (IsWhiteSpace(value)) continue;
+                compact[count++] = value;
+                if (count == compact.Length) {
+                    WriteBase64Block(compact, count, decoded, output, ref written);
+                    count = 0;
+                }
             }
         }
-        if (count > 0) WriteBase64Quartet(quartet, count, output, ref written);
+        if (count > 0) {
+            while (count % 4 != 0) compact[count++] = (byte)'=';
+            WriteBase64Block(compact, count, decoded, output, ref written);
+        }
         return written;
     }
 
-    private void WriteBase64Quartet(byte[] quartet, int count, Stream output, ref long written) {
-        int first = DecodeBase64Value(quartet[0]);
-        int second = DecodeBase64Value(quartet[1]);
-        int third = count > 2 && quartet[2] != '=' ? DecodeBase64Value(quartet[2]) : 0;
-        int fourth = count > 3 && quartet[3] != '=' ? DecodeBase64Value(quartet[3]) : 0;
-        WriteDecoded(output, (byte)((first << 2) | (second >> 4)), ref written);
-        if (count > 2 && quartet[2] != '=') {
-            WriteDecoded(output, (byte)((second << 4) | (third >> 2)), ref written);
-        }
-        if (count > 3 && quartet[3] != '=') {
-            WriteDecoded(output, (byte)((third << 6) | fourth), ref written);
-        }
+    private void WriteBase64Block(byte[] compact, int count, byte[] decoded, Stream output, ref long written) {
+        if (!MimeTextCodec.TryDecodeBase64Block(compact, count, decoded, out int bytes))
+            throw new InvalidDataException("The validated MIME Base64 attachment could not be decoded.");
+        written = checked(written + bytes);
+        EnsureCurrentAttachmentLimit(written);
+        output.Write(decoded, 0, bytes);
     }
 
     private long DecodeQuotedPrintable(long start, long end, Stream output, string location) {
@@ -502,7 +521,7 @@ internal sealed class MimeStreamingParser {
         return result;
     }
 
-    private bool TryReadLine(Stream input, long end, byte[] capture, out LineInfo line) {
+    private bool TryReadLine(MimeReadCursor input, long end, byte[] capture, out LineInfo line) {
         if (input.Position >= end) {
             line = default;
             return false;
@@ -566,12 +585,26 @@ internal sealed class MimeStreamingParser {
     }
 
     private readonly struct HeaderSection {
-        internal HeaderSection(IReadOnlyList<EmailHeader> headers, long bodyStart) {
+        internal HeaderSection(long start, IReadOnlyList<EmailHeader> headers, long bodyStart) {
+            Start = start;
             Headers = headers;
             BodyStart = bodyStart;
         }
+        internal long Start { get; }
         internal IReadOnlyList<EmailHeader> Headers { get; }
         internal long BodyStart { get; }
+    }
+
+    internal sealed class MimeSourcePart {
+        internal MimeSourcePart(IReadOnlyList<EmailHeader> headers, string contentType, long headerStart, long bodyStart, long end, string location) {
+            Headers = headers; ContentType = contentType; HeaderStart = headerStart; BodyStart = bodyStart; End = end; Location = location;
+        }
+        internal IReadOnlyList<EmailHeader> Headers { get; }
+        internal string ContentType { get; }
+        internal long HeaderStart { get; }
+        internal long BodyStart { get; }
+        internal long End { get; }
+        internal string Location { get; }
     }
 
     private readonly struct Segment {

@@ -80,6 +80,15 @@ internal static class PdfSyntaxEscaper {
         return PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
     }
 
+    /// <summary>Writes semantic document text using a compact literal or a Unicode hex string.</summary>
+    internal static string LiteralTextString(string value, CancellationToken cancellationToken = default) {
+        Guard.NotNull(value, nameof(value));
+        if (!PdfDocEncoding.CanEncode(value, cancellationToken)) return TextString(value, cancellationToken);
+        var builder = new StringBuilder(value.Length + 2);
+        AppendLiteralBytesCancellable(builder, PdfDocEncoding.Encode(value, cancellationToken), cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
+    }
+
     internal static void AppendLiteralStringCancellable(StringBuilder destination, string value, CancellationToken cancellationToken) {
         Guard.NotNull(destination, nameof(destination));
         Guard.NotNull(value, nameof(value));
@@ -104,11 +113,26 @@ internal static class PdfSyntaxEscaper {
         return HexString(bytes, cancellationToken);
     }
 
+    /// <summary>Serializes a URI action as escaped ASCII URI bytes, not a PDF text string.</summary>
+    internal static string UriString(string value) {
+        Guard.UriAction(value, nameof(value));
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Host.Length > 0 && uri.Host != uri.IdnHost) {
+            var builder = new UriBuilder(uri) { Host = uri.IdnHost };
+            value = builder.Uri.AbsoluteUri;
+        }
+        var ascii = new StringBuilder(value.Length);
+        foreach (byte b in Encoding.UTF8.GetBytes(value)) {
+            if (b >= 128 || b == 32) ascii.Append('%').Append(b.ToString("X2", CultureInfo.InvariantCulture));
+            else ascii.Append((char)b);
+        }
+        return LiteralString(ascii.ToString());
+    }
+
     internal static string TextString(string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(value, nameof(value));
         cancellationToken.ThrowIfCancellationRequested();
-        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
-            return WinAnsiHexString(value, cancellationToken);
+        if (PdfDocEncoding.CanEncode(value, cancellationToken)) {
+            return HexString(PdfDocEncoding.Encode(value, cancellationToken), cancellationToken);
         }
 
         byte[] bytes = new byte[2 + value.Length * 2];
@@ -129,11 +153,11 @@ internal static class PdfSyntaxEscaper {
         Guard.NotNull(value, nameof(value));
         cancellationToken.ThrowIfCancellationRequested();
         destination.Append('<');
-        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
-            byte[] bytes = PdfWinAnsiEncoding.Encode(value, cancellationToken);
-            for (int index = 0; index < bytes.Length; index++) {
+        if (PdfDocEncoding.CanEncode(value, cancellationToken)) {
+            for (int index = 0; index < value.Length; index++) {
                 if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                AppendHexByte(destination, bytes[index]);
+                PdfDocEncoding.TryGetByte(value[index], out byte encoded);
+                AppendHexByte(destination, encoded);
             }
         } else {
             destination.Append("FEFF");
@@ -179,35 +203,49 @@ internal static class PdfSyntaxEscaper {
         return PdfEncoding.StringBuilderToStringCancellable(sb, 0, sb.Length, cancellationToken);
     }
 
+    /// <summary>Preserves arbitrary string bytes without interpreting them as document text.</summary>
+    internal static void AppendLiteralBytesCancellable(StringBuilder destination, byte[] bytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('(');
+        for (int index = 0; index < bytes.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            AppendLiteralCharacter(destination, (char)bytes[index]);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append(')');
+    }
+
     private static void AppendLiteralContentCancellable(StringBuilder sb, string value, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         for (int i = 0; i < value.Length; i++) {
             if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char ch = value[i];
-            switch (ch) {
-                case '\\': sb.Append("\\\\"); break;
-                case '(': sb.Append("\\("); break;
-                case ')': sb.Append("\\)"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\t': sb.Append("\\t"); break;
-                case '\b': sb.Append("\\b"); break;
-                case '\f': sb.Append("\\f"); break;
-                default:
-                    if (ch < 32 || ch == 127) {
-                        int v = ch;
-                        sb.Append('\\')
-                            .Append(((v >> 6) & 0x7).ToString(CultureInfo.InvariantCulture))
-                            .Append(((v >> 3) & 0x7).ToString(CultureInfo.InvariantCulture))
-                            .Append((v & 0x7).ToString(CultureInfo.InvariantCulture));
-                    } else {
-                        sb.Append(ch);
-                    }
-
-                    break;
-            }
+            AppendLiteralCharacter(sb, value[i]);
         }
+    }
 
+    private static void AppendLiteralCharacter(StringBuilder sb, char ch) {
+        switch (ch) {
+            case '\\': sb.Append("\\\\"); break;
+            case '(': sb.Append("\\("); break;
+            case ')': sb.Append("\\)"); break;
+            case '\r': sb.Append("\\r"); break;
+            case '\n': sb.Append("\\n"); break;
+            case '\t': sb.Append("\\t"); break;
+            case '\b': sb.Append("\\b"); break;
+            case '\f': sb.Append("\\f"); break;
+            default:
+                if (ch < 32 || ch == 127) {
+                    int v = ch;
+                    sb.Append('\\')
+                        .Append(((v >> 6) & 0x7).ToString(CultureInfo.InvariantCulture))
+                        .Append(((v >> 3) & 0x7).ToString(CultureInfo.InvariantCulture))
+                        .Append((v & 0x7).ToString(CultureInfo.InvariantCulture));
+                } else {
+                    sb.Append(ch);
+                }
+
+                break;
+        }
     }
 
     internal static string Name(string value) {

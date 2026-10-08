@@ -36,7 +36,8 @@ public static partial class OfficeMarkupParser {
             TryParseAttributeLine(lines[i], metadata);
         }
 
-        markup = string.Join("\n", lines.Skip(end + 1));
+        // Keep original line positions after extracting metadata.
+        markup = new string('\n', end + 1) + string.Join("\n", lines.Skip(end + 1));
         return metadata;
     }
 
@@ -52,17 +53,18 @@ public static partial class OfficeMarkupParser {
         string markup,
         OfficeMarkupDocument document,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         if (!ContainsOfficeSyntax(markup)) {
             return false;
         }
 
         if (profile == OfficeMarkupProfile.Presentation && (ContainsAtDirective(markup, "slide") || HasSlideSeparators(markup))) {
-            MapPresentationSyntax(markup, document.Blocks, profile, diagnostics);
+            MapPresentationSyntax(markup, document.Blocks, profile, diagnostics, markdownOptions);
             return true;
         }
 
-        MapOfficeAwareText(markup, document.Blocks, profile, diagnostics, null);
+        MapOfficeAwareText(markup, document.Blocks, profile, diagnostics, null, markdownOptions);
         return true;
     }
 
@@ -150,7 +152,8 @@ public static partial class OfficeMarkupParser {
         string markup,
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        MarkdownReaderOptions markdownOptions) {
         foreach (var segment in SplitSlideSegments(markup)) {
             if (string.IsNullOrWhiteSpace(segment)) {
                 continue;
@@ -162,7 +165,7 @@ public static partial class OfficeMarkupParser {
 
             var slide = new OfficeMarkupSlideBlock(GetAttribute(attributes, "title"));
             ApplySlideAttributes(slide, attributes);
-            MapOfficeAwareText(slideSource, slide.Blocks, profile, diagnostics, slide);
+            MapOfficeAwareText(slideSource, slide.Blocks, profile, diagnostics, slide, markdownOptions);
             PromoteLeadingHeadingToSlideTitle(slide);
             CopyAttributes(attributes, slide.Attributes);
             target.Add(slide);
@@ -232,7 +235,8 @@ public static partial class OfficeMarkupParser {
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,
         IList<OfficeMarkupDiagnostic> diagnostics,
-        OfficeMarkupSlideBlock? slideContext) {
+        OfficeMarkupSlideBlock? slideContext,
+        MarkdownReaderOptions markdownOptions) {
         var lines = markup.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var markdownLines = new List<string>();
         var inFence = false;
@@ -246,8 +250,8 @@ public static partial class OfficeMarkupParser {
                 return;
             }
 
-            var nested = MarkdownReader.ParseSemanticProjection(markdown, CreateNestedMarkdownOptions());
-            MapMarkdownBlocks(nested.Blocks, target, profile, diagnostics);
+            var nested = MarkdownReader.ParseProjectionWithBlockSpans(markdown, markdownOptions);
+            MapMarkdownBlocks(nested.Blocks, target, profile, diagnostics, markdownOptions);
         }
 
         for (int i = 0; i < lines.Length; i++) {
@@ -277,7 +281,7 @@ public static partial class OfficeMarkupParser {
             if (trimmed.StartsWith("::", StringComparison.Ordinal)) {
                 FlushMarkdown();
                 var directive = ReadColonDirective(lines, ref i);
-                var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics);
+                var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics, profile, markdownOptions);
                 if (block is OfficeMarkupExtensionBlock extension
                     && string.Equals(extension.Command, "notes", StringComparison.OrdinalIgnoreCase)
                     && slideContext != null) {
@@ -293,7 +297,7 @@ public static partial class OfficeMarkupParser {
                 FlushMarkdown();
                 var directive = ReadAtDirective(lines, ref i);
                 if (!string.Equals(directive.Command, "slide", StringComparison.OrdinalIgnoreCase)) {
-                    var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics);
+                    var block = CreateBlockFromDirective(directive.Command, directive.Attributes, directive.Body, directive.SourceText, diagnostics, profile, markdownOptions);
                     if (block != null) {
                         target.Add(block);
                     }
@@ -384,7 +388,9 @@ public static partial class OfficeMarkupParser {
         IDictionary<string, string> attributes,
         string body,
         string sourceText,
-        IList<OfficeMarkupDiagnostic> diagnostics) {
+        IList<OfficeMarkupDiagnostic> diagnostics,
+        OfficeMarkupProfile profile,
+        MarkdownReaderOptions markdownOptions) {
         var normalized = NormalizeCommand(command);
         OfficeMarkupBlock? block;
         switch (normalized) {
@@ -512,6 +518,7 @@ public static partial class OfficeMarkupParser {
                 break;
         }
 
+        if (block is OfficeMarkupColumnBlock column) PopulateColumn(column, profile, diagnostics, markdownOptions);
         block.SourceText = sourceText;
         ApplyPlacement(block, attributes);
         CopyAttributes(attributes, block.Attributes);

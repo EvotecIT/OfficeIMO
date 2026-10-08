@@ -35,6 +35,91 @@ byte[] pdf = source.ToPdfBytes();
 source.SaveAsPdf("quarterly-update.pdf");
 ```
 
+`ToPdfBytes()` preserves the established print-paged behavior. Use an explicit
+render request when the PDF should follow another layout contract:
+
+```csharp
+using OfficeIMO.Drawing;
+
+var options = new HtmlToPdfOptions {
+    ViewportWidth = 816,
+    PageSize = OfficePageSizes.A4,
+    Margins = HtmlRenderMargins.All(24)
+};
+
+HtmlPdfRenderRequestResult print = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.PrintPaged,
+        HtmlRenderEncoder.Pdf,
+        options));
+
+HtmlPdfRenderRequestResult screenReflow = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.ScreenMediaPaged,
+        HtmlRenderEncoder.Pdf,
+        options));
+
+HtmlPdfRenderRequestResult screenSnapshot = source.RenderToPdfResult(
+    HtmlRenderRequest.Create(
+        HtmlRenderIntentProfile.ScreenSnapshotPaged,
+        HtmlRenderEncoder.Pdf,
+        options));
+
+byte[] pdf = screenSnapshot.ToBytes();
+double firstSliceOffset = screenSnapshot.RenderResult.Surfaces[0].SourceOffsetY;
+```
+
+The same request may override CSS media, layout surface, or pagination through
+`WithCssMedia(...)`, `WithLayoutSurface(...)`, and `WithPagination(...)`.
+Use `WithLayout(...)` or `WithAxes(...)` when coupled geometry axes must change
+atomically. Such a custom combination is reported as unqualified unless its effective axes
+still exactly match the named profile.
+
+Print paged applies print CSS and normal fragmentation. Screen-media paged keeps
+screen CSS while reflowing into page sheets. Screen-snapshot paged preserves one
+continuous screen composition and then slices it into fixed canvases. The latter
+can split elements at page boundaries. The explicit result retains page order,
+dimensions, source offsets, clipping, requested scale and background, provider
+identity, and HTML loss diagnostics alongside the combined PDF conversion report.
+For stitched output, `SourcePlacements` preserves every contributing source page
+or slice and its output offset. Layout, projection, and PDF encoding share one
+operation deadline.
+
+For a wide print layout that should fit a fixed paper size, set a CSS layout
+width explicitly. The PDF keeps the physical `PageSize`; content and margins are
+scaled uniformly after layout. This changes wrapping and page breaks, so choose
+the width for the source rather than assuming one width fits every page. CSS
+media queries and responsive resources still use the captured `ViewportWidth`.
+
+```csharp
+var fitted = new HtmlToPdfOptions {
+    PageSize = OfficePageSizes.A4,
+    Margins = HtmlRenderMargins.All(24),
+    HonorCssPageRules = false,
+    PrintLayoutWidthCssPixels = 1200
+};
+byte[] fittedPdf = source.ToPdfBytes(fitted);
+```
+
+Fitting applies to print-paged reflow. When `HonorCssPageRules` is `true`, the
+PDF keeps the resolved authored `@page` size and margins, and fits the chosen
+layout width inside their printable area. For example, a source with a
+`min-width: 1400px` print layout and `@page { size: 330mm 427mm; margin: .75in .5in }`
+can use `PrintLayoutWidthCssPixels = 1400` without replacing the authored sheet.
+An explicit width must exceed the printable area. By default, PDF conversion also fits
+visible layout overflow, including fixed-width descendants, tables and root minimum
+widths, within a uniform authored sheet. Hidden or scroll-clipped containers and
+paint-only shadows do not expand the fitting width. Root overflow propagated from
+`html` or `body` clips the final viewport and permits print fitting of the underlying
+layout. Fixed-position boxes use the page area inside its margins and repeat on each page.
+CSS media queries retain the
+physical print context during reflow. Named or page-specific `@page` rules still need an explicit
+`PrintLayoutWidthCssPixels`. Set `AutoFitWidePrintContent = false` to keep the
+unscaled print layout. Automatic fitting includes positioned content outside the original
+sheet; disable it when that content should remain outside a fixed print surface.
+The retained render result uses the wider CSS page dimensions; the PDF is the
+scaled paper-size artifact.
+
 A prepared HTML report can be exported directly to a file:
 
 ```csharp
@@ -43,6 +128,29 @@ report.SaveAsPdf("service-review.pdf").RequireSuccess();
 ```
 
 The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) also exports editable Word and Excel artifacts from the same prepared source.
+
+## ZIP site bundles
+
+Load a ZIP website through `OfficeIMO.Html.HtmlSiteBundle` and render it with the
+same explicit PDF intent used for an HTML document:
+
+```csharp
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+
+using Stream source = File.OpenRead("saved-site.zip");
+HtmlSiteBundle bundle = await HtmlSiteBundle.LoadAsync(source);
+HtmlPdfRenderRequestResult result = await bundle.RenderToPdfResultAsync(
+    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+File.WriteAllBytes("saved-site.pdf", result.ToBytes());
+```
+
+The result retains the selected HTML surfaces and combined conversion report.
+Archive images, CSS and fonts require `ResourcePolicy.AllowEmbeddedPackageResources`.
+Local files and remote resources remain governed by their separate PDF permissions
+and an explicitly supplied resolver; loading a ZIP does not enable either permission.
+The [bundle loader](../OfficeIMO.Html/README.md#load-a-zip-site-bundle) owns entry
+selection, input limits, integrity checks and archive resource identities.
 
 ## Review every rendered page
 
@@ -111,7 +219,15 @@ This bounds completed PDF page and object payloads and avoids buffering the fina
 
 ## Paged-media and PDF semantics
 
-The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts.
+Flex content keeps its source hierarchy in the tagged reading order when CSS `order`, reverse directions or pagination change where it is painted. Repeated table headers and continued list/table content retain their semantic ancestors across pages. This preserves logical ownership without changing the visual layout; manual assistive-technology review remains a separate accessibility requirement.
+
+The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts. Presentation MathML keeps its vector paint and searchable logical text inside a tagged `Formula` container. Its description follows the shared accessible-name resolution, then `alttext`, then the logical expression. Tagged formulas carry UTF-8 `application/mathml+xml` associated-file supplements. Exact original standalone MathML survives document cloning and unrelated edits; changed or recovered formulas carry current namespace-aware MathML with a normalization diagnostic. Hidden formulas and untagged output do not emit formula attachments. These associations select PDF 2.0, or PDF 1.7 when configured PDF/A-3 groundwork permits them. Association metadata alone does not establish PDF/A or PDF/UA conformance.
+
+An explicit standalone PDF/UA-1 request cannot retain these Formula attachments: PDF/UA-1 requires PDF 1.7, while native structure-associated files require PDF 2.0. `RequireCompliance(PdfComplianceProfile.PdfUa1)` rejects that combination before writing output. Setting `FileVersion` to `Pdf17` does not override the attachment requirement. The converter never drops MathML or changes the requested profile automatically. Callers needing both PDF/UA-1 and the source supplements can explicitly configure PDF/A-3 groundwork alongside PDF/UA-1, provide `MathMlSourceModificationDate` and embedded fonts, and validate the resulting bytes against both profiles. A PDF 2.0 profile is a separate caller choice and requires its own qualification.
+
+Column notes retain note bodies as `Note` elements with unique IDs. Linked call markers remain in their originating paragraph, and return links remain in the note. The logical body follows column flow; notes follow the body of the page on which they start, with continuations belonging to the same note. These structural guarantees do not replace assistive-technology reading-order review.
+
+Set `HtmlToPdfOptions.MathMlSourceModificationDate` when an archival profile requires a modification date for embedded sources. The renderer does not invent dates.
 
 ```html
 <style>
@@ -156,13 +272,22 @@ result.Save("report.pdf").RequireNoLoss();
 
 ## Fonts and text shaping
 
-The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding; variable instances and shaped results that cannot use the scalar PDF text path are rendered as vector outlines plus logical `ActualText`, preserving extraction and accessibility.
+The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding, including supported OpenType features. Color glyphs and feature-bearing color fonts retain palette-aware outlines. Variable instances and text that requires vector paint use outlines plus logical `ActualText`, preserving extraction and accessibility.
 
-PDF outline expansion is fail-closed. The selected program must implement
+PDF outline expansion remains bounded. The selected program must implement
 `IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion
 and enforces `MaxOutlinedTextCharactersPerRun` plus the operation-wide
 `MaxOutlinedTextPathCommands` budget. The defaults are 16,384 UTF-16 characters per
-run and 1,000,000 path commands per conversion. Raise them only for trusted inputs.
+run and 1,000,000 path commands per conversion. A run above the character limit
+still fails. If the path-command budget is exhausted, conversion stops outlining
+and uses PDF text for the remaining runs, with a loss-bearing
+`HtmlPdfFontOutlineBudgetApproximated` warning because font appearance or shaping
+may differ. Raise the outline budget only for trusted inputs.
+Outline-only private-use symbols encountered after exhaustion are omitted with
+`HtmlPdfUnavailablePrivateUseGlyphOmitted`, rather than passed to an incompatible
+PDF text font.
+
+HTML body text and SVG text share font discovery, including nested SVG viewports, effect groups and tiling patterns. Fonts registered through `options.Fonts` are available to layout and PDF encoding in those groups. Automatic installed-font fallback follows `ResourcePolicy` for both HTML and SVG text; `CreatePortableDeterministic()` requires explicit in-memory or allowed document fonts. Uncovered characters retain strict encoding diagnostics.
 
 No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
 
@@ -195,6 +320,23 @@ var options = new HtmlToPdfOptions {
 };
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
+
+Hosts that ship the OfficeIMO portable browser font set can activate its layout
+aliases, fallback order, PDF embedding, and substitutions through one reusable
+profile. The profile does not embed or download fonts; the host remains responsible
+for supplying pinned and licensed bytes:
+
+```csharp
+HtmlPortableBrowserFontProfile fonts = HtmlPortableBrowserFontProfile.Create(
+    "my-portable-fonts-v1",
+    fileName => File.ReadAllBytes(Path.Combine(fontDirectory, fileName)));
+
+HtmlToPdfOptions options = fonts.CreateHtmlOptions(
+    OfficeHarfBuzzTextShapingProvider.Instance);
+```
+
+The same `options` instance can drive screen images, browser-print PDF, and
+screen-to-page PDF so layout and encoded output use the same fonts.
 
 If no configured provider accepts a run that requires provider-owned complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output.
 
@@ -271,6 +413,14 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 ```
 
 Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. The balanced default allows installed fonts plus bounded data URIs and MHTML package parts, but does not call local or remote resolvers. Portable deterministic mode disables installed-font discovery explicitly.
+
+Under the balanced policy, MathML can use the renderer's fixed mathematical font
+families when a supported installed face is available. CSS cannot use that fallback
+list to select another named host font. `AllowDocumentFontEmbedding` still gates
+document-selected host families and installed system-UI lists. Disable
+`AllowSystemFontEmbedding` or `AllowSystemFontFallback` to prevent installed math
+font loading, or supply an in-memory `math` face for portable output. Font loading
+retains the shared source-byte, decoded-byte and cancellation limits.
 
 ## Command-line conversion
 

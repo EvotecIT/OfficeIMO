@@ -1,0 +1,480 @@
+{
+  "Workers": 120,
+  "Rows": [
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 550920.0,
+      "MeanRetainedManagedBytes": 469461.3333333333,
+      "MinRetainedManagedBytes": 469144.0,
+      "MaxRetainedManagedBytes": 470024.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 550872.0,
+      "MeanRetainedManagedBytes": 469133.3333333333,
+      "MinRetainedManagedBytes": 467992.0,
+      "MaxRetainedManagedBytes": 470824.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2134984.0,
+      "MeanRetainedManagedBytes": 243776.0,
+      "MinRetainedManagedBytes": 237896.0,
+      "MaxRetainedManagedBytes": 247288.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2134874.6666666665,
+      "MeanRetainedManagedBytes": 246648.0,
+      "MinRetainedManagedBytes": 246024.0,
+      "MaxRetainedManagedBytes": 247672.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-249999",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61347965.333333336,
+      "MeanRetainedManagedBytes": 61147557.333333336,
+      "MinRetainedManagedBytes": 61147384.0,
+      "MaxRetainedManagedBytes": 61147656.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-249999",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61347232.0,
+      "MeanRetainedManagedBytes": 61148160.0,
+      "MinRetainedManagedBytes": 61146744.0,
+      "MaxRetainedManagedBytes": 61148960.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-25000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 6684688.0,
+      "MeanRetainedManagedBytes": 6590304.0,
+      "MinRetainedManagedBytes": 6588344.0,
+      "MaxRetainedManagedBytes": 6592664.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-25000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 6684949.333333333,
+      "MeanRetainedManagedBytes": 6592464.0,
+      "MinRetainedManagedBytes": 6590808.0,
+      "MaxRetainedManagedBytes": 6595664.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-250000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 873245.3333333334,
+      "MeanRetainedManagedBytes": 377496.0,
+      "MinRetainedManagedBytes": 374912.0,
+      "MaxRetainedManagedBytes": 378880.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-250000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 42816208.0,
+      "MeanRetainedManagedBytes": 42317656.0,
+      "MinRetainedManagedBytes": 42317384.0,
+      "MaxRetainedManagedBytes": 42318192.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-1000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 875184.0,
+      "MeanRetainedManagedBytes": 742408.0,
+      "MinRetainedManagedBytes": 719736.0,
+      "MaxRetainedManagedBytes": 753744.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-1000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 875168.0,
+      "MeanRetainedManagedBytes": 742408.0,
+      "MinRetainedManagedBytes": 719736.0,
+      "MaxRetainedManagedBytes": 753744.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-1000000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2458706.6666666665,
+      "MeanRetainedManagedBytes": 517786.6666666667,
+      "MinRetainedManagedBytes": 510160.0,
+      "MaxRetainedManagedBytes": 528200.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-1000000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2458504.0,
+      "MeanRetainedManagedBytes": 530248.0,
+      "MinRetainedManagedBytes": 528200.0,
+      "MaxRetainedManagedBytes": 534344.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-249999",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61714365.333333336,
+      "MeanRetainedManagedBytes": 61422741.333333336,
+      "MinRetainedManagedBytes": 61402816.0,
+      "MaxRetainedManagedBytes": 61432704.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-249999",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61669970.666666664,
+      "MeanRetainedManagedBytes": 61422741.333333336,
+      "MinRetainedManagedBytes": 61402816.0,
+      "MaxRetainedManagedBytes": 61432704.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-25000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 7007098.666666667,
+      "MeanRetainedManagedBytes": 6843640.0,
+      "MinRetainedManagedBytes": 6780224.0,
+      "MaxRetainedManagedBytes": 6875360.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-25000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 7007074.666666667,
+      "MeanRetainedManagedBytes": 6840898.666666667,
+      "MinRetainedManagedBytes": 6780224.0,
+      "MaxRetainedManagedBytes": 6875336.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-250000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 1196930.6666666667,
+      "MeanRetainedManagedBytes": 613432.0,
+      "MinRetainedManagedBytes": 515000.0,
+      "MaxRetainedManagedBytes": 665720.0
+    },
+    {
+      "Host": "Windows",
+      "Runtime": ".NET 8.0.31",
+      "Case": "Public-250000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 43140106.666666664,
+      "MeanRetainedManagedBytes": 42607194.666666664,
+      "MinRetainedManagedBytes": 42602920.0,
+      "MaxRetainedManagedBytes": 42609600.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 518200.0,
+      "MeanRetainedManagedBytes": 1157085.3333333333,
+      "MinRetainedManagedBytes": 1146104.0,
+      "MaxRetainedManagedBytes": 1173024.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 517973.3333333333,
+      "MeanRetainedManagedBytes": 1156120.0,
+      "MinRetainedManagedBytes": 1143944.0,
+      "MaxRetainedManagedBytes": 1174192.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2103138.6666666665,
+      "MeanRetainedManagedBytes": 378120.0,
+      "MinRetainedManagedBytes": 373720.0,
+      "MaxRetainedManagedBytes": 384360.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-1000000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2107570.6666666665,
+      "MeanRetainedManagedBytes": 390733.3333333333,
+      "MinRetainedManagedBytes": 384424.0,
+      "MaxRetainedManagedBytes": 396256.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-249999",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61274053.333333336,
+      "MeanRetainedManagedBytes": 61552592.0,
+      "MinRetainedManagedBytes": 61550856.0,
+      "MaxRetainedManagedBytes": 61553504.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-249999",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61306093.333333336,
+      "MeanRetainedManagedBytes": 61552037.333333336,
+      "MinRetainedManagedBytes": 61542752.0,
+      "MaxRetainedManagedBytes": 61560232.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-25000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 6664392.0,
+      "MeanRetainedManagedBytes": 7718480.0,
+      "MinRetainedManagedBytes": 7691840.0,
+      "MaxRetainedManagedBytes": 7735392.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-25000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 6631661.333333333,
+      "MeanRetainedManagedBytes": 7646653.333333333,
+      "MinRetainedManagedBytes": 7577304.0,
+      "MaxRetainedManagedBytes": 7701920.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-250000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 841397.3333333334,
+      "MeanRetainedManagedBytes": 521269.3333333333,
+      "MinRetainedManagedBytes": 516072.0,
+      "MaxRetainedManagedBytes": 524008.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 10.0.12",
+      "Case": "Public-250000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 42788952.0,
+      "MeanRetainedManagedBytes": 42465680.0,
+      "MinRetainedManagedBytes": 42459208.0,
+      "MaxRetainedManagedBytes": 42478040.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-1000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 910720.0,
+      "MeanRetainedManagedBytes": 796296.0,
+      "MinRetainedManagedBytes": 788088.0,
+      "MaxRetainedManagedBytes": 800400.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-1000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 902480.0,
+      "MeanRetainedManagedBytes": 788088.0,
+      "MinRetainedManagedBytes": 788088.0,
+      "MaxRetainedManagedBytes": 788088.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-1000000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2483464.0,
+      "MeanRetainedManagedBytes": 554296.0,
+      "MinRetainedManagedBytes": 550192.0,
+      "MaxRetainedManagedBytes": 562504.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-1000000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 2483440.0,
+      "MeanRetainedManagedBytes": 547450.6666666666,
+      "MinRetainedManagedBytes": 541968.0,
+      "MaxRetainedManagedBytes": 550192.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-249999",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61784184.0,
+      "MeanRetainedManagedBytes": 61544288.0,
+      "MinRetainedManagedBytes": 61540176.0,
+      "MaxRetainedManagedBytes": 61552488.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-249999",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 61652392.0,
+      "MeanRetainedManagedBytes": 61530378.666666664,
+      "MinRetainedManagedBytes": 61507360.0,
+      "MaxRetainedManagedBytes": 61543600.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-25000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 7010640.0,
+      "MeanRetainedManagedBytes": 6994536.0,
+      "MinRetainedManagedBytes": 6994536.0,
+      "MaxRetainedManagedBytes": 6994536.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-25000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 7010616.0,
+      "MeanRetainedManagedBytes": 6994536.0,
+      "MinRetainedManagedBytes": 6994536.0,
+      "MaxRetainedManagedBytes": 6994536.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-250000",
+      "Engine": "After",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 1221688.0,
+      "MeanRetainedManagedBytes": 550520.0,
+      "MinRetainedManagedBytes": 550504.0,
+      "MaxRetainedManagedBytes": 550528.0
+    },
+    {
+      "Host": "macOS",
+      "Runtime": ".NET 8.0.23",
+      "Case": "Public-250000",
+      "Engine": "Before",
+      "Workers": 3,
+      "MeanCallingThreadAllocatedBytes": 43168976.0,
+      "MeanRetainedManagedBytes": 42643352.0,
+      "MinRetainedManagedBytes": 42639240.0,
+      "MaxRetainedManagedBytes": 42651552.0
+    }
+  ],
+  "Sources": [
+    {
+      "File": "retained-memory-used-range-budget-v1-65535-N3.json",
+      "Sha256": "D97FE47ADA2D37D6C8D34D36BBE4A02804B3E29CE9248D809928CBBEA242FF32",
+      "Workers": 30,
+      "Validations": 1,
+      "Policy": "One first complete typed read per fresh worker; alternating Before/After order; no warmup or outlier removal; after-return memory includes shared-pool retention and JIT/type initialization",
+      "Recovery": "All 30 original workers completed successfully; the copied final check expected 36 instead of 30. Corrected only the inventory calculation, verified every original PID, case, iteration, runtime, input/result/DLL fingerprint and both complete frozen snapshots before aggregating original measurements. No worker rerun."
+    },
+    {
+      "File": "retained-memory-used-range-budget-v1-net8-65535-N3.json",
+      "Sha256": "4C055B92BCF89D6407E496D379FE490F0260E9B11E081EC5D484510D806B0CA2",
+      "Workers": 30,
+      "Validations": 10,
+      "Policy": "One first complete read per fresh actual .NET8 worker; complete-field validation in separate workers; alternating Before/After order; no warmup or outlier removal; canonical PowerForge sampler",
+      "Recovery": null
+    },
+    {
+      "File": "retained-memory-used-range-budget-v1-65535-N3-macos.json",
+      "Sha256": "0CF1061BDB30B70001C5570F52D7DD33B628ED3518A46CBB1BC91F538EBE6233",
+      "Workers": 30,
+      "Validations": 1,
+      "Policy": "One first complete typed or tabular read per fresh worker; alternate Before/After order; no warmup or outlier removal; after-return memory includes shared-pool retention and JIT/type initialization",
+      "Recovery": null
+    },
+    {
+      "File": "retained-memory-used-range-budget-v1-net8-65535-N3-macos.json",
+      "Sha256": "63A91CD4DFBB5CB6F1D37D774384DA64C7C814F5E621C6405E261C6D12706800",
+      "Workers": 30,
+      "Validations": 10,
+      "Policy": "One first complete read per fresh actual .NET8 worker; complete-field validation in separate workers; alternating Before/After order; no warmup or outlier removal; canonical PowerForge sampler",
+      "Recovery": null
+    }
+  ],
+  "Limits": "Fresh complete reads include JIT, reflection and pool initialization. After-return managed size includes reusable pooled buffers. Sampled peaks are lower bounds. Cold-read milliseconds are not warmed timing evidence."
+}

@@ -66,12 +66,18 @@ public static partial class OfficeDocumentReadResultExtensions {
                 markdown.AppendLine();
             }
 
-            var emitted = new HashSet<string>(StringComparer.Ordinal);
-            foreach (OfficeDocumentBlock block in page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
-                if (!string.IsNullOrEmpty(block.Id) && !emitted.Add(block.Id)) {
-                    continue;
+            var pageDocument = new OfficeDocumentReadResult { Pages = new[] { page } };
+            OfficeDocumentContentItem[] content = pageDocument.EnumerateContent().ToArray();
+            var tableLocations = content.Where(item => item.Table != null && !string.IsNullOrWhiteSpace(item.Location?.BlockAnchor))
+                .GroupBy(item => item.Location!.BlockAnchor!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Select(item => item.Location!).ToArray(), StringComparer.Ordinal);
+            foreach (OfficeDocumentContentItem item in content) {
+                if (item.Table != null) {
+                    markdown.AppendLine(item.Table.ToMarkdownTable());
+                    markdown.AppendLine();
+                } else if (item.Block != null && !HasMatchingStructuredTable(item, tableLocations)) {
+                    AppendBlockMarkdown(markdown, item.Block);
                 }
-                AppendBlockMarkdown(markdown, block);
             }
 
             pages.Add(new OfficeDocumentPageMarkdown(
@@ -82,6 +88,12 @@ public static partial class OfficeDocumentReadResultExtensions {
         }
 
         return pages.AsReadOnly();
+    }
+
+    private static bool HasMatchingStructuredTable(OfficeDocumentContentItem item, IReadOnlyDictionary<string, ReaderLocation[]> tables) {
+        if (item.Block?.Kind != "table" || string.IsNullOrWhiteSpace(item.Location?.BlockAnchor)
+            || !tables.TryGetValue(item.Location!.BlockAnchor!, out ReaderLocation[]? locations)) return false;
+        return locations.Count(location => OfficeDocumentModelTraversal.SameContainerWhenKnown(item.Location, location)) == 1;
     }
 
     /// <summary>
@@ -103,7 +115,8 @@ public static partial class OfficeDocumentReadResultExtensions {
                 markdown.AppendLine(text);
                 break;
             case "list-item":
-                markdown.Append(string.IsNullOrWhiteSpace(block.Marker) ? "- " : block.Marker + " ");
+                markdown.Append(ResolveMarkdownListMarker(block));
+                markdown.Append(' ');
                 markdown.AppendLine(text);
                 break;
             default:
@@ -111,5 +124,17 @@ public static partial class OfficeDocumentReadResultExtensions {
                 break;
         }
         markdown.AppendLine();
+    }
+
+    private static string ResolveMarkdownListMarker(OfficeDocumentBlock block) {
+        // CommonMark has decimal ordered markers and three bullet characters.
+        // Keep the source glyph in Marker; project the logical index separately.
+        if (block.ListIndex is >= 0 and <= 999999999)
+            return block.ListIndex.Value.ToString(CultureInfo.InvariantCulture) + ".";
+        string marker = block.Marker?.Trim() ?? string.Empty;
+        if (marker is "-" or "+" or "*") return marker;
+        if (marker.Length >= 2 && marker.Length <= 10 && (marker[marker.Length - 1] is '.' or ')')
+            && marker.Take(marker.Length - 1).All(character => character >= '0' && character <= '9')) return marker;
+        return "-";
     }
 }

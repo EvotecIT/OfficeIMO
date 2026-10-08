@@ -48,9 +48,9 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
@@ -60,7 +60,8 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (rowIndex > r2) {
-                        break;
+                        SkipXmlElement(reader, "row");
+                        continue;
                     }
 
                     if (rowIndex == r1) {
@@ -315,7 +316,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(rows);
 
                 while (reader.Read()) {
                     if (canCancel) {
@@ -326,24 +326,19 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
                     if (rowIndex == r1) {
                         ReadXmlRowValuesInto(reader, rowIndex, c1, c2, headerValues, ct);
-                        seenRows.MarkSeen(0);
                         continue;
                     }
 
@@ -360,7 +355,6 @@ namespace OfficeIMO.Excel {
                         MergeRowValues(existing, values);
                     }
 
-                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
@@ -438,12 +432,13 @@ namespace OfficeIMO.Excel {
 
                 if (rowIndex == r1) {
                     var headerValues = new object?[cols];
+                    int nextHeaderColumnIndex = 1;
                     foreach (var cell in row.Elements<Cell>()) {
                         if (canCancel && (++convertedCells & 1023) == 0) {
                             ct.ThrowIfCancellationRequested();
                         }
 
-                        int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                        int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextHeaderColumnIndex);
                         if (columnIndex < c1 || columnIndex > c2) {
                             continue;
                         }
@@ -480,12 +475,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 var dict = result[rr];
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++convertedCells & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (columnIndex < c1 || columnIndex > c2) {
                         continue;
                     }

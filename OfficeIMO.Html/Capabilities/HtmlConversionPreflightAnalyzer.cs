@@ -10,7 +10,7 @@ internal static class HtmlConversionPreflightAnalyzer {
         HtmlTargetCapabilityContract contract = HtmlTargetCapabilityContracts.Get(target);
         HtmlSemanticDocument semantic = document.SemanticDocument;
         IHtmlDocument dom = document.CreatePolicyNormalizedDocumentForConversion();
-        IReadOnlyList<HtmlSemanticBlock> blocks = Flatten(semantic.Sections.SelectMany(section => section.Blocks)).ToList();
+        IReadOnlyList<HtmlSemanticBlock> blocks = Flatten(semantic.Sections.SelectMany(section => section.EnumerateContentBlocks())).ToList();
         var features = new List<HtmlFeaturePreflightResult>();
         var diagnostics = new List<HtmlDiagnostic>();
         foreach (HtmlSemanticFeature feature in global::OfficeIMO.Internal.EnumCompat.GetValues<HtmlSemanticFeature>()) {
@@ -91,10 +91,12 @@ internal static class HtmlConversionPreflightAnalyzer {
     private static bool HasGeometry(HtmlSemanticBlock block) {
         if (block.Style == null) return false;
         string position = block.Style.GetValue("position");
+        string scale = block.Style.GetValue("scale");
         return (!string.IsNullOrWhiteSpace(position) && !string.Equals(position, "static", StringComparison.OrdinalIgnoreCase))
             || !string.IsNullOrWhiteSpace(block.Style.GetValue("width"))
             || !string.IsNullOrWhiteSpace(block.Style.GetValue("height"))
-            || !string.IsNullOrWhiteSpace(block.Style.GetValue("transform"));
+            || !string.IsNullOrWhiteSpace(block.Style.GetValue("transform"))
+            || !string.IsNullOrWhiteSpace(scale) && !string.Equals(scale, "none", StringComparison.OrdinalIgnoreCase);
     }
 
     private static FeatureEvidence RunEvidence(IReadOnlyList<HtmlSemanticBlock> blocks, Func<HtmlSemanticRun, bool> predicate) {

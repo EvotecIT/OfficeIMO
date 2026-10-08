@@ -1,5 +1,5 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    internal static class LegacyDocParagraphFormattingReader {
+    internal static partial class LegacyDocParagraphFormattingReader {
         private const int OleSectorSize = 512;
         private const int PapxFkpBxLength = 13;
         private const ushort SprmPIstd = 0x4600;
@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return ReadGrpprl(bytes, grpprlOffset + 2, grpprlLength - 2, styleIndex == 0 ? null : styleIndex);
         }
 
-        internal static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex = null) {
+        internal static LegacyDocParagraphFormat ReadGrpprl(byte[] bytes, int offset, int count, ushort? baseStyleIndex = null, bool requireComplete = false) {
             int end = offset + count;
             LegacyDocParagraphAlignment? alignment = null;
             int? spacingBeforeTwips = null;
@@ -246,8 +246,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? tableAutofit = null;
             bool hasMergedTableCells = false;
             ushort? styleIndex = baseStyleIndex;
+            ushort? tableStyleIndex = null;
+            LegacyDocTableBorders tableBorders = default;
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
+                if (sprm == SprmTIstd) {
+                    if (offset + 4 > end) break;
+                    tableStyleIndex = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    tableBorders = default;
+                    offset += 4;
+                    continue;
+                }
+                if (sprm == SprmTTableBorders || sprm == SprmTTableBorders80) {
+                    if (!TryReadTableBorders(bytes, offset, end, sprm == SprmTTableBorders80, out tableBorders)) break;
+                    offset += 3 + bytes[offset + 2];
+                    continue;
+                }
+                if (sprm >= SprmTBrcTopCv && sprm <= SprmTBrcRightCv) {
+                    if (!TryReadTableCellBorderColors(bytes, offset, end, sprm, ref tableCellBorders, out int colorLength)) break;
+                    offset += 2 + colorLength;
+                    continue;
+                }
                 if (sprm == SprmPIstd) {
                     if (offset + 4 > end) {
                         break;
@@ -396,7 +415,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     byte level = bytes[offset + 2];
-                    if (level <= 8) {
+                    if (level <= 9) {
                         outlineLevel = level;
                     }
 
@@ -673,6 +692,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
+            if (requireComplete && offset != end)
+                throw new InvalidDataException("Truncated native list paragraph formatting operand.");
+
             return new LegacyDocParagraphFormat(
                 alignment,
                 styleIndex,
@@ -737,7 +759,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphRightBorder,
                     paragraphBetweenBorder),
                 outlineLevel,
-                lineSpacingIsMultiple: lineSpacingIsMultiple);
+                lineSpacingIsMultiple: lineSpacingIsMultiple,
+                tableStyleIndex: tableStyleIndex,
+                tableBorders: tableBorders);
         }
 
         private static LegacyDocParagraphShading ReadParagraphShading(ushort shd80) {
@@ -863,7 +887,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var hideMarks = new bool[columnCount];
             var borders = new LegacyDocTableCellBorders[columnCount];
             int previousEdge = ReadInt16(bytes, edgesOffset);
-            if (previousEdge > 0) {
+            if (previousEdge != 0) {
                 tableLeftIndentTwips = previousEdge;
             }
 
@@ -995,7 +1019,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && bytes[offset + 1] == 0xFF
                 && bytes[offset + 2] == 0xFF
                 && bytes[offset + 3] == 0xFF) {
-                return default;
+                return new LegacyDocTableCellBorder(LegacyDocTableCellBorderStyle.ExplicitNone, null, 0, 0);
             }
 
             byte sizeEighthPoints = bytes[offset];
@@ -1252,7 +1276,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static bool? ReadBoolOperand(byte value) {
-            return value == 0 ? null : true;
+            return value != 0;
         }
 
         private static LegacyDocParagraphAlignment? MapAlignment(byte value) {

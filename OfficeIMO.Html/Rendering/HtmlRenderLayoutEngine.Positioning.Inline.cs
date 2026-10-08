@@ -28,7 +28,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        IDictionary<IElement, InlineContainingBounds> bounds) {
+        IDictionary<IElement, InlineContainingBounds> bounds,
+        bool decorationFragment = true) {
         for (IElement? current = run.OwnerElement; current != null; current = current.ParentElement) {
             if ((_localPositionedElements.ContainsKey(current) || _inlineStackingElements.Contains(current))
                 && _layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
@@ -41,10 +42,93 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     x + run.PaintOffsetX,
                     y + run.PaintOffsetY,
                     Math.Max(0.01D, width),
-                    Math.Max(0.01D, height));
+                    Math.Max(0.01D, height), decorationFragment, run.PaintOffsetY);
             }
             if (ReferenceEquals(current, formattingContainer)) break;
         }
+    }
+
+    private bool AtomicRunOwnsAnchorFragment(HtmlInlineRun run, HtmlRenderFlowBlock atomic) {
+        IElement? owner = run.OwnerElement;
+        if (owner == null || !string.Equals(owner.LocalName, "a", StringComparison.OrdinalIgnoreCase)) return false;
+        int nodeId = GetSemanticNodeId(owner);
+        // A laid-out anchor already owns its positioned/effected hit area. A second
+        // synthetic rectangle at the unpositioned inline slot would create an orphan link.
+        return EnumeratePageFloatVisuals(atomic.Visuals).OfType<HtmlRenderAnchorFragment>()
+            .Any(fragment => fragment.AnchorNodeId == nodeId);
+    }
+
+    private void RecordInlineAnchorGeometry(
+        HtmlInlineRun run,
+        IElement? formattingContainer,
+        double x,
+        double y,
+        double width,
+        double height,
+        IDictionary<IElement, InlineAnchorBounds> bounds) {
+        if (run.LinkUri == null || !run.Style.PaintVisible) return;
+        for (IElement? current = run.OwnerElement; current != null; current = current.ParentElement) {
+            if (string.Equals(current.TagName, "a", StringComparison.OrdinalIgnoreCase)) {
+                // A laid-out anchor owns its border box. Its descendant runs must
+                // not create a second, content-sized PDF hit area.
+                if (_layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
+                    && style.Display != "inline" && style.Display != "contents") return;
+                if (!bounds.TryGetValue(current, out InlineAnchorBounds? entry)) {
+                    entry = new InlineAnchorBounds(run.LinkUri, new InlineContainingBounds(this));
+                    bounds[current] = entry;
+                }
+                entry.Bounds.Include(
+                    x + run.PaintOffsetX,
+                    y + run.PaintOffsetY,
+                    Math.Max(0.01D, width),
+                    Math.Max(0.01D, height), relativePaintOffsetY: run.PaintOffsetY);
+                return;
+            }
+            if (ReferenceEquals(current, formattingContainer)) break;
+        }
+    }
+
+    private void AppendInlineAnchorFragments(
+        ICollection<HtmlRenderVisual> visuals,
+        IDictionary<IElement, List<HtmlRenderVisual>> ownedVisuals,
+        IReadOnlyDictionary<IElement, InlineAnchorBounds> bounds,
+        IElement? formattingContainer,
+        bool isInlineContinuation) {
+        foreach (KeyValuePair<IElement, InlineAnchorBounds> entry in bounds) {
+            IElement anchor = entry.Key;
+            int nodeId = GetSemanticNodeId(anchor);
+            string source = HtmlRenderStyleResolver.DescribeSource(anchor);
+            if (!_layoutStyles.TryGetValue(anchor, out HtmlRenderBoxStyle? style)) continue;
+            InlineFragmentRect[] fragments = entry.Value.Bounds.Fragments
+                .OrderBy(item => item.Y).ThenBy(item => item.X).ToArray();
+            bool clone = string.Equals(style.BoxDecorationBreak, "clone", StringComparison.Ordinal);
+            for (int index = 0; index < fragments.Length; index++) {
+                bool includeStartEdge = clone || index == 0 && !isInlineContinuation;
+                bool includeEndEdge = clone || index == fragments.Length - 1;
+                HtmlRenderBoxStyle fragmentStyle = CreateInlineFragmentPaintStyle(
+                    style, includeStartEdge, includeEndEdge);
+                InlineFragmentRect fragment = ExpandInlineFragmentToBorderBox(
+                    fragments[index], fragmentStyle, includeStartEdge, includeEndEdge);
+                AddInlineOwnedVisual(
+                    visuals,
+                    ownedVisuals,
+                    new HtmlRenderAnchorFragment(nodeId, entry.Value.LinkUri,
+                        ResolveAnchorLinkContents(anchor),
+                        fragment.X, fragment.Y - fragment.RelativePaintOffsetY, fragment.Width, fragment.Height,
+                        visuals.Count, source).TranslateRelativePaint(0D, fragment.RelativePaintOffsetY, visuals.Count),
+                    anchor,
+                    formattingContainer);
+            }
+        }
+    }
+
+    private sealed class InlineAnchorBounds {
+        internal InlineAnchorBounds(string linkUri, InlineContainingBounds bounds) {
+            LinkUri = linkUri;
+            Bounds = bounds;
+        }
+        internal string LinkUri { get; }
+        internal InlineContainingBounds Bounds { get; }
     }
 
     private void EnsureInlineStackingOwner(
@@ -113,7 +197,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlinePositionedPlacement placement in positionedPlacements) {
             PositionedLayer positioned = placement.Request.Resolve(this, placement.Rect.Width, placement.Rect.Height);
             var positionedVisuals = positioned.Block.Visuals
-                .Select((visual, index) => visual.Translate(placement.Rect.X + positioned.X, placement.Rect.Y + positioned.Y, index))
+                .Select((visual, index) => visual.Translate(placement.Rect.X + positioned.X, placement.Rect.Y + positioned.Y, index).IdentifyOutOfFlowPaint())
                 .ToList();
             var layer = new InlinePaintLayer(placement.Request.ZIndex, placement.Request.SourceOrder, positionedVisuals);
             IElement? ownerElement = FindNearestInlineStackingElement(placement.Request.ContainingBlock, formattingContainer);
@@ -174,15 +258,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal InlineContainingBounds(HtmlRenderLayoutEngine owner) => _owner = owner;
 
-        internal void Include(double x, double y, double width, double height) {
+        internal IReadOnlyList<InlineFragmentRect> Fragments => _fragments;
+
+        internal void Include(double x, double y, double width, double height, bool decorationFragment = true, double relativePaintOffsetY = 0D) {
             _left = Math.Min(_left, x);
             _top = Math.Min(_top, y);
             _right = Math.Max(_right, x + width);
             _bottom = Math.Max(_bottom, y + height);
-            IncludeFragment(x, y, width, height);
+            if (decorationFragment) IncludeFragment(x, y, width, height, relativePaintOffsetY);
         }
 
-        private void IncludeFragment(double x, double y, double width, double height) {
+        internal void Merge(InlineContainingBounds other, double offsetX, double offsetY) {
+            if (!double.IsPositiveInfinity(other._left)) {
+                Include(other._left + offsetX, other._top + offsetY, other._right - other._left,
+                    other._bottom - other._top, decorationFragment: false);
+            }
+            foreach (InlineFragmentRect fragment in other._fragments) {
+                IncludeFragment(fragment.X + offsetX, fragment.Y + offsetY, fragment.Width, fragment.Height, fragment.RelativePaintOffsetY);
+            }
+        }
+
+        private void IncludeFragment(double x, double y, double width, double height, double relativePaintOffsetY) {
             const double tolerance = 0.01D;
             long line = (long)Math.Floor(y / tolerance);
             for (int offset = -1; offset <= 1; offset++) {
@@ -192,14 +288,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     _owner.ChargeLayoutOperation("positioned inline fragment lookup");
                     int index = indexes[item];
                     InlineFragmentRect fragment = _fragments[index];
-                    if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance) continue;
+                    if (Math.Abs(fragment.Y - y) > tolerance || Math.Abs(fragment.Height - height) > tolerance
+                        || Math.Abs(fragment.RelativePaintOffsetY - relativePaintOffsetY) > tolerance) continue;
                     double right = x + width;
                     if (right < fragment.X - tolerance || x > fragment.Right + tolerance) continue;
                     var merged = new InlineFragmentRect(
                         Math.Min(fragment.X, x),
                         Math.Min(fragment.Y, y),
                         Math.Max(fragment.Right, right) - Math.Min(fragment.X, x),
-                        Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y));
+                        Math.Max(fragment.Bottom, y + height) - Math.Min(fragment.Y, y), relativePaintOffsetY);
                     _fragments[index] = merged;
                     long mergedLine = (long)Math.Floor(merged.Y / tolerance);
                     if (mergedLine != candidate) {
@@ -218,7 +315,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _fragmentsByLine.Add(line, lineIndexes);
             }
             lineIndexes.Add(_fragments.Count);
-            _fragments.Add(new InlineFragmentRect(x, y, width, height));
+            _fragments.Add(new InlineFragmentRect(x, y, width, height, relativePaintOffsetY));
         }
 
         internal InlineContainingRect ToRect(IElement formattingContainer, bool isContinuation) =>
@@ -233,16 +330,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly struct InlineFragmentRect {
-        internal InlineFragmentRect(double x, double y, double width, double height) {
+        internal InlineFragmentRect(double x, double y, double width, double height, double relativePaintOffsetY = 0D) {
             X = x;
             Y = y;
             Width = Math.Max(0.01D, width);
             Height = Math.Max(0.01D, height);
+            RelativePaintOffsetY = relativePaintOffsetY;
         }
         internal double X { get; }
         internal double Y { get; }
         internal double Width { get; }
         internal double Height { get; }
+        internal double RelativePaintOffsetY { get; }
         internal double Right => X + Width;
         internal double Bottom => Y + Height;
     }
@@ -334,6 +433,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
-        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() => _node?.ResolveVisuals() ?? _visuals ?? Array.Empty<HtmlRenderVisual>();
+        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() {
+            IReadOnlyList<HtmlRenderVisual> visuals = _node?.ResolveVisuals() ?? _visuals ?? Array.Empty<HtmlRenderVisual>();
+            var context = new HtmlRenderStackingContext(ZIndex, SourceOrder);
+            // The composed inline layer owns its descendants' external ordering.
+            // A nested absolute layer must not escape and compete with root siblings.
+            return visuals.Select(visual => visual.WithStackingContext(context)).ToArray();
+        }
     }
 }

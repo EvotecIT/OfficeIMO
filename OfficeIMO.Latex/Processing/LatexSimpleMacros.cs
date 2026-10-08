@@ -145,16 +145,16 @@ public static class LatexSimpleMacroExpander {
         if (depth > 0 && value.Length > maximumOutputLength) {
             throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
         }
-        var output = new StringBuilder(value.Length);
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(value, CreateTokenizerOptions(
+        var output = new StringBuilder(Math.Min(value.Length, Math.Min(maximumOutputLength, 4096)));
+        IReadOnlyList<LatexTokenView> tokens = LatexTokenizer.TokenizeViews(value, CreateTokenizerOptions(
             depth == 0 ? maximumInputLength : maximumOutputLength,
             tokenBudget.GetTokenizerLimit(), verbatimEnvironmentNames));
         tokenBudget.Consume(tokens.Count);
         for (int tokenIndex = 0; tokenIndex < tokens.Count;) {
-            LatexToken invocation = tokens[tokenIndex];
+            LatexTokenView invocation = tokens[tokenIndex];
             string name = invocation.Value ?? string.Empty;
             if (invocation.Kind != LatexTokenKind.Command || !definitions.TryGetValue(name, out LatexMacroDefinition? definition)) {
-                output.Append(invocation.Text);
+                AppendBounded(output, invocation.Text, maximumOutputLength);
                 tokenIndex++;
                 EnforceLength(output, maximumOutputLength);
                 continue;
@@ -162,7 +162,7 @@ public static class LatexSimpleMacroExpander {
             if (!active.Add(name)) {
                 diagnostics.Add(new LatexMacroExpansionDiagnostic("LATEXMAC002", LatexDiagnosticSeverity.Error,
                     "Cyclic simple macro invocation '" + name + "'.", invocation.StartOffset));
-                output.Append(invocation.Text);
+                AppendBounded(output, invocation.Text, maximumOutputLength);
                 tokenIndex++;
                 continue;
             }
@@ -187,16 +187,16 @@ public static class LatexSimpleMacroExpander {
             if (arguments.Count != definition.ParameterCount) {
                 diagnostics.Add(new LatexMacroExpansionDiagnostic("LATEXMAC001", LatexDiagnosticSeverity.Warning,
                     "Simple macro '" + name + "' did not receive the required arguments.", invocation.StartOffset));
-                output.Append(invocation.Text);
+                AppendBounded(output, invocation.Text, maximumOutputLength);
                 active.Remove(name);
                 tokenIndex++;
                 continue;
             }
             string replacement = SubstituteParameters(definition.Body, arguments, tokenBudget,
-                verbatimEnvironmentNames);
-            output.Append(ExpandCore(replacement, definitions, diagnostics, active, depth + 1,
+                verbatimEnvironmentNames, maximumOutputLength);
+            AppendBounded(output, ExpandCore(replacement, definitions, diagnostics, active, depth + 1,
                 maximumDepth, maximumOutputLength, maximumInputLength, tokenBudget,
-                verbatimEnvironmentNames));
+                verbatimEnvironmentNames), maximumOutputLength);
             active.Remove(name);
             tokenIndex = cursor;
             EnforceLength(output, maximumOutputLength);
@@ -208,25 +208,28 @@ public static class LatexSimpleMacroExpander {
         string body,
         IReadOnlyList<string> arguments,
         TokenBudget tokenBudget,
-        IReadOnlyCollection<string> verbatimEnvironmentNames) {
+        IReadOnlyCollection<string> verbatimEnvironmentNames,
+        int maximumOutputLength) {
         if (body.Length == 0) return string.Empty;
-        var output = new StringBuilder(body.Length);
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(body, CreateTokenizerOptions(
+        var output = new StringBuilder(Math.Min(body.Length, Math.Min(maximumOutputLength, 4096)));
+        IReadOnlyList<LatexTokenView> tokens = LatexTokenizer.TokenizeViews(body, CreateTokenizerOptions(
             body.Length, tokenBudget.GetTokenizerLimit(), verbatimEnvironmentNames));
         tokenBudget.Consume(tokens.Count);
         for (int index = 0; index < tokens.Count; index++) {
-            LatexToken token = tokens[index];
+            LatexTokenView token = tokens[index];
             if (token.Kind == LatexTokenKind.Parameter && index + 1 < tokens.Count) {
-                LatexToken next = tokens[index + 1];
-                if (next.Kind == LatexTokenKind.Text && next.Text.Length > 0 && next.Text[0] >= '1' && next.Text[0] <= '9') {
-                    int parameter = next.Text[0] - '1';
-                    if (parameter < arguments.Count) output.Append(arguments[parameter]);
-                    if (next.Text.Length > 1) output.Append(next.Text, 1, next.Text.Length - 1);
+                LatexTokenView next = tokens[index + 1];
+                int nextLength = next.EndOffset - next.StartOffset;
+                if (next.Kind == LatexTokenKind.Text && nextLength > 0 &&
+                    body[next.StartOffset] >= '1' && body[next.StartOffset] <= '9') {
+                    int parameter = body[next.StartOffset] - '1';
+                    if (parameter < arguments.Count) AppendBounded(output, arguments[parameter], maximumOutputLength);
+                    if (nextLength > 1) AppendBounded(output, body, next.StartOffset + 1, nextLength - 1, maximumOutputLength);
                     index++;
                     continue;
                 }
             }
-            output.Append(token.Text);
+            AppendBounded(output, body, token.StartOffset, token.EndOffset - token.StartOffset, maximumOutputLength);
         }
         return output.ToString();
     }
@@ -246,7 +249,7 @@ public static class LatexSimpleMacroExpander {
     }
 
     private static bool TryReadBalanced(
-        IReadOnlyList<LatexToken> tokens,
+        IReadOnlyList<LatexTokenView> tokens,
         string value,
         ref int cursor,
         LatexTokenKind open,
@@ -257,8 +260,14 @@ public static class LatexSimpleMacroExpander {
         int start = tokens[cursor].EndOffset;
         cursor++;
         int depth = 1;
+        int braceDepth = 0;
         while (cursor < tokens.Count) {
-            LatexToken token = tokens[cursor];
+            LatexTokenView token = tokens[cursor];
+            if (open == LatexTokenKind.OpenBracket) {
+                if (token.Kind == LatexTokenKind.OpenBrace) braceDepth++;
+                else if (token.Kind == LatexTokenKind.CloseBrace && braceDepth > 0) braceDepth--;
+                if (braceDepth > 0 || token.Kind == LatexTokenKind.CloseBrace) { cursor++; continue; }
+            }
             if (token.Kind == open) depth++;
             else if (token.Kind == close && --depth == 0) {
                 content = value.Substring(start, token.StartOffset - start);
@@ -270,9 +279,19 @@ public static class LatexSimpleMacroExpander {
         return false;
     }
 
-    private static void SkipArgumentTrivia(IReadOnlyList<LatexToken> tokens, ref int cursor) {
+    private static void SkipArgumentTrivia(IReadOnlyList<LatexTokenView> tokens, ref int cursor) {
         while (cursor < tokens.Count && (tokens[cursor].Kind == LatexTokenKind.Whitespace ||
                tokens[cursor].Kind == LatexTokenKind.LineEnding || tokens[cursor].Kind == LatexTokenKind.Comment)) cursor++;
+    }
+
+    private static void AppendBounded(StringBuilder output, string value, int maximumOutputLength) {
+        if (value.Length > maximumOutputLength - output.Length) throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
+        output.Append(value);
+    }
+
+    private static void AppendBounded(StringBuilder output, string value, int start, int length, int maximumOutputLength) {
+        if (length > maximumOutputLength - output.Length) throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
+        output.Append(value, start, length);
     }
 
     private static void EnforceLength(StringBuilder output, int maximumOutputLength) {

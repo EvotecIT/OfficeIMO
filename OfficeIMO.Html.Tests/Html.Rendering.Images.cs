@@ -11,6 +11,181 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPdf_UnpreparableImageReportsOmission() {
+        string data = Convert.ToBase64String(Encoding.ASCII.GetBytes("GIF89a"));
+        string html = "<p>Before image</p><img src='data:image/gif;base64," + data
+            + "' alt='Unpreparable thumbnail'><p>After image</p>";
+
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains("After image", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(result.Output.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("opacity:.5")]
+    [InlineData("clip-path:inset(0)")]
+    public void HtmlPdf_ImageOnlySemanticGroupWithUnpreparablePayloadDoesNotCreateEmptyStructure(string imageStyle) {
+        string data = Convert.ToBase64String(Encoding.ASCII.GetBytes("GIF89a"));
+        string html = "<a href='#target'></a><p id='target'><img style='" + imageStyle
+            + "' src='data:image/gif;base64," + data + "' alt=''></p>";
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        byte[] pdf = result.ToBytes();
+
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        Assert.Contains(info.NamedDestinations, destination => destination.Name == "html-fragment:target");
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "P");
+        Assert.Contains(result.Output.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void HtmlPdf_TruncatedImageOmitsPayloadWithReportedLoss() {
+        byte[] invalidPng = PdfPngTestImages.CreateRgbPng(10, 10);
+        int imageDataChunk = Encoding.ASCII.GetString(invalidPng).IndexOf("IDAT", StringComparison.Ordinal);
+        Assert.True(imageDataChunk >= 4);
+        invalidPng[imageDataChunk - 4] = 0x7F;
+        string html = "<p>Before image</p><img src='data:image/png;base64,"
+            + Convert.ToBase64String(invalidPng) + "' alt='Broken thumbnail'><p>After image</p>";
+
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        byte[] pdf = result.ToBytes();
+
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
+        Assert.Contains("After image", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(result.Output.Warnings, warning =>
+            warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
+    public void HtmlPdf_MissingImageAlternativeWithLineBreaksRemainsPrintable() {
+        const string html = "<img src='missing.png' alt='Heliopause movie&#13;&#10;  unavailable' style='width:180px;height:40px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string alternative = string.Concat(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "figure-alternative-text")
+            .Select(text => text.Text));
+        Assert.Equal("Heliopause movie unavailable", alternative);
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        string printable = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText()
+            .Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Heliopausemovieunavailable", printable, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_MissingImageAlternativeWrapsWithinItsImageBox() {
+        const string html = """
+            <img src="missing.jpg"
+                 alt="Beginning with a view from above the inner solar system, the camera flies toward the distant planet and its moons."
+                 style="display:block;width:200px;height:96px;object-fit:cover;font:12px/16px Arial;background:#20262c;color:white">
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] lines = EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "figure-alternative-text")
+            .ToArray();
+
+        Assert.True(lines.Length >= 3);
+        Assert.All(lines, line => Assert.InRange(line.Y + line.Height, 0D, 96D));
+        Assert.Contains("Beginning with a view", string.Join(" ", lines.Select(line => line.Text)), StringComparison.Ordinal);
+        HtmlRenderClipGroup alternativeClip = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderClipGroup>(), group => group.Source?.EndsWith(":alternative-clip", StringComparison.Ordinal) == true);
+        Assert.Equal(96D, alternativeClip.ClipHeight);
+    }
+
+    [Fact]
+    public void HtmlPdf_ClippedMissingImageRetainsCompleteAlternativeText() {
+        const string html = "<img src='missing.jpg' alt='A distant planet and its moons' "
+            + "style='display:block;width:80px;height:16px;font:12px/16px Arial'>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText()
+            .Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Contains("Adistantplanetanditsmoons", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_LongMissingImageAlternativeHasBoundedWrappedVisualsAndRetainsText() {
+        string alternative = new string('A', 1500) + " END";
+        string html = "<img src='missing.jpg' alt='" + alternative
+            + "' style='display:block;width:80px;height:16px;font:12px/16px Arial'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] text = EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(visual => visual.SemanticRole == "figure-alternative-text")
+            .ToArray();
+        Assert.InRange(text.Length, 2, 1025);
+        Assert.Equal(alternative, string.Concat(text.Select(visual => visual.Text)));
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("END", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_MissingImageAlternativePreservesNonbreakingSpace() {
+        const string html = "<img src='missing.png' alt='Heliopause&#160;movie&#13;&#10; unavailable' style='width:180px;height:40px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string alternative = string.Concat(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.SemanticRole == "figure-alternative-text")
+            .Select(text => text.Text));
+        Assert.Equal("Heliopause\u00A0movie unavailable", alternative);
+    }
+
+    [Fact]
+    public void HtmlRender_MissingImagePreservesAuthoredBackgroundAndLinkArea() {
+        const string html = """
+            <style>:root{--fallback:#20262c}img{background-color:var(--fallback);color:white}</style>
+            <a href="https://example.com/missing"><img src="missing.png" alt="Unavailable" style="display:block;width:120px;height:70px"></a>
+            """;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 140D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.White
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(32, 38, 44), raster.GetPixel(110, 50));
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        Assert.Contains(PdfCore.PdfInspector.Inspect(pdf).LinkAnnotations,
+            link => link.Uri == "https://example.com/missing" && link.X2 - link.X1 > 50D);
+    }
+
+    [Fact]
     public void HtmlRender_InlineSvgReceivesHostDocumentCssAndCustomProperties() {
         const string html = "<style>svg{--accent:#ff0000} svg .host-painted{fill:var(--accent);stroke:#0000ff;stroke-width:2}</style>"
             + "<svg id='art' viewBox='0 0 20 10' style='width:40px;height:20px'>"
@@ -24,11 +199,142 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        OfficeDrawingShape shape = Assert.Single(drawing.Drawing.Shapes);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(drawing.Drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        OfficeDrawingShape shape = Assert.Single(fitted.InnerDrawing.Shapes);
 
         Assert.Equal(OfficeColor.Red, shape.Shape.FillColor);
         Assert.Equal(OfficeColor.Blue, shape.Shape.StrokeColor);
         Assert.Equal(2D, shape.Shape.StrokeWidth);
+    }
+
+    [Fact]
+    public void HtmlRender_IntrinsiclessInlineSvgUsesCssViewportAndRetainsBoxBackgroundAndLineStroke() {
+        const string html = "<body style='margin:0'><style>svg{display:block;width:500px;height:60px;background-color:#888}</style>"
+            + "<svg><line x1='10' y1='30' x2='300' y2='30' style='stroke:blue;stroke-width:20'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), visual =>
+            visual.Shape.FillColor == OfficeColor.FromRgb(136, 136, 136));
+        HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        OfficeDrawingShape line = Assert.Single(drawing.Drawing.Shapes);
+        Assert.Equal(OfficeColor.Blue, line.Shape.StrokeColor);
+        Assert.Equal(20D, line.Shape.StrokeWidth);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineSvgViewBoxUsesCssViewportWithUniformFit() {
+        const string html = "<body style='margin:0'><svg viewBox='0 0 100 50' style='display:block;width:500px;height:300px'>"
+            + "<rect x='10' y='5' width='20' height='10' fill='red'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 320D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(500D, visual.Drawing.Width);
+        Assert.Equal(300D, visual.Drawing.Height);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(visual.Drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        Assert.Equal(5D, fitted.Transform.M11, 6);
+        Assert.Equal(5D, fitted.Transform.M22, 6);
+        Assert.Equal(25D, fitted.Transform.OffsetY, 6);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineSvgObjectFitUsesPaintedObjectViewport() {
+        const string html = "<body style='margin:0'><svg viewBox='0 0 100 50' "
+            + "style='display:block;width:500px;height:300px;object-fit:contain'>"
+            + "<rect width='100' height='50' fill='red'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 320D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(25D, visual.Y, 6);
+        Assert.Equal(500D, visual.Width, 6);
+        Assert.Equal(250D, visual.Height, 6);
+        Assert.Equal(500D, visual.Drawing.Width, 6);
+        Assert.Equal(250D, visual.Drawing.Height, 6);
+        OfficeDrawingGroup clip = Assert.IsType<OfficeDrawingGroup>(Assert.Single(visual.Drawing.Elements));
+        OfficeDrawingEffectGroup fitted = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(clip.InnerDrawing.Elements));
+        Assert.Equal(5D, fitted.Transform.M11, 6);
+        Assert.Equal(5D, fitted.Transform.M22, 6);
+        Assert.Equal(0D, fitted.Transform.OffsetY, 6);
+    }
+
+    [Fact]
+    public void HtmlRender_InlineSvgCoverUsesUncroppedPaintedViewport() {
+        const string html = "<body style='margin:0'><svg id='covered-inline' viewBox='0 0 20 10' "
+            + "style='display:block;width:10px;height:12px;object-fit:cover;object-position:right center'>"
+            + "<rect width='10' height='10' fill='red'/><rect x='10' width='10' height='10' fill='blue'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 20D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        HtmlRenderClipGroup clip = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(),
+            group => group.Source == "svg#covered-inline:object-fit-clip");
+        HtmlRenderDrawing painted = Assert.Single(clip.Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(10D, clip.Width, 6);
+        Assert.Equal(24D, painted.Width, 6);
+        Assert.Equal(12D, painted.Height, 6);
+        Assert.Equal(24D, painted.Drawing.Width, 6);
+        Assert.Equal(12D, painted.Drawing.Height, 6);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(5, 6));
+    }
+
+    [Fact]
+    public void HtmlRender_OversizedAuthoredInlineSvgCannotReachRasterCodec() {
+        const string html = "<body style='margin:0'><svg width='1000000' style='display:block;width:500px;height:60px'>"
+            + "<rect width='10' height='10' filter='url(#blur)'/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 520D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_BoundedInlineSvgCanUseCallerRasterFallback() {
+        const string html = "<body style='margin:0'><svg viewBox='0 0 10 4' style='display:block;width:100px;height:40px'>"
+            + "<rect width='10' height='4' fill='red'/><customPaint/></svg></body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 60D,
+            Margins = HtmlRenderMargins.All(0D),
+            ImageCodec = new SvgFallbackCodec()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgRasterFallback);
+        Assert.Single(Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>()).Drawing.Images);
     }
 
     [Fact]
@@ -129,7 +435,7 @@ public sealed partial class HtmlRenderingTests {
         AngleSharp.Dom.IElement image = document.QuerySelector("img")!;
         HtmlComputedStyle imageStyle = computed[image];
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 320D);
         HtmlRenderBoxStyle resolved = resolver.Resolve(image, 320D, parent);
 
@@ -159,7 +465,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(200D, image.Width, 3);
         Assert.Equal(100D, image.Height, 3);
-        Assert.Single(EnumerateDrawingElements(image.Drawing).OfType<OfficeDrawingShape>());
+        Assert.Single(DrawingTestTraversal.Elements(image.Drawing).OfType<OfficeDrawingShape>());
         Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
@@ -192,9 +498,8 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.Equal(3, vector.Drawing.Shapes.Count);
-        string[] svgTextRuns = vector.Drawing.Elements.OfType<OfficeDrawingEffectGroup>()
-            .SelectMany(group => group.Drawing.Elements.OfType<OfficeDrawingText>())
+        Assert.Equal(4, DrawingTestTraversal.Elements(vector.Drawing).OfType<OfficeDrawingShape>().Count());
+        string[] svgTextRuns = DrawingTestTraversal.Elements(vector.Drawing).OfType<OfficeDrawingText>()
             .Select(text => text.Text)
             .ToArray();
         Assert.Equal(new[] { "Svg", "LabelX" }, svgTextRuns);
@@ -301,8 +606,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visual.Drawing.Images);
         Assert.Contains("fill=\"#FF0000\"", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#0000FF\"", exportedSvg, StringComparison.Ordinal);
-        Assert.True(raster.GetPixel(3, 3).B > 200, raster.GetPixel(3, 3).ToString());
-        Assert.True(raster.GetPixel(8, 5).R > raster.GetPixel(8, 5).B, raster.GetPixel(8, 5).ToString());
+        Assert.True(raster.GetPixel(35, 35).B > 200, raster.GetPixel(35, 35).ToString());
+        Assert.True(raster.GetPixel(80, 50).R > raster.GetPixel(80, 50).B, raster.GetPixel(80, 50).ToString());
         Assert.Contains("InlineForeign", extracted, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
     }

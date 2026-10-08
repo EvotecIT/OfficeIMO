@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_role_defaults_respect_the_bounded_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001);
         using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
-            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         var table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Equal(2, table.Cells.Count);

@@ -31,6 +31,14 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
+
+```csharp
+using var incoming = ExcelDocument.Load("upload.xlsx", ExcelLoadOptions.UntrustedDefaults);
+```
+
+This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with workbooks containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
 For ordinary workbook work, use `ExcelDocument.Create(...)` or
 `ExcelDocument.Load(...)`, edit the same document through its sheets, then call
 `Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only
@@ -333,6 +341,10 @@ rows can still be faster sequentially.
 
 ### Append to an existing table
 
+Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.
+
+If saving reloads the package, obtain a current worksheet from `document.Sheets` before inspecting it. A stale or removed worksheet handle raises `InvalidOperationException` rather than returning an empty table snapshot.
+
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");
 var rows = new DataTable();
@@ -392,6 +404,27 @@ state explicitly.
 Use `SetInCellImage`, `GetInCellImages`, and `RemoveInCellImage` for native rich-
 value images. Their metadata follows cell sorting, filtering, sizing, copying,
 moving, and structural edits; they are distinct from floating drawing images.
+
+### Floating picture hyperlinks
+
+`ExcelImage.HyperlinkUri` reads, sets, changes, or removes a native DrawingML
+picture click link. The target is stored in the workbook; OfficeIMO does not
+open it or fetch it.
+
+```csharp
+ExcelImage picture = sheet.AddImage(2, 1, File.ReadAllBytes("photo.png"),
+    "image/png", widthPixels: 320, heightPixels: 160);
+picture.HyperlinkUri = new Uri("https://example.org/photos/1");
+picture.HyperlinkUri = null; // Remove the click link.
+```
+
+Image bytes, anchors, and shared drawing relationships are preserved. Read-only
+workbooks support inspection but reject mutation. A save that reloads the package
+invalidates existing picture handles; obtain current images from
+`document.Sheets` after that save. Removed worksheets cannot be rebound by name.
+SVG image export preserves targets allowed by the shared safe-link policy and
+reports unsupported interactive targets. Raster output retains the picture
+without click behavior.
 
 ### File-backed editing for large workbooks
 
@@ -1207,6 +1240,32 @@ image/PDF projection emits stable diagnostics when extension semantics are
 approximated or omitted; native XLS export rejects extension-only rules rather
 than silently discarding them.
 
+### Set several column widths
+
+Use `SetColumnWidths` to apply positive widths in one worksheet update:
+
+```csharp
+sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 24, [2] = 14, [3] = 18 });
+```
+
+Indexes are 1-based. The method preserves column styles, visibility and outline
+metadata. It validates the complete map before changing widths and clamps widths
+above Excel's 255-character limit. Use `SetColumnWidth` to clear an individual
+custom width with a non-positive value.
+Manually assigned widths do not mark a column as already auto-fitted. A later
+`AutoFitColumns` or `AutoFitColumnsFor` can resize them, including after reopening
+the workbook.
+
+For sparse cells, `CellWrapTextFor` applies wrapping together and saves the
+stylesheet once while preserving each cell's other formatting:
+
+```csharp
+sheet.CellWrapTextFor(new[] { (Row: 1, Column: 1), (Row: 3, Column: 2) });
+```
+
+Coordinates are 1-based and the complete selection is validated before editing.
+Pass `wrapText: false` to clear wrapping for the selected cells.
+
 ### Tune larger exports
 
 ```csharp
@@ -1319,6 +1378,20 @@ document.Compose("Members", composer => {
 });
 document.Save();
 ```
+
+## Worksheet print areas
+
+Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+
+```csharp
+document.SetPrintArea(sheet, "B2:D20,F2:H20");
+IReadOnlyList<string> areas = sheet.GetPrintAreas();
+string? definedNameText = sheet.GetPrintArea();
+```
+
+`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+
+Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Auto-fit no longer inflates stored heights by 1.5; existing stored workbook heights remain unchanged when loaded.
 
 ## Managed image export
 

@@ -669,6 +669,8 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            layoutType ??= GetInheritedTableLayoutType();
+
             // Word defaults to autofit when tblLayout is omitted.
             return layoutType == TableLayoutValues.Fixed
                 ? WordTableLayoutMode.Fixed

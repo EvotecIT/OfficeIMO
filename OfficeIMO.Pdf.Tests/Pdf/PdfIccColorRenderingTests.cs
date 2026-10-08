@@ -993,7 +993,7 @@ public class PdfIccColorRenderingTests {
             IccLutTestProfiles.CreateCmykLut8(),
             jpeg,
             "/N 4",
-            imageEntries: "/Filter /DCTDecode");
+            imageEntries: "/Filter /DCTDecode /Decode [1 0 1 0 1 0 1 0]");
 
         OfficeColor pixel = ReadSinglePixel(pdf);
 
@@ -1270,12 +1270,12 @@ public class PdfIccColorRenderingTests {
             profile,
             jpeg,
             "/N 4",
-            imageEntries: "/Filter /DCTDecode"));
+            imageEntries: "/Decode [1 0 1 0 1 0 1 0] /Filter /DCTDecode"));
         OfficeColor requestedTransform = ReadSinglePixel(BuildIccImagePdf(
             profile,
             jpeg,
             "/N 4",
-            imageEntries: "/Filter /DCTDecode /DecodeParms << /ColorTransform 1 >>"));
+            imageEntries: "/Decode [1 0 1 0 1 0 1 0] /Filter /DCTDecode /DecodeParms << /ColorTransform 1 >>"));
 
         Assert.NotEqual(defaultTransform, requestedTransform);
     }

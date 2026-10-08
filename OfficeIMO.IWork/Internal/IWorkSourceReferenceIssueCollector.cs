@@ -10,6 +10,7 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
 
     internal IReadOnlyList<IWorkSourceReferenceIssue> Issues => _issues;
     internal IWorkSourceDeclarationIssueCollector Declarations { get; } = new(source);
+    internal HashSet<ulong> ReportedUnassessedRowStorageTiles { get; } = new();
 
     internal IWorkArchiveRecord? ReadOne(IWorkArchiveRecord owner, IWorkWireMessage message,
         int field, string? path = null, Func<uint, bool>? allowedType = null) {
@@ -24,9 +25,10 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
     }
 
     internal IReadOnlyList<IWorkArchiveRecord> ReadAll(IWorkArchiveRecord owner, IWorkWireMessage message,
-        int field, out int unresolved, string? path = null, Func<uint, bool>? allowedType = null) {
+        int field, out int unresolved, string? path = null, Func<uint, bool>? allowedType = null,
+        List<int>? resolvedPositions = null) {
         IReadOnlyList<IWorkArchiveRecord> result = source.Index.DereferenceAll(message, field, out unresolved,
-            out bool rejectedSet);
+            out bool rejectedSet, resolvedPositions);
         if (unresolved > 0 || allowedType != null && result.Any(record => !allowedType(record.MessageType))) {
             // A malformed repeated field is rejected as a whole by the existing reader. Retain
             // evidence for readable siblings too, without calling their existing targets missing.

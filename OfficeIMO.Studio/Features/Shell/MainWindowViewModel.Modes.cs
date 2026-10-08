@@ -19,16 +19,8 @@ public enum StudioWorkspaceMode {
     Provenance,
     Settings,
     Jobs,
-    Invoices
-}
-
-public enum StudioDocumentMode {
-    View,
-    Annotate,
-    Edit,
-    Pages,
-    Forms,
-    Protect
+    Invoices,
+    Publishing
 }
 
 public sealed partial class MainWindowViewModel {
@@ -44,6 +36,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsSettingsMode))]
     [NotifyPropertyChangedFor(nameof(IsJobsMode))]
     [NotifyPropertyChangedFor(nameof(IsInvoiceMode))]
+    [NotifyPropertyChangedFor(nameof(IsPublishingMode))]
     [NotifyPropertyChangedFor(nameof(ShowPdfDocumentControls))]
     private StudioWorkspaceMode _workspaceMode;
 
@@ -59,6 +52,10 @@ public sealed partial class MainWindowViewModel {
     public ConversionWorkbenchViewModel ConversionWorkbench { get; private set; } = null!;
 
     public InvoiceWorkbenchViewModel InvoiceWorkbench { get; private set; } = null!;
+    public BookWorkbenchViewModel BookWorkbench { get; private set; } = null!;
+    public bool IsPublishingMode => WorkspaceMode == StudioWorkspaceMode.Publishing;
+
+    [RelayCommand] private void ShowBookWorkbench() => WorkspaceMode = StudioWorkspaceMode.Publishing;
 
     public OutputIntakeWorkbenchViewModel OutputWorkbench { get; private set; } = null!;
 
@@ -263,6 +260,7 @@ public sealed partial class MainWindowViewModel {
         if (e.PropertyName == nameof(ConversionWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(OutputIntakeWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(InvoiceWorkbenchViewModel.IsBusy) ||
+            e.PropertyName == nameof(BookWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(DocumentHealthViewModel.IsBusy) ||
             e.PropertyName == nameof(ProvenanceWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(SearchablePdfOcrViewModel.IsBusy)) {

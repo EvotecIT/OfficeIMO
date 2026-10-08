@@ -212,15 +212,25 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         }
     }
 
+    // Preserve the published workflow signature; optional audit-root checks remain in the shared implementation.
+    internal static OfficeProvenanceFileSnapshot Capture(
+        string sourcePath, long maximumBytes, CancellationToken cancellationToken) =>
+        Capture(sourcePath, maximumBytes, cancellationToken,
+            auditRootPhysicalPath: null, auditRootIdentity: null);
+
     /// <summary>Captures one input through a single bounded read and holds a shared-read lease until disposal.</summary>
     internal static OfficeProvenanceFileSnapshot Capture(
         string sourcePath,
         long maximumBytes,
-        CancellationToken cancellationToken = default) => CaptureCore(
+        CancellationToken cancellationToken = default,
+        string? auditRootPhysicalPath = null,
+        string? auditRootIdentity = null) => CaptureCore(
             sourcePath,
             maximumBytes,
             cancellationToken,
-            OfficePathIdentity.SupportsPhysicalIdentity);
+            OfficePathIdentity.SupportsPhysicalIdentity,
+            auditRootPhysicalPath,
+            auditRootIdentity);
 
     /// <summary>Exercises the portable snapshot path on platforms where physical file identity is unavailable.</summary>
     internal static OfficeProvenanceFileSnapshot CapturePortable(
@@ -236,7 +246,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string sourcePath,
         long maximumBytes,
         CancellationToken cancellationToken,
-        bool usesPhysicalIdentity) {
+        bool usesPhysicalIdentity,
+        string? auditRootPhysicalPath = null,
+        string? auditRootIdentity = null) {
         if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
         if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
 
@@ -250,8 +262,14 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             string sourceDirectoryIdentity = usesPhysicalIdentity
                 ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
                 : Path.GetFullPath(sourceDirectory);
+            if (auditRootPhysicalPath != null &&
+                !OfficePathIdentity.IsSameOrDescendant(sourceDirectoryIdentity, auditRootPhysicalPath))
+                throw new InvalidDataException("The audited source directory moved outside its selected root.");
+            if (auditRootPhysicalPath != null && auditRootIdentity != null &&
+                !string.Equals(OfficePathIdentity.GetPhysicalIdentityKey(auditRootPhysicalPath), auditRootIdentity, StringComparison.Ordinal))
+                throw new InvalidDataException("The selected audit root changed identity before capture.");
             string? sourcePhysicalIdentity;
-            using (FileStream source = OpenSnapshotSource(fullPath, sourceDirectoryIdentity, usesPhysicalIdentity))
+            using (FileStream source = OpenSnapshotSource(fullPath, auditRootPhysicalPath ?? sourceDirectoryIdentity, usesPhysicalIdentity))
             using (var destination = new FileStream(
                        filePath,
                        FileMode.CreateNew,
@@ -276,6 +294,12 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     throw new InvalidDataException(
                         "The asset snapshot source changed identity while it was being captured.");
                 }
+                if (auditRootPhysicalPath != null && !OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                        fullPath, auditRootPhysicalPath, source.SafeFileHandle))
+                    throw new InvalidDataException("The audited source moved outside its selected root while being captured.");
+                if (auditRootPhysicalPath != null && auditRootIdentity != null &&
+                    !string.Equals(OfficePathIdentity.GetPhysicalIdentityKey(auditRootPhysicalPath), auditRootIdentity, StringComparison.Ordinal))
+                    throw new InvalidDataException("The selected audit root changed identity during capture.");
                 cancellationToken.ThrowIfCancellationRequested();
                 destination.Flush(flushToDisk: true);
             }

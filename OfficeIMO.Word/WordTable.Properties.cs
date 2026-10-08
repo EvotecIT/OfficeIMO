@@ -190,7 +190,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal int EstimateTableWidthInDxa() {
             // For nested tables, use the containing cell's width as the reference
-            if (IsNestedTable) {
+            if (GetWidthHostCell() != null) {
                 int container = EstimateContainingCellContentWidthInDxa();
                 if (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0) {
                     return Math.Min(this.Width!.Value, container);
@@ -202,6 +202,11 @@ namespace OfficeIMO.Word {
                 // Auto or unspecified => fit to container
                 return container;
             }
+
+            // A loaded shared header/footer may have several different layout widths.
+            // Its existing grid is already the resolved table width, including tblW percent.
+            if (this.WidthType != WordTableWidthUnit.Dxa && GetUnscopedStoryGridWidth() is int storyWidth)
+                return storyWidth;
 
             // Non-nested: default to page content area as reference
             int contentWidth = EstimateContentAreaWidthInDxa();
@@ -222,7 +227,7 @@ namespace OfficeIMO.Word {
         /// table cell, before the table's own authored width is applied.
         /// </summary>
         internal int EstimateAvailableContainerWidthInDxa() =>
-            IsNestedTable
+            GetWidthHostCell() != null
                 ? EstimateContainingCellContentWidthInDxa()
                 : EstimateContentAreaWidthInDxa();
 
@@ -244,50 +249,6 @@ namespace OfficeIMO.Word {
             } catch { /* ignore */ }
             // Sensible default if anything fails
             return 9000; // ~6.25 inches
-        }
-
-        /// <summary>
-        /// Resolves the document section that owns this top-level table.
-        /// </summary>
-        private WordSection? ResolveOwningSection() {
-            var sections = _document.Sections;
-            if (sections.Count == 0) {
-                return null;
-            }
-
-            var body = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            if (body == null) {
-                return sections[0];
-            }
-
-            int sectionIndex = 0;
-            foreach (var element in body.ChildElements) {
-                if (ReferenceEquals(element, _table)) {
-                    return sections[Math.Min(sectionIndex, sections.Count - 1)];
-                }
-                if (element is Paragraph paragraph &&
-                    paragraph.ParagraphProperties?.SectionProperties != null &&
-                    sectionIndex < sections.Count - 1) {
-                    sectionIndex++;
-                }
-            }
-
-            return sections[0];
-        }
-
-        /// <summary>
-        /// Estimates the available content width of the containing table cell (for nested tables).
-        /// Falls back to page content width when structure cannot be determined.
-        /// </summary>
-        private int EstimateContainingCellContentWidthInDxa() {
-            if (_table.Parent is DocumentFormat.OpenXml.Wordprocessing.TableCell cell) {
-                int? estimated = EstimateCellContentWidthInDxa(_document, cell);
-                if (estimated.HasValue) {
-                    return estimated.Value;
-                }
-            }
-
-            return EstimateContentAreaWidthInDxa();
         }
 
         /// <summary>

@@ -7,5 +7,7 @@ public enum FooterSegmentKind {
     /// <summary>Current page number.</summary>
     PageNumber,
     /// <summary>Total number of pages.</summary>
-    TotalPages
+    TotalPages,
+    /// <summary>Total number of pages in the complete document, including all sections.</summary>
+    DocumentPages
 }

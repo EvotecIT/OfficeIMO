@@ -47,7 +47,7 @@ public sealed partial class MainWindowViewModel {
             bool provider = _services.Storage.UsesProviderPublication(destination);
             using var preview = new PdfSigningPreviewViewModel(settings, workspace.Pages.Count, destination, provider, image, _localizer,
                 path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None),
-                path => _openUri(new Uri(Path.GetDirectoryName(path)!)));
+                OutputActions.SupportsFolderNavigation ? path => _openUri(new Uri(Path.GetDirectoryName(path)!)) : null);
             if (!await _reviewSigning(preview).ConfigureAwait(true) || !IsReviewedCopyCurrent(workspace, revision)) return;
             if (provider && !await _confirmProviderWrite(destination).ConfigureAwait(true)) return;
             if (!IsReviewedCopyCurrent(workspace, revision)) return;

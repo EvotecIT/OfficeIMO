@@ -20,6 +20,7 @@ internal static partial class HtmlConversionInputGuard {
                 tracker?.RecordElementStart(current.Depth);
                 Reserve(element.LocalName);
                 Reserve(element.Prefix);
+                Reserve(element.FormState?.Value);
                 foreach (Dom.HtmlAttribute attribute in element.Attributes) {
                     cancellationToken.ThrowIfCancellationRequested();
                     Reserve(attribute.Name);

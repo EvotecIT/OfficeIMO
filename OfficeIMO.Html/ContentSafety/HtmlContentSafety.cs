@@ -358,7 +358,7 @@ public static partial class HtmlContentSafety {
         string display = style?.GetValue("display").Trim() ?? string.Empty;
         if (hasHiddenAttribute
             && (style == null
-                || !style.IsSpecifiedValue("display")
+                || !(style.IsSpecifiedValue("display") || style.IsInheritedValue("display"))
                 || string.Equals(display, "none", StringComparison.OrdinalIgnoreCase))) {
             return new Concealment(
                 OfficeContentConcealmentKind.HiddenByProperty,
@@ -747,7 +747,8 @@ public static partial class HtmlContentSafety {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (styles.TryGetValue(current, out HtmlComputedStyle? style)
-                && HasActiveTransform(style.GetValue("transform"))) return true;
+                && (HasActiveTransform(style.GetValue("transform"))
+                    || HasActiveTransform(style.GetValue("scale")))) return true;
         }
         return false;
     }

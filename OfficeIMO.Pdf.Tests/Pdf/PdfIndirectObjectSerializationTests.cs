@@ -6,6 +6,41 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIndirectObjectSerializationTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ParsedByteStringsPreserveAllBytesAndTheirSerializedLimit(bool hexadecimal) {
+        byte[] bytes = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();
+        var tokenBuilder = new StringBuilder();
+        if (hexadecimal) PdfSyntaxEscaper.AppendHexStringCancellable(tokenBuilder, bytes, CancellationToken.None);
+        else PdfSyntaxEscaper.AppendLiteralBytesCancellable(tokenBuilder, bytes, CancellationToken.None);
+        byte[] source = PdfEncoding.Latin1GetBytes("%PDF-1.7\n1 0 obj\n" + tokenBuilder + "\nendobj\n%%EOF\n");
+        var value = Assert.IsType<PdfStringObj>(Assert.Single(PdfSyntax.ParseObjects(source).Map).Value.Value);
+        var context = new PdfPageExtractor.SerializationContext(
+            new Dictionary<int, int>(), 0, new Dictionary<int, Dictionary<string, PdfObject>>());
+        byte[] serialized = PdfPageExtractor.SerializeObject(value, context);
+        string literal = PdfEncoding.Latin1GetString(serialized).TrimEnd('\n');
+        Assert.Equal(bytes, PdfStringParser.ParseLiteralToBytes(literal.Substring(1, literal.Length - 2)));
+        PdfPageExtractor.EnsureSerializedObjectWithinLimit(value, context, serialized.LongLength);
+        Assert.Throws<InvalidDataException>(() =>
+            PdfPageExtractor.EnsureSerializedObjectWithinLimit(value, context, serialized.LongLength - 1));
+    }
+
+    [Theory]
+    [InlineData("’€™")]
+    [InlineData("\u00A0\u00AD")]
+    [InlineData("þÿ")]
+    public void TextStringSerializedLimitsMatchActualEncoding(string text) {
+        var value = new PdfStringObj(text, useTextStringEncoding: true);
+        var context = new PdfPageExtractor.SerializationContext(
+            new Dictionary<int, int>(), 0, new Dictionary<int, Dictionary<string, PdfObject>>());
+        byte[] serialized = PdfPageExtractor.SerializeObject(value, context);
+        Assert.Equal(text, PdfTextString.DecodeHex(PdfEncoding.Latin1GetString(serialized).Trim().Trim('<', '>')));
+        PdfPageExtractor.EnsureSerializedObjectWithinLimit(value, context, serialized.LongLength);
+        Assert.Throws<InvalidDataException>(() =>
+            PdfPageExtractor.EnsureSerializedObjectWithinLimit(value, context, serialized.LongLength - 1));
+    }
+
     [Fact]
     public void RetainedNonStreamObjectKeepsItsIndirectBytes() {
         var context = new PdfPageExtractor.SerializationContext(

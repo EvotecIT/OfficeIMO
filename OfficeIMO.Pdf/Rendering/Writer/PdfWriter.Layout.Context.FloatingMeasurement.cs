@@ -26,6 +26,7 @@ internal static partial class PdfWriter {
             double height = MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: false);
             int count = GetTableColumnCount(table);
             if (count == 0 || table.Rows.Count == 0) return true;
+            style = PreparePairedTableBorders(table, style);
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;
@@ -42,6 +43,7 @@ internal static partial class PdfWriter {
 
         private double MeasureFloatingParagraph(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool firstVisualOnly = false) {
             var style = EffectiveParagraphStyle(paragraph);
+            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(style, fontSize);
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);
@@ -54,7 +56,7 @@ internal static partial class PdfWriter {
                     double available = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
                     var frame = GetFloatingTextFrame(left, available, start - completedHeight, requiredHeight, minimumWidth);
                     return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                });
+                }, lineSpacing: style?.LineSpacing);
             return spacing + (firstVisualOnly ? wrapped.LineHeights.FirstOrDefault() : wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading));
         }
     }

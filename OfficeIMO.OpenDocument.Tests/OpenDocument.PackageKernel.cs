@@ -143,6 +143,32 @@ public class OpenDocumentPackageKernelTests {
     }
 
     [Fact]
+    public void VersionRewriteRetainsBackedManifestDirectoriesAndRemovesStaleOnes() {
+        OdtDocument document = OdtDocument.Create();
+        document.Package.AddOrReplaceEntry("Assets/deep/file.bin", new byte[] { 1 }, "application/octet-stream");
+        XDocument manifest = document.Package.GetXml("META-INF/manifest.xml");
+        XElement root = manifest.Root!;
+        root.Add(OdfPackageTemplates.FileEntry("Assets/", string.Empty, null),
+            OdfPackageTemplates.FileEntry("Assets/deep/", string.Empty, null),
+            OdfPackageTemplates.FileEntry("Stale/", string.Empty, null));
+        document.Package.MarkXmlDirty("META-INF/manifest.xml");
+
+        byte[] output = document.ToBytes(new OdfSaveOptions {
+            CompatibilityProfile = OdfCompatibilityProfile.Odf13
+        });
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(output));
+        XDocument rewritten = reopened.Package.GetXml("META-INF/manifest.xml");
+        string[] paths = rewritten.Root!.Elements(OdfNamespaces.Manifest + "file-entry")
+            .Select(element => (string?)element.Attribute(OdfNamespaces.Manifest + "full-path") ?? string.Empty)
+            .ToArray();
+        Assert.Contains("Assets/", paths);
+        Assert.Contains("Assets/deep/", paths);
+        Assert.Contains("Assets/deep/file.bin", paths);
+        Assert.DoesNotContain("Stale/", paths);
+        Assert.Equal("1.3", (string?)rewritten.Root.Attribute(OdfNamespaces.Manifest + "version"));
+    }
+
+    [Fact]
     public void SerializationReportsDirtyStateUntilARealSaveSucceeds() {
         OdtDocument document = OdtDocument.Create();
         using var destination = new MemoryStream();

@@ -163,7 +163,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, VarintField(2, 1))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult();
+        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
         using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);

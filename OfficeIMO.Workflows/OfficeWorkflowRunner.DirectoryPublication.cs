@@ -327,7 +327,7 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         string lockRoot = Path.Combine(Path.GetTempPath(), "OfficeIMO", "directory-publication-locks");
         Directory.CreateDirectory(lockRoot);
-        string identity = OfficeWorkflowPathIdentity.Normalize(requestedDirectory);
+        string identity = OfficeWorkflowPathIdentity.NormalizeDirectoryEntry(requestedDirectory);
         string lockName = System.Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity))) + ".lock";
         string lockPath = Path.Combine(lockRoot, lockName);
         DateTime deadline = DateTime.UtcNow.AddSeconds(30D);

@@ -3,11 +3,13 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     internal void MergeFontProgramUsageFrom(PdfOptions nested) {
         if (ReferenceEquals(this, nested)) return;
+        MergeResolvedFallbackFontMappingsFrom(nested);
         if (nested._embeddedFontPrograms != null) {
             foreach (var entry in nested._embeddedFontPrograms) {
                 if (TryGetEmbeddedStandardFontProgramForGeneration(entry.Key, out _, out PdfTrueTypeFontProgram? target) && target != null) {
                     foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
+                    target.MergeAsciiCharacterUsageFrom(entry.Value);
                 }
             }
         }
@@ -24,6 +26,7 @@ public sealed partial class PdfOptions {
                 if (TryGetNamedFontProgramForGeneration(entry.Key, out PdfTrueTypeFontProgram? target) && target != null) {
                     foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
+                    target.MergeAsciiCharacterUsageFrom(entry.Value);
                 }
             }
         }

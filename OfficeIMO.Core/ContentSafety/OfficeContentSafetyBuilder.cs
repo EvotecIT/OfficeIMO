@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.ContentSafety;
@@ -13,17 +14,25 @@ namespace OfficeIMO.ContentSafety;
 public sealed class OfficeContentSafetyBuilder {
     private readonly string _format;
     private readonly OfficeContentSafetyOptions _options;
+    private readonly OfficeContentInstructionBudget _instructionBudget;
     private readonly List<OfficeContentSafetyFinding> _findings = new List<OfficeContentSafetyFinding>();
     private readonly List<OfficeTextIntegrityFinding> _textIntegrity = new List<OfficeTextIntegrityFinding>();
     private readonly List<string> _diagnostics = new List<string>();
     private int _characters;
+    internal CancellationToken CancellationToken { get; }
 
     /// <summary>Creates a bounded collector for one format adapter.</summary>
-    public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options = null) {
+    public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options = null) : this(format, options, CancellationToken.None) { }
+
+    /// <summary>Creates a collector that observes cancellation while charging text and collecting findings.</summary>
+    public OfficeContentSafetyBuilder(string format, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
+        CancellationToken = cancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A format name is required.", nameof(format));
         _format = format.Trim();
         _options = options ?? new OfficeContentSafetyOptions();
         _options.Validate();
+        _instructionBudget = _options.InstructionBudget ?? new OfficeContentInstructionBudget();
     }
 
     /// <summary>Gets the validated inspection options.</summary>
@@ -41,9 +50,11 @@ public sealed class OfficeContentSafetyBuilder {
         text = ValidateFindingArguments(location, evidence, text);
         EnsureCanCharge(text.Length);
         EnsureFindingCapacity();
-        IReadOnlyList<string> instructionSignals = _options.DetectInstructionLikeText
-            ? OfficeContentInstructionDetector.Detect(text)
-            : Array.Empty<string>();
+        OfficeContentInstructionAnalysis? analysis = _options.DetectInstructionLikeText
+            ? OfficeContentInstructionDetector.Analyze(text, _options.MaxCharacters, _instructionBudget) : null;
+        if (analysis?.IsComplete == false && !_diagnostics.Contains("CONTENT_INSTRUCTION_SCAN_INCOMPLETE"))
+            AddDiagnostic("CONTENT_INSTRUCTION_SCAN_INCOMPLETE");
+        IReadOnlyList<string> instructionSignals = analysis?.Signals ?? Array.Empty<string>();
         return AddCore(
             kind,
             risk,
@@ -141,9 +152,10 @@ public sealed class OfficeContentSafetyBuilder {
         OfficeTextIntegrityReport unicode = OfficeTextIntegrityInspector.Inspect(text, new OfficeTextIntegrityOptions {
             MaxCharacters = Math.Max(1, text.Length),
             MaxFindings = Math.Max(1, remaining),
-            IncludeTypographicSpaces = true,
-            IncludeVariationSelectors = true
-        }, location);
+            IncludeTypographicSpaces = _options.TextIntegrityOptions?.IncludeTypographicSpaces ?? true,
+            IncludeVariationSelectors = _options.TextIntegrityOptions?.IncludeVariationSelectors ?? true,
+            IgnoreLeadingByteOrderMark = _options.TextIntegrityOptions?.IgnoreLeadingByteOrderMark ?? true
+        }, location, CancellationToken);
         if (remaining <= 0 && unicode.Findings.Count > 0) {
             throw new InvalidDataException("The asset exceeds the configured combined finding limit.");
         }
@@ -222,6 +234,7 @@ public sealed class OfficeContentSafetyBuilder {
     }
 
     private void EnsureCanCharge(int characters) {
+        CancellationToken.ThrowIfCancellationRequested();
         if (characters < 0 || _characters > _options.MaxCharacters - characters) {
             throw new InvalidDataException("The asset exceeds the configured decoded-character limit.");
         }
@@ -235,6 +248,7 @@ public sealed class OfficeContentSafetyBuilder {
     private int RemainingFindingCapacity() => _options.MaxFindings - _findings.Count;
 
     private void EnsureFindingCapacity() {
+        CancellationToken.ThrowIfCancellationRequested();
         if (RemainingFindingCapacity() <= 0) {
             throw new InvalidDataException("The asset exceeds the configured combined finding limit.");
         }

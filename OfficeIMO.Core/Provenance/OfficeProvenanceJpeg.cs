@@ -262,7 +262,8 @@ internal static class OfficeProvenanceJpeg {
                 data[nextPayloadOffset + 2] != instanceHigh || data[nextPayloadOffset + 3] != instanceLow ||
                 OfficeProvenanceBinary.ReadUInt32(data, nextPayloadOffset + 4, littleEndian: false) != expectedSequence) break;
             ReserveMarker(ref markerCount, options.MaxContainerEntries);
-            int fragmentLength = nextPayloadLength - 8;
+            int repeatedHeader = GetRepeatedHeaderLength(data, payloadOffset + 8, boxHeaderLength, nextPayloadOffset, nextPayloadLength);
+            int fragmentLength = nextPayloadLength - 8 - repeatedHeader;
             collected += fragmentLength;
             current = nextEnd;
             expectedSequence++;
@@ -279,8 +280,9 @@ internal static class OfficeProvenanceJpeg {
                 if (!TryReadMarker(data, fragmentOffset, out _, out int nextPayloadOffset, out int nextPayloadLength, out int nextEnd)) {
                     throw new InvalidDataException("JPEG APP11 sequence changed during bounded reassembly.");
                 }
-                int fragmentLength = nextPayloadLength - 8;
-                Buffer.BlockCopy(data, nextPayloadOffset + 8, reassembled, destinationOffset, fragmentLength);
+                int repeatedHeader = GetRepeatedHeaderLength(data, payloadOffset + 8, boxHeaderLength, nextPayloadOffset, nextPayloadLength);
+                int fragmentLength = nextPayloadLength - 8 - repeatedHeader;
+                Buffer.BlockCopy(data, nextPayloadOffset + 8 + repeatedHeader, reassembled, destinationOffset, fragmentLength);
                 destinationOffset += fragmentLength;
                 fragmentOffset = nextEnd;
             }
@@ -288,6 +290,14 @@ internal static class OfficeProvenanceJpeg {
                 reassembled, 0, reassembled.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
         }
         return true;
+    }
+
+    private static int GetRepeatedHeaderLength(byte[] data, int firstHeader, int headerLength, int payloadOffset, int payloadLength) {
+        // JPEG JUMBF continuations repeat the superbox header after their JP/instance/sequence prefix.
+        // Retain support for the unprefixed fragments accepted by earlier OfficeIMO versions.
+        if (headerLength == 0 || payloadLength < 8 + headerLength) return 0;
+        for (int i = 0; i < headerLength; i++) if (data[firstHeader + i] != data[payloadOffset + 8 + i]) return 0;
+        return headerLength;
     }
 
     private static bool TryReadDeclaredJumbfLength(byte[] data, int offset, int available, long maximum, out int length) {

@@ -1,0 +1,26 @@
+{{~ # Expects: stores (data.applications.<app>.stores), store_filter ("available" to show only live stores, otherwise all). ~}}
+{{~ # Live stores use the official store badge. Coming-soon entries never use store badges (Apple and Microsoft only allow them for released apps). ~}}
+<div class="imo-stores">
+  {{~ for store in stores ~}}
+    {{~ if store.status == "available" ~}}
+      {{~ if store.url && store.badge ~}}
+      <a class="imo-store-badge" href="{{ store.url }}" rel="noopener" data-store="{{ store.id }}">
+        <img class="imo-theme-light-only" src="{{ store.badge }}" width="{{ store.badgeWidth }}" height="{{ store.badgeHeight }}" alt="{{ store.badgeAlt }}" loading="lazy" decoding="async" />
+        <img class="imo-theme-dark-only" src="{{ store.badgeDark ?? store.badge }}" width="{{ store.badgeWidth }}" height="{{ store.badgeHeight }}" alt="{{ store.badgeAlt }}" loading="lazy" decoding="async" />
+      </a>
+      {{~ else if store.command ~}}
+      <div class="imo-store-command" data-store="{{ store.id }}">
+        <span class="imo-store-icon" aria-hidden="true">{{ store_icon = store.icon }}{{ include "sections/store-icon" }}</span>
+        <code>{{ store.command }}</code>
+        <button type="button" data-copy="{{ store.command }}" aria-label="Copy {{ store.name }} install command">Copy</button>
+      </div>
+      {{~ end ~}}
+    {{~ else if store_filter != "available" ~}}
+      <div class="imo-store-soon" data-store="{{ store.id }}">
+        <span class="imo-store-icon" aria-hidden="true">{{ store_icon = store.icon }}{{ include "sections/store-icon" }}</span>
+        <span class="imo-store-soon__text"><strong>{{ store.name }}</strong>{{ if store.platforms }}<small>{{ store.platforms }}</small>{{ end }}</span>
+        <span class="imo-store-soon__status">Coming soon</span>
+      </div>
+    {{~ end ~}}
+  {{~ end ~}}
+</div>

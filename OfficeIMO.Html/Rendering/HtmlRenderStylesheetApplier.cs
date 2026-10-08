@@ -11,8 +11,9 @@ internal static class HtmlRenderStylesheetApplier {
         HtmlConversionLimits limits,
         HtmlRenderOptions options) {
         var budget = new HtmlCssByteBudget(limits);
+        string? preferredSet = FindPreferredStylesheetSet(document, options);
         foreach (IElement style in document.QuerySelectorAll("style")) {
-            if (!IsApplicableStyleElement(style, options)) continue;
+            if (!IsApplicableStyleElement(style, options, preferredSet)) continue;
             budget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
 
@@ -27,10 +28,11 @@ internal static class HtmlRenderStylesheetApplier {
         HtmlCssByteBudget cssBudget,
         HtmlDiagnosticReport diagnostics) {
         var reportedCycles = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+        string? preferredSet = FindPreferredStylesheetSet(document, options);
         Uri? documentBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         if (documentBaseUri != null) {
             foreach (IElement inlineStyle in document.QuerySelectorAll("style")) {
-                if (!IsApplicableStyleElement(inlineStyle, options)) continue;
+                if (!IsApplicableStyleElement(inlineStyle, options, preferredSet)) continue;
                 string css = inlineStyle.TextContent ?? string.Empty;
                 if (!HtmlResourcePipeline.HasCssImportAtRule(css)) continue;
                 inlineStyle.TextContent = ExpandImports(
@@ -46,7 +48,7 @@ internal static class HtmlRenderStylesheetApplier {
             }
         }
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
-            if (!IsApplicableStylesheetLink(link, options)) continue;
+            if (!IsApplicableStylesheetLink(link, options, preferredSet)) continue;
 
             string source = link.GetAttribute("href") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(link.GetAttribute("integrity"))) {
@@ -101,16 +103,6 @@ internal static class HtmlRenderStylesheetApplier {
                     cssBudget);
             }
 
-            if (HtmlResourcePipeline.HasStylesheetUrlResources(css)) {
-                diagnostics.Add(
-                    ComponentName,
-                    HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending,
-                    "The external stylesheet was applied, but its URL resources are not active in the current paint model.",
-                    HtmlDiagnosticSeverity.Warning,
-                    source,
-                    resource.ContentType);
-            }
-
             IElement style = document.CreateElement("style");
             style.TextContent = css;
             style.SetAttribute("data-officeimo-source", source);
@@ -153,9 +145,12 @@ internal static class HtmlRenderStylesheetApplier {
             ResourceUrlPolicy = options.GetResourceUrlPolicy().Clone(),
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
+            MaxResponsiveImageSizesCharacters = options.ResponsiveImageSizesCharacterLimit,
             MediaContext = options.MediaContext,
-            MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaWidth = options.CssMediaWidth,
+            MediaHeight = options.CssMediaHeight,
+            DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
+            DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()
         };
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
@@ -259,9 +254,17 @@ internal static class HtmlRenderStylesheetApplier {
         if (link == null) throw new ArgumentNullException(nameof(link));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (!IsStylesheetLinkCandidate(link, options)) return false;
+        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
+        return IsApplicableStylesheetLink(link, options,
+            title == null || link.Owner == null ? null : FindPreferredStylesheetSet(link.Owner, options));
+    }
+
+    internal static bool IsApplicableStylesheetLink(IElement link, HtmlRenderOptions options, string? preferredSet) {
+        if (link == null) throw new ArgumentNullException(nameof(link));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (!IsStylesheetLinkCandidate(link, options)) return false;
 
         string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
-        string? preferredSet = FindPreferredStylesheetSet(link, options);
         return title == null
             ? !IsAlternateStylesheetLink(link)
             : string.Equals(title, preferredSet, StringComparison.Ordinal);
@@ -271,10 +274,19 @@ internal static class HtmlRenderStylesheetApplier {
         if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (!IsStyleElementCandidate(styleElement, options)) return false;
+        string? title = NormalizeStylesheetSetTitle(styleElement.GetAttribute("title"));
+        return IsApplicableStyleElement(styleElement, options,
+            title == null || styleElement.Owner == null ? null : FindPreferredStylesheetSet(styleElement.Owner, options));
+    }
+
+    internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options, string? preferredSet) {
+        if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (!IsStyleElementCandidate(styleElement, options)) return false;
 
         string? title = NormalizeStylesheetSetTitle(styleElement.GetAttribute("title"));
         return title == null
-            || string.Equals(title, FindPreferredStylesheetSet(styleElement, options), StringComparison.Ordinal);
+            || string.Equals(title, preferredSet, StringComparison.Ordinal);
     }
 
     internal static bool IsPreferredStylesheetSetDeclaration(IElement element, HtmlRenderOptions options) {
@@ -292,23 +304,22 @@ internal static class HtmlRenderStylesheetApplier {
     internal static bool HasSelectableAlternateStylesheetSet(IHtmlDocument document, HtmlRenderOptions options) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (options == null) throw new ArgumentNullException(nameof(options));
+        string? preferredSet = FindPreferredStylesheetSet(document, options);
         foreach (IElement element in document.QuerySelectorAll("link[href], style")) {
             if (NormalizeStylesheetSetTitle(element.GetAttribute("title")) == null) continue;
             if (string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
-                if (IsStylesheetLinkCandidate(element, options) && !IsApplicableStylesheetLink(element, options)) return true;
+                if (IsStylesheetLinkCandidate(element, options) && !IsApplicableStylesheetLink(element, options, preferredSet)) return true;
                 continue;
             }
             if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)
                 && IsStyleElementCandidate(element, options)
-                && !IsApplicableStyleElement(element, options)) return true;
+                && !IsApplicableStyleElement(element, options, preferredSet)) return true;
         }
         return false;
     }
 
-    private static string? FindPreferredStylesheetSet(IElement context, HtmlRenderOptions options) {
-        IDocument? owner = context.Owner;
-        if (owner == null) return null;
-        foreach (IElement candidate in owner.QuerySelectorAll("link[href], style")) {
+    internal static string? FindPreferredStylesheetSet(IDocument document, HtmlRenderOptions options) {
+        foreach (IElement candidate in document.QuerySelectorAll("link[href], style")) {
             if (!IsPreferredStylesheetSetDeclaration(candidate, options)) continue;
             return NormalizeStylesheetSetTitle(candidate.GetAttribute("title"));
         }
@@ -331,8 +342,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     private static bool IsApplicableMedia(string mediaText, HtmlRenderOptions options) {
-        double? width = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
-        double? height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        double? width = options.CssMediaWidth;
+        double? height = options.CssMediaHeight;
         return width.HasValue && height.HasValue
             ? HtmlComputedStyleEngine.IsApplicableMedia(
                 mediaText,

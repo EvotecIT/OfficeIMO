@@ -9,6 +9,9 @@ namespace OfficeIMO.Reader;
 /// Recognized text returned by an external OCR provider for a candidate emitted by an OfficeIMO read result.
 /// </summary>
 public sealed class OfficeDocumentOcrTextResult {
+    /// <summary>Optional detailed recognition checks. Provider identity fields below remain authoritative.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; set; }
+
     /// <summary>
     /// Identifier of the <see cref="OfficeDocumentOcrCandidate"/> this OCR result enriches.
     /// </summary>
@@ -115,7 +118,7 @@ public sealed class OfficeDocumentOcrEnrichmentReport {
 /// <summary>
 /// Helpers for merging external OCR provider output into OfficeIMO read results.
 /// </summary>
-public static class OfficeDocumentOcrEnrichmentExtensions {
+public static partial class OfficeDocumentOcrEnrichmentExtensions {
     /// <summary>
     /// Applies recognized OCR text to a document read result without requiring the core reader to run an OCR engine.
     /// </summary>
@@ -135,7 +138,7 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
         Dictionary<string, OfficeDocumentOcrTextResult> suppliedByCandidate = suppliedResults
             .GroupBy(static item => item.CandidateId, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.Last(), StringComparer.Ordinal);
-        IReadOnlyList<OfficeDocumentOcrCandidate> candidates = result.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>();
+        IReadOnlyList<OfficeDocumentOcrCandidate> candidates = OfficeDocumentOcrCandidates.Collect(result);
         var applied = new List<AppliedOcrText>();
         var unresolved = new List<OfficeDocumentOcrCandidate>();
 
@@ -167,11 +170,12 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
             Chunks = Append(result.Chunks, enrichedChunks),
             Metadata = Append(result.Metadata, BuildOcrMetadata(applied, unresolved.Count, unmatchedIds.Length)),
             Pages = BuildPages(result.Pages, enrichedBlocks, effectiveOptions.RemoveResolvedCandidates ? unresolved : candidates),
-            Blocks = Append(result.Blocks, enrichedBlocks),
+            Blocks = Append(enrichedBlocks.Length == 0 ? result.Blocks : PreserveFallbackBlocks(result), enrichedBlocks),
             Tables = result.Tables ?? Array.Empty<ReaderTable>(),
             Assets = result.Assets ?? Array.Empty<OfficeDocumentAsset>(),
             Links = result.Links ?? Array.Empty<OfficeDocumentLink>(),
             Forms = result.Forms ?? Array.Empty<OfficeDocumentFormField>(),
+            NestedDocuments = result.NestedDocuments ?? Array.Empty<OfficeDocumentNestedResult>(),
             OcrCandidates = effectiveOptions.RemoveResolvedCandidates ? unresolved.ToArray() : candidates,
             Visuals = result.Visuals ?? Array.Empty<ReaderVisual>(),
             Diagnostics = BuildDiagnostics(result.Diagnostics, unresolved, effectiveOptions)
@@ -213,6 +217,7 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
             Kind = string.IsNullOrWhiteSpace(options.BlockKind) ? "ocr-text" : options.BlockKind.Trim(),
             Text = applied.Result.Text.Trim(),
             Location = BuildOcrLocation(source, applied, "ocr-text"),
+            Recognition = BuildRecognitionEvidence(applied.Result),
             Region = CloneRegion(applied.Candidate.Region)
         };
     }
@@ -453,6 +458,8 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
             NormalizedStartLine = location.NormalizedStartLine,
             NormalizedEndLine = location.NormalizedEndLine,
             HeadingPath = location.HeadingPath,
+            HierarchyHeadingPath = location.HierarchyHeadingPath,
+            HierarchyHeadingDisplayPath = location.HierarchyHeadingDisplayPath,
             HeadingSlug = location.HeadingSlug,
             SourceBlockKind = location.SourceBlockKind,
             BlockAnchor = location.BlockAnchor,

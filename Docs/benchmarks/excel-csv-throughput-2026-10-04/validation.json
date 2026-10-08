@@ -1,0 +1,25 @@
+{
+  "sourceCommit": "fe9daeb03098217473946affc1b8109714edc49f",
+  "tests": [
+    {"project": "OfficeIMO.CSV.Tests", "target": "net10.0", "filter": "Category!=Performance", "passed": 628, "failed": 0, "skipped": 0},
+    {"project": "OfficeIMO.CSV.Tests", "target": "net8.0", "filter": "Category!=Performance", "passed": 628, "failed": 0, "skipped": 0},
+    {"project": "OfficeIMO.CSV.Tests", "target": "net472", "filter": "Category!=Performance", "passed": 440, "failed": 0, "skipped": 0},
+    {"project": "OfficeIMO.Excel.Tests", "target": "net10.0", "filter": "(FullyQualifiedName~DataReader|FullyQualifiedName~SharedString)&Category!=Performance", "passed": 286, "failed": 0, "skipped": 0},
+    {"project": "OfficeIMO.Excel.Tests", "target": "net8.0", "filter": "(FullyQualifiedName~DataReader|FullyQualifiedName~SharedString)&Category!=Performance", "passed": 286, "failed": 0, "skipped": 0},
+    {"project": "OfficeIMO.Excel.Tests", "target": "net472", "filter": "(FullyQualifiedName~DataReader|FullyQualifiedName~SharedString)&Category!=Performance", "passed": 281, "failed": 0, "skipped": 0}
+  ],
+  "builds": [
+    {"project": "OfficeIMO.CSV", "target": "netstandard2.0", "configuration": "Release", "errors": 0, "warnings": 0},
+    {"project": "OfficeIMO.Excel", "target": "netstandard2.0", "configuration": "Release", "errors": 0, "warnings": 0}
+  ],
+  "review": {
+    "candidatePatchHash": "0c0eb6838f7ee29070caa3df9dcefbf2b1d865c0",
+    "mode": "One independent read-only pass over seven implementation, test and benchmark files",
+    "actionableFindings": 0,
+    "targetedConfirmation": "28464d9e3: restored typed batching reviewed with no actionable findings; single confirmation allowance used",
+    "finalNarrowing": "fe9daeb03 restores CsvWriter.Escaping.cs byte-for-byte to baseline; all remaining implementation paths retain review coverage",
+    "disposition": "Accept as shaped; performance evidence is primary-agent responsibility",
+    "scopeLimit": "GetFieldType throwing on the modern default reader path lacks direct coverage in the changed regression helper; shared value-buffering behavior is covered on legacy/formatted paths"
+  },
+  "limits": ["No native Linux or macOS run in this pass", "No peak/retained-memory qualification", "No full Excel correctness-suite run", "No GitHub CI or package release"]
+}

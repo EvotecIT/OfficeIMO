@@ -45,17 +45,17 @@ internal static partial class PdfPageImporter {
 
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
-        PdfLoadOptions? preparedSourceReadOptions = options.FlattenVisualAnnotations ? null : sourceReadOptions;
+        PdfLoadOptions preparedSourceReadOptions = PdfLoadOptions.WithMinimumInputBytes(sourceReadOptions, preparedSource.LongLength);
         if (insertBeforePageNumber == targetPageCount + 1) {
             return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers, targetDocument);
         }
 
         byte[] inserted = ExtractImportedPages(preparedSource, preparedSourceReadOptions, sourcePageNumbers);
         if (insertBeforePageNumber == 1) {
-            return MergeBoundaryPages(targetPdf, inserted, append: false, targetReadOptions, targetDocument);
+            return MergeBoundaryPages(targetPdf, inserted, append: false, targetReadOptions, targetDocument, preparedSourceReadOptions);
         }
 
-        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions, targetDocument);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber, targetReadOptions, targetDocument, preparedSourceReadOptions);
     }
 
     private static byte[] ImportPages(PdfPageImportOptions options, byte[] targetPdf, byte[] sourcePdf, bool append, PdfLoadOptions? targetReadOptions, int[]? sourcePageNumbers) {
@@ -66,7 +66,7 @@ internal static partial class PdfPageImporter {
 
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
-        PdfLoadOptions? preparedSourceReadOptions = options.FlattenVisualAnnotations ? null : sourceReadOptions;
+        PdfLoadOptions preparedSourceReadOptions = PdfLoadOptions.WithMinimumInputBytes(sourceReadOptions, preparedSource.LongLength);
         return ImportPreparedPages(targetPdf, preparedSource, append, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers!);
     }
 
@@ -79,7 +79,7 @@ internal static partial class PdfPageImporter {
         int[] sourcePageNumbers,
         PdfReadDocument? targetDocument = null) {
         byte[] importedPages = ExtractImportedPages(preparedSourcePdf, sourceReadOptions, sourcePageNumbers);
-        return MergeBoundaryPages(targetPdf, importedPages, append, targetReadOptions, targetDocument);
+        return MergeBoundaryPages(targetPdf, importedPages, append, targetReadOptions, targetDocument, sourceReadOptions);
     }
 
     private static byte[] ExtractImportedPages(byte[] sourcePdf, PdfLoadOptions? sourceReadOptions, int[] sourcePageNumbers) {
@@ -104,11 +104,12 @@ internal static partial class PdfPageImporter {
         byte[] importedPages,
         bool append,
         PdfLoadOptions? targetReadOptions,
-        PdfReadDocument? targetDocument = null) {
+        PdfReadDocument? targetDocument = null,
+        PdfLoadOptions? importedReadOptions = null) {
         byte[][] sources = append ? new[] { targetPdf, importedPages } : new[] { importedPages, targetPdf };
         PdfLoadOptions[] readOptions = append
-            ? new[] { PdfLoadOptions.Resolve(targetReadOptions), PdfLoadOptions.Default }
-            : new[] { PdfLoadOptions.Default, PdfLoadOptions.Resolve(targetReadOptions) };
+            ? new[] { PdfLoadOptions.Resolve(targetReadOptions), PdfLoadOptions.WithMinimumInputBytes(importedReadOptions, importedPages.LongLength) }
+            : new[] { PdfLoadOptions.WithMinimumInputBytes(importedReadOptions, importedPages.LongLength), PdfLoadOptions.Resolve(targetReadOptions) };
         Func<PdfReadDocument>? targetReader = targetDocument is null ? null : () => targetDocument;
         Func<PdfReadDocument>?[] readers = append
             ? new Func<PdfReadDocument>?[] { targetReader, null }

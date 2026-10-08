@@ -374,11 +374,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (partContainer is WorksheetPart worksheetPart) {
-                foreach (var relationship in worksheetPart.HyperlinkRelationships) {
-                    if (!string.IsNullOrWhiteSpace(relationship.Id)) {
-                        existing.Add(relationship.Id);
-                    }
+            foreach (var relationship in partContainer.HyperlinkRelationships) {
+                if (!string.IsNullOrWhiteSpace(relationship.Id)) {
+                    existing.Add(relationship.Id);
                 }
             }
 
@@ -467,9 +465,16 @@ namespace OfficeIMO.Excel {
             DrawingsPart targetDrawingsPart,
             string sourceSheetName,
             string targetSheetName) {
+            // Relationship IDs are scoped to this fresh drawing part. Preserve them for
+            // every relationship so copied XML keeps its media, chart, click and hover
+            // references even when the source IDs are ordered differently.
+            foreach (var relationship in sourceDrawingsPart.HyperlinkRelationships) {
+                targetDrawingsPart.AddHyperlinkRelationship(relationship.Uri, relationship.IsExternal, relationship.Id);
+            }
+
             foreach (var relationship in sourceDrawingsPart.Parts.ToList()) {
                 if (relationship.OpenXmlPart is ChartPart sourceChartPart) {
-                    string targetRelationshipId = GetUnusedRelationshipId(targetDrawingsPart);
+                    string targetRelationshipId = relationship.RelationshipId;
                     ChartPart targetChartPart = targetDrawingsPart.AddNewPart<ChartPart>(targetRelationshipId);
                     if (sourceChartPart.ChartSpace != null) {
                         targetChartPart.ChartSpace = (DocumentFormat.OpenXml.Drawing.Charts.ChartSpace)sourceChartPart.ChartSpace.CloneNode(true);
@@ -481,21 +486,18 @@ namespace OfficeIMO.Excel {
                         CopyTemplateKnownPartRelationship(chartRelationship.OpenXmlPart, targetChartPart, chartRelationship.RelationshipId);
                     }
 
-                    RewriteDrawingRelationshipId(targetDrawingsPart.WorksheetDrawing!, relationship.RelationshipId, targetRelationshipId);
                     continue;
                 }
 
                 if (relationship.OpenXmlPart is ImagePart sourceImagePart) {
-                    string targetRelationshipId = GetUnusedRelationshipId(targetDrawingsPart);
+                    string targetRelationshipId = relationship.RelationshipId;
                     CopyTemplateImagePart(sourceImagePart, targetDrawingsPart, targetRelationshipId);
-                    RewriteDrawingRelationshipId(targetDrawingsPart.WorksheetDrawing!, relationship.RelationshipId, targetRelationshipId);
                     continue;
                 }
 
                 if (IsTemplateDiagramPart(relationship.OpenXmlPart)) {
-                    string targetRelationshipId = GetUnusedRelationshipId(targetDrawingsPart);
+                    string targetRelationshipId = relationship.RelationshipId;
                     CopyTemplateKnownPartRelationship(relationship.OpenXmlPart, targetDrawingsPart, targetRelationshipId);
-                    RewriteDrawingRelationshipId(targetDrawingsPart.WorksheetDrawing!, relationship.RelationshipId, targetRelationshipId);
                     continue;
                 }
 
@@ -658,17 +660,6 @@ namespace OfficeIMO.Excel {
             using (Stream sourceStream = sourcePart.GetStream(FileMode.Open, FileAccess.Read))
             using (Stream targetStream = targetPart.GetStream(FileMode.Create, FileAccess.Write)) {
                 sourceStream.CopyTo(targetStream);
-            }
-        }
-
-        private static void RewriteDrawingRelationshipId(OpenXmlElement root, string oldRelationshipId, string newRelationshipId) {
-            foreach (var element in root.Descendants<OpenXmlElement>()) {
-                foreach (var attribute in element.GetAttributes()) {
-                    if (string.Equals(attribute.NamespaceUri, "http://schemas.openxmlformats.org/officeDocument/2006/relationships", StringComparison.Ordinal)
-                        && string.Equals(attribute.Value, oldRelationshipId, StringComparison.Ordinal)) {
-                        element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, newRelationshipId));
-                    }
-                }
             }
         }
 

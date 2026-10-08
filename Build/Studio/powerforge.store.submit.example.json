@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.store.submit.schema.json",
+  "SchemaVersion": 1,
+  "Authentication": {
+    "SellerId": "<Partner Center seller ID>",
+    "TenantId": "<Entra tenant ID>",
+    "ClientId": "<authorized Partner Center application ID>",
+    "ClientSecretEnvVar": "PARTNER_CENTER_CLIENT_SECRET",
+    "Scope": "https://api.store.microsoft.com/.default"
+  },
+  "Targets": [
+    {
+      "Name": "Studio.Windows",
+      "Provider": "DesktopInstaller",
+      "ApplicationId": "<reserved Store product ID>",
+      "DesktopPackagesPath": "../../Artifacts/Studio/Catalog/desktop-packages.json",
+      "Commit": false,
+      "WaitForCommit": true
+    }
+  ]
+}

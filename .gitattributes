@@ -3,13 +3,19 @@
 ###############################################################################
 * text=auto
 
+# Browser assets are generated and hashed from canonical UTF-8/LF bytes.
+OfficeIMO.Browser/** text eol=lf
+OfficeIMO.JavaScript/** text eol=lf
+
 # Raw decoded raster evidence contains arbitrary bytes, including LF without NUL.
 # Windows checkout must not expand those sample values to CRLF.
 *.rgba -text -diff
+OfficeIMO.Html.Tests/Fixtures/ExcelRaster/*.webp -text -diff
 *.yuv16 -text -diff
 *.avif -text -diff
 *.obu -text -diff
 *.bin -text -diff
+OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf -text -diff
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
 # Integrity-labelled document inputs and provider captures must survive Windows
@@ -22,9 +28,24 @@ OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
 
+# Frozen HTML qualification inputs and manifests identify exact source bytes.
+# Preserve their authored line endings rather than changing their integrity pins.
+OfficeIMO.TestAssets/Documents/Html/Qualification/** -text
+
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their
 # producer line endings, because corpus SHA-256 checks must match on every OS.
 OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text -diff
+
+# Native email exports are hash-bound producer evidence, including their line endings.
+OfficeIMO.Email.Tests/Corpora/native-apple-20261003/** -text -diff
+OfficeIMO.Email.Tests/Corpora/native-apple-20261003/manifest.json text eol=lf diff
+
+# Independent LaTeX input hashes identify the upstream bytes on every platform.
+OfficeIMO.Latex.Tests/Fixtures/latex2e/*.tex -text
+OfficeIMO.Latex.Tests/Fixtures/latex2e/*.txt -text
+
+# Hash-bound EPUB producer fixtures retain upstream bytes on every checkout platform.
+OfficeIMO.TestAssets/Documents/Epub/IdpfPublishing/childrens-literature/** -text -whitespace
 
 # Public showcase downloads are generated binary evidence. Preserve exact bytes
 # so the committed manifest hashes remain stable across platforms and checkouts.
@@ -117,3 +138,8 @@ OfficeIMO.TestAssets/OcrQuality/*.json -text
 # Reviewed upstream license texts are hash-bound packaging inputs. Preserve their
 # bytes and original whitespace across checkout platforms.
 OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
+
+# Captured benchmark packets retain exact member bytes inside verified archives.
+Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
+Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
+Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff

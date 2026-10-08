@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -24,14 +25,20 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         OpenXmlElement? colorMap = (chart.Parent as C.ChartSpace)?.OpenXmlPart is ChartPart chartPart
             ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : null;
         NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
+        return ReadNativeText(owner, scheme, colorMap, inherited);
+    }
+
+    private static NativeText ReadNativeText(OpenXmlElement owner, A.ColorScheme? scheme,
+        OpenXmlElement? colorMap, NativeText inherited) {
         inherited = ReadTextPropertyDefaults(inherited, owner.GetFirstChild<C.TextProperties>(), scheme, colorMap);
         var rich = owner.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
         if (rich == null) return inherited;
         QualifyTextLayout(rich);
+        Dictionary<string, OpenXmlElement> listLevels = ReadListLevels(rich);
         NativeText? selected = null;
         foreach (var paragraph in rich.Elements<A.Paragraph>()) {
             int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
-            var list = rich.GetFirstChild<A.ListStyle>()?.ChildElements.FirstOrDefault(element => element.LocalName == $"lvl{level + 1}pPr");
+            listLevels.TryGetValue($"lvl{level + 1}pPr", out OpenXmlElement? list);
             NativeText paragraphText = ApplyNativeText(inherited, list?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
             paragraphText = ApplyNativeText(paragraphText, paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
             foreach (var run in paragraph.ChildElements.Where(element => element is A.Run or A.Field)) {
@@ -48,10 +55,11 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     private static NativeText ReadTextPropertyDefaults(NativeText inherited, C.TextProperties? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
         if (properties == null) return inherited;
         QualifyTextLayout(properties);
+        Dictionary<string, OpenXmlElement> listLevels = ReadListLevels(properties);
         NativeText? selected = null;
         foreach (var paragraph in properties.Elements<A.Paragraph>()) {
             int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
-            var list = properties.GetFirstChild<A.ListStyle>()?.ChildElements.FirstOrDefault(element => element.LocalName == $"lvl{level + 1}pPr");
+            listLevels.TryGetValue($"lvl{level + 1}pPr", out OpenXmlElement? list);
             NativeText current = ApplyNativeText(inherited, list?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
             current = ApplyNativeText(current, paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
             var explicitRuns = paragraph.Elements<A.Run>().Where(run => !string.IsNullOrEmpty(run.GetFirstChild<A.Text>()?.Text)).ToArray();
@@ -69,10 +77,23 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return selected ?? inherited;
     }
 
+    private static Dictionary<string, OpenXmlElement> ReadListLevels(OpenXmlCompositeElement text) {
+        var levels = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
+        foreach (OpenXmlElement child in text.GetFirstChild<A.ListStyle>()?.ChildElements ?? Enumerable.Empty<OpenXmlElement>()) {
+            if (levels.ContainsKey(child.LocalName))
+                throw new NotSupportedException("Duplicate chart text list levels cannot be projected.");
+            levels.Add(child.LocalName, child);
+        }
+        return levels;
+    }
+
     private static NativeText ReadUniformNativeText(C.Chart chart, System.Collections.Generic.IEnumerable<OpenXmlElement> owners, A.ColorScheme? scheme) {
+        OpenXmlElement? colorMap = (chart.Parent as C.ChartSpace)?.OpenXmlPart is ChartPart chartPart
+            ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : null;
+        NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
         NativeText? selected = null;
         foreach (var owner in owners) {
-            NativeText current = ReadNativeText(chart, owner, scheme);
+            NativeText current = ReadNativeText(owner, scheme, colorMap, inherited);
             if (selected.HasValue && !selected.Value.SameAs(current))
                 throw new NotSupportedException("Independent chart text formatting cannot be projected by the shared text role.");
             selected = current;

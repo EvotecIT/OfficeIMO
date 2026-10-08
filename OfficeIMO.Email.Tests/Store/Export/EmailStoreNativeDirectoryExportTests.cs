@@ -217,14 +217,16 @@ public sealed class EmailStoreNativeDirectoryExportTests {
             sourceDocument.Properties["Emlx:IsPartial"] = true;
             sourceDocument.Properties["Emlx:Flag:AttachmentCount"] = 37;
             string sourcePath = Path.Combine(sourceRoot, "source.partial.emlx");
-            EmailWriteResult sourceWrite = new EmailStoreEmlxWriter().Write(sourceDocument, sourcePath);
+            EmailWriteResult sourceWrite = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(
+                new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn))).Write(sourceDocument, sourcePath);
             Assert.False(sourceWrite.HasErrors);
             using EmailStoreSession session = EmailStoreSession.Open(sourceRoot);
 
             EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
                 new EmailStoreNativeDirectoryExportOptions(
                     EmailStoreNativeDirectoryFormat.Emlx,
-                    preserveFolderHierarchy: false));
+                    preserveFolderHierarchy: false,
+                    messageOptions: new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)));
 
             EmailStoreExportEntry entry = Assert.Single(report.Entries);
             Assert.True(entry.Succeeded, string.Join(Environment.NewLine,
@@ -495,9 +497,9 @@ public sealed class EmailStoreNativeDirectoryExportTests {
             });
             string sourcePath = Path.Combine(sourceRoot, sourceIsEmlx ? "source.emlx" : "source.eml");
             if (sourceIsEmlx) {
-                Assert.False(new EmailStoreEmlxWriter().Write(sourceDocument, sourcePath).HasErrors);
+                Assert.False(new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn))).Write(sourceDocument, sourcePath).HasErrors);
             } else {
-                Assert.False(new EmailDocumentWriter().Write(
+                Assert.False(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).Write(
                     sourceDocument, sourcePath, EmailFileFormat.Eml).HasErrors);
             }
             using EmailStoreSession session = EmailStoreSession.Open(sourceRoot,
@@ -508,7 +510,8 @@ public sealed class EmailStoreNativeDirectoryExportTests {
             Assert.Null(Assert.Single(metadataOnly.Document.Attachments).Content);
 
             EmailStoreExportReport report = session.ExportToNativeDirectory(destinationRoot,
-                new EmailStoreNativeDirectoryExportOptions(format, preserveFolderHierarchy: false));
+                new EmailStoreNativeDirectoryExportOptions(format, preserveFolderHierarchy: false,
+                    messageOptions: new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)));
 
             Assert.False(report.HasErrors, string.Join(Environment.NewLine,
                 report.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));

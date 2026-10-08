@@ -44,11 +44,22 @@ internal sealed class ReaderReadScope : IDisposable {
         scope.Budget?.AddDocument(result);
         return result;
     }
+    internal static void AttachPendingNested(OfficeDocumentReadResult result) {
+        var scope = Current;
+        if (scope == null) return;
+        lock (scope._nested) {
+            if (scope._nested.Count == 0) return;
+            result.NestedDocuments = result.NestedDocuments.Concat(scope._nested).Distinct().ToArray();
+            scope._nested.Clear();
+        }
+    }
     internal static void RecordNested(string path, OfficeDocumentReadResult document) {
         var scope = Current;
         if (scope == null) return;
         lock (scope._nested) scope._nested.Add(new OfficeDocumentNestedResult { Path = path, Document = document });
     }
+    // Iterator scopes share budgets, but must release completed item captures between pulls.
+    internal void ClearNestedResults() { lock (_nested) _nested.Clear(); }
     public void Dispose() { Active.Value = _previous; }
     private sealed class Restore : IDisposable {
         private readonly ReaderReadScope? _previous;

@@ -289,6 +289,9 @@ public sealed class OfficeDocumentPage {
 /// Normalized logical block emitted by a document read adapter.
 /// </summary>
 public sealed class OfficeDocumentBlock {
+    /// <summary>Recognition provenance for OCR text; null means no recognition provenance was supplied.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; set; }
+
     /// <summary>
     /// Stable block identifier within the read result.
     /// </summary>
@@ -313,6 +316,12 @@ public sealed class OfficeDocumentBlock {
     /// Optional marker for list or leader blocks.
     /// </summary>
     public string? Marker { get; set; }
+
+    /// <summary>
+    /// Resolved numeric index of an ordered list item, independent of its displayed marker.
+    /// Null means an unordered item or an adapter that did not supply an index.
+    /// </summary>
+    public int? ListIndex { get; set; }
 
     /// <summary>
     /// Source location for this block.

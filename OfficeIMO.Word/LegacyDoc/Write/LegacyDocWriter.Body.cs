@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableBookmarks bookmarks,
                 IReadOnlyList<LegacyDocWritableSection> sections,
                 LegacyDocWritableStyleSheet styleSheet,
+                Numbering? numbering,
                 LegacyDocWritableFootnoteStories footnoteStories,
                 LegacyDocWritableEndnoteStories endnoteStories,
                 LegacyDocWritableHeaderFooterStories headerFooterStories,
@@ -18,6 +19,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 byte[] pictureData,
                 bool hasPictures,
                 bool facingPages,
+                bool mirrorMargins,
+                bool gutterAtTop,
+                bool noColumnBalance,
+                ushort defaultTabStop,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
@@ -53,6 +58,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PictureData = pictureData;
                 HasPictures = hasPictures;
                 FacingPages = facingPages;
+                MirrorMargins = mirrorMargins;
+                GutterAtTop = gutterAtTop;
+                NoColumnBalance = noColumnBalance;
+                DefaultTabStop = defaultTabStop;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
@@ -61,6 +70,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PlcfBkf = resolvedBookmarks.PlcfBkf;
                 PlcfBkl = resolvedBookmarks.PlcfBkl;
                 FontFamilies = styleSheet.FontFamilies
+                    .Concat(ReadNumberingFontFamilies(numbering))
                     .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(FootnoteFormattedRuns.Select(run => run.Formatting.FontFamily))
                     .Concat(HeaderFooterFormattedRuns.Select(run => run.Formatting.FontFamily))
@@ -73,6 +83,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FontFamilyIndexes = FontFamilies
                     .Select((fontFamily, index) => new { fontFamily, index })
                     .ToDictionary(item => item.fontFamily, item => item.index, StringComparer.OrdinalIgnoreCase);
+                ListTables = CreateWritableNumbering(numbering, styleSheet.StyleIndexes, FontFamilyIndexes);
                 string[] revisionAuthors = CreateFormattedRuns()
                     .Select(run => run.Formatting.Revision.Author)
                     .Where(author => !string.IsNullOrWhiteSpace(author))
@@ -89,11 +100,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     .Select((author, index) => new { author, index })
                     .ToDictionary(item => item.author, item => item.index, StringComparer.Ordinal);
                 SttbfRMark = CreateRevisionAuthorTable(RevisionAuthors);
+                FieldTables = new LegacyDocWritableFieldTables(Text, FormattedRuns, HeaderFooterText, HeaderFooterFormattedRuns,
+                    FootnoteText, FootnoteFormattedRuns, CommentText, CommentFormattedRuns, EndnoteText, EndnoteFormattedRuns);
                 ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
+                RequiresWord2000Format = PapxPages.Any(page => page.Any(segment =>
+                    segment.Formatting.TableDepth > 1
+                    || segment.Formatting.TableCellFitTexts.Any(enabled => enabled)
+                    || segment.Formatting.TableCellNoWraps.Any(enabled => enabled)
+                    || segment.Formatting.TableCellHideMarks.Any(enabled => enabled)));
+                RmdThreading = RequiresWord2000Format ? CreateRevisionThreading(RevisionAuthors.Count) : Array.Empty<byte>();
             }
 
             internal string Text { get; }
+
+            internal LegacyDocWritableFieldTables FieldTables { get; }
+
+            internal LegacyDocWritableNumbering ListTables { get; }
+
+            internal int FieldTablesOffsetInTableStream => AfterEndnoteDataOffsetInTableStream;
+
+            private int AfterFieldTablesOffsetInTableStream => FieldTablesOffsetInTableStream + FieldTables.Length;
 
             internal string HeaderFooterText { get; }
 
@@ -159,6 +186,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool FacingPages { get; }
 
+            internal bool MirrorMargins { get; }
+
+            internal bool GutterAtTop { get; }
+
+            internal bool NoColumnBalance { get; }
+
+            internal ushort DefaultTabStop { get; }
+
             internal byte[] PictureData { get; }
 
             internal bool HasPictures { get; }
@@ -187,6 +222,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal byte[] SttbfRMark { get; }
 
+            internal bool RequiresWord2000Format { get; }
+
+            internal byte[] RmdThreading { get; }
+
             internal bool HasCharacterFormatting => true;
 
             internal bool HasParagraphFormatting => true;
@@ -211,12 +250,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
-            internal bool HasDocumentOptions => FacingPages
-                || EndnotePosition != null
-                || TrackRevisions
-                || LockRevisionTracking;
-
-            internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+            internal int DopLength => RequiresWord2000Format ? Dop2000Length : Dop97Length;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 
@@ -261,9 +295,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterEndnoteDataOffsetInTableStream => AfterCommentDataOffsetInTableStream + (HasEndnotes ? PlcfendRef.Length + PlcfendTxt.Length : 0);
 
-            internal int DopOffsetInTableStream => HasDocumentOptions ? AlignToEven(AfterEndnoteDataOffsetInTableStream) : AfterEndnoteDataOffsetInTableStream;
+            internal int DopOffsetInTableStream => AlignToEven(AfterFieldTablesOffsetInTableStream);
 
-            private int AfterDocumentOptionsOffsetInTableStream => HasDocumentOptions ? DopOffsetInTableStream + DopLength : AfterEndnoteDataOffsetInTableStream;
+            internal int SttbfAssocOffsetInTableStream => DopOffsetInTableStream + DopLength;
+
+            private int AfterDocumentOptionsOffsetInTableStream => SttbfAssocOffsetInTableStream + SttbfAssocLength;
 
             internal int SttbfBkmkOffsetInTableStream => HasBookmarks ? AlignToEven(AfterDocumentOptionsOffsetInTableStream) : AfterDocumentOptionsOffsetInTableStream;
 
@@ -279,11 +315,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? SttbfRMarkOffsetInTableStream + SttbfRMark.Length
                 : AfterBookmarkDataOffsetInTableStream;
 
-            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
+            internal int RmdThreadingOffsetInTableStream => RequiresWord2000Format
+                ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
 
-            internal int FontTableOffsetInTableStream => HasStyleSheet
+            private int AfterRevisionThreadingOffsetInTableStream => RmdThreadingOffsetInTableStream + RmdThreading.Length;
+
+            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionThreadingOffsetInTableStream) : AfterRevisionThreadingOffsetInTableStream;
+
+            private int AfterStyleSheetOffsetInTableStream => HasStyleSheet
                 ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
-                : AfterRevisionDataOffsetInTableStream;
+                : AfterRevisionThreadingOffsetInTableStream;
+
+            internal int ListDefinitionsOffsetInTableStream => AlignToEven(AfterStyleSheetOffsetInTableStream);
+
+            internal int ListInstancesOffsetInTableStream => ListDefinitionsOffsetInTableStream + ListTables.Definitions.Length;
+
+            internal int FontTableOffsetInTableStream => ListTables.Definitions.Length == 0 ? AfterStyleSheetOffsetInTableStream
+                : ListInstancesOffsetInTableStream + ListTables.Instances.Length;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();
@@ -377,7 +425,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 if (segments.Count > 0) {
                     LegacyDocWritableSegment previous = segments[segments.Count - 1];
                     if (previous.EndCharacter == startCharacter
-                        && previous.Formatting.Equals(formatting)
+                        && previous.Formatting.HasSameEncoding(formatting)
                         && previous.PictureDataOffset == pictureDataOffset) {
                         segments[segments.Count - 1] = previous.Extend(length);
                         return;
@@ -500,17 +548,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         return PlainParagraphPapx;
-                    });
+                    }, new HashSet<int>(Sections.Select(section => section.EndCharacter)));
             }
 
             private static void AddStoryParagraphSegments(
                 List<LegacyDocWritableParagraphSegment> segments,
                 string story,
                 int storyStart,
-                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
+                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat,
+                HashSet<int>? sectionEndCharacters = null) {
                 int paragraphStart = 0;
                 for (int index = 0; index < story.Length; index++) {
-                    if (story[index] != '\r' && story[index] != '\a') {
+                    bool isSectionMark = story[index] == LegacyDocSpecialCharacters.PageBreak &&
+                        sectionEndCharacters?.Contains(storyStart + index + 1) == true;
+                    if (story[index] != '\r' && story[index] != '\a' && !isSectionMark) {
                         continue;
                     }
 

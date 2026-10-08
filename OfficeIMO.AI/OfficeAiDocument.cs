@@ -6,8 +6,13 @@ namespace OfficeIMO.AI;
 
 /// <summary>Immutable text observation projected from Reader; its identifier is scoped to the evidence snapshot hash.</summary>
 public sealed record OfficeAiEvidence(string Id, string Kind, string Text, int? Page, string? SourceBlockId) {
+    /// <summary>Immutable recognition provenance; null means unknown, not verified native text.</summary>
+    public OfficeDocumentRecognitionEvidence? Recognition { get; init; }
+
     /// <summary>Gets the Reader anchor shared by source placeholders and their table observations, when available.</summary>
     public string? SourceAnchor { get; init; }
+    /// <summary>Immutable Reader source location; model output cannot replace it.</summary>
+    public OfficeAiSourceLocation? SourceLocation { get; init; }
     /// <summary>Original source geometry where the Reader supplied it, in source coordinate units.</summary>
     public OfficeAiRegion? Region { get; init; }
 }
@@ -46,7 +51,7 @@ public sealed class OfficeAiDocument {
     public IReadOnlyList<OfficeAiImage> Images { get; }
     /// <summary>Reader's native/computed/explicit/unknown page provenance.</summary>
     public string PageProvenance { get; }
-    /// <summary>True when the source reader reported diagnostics; AI cannot certify complete source reconstruction.</summary>
+    /// <summary>True when the source or a nested document reports limitations, pending OCR or truncated content; AI cannot certify complete source reconstruction.</summary>
     public bool HasSourceDiagnostics { get; }
 
     /// <summary>Reads and fingerprints a bounded source snapshot. The caller retains ownership of the stream.</summary>
@@ -92,14 +97,16 @@ public sealed class OfficeAiDocument {
             pages.Add(page);
             if (pages.Count > limits.MaxPages) throw new InvalidDataException("Source page count exceeds the configured limit.");
         }
-        void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null, string? sourceAnchor = null) {
+        void Add(string kind, string text, int? page, string? blockId = null, OfficeDocumentRegion? region = null, string? sourceAnchor = null, ReaderLocation? location = null, int? rowIndex = null, OfficeDocumentRecognitionEvidence? recognition = null) {
             if (page.HasValue) AddPage(page.Value);
             if (string.IsNullOrWhiteSpace(text)) return;
             characters += text.Length;
             if (characters > limits.MaxDocumentCharacters || evidence.Count >= limits.MaxDocumentBlocks)
                 throw new InvalidDataException("Source observations exceed the configured document limits.");
             evidence.Add(new OfficeAiEvidence("e" + (evidence.Count + 1), kind, text, page, blockId) {
+                Recognition = recognition,
                 SourceAnchor = sourceAnchor,
+                SourceLocation = OfficeAiSourceLocation.FromReader(location, document.Source?.Path, rowIndex),
                 Region = region is null ? null : new(region.X, region.Y, region.Width, region.Height)
             });
         }
@@ -112,26 +119,38 @@ public sealed class OfficeAiDocument {
             .ToDictionary(group => group.Key, group => group.Count());
         var documentTableCounts = tableScopes.GroupBy(location => location?.Path ?? "")
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        // OCR may normalize pre-existing fallback chunks into blocks to preserve their text.
+        // Their original chunk still owns adapter-specific notice and table-only semantics.
+        bool hasChunkBlocks = content.Any(item => item.Block?.Kind == "chunk");
+        var chunkProjections = (hasChunkBlocks ? document.Chunks : Array.Empty<ReaderChunk>())
+            .Select((chunk, index) => (Id: OfficeDocumentModelTraversal.BuildFallbackChunkBlockId(chunk, index), Chunk: chunk))
+            .ToLookup(projection => projection.Id, StringComparer.Ordinal);
+        void AddChunk(ReaderChunk chunk, ReaderLocation? sourceLocation) {
+            // The PDF adapter reserves these kinds for generated notices/placeholders.
+            // Other adapters use the same words for real semantic source content.
+            if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location?.SourceBlockKind is "warning" or "visual") return;
+            // Retain table-only fallback text when the structured source scope is incomplete.
+            if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location is { SourceBlockKind: "table" } location
+                && chunk.Diagnostics is { TableCount: > 0 } diagnostics) {
+                int captured = location.Page.HasValue
+                    ? pageTableCounts.GetValueOrDefault((location.Path ?? "", location.Page, location.SourceBlockIndex))
+                    : documentTableCounts.GetValueOrDefault(location.Path ?? "");
+                if (captured == diagnostics.TableCount) return;
+            }
+            Add("chunk", chunk.Text, sourceLocation?.Page, chunk.Id, sourceAnchor: sourceLocation?.BlockAnchor, location: sourceLocation);
+        }
         int tableIndex = 0;
         foreach (OfficeDocumentContentItem item in content) {
             if (item.Block is { } block) {
-                Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor);
+                ReaderChunk? projection = block.Kind == "chunk" ? chunkProjections[block.Id].Select(pair => pair.Chunk)
+                    .FirstOrDefault(chunk => chunk.Text == block.Text && OfficeDocumentModelTraversal.SameContainerWhenKnown(
+                        chunk.Location ?? new ReaderLocation(), item.Location ?? new ReaderLocation())) : null;
+                if (projection is not null) AddChunk(projection, item.Location);
+                else Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor, item.Location, recognition: block.Recognition);
                 continue;
             }
             if (item.Chunk is { } chunk) {
-                // The PDF adapter reserves these kinds for generated notices/placeholders.
-                // Other adapters use the same words for real semantic source content.
-                if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location?.SourceBlockKind is "warning" or "visual") continue;
-                // Only the source adapter can establish that a chunk contains table text alone.
-                // Retain its fallback if the matching structured table scope is incomplete.
-                if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location is { SourceBlockKind: "table" } location
-                    && chunk.Diagnostics is { TableCount: > 0 } diagnostics) {
-                    int captured = location.Page.HasValue
-                        ? pageTableCounts.GetValueOrDefault((location.Path ?? "", location.Page, location.SourceBlockIndex))
-                        : documentTableCounts.GetValueOrDefault(location.Path ?? "");
-                    if (captured == diagnostics.TableCount) continue;
-                }
-                Add("chunk", chunk.Text, item.Location?.Page, chunk.Id, sourceAnchor: item.Location?.BlockAnchor);
+                AddChunk(chunk, item.Location);
                 continue;
             }
             ReaderTable table = item.Table!;
@@ -143,14 +162,14 @@ public sealed class OfficeAiDocument {
             string? anchor = item.Location?.BlockAnchor;
             string tableId = string.IsNullOrWhiteSpace(anchor) ? $"table-{tableIndex}" : anchor;
             string title = string.IsNullOrWhiteSpace(table.Title) ? "" : table.Title + "\n";
-            Add("table", title + string.Join(" | ", table.Columns), tablePage, tableId, sourceAnchor: anchor);
+            Add("table", title + string.Join(" | ", table.Columns), tablePage, tableId, sourceAnchor: anchor, location: item.Location);
             int rowIndex = 0;
             foreach (IReadOnlyList<string> row in table.Rows) {
                 rowIndex++;
                 if (row.Count > limits.MaxTableCells) throw new InvalidDataException("Source table row exceeds the configured cell limit.");
                 string text = string.Join(" | ", row.Select((value, column) =>
                     (column < table.Columns.Count ? table.Columns[column] : "Column " + (column + 1)) + ": " + value));
-                Add("table-row", title + text, tablePage, $"{tableId}-row-{rowIndex}", sourceAnchor: anchor);
+                Add("table-row", title + text, tablePage, $"{tableId}-row-{rowIndex}", sourceAnchor: anchor, location: item.Location, rowIndex: rowIndex);
             }
         }
         var imageList = new List<OfficeAiImage>();
@@ -164,17 +183,29 @@ public sealed class OfficeAiDocument {
             if (totalImageBytes > limits.MaxInputBytes) throw new InvalidDataException("Aggregate image evidence exceeds the snapshot byte limit.");
             imageList.Add(image); AddPage(image.Page);
         }
-        bool incompleteSource = document.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
-            || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
-            || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0)
-            || document.OcrCandidates.Count > 0 || document.Pages.Any(page => page.OcrCandidates.Count > 0);
-        // Table truncation is independent of top-level diagnostics. Inspect every Reader owner,
-        // including chunk tables, so alternate projections cannot silently erase known omissions.
-        incompleteSource |= document.Tables.Concat(document.Pages.SelectMany(page => page.Tables))
-            .Concat(document.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()))
-            .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count);
         return new OfficeAiDocument(Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant(), sourceBytes.Length, evidence.ToArray(),
-            pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), incompleteSource);
+            pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), HasIncompleteSource(document));
+    }
+
+    private static bool HasIncompleteSource(OfficeDocumentReadResult document) {
+        var pending = new Stack<OfficeDocumentReadResult>();
+        var visited = new HashSet<OfficeDocumentReadResult>(ReferenceEqualityComparer.Instance);
+        pending.Push(document);
+        while (pending.Count > 0) {
+            OfficeDocumentReadResult current = pending.Pop();
+            if (!visited.Add(current)) continue;
+            if (current.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
+                    || diagnostic.Category is not (OfficeDocumentDiagnosticCategory.Detection or OfficeDocumentDiagnosticCategory.Adapter))
+                || current.Chunks.Any(chunk => chunk.Warnings?.Count > 0)
+                || current.OcrCandidates.Count > 0 || current.Pages.Any(page => page.OcrCandidates.Count > 0)
+                || current.Tables.Concat(current.Pages.SelectMany(page => page.Tables))
+                    .Concat(current.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()))
+                    .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count)) return true;
+            // Containers already project child text into their source observations. Inspect rich
+            // child limitations separately without adding the same text to the evidence again.
+            foreach (OfficeDocumentNestedResult nested in current.NestedDocuments) pending.Push(nested.Document);
+        }
+        return false;
     }
 
     private static async Task<byte[]> ReadBoundedAsync(Stream source, int maximum, CancellationToken cancellationToken) {

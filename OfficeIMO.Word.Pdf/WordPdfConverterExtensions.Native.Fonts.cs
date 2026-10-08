@@ -21,6 +21,11 @@ namespace OfficeIMO.Word.Pdf {
 
             public bool UsePdfDefaultForDocumentDefaultFont { get; private set; }
 
+            public double? DefaultFontSize => _resolvedOptions?.DefaultFontSize;
+
+            public double? MeasureText(PdfCore.PdfTextRun run) => _resolvedOptions == null
+                ? null : PdfCore.PdfWriter.MeasurePositionedText(run, _resolvedOptions);
+
             public void PreferPdfDefaultForDocumentDefaultFont() =>
                 UsePdfDefaultForDocumentDefaultFont = true;
 
@@ -189,6 +194,10 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
+        private static W.RunFonts? GetNativeEmptyParagraphMarkFonts(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) =>
+            runs.Any(run => !run.IsImage && !IsNativeHiddenTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text))
+                ? null : paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.RunFonts>();
+
         private static void RegisterNativeThemeStyleFonts(
             WordDocument document,
             PdfCore.PdfOptions pdfOptions,
@@ -203,8 +212,8 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    RegisterNativeFontCandidate(
-                        ResolveNativeParagraphStyleFontFamily(document, paragraph.StyleId),
+                    RegisterNativeFontCandidates(
+                        ResolveNativeParagraphStyleFontFamilies(document, paragraph.StyleId),
                         pdfOptions,
                         registeredFamilies,
                         registeredFontSlots,
@@ -214,33 +223,22 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static string? ResolveNativeParagraphStyleFontFamily(WordDocument? document, string? styleId) {
+        private static IEnumerable<string> ResolveNativeParagraphStyleFontFamilies(WordDocument? document, string? styleId) {
             IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(document, styleId);
-            string? familyName = null;
+            NativeLatinFontFamilies families = default;
             foreach (W.Style style in styleChain) {
                 W.RunFonts? runFonts = style.GetFirstChild<W.StyleRunProperties>()?.GetFirstChild<W.RunFonts>();
-                familyName = ResolveNativeRunFontsFamily(document, runFonts) ?? familyName;
+                families = GetNativeRunFontFamilies(document, runFonts).Inherit(families);
             }
 
-            return familyName;
+            return families.Enumerate();
         }
 
-        private static string? ResolveNativeRunFontsFamily(WordDocument? document, W.RunFonts? runFonts) {
-            if (runFonts == null) {
-                return null;
-            }
+        private static string? ResolveNativeRunFontsFamily(WordDocument? document, W.RunFonts? runFonts) =>
+            EnumerateNativeLatinFontFamilies(document, runFonts).FirstOrDefault();
 
-            string? directFamily = FirstNonWhiteSpace(runFonts.Ascii?.Value, runFonts.HighAnsi?.Value);
-            if (!string.IsNullOrWhiteSpace(directFamily)) {
-                return directFamily;
-            }
-
-            string? themeFamily = ResolveNativeThemeFontFamily(
-                document,
-                GetNativeThemeFontValue(runFonts.AsciiTheme),
-                GetNativeThemeFontValue(runFonts.HighAnsiTheme));
-            return string.IsNullOrWhiteSpace(themeFamily) ? null : themeFamily;
-        }
+        private static IEnumerable<string> EnumerateNativeLatinFontFamilies(WordDocument? document, W.RunFonts? runFonts) =>
+            GetNativeRunFontFamilies(document, runFonts).Enumerate();
 
         private static string? GetNativeThemeFontValue(DocumentFormat.OpenXml.EnumValue<W.ThemeFontValues>? value) {
             if (value == null) {

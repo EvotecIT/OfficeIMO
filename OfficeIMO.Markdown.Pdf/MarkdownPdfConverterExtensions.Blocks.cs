@@ -10,9 +10,10 @@ namespace OfficeIMO.Markdown.Pdf;
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderBlock(PdfCore.PdfDocument pdf, IMarkdownBlock block, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         options.CancellationToken.ThrowIfCancellationRequested();
+        options.Anchors?.Register(pdf, block);
         switch (block) {
             case HeadingBlock heading:
-                RenderHeading(pdf, heading, document, visualTheme);
+                RenderHeading(pdf, heading, document, options, visualTheme);
                 break;
             case ParagraphBlock paragraph:
                 RenderParagraph(pdf, paragraph.Inlines, options, visualTheme);
@@ -24,7 +25,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderUnorderedList(pdf, unordered, document, options, visualTheme);
                 break;
             case TableBlock table:
-                RenderTable(pdf, table, visualTheme);
+                RenderTable(pdf, table, options, visualTheme);
                 break;
             case CodeBlock code:
                 RenderCodeBlock(pdf, code, visualTheme);
@@ -39,7 +40,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderDetailsBlock(pdf, details, document, options, visualTheme);
                 break;
             case DefinitionListBlock definitionList:
-                RenderDefinitionList(pdf, definitionList, visualTheme);
+                RenderDefinitionList(pdf, definitionList, document, options, visualTheme);
                 break;
             case FootnoteDefinitionBlock footnote:
                 RenderFootnoteDefinition(pdf, footnote, document, options, visualTheme);
@@ -73,7 +74,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderHeading(PdfCore.PdfDocument pdf, HeadingBlock heading, MarkdownDoc document, MarkdownPdfStyle visualTheme) {
+    private static void RenderHeading(PdfCore.PdfDocument pdf, HeadingBlock heading, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         string text = heading.Text;
         if (string.IsNullOrWhiteSpace(text)) {
             return;
@@ -81,7 +82,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         string anchor = document.GetHeadingAnchor(heading);
         if (!string.IsNullOrWhiteSpace(anchor)) {
-            pdf.Bookmark(anchor);
+            options.Anchors?.RegisterNamed(pdf, anchor);
         }
 
         if (heading.Level <= 1) {
@@ -95,7 +96,7 @@ public static partial class MarkdownPdfConverterExtensions {
             PdfCore.PdfColor headingColor = ResolveManualHeadingColor(visualTheme);
             pdf.Paragraph(builder => {
                 builder.Bold(true).FontSize(fontSize);
-                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme).With(bold: true, color: headingColor, fontSize: fontSize));
+                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true, color: headingColor, fontSize: fontSize));
             }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 8, SpacingAfter = 4, KeepWithNext = true });
         }
     }
@@ -117,7 +118,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        pdf.Paragraph(builder => AppendInlines(builder, inlines, CreateInlineStyle(visualTheme)));
+        pdf.Paragraph(builder => AppendInlines(builder, inlines, CreateInlineStyle(visualTheme, options.Anchors)));
     }
 
     private static void RenderPlainBlock(PdfCore.PdfDocument pdf, string text) {
@@ -130,28 +131,37 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static void RenderOrderedList(PdfCore.PdfDocument pdf, OrderedListBlock list, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         var items = new List<PdfCore.PdfListItem>();
+        int batchStart = list.Start;
         for (int i = 0; i < list.Items.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             ListItem item = list.Items[i];
-            IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: true, CreateInlineStyle(visualTheme));
+            IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: true, CreateInlineStyle(visualTheme, options.Anchors));
             items.Add(PdfCore.PdfListItem.Rich(runs.Count == 0 ? new[] { PdfTextRun.Normal(string.Empty) } : runs));
+            if (HasListChildren(item)) {
+                pdf.RichNumbered(items, startNumber: batchStart);
+                items.Clear();
+                RenderListItemChildren(pdf, item, document, options, visualTheme);
+                batchStart = list.Start + i + 1;
+            }
         }
 
         if (items.Count > 0) {
-            pdf.RichNumbered(items, startNumber: list.Start);
+            pdf.RichNumbered(items, startNumber: batchStart);
         }
-
-        RenderListChildren(pdf, list.Items, document, options, visualTheme);
     }
 
     private static void RenderUnorderedList(PdfCore.PdfDocument pdf, UnorderedListBlock list, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
-        if (list.Items.Any(item => item.IsTask)) {
-            RenderMixedUnorderedTaskList(pdf, list.Items, options, visualTheme);
-            RenderListChildren(pdf, list.Items, document, options, visualTheme);
-            return;
+        var batch = new List<ListItem>();
+        foreach (ListItem item in list.Items) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            batch.Add(item);
+            if (HasListChildren(item)) {
+                RenderMixedUnorderedTaskList(pdf, batch, options, visualTheme);
+                batch.Clear();
+                RenderListItemChildren(pdf, item, document, options, visualTheme);
+            }
         }
-
-        RenderUnorderedListItems(pdf, list.Items, visualTheme);
-        RenderListChildren(pdf, list.Items, document, options, visualTheme);
+        if (batch.Count > 0) RenderMixedUnorderedTaskList(pdf, batch, options, visualTheme);
     }
 
     private static void RenderMixedUnorderedTaskList(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> sourceItems, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
@@ -162,14 +172,14 @@ public static partial class MarkdownPdfConverterExtensions {
             ListItem item = sourceItems[i];
             if (item.IsTask) {
                 if (bulletItems.Count > 0) {
-                    RenderUnorderedListItems(pdf, bulletItems, visualTheme);
+                    RenderUnorderedListItems(pdf, bulletItems, options, visualTheme);
                     bulletItems.Clear();
                 }
 
                 taskItems.Add(item);
             } else {
                 if (taskItems.Count > 0) {
-                    RenderChecklistTable(pdf, taskItems, visualTheme);
+                    RenderChecklistTable(pdf, taskItems, options, visualTheme);
                     taskItems.Clear();
                 }
 
@@ -178,19 +188,19 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         if (bulletItems.Count > 0) {
-            RenderUnorderedListItems(pdf, bulletItems, visualTheme);
+            RenderUnorderedListItems(pdf, bulletItems, options, visualTheme);
         }
 
         if (taskItems.Count > 0) {
-            RenderChecklistTable(pdf, taskItems, visualTheme);
+            RenderChecklistTable(pdf, taskItems, options, visualTheme);
         }
     }
 
-    private static void RenderUnorderedListItems(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> sourceItems, MarkdownPdfStyle visualTheme) {
+    private static void RenderUnorderedListItems(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> sourceItems, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         var items = new List<PdfCore.PdfListItem>();
         for (int i = 0; i < sourceItems.Count; i++) {
             ListItem item = sourceItems[i];
-            IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: true, CreateInlineStyle(visualTheme));
+            IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: true, CreateInlineStyle(visualTheme, options.Anchors));
             items.Add(PdfCore.PdfListItem.Rich(runs.Count == 0 ? new[] { PdfTextRun.Normal(string.Empty) } : runs));
         }
 
@@ -199,7 +209,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderChecklistTable(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> taskItems, MarkdownPdfStyle visualTheme) {
+    private static void RenderChecklistTable(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> taskItems, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         var rows = new List<PdfCore.PdfTableCell[]>();
         var icons = new Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>();
         var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
@@ -212,7 +222,7 @@ public static partial class MarkdownPdfConverterExtensions {
             PdfCore.PdfColor iconColor = item.Checked ? visualTheme.ChecklistCheckedIconColorSnapshot : visualTheme.ChecklistUncheckedIconColorSnapshot;
             PdfCore.PdfColor textColor = item.Checked ? visualTheme.ChecklistCheckedTextColorSnapshot : visualTheme.ChecklistUncheckedTextColorSnapshot;
             PdfCore.PdfColor? fillColor = item.Checked ? visualTheme.ChecklistCheckedFillColorSnapshot : visualTheme.ChecklistUncheckedFillColorSnapshot;
-            InlineStyle textStyle = CreateInlineStyle(visualTheme).With(color: textColor);
+            InlineStyle textStyle = CreateInlineStyle(visualTheme, options.Anchors).With(color: textColor);
             IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: false, textStyle);
             icons[(i, 0)] = new PdfCore.PdfCellIcon {
                 Kind = item.Checked ? PdfCore.PdfCellIconKind.CheckBoxChecked : PdfCore.PdfCellIconKind.CheckBoxUnchecked,
@@ -253,16 +263,15 @@ public static partial class MarkdownPdfConverterExtensions {
         return runs;
     }
 
-    private static void RenderListChildren(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> items, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
-        for (int i = 0; i < items.Count; i++) {
-            ListItem item = items[i];
-            for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-                RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
-            }
+    private static bool HasListChildren(ListItem item) => item.AdditionalParagraphs.Count > 0 || item.NestedBlocks.Count > 0;
 
-            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
-                RenderBlock(pdf, item.NestedBlocks[childIndex], document, options, visualTheme);
-            }
+    private static void RenderListItemChildren(PdfCore.PdfDocument pdf, ListItem item, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
+            RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
+        }
+
+        for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
+            RenderBlock(pdf, item.NestedBlocks[childIndex], document, options, visualTheme);
         }
     }
 }

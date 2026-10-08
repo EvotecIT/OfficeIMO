@@ -10,14 +10,20 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficePngCompression {
     /// <summary>
-    /// Compress scanlines with the platform deflate implementation.
+    /// Compress scanlines with the platform deflate implementation. Exact opaque
+    /// black-and-white raster images use one-bit grayscale samples; other opaque
+    /// raster images use eight-bit RGB samples. Raster encoding
+    /// compares adaptive and unfiltered rows and uses the smaller compressed form.
     /// </summary>
     Optimal,
 
     /// <summary>
     /// Store scanlines in zlib blocks without deflate compression.
     /// </summary>
-    Stored
+    Stored,
+
+    /// <summary>Compress scanlines once using the platform's fastest deflate strategy.</summary>
+    Fastest
 }
 
 /// <summary>
@@ -43,9 +49,8 @@ public static partial class OfficePngWriter {
         System.Threading.CancellationToken cancellationToken,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
         if (image == null) throw new ArgumentNullException(nameof(image));
-        using var output = new MemoryStream();
-        EncodeTo(image, output, cancellationToken, compression);
-        return output.ToArray();
+        return EncodeRgbaMaterialized(image.Width, image.Height, image.PixelBuffer,
+            compression, null, null, cancellationToken);
     }
 
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
@@ -61,34 +66,9 @@ public static partial class OfficePngWriter {
     /// Encodes raw RGBA pixels as PNG bytes.
     /// </summary>
     public static byte[] EncodeRgba(int width, int height, byte[] rgba, OfficePngCompression compression = OfficePngCompression.Optimal) {
-        if (width <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(width));
-        }
-
-        if (height <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(height));
-        }
-
-        if (rgba == null) {
-            throw new ArgumentNullException(nameof(rgba));
-        }
-
-        if (rgba.Length != checked(width * height * 4)) {
-            throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(rgba));
-        }
-
-        byte[] compressed;
-        switch (compression) {
-            case OfficePngCompression.Optimal:
-                compressed = DeflateRgbaScanlines(width, height, rgba);
-                break;
-            case OfficePngCompression.Stored:
-                compressed = DeflateZlibStored(CreateRgbaScanlines(width, height, rgba, adaptiveFiltering: false));
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(compression));
-        }
-        return CreateFromCompressedScanlines(width, height, 8, 6, compressed);
+        return EncodeRgbaMaterialized(
+            width, height, rgba, compression, null, null,
+            System.Threading.CancellationToken.None);
     }
 
     /// <summary>Encodes raw RGBA pixels with explicit compression and physical-resolution metadata.</summary>
@@ -98,25 +78,15 @@ public static partial class OfficePngWriter {
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         ValidateRgba(width, height, rgba);
 
-        byte[] compressed;
-        switch (options.Compression) {
-            case OfficePngCompression.Optimal:
-                compressed = DeflateRgbaScanlines(width, height, rgba);
-                break;
-            case OfficePngCompression.Stored:
-                compressed = DeflateZlibStored(CreateRgbaScanlines(width, height, rgba, adaptiveFiltering: false));
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(options.Compression));
+        if (options.Compression != OfficePngCompression.Optimal && options.Compression != OfficePngCompression.Stored && options.Compression != OfficePngCompression.Fastest) {
+            throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }
-        return CreateFromCompressedScanlines(
-            width,
-            height,
-            8,
-            6,
-            compressed,
+
+        return EncodeRgbaMaterialized(
+            width, height, rgba, options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
-            options.WritePhysicalResolution ? options.DpiY : (double?)null);
+            options.WritePhysicalResolution ? options.DpiY : (double?)null,
+            System.Threading.CancellationToken.None);
     }
 
     /// <summary>
@@ -143,6 +113,7 @@ public static partial class OfficePngWriter {
 
         byte[] compressed = compression switch {
             OfficePngCompression.Optimal => DeflateZlib(scanlines),
+            OfficePngCompression.Fastest => DeflateZlib(scanlines, CompressionLevel.Fastest),
             OfficePngCompression.Stored => DeflateZlibStored(scanlines),
             _ => throw new ArgumentOutOfRangeException(nameof(compression))
         };
@@ -161,17 +132,7 @@ public static partial class OfficePngWriter {
         int height,
         int bitDepth,
         int colorType,
-        byte[] compressedScanlines) =>
-        CreateFromCompressedScanlines(width, height, bitDepth, colorType, compressedScanlines, null, null);
-
-    private static byte[] CreateFromCompressedScanlines(
-        int width,
-        int height,
-        int bitDepth,
-        int colorType,
-        byte[] compressedScanlines,
-        double? dpiX,
-        double? dpiY) {
+        byte[] compressedScanlines) {
         ValidatePngHeader(width, height, bitDepth, colorType);
         if (compressedScanlines == null) {
             throw new ArgumentNullException(nameof(compressedScanlines));
@@ -180,7 +141,6 @@ public static partial class OfficePngWriter {
         using MemoryStream stream = new MemoryStream();
         stream.Write(PngSignature, 0, PngSignature.Length);
         WriteChunk(stream, "IHDR", BuildIhdr(width, height, bitDepth, colorType));
-        if (dpiX.HasValue && dpiY.HasValue) WriteChunk(stream, "pHYs", BuildPhysicalResolution(dpiX.Value, dpiY.Value));
         WriteChunk(stream, "IDAT", compressedScanlines);
         WriteChunk(stream, "IEND", Array.Empty<byte>());
         return stream.ToArray();
@@ -193,120 +153,6 @@ public static partial class OfficePngWriter {
         if (rgba.Length != checked(width * height * 4)) {
             throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(rgba));
         }
-    }
-
-    private static byte[] CreateRgbaScanlines(int width, int height, byte[] rgba, bool adaptiveFiltering) {
-        int stride = checked(width * 4);
-        byte[] scanlines = new byte[checked(height * (1 + stride))];
-        if (!adaptiveFiltering) {
-            int source = 0;
-            int target = 0;
-            for (int y = 0; y < height; y++) {
-                scanlines[target++] = 0;
-                Buffer.BlockCopy(rgba, source, scanlines, target, stride);
-                source += stride;
-                target += stride;
-            }
-            return scanlines;
-        }
-
-        byte[] candidate = new byte[stride];
-        for (int y = 0; y < height; y++) {
-            int rowOffset = y * stride;
-            int previousRowOffset = rowOffset - stride;
-            int target = y * (stride + 1);
-            if (y == 0) {
-                scanlines[target] = 1;
-                FilterFirstRowSub(rgba, rowOffset, stride, scanlines, target + 1);
-                continue;
-            }
-
-            long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, scanlines, target + 1);
-            long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, candidate);
-            if (paethScore < upScore) {
-                scanlines[target] = 4;
-                Buffer.BlockCopy(candidate, 0, scanlines, target + 1, stride);
-            } else {
-                scanlines[target] = 2;
-            }
-        }
-        return scanlines;
-    }
-
-    private static void FilterFirstRowSub(
-        byte[] rgba,
-        int rowOffset,
-        int stride,
-        byte[] destination,
-        int destinationOffset,
-        System.Threading.CancellationToken cancellationToken = default,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        for (int index = 0; index < 4 && index < stride; index++) {
-            destination[destinationOffset + index] = rgba[rowOffset + index];
-        }
-        for (int index = 4; index < stride; index++) {
-            if (((index - 4) & 4095) == 0) {
-                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            destination[destinationOffset + index] = unchecked((byte)(rgba[rowOffset + index] - rgba[rowOffset + index - 4]));
-        }
-    }
-
-    private static long FilterUp(
-        byte[] rgba,
-        int rowOffset,
-        int previousRowOffset,
-        int stride,
-        byte[] destination,
-        int destinationOffset,
-        System.Threading.CancellationToken cancellationToken = default,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        long score = 0L;
-        for (int index = 0; index < stride; index++) {
-            if ((index & 4095) == 0) {
-                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            byte filtered = unchecked((byte)(rgba[rowOffset + index] - rgba[previousRowOffset + index]));
-            destination[destinationOffset + index] = filtered;
-            score += Math.Abs((int)(sbyte)filtered);
-        }
-        return score;
-    }
-
-    private static long FilterPaeth(
-        byte[] rgba,
-        int rowOffset,
-        int previousRowOffset,
-        int stride,
-        byte[] destination,
-        System.Threading.CancellationToken cancellationToken = default,
-        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        long score = 0L;
-        for (int index = 0; index < stride; index++) {
-            if ((index & 4095) == 0) {
-                checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            int left = index >= 4 ? rgba[rowOffset + index - 4] : 0;
-            int above = rgba[previousRowOffset + index];
-            int upperLeft = index >= 4 ? rgba[previousRowOffset + index - 4] : 0;
-            byte filtered = unchecked((byte)(rgba[rowOffset + index] - PaethPredictor(left, above, upperLeft)));
-            destination[index] = filtered;
-            score += Math.Abs((int)(sbyte)filtered);
-        }
-        return score;
-    }
-
-    private static int PaethPredictor(int left, int above, int upperLeft) {
-        int prediction = left + above - upperLeft;
-        int distanceLeft = Math.Abs(prediction - left);
-        int distanceAbove = Math.Abs(prediction - above);
-        int distanceUpperLeft = Math.Abs(prediction - upperLeft);
-        return distanceLeft <= distanceAbove && distanceLeft <= distanceUpperLeft
-            ? left
-            : distanceAbove <= distanceUpperLeft ? above : upperLeft;
     }
 
     private static byte[] BuildPhysicalResolution(double dpiX, double dpiY) {
@@ -397,63 +243,15 @@ public static partial class OfficePngWriter {
         return ihdr;
     }
 
-    private static byte[] DeflateZlib(byte[] data) {
+    private static byte[] DeflateZlib(byte[] data, CompressionLevel level = CompressionLevel.Optimal) {
         using MemoryStream stream = new MemoryStream();
         stream.WriteByte(0x78);
         stream.WriteByte(0x9C);
-        using (DeflateStream deflate = new DeflateStream(stream, CompressionLevel.Optimal, leaveOpen: true)) {
+        using (DeflateStream deflate = new DeflateStream(stream, level, leaveOpen: true)) {
             deflate.Write(data, 0, data.Length);
         }
 
         uint adler = Adler32(data);
-        stream.WriteByte((byte)((adler >> 24) & 0xFF));
-        stream.WriteByte((byte)((adler >> 16) & 0xFF));
-        stream.WriteByte((byte)((adler >> 8) & 0xFF));
-        stream.WriteByte((byte)(adler & 0xFF));
-        return stream.ToArray();
-    }
-
-    private static byte[] DeflateRgbaScanlines(int width, int height, byte[] rgba) {
-        int stride = checked(width * 4);
-        var filteredRow = new byte[checked(stride + 1)];
-        var paethCandidate = new byte[stride];
-        var compressionBatch = new byte[Math.Max(filteredRow.Length, 64 * 1024)];
-        int batchLength = 0;
-        uint adlerA = 1;
-        uint adlerB = 0;
-        using MemoryStream stream = new MemoryStream();
-        stream.WriteByte(0x78);
-        stream.WriteByte(0x9C);
-        using (var deflate = new DeflateStream(stream, CompressionLevel.Optimal, leaveOpen: true)) {
-            for (int y = 0; y < height; y++) {
-                int rowOffset = y * stride;
-                if (y == 0) {
-                    filteredRow[0] = 1;
-                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1);
-                } else {
-                    int previousRowOffset = rowOffset - stride;
-                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1);
-                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate);
-                    if (paethScore < upScore) {
-                        filteredRow[0] = 4;
-                        Buffer.BlockCopy(paethCandidate, 0, filteredRow, 1, stride);
-                    } else {
-                        filteredRow[0] = 2;
-                    }
-                }
-
-                if (filteredRow.Length > compressionBatch.Length - batchLength) {
-                    deflate.Write(compressionBatch, 0, batchLength);
-                    batchLength = 0;
-                }
-                Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRow.Length);
-                batchLength += filteredRow.Length;
-                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB);
-            }
-            if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
-        }
-
-        uint adler = (adlerB << 16) | adlerA;
         stream.WriteByte((byte)((adler >> 24) & 0xFF));
         stream.WriteByte((byte)((adler >> 16) & 0xFF));
         stream.WriteByte((byte)((adler >> 8) & 0xFF));
@@ -503,20 +301,14 @@ public static partial class OfficePngWriter {
         ref uint b,
         System.Threading.CancellationToken cancellationToken = default,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        const uint mod = 65521;
         const int maximumChunk = 5552;
         int remaining = count;
         while (remaining > 0) {
             checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
             cancellationToken.ThrowIfCancellationRequested();
             int chunk = Math.Min(maximumChunk, remaining);
-            int end = offset + chunk;
-            while (offset < end) {
-                a += data[offset++];
-                b += a;
-            }
-            a %= mod;
-            b %= mod;
+            OfficeIMO.Core.Internal.OfficeZlibCodec.AppendAdler32Block(data, offset, chunk, ref a, ref b);
+            offset += chunk;
             remaining -= chunk;
         }
     }

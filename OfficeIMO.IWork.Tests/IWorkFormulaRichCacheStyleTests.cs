@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateFormulaTableWithRichCacheStyle(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             IWorkTableCell cell = Assert.Single(Assert.Single(result.Projection.Tables).Cells);
             Assert.True(cell.FormulaIsComplete);
             Assert.True(cell.CachedValueIsComplete);
@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(result.IsVisualFallback);
             AssertSourceFormula(result.Report);
         } else {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             IWorkTableCell cell = Assert.Single(Assert.Single(
                 Assert.Single(result.Projection.Slides).Tables).Cells);
             Assert.True(cell.FormulaIsComplete);

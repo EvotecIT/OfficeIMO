@@ -35,6 +35,16 @@ internal static partial class PdfWriter {
             content);
     }
 
+    private static int AddTrueTypeFontFileObject(System.Collections.Generic.IList<byte[]> list, PdfTrueTypeFontProgram fontProgram, bool compress, CancellationToken cancellationToken) {
+        byte[] data = fontProgram.BuildSubsetFontFile(compress, out int uncompressedLength, cancellationToken);
+        string filter = compress ? " /Filter /FlateDecode" : string.Empty;
+        return AddStreamObject(
+            list,
+            "<< /Length " + data.Length.ToString(CultureInfo.InvariantCulture) +
+            " /Length1 " + uncompressedLength.ToString(CultureInfo.InvariantCulture) + filter + " >>",
+            data);
+    }
+
     private static int AddFlateStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         byte[] compressed = DeflateZlib(content);
@@ -99,10 +109,6 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static string PdfString(string s) {
-        return PdfSyntaxEscaper.LiteralString(s);
-    }
-
     private sealed class LayoutResult : IDisposable {
         private readonly PdfPageContentStore _contentStore;
 
@@ -137,6 +143,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PdfLayerDefinition> Layers { get; } = new();
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
             public System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; } = new();
+            internal SearchableFontSet SearchableFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
             public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
             public int? StructParentIndex { get; set; }
@@ -145,6 +152,8 @@ internal static partial class PdfWriter {
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
+            public PdfRunningContentContext? RunningContentContext { get; set; }
+            public bool HasDynamicRunningContent { get; set; }
         }
 
         public string ReadContent(PdfPageContentHandle handle) => _contentStore.Read(handle);
@@ -226,6 +235,8 @@ internal static partial class PdfWriter {
         public PdfFormFieldStyle? AppearanceStyle { get; set; }
         public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
         public double FontSize { get; set; }
+        // Keep appearance streams in authored coordinates; the widget rectangle scales them.
+        public double AppearanceScale { get; set; } = 1D;
         public bool IsChecked { get; set; }
         public string CheckedValueName { get; set; } = "Yes";
         public string ExportValue { get; set; } = string.Empty;
@@ -339,6 +350,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageBookmark {
+        public double X { get; set; }
+        public string? Uri { get; set; }
         public int Level { get; set; }
         public string Title { get; set; } = string.Empty;
         public double Y { get; set; }
@@ -347,6 +360,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageNamedDestination {
+        public double X { get; set; }
         public string Name { get; set; } = string.Empty;
         public double Y { get; set; }
     }
@@ -360,6 +374,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageStructElement {
+        public long? LogicalOrder { get; set; }
         public int? MarkedContentId { get; set; }
         public System.Collections.Generic.List<int>? AdditionalMarkedContentIds { get; set; }
         public string StructureType { get; set; } = "P";
@@ -369,6 +384,7 @@ internal static partial class PdfWriter {
         public int TableRowSpan { get; set; } = 1;
         public int? ParentElementIndex { get; set; }
         public PageStructElement? ParentElement { get; set; }
+        public bool IsLinkLeadingWhitespace { get; set; }
         public int? AnnotationObjectId { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationObjectIds { get; set; }
         public int? AnnotationStructParentIndex { get; set; }
@@ -383,11 +399,13 @@ internal static partial class PdfWriter {
         public int VariantPageNumber { get; }
         public int PageNumber { get; }
         public int TotalPages { get; }
+        public int SectionPages { get; }
 
-        public PageNumberInfo(int variantPageNumber, int pageNumber, int totalPages) {
+        public PageNumberInfo(int variantPageNumber, int pageNumber, int totalPages, int sectionPages) {
             VariantPageNumber = variantPageNumber;
             PageNumber = pageNumber;
             TotalPages = totalPages;
+            SectionPages = sectionPages;
         }
     }
 
@@ -399,8 +417,11 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageShading {
+        public OfficeGradientColorInterpolation ColorInterpolation { get; set; }
         public string Name { get; set; } = string.Empty;
         public bool IsRadial { get; set; }
+        public OfficeGradientSpreadMode SpreadMode { get; set; }
+        public OfficeColor? OutsideColor { get; set; }
         public System.Collections.Generic.IReadOnlyList<OfficeGradientStop> Stops { get; set; } = System.Array.Empty<OfficeGradientStop>();
         public double X0 { get; set; }
         public double Y0 { get; set; }
@@ -416,8 +437,8 @@ internal static partial class PdfWriter {
         public bool MatchesAxial(double x0, double y0, double x1, double y1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) =>
             !IsRadial && MatchesCoordinatesAndStops(x0, y0, 0D, x1, y1, 0D, stops);
 
-        public bool MatchesRadial(double x0, double y0, double r0, double x1, double y1, double r1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) =>
-            IsRadial && MatchesCoordinatesAndStops(x0, y0, r0, x1, y1, r1, stops);
+        public bool MatchesRadial(double x0, double y0, double r0, double x1, double y1, double r1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops, OfficeColor? outsideColor) =>
+            IsRadial && OutsideColor == outsideColor && MatchesCoordinatesAndStops(x0, y0, r0, x1, y1, r1, stops);
 
         private bool MatchesCoordinatesAndStops(double x0, double y0, double r0, double x1, double y1, double r1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) {
             if (!X0.Equals(x0) || !Y0.Equals(y0) || !R0.Equals(r0) || !X1.Equals(x1) || !Y1.Equals(y1) || !R1.Equals(r1) || Stops.Count != stops.Count) {
@@ -434,6 +455,8 @@ internal static partial class PdfWriter {
 
     private sealed class PageEffectGroup {
         public PdfPageContentHandle Content { get; set; }
+        public PageEffectGroup? AlphaMask { get; set; }
+        public string? MaskGraphicsStateName { get; set; }
         public string Token { get; set; } = string.Empty;
         public OfficeTransform Transform { get; set; } = OfficeTransform.Identity;
         public string? GraphicsStateName { get; set; }
@@ -448,6 +471,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class OutlineNode {
+        public double X { get; set; }
+        public string? Uri { get; set; }
         public int Id { get; set; }
         public int Level { get; set; }
         public int PageIndex { get; set; }
@@ -459,6 +484,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageImage {
+        public bool Interpolate { get; set; }
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         public PdfImageStream? PreparedStream { get; set; }

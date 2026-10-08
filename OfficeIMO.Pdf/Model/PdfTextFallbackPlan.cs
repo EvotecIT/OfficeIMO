@@ -132,7 +132,8 @@ public sealed class PdfTextFallbackPlan {
         return runs.AsReadOnly();
     }
 
-    private static void KeepHorizontalOffsetOnFirstGeneratedRun(List<PdfTextRun> runs) {
+    /// <summary>Applies the source run's offset once across all generated font and layout segments.</summary>
+    internal static void KeepHorizontalOffsetOnFirstGeneratedRun(List<PdfTextRun> runs) {
         bool offsetApplied = false;
         for (int i = 0; i < runs.Count; i++) {
             if (runs[i].HorizontalOffset <= 0D) {
@@ -173,7 +174,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }
@@ -204,7 +205,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }
@@ -228,7 +229,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }

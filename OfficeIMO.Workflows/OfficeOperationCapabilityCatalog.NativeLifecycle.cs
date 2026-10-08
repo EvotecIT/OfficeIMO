@@ -142,17 +142,35 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".pages", ".numbers", ".key" },
             Array.Empty<OfficeOperationKind>(),
             limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
-            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
-            limitation: "Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks.");
+            unsupported: new[] { OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            limitation: "Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten.");
+        AddNativeLifecycle(rows, "iwork-native", "OfficeIMO.IWork", "IWork.Native",
+            "IWorkSourceDocument.Open / project to Pages or Numbers",
+            "OfficeIMO.IWork.Tests source inspection and conversion contracts",
+            new[] { ".pages", ".numbers" }, Array.Empty<OfficeOperationKind>(),
+            unsupported: new[] { OfficeOperationKind.Create }, limitation: "Native Pages and Numbers creation is not supported.");
+        AddNativeLifecycle(rows, "keynote-native-creation", "OfficeIMO.IWork", "IWork.Keynote",
+            "IWorkKeynoteDocument.Create / AddSlide / AddText / SaveBytes / Save",
+            "OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json independent decoding and Apple reopen/export/edit evidence",
+            new[] { ".key" }, Array.Empty<OfficeOperationKind>(), limitedSupported: new[] { OfficeOperationKind.Create },
+            limitation: "Template-free creation supports static slides with opaque sRGB backgrounds and positioned, uniformly styled plain text. Native acceptance is fixture-specific to Keynote 15.4; it does not qualify all fonts, producer versions, rich runs, media, tables, builds, or editing loaded packages.");
         AddEmailStoreLifecycleRows(rows);
         AddProjectLifecycleRows(rows);
         AddNativeLifecycle(rows, "epub-native", "OfficeIMO.Epub", "Epub.Native",
-            "EpubReader / EpubPackage",
-            "OfficeIMO.Epub.Tests package extraction, metadata, and navigation inspection contracts",
+            "EpubDocument / EpubPublication.Create / Load / Write / Save / Read",
+            "OfficeIMO.Shared.Tests EPUB reading/writing contracts and independent EPUBCheck validation",
             new[] { ".epub" },
             new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
-            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit },
-            limitation: "The current package is an extraction and inspection surface; EPUB authoring is not implemented.");
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            partial: new[] { OfficeOperationKind.Validate },
+            limitation: "EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract.");
+        AddNativeLifecycle(rows, "book-project", "OfficeIMO.Workflows", "Book.Project",
+            "BookProject.Create / FromImport / FromEpub / ApplyEdits / ToProjectBytes / LoadProject / Export / PreviewChapter",
+            "OfficeIMO.Workflows.Tests book contracts, Studio storage acceptance and independent EPUB validation",
+            new[] { ".oibook" }, Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Export },
+            partial: new[] { OfficeOperationKind.Validate },
+            limitation: "Reflowable book projects retain a publication and versioned import review state with bounded ZIP validation. Edits are atomic with one session-only undo/redo step. Failed imports cannot be accepted as export-ready. Hosts own safe destination publication; full EPUB schema and accessibility certification require independent review.");
     }
 
     private static void AddEmailStoreLifecycleRows(ICollection<OfficeOperationCapability> rows) {
@@ -195,7 +213,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             Array.Empty<OfficeOperationKind>(),
             limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect, OfficeOperationKind.Validate, OfficeOperationKind.Export },
             partial: new[] { OfficeOperationKind.Preserve },
-            limitation: "EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip.");
+            limitation: "EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps.");
         AddNativeLifecycle(rows, "email-address-book-oab", "OfficeIMO.Email", "Email.AddressBook.Oab",
             "OfflineAddressBookSession.Open / Search / Validate / OfflineAddressBookInspector.Inspect",
             "OfficeIMO.Email.Tests bounded OAB session, search, inspection, validation, identity-index, and malformed-input contracts",

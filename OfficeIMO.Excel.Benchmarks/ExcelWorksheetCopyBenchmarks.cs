@@ -13,17 +13,19 @@ public class ExcelWorksheetCopyBenchmarks {
     public void Setup() {
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
         _sourceWorkbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
+        ExcelSalesOutputValidator.ValidateWorkbook(PackageCopy(), rows, sheetName: "DataCopy");
+        ExcelSalesOutputValidator.ValidateWorkbook(ValuesCopy(), rows, sheetName: "DataCopy");
     }
 
     [Benchmark(Baseline = true)]
-    public int PackageCopy()
+    public byte[] PackageCopy()
         => CopyWorksheet(ExcelWorksheetCopyMode.Package);
 
     [Benchmark]
-    public int ValuesCopy()
+    public byte[] ValuesCopy()
         => CopyWorksheet(ExcelWorksheetCopyMode.Values);
 
-    private int CopyWorksheet(ExcelWorksheetCopyMode copyMode) {
+    private byte[] CopyWorksheet(ExcelWorksheetCopyMode copyMode) {
         using var sourceStream = new MemoryStream(_sourceWorkbookBytes, writable: false);
         using var sourceDocument = ExcelDocument.Load(sourceStream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         using var targetStream = new MemoryStream();
@@ -37,6 +39,6 @@ public class ExcelWorksheetCopyBenchmarks {
             targetDocument.Save(targetStream);
         }
 
-        return checked((int)targetStream.Length);
+        return targetStream.ToArray();
     }
 }

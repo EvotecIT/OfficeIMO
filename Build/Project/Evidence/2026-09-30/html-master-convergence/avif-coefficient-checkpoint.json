@@ -1,0 +1,515 @@
+{
+  "sourceCommit": "2c7b1da301c029ef20ef19b341ebc76c81c8f65b",
+  "recordDate": "2026-10-01",
+  "previousCheckpoint": "avif-transform-checkpoint.json",
+  "scope": "Internal Main-8 coefficient and transform-type grammar, bounded scans/levels/signs and tile-owned evolving contexts. No default AVIF decode or pixel support is added.",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Base0.cs": "6c5a3792036b00b4e8d33cfed3f3a23504605b8622e951a510adc4a3f1626f06",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Base1.cs": "dadde40473ccc5c3a796e4ffe621375949d37beb3bc30ecd59c7d607132792d0",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Base2.cs": "9d861ad0887e91dc1743538d3250ee36f7428ea02a5fdb22122193ae0a7837fa",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Base3.cs": "a7e7e14c94575099d36ecaa44748ac26562caa543a566df1e0523a1836d2eaa3",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Br0.cs": "544ac33f6017a9071ff0989f90bfe18baec77622fb793a070207414e81d37078",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Br1.cs": "c9b6fd912441264d21b95c740eea29cd4752e3d821663c3819804e365840ae7c",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Br2.cs": "672e1e68b6396a6588db4460e66e8f5dc5b0fa94af33b242419ba775ac90defc",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Br3.cs": "22ddf6f6b9ebc7d801231b80448c2ede0c5fce78a090655bf17ca993f2813fcf",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Dc.cs": "a1fc11841ca72cf2f5c362a36e808a8978c3668b7866cf29779577cca8557720",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob0.cs": "c8ea006f1e22655542abcb6d4a14439165040e0d6ae76d1ae6ec9ce36c267499",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob1.cs": "bc456083123f978751734deb45efc3475e53ea597b3359df7ae00ad78cf050ff",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob2.cs": "220bbcf10348234d42e6cea50724ee1be7ae1c778f371afd42444d01731c9d31",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob3.cs": "2338f42d731c272731b650421f6f00a4cc132bee3f131f2038f1102a51f2c110",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob4.cs": "7a96d70410cb09d9dfd0fbc25dc069c88ce25deb208f029fe075a6aa1d9b9a33",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob5.cs": "6c9eed206caf9957a6ffeeb650abbc6230fc4fccccbf0d2894732b4ed896c68c",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Eob6.cs": "15594c8ff53388761a26647575c2a791e52c173ad7766a022a21531cad5d6d9d",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Extra.cs": "0b904589f1626a3d311ed60db3dcaab4d130fb6c41183dbf760cdc3f5907b062",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Inter.cs": "c77360adac8482d609b366b2cbe8a861cbffb86c9f4cc37f1f08f460824362e9",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Intra.cs": "92be4451adf69377ba284396dae14171f784be9dcc94120fc0e8aaa3aab67ee4",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Last.cs": "7fd2c54ae814a6a2fd628640ac9cce8811a5ecaf3d62f669b9543df1a9979280",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Cdfs.Skip.cs": "39173055e1dd4e4fd539b0ff82bd9083f4776047e5497b6405550923774ed9d3",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Contexts.cs": "83dbb64e1932fc35887e4f0f74311079cca7b7d6c38cf8ca47e239fadd6e5ba8",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Syntax.cs": "8225c93978238743df92ba69848ca37da1d0a1203cdae2281941c789ac64142c",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.Types.cs": "089474e431477161ab82409c344ecffc1f3fc3d2da1afc6313b6b67e34cd96a8",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CoefficientReader.cs": "a9619513468651a83b4591b756b880c3057388c9877e431cfb1f25672bb1de79",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Coefficients.cs": "e6cf04e8e2428d8c37d234ccf3e821bfe36493c581e2506bdf86ec57d4d54767",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Coefficients.cs": "dd9f20316166977bc00d3acef37e1deb62d2f70197d8646396569573215e246a",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "867243a4adf8653ce70cf6c66b7e6c5c4a77b64c07fda04ead0c991df5f091a2",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateCoefficientFixtures.c": "386a83f22db7fd3490b428ef8b9971a55dfafee7edb0fba5df2342131c8dd27d",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateCoefficientFixtures.py": "6e79788272ea91bc39f277400ad275d4f1156a2b26d786905c5212f3a5c75f1d",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateTransformFixtures.c": "37d6d777bde6c148e1bf2742341c44c140143cb43104663ee924963514471105",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/coefficient-reference.json.gz": "2ae81fa688686c6cad311edc93f321875eeda71c79cfb745766f7e71e44850cc"
+  },
+  "syntaxReferences": {
+    "spec": "AV1 sections 5.11.39-41, 5.11.47-48, reset_block_context, coefficient CDF derivation and Golomb length conformance",
+    "specSha256": "879df3a6935502599b0f7dfddf83c8bf6b4af62ba88c5ee61d0dabeede528cf3",
+    "aomTag": "v3.13.1",
+    "nativeOwner": "Hash-pinned official AOM arithmetic entropy, probability defaults and scans; ORIGINAL coefficient grammar with full spatial grids, not a full native AV1 decoder.",
+    "sourceLicense": "BSD-2-Clause and AOM Patent License 1.0; downloaded source notices remain outside the runtime graph"
+  },
+  "oracle": {
+    "receipt": {
+      "generatorSha256": "6e79788272ea91bc39f277400ad275d4f1156a2b26d786905c5212f3a5c75f1d",
+      "harnessSha256": "386a83f22db7fd3490b428ef8b9971a55dfafee7edb0fba5df2342131c8dd27d",
+      "sourceSha256": {
+        "token_cdfs.h": "027f8b28511c0be811d2fd0eabccc876cab4c8ead5820093cecad5f56b92fc9d",
+        "scan.c": "1296162f04e01e208cfbf499d2279b88bb8655beb03b04584a17f0697f1e0e20"
+      },
+      "fixtureSha256": "2ae81fa688686c6cad311edc93f321875eeda71c79cfb745766f7e71e44850cc",
+      "canonicalJsonSha256": "e6aff4735466e3aa9f21b3cbc37235b5700dfabe3d8035b65fdaa20e514c54ea",
+      "cases": 660,
+      "prefixes": 3,
+      "nativeSelfCheck": true
+    },
+    "freshReplay": {
+      "coefficientFixtureSha256": "2ae81fa688686c6cad311edc93f321875eeda71c79cfb745766f7e71e44850cc",
+      "canonicalJsonSha256": "e6aff4735466e3aa9f21b3cbc37235b5700dfabe3d8035b65fdaa20e514c54ea",
+      "generatedCdfFiles": [
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Base0.cs",
+          "sha256": "6c5a3792036b00b4e8d33cfed3f3a23504605b8622e951a510adc4a3f1626f06"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Base1.cs",
+          "sha256": "dadde40473ccc5c3a796e4ffe621375949d37beb3bc30ecd59c7d607132792d0"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Base2.cs",
+          "sha256": "9d861ad0887e91dc1743538d3250ee36f7428ea02a5fdb22122193ae0a7837fa"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Base3.cs",
+          "sha256": "a7e7e14c94575099d36ecaa44748ac26562caa543a566df1e0523a1836d2eaa3"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Br0.cs",
+          "sha256": "544ac33f6017a9071ff0989f90bfe18baec77622fb793a070207414e81d37078"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Br1.cs",
+          "sha256": "c9b6fd912441264d21b95c740eea29cd4752e3d821663c3819804e365840ae7c"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Br2.cs",
+          "sha256": "672e1e68b6396a6588db4460e66e8f5dc5b0fa94af33b242419ba775ac90defc"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Br3.cs",
+          "sha256": "22ddf6f6b9ebc7d801231b80448c2ede0c5fce78a090655bf17ca993f2813fcf"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Dc.cs",
+          "sha256": "a1fc11841ca72cf2f5c362a36e808a8978c3668b7866cf29779577cca8557720"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob0.cs",
+          "sha256": "c8ea006f1e22655542abcb6d4a14439165040e0d6ae76d1ae6ec9ce36c267499"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob1.cs",
+          "sha256": "bc456083123f978751734deb45efc3475e53ea597b3359df7ae00ad78cf050ff"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob2.cs",
+          "sha256": "220bbcf10348234d42e6cea50724ee1be7ae1c778f371afd42444d01731c9d31"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob3.cs",
+          "sha256": "2338f42d731c272731b650421f6f00a4cc132bee3f131f2038f1102a51f2c110"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob4.cs",
+          "sha256": "7a96d70410cb09d9dfd0fbc25dc069c88ce25deb208f029fe075a6aa1d9b9a33"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob5.cs",
+          "sha256": "6c9eed206caf9957a6ffeeb650abbc6230fc4fccccbf0d2894732b4ed896c68c"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Eob6.cs",
+          "sha256": "15594c8ff53388761a26647575c2a791e52c173ad7766a022a21531cad5d6d9d"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Extra.cs",
+          "sha256": "0b904589f1626a3d311ed60db3dcaab4d130fb6c41183dbf760cdc3f5907b062"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Inter.cs",
+          "sha256": "c77360adac8482d609b366b2cbe8a861cbffb86c9f4cc37f1f08f460824362e9"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Intra.cs",
+          "sha256": "92be4451adf69377ba284396dae14171f784be9dcc94120fc0e8aaa3aab67ee4"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Last.cs",
+          "sha256": "7fd2c54ae814a6a2fd628640ac9cce8811a5ecaf3d62f669b9543df1a9979280"
+        },
+        {
+          "file": "OfficeAv1CoefficientReader.Cdfs.Skip.cs",
+          "sha256": "39173055e1dd4e4fd539b0ff82bd9083f4776047e5497b6405550923774ed9d3"
+        }
+      ],
+      "priorFixturesByteIdentical": true,
+      "freshReplayByteIdentical": true
+    },
+    "cases": 660,
+    "leaves": 16900,
+    "residuals": 139022,
+    "scanShapesAndClasses": 42,
+    "quantizers": [
+      0,
+      20,
+      60,
+      120,
+      255
+    ],
+    "frameExtentsInMiUnits": [
+      8,
+      18,
+      32
+    ],
+    "coverageTotals": {
+      "typeHits": [
+        88538,
+        4732,
+        5202,
+        4260,
+        312,
+        268,
+        242,
+        248,
+        162,
+        3328,
+        338,
+        370,
+        168,
+        234,
+        168,
+        196
+      ],
+      "sizeHits": [
+        120624,
+        3020,
+        1910,
+        1154,
+        168,
+        2920,
+        3194,
+        584,
+        622,
+        482,
+        462,
+        110,
+        110,
+        978,
+        836,
+        718,
+        704,
+        196,
+        230
+      ],
+      "levelHits": [
+        208524,
+        243380,
+        247716,
+        246054,
+        1228
+      ],
+      "eobHits": [
+        21416,
+        20728,
+        20628,
+        20360,
+        21094,
+        1974,
+        1196,
+        560,
+        474,
+        240,
+        96
+      ],
+      "zeroHits": [
+        108766,
+        18480
+      ],
+      "signHits": [
+        40018,
+        44102,
+        43126
+      ]
+    },
+    "framePrefixes": [
+      {
+        "name": "avif-opaque",
+        "alpha": false,
+        "offset": 302,
+        "length": 31,
+        "pixels": 32,
+        "preludeQ": 18,
+        "coefficient": {
+          "block": [
+            0,
+            0,
+            0,
+            3
+          ],
+          "type": 0,
+          "eob": 0,
+          "values": []
+        }
+      },
+      {
+        "name": "avif-alpha",
+        "alpha": true,
+        "offset": 447,
+        "length": 43,
+        "pixels": 32,
+        "preludeQ": 24,
+        "coefficient": {
+          "block": [
+            0,
+            0,
+            0,
+            3
+          ],
+          "type": 0,
+          "eob": 232,
+          "values": [
+            [
+              0,
+              -428
+            ],
+            [
+              1,
+              -402
+            ],
+            [
+              3,
+              -45
+            ],
+            [
+              5,
+              -15
+            ],
+            [
+              7,
+              -8
+            ],
+            [
+              9,
+              -4
+            ],
+            [
+              11,
+              -2
+            ],
+            [
+              13,
+              -2
+            ],
+            [
+              15,
+              -1
+            ],
+            [
+              17,
+              -1
+            ],
+            [
+              20,
+              -1
+            ],
+            [
+              21,
+              -1
+            ]
+          ]
+        }
+      },
+      {
+        "name": "multitile",
+        "alpha": false,
+        "offset": 298,
+        "length": 1189,
+        "pixels": 16,
+        "preludeQ": 112,
+        "coefficient": {
+          "block": [
+            0,
+            0,
+            0,
+            2
+          ],
+          "type": 0,
+          "eob": 21,
+          "values": [
+            [
+              0,
+              -85
+            ],
+            [
+              1,
+              -14
+            ],
+            [
+              3,
+              -1
+            ],
+            [
+              16,
+              -16
+            ],
+            [
+              48,
+              -2
+            ],
+            [
+              80,
+              -1
+            ]
+          ]
+        }
+      }
+    ],
+    "boundaries": [
+      "Adaptive probability updates enabled and disabled",
+      "Two independently adapted streams interleaved at shifted tile origins",
+      "Clipped frame edges",
+      "Completed neighbor plus tentative within-leaf contexts",
+      "Skip resets and suppressed chroma",
+      "Base-Q categories versus segment ALT_Q eligibility",
+      "Frame snapshot isolation",
+      "Maximum-20 terminated and malformed-20-unterminated Golomb lengths",
+      "20-bit level masking preserves pre-mask DC category",
+      "Leaf completion, failed-context latching, cancellation, pixel and retained-memory guards"
+    ],
+    "limits": [
+      "Synthetic copy-mode inputs enter after motion syntax; motion is not decoded",
+      "Frozen images reach only their first transform; complete leaf/tile publication and real tile termination are not proven",
+      "Original grammar harness can share specification mistakes; independent entropy/scans/grid representation do not establish independent full-image decoding"
+    ]
+  },
+  "validation": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-coefficient-work-05b3a0ba0/coefficients-packed-net10.trx",
+      "sha256": "164e67f7facbc55c2b6f569784882f846f3dc850d25a5a697455bde2d6697d85",
+      "counts": {
+        "total": "75",
+        "executed": "75",
+        "passed": "75",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-coefficient-work-05b3a0ba0/coefficients-full-drawing-net8.trx",
+      "sha256": "70780e10c59c9514d611687b0358e444fc6e19479fdd68efe9e8b60c61fe16ab",
+      "counts": {
+        "total": "2934",
+        "executed": "2934",
+        "passed": "2934",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-av1-coefficient-work-05b3a0ba0/coefficients-full-drawing-net10.trx",
+      "sha256": "c2de62e5d8491880e3049fbdd54de78be8d5f70bafae8b40ef311927233179f1",
+      "counts": {
+        "total": "2934",
+        "executed": "2934",
+        "passed": "2934",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "coreNetstandard2Build": {
+    "sdk": "10.0.303",
+    "configuration": "Release",
+    "warnings": 0,
+    "errors": 0,
+    "command": "dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore"
+  },
+  "package": {
+    "packageSha256": "55b47bb000412c7f2bda213122ef4e80eb8f443748e0a2e4f0c89b7def86b9cb",
+    "externalDependencies": [],
+    "assemblies": {
+      "lib/net10.0/OfficeIMO.Core.dll": "2cf31134c35c52789747d53844dcb1ff46741a65d712d6d6652232bbe5061e82",
+      "lib/net8.0/OfficeIMO.Core.dll": "c16f6dffdfdfcbc2d2fb524ba3ace3806d0f61ab0cb7e25cd36302c419324e85",
+      "lib/netstandard2.0/OfficeIMO.Core.dll": "b664180fea1702e4420669f72cc24122117533702565f406d308e2893240afa1"
+    },
+    "targets": [
+      "net10.0",
+      "net8.0",
+      "netstandard2.0"
+    ]
+  },
+  "localReview": {
+    "task": "/root/av1_coefficient_review",
+    "scope": "New coefficient owner, native generator/data, regression contracts and copy wiring",
+    "candidateDiffFingerprint": "19ceec74255d04633156a282706496587d79bc9a",
+    "boundary": "current",
+    "independentReadOnly": true,
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "executionOwnedByPrimary": true
+  },
+  "defaultAvifDecodeQualified": false,
+  "supportCatalogChanged": false,
+  "externalRuntimeDependenciesAdded": false,
+  "fullMilestoneComplete": false,
+  "remainingAvif": [
+    "Intra-block-copy motion syntax",
+    "Complete recursive tile traversal and restoration syntax with evolving owner contexts",
+    "Prediction, dequantization/inverse transforms, reconstruction and filters",
+    "Color conversion and alpha composition",
+    "Public raster/caller-codec integration",
+    "Independent decoded-pixel and paired HTML/PDF qualification",
+    "Relevant platform/package and performance acceptance"
+  ],
+  "unchangedRendererEvidence": "No renderer/default decoder caller changed. H4/NASA and runtime budgets still qualify their recorded earlier source; rerun against decoded/rendered AVIF before acceptance.",
+  "unavailableProof": [
+    "Windows/net472 execution",
+    "Windows/Linux H10 operation budgets"
+  ],
+  "supersededProbeDisposition": {
+    "removedBytes": 184445559,
+    "removed": "Duplicate raw coefficient matrices, superseded component outputs, replay build, intermediate logs and local package; final hashes/results retained.",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-av1-coefficient-work-05b3a0ba0",
+    "retainedBytes": 9965753,
+    "focusedAndFullTrxRetained": true
+  },
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/static-gap-av1-coefficient-work-05b3a0ba0; compact final TRX/receipts, source data/notices and native oracle, without duplicate raw matrices or replay builds"
+}

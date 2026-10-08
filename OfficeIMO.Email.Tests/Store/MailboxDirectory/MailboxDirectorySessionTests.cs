@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OfficeIMO.Email.Store.Tests;
 
-public sealed class MailboxDirectorySessionTests {
+public sealed class MailboxDirectorySessionTests(Xunit.Abstractions.ITestOutputHelper output) {
     [Fact]
     public void ContentFingerprintUsesStructuredFileBoundaries() {
         string firstRoot = Path.Combine(Path.GetTempPath(),
@@ -534,7 +534,7 @@ public sealed class MailboxDirectorySessionTests {
         return root;
     }
 
-    private static bool TryEnableWindowsDirectoryCaseSensitivity(string path) {
+    private bool TryEnableWindowsDirectoryCaseSensitivity(string path) {
         var startInfo = new ProcessStartInfo {
             FileName = "fsutil.exe",
             Arguments = "file setCaseSensitiveInfo \"" + path + "\" enable",
@@ -543,13 +543,46 @@ public sealed class MailboxDirectorySessionTests {
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        using Process? process = Process.Start(startInfo);
-        if (process == null) return false;
+        Process? process;
+        try {
+            process = Process.Start(startInfo);
+        } catch (System.ComponentModel.Win32Exception exception) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe could not start (native error {0}).", exception.NativeErrorCode);
+            return false;
+        }
+        using var processScope = process;
+        if (process == null) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe did not start.");
+            return false;
+        }
         if (!process.WaitForExit(10_000)) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe timed out.");
             process.Kill();
             return false;
         }
-        return process.ExitCode == 0;
+        if (process.ExitCode != 0) {
+            output.WriteLine("Case-sensitive directory setup is unavailable: fsutil.exe exited with code {0}.", process.ExitCode);
+            return false;
+        }
+
+        // fsutil can return zero even when setting the flag failed (for example, access denied).
+        // Verify behavior independently of the product's path-identity implementation.
+        const string lowerName = ".officeimo-case-setup-probe-a";
+        const string upperName = ".officeimo-case-setup-probe-A";
+        string lower = Path.Combine(path, lowerName);
+        string upper = Path.Combine(path, upperName);
+        try {
+            File.WriteAllText(lower, "lower");
+            File.WriteAllText(upper, "upper");
+            bool enabled = Directory.EnumerateFiles(path).Select(Path.GetFileName)
+                .Count(name => string.Equals(name, lowerName, StringComparison.Ordinal) ||
+                    string.Equals(name, upperName, StringComparison.Ordinal)) == 2;
+            if (!enabled) output.WriteLine("Case-sensitive directory qualification is unavailable: fsutil returned success, but case-distinct files were not created.");
+            return enabled;
+        } finally {
+            File.Delete(lower);
+            File.Delete(upper);
+        }
     }
 
     private static byte[] CreateEmlx(byte[] message) {

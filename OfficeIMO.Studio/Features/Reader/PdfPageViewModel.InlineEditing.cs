@@ -23,6 +23,7 @@ public sealed partial class PdfPageViewModel {
         _canvasWidth = size.Width > 0 ? size.Width : null;
         _canvasHeight = size.Height > 0 ? size.Height : null;
         UpdateInlineEditorPosition();
+        UpdateInlineFormBounds();
     }
     partial void OnSceneChanged(PdfPageScene? value) {
         UpdateInlineEditorPosition();

@@ -2620,13 +2620,13 @@ namespace OfficeIMO.Tests {
             AppendBodyElementBeforeSection(
                 document,
                 new Paragraph(
-                    new Run(new Text("Page ")),
+                    new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                     new Run(new Text("3")),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                    new Run(new Text(" of ")),
+                    new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("8"))) { Instruction = " NUMPAGES " }));
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -2657,13 +2657,13 @@ namespace OfficeIMO.Tests {
                 AppendBodyElementBeforeSection(
                     document,
                     new Paragraph(
-                        new Run(new Text("By ")),
+                        new Run(new Text("By ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new SimpleField(new Run(new Text("Stale Author"))) { Instruction = " AUTHOR \\* Caps " },
-                        new Run(new Text(" for ")),
+                        new Run(new Text(" for ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new SimpleField(new Run(new Text("Stale Title"))) { Instruction = " TITLE " },
-                        new Run(new Text(" code ")),
+                        new Run(new Text(" code ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new SimpleField(new Run(new Text("Stale Code"))) { Instruction = " DOCPROPERTY \"ProjectCode\" " },
-                        new Run(new Text(" file ")),
+                        new Run(new Text(" file ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                         new SimpleField(new Run(new Text("stale.docx"))) { Instruction = " FILENAME " }));
 
                 string expected = "By Premium Author for Premium Image Export code Alpha file " + Path.GetFileName(filePath);
@@ -2699,13 +2699,13 @@ namespace OfficeIMO.Tests {
             AppendBodyElementBeforeSection(
                 document,
                 new Paragraph(
-                    new Run(new Text("Body page ")),
+                    new Run(new Text("Body page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                     new Run(new Text("9")),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                    new Run(new Text(" of ")),
+                    new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " }));
 
             var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
@@ -2734,13 +2734,13 @@ namespace OfficeIMO.Tests {
             Paragraph paragraph = table.Rows[0].Cells[0].Paragraphs[0]._paragraph;
             paragraph.RemoveAllChildren<Run>();
             paragraph.Append(
-                new Run(new Text("Cell page ")),
+                new Run(new Text("Cell page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                 new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text("9")),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                new Run(new Text(" of ")),
+                new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " });
 
             var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
@@ -2770,13 +2770,13 @@ namespace OfficeIMO.Tests {
             content.RemoveAllChildren<Paragraph>();
             content.Append(
                 new Paragraph(
-                    new Run(new Text("Text box page ")),
+                    new Run(new Text("Text box page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                     new Run(new Text("9")),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                    new Run(new Text(" of ")),
+                    new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " }));
 
             var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
@@ -2801,13 +2801,13 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
             document.FooterDefaultOrCreate._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Page ")),
+                    new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                     new Run(new Text("1")),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                    new Run(new Text(" of ")),
+                    new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("1"))) { Instruction = " NUMPAGES " }));
             document.AddParagraph("First page marker");
             document.AddPageBreak();
@@ -2841,27 +2841,28 @@ namespace OfficeIMO.Tests {
             secondSection.AddPageNumbering(3, WordNumberFormat.LowerRoman);
             secondSection.GetOrCreateFooter(WordHeaderFooterType.Default)._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Section page ")),
+                    new Run(new Text("Section page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                     new Run(new Text("1")),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                    new Run(new Text(" of ")),
+                    new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("1"))) { Instruction = " NUMPAGES " }));
             secondSection.AddParagraph("Second section body");
 
-            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            // A next-page section restarting on odd number 3 inserts an intervening blank page.
+            var options = new WordImageExportOptions { PageIndex = 2, BackgroundColor = OfficeColor.White };
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page iii of 2");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page iii of 3");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page 1 of 1");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Section page", svgText, StringComparison.Ordinal);
             Assert.Contains("iii", svgText, StringComparison.Ordinal);
-            Assert.Contains("2", svgText, StringComparison.Ordinal);
+            Assert.Contains("3", svgText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -2872,13 +2873,13 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
             document.FooterDefaultOrCreate._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Page ")),
+                    new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" PAGE \\* alphabetic ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                     new Run(new Text("9")),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
-                    new Run(new Text(" of ")),
+                    new Run(new Text(" of ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES \\* roman " }));
             document.AddParagraph("First page marker");
             document.AddPageBreak();
@@ -2911,7 +2912,7 @@ namespace OfficeIMO.Tests {
             secondSection.SetMargins(WordMargin.Narrow);
             secondSection.GetOrCreateFooter(WordHeaderFooterType.Default)._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Section pages ")),
+                    new Run(new Text("Section pages ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " SECTIONPAGES \\* ROMAN " }));
             secondSection.AddParagraph("Second section first page");
             document.AddPageBreak();
@@ -2943,9 +2944,9 @@ namespace OfficeIMO.Tests {
             secondSection.SetMargins(WordMargin.Narrow);
             secondSection.GetOrCreateFooter(WordHeaderFooterType.Default)._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Section ")),
+                    new Run(new Text("Section ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " SECTION \\* ArabicZero " },
-                    new Run(new Text(" page ")),
+                    new Run(new Text(" page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " PAGE " }));
             secondSection.AddParagraph("Second section body");
 
@@ -2971,7 +2972,7 @@ namespace OfficeIMO.Tests {
             section.SetMargins(WordMargin.Narrow);
             section.GetOrCreateFooter(WordHeaderFooterType.Default)._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Section pages ")),
+                    new Run(new Text("Section pages ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("1"))) { Instruction = " SECTIONPAGES " }));
             for (int index = 1; index <= 7; index++) {
                 document.AddParagraph(
@@ -3984,7 +3985,7 @@ namespace OfficeIMO.Tests {
             document.Margins.Type = WordMargin.Narrow;
             document.FooterDefaultOrCreate._footer.Append(
                 new Paragraph(
-                    new Run(new Text("Pages ")),
+                    new Run(new Text("Pages ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " }));
             WordParagraph first = document.AddParagraph("Leading page break before marker");
             first.PageBreakBefore = true;

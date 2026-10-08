@@ -6,7 +6,27 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfRedactionApplierTests {
+public partial class PdfRedactionApplierTests {
+    [Fact]
+    public void Apply_RemovesWatermarkActualTextWithItsPaintedGlyphs() {
+        const string secret = "Watermark secret";
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Watermark(secret, fontSize: 36, rotationAngle: 0)
+            .Paragraph(paragraph => paragraph.Text("Public body"))
+            .ToBytes();
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            value => value.Text == secret);
+        PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source,
+            new[] { new PdfRedactionArea(1, bounds.Left - 1, bounds.Bottom - 1,
+                bounds.Width + 2, bounds.Height + 2, "watermark") });
+
+        Assert.DoesNotContain(PdfSyntaxEscaper.TextString(secret), PdfEncoding.Latin1GetString(redacted));
+        Assert.DoesNotContain(secret, PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.Contains("Public body", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(PdfRedactionContentScope.TextOnly, true)]
     [InlineData(PdfRedactionContentScope.TextAndUnderlay, false)]

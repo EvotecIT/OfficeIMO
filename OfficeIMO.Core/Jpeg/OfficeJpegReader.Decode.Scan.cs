@@ -23,6 +23,7 @@ internal static partial class OfficeJpegReader {
             var comp = frame.Components[componentIndex];
             states[componentIndex].Component = comp;
             states[componentIndex].PrevDc = 0;
+            state.PrepareAcLookup(ref acTables[comp.AcTable]);
         }
 
         var reader = new JpegBitReader(scanData, allowTruncated, cancellationToken);
@@ -45,35 +46,31 @@ internal static partial class OfficeJpegReader {
                 if (isSingle) {
                     var compIndex = scan.ComponentIndices[0];
                     var componentState = states[compIndex];
-                    DecodeBlock(
+                    DecodeBlockCoefficients(
                         ref reader,
                         dcTables[componentState.Component.DcTable],
                         acTables[componentState.Component.AcTable],
                         quantTables[componentState.Component.QuantId],
                         ref componentState.PrevDc,
-                        componentState.BlockCoeffs,
-                        componentState.BlockPixels,
-                        componentState.BlockWorkspace);
-                    WriteBlock(componentState.Buffer, componentState.Stride, mx, my, componentState.BlockPixels);
+                        componentState.BlockCoeffs);
+                    WriteDctBlock(componentState, mx, my);
                 } else {
                     for (var ci = 0; ci < scan.ComponentIndices.Length; ci++) {
                         var compIndex = scan.ComponentIndices[ci];
                         var componentState = states[compIndex];
                         var blocks = componentState.Component.H * componentState.Component.V;
                         for (var b = 0; b < blocks; b++) {
-                            DecodeBlock(
+                            DecodeBlockCoefficients(
                                 ref reader,
                                 dcTables[componentState.Component.DcTable],
                                 acTables[componentState.Component.AcTable],
                                 quantTables[componentState.Component.QuantId],
                                 ref componentState.PrevDc,
-                                componentState.BlockCoeffs,
-                                componentState.BlockPixels,
-                                componentState.BlockWorkspace);
+                                componentState.BlockCoeffs);
 
                             var blockX = mx * componentState.Component.H + (b % componentState.Component.H);
                             var blockY = my * componentState.Component.V + (b / componentState.Component.H);
-                            WriteBlock(componentState.Buffer, componentState.Stride, blockX, blockY, componentState.BlockPixels);
+                            WriteDctBlock(componentState, blockX, blockY);
                         }
                     }
                 }
@@ -101,14 +98,14 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables) {
         if (frame.ComponentCount == 0) throw new FormatException("Invalid JPEG frame.");
-        if (frame.ComponentCount < 1 || frame.ComponentCount > 4) {
+        if (frame.ComponentCount < 1 || frame.ComponentCount > 255) {
             throw new FormatException("Unsupported JPEG component count.");
         }
         if (scan.Ss != 0 || scan.Se != 63 || scan.Ah != 0 || scan.Al != 0) {
             throw new FormatException("Invalid baseline JPEG scan parameters.");
         }
 
-        EnsureStandardHuffmanTables(dcTables, acTables);
+        if (frame.Precision == 8) EnsureStandardHuffmanTables(dcTables, acTables);
 
         for (var i = 0; i < scan.ComponentIndices.Length; i++) {
             var componentIndex = scan.ComponentIndices[i];
@@ -218,7 +215,7 @@ internal static partial class OfficeJpegReader {
         int[][] quantTables,
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables) {
-        EnsureStandardHuffmanTables(dcTables, acTables);
+        if (frame.Precision == 8) EnsureStandardHuffmanTables(dcTables, acTables);
         if (scan.Ss > 0 && scan.ComponentIndices.Length != 1) {
             throw new FormatException("Progressive JPEG AC scans must contain exactly one component.");
         }
@@ -399,7 +396,7 @@ internal static partial class OfficeJpegReader {
 
     private static void SetProgressiveCoefficient(short[] coefficients, int index, int value) {
         if (value < short.MinValue || value > short.MaxValue) {
-            throw new FormatException("Progressive JPEG coefficient exceeds the supported 8-bit sample range.");
+            throw new FormatException("Progressive JPEG coefficient exceeds the signed sixteen-bit range.");
         }
         coefficients[index] = (short)value;
     }

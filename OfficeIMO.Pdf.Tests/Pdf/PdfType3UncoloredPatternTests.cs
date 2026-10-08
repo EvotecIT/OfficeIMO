@@ -472,7 +472,7 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void RenderPage_DiagnosesLaterUnsupportedShadingTransformThroughSameForm() {
+    public void RenderPage_RetainsSeparateAffineRadialInvocationsThroughSameForm() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn /Fm1 Do q 1 1 0 1 0 0 cm /Pattern cs /P1 scn /Fm1 Do Q",
             pageColorSpaceResources: string.Empty,
@@ -481,10 +481,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternIsStream: false,
             invokeThroughForm: true);
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        PdfAffineRadialAssertions.RetainsVectorRadialPaint(pdf, 2);
     }
 
     [Fact]
@@ -665,7 +662,7 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForAxisSwappedNonuniformRadialShading() {
+    public void RenderPage_RetainsAxisSwappedNonuniformRadialShading() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
@@ -673,10 +670,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternContent: string.Empty,
             patternIsStream: false);
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        PdfAffineRadialAssertions.RetainsVectorRadialPaint(pdf, 1);
     }
 
     [Fact]
@@ -866,7 +860,7 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForShearedOuterRadialShadingPattern() {
+    public void RenderPage_RetainsShearedOuterRadialShadingPattern() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
@@ -874,16 +868,11 @@ public partial class PdfType3UncoloredPatternTests {
             patternContent: string.Empty,
             patternIsStream: false);
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Empty(drawing.Shapes);
+        PdfAffineRadialAssertions.RetainsVectorRadialPaint(pdf, 1);
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForShearedOrdinaryRadialShadingPattern() {
+    public void RenderPage_RetainsShearedOrdinaryRadialShadingPattern() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn 20 80 100 80 re f",
             pageColorSpaceResources: string.Empty,
@@ -891,11 +880,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternContent: string.Empty,
             patternIsStream: false);
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Empty(drawing.Shapes);
+        PdfAffineRadialAssertions.RetainsVectorRadialPaint(pdf, 1);
     }
 
     [Fact]
@@ -1284,7 +1269,7 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForShearedOuterRadialShadingOnImageMaskGlyph() {
+    public void RenderPage_RetainsShearedOuterRadialShadingOnImageMaskGlyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
@@ -1297,12 +1282,7 @@ public partial class PdfType3UncoloredPatternTests {
                 StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
             });
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingEffectGroup);
+        PdfAffineRadialAssertions.RetainsVectorRadialPaint(pdf, 1);
     }
 
     [Fact]

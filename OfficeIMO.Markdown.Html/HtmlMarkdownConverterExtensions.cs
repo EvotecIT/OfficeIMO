@@ -44,11 +44,7 @@ public static class HtmlMarkdownConverterExtensions {
         HtmlConversionDocument document,
         HtmlToMarkdownOptions operation) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        operation.BaseUri ??= document.FallbackBaseUri;
-        HtmlUrlPolicy requestedHyperlinkPolicy = operation.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
-        HtmlUrlPolicy requestedResourcePolicy = operation.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
-        operation.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
-        operation.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
+        ApplyDocumentPolicies(document, operation);
         var converter = new HtmlToMarkdownConverter();
         MarkdownDoc value;
         if (CanProjectSourceReadOnly(document, operation)) {
@@ -69,7 +65,29 @@ public static class HtmlMarkdownConverterExtensions {
                 operation,
                 document.SourceHtml.Length);
         }
-        return new HtmlToMarkdownResult(value, document.Diagnostics);
+        return new HtmlToMarkdownResult(value, document.Diagnostics.Concat(converter.Diagnostics));
+    }
+
+    /// <summary>Projects an independently owned, already filtered DOM using the source document's URL policies.</summary>
+    internal static string ToMarkdownPreparedDocument(HtmlConversionDocument document,
+        AngleSharp.Html.Dom.IHtmlDocument prepared, HtmlToMarkdownOptions options) {
+        HtmlToMarkdownOptions operation = options.Clone();
+        ApplyDocumentPolicies(document, operation);
+        if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
+            HtmlActiveMediaFilter.Filter(prepared, HtmlCssMediaContext.Print);
+        } else {
+            HtmlActiveMediaFilter.FilterUnsupportedPictureSources(prepared);
+        }
+        return new HtmlToMarkdownConverter().ConvertReadOnlyDocumentToDocument(
+            prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions);
+    }
+
+    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlToMarkdownOptions operation) {
+        operation.BaseUri ??= document.FallbackBaseUri;
+        HtmlUrlPolicy requestedHyperlinkPolicy = operation.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+        HtmlUrlPolicy requestedResourcePolicy = operation.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
+        operation.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
+        operation.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
     }
 
     private static bool CanProjectSourceReadOnly(

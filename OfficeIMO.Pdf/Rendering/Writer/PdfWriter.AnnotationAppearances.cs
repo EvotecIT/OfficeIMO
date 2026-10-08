@@ -143,9 +143,7 @@ internal static partial class PdfWriter {
             double runFontSize = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
             double textRise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
             if (segment.LeadingSpace) {
-                double gap = segment.LeadingAdvance > 0D
-                    ? segment.LeadingAdvance
-                    : MeasureRichText(" ", segment.Font, segment.FontSize, segment.Baseline, pageOptions);
+                double gap = segment.LeadingAdvance;
                 AppendFreeTextAppearanceTextSegment(
                     sb,
                     fontResource,

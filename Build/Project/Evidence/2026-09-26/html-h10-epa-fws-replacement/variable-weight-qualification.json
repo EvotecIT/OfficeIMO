@@ -1,0 +1,250 @@
+{
+  "functionalSourceHead": "cd779a36372cbc4fdf5323d14d2ed82b936e636a",
+  "beforeSourceHead": "e2494ac3dd37c31414b692d759a37378e088b84d",
+  "archiveSha256": "644ccacfe10dde7484549e46642be88727c34f9ba98fb36407cb6fca9f1f2fd4",
+  "scope": "Fixed numeric CSS font-face weight descriptors select variable wght coordinates; explicit caller coordinates take precedence",
+  "specification": "https://www.w3.org/TR/css-fonts-4/#font-style-matching",
+  "coreBoundary": "Only the internal bounded descriptor-registration opt-in applies CSS weights. Public Drawing registrations retain their default-instance contract. Axis metadata, validation, clamping and provider loading stay in Core.",
+  "registeredVariableFaces": [
+    {
+      "FamilyName": "Manrope",
+      "ResourceFamilyName": "Manrope__officeimo_80c0fca7",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=400",
+      "probeWidth": {
+        "width": 560.6919999999999,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Manrope",
+      "ResourceFamilyName": "Manrope__officeimo_e7919d99",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 600,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=600",
+      "probeWidth": {
+        "width": 581.9440000000001,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Manrope",
+      "ResourceFamilyName": "Manrope__officeimo_6a76ed44",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 700,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:de433a9f796e211873ba92d04718a27b4c9d5e7dce1abc8404f1c1d09de5e074:face=auto:axes=wght=700",
+      "probeWidth": {
+        "width": 592.482,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Merriweather",
+      "ResourceFamilyName": "Merriweather__officeimo_80c0fca7",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 400,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=400",
+      "probeWidth": {
+        "width": 593.736,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Merriweather",
+      "ResourceFamilyName": "Merriweather__officeimo_6a76ed44",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 700,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=700",
+      "probeWidth": {
+        "width": 610.06,
+        "error": null
+      }
+    },
+    {
+      "FamilyName": "Merriweather",
+      "ResourceFamilyName": "Merriweather__officeimo_ce5b611e",
+      "ContainerFormat": 3,
+      "CanEmbedAsStaticPdfFont": false,
+      "Descriptor": {
+        "Weight": 900,
+        "StretchPercent": 100,
+        "Slant": 0,
+        "ObliqueAngleDegrees": 0
+      },
+      "Fingerprint": "sha256:b12d468b6340d001b4795f5be526173005e2fff6325c6625f56177deb94cec2a:face=auto:axes=wght=900",
+      "probeWidth": {
+        "width": 619.6299999999999,
+        "error": null
+      }
+    }
+  ],
+  "tests": {
+    "beforeFocusedNet10": {
+      "passed": 2,
+      "failed": 3
+    },
+    "finalFocusedNet10": 26,
+    "fullHtmlNet8": 3580,
+    "fullHtmlNet10": 3580,
+    "fullDrawingNet8": 2638,
+    "fullDrawingNet10": 2638,
+    "portableHtmlBuildWarnings": 0,
+    "portableHtmlBuildErrors": 0,
+    "automaticVersusExplicitWeightPdfBytes": "identical for weight 700",
+    "cases": [
+      "400/600/700 numeric CSS weights",
+      "lower axis clamp",
+      "upper supported weight",
+      "explicit caller weight override",
+      "other caller axis preserved",
+      "optional provider receives resolved coordinates",
+      "direct Drawing default instance preserved"
+    ]
+  },
+  "h4": {
+    "casesPassed": 8,
+    "casesFailed": 0,
+    "worktreeDirty": false,
+    "unchangedPdfPrintRasters": 13,
+    "unchangedDisplayListPrintRasters": 13,
+    "path": "Ignore/HtmlUnknownPageQualification/h10-h4-variable-weight-clean-cd779a363"
+  },
+  "review": {
+    "task": "h10_variable_weight_review",
+    "sourceHead": "cd779a36372cbc4fdf5323d14d2ed82b936e636a",
+    "mode": "strictly read-only independent source review",
+    "actionableFindings": 0,
+    "targetedConfirmationUsed": false,
+    "renderedArtifactInspection": "primary agent; independent review did not inspect rendered outputs",
+    "residualGaps": [
+      "dedicated automatic-weight CFF2 and no-wght fixtures",
+      "range descriptors and other automatic CSS axes remain outside this correction"
+    ]
+  },
+  "intents": [
+    {
+      "intent": "PrintPaged",
+      "sourceHead": "cd779a36372cbc4fdf5323d14d2ed82b936e636a",
+      "sourceHeadVerification": "OfficeIMO.Core.dll InformationalVersion 3.4.3+cd779a36372cbc4fdf5323d14d2ed82b936e636a; clean source before and after execution",
+      "pages": 7,
+      "imageOmissions": 0,
+      "pdfBytes": 7712495,
+      "pdfSha256": "1cf58572b38286378b499052aaa2cc1a49687ecd1eca98f87a53767482555c5a",
+      "loadAllocatedBytes": 30565008,
+      "conversionAllocatedBytesIncludingLoad": 3256614560,
+      "validationAllocatedBytes": 433239448,
+      "warningCounts": {
+        "HtmlPdfFontProgramOutlined": 7,
+        "HtmlRenderResourceUnavailable": 211,
+        "HtmlRenderStylesheetUrlResourcesPending": 2,
+        "HtmlRenderFontFaceUnavailable": 112,
+        "HtmlRenderPositioningModeUnsupported": 12,
+        "HtmlRenderFlexValueUnsupported": 8,
+        "HtmlRenderOpenTypeFeatureUnsupported": 24,
+        "HtmlRenderSvgContentUnsupported": 2,
+        "HtmlRenderOverflowScrollSnapshot": 1
+      }
+    },
+    {
+      "intent": "ScreenMediaPaged",
+      "sourceHead": "cd779a36372cbc4fdf5323d14d2ed82b936e636a",
+      "sourceHeadVerification": "OfficeIMO.Core.dll InformationalVersion 3.4.3+cd779a36372cbc4fdf5323d14d2ed82b936e636a; clean source before and after execution",
+      "pages": 8,
+      "imageOmissions": 0,
+      "pdfBytes": 7994781,
+      "pdfSha256": "2e34d0e1e0baa1d0e9011cd7731eb4744a9effc188a5caaf988d9a6929565403",
+      "loadAllocatedBytes": 27340144,
+      "conversionAllocatedBytesIncludingLoad": 3506958288,
+      "validationAllocatedBytes": 460479056,
+      "warningCounts": {
+        "HtmlPdfTranslucentGradientRasterized": 1,
+        "HtmlPdfFontProgramOutlined": 10,
+        "HtmlPdfUnavailablePrivateUseGlyphOmitted": 1,
+        "HtmlRenderResourceUnavailable": 211,
+        "HtmlRenderStylesheetUrlResourcesPending": 2,
+        "HtmlRenderFontFaceUnavailable": 112,
+        "HtmlRenderPositioningModeUnsupported": 16,
+        "HtmlRenderSvgContentUnsupported": 13,
+        "HtmlRenderFlexValueUnsupported": 16,
+        "HtmlRenderOpenTypeFeatureUnsupported": 25,
+        "HtmlRenderOverflowScrollSnapshot": 1
+      }
+    },
+    {
+      "intent": "ScreenSnapshotPaged",
+      "sourceHead": "cd779a36372cbc4fdf5323d14d2ed82b936e636a",
+      "sourceHeadVerification": "OfficeIMO.Core.dll InformationalVersion 3.4.3+cd779a36372cbc4fdf5323d14d2ed82b936e636a; clean source before and after execution",
+      "pages": 7,
+      "imageOmissions": 0,
+      "pdfBytes": 8045949,
+      "pdfSha256": "2e0611a4ae5b2eb99fd340fb5d470a6955bc5ab997c70c807e2e2b6b201eb986",
+      "loadAllocatedBytes": 27180160,
+      "conversionAllocatedBytesIncludingLoad": 3174449048,
+      "validationAllocatedBytes": 596166232,
+      "warningCounts": {
+        "HtmlPdfFontProgramOutlined": 10,
+        "HtmlPdfTranslucentGradientRasterized": 1,
+        "HtmlPdfUnavailablePrivateUseGlyphOmitted": 1,
+        "HtmlRenderResourceUnavailable": 211,
+        "HtmlRenderStylesheetUrlResourcesPending": 2,
+        "HtmlRenderFontFaceUnavailable": 112,
+        "HtmlRenderPositioningModeUnsupported": 14,
+        "HtmlRenderSvgContentUnsupported": 8,
+        "HtmlRenderFlexValueUnsupported": 8,
+        "HtmlRenderOpenTypeFeatureUnsupported": 25,
+        "HtmlRenderOverflowScrollSnapshot": 1
+      }
+    }
+  ],
+  "visualInspection": {
+    "printPages": 7,
+    "screenMediaPages": 8,
+    "snapshotSlices": 7,
+    "reference": "frozen all-page Chromium references",
+    "photographsAndSectionGrouping": "preserved",
+    "remainingDifferences": [
+      "header/title vertical spacing",
+      "screen title-band background texture",
+      "footer icon overlap and geometry",
+      "screen-media fixed control repeats on every page",
+      "screen-media footer fragmentation",
+      "snapshot slice boundaries"
+    ]
+  },
+  "resourceAcceptance": false,
+  "fidelityAcceptance": false,
+  "h10Complete": false,
+  "resourceLimits": "CSS cap 40000 remains exploratory; timings ran alongside builds and are not acceptance measurements; peak working set remains unavailable in this probe; prior warm static budget failure remains open",
+  "artifactRoot": "Ignore/HtmlUnknownPageQualification/h10-fws-variable-weight-clean"
+}

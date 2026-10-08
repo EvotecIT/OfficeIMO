@@ -1148,7 +1148,7 @@ namespace OfficeIMO.Tests {
             string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             string html = $"""
 <picture>
-  <source type="image/avif" srcset="https://cdn.example.test/logo.avif 1x" />
+  <source type="image/x-officeimo-unsupported" srcset="https://cdn.example.test/logo.avif 1x" />
   <img src="data:image/png;base64,{base64}" alt="Logo" />
 </picture>
 """;
@@ -1648,8 +1648,8 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Logo", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
-            Assert.Equal("ImageSkippedByPolicy", diagnostic.Code);
+            var diagnostic = Assert.Single(conversion.Report.Diagnostics,
+                item => item.Code == "ImageSkippedByPolicy");
             Assert.Equal(uri, diagnostic.Source);
         }
 

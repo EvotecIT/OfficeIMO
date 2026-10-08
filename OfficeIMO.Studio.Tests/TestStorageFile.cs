@@ -19,6 +19,7 @@ internal sealed class TestStorageFile {
     internal bool FailWrite { get; set; }
     internal bool CorruptWrite { get; set; }
     internal Action? BeforeRead { get; set; }
+    internal Func<Task<Stream>>? OpenReadOverride { get; set; }
 
     internal TestStorageFile(string location, byte[] bytes, string name = "Provider document.pdf", string? bookmark = null) {
         Location = new(location);
@@ -53,6 +54,7 @@ internal sealed class TestStorageFile {
         Reads++;
         BeforeRead?.Invoke();
         if (DenyRead) throw new UnauthorizedAccessException("Provider permission expired.");
+        if (OpenReadOverride is not null) return OpenReadOverride();
         return Task.FromResult<Stream>(new ReadStream(Bytes.ToArray(), () => ClosedReads++));
     }
 

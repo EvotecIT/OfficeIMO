@@ -51,17 +51,18 @@ public sealed class OdpInlineNode {
     public IReadOnlyList<OdpInlineNode> Children { get; }
 
     internal static IReadOnlyList<OdpInlineNode> Read(OdpPresentation presentation, XElement paragraph, Func<XElement>? materializeForEdit = null) {
-        _ = OdfTextCodec.Read(paragraph);
-        return ReadChildren(presentation, paragraph, materializeForEdit);
+        int remainingCharacters = OdfTextCodec.MaximumDecodedCharacters;
+        return ReadChildren(presentation, paragraph, materializeForEdit, ref remainingCharacters);
     }
 
-    private static IReadOnlyList<OdpInlineNode> ReadChildren(OdpPresentation presentation, XElement parent, Func<XElement>? materializeForEdit) {
+    private static IReadOnlyList<OdpInlineNode> ReadChildren(OdpPresentation presentation, XElement parent,
+        Func<XElement>? materializeForEdit, ref int remainingCharacters) {
         var result = new List<OdpInlineNode>();
         var plainNodes = new List<XNode>();
 
-        void FlushPlain() {
+        void FlushPlain(ref int remaining) {
             if (plainNodes.Count == 0) return;
-            string text = OdfTextCodec.ReadNodes(plainNodes);
+            string text = OdfTextCodec.ReadNodes(plainNodes, ref remaining);
             if (text.Length > 0) result.Add(new OdpInlineNode(OdpInlineNodeKind.Text, text));
             plainNodes.Clear();
         }
@@ -75,22 +76,22 @@ public sealed class OdpInlineNode {
                 plainNodes.Add(element);
                 continue;
             }
-            FlushPlain();
+            FlushPlain(ref remainingCharacters);
             Func<XElement>? childEdit = OdfElementMutation.ForDescendant(parent, element, materializeForEdit);
             if (element.Name == OdfNamespaces.Text + "span") {
                 var run = new OdpRun(presentation, element, childEdit);
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Run, null, run: run,
-                    children: ReadChildren(presentation, element, childEdit)));
+                    children: ReadChildren(presentation, element, childEdit, ref remainingCharacters)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
                 var hyperlink = new OdpHyperlink(presentation, element, childEdit);
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Hyperlink, null, hyperlink: hyperlink,
-                    children: ReadChildren(presentation, element, childEdit)));
+                    children: ReadChildren(presentation, element, childEdit, ref remainingCharacters)));
             } else {
-                result.Add(new OdpInlineNode(OdpInlineNodeKind.Other, OdfTextCodec.Read(element),
+                result.Add(new OdpInlineNode(OdpInlineNodeKind.Other, OdfTextCodec.Read(element, ref remainingCharacters),
                     qualifiedName: element.Name.ToString()));
             }
         }
-        FlushPlain();
+        FlushPlain(ref remainingCharacters);
         return result;
     }
 

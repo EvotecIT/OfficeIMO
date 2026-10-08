@@ -6,12 +6,13 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static LegacyDocWritableEndnotes ReadSupportedEndnotes(MainDocumentPart mainPart, LegacyDocWritablePictures pictures) {
+        private static LegacyDocWritableEndnotes ReadSupportedEndnotes(MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes) {
             Endnotes? endnotes = mainPart.EndnotesPart?.Endnotes;
             if (endnotes == null) {
                 return LegacyDocWritableEndnotes.Empty;
             }
 
+            IReadOnlyDictionary<string, ushort> noteStyleIndexes = CreateNoteParagraphStyleIndexes(styleIndexes, "EndnoteText");
             var stories = new Dictionary<long, LegacyDocWritableNoteStory>();
             foreach (Endnote endnote in endnotes.Elements<Endnote>()) {
                 if (!IsUserEndnote(endnote)) {
@@ -27,7 +28,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate endnote id '{id.Value}'.");
                 }
 
-                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, mainPart.EndnotesPart!, pictures));
+                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, mainPart.EndnotesPart!, pictures, noteStyleIndexes));
             }
 
             return stories.Count == 0
@@ -35,7 +36,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : new LegacyDocWritableEndnotes(stories);
         }
 
-        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures) {
+        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> noteStyleIndexes) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
@@ -50,6 +51,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     id,
                     relationshipOwner,
                     pictures,
+                    noteStyleIndexes,
                     builder,
                     runs,
                     formattedParagraphs,
@@ -72,6 +74,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             long id,
             EndnotesPart relationshipOwner,
             LegacyDocWritablePictures pictures,
+            IReadOnlyDictionary<string, ushort> noteStyleIndexes,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> formattedParagraphs,
@@ -83,7 +86,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 case Paragraph paragraph:
                     int paragraphStart = isFirstParagraph ? 0 : builder.Length;
                     LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, pictures, out string paragraphText);
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, pictures, noteStyleIndexes, out string paragraphText);
                     if (!string.IsNullOrEmpty(paragraphText)) {
                         hasBodyText = true;
                     }
@@ -103,6 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         id,
                         relationshipOwner,
                         pictures,
+                        noteStyleIndexes,
                         builder,
                         runs,
                         formattedParagraphs,
@@ -126,6 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             long id,
             EndnotesPart relationshipOwner,
             LegacyDocWritablePictures pictures,
+            IReadOnlyDictionary<string, ushort> noteStyleIndexes,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> formattedParagraphs,
@@ -143,6 +148,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     id,
                     relationshipOwner,
                     pictures,
+                    noteStyleIndexes,
                     builder,
                     runs,
                     formattedParagraphs,
@@ -153,9 +159,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> noteStyleIndexes, out string paragraphText) {
             var builder = new StringBuilder();
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "endnote", EndnoteParagraphStyleIndexes);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph, id, "endnote", noteStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
                 paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
             }

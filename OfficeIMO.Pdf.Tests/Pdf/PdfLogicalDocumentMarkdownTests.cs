@@ -423,9 +423,11 @@ public partial class PdfDocumentReadResultTests {
         Assert.Contains("\\[notalink\\](https://example.test)", normalized, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ToMarkdown_DoesNotRenderLeaderRowsTwiceWhenTableAlreadyContainsThem() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ToMarkdown_DoesNotDuplicateLeaderRows(bool includeSecondRow) {
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
                 PageHeight = 260,
                 MarginLeft = 36,
@@ -434,14 +436,15 @@ public partial class PdfDocumentReadResultTests {
                 MarginBottom = 36,
                 DefaultFontSize = 10
             })
-            .Paragraph(p => p.Text("Chapter One ........ 3"))
-            .ToBytes();
+            .Paragraph(p => p.Text("Chapter One ........ 3"));
+        if (includeSecondRow) document.Paragraph(p => p.Text("Chapter Two ........ 5"));
 
-        string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
+        string markdown = PdfDocumentReadResult.Load(document.ToBytes(), new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).ToMarkdown();
 
-        Assert.Equal(1, CountOccurrences(markdown, "Chapter One"));
+        Assert.True(CountOccurrences(markdown, "Chapter One") == 1, markdown);
+        if (includeSecondRow) Assert.True(CountOccurrences(markdown, "Chapter Two") == 1, markdown);
     }
 
     [Fact]

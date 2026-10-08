@@ -60,6 +60,7 @@ namespace OfficeIMO.Word.Html {
             } else {
                 wordTable = section.AddTable(rows, cols);
             }
+            wordTable.SetLayoutSection(section);
             if (tableElem.ParentElement?.TagName.Equals("li", StringComparison.OrdinalIgnoreCase) == true) {
                 WrapListItemTableForRoundTrip(wordTable);
             }
@@ -79,6 +80,7 @@ namespace OfficeIMO.Word.Html {
                 wordTable.Description = accessibleDescription!.Trim();
             }
             ApplyTableStyles(wordTable, tableElem);
+            InitializeDefaultTableColumnWidths(wordTable, cols, doc, section, cell);
             ApplyColumnGroup(wordTable, tableElem, cols);
             Func<TableCell, int, int, int?> estimateCellContentWidth =
                 WordTable.CreateCellContentWidthEstimatorInDxa(doc, wordTable._table);
@@ -137,6 +139,10 @@ namespace OfficeIMO.Word.Html {
                                 innerParagraph = null;
                             }
                         }
+
+                        // Empty HTML cells still need a native paragraph. Without one,
+                        // Word readers may pull preceding body text into the table.
+                        if (wordCell.Paragraphs.Count == 0) wordCell.AddParagraph();
 
                         if (alignment.HasValue) {
                             foreach (var p in wordCell.Paragraphs) {
@@ -234,7 +240,8 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ApplyColumnGroup(WordTable wordTable, IHtmlTableElement tableElem, int cols) {
-            var colElements = tableElem.QuerySelectorAll("col");
+            var colElements = tableElem.QuerySelectorAll("col")
+                .Where(col => ReferenceEquals(col.Closest("table"), tableElem)).ToArray();
             if (colElements.Length == 0) {
                 return;
             }
@@ -270,8 +277,8 @@ namespace OfficeIMO.Word.Html {
                     size = pctWidth;
                     thisType = TableWidthUnitValues.Pct;
                 } else {
-                    var decl = ParseInlineDeclaration($"x:{widthText}");
-                    if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                    var decl = ParseInlineDeclaration($"margin-left:{widthText}");
+                    if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w)) {
                         size = w;
                         thisType = TableWidthUnitValues.Dxa;
                     } else {
@@ -399,36 +406,36 @@ namespace OfficeIMO.Word.Html {
                                 wordTable.Width = pctWidth;
                                 wordTable.WidthType = WordTableWidthUnit.Pct;
                             } else {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w)) {
                                     wordTable.Width = w;
                                     wordTable.WidthType = WordTableWidthUnit.Dxa;
                                 }
                             }
                             break;
                         case "padding": {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int p)) padTop = padRight = padBottom = padLeft = p;
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int p)) padTop = padRight = padBottom = padLeft = p;
                                 break;
                             }
                         case "padding-top": {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pt)) padTop = pt;
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int pt)) padTop = pt;
                                 break;
                             }
                         case "padding-right": {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pr)) padRight = pr;
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int pr)) padRight = pr;
                                 break;
                             }
                         case "padding-bottom": {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pb)) padBottom = pb;
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int pb)) padBottom = pb;
                                 break;
                             }
                         case "padding-left": {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int pl)) padLeft = pl;
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int pl)) padLeft = pl;
                                 break;
                             }
                     }
@@ -524,8 +531,8 @@ namespace OfficeIMO.Word.Html {
                 return TryRoundTableCellSpacingTwips(pixels * 15, out twips);
             }
 
-            var decl = ParseInlineDeclaration($"x:{token}");
-            if (TryConvertToTwipAllowNegative(decl.GetProperty("x")?.RawValue, out twips)) {
+            var decl = ParseInlineDeclaration($"margin-left:{token}");
+            if (TryConvertToTwipAllowNegative(decl.GetProperty("margin-left")?.RawValue, out twips)) {
                 return twips >= 0 && twips <= short.MaxValue;
             }
 
@@ -730,8 +737,8 @@ namespace OfficeIMO.Word.Html {
                                 cell.Width = pctWidth;
                                 cell.WidthType = WordTableWidthUnit.Pct;
                             } else {
-                                var decl = ParseInlineDeclaration($"x:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("x")?.RawValue, out int w)) {
+                                var decl = ParseInlineDeclaration($"margin-left:{value}");
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w)) {
                                     cell.Width = w;
                                     cell.WidthType = WordTableWidthUnit.Dxa;
                                 }

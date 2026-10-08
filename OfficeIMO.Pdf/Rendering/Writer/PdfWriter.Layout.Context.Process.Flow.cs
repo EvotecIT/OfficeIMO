@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
             IReadOnlyList<IPdfBlock> blocks = MaterializeFlow(flow, context);
             double available = y - currentOpts.MarginBottom;
             if (flow.Options.MinimumRemainingHeight > 0D && available + 0.001D < flow.Options.MinimumRemainingHeight && y < GetCurrentFramePageStartY() - 0.001D) {
-                NewPage();
+                NewBlockFrame();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
                     blocks = MaterializeFlow(flow, context);
@@ -53,13 +53,14 @@ internal static partial class PdfWriter {
                 ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)
                 : null;
             bool fitsFullPage = fullPageMeasuredHeight.HasValue &&
-                                fullPageMeasuredHeight.Value <= GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D;
+                                fullPageMeasuredHeight.Value <= GetMaximumBlockContinuationHeight() + 0.001D;
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
             bool moveForMinimumHeight = flow.Options.MinimumRemainingHeight > 0D &&
                 available + 0.001D < flow.Options.MinimumRemainingHeight;
-            if ((moveForKeepTogether || moveForOverflow || moveForMinimumHeight) && y < GetCurrentFramePageStartY() - 0.001D) {
-                NewPage();
+            while ((moveForKeepTogether || moveForOverflow || moveForMinimumHeight) &&
+                   ShouldAdvanceForBlockHeight(Math.Max(measuredHeight.GetValueOrDefault(), flow.Options.MinimumRemainingHeight))) {
+                NewBlockFrame();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
                     blocks = MaterializeFlow(flow, context);
@@ -70,10 +71,14 @@ internal static partial class PdfWriter {
                 available = y - currentOpts.MarginBottom;
                 beforeFloatClearanceY = y;
                 cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
+                fitsFullPage = measuredHeight.HasValue && measuredHeight.Value <= GetMaximumBlockContinuationHeight() + .001D;
+                moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
+                moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
+                moveForMinimumHeight = flow.Options.MinimumRemainingHeight > 0D && available + .001D < flow.Options.MinimumRemainingHeight;
             }
 
             if (flow.Options.KeepTogether && fullPageMeasuredHeight.HasValue &&
-                fullPageMeasuredHeight.Value > GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D) {
+                fullPageMeasuredHeight.Value > GetMaximumBlockContinuationHeight() + 0.001D) {
                 throw new ArgumentException("Keep-together flow content exceeds the available full-page content height.");
             }
 
@@ -95,7 +100,7 @@ internal static partial class PdfWriter {
             PdfOptions startOptions = currentOpts;
             var paintedRegions = new FloatingFlowCapture();
             if (capture != null) activeFloatingFlowCaptures.Push(paintedRegions);
-            try { ProcessBlocks(blocks); }
+            try { ProcessBlocks(blocks, flow); }
             finally { if (capture != null) activeFloatingFlowCaptures.Pop(); }
             CaptureFlowRegions(capture, startPageNumber, startY, startOptions, paintedRegions);
         }

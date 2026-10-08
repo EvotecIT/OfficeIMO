@@ -48,7 +48,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingText text = Assert.Single(SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>());
 
         Assert.Equal(10D, text.X, precision: 3);
         Assert.True(text.Width > 20D, $"Expected measured RTL width, got {text.Width}.");
@@ -65,7 +65,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingText text = Assert.Single(SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>());
 
         Assert.Equal(10D, text.X, precision: 3);
         Assert.True(text.Width > 20D, $"Expected measured plaintext RTL width, got {text.Width}.");
@@ -84,7 +84,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingText text = Assert.Single(SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>());
         Assert.Equal(10D, text.X, precision: 3);
         Assert.Equal(OfficeTextDirection.Auto, text.TextDirection);
     }
@@ -98,7 +98,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingText text = Assert.Single(SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>());
 
         Assert.Equal(10D, text.X, precision: 3);
         Assert.True(text.Width > 20D, $"Expected measured inherited RTL width, got {text.Width}.");
@@ -114,7 +114,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText text = Assert.Single(imported!.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingText text = Assert.Single(SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>());
 
         Assert.Equal(OfficeTextDirection.RightToLeft, text.TextDirection);
         XElement exported = Assert.Single(XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(imported))
@@ -151,7 +151,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText[] runs = imported!.Elements.OfType<OfficeDrawingText>().ToArray();
+        OfficeDrawingText[] runs = SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>().ToArray();
 
         Assert.Equal(2, runs.Length);
         Assert.Equal("אב", runs[0].Text);
@@ -170,7 +170,7 @@ public partial class DrawingTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(
             System.Text.Encoding.UTF8.GetBytes(svg), options: null, out OfficeDrawing? imported, out int unsupported));
         Assert.Equal(0, unsupported);
-        OfficeDrawingText[] runs = imported!.Elements.OfType<OfficeDrawingText>().ToArray();
+        OfficeDrawingText[] runs = SvgTestScene.Content(imported!).Elements.OfType<OfficeDrawingText>().ToArray();
 
         Assert.Equal(4, runs.Length);
         Assert.True(runs.Zip(runs.Skip(1), static (left, right) => left.X > right.X).All(static descending => descending),

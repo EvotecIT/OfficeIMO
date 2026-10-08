@@ -58,6 +58,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                LegacyDocTextCharacter[] storyCharacters = textContent.AllCharacters.Where(character =>
+                    character.CharacterPosition >= headerBaseCharacterPosition + startCharacter &&
+                    character.CharacterPosition < headerBaseCharacterPosition + endCharacter).ToArray();
+                if (storyCharacters.Any(character => GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset).IsInTable == true)) {
+                    // MS-DOC 2.3.3 places a guard paragraph mark outside the story content.
+                    // Remove that one mark while retaining authored empty paragraphs.
+                    LegacyDocTextCharacter lastCharacter = storyCharacters[storyCharacters.Length - 1];
+                    if (lastCharacter.Character == '\r'
+                        && lastCharacter.CharacterPosition == headerBaseCharacterPosition + endCharacter - 1) {
+                        storyCharacters = storyCharacters.Take(storyCharacters.Length - 1).ToArray();
+                    }
+                    IReadOnlyList<LegacyDocBodyBlock> blocks = LegacyDocDocument.BuildStoryBlocks(
+                        storyCharacters, formattingRanges, paragraphFormattingRanges, bookmarkProjection, picturesByCharacterPosition);
+                    if (blocks.Count > 0) stories.Add(new LegacyDocHeaderFooterStory(sectionIndex, isHeader, type, blocks));
+                    continue;
+                }
+
                 IReadOnlyList<LegacyDocHeaderFooterParagraph> paragraphs = BuildStoryParagraphs(
                     textContent.AllCharacters,
                     headerBaseCharacterPosition + startCharacter,
@@ -238,6 +255,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out int numberOfPagesFieldEndIndex)) {
                     AppendFieldResult(LegacyDocFieldKind.NumPages, fieldInstruction: null, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
                     index = numberOfPagesFieldEndIndex;
+                    continue;
+                }
+
+                if (LegacyDocField.TryReadSectionPages(storyCharacters, index,
+                    out string sectionPagesInstruction, out int sectionPagesResultStartIndex,
+                    out int sectionPagesResultEndIndex, out int sectionPagesFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.SectionPages, sectionPagesInstruction, sectionPagesResultStartIndex, sectionPagesResultEndIndex);
+                    index = sectionPagesFieldEndIndex;
                     continue;
                 }
 
@@ -495,10 +520,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentHyperlinkTarget.Uri,
                     currentHyperlinkTarget.Anchor,
                     specified: currentFormat.Specified,
+                    styleRelative: currentFormat.StyleRelative,
+                    styleInverted: currentFormat.StyleInverted,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
+                    characterScalePercentage: currentFormat.CharacterScalePercentage,
+                    kerningMinimumFontSizeHalfPoints: currentFormat.KerningMinimumFontSizeHalfPoints,
                     language: currentFormat.Language,
                     eastAsiaLanguage: currentFormat.EastAsiaLanguage,
-                    revision: currentFormat.Revision));
+                    revision: currentFormat.Revision,
+                    hyperlinkTooltip: currentHyperlinkTarget.Tooltip,
+                    hyperlinkTargetFrame: currentHyperlinkTarget.TargetFrame));
                 runText.Clear();
                 runCharacterPositions.Clear();
             }

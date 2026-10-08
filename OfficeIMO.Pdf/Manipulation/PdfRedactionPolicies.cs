@@ -1,5 +1,13 @@
 namespace OfficeIMO.Pdf;
 
+/// <summary>Controls how text-search occurrences become reviewed redaction areas.</summary>
+public enum PdfRedactionTextSelection {
+    /// <summary>Select complete matching logical text blocks. This is the existing search behavior.</summary>
+    LogicalBlocks,
+    /// <summary>Select matched encoded glyphs and reject ambiguous mappings or intersections with unselected text.</summary>
+    MatchedGlyphs
+}
+
 /// <summary>Controls which intersecting page content is removed for one redaction area.</summary>
 public enum PdfRedactionContentScope {
     /// <summary>Remove intersecting text and matched annotations while preserving images and vector artwork beneath the mark.</summary>

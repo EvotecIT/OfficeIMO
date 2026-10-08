@@ -39,19 +39,22 @@ internal static class OfficeOpenXmlChartExplosions {
         if (series is not C.PieChartSeries)
             throw new NotSupportedException("Point explosions require a native pie or doughnut series.");
         series.GetFirstChild<C.Explosion>()?.Remove();
-        foreach (C.DataPoint point in series.Elements<C.DataPoint>())
+        var existing = new Dictionary<uint, C.DataPoint>();
+        foreach (C.DataPoint point in series.Elements<C.DataPoint>()) {
             point.GetFirstChild<C.Explosion>()?.Remove();
+            if (point.Index?.Val?.Value is uint index && !existing.ContainsKey(index))
+                existing.Add(index, point);
+        }
+        OpenXmlElement? anchor = series.ChildElements.FirstOrDefault(child =>
+            child is C.DataLabels or C.CategoryAxisData or C.Values or C.ExtensionList);
         for (int index = 0; index < data.PointExplosions.Count; index++) {
             int percent = data.PointExplosions[index];
             if (percent == 0) continue;
-            C.DataPoint? point = series.Elements<C.DataPoint>()
-                .FirstOrDefault(item => item.Index?.Val?.Value == (uint)index);
-            if (point == null) {
+            if (!existing.TryGetValue((uint)index, out C.DataPoint? point)) {
                 point = new C.DataPoint(new C.Index { Val = (uint)index });
-                OpenXmlElement? anchor = series.ChildElements.FirstOrDefault(child =>
-                    child is C.DataLabels or C.CategoryAxisData or C.Values or C.ExtensionList);
                 if (anchor != null) series.InsertBefore(point, anchor);
                 else series.Append(point);
+                existing.Add((uint)index, point);
             }
             point.AddChild(new C.Explosion { Val = (uint)percent }, true);
         }

@@ -1,0 +1,89 @@
+[
+  {
+    "Host": "windows",
+    "Qualification": {
+      "Source": {
+        "Base": "204f1a793df5da590e2abad4282b7f96c1b89b95",
+        "PatchSha256": "72343145A42115EE9E6855D7A340F80B5B028AEB6CCC8C4532628262EBA06D3B",
+        "Source": [
+          {
+            "Path": "OfficeIMO.Excel.Benchmarks/ExcelLargeTypedReadBenchmarks.cs",
+            "Sha256": "4026D0991D1764EBEE709D2041B2532E207425A11D72BB2D578E39DC2327537E"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs",
+            "Sha256": "62D0F8439E1ACE271770B1C2509C0CA88725638AA6432C043DFD67AA5FF56872"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.cs",
+            "Sha256": "14CE53C18B1C3CC7E11744048777E9696719367C12DC8FE708BEDB8673B222C5"
+          }
+        ],
+        "Scope": "Refine V3 native header probing to 8-64MiB known parts; restore the original small/indexed path and cheap oversized decline. Existing complete XML qualification remains required. V3 is an experimental local checkpoint, not integrated performance acceptance.",
+        "MacBase": "8681a48886c3dc310341dbbeba4866c2a4a11201"
+      },
+      "Tests": [
+        {
+          "Runtime": "net10.0",
+          "Passed": 927,
+          "Failed": 0,
+          "Sha256": "EEAC8B32912B43C7A09FCFC9492CFF0F3F938B148BFD076EED02F3EC3C828D8A"
+        },
+        {
+          "Runtime": "net8.0",
+          "Passed": 927,
+          "Failed": 0,
+          "Sha256": "91FBDA19FCAD2EAC1C3E9B28A88346F103FB7C62EC99572A352C9DC8C78154C6"
+        },
+        {
+          "Runtime": "net472",
+          "Passed": 922,
+          "Failed": 0,
+          "Sha256": "5A6AD65BD949108489899CD4560FBF0F14C1886A62E78C016216D2F980361740"
+        }
+      ],
+      "Builds": "Benchmark project net10.0 and net8.0 plus owning Excel library netstandard2.0 passed",
+      "PerformanceDisposition": "Hold integration: complete nine-case native and rotated comparisons retain unfavorable timing; fresh-worker memory benefit is boundary-specific"
+    }
+  },
+  {
+    "Host": "macos",
+    "Qualification": {
+      "Source": {
+        "Base": "8681a48886c3dc310341dbbeba4866c2a4a11201",
+        "PatchSha256": "72343145A42115EE9E6855D7A340F80B5B028AEB6CCC8C4532628262EBA06D3B",
+        "Source": [
+          {
+            "Path": "OfficeIMO.Excel.Benchmarks/ExcelLargeTypedReadBenchmarks.cs",
+            "Sha256": "4026D0991D1764EBEE709D2041B2532E207425A11D72BB2D578E39DC2327537E"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs",
+            "Sha256": "62D0F8439E1ACE271770B1C2509C0CA88725638AA6432C043DFD67AA5FF56872"
+          },
+          {
+            "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.cs",
+            "Sha256": "14CE53C18B1C3CC7E11744048777E9696719367C12DC8FE708BEDB8673B222C5"
+          }
+        ],
+        "Scope": "Refine V3 native header probing to 8-64MiB known parts; restore the original small/indexed path and cheap oversized decline. Existing complete XML qualification remains required. V3 is an experimental local checkpoint, not integrated performance acceptance."
+      },
+      "Tests": [
+        {
+          "Runtime": "net10.0",
+          "Passed": 927,
+          "Failed": 0,
+          "Sha256": "EFDE2A7071460CF42816384B73CAC9EBD2E57F5161301DCB3430318268C85DE7"
+        },
+        {
+          "Runtime": "net8.0",
+          "Passed": 927,
+          "Failed": 0,
+          "Sha256": "72DB297B49F54D0FF5D1B071F1D17B0FF1860B10829A1616E70399126C99B2D9"
+        }
+      ],
+      "Builds": "Benchmark net10.0 and net8.0 plus owning Excel netstandard2.0 passed",
+      "PerformanceDisposition": "Hold integration: complete nine-case native and rotated comparisons retain unfavorable timing; fresh-worker memory benefit is boundary-specific"
+    }
+  }
+]

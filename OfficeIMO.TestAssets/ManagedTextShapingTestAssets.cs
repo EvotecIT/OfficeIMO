@@ -21,14 +21,38 @@ internal static partial class ManagedTextShapingTestAssets {
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1);
     }
 
+    internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
+        CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
+
+    internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
+        ushort windowsDescent, params int[] scalars) {
+        int[] ordered = new SortedSet<int>(scalars).ToArray();
+        var os2 = new byte[78];
+        WriteUInt16(os2, 4, 400);
+        WriteUInt16(os2, 74, checked((ushort)Math.Max(0, (int)ascender)));
+        WriteUInt16(os2, 76, windowsDescent);
+        byte[] font = CreateFontFromCmap(CreateDistinctFormat12Cmap(ordered), glyphCount: ordered.Length + 1, os2: os2);
+        int count = ReadUInt16(font, 4);
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (ReadUInt32(font, record) != 0x68686561) continue;
+            int offset = checked((int)ReadUInt32(font, record + 8));
+            WriteUInt16(font, offset + 4, unchecked((ushort)ascender));
+            WriteUInt16(font, offset + 6, unchecked((ushort)descender));
+            WriteUInt16(font, offset + 8, unchecked((ushort)lineGap));
+            return font;
+        }
+        throw new InvalidOperationException("The test font is missing its horizontal metrics.");
+    }
+
     internal static byte[] CreateFontWithInkedNotdef() =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { (int)'A' }), inkedNotdef: true);
 
-    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment) {
+    internal static byte[] CreateFontWithKerning(int leftScalar, int rightScalar, short adjustment, bool includeSpace = false) {
         if (leftScalar == rightScalar) throw new ArgumentException("Kerning test scalars must be distinct.", nameof(rightScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2),
-            glyphCount: 3,
+            CreateFormat12Cmap(leftScalar, 1, rightScalar, 2, includeSpace ? 32 : null, 3),
+            glyphCount: includeSpace ? 4 : 3,
             kern: CreateKernTable(1, 2, adjustment));
     }
 
@@ -40,10 +64,10 @@ internal static partial class ManagedTextShapingTestAssets {
             gsub: CreateLigatureGsub(featureTag, 1, 2, 3, scriptTag, lookupFlags));
     }
 
-    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar) {
+    internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar, bool includeSpace = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 2),
             glyphCount: 3,
             gsub: CreateLigatureGsub("liga", 1, 2, 1));
     }
@@ -129,6 +153,20 @@ internal static partial class ManagedTextShapingTestAssets {
             baseGlyphHeight: baseGlyphHeight);
     }
 
+    internal static byte[] CreateColorLigatureFont(int firstScalar, int secondScalar, string featureTag = "liga") {
+        byte[] colr = CreateColrV0();
+        WriteUInt16(colr, 14, 3);
+        WriteUInt16(colr, 20, 1);
+        WriteUInt16(colr, 24, 2);
+        return CreateFontFromCmap(
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, 32, 4),
+            glyphCount: 5,
+            distinctSecondGlyph: true,
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3),
+            colr: colr,
+            cpal: CreateCpalV1());
+    }
+
     internal static byte[] CreateFontWithUnicodeCmapFallback(int bmpScalar, int supplementalScalar) {
         if (bmpScalar < 0 || bmpScalar > 0xFFFF) throw new ArgumentOutOfRangeException(nameof(bmpScalar));
         if (supplementalScalar <= 0xFFFF || supplementalScalar > 0x10FFFF) {
@@ -204,6 +242,10 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithTallGlyph(int scalar, int height) =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), baseGlyphHeight: height);
 
+    internal static byte[] CreateFontWithVerticalMetrics(int scalar, int ascender, int descender, int glyphHeight) =>
+        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), baseGlyphHeight: glyphHeight,
+            ascender: ascender, descender: descender);
+
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,
@@ -215,8 +257,18 @@ internal static partial class ManagedTextShapingTestAssets {
         byte[]? colr = null,
         byte[]? cpal = null,
         int baseGlyphHeight = 700,
-        bool inkedNotdef = false) {
-        byte[] glyph = CreateVisibleGlyph(400);
+        int ascender = 800,
+        int descender = -200,
+        bool inkedNotdef = false,
+        bool emptyGlyphs = false,
+        byte[]? tracking = null,
+        byte[]? math = null,
+        byte[]? os2 = null,
+        IReadOnlyDictionary<int, int>? glyphHeights = null,
+        IReadOnlyDictionary<int, int>? glyphBottoms = null,
+        IReadOnlyDictionary<int, int>? glyphWidths = null,
+        IReadOnlyDictionary<int, int>? glyphLefts = null) {
+        byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
         var hmtx = new byte[4 + (glyphCount - 1) * 2];
@@ -224,27 +276,43 @@ internal static partial class ManagedTextShapingTestAssets {
         for (int glyphIndex = inkedNotdef ? 0 : 1; glyphIndex < glyphCount; glyphIndex++) {
             byte[] currentGlyph = distinctSecondGlyph && glyphIndex == 2 ? CreateVisibleGlyph(600) : glyph;
             if (glyphIndex == 1 && baseGlyphHeight != 700) currentGlyph = CreateVisibleGlyph(400, baseGlyphHeight);
+            if (glyphHeights != null && glyphHeights.TryGetValue(glyphIndex, out int height))
+                currentGlyph = CreateVisibleGlyph(glyphWidths != null && glyphWidths.TryGetValue(glyphIndex, out int glyphWidth) ? glyphWidth : 400, height,
+                    glyphBottoms != null && glyphBottoms.TryGetValue(glyphIndex, out int bottom) ? bottom : 0,
+                    glyphLefts != null && glyphLefts.TryGetValue(glyphIndex, out int left) ? left : 0);
             int byteOffset = (glyphIndex - (inkedNotdef ? 0 : 1)) * glyph.Length;
             Array.Copy(currentGlyph, 0, glyf, byteOffset, glyph.Length);
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)((byteOffset + glyph.Length) / 2)));
         }
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
-        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, checked((byte)glyphCount) };
+        var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
+        WriteUInt16(maxp, 4, checked((ushort)glyphCount));
+        if (math != null) {
+            // The independent MATH oracle also reads maxp while naming covered glyphs.
+            // Supply the complete TrueType 1.0 record for these rectangular fixtures.
+            Array.Resize(ref maxp, 32);
+            WriteUInt16(maxp, 6, 4); // maxPoints
+            WriteUInt16(maxp, 8, 1); // maxContours
+            WriteUInt16(maxp, 14, 1); // maxZones
+        }
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", glyf),
             ("head", CreateHeadTable()),
-            ("hhea", CreateHheaTable()),
+            ("hhea", CreateHheaTable(ascender, descender)),
             ("hmtx", hmtx),
             ("loca", loca),
             ("maxp", maxp),
             ("name", new byte[6])
         };
+        if (tracking != null) tables.Add(("trak", tracking));
         if (kern != null) tables.Add(("kern", kern));
         if (gsub != null) tables.Add(("GSUB", gsub));
         if (gpos != null) tables.Add(("GPOS", gpos));
         if (colr != null) tables.Add(("COLR", colr));
         if (cpal != null) tables.Add(("CPAL", cpal));
+        if (math != null) tables.Add(("MATH", math));
+        if (os2 != null) tables.Add(("OS/2", os2));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];
@@ -831,19 +899,23 @@ internal static partial class ManagedTextShapingTestAssets {
         WriteUInt16(data, offset + 26, 1);
     }
 
-    private static byte[] CreateVisibleGlyph(int width, int height = 700) {
+    private static byte[] CreateVisibleGlyph(int width, int height = 700, int bottom = 0, int left = 0) {
         var glyph = new byte[34];
         WriteUInt16(glyph, 0, 1);
-        WriteUInt16(glyph, 6, checked((ushort)width));
-        WriteUInt16(glyph, 8, checked((ushort)height));
+        WriteUInt16(glyph, 2, unchecked((ushort)left));
+        WriteUInt16(glyph, 6, checked((ushort)(width + left)));
+        WriteUInt16(glyph, 4, checked((ushort)bottom));
+        WriteUInt16(glyph, 8, checked((ushort)(height + bottom)));
         WriteUInt16(glyph, 10, 3);
         glyph[14] = 0x01;
         glyph[15] = 0x01;
         glyph[16] = 0x01;
         glyph[17] = 0x01;
         WriteUInt16(glyph, 20, checked((ushort)width));
+        WriteUInt16(glyph, 18, unchecked((ushort)left));
         WriteUInt16(glyph, 24, unchecked((ushort)-width));
         WriteUInt16(glyph, 30, checked((ushort)height));
+        WriteUInt16(glyph, 26, checked((ushort)bottom));
         return glyph;
     }
 
@@ -853,10 +925,10 @@ internal static partial class ManagedTextShapingTestAssets {
         return table;
     }
 
-    private static byte[] CreateHheaTable() {
+    private static byte[] CreateHheaTable(int ascender = 800, int descender = -200) {
         var table = new byte[36];
-        WriteUInt16(table, 4, 800);
-        WriteUInt16(table, 6, unchecked((ushort)-200));
+        WriteUInt16(table, 4, checked((ushort)ascender));
+        WriteUInt16(table, 6, unchecked((ushort)descender));
         WriteUInt16(table, 34, 1);
         return table;
     }

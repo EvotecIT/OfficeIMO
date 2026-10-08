@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
             return markedContentId;
         }
 
-        private int? RegisterTextStructureElement(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+        private int? RegisterTextStructureElement(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, long? logicalOrder = null) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -80,6 +80,7 @@ internal static partial class PdfWriter {
                 MarkedContentId = markedContentId,
                 StructureType = structureType,
                 ParentElement = parentElement ?? ResolveFlowSemanticParent(),
+                LogicalOrder = logicalOrder,
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan

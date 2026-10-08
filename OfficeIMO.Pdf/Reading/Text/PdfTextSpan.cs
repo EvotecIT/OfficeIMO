@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// A piece of text extracted from a PDF page with basic font and position info.
 /// Coordinates are in user space units (points) as emitted by content stream Tm/Td.
 /// </summary>
-public sealed class PdfTextSpan {
+public sealed partial class PdfTextSpan {
     /// <summary>Text content of the span.</summary>
     public string Text { get; }
     /// <summary>Font resource name from the page resources (e.g., F1).</summary>
@@ -44,6 +44,8 @@ public sealed class PdfTextSpan {
     internal string? DrawingFontFamily { get; }
     internal double PaintOrder { get; }
     internal PdfContentOrderKey? ContentOrderKey { get; }
+    // Source-run occurrence within a text-show operator, assigned by encoded-glyph reading.
+    internal int GlyphSourceRunOrdinal { get; set; }
     internal PdfContentOrderKey? TextObjectOrderKey { get; }
     internal int LogicalLineBreaksBefore { get; }
     internal bool LogicalLeadingSpace { get; }

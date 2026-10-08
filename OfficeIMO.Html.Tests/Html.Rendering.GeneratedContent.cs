@@ -2,12 +2,234 @@ using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlGeneratedContent_ZeroFontSizeReplacesResponsiveBrandText() {
+        const string html = """
+            <style>
+              body { margin: 0 }
+              header { display: flex }
+              .brand { font-size: 24px }
+              @media (max-width: 991px) {
+                .brand { font-size: 0 }
+                .brand::after { content: 'SVS'; font-size: 24px }
+              }
+            </style>
+            <header><a class="brand" href="https://example.test/brand">Scientific Visualization Studio</a></header>
+            """;
+
+        HtmlRenderDocument narrow = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 816D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText[] narrowText = EnumerateRenderVisuals(narrow.Pages[0].Scene)
+            .OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText replacement = Assert.Single(narrowText);
+        Assert.Equal("SVS", replacement.Text);
+        Assert.Equal(24D, replacement.Font.Size, 3);
+        Assert.Equal("https://example.test/brand", replacement.LinkUri);
+
+        HtmlPdfRenderRequestResult pdf = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
+                new HtmlRenderOptions { ViewportWidth = 816D, Margins = HtmlRenderMargins.All(0D) }));
+        string printedText = PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText();
+        Assert.Contains("SVS", printedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Scientific Visualization Studio", printedText, StringComparison.Ordinal);
+
+        HtmlRenderDocument wide = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 1200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        string[] wideText = EnumerateRenderVisuals(wide.Pages[0].Scene)
+            .OfType<HtmlRenderText>().Select(text => text.Text).ToArray();
+        Assert.Contains(wideText, text => text.Contains("Scientific Visualization", StringComparison.Ordinal));
+        Assert.Contains(wideText, text => text.Contains("Studio", StringComparison.Ordinal));
+        Assert.DoesNotContain(wideText, text => text == "SVS");
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_EmptyInlineBlockPaintsItsBox() {
+        const string html = """
+            <style>body{margin:0}.badge::before{content:"";display:inline-block;width:16px;height:16px;background:#ff0000}</style>
+            <span class="badge">Label</span>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape box = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "span.badge::before" && shape.Shape.FillColor == OfficeColor.FromRgb(0xFF, 0, 0));
+        HtmlRenderText label = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(),
+            text => text.Text == "Label");
+        Assert.Equal(16D, box.Width, 3);
+        Assert.Equal(16D, box.Height, 3);
+        Assert.True(label.X >= box.X + box.Width);
+    }
+
+    [Fact]
+    public void HtmlInlineAnchorWithBlockChildPreservesTextLink() {
+        const string html = "<a href='https://example.com/card'><div>Linked card title</div></a>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderText title = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(),
+            text => text.Text == "Linked card title");
+        Assert.Equal("https://example.com/card", title.LinkUri);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_EmptyBeforeReservesRatioWrapperHeight() {
+        const string html = """
+            <style>
+              body { margin:0; }
+              .ratio { width:320px; --bs-aspect-ratio:56.25%; }
+              .ratio::before { content:""; display:block; padding-top:var(--bs-aspect-ratio); background:#ff0000; }
+              p { margin:0; }
+            </style>
+            <div class="ratio"></div><p>After ratio</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape pseudo = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div.ratio::before" && shape.Shape.FillColor == OfficeColor.FromRgb(0xFF, 0, 0));
+        HtmlRenderText after = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "After ratio");
+        Assert.Equal(180D, pseudo.Height, 3);
+        Assert.True(after.Y >= 180D, $"Following text started at {after.Y} before the ratio box ended.");
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_AbsoluteAfterUsesItsPositionedHostWithoutAddingFlowHeight() {
+        const string html = "<style>body,ul{margin:0;padding:0}ul{list-style:none}"
+            + "li{position:relative;width:120px;height:30px;padding-right:20px;margin:0}"
+            + "li::after{content:'';display:block;position:absolute;right:4px;top:10px;"
+            + "width:8px;height:8px;background:#ff0000}</style>"
+            + "<ul><li id='first'>First</li><li id='second'>Second</li></ul>"
+            + "<p style='margin:0'>Following</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
+        HtmlRenderShape firstArrow = Assert.Single(visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "li#first::after" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape secondArrow = Assert.Single(visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "li#second::after" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderText first = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "First");
+        HtmlRenderText second = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "Second");
+        HtmlRenderText following = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "Following");
+
+        Assert.InRange(firstArrow.X - first.X, 125D, 130D);
+        Assert.InRange(firstArrow.Y - first.Y, 9D, 11D);
+        Assert.InRange(secondArrow.Y - firstArrow.Y, 29D, 31D);
+        Assert.InRange(second.Y - first.Y, 29D, 31D);
+        Assert.InRange(following.Y - first.Y, 59D, 61D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Source == "li::after" && diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_AbsolutePseudosShareHostStackingBandsWithPositionedChildren() {
+        const string html = "<style>body{margin:0}"
+            + ".host{position:relative;width:40px;height:40px;margin:0}"
+            + ".flow{width:40px;height:40px;background:#00ff00}"
+            + "#before::before{content:'';display:block;position:absolute;left:0;top:0;width:40px;height:40px;background:#ff0000;z-index:1}"
+            + "#positive{position:absolute;left:0;top:0;width:40px;height:40px;background:#ffff00;z-index:2}"
+            + "#relative-positive{position:relative;top:-40px;width:40px;height:40px;background:#ff00ff;z-index:3}"
+            + "#after::after{content:'';display:block;position:absolute;left:0;top:0;width:40px;height:40px;background:#0000ff;z-index:-1}"
+            + "#relative-negative{position:relative;top:-40px;width:40px;height:40px;background:#00ffff;z-index:-2}"
+            + "</style><div class='host' id='before'><div class='flow' id='first-flow'></div>"
+            + "<div id='positive'></div><div id='relative-positive'></div></div>"
+            + "<div class='host' id='after'><div class='flow' id='second-flow'></div><div id='relative-negative'></div></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] sources = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Shape.FillColor != null)
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Contains("div#first-flow", sources);
+        Assert.Contains("div#before::before", sources);
+        Assert.Contains("div#positive", sources);
+        Assert.Contains("div#relative-positive", sources);
+        Assert.Contains("div#after::after", sources);
+        Assert.Contains("div#second-flow", sources);
+        Assert.Contains("div#relative-negative", sources);
+        Assert.True(Array.IndexOf(sources, "div#first-flow") < Array.IndexOf(sources, "div#before::before"));
+        Assert.True(Array.IndexOf(sources, "div#before::before") < Array.IndexOf(sources, "div#positive"));
+        Assert.True(Array.IndexOf(sources, "div#positive") < Array.IndexOf(sources, "div#relative-positive"));
+        Assert.True(Array.IndexOf(sources, "div#relative-negative") < Array.IndexOf(sources, "div#after::after"));
+        Assert.True(Array.IndexOf(sources, "div#after::after") < Array.IndexOf(sources, "div#second-flow"));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
+            && (diagnostic.Source == "div#before::before" || diagnostic.Source == "div#after::after"));
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_FloatAfterLinkTextKeepsGeneratedUrlOnAvailableLine() {
+        string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
+        string html = "<style>body,p{margin:0}p{width:440px;padding-left:120px}"
+            + "img{float:left;width:100px;height:60px;margin-left:-120px}"
+            + "a::after{content:' (example.test)'}</style>"
+            + "<p><strong><a href='https://example.test'>Tables with one header"
+            + "<img alt='' src='data:image/png;base64," + png + "'></a></strong> for rows and columns.</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 600D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderVisual[] visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToArray();
+        HtmlRenderText title = Assert.Single(visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Tables with one header", StringComparison.Ordinal));
+        HtmlRenderText url = Assert.Single(visuals.OfType<HtmlRenderText>(),
+            text => text.Source == "a::after" && text.Text.Contains("example.test", StringComparison.Ordinal));
+        HtmlRenderImage image = Assert.Single(visuals.OfType<HtmlRenderImage>());
+
+        Assert.Equal(title.Y, url.Y, 3);
+        Assert.True(url.X > title.X);
+        Assert.True(image.X < title.X);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_RatioWrapperPaintsPositionedImage() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 10));
+        string html = "<style>body{margin:0}ul{display:flex;flex-wrap:wrap;list-style:none;margin:0;padding:0}"
+            + "li{position:relative;overflow:hidden;width:320px;flex:none}a{width:100%}"
+            + ".ratio{position:relative;width:100%;--bs-aspect-ratio:56.25%}"
+            + ".ratio::before{content:\"\";display:block;padding-top:var(--bs-aspect-ratio)}"
+            + ".ratio>img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}</style>"
+            + "<ul><li><div><a href='https://example.com/card'><div class='ratio'><img src='data:image/png;base64," + data
+            + "' alt='gallery tile'></div></a></div></li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderImage image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderImage>());
+        Assert.Equal(320D, image.Width, 3);
+        Assert.Equal(180D, image.Height, 3);
+        Assert.Equal("https://example.com/card", image.LinkUri);
+    }
+
     [Fact]
     public void HtmlGeneratedContent_RendersStyledBeforeAfterTextAndAttributes() {
         const string html = """
@@ -387,6 +609,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeStrokeDashStyle.Dot, leader.Shape.StrokeDashStyle);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Chapter One" && text.Source == "p.toc::before");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_ZeroSizeTargetPageAndLeaderDoNotPaint() {
+        const string html = """
+            <style>
+              @page { size:240px 90px; margin:10px; }
+              body, p, h1 { margin:0; }
+              .toc::before { content:leader(dotted) target-counter(url(#chapter), page); font-size:0; }
+              h1 { break-before:page; }
+            </style>
+            <p class="toc">Index</p><h1 id="chapter">Chapter</h1>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()),
+            text => text.Source == "p.toc::before");
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderShape>()),
+            shape => shape.Source != null && shape.Source.StartsWith("p.toc::before:content-leader", StringComparison.Ordinal));
     }
 
     [Fact]

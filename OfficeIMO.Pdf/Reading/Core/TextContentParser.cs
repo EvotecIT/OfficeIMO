@@ -105,7 +105,7 @@ internal static partial class TextContentParser {
         }
     }
 
-    private readonly struct ActualTextValue {
+    internal readonly struct ActualTextValue {
         private readonly string? _text;
         private readonly byte[]? _bytes;
 
@@ -131,7 +131,7 @@ internal static partial class TextContentParser {
         }
     }
 
-    private sealed class MarkedContentState {
+    internal sealed partial class MarkedContentState {
         private readonly ActualTextValue? _actualText;
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
@@ -141,13 +141,15 @@ internal static partial class TextContentParser {
         public bool IsOptionalContent { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false) {
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false,
+            bool preserveAnchorGeometry = false) {
             _actualText = actualText;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
             Mcid = mcid;
             IsOptionalContent = isOptionalContent;
+            PreserveAnchorGeometry = preserveAnchorGeometry;
         }
 
         public string DecodeActualText(TextOutputBudget budget) =>
@@ -349,7 +351,10 @@ internal static partial class TextContentParser {
         Func<string, byte[], bool>? isEmptyPaintedGlyphForResource = null,
         Func<string, byte[], string?>? visualEncodingForResource = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
+        MarkedContentState? inheritedActualTextState = null,
+        Action<int, MarkedContentState>? onActualTextForm = null,
+        bool preserveGlyphText = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -782,6 +787,13 @@ internal static partial class TextContentParser {
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
+                case "Do":
+                    // Share replacement ownership with visible Form paint, retaining its
+                    // real glyph geometry when no page-level text anchor emits it first.
+                    if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText)
+                        onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
+                    args.Clear();
+                    break;
                 case "BDC":
                     markedContentStack.Push(new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
@@ -789,7 +801,8 @@ internal static partial class TextContentParser {
                         operation.HasInvalidOperands ||
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
-                        IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null)));
+                        IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
+                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null)));
                     args.Clear();
                     break;
                 case "BMC":
@@ -1027,6 +1040,7 @@ internal static partial class TextContentParser {
                 usedWholeDecodedText = true;
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            bool replaceInvisibleAnchor = false;
             bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
@@ -1092,6 +1106,12 @@ internal static partial class TextContentParser {
                 if (textOut.Length > 0) {
                     AddTextSpan(textOut);
                 }
+            } else if (actualTextState is not null && isVisibleText && sbOut.Length > 0 &&
+                actualTextState.TryGetInvisibleAnchorText(spans, out string? anchorText)) {
+                // A semantic carrier may precede paint. Retain its replacement once,
+                // but use the real glyph's visibility and bounds for interaction/OCR.
+                replaceInvisibleAnchor = true;
+                AddTextSpan(anchorText!);
             } else if (actualTextState is null && textOut.Length > 0) {
                 AddTextSpan(textOut);
             }
@@ -1109,7 +1129,7 @@ internal static partial class TextContentParser {
                 if (normalizedText.Length == 0) {
                     return;
                 }
-                onTextSpan?.Invoke(normalizedText.Length);
+                if (!replaceInvisibleAnchor) onTextSpan?.Invoke(normalizedText.Length);
                 string paintedText = sbOut.ToString();
                 bool visibleGlyphsMatchLogicalText = string.Equals(
                     NormalizeShatteredSpan(paintedText),
@@ -1117,7 +1137,7 @@ internal static partial class TextContentParser {
                     StringComparison.Ordinal);
                 // Visual projection draws the painted glyphs: interior whitespace runs stay as painted,
                 // while logical text collapses them. Only edge whitespace is removed from the visual run.
-                string spanText = normalizedText;
+                string spanText = preserveGlyphText && actualTextState is null ? paintedText : normalizedText;
                 int visualTrimmedLeadingChars = 0;
                 if (!useLogicalTextFilters && actualTextState is null) {
                     string paintedVisual = TrimUnpaintedEdgeWhitespace(paintedText, decodedGlyphCharacterLengths,
@@ -1259,8 +1279,14 @@ internal static partial class TextContentParser {
                             span.SetLogicalGlyphTexts(spanLogicalGlyphTexts);
                     }
                 }
-                spans.Add(span);
-                sbOutGlobal.Append(normalizedText);
+                if (replaceInvisibleAnchor) {
+                    actualTextState!.ReplaceInvisibleAnchor(spans, span);
+                } else {
+                    spans.Add(span);
+                    sbOutGlobal.Append(normalizedText);
+                    if (actualTextState is not null && textRenderingMode == 3 && string.IsNullOrWhiteSpace(paintedText))
+                        actualTextState.RememberInvisibleAnchor(spans, spans.Count - 1);
+                }
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
             }
@@ -1298,6 +1324,7 @@ internal static partial class TextContentParser {
         }
 
         MarkedContentState? GetActiveActualTextState() {
+            if (inheritedActualTextState != null) return inheritedActualTextState;
             foreach (var state in markedContentStack) {
                 if (state.HasActualText) {
                     return state;

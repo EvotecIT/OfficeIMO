@@ -12,7 +12,8 @@ internal enum OfficeRasterEncodingCheckpoint {
     PngFilteringBlock,
     JpegCoefficientRow,
     TiffCompressionRow,
-    WebpCompressionBlock
+    WebpCompressionBlock,
+    PngColorSelectionBlock
 }
 
 public static partial class OfficeRasterImageEncoder {
@@ -112,13 +113,27 @@ public static partial class OfficeRasterImageEncoder {
                 OfficeWebpCodec.EncodeTo(
                     image,
                     destination,
-                    effective.WriteResolutionMetadata ? effective.DpiX : (double?)null,
-                    effective.WriteResolutionMetadata ? effective.DpiY : (double?)null,
+                    effective.Webp,
+                    effective.Webp.WritePhysicalResolution ? effective.Webp.DpiX : (double?)null,
+                    effective.Webp.WritePhysicalResolution ? effective.Webp.DpiY : (double?)null,
                     cancellationToken,
                     checkpointObserver);
                 break;
             case OfficeImageExportFormat.Svg:
                 throw new ArgumentException("SVG output requires a vector renderer.", nameof(format));
+            case OfficeImageExportFormat.Bmp:
+                OfficeBmpWriter.EncodeTo(image, destination, effective, cancellationToken);
+                break;
+            case OfficeImageExportFormat.Pbm:
+                OfficePortableMapCodec.EncodePbmTo(image, destination, cancellationToken);
+                break;
+            case OfficeImageExportFormat.Tga:
+                OfficeTgaCodec.EncodeTo(image, destination, cancellationToken);
+                break;
+            case OfficeImageExportFormat.Icon:
+                byte[] icon = OfficeIconEncoder.Encode(new[] { image }, effective, cancellationToken);
+                destination.Write(icon, 0, icon.Length);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
         }

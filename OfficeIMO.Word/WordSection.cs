@@ -458,12 +458,8 @@ namespace OfficeIMO.Word {
         public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
-                var paragraphs = Paragraphs.Where(p => p.IsTextBox).ToList();
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.TextBox != null) {
-                        list.Add(paragraph.TextBox);
-                    }
-                }
+                foreach (var paragraph in Paragraphs)
+                    list.AddRange(paragraph.GetTextBoxes());
                 return list;
             }
 
@@ -940,9 +936,7 @@ namespace OfficeIMO.Word {
                 var sectionProperties = _sectionProperties;
                 if (sectionProperties != null) {
                     var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
-                    if (rtlGutter?.Val != null) {
-                        return rtlGutter.Val;
-                    }
+                    if (rtlGutter != null) return rtlGutter.Val?.Value ?? true;
                 }
                 return false;
             }
@@ -957,7 +951,7 @@ namespace OfficeIMO.Word {
                 } else {
                     if (rtlGutter == null) {
                         rtlGutter = new GutterOnRight();
-                        sectionProperties.Append(rtlGutter);
+                        sectionProperties.AddChild(rtlGutter, true);
                     }
                     rtlGutter.Val = value;
                 }

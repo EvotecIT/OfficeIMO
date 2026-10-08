@@ -23,7 +23,7 @@ internal static class ProjectXmlValue {
         if (value < TimeSpan.Zero || value >= TimeSpan.FromDays(1)) throw new InvalidDataException("A project clock time must be within one day.");
         return DateTime.MinValue.Add(value.Value).ToString("HH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture);
     }
-    internal static string? Work(ProjectWork? value) => value.HasValue ? Span(MinutesToSpan(value.Value.Minutes)) : null;
+    internal static string? Work(ProjectWork? value) => value.HasValue ? Span(TimeSpan.FromTicks(checked((long)decimal.Round(value.Value.Ticks, 0, MidpointRounding.AwayFromZero)))) : null;
     internal static string? Units(ProjectUnits? value) => value.HasValue ? Number(value.Value.Value) : null;
     internal static string Span(TimeSpan value) {
         // Project's importer expects hours/minutes/seconds even above 24 hours. The
@@ -52,7 +52,7 @@ internal static class ProjectXmlValue {
             throw new InvalidDataException("Project clock times require a local ISO value without a timezone suffix.");
         return parsed.TimeOfDay;
     }
-    internal static ProjectWork ParseWork(string value) => new ProjectWork((decimal)XmlConvert.ToTimeSpan(value).Ticks / TimeSpan.TicksPerMinute);
+    internal static ProjectWork ParseWork(string value) => ProjectWork.FromTicks(XmlConvert.ToTimeSpan(value).Ticks);
     internal static ProjectUnits ParseUnits(string value) => ProjectUnits.Fraction(ParseNumber(value));
     internal static TimeSpan MinutesToSpan(decimal minutes) => TimeSpan.FromTicks(checked((long)decimal.Round(minutes * TimeSpan.TicksPerMinute, 0, MidpointRounding.AwayFromZero)));
     internal static bool CanRepresentMinutes(decimal minutes) {
@@ -62,7 +62,7 @@ internal static class ProjectXmlValue {
 
     internal static decimal MinutesPerUnit(ProjectDurationUnit unit, bool elapsed, ProjectDocument document) => ProjectTimeUnits.MinutesPerUnit(unit, elapsed, document.Settings);
     internal static string? Duration(ProjectDuration? duration, ProjectDocument document) => duration.HasValue
-        ? Span(MinutesToSpan(checked(duration.Value.Value * MinutesPerUnit(duration.Value.Unit, duration.Value.IsElapsed, document)))) : null;
+        ? Span(TimeSpan.FromTicks(checked((long)decimal.Round(ProjectTimeUnits.Ticks(duration.Value, document.Settings), 0, MidpointRounding.AwayFromZero)))) : null;
     internal static int DurationFormat(ProjectDuration duration) => 3 + (int)duration.Unit * 2 + (duration.IsElapsed ? 1 : 0) + (duration.IsEstimated ? 32 : 0);
 
     internal static bool TryTaskDurationFormat(ProjectTask task, out int? format) {
@@ -84,10 +84,8 @@ internal static class ProjectXmlValue {
         if (code < 3 || code > 12) throw new InvalidDataException("Unsupported duration format " + format + ".");
         bool elapsed = code % 2 == 0;
         var unit = (ProjectDurationUnit)((code - 3) / 2);
-        decimal minutes = (decimal)XmlConvert.ToTimeSpan(text).Ticks / TimeSpan.TicksPerMinute;
         decimal factor = MinutesPerUnit(unit, elapsed, document);
-        if (factor <= 0) throw new InvalidDataException("Project duration conversion requires positive working-time settings.");
-        return new ProjectDuration(minutes / factor, unit, elapsed, estimated);
+        return ProjectDuration.FromTicks(XmlConvert.ToTimeSpan(text).Ticks, unit, elapsed, estimated, factor);
     }
 
     internal static string Location(XElement element) {

@@ -191,10 +191,27 @@ public sealed partial class PdfReadPage {
         return GetTextSpans(_includeArtifactText, cancellationToken);
     }
 
+    // Encoded redaction ranges must retain repeated and edge whitespace in glyph arrays.
+    internal IReadOnlyList<PdfTextSpan> GetGlyphTextSpans(bool includeHiddenOptionalContent = false,
+        System.Threading.CancellationToken cancellationToken = default) {
+        IReadOnlyList<PdfTextSpan> spans = GetTextSpans(_includeArtifactText, cancellationToken,
+            includeHiddenOptionalContent, preserveGlyphText: true);
+        var runOrdinals = new Dictionary<PdfContentOrderKey, int>();
+        foreach (PdfTextSpan span in spans) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (span.ContentOrderKey is not PdfContentOrderKey key) continue;
+            runOrdinals.TryGetValue(key, out int ordinal);
+            span.GlyphSourceRunOrdinal = ordinal;
+            runOrdinals[key] = ordinal + 1;
+        }
+        return spans;
+    }
+
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(
         bool includeArtifactText,
         System.Threading.CancellationToken cancellationToken,
-        bool includeHiddenOptionalContent = false) {
+        bool includeHiddenOptionalContent = false,
+        bool preserveGlyphText = false) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -222,6 +239,7 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 pageHeight,
                 includeArtifactText: includeArtifactText,
+                preserveGlyphText: preserveGlyphText,
                 includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
@@ -619,18 +637,62 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         int maximumPlacements,
         Action<long> consumeWork,
-        Action cancellationCheck) {
+        Action cancellationCheck) =>
+        GetImagePlacementsBounded(pageNumber, maximumPlacements, consumeWork, cancellationCheck,
+            prepareOutputIntent: false, CancellationToken.None);
+
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(
+        int pageNumber,
+        int maximumPlacements,
+        Action<long> consumeWork,
+        Action cancellationCheck,
+        CancellationToken cancellationToken) =>
+        GetImagePlacementsBounded(pageNumber, maximumPlacements, consumeWork, cancellationCheck,
+            prepareOutputIntent: true, cancellationToken);
+
+    private IReadOnlyList<PdfImagePlacement> GetImagePlacementsBounded(
+        int pageNumber, int maximumPlacements, Action<long> consumeWork, Action cancellationCheck,
+        bool prepareOutputIntent, CancellationToken cancellationToken) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumPlacements < 0) throw new ArgumentOutOfRangeException(nameof(maximumPlacements));
 #pragma warning restore CA1512
         Guard.NotNull(consumeWork, nameof(consumeWork));
         Guard.NotNull(cancellationCheck, nameof(cancellationCheck));
+        if (prepareOutputIntent) PrepareOutputIntentRendering(cancellationToken);
         return GetImagePlacements(
             pageNumber,
             includeHiddenOptionalContent: false,
             maximumPlacements: maximumPlacements,
             consumeWork: consumeWork,
-            cancellationCheck: cancellationCheck);
+            cancellationCheck: cancellationCheck,
+            cancellationToken: cancellationToken);
+    }
+
+    internal bool TryGetImagePixelDimensions(PdfImagePlacement placement, out int width, out int height) {
+        PdfStream? stream = placement.InlineImageStream;
+        if (stream is null && placement.ObjectNumber > 0 &&
+            _objects.TryGetValue(placement.ObjectNumber, out PdfIndirectObject? indirect)) {
+            stream = indirect.Value as PdfStream;
+        }
+        if (stream is null) {
+            PdfDictionary? resources = placement.EffectiveResources ?? ResolveDictionary(GetInheritedValue("Resources"));
+            PdfDictionary? xObjects = resources != null && resources.Items.TryGetValue("XObject", out PdfObject? xObject)
+                ? ResolveDictionary(xObject)
+                : null;
+            if (xObjects != null && xObjects.Items.TryGetValue(placement.ResourceName, out PdfObject? imageObject))
+                stream = ResolveObject(imageObject) as PdfStream;
+        }
+        width = 0;
+        height = 0;
+        if (stream?.Dictionary.Get<PdfName>("Subtype")?.Name != "Image" && placement.InlineImageStream is null)
+            return false;
+        double declaredWidth = stream?.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0;
+        double declaredHeight = stream?.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0;
+        if (declaredWidth <= 0 || declaredHeight <= 0 || declaredWidth > int.MaxValue || declaredHeight > int.MaxValue)
+            return false;
+        width = (int)declaredWidth;
+        height = (int)declaredHeight;
+        return width > 0 && height > 0;
     }
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacementsIncludingHiddenOptionalContent(int pageNumber) {
@@ -813,19 +875,8 @@ public sealed partial class PdfReadPage {
         if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
             font.DrawingFontFamily != null || font.Type3 != null ||
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
-        if (IsSymbolicSubstitute(font)) return font.Differences is { Count: > 0 };
+        if (font.IsSymbolicSubstitute) return font.Differences is { Count: > 0 };
         return true;
-    }
-
-    private static bool IsSymbolicSubstitute(PdfFontResource font) {
-        if (font.FontDescriptorFlags is int flags && (flags & 4) != 0) return true;
-        string baseFont = font.BaseFont;
-        int subsetSeparator = baseFont.IndexOf('+');
-        if (subsetSeparator >= 0) baseFont = baseFont.Substring(subsetSeparator + 1);
-        return baseFont.StartsWith("Symbol", StringComparison.OrdinalIgnoreCase) ||
-            baseFont.StartsWith("ZapfDingbats", StringComparison.OrdinalIgnoreCase) ||
-            baseFont.StartsWith("Wingdings", StringComparison.OrdinalIgnoreCase) ||
-            baseFont.StartsWith("Webdings", StringComparison.OrdinalIgnoreCase);
     }
 
     private void CollectTextAndForms(
@@ -869,7 +920,9 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames? invokedResourceNames = null,
         Action<int>? onTextSpan = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
+        TextContentParser.MarkedContentState? inheritedActualTextState = null,
+        bool preserveGlyphText = false) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -905,7 +958,7 @@ public sealed partial class PdfReadPage {
         string? DecodeSubstitutedGlyph(string fontRes, byte[] code) {
             if (code.Length != 1 || !fonts.TryGetValue(fontRes, out PdfFontResource? font) ||
                 !PaintsSubstitutedEncodingGlyphs(font)) return null;
-            if (IsSymbolicSubstitute(font) &&
+            if (font.IsSymbolicSubstitute &&
                 font.Differences?.ContainsKey(code[0]) != true) return null;
             substitutedGlyphDecoders ??= new Dictionary<string, Func<byte, string>>(StringComparer.Ordinal);
             if (!substitutedGlyphDecoders.TryGetValue(fontRes, out Func<byte, string>? decode)) {
@@ -944,6 +997,7 @@ public sealed partial class PdfReadPage {
             content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
+        var actualTextForms = new Dictionary<int, TextContentParser.MarkedContentState>();
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
@@ -973,6 +1027,7 @@ public sealed partial class PdfReadPage {
             initialTextRenderingMode: initialTextRenderingMode,
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
+            preserveGlyphText: preserveGlyphText,
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
@@ -998,7 +1053,9 @@ public sealed partial class PdfReadPage {
             initialTextState: initialTextState,
             onTextSpan: onTextSpan,
             initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
-            initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity));
+            initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity,
+            inheritedActualTextState: inheritedActualTextState,
+            onActualTextForm: (offset, state) => actualTextForms[offset] = state));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -1068,6 +1125,7 @@ public sealed partial class PdfReadPage {
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
+                if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) continue;
                 bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
 
                 CollectTextAndForms(
@@ -1110,7 +1168,10 @@ public sealed partial class PdfReadPage {
                     initialTextState: formInitialTextState,
                     onTextSpan: onTextSpan,
                     initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
-                    initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity);
+                    initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity,
+                    inheritedActualTextState: inheritedActualTextState ??
+                        (actualTextForms.TryGetValue(invocation.SourceOperatorIndex, out var formActualText) ? formActualText : null),
+                    preserveGlyphText: preserveGlyphText);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1289,6 +1350,7 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
+            if (pageContentBudget.HasProjectedTransparencyGroup(invocationOrder)) continue;
             if (skipTransparencyGroupForms &&
                 (!TryClassifyType3TransparencyGroup(formStream.Dictionary, out bool isTransparencyGroup) || isTransparencyGroup)) {
                 continue;
@@ -2323,7 +2385,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    internal sealed class PageContentBudget {
+    internal sealed partial class PageContentBudget {
         private readonly PdfReadPage _page;
         private Dictionary<PdfStream, byte[]>? _decodedStreams;
         private long _decodedBytes;

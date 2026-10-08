@@ -43,19 +43,23 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellPaddingLeft(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Left ?? GetTableCellPaddingLeft(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Left ?? GetTableCellPaddingLeft(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Left));
     }
 
     private static double GetTableCellPaddingRight(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Right ?? GetTableCellPaddingRight(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Right ?? GetTableCellPaddingRight(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Right));
     }
 
     private static double GetTableCellPaddingTop(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Top ?? GetTableCellPaddingTop(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Top ?? GetTableCellPaddingTop(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Top));
     }
 
     private static double GetTableCellPaddingBottom(PdfTableStyle style, int rowIndex, int columnIndex) {
-        return GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Bottom ?? GetTableCellPaddingBottom(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Bottom ?? GetTableCellPaddingBottom(style);
+        return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Bottom));
     }
 
     private static double GetTableRowMaxPaddingTop(TableBlock table, PdfTableStyle style, int rowIndex, int columnCount) {
@@ -493,7 +497,9 @@ internal static partial class PdfWriter {
                 PdfTableCell cell = row[cellIndex];
                 int columnSpan = System.Math.Min(cell.ColumnSpan, columnCount - column);
                 int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
-                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.Paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap));
+                var runs = ProjectTableCellInlineImages(cell.Runs, cell.TextRotation);
+                var paragraphs = ProjectTableCellInlineImageParagraphs(cell.Paragraphs, cell.TextRotation);
+                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, runs, paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport, cell.TextRotation) { OrientedRowTextHeight = cell.OrientedRowTextHeight });
                 for (int c = column; c < column + columnSpan; c++) {
                     activeRowSpans[c] = System.Math.Max(activeRowSpans[c], rowSpan);
                 }
@@ -604,7 +610,9 @@ internal static partial class PdfWriter {
         MeasureTableCellContentHeight(cell, layout, startLine, lineCount, fallbackLeading, innerWidth, includeObjects: true);
 
     private static double MeasureTableCellContentHeight(TableCellLayout cell, TableCellTextLayout layout, int startLine, int lineCount, double fallbackLeading, double innerWidth, bool includeObjects) {
-        double textHeight = MeasureTableCellTextHeight(layout, startLine, lineCount, fallbackLeading);
+        double textHeight = cell.TextRotation != 0 && cell.OrientedRowTextHeight.HasValue
+            ? cell.OrientedRowTextHeight.Value
+            : MeasureTableCellTextHeight(layout, startLine, cell.TextRotation == 0 ? lineCount : Math.Min(1, lineCount), fallbackLeading);
         if (!includeObjects) {
             return textHeight;
         }
@@ -694,13 +702,13 @@ internal static partial class PdfWriter {
                 }
 
                 int rowSpan = System.Math.Min(cell.RowSpan, rowHeights.Length - rowIndex);
-                if (rowSpan <= 1) {
+                if (rowSpan <= 1 || cell.Viewport != null) {
                     continue;
                 }
 
                 TableCellTextLayout lines = rowLines[rowIndex][cell.Column];
                 double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+                double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
                 double requiredHeight = MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeadings[rowIndex], innerWidth) +
                     GetTableCellPaddingTop(style, rowIndex, cell.Column) +
                     GetTableCellPaddingBottom(style, rowIndex, cell.Column);

@@ -22,6 +22,8 @@ internal static partial class PdfWriter {
 
             PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             ValidateCanvasTableStyle(style, rows, columns);
+            style = PreparePairedTableBorders(table, style);
+            StringBuilder? pairedBorders = null;
 
             double cellSpacing = GetTableCellSpacing(style);
             double columnGap = cellSpacing;
@@ -163,7 +165,9 @@ internal static partial class PdfWriter {
 
                             RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
                             DrawCanvasTableCellBorder(
+                                ref pairedBorders,
                                 style,
+                                cell,
                                 rowIndex,
                                 cell.Column,
                                 cellX,
@@ -190,6 +194,7 @@ internal static partial class PdfWriter {
                 DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, tableCornerRadius, columnWidths, rowHeights, columnGap, rowGap, cellLayoutsByRow);
             }
 
+            if (pairedBorders != null) sb.Append(pairedBorders);
             if (rotated) {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
@@ -329,14 +334,32 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double runFontSizeScale, double cellYFromTop) {
+            double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
+            TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
+            if (cell.TextRotation != 0) {
+                PdfColumnAlign orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
+                PdfColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
+                var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
+                string orientedRole = rowIsHeader ? "TH" : "TD";
+                int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
+                RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
+                    GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId);
+                MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
+                AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
+                if (HasCellLinkTarget(cell.LinkUri, cell.LinkDestinationName))
+                    currentPage!.Annotations.Add(new LinkAnnotation { X1 = cellX, Y1 = cellBottom, X2 = cellX + cellWidth, Y2 = cellTop,
+                        Uri = cell.LinkUri, DestinationName = cell.LinkDestinationName, Contents = cell.LinkContents ?? cell.Text });
+                return;
+            }
+
             PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             double padLeft = GetTableCellPaddingLeft(style, rowIndex, columnIndex);
             double padRight = GetTableCellPaddingRight(style, rowIndex, columnIndex);
             double padTop = GetTableCellPaddingTop(style, rowIndex, columnIndex);
             double padBottom = GetTableCellPaddingBottom(style, rowIndex, columnIndex);
-            double innerWidth = Math.Max(1D, cellWidth - padLeft - padRight);
-            double availableHeight = Math.Max(0D, cellHeight - padTop - padBottom);
-            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
+            double innerWidth = Math.Max(1D, contentFrame.Width - padLeft - padRight);
+            double availableHeight = Math.Max(0D, contentFrame.Height - padTop - padBottom);
+            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
             int lineCount = Math.Max(1, lines.LineCount);
             double contentHeight = MeasureTableCellContentHeight(cell, lines, 0, lineCount, leading, innerWidth);
             if (contentHeight > availableHeight + 0.01D) {
@@ -360,7 +383,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            double firstBaseline = cellTop - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
+            double firstBaseline = contentFrame.Top - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
             var visibleAlignments = SliceTableCellLineAlignments(lines, 0, lineCount);
@@ -376,6 +399,10 @@ internal static partial class PdfWriter {
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
+            if (cell.Viewport != null)
+                OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
+                    paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
+                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts, cellFont);
             int? markedContentId = RegisterTextStructureElement(
                 rowIsHeader ? "TH" : "TD",
                 _canvasStructureParentElement,
@@ -392,46 +419,44 @@ internal static partial class PdfWriter {
                 fontSize,
                 leading,
                 currentPage!.Annotations,
-                cellX - TableCellClipBleed,
-                cellBottom - TableCellClipBleed,
-                cellWidth + (TableCellClipBleed * 2D),
-                cellHeight + (TableCellClipBleed * 2D),
-                cellX + padLeft,
+                cellX - textClipBleed,
+                cellBottom - textClipBleed,
+                cellWidth + (textClipBleed * 2D),
+                cellHeight + (textClipBleed * 2D),
+                contentFrame.Left + padLeft,
                 innerWidth,
                 structureType: rowIsHeader ? "TH" : "TD",
                 markedContentId: markedContentId,
                 structurePage: currentPage,
                 lineAlignments: visibleAlignments,
                 lineXOffsets: visibleXOffsets,
-                lineWidths: visibleWidths);
+                lineWidths: visibleWidths, baselineFont: cellFont);
             MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
             if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
                 if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {
-                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, firstBaseline);
+                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, AdjustRichLineBaseline(firstBaseline, lines.Lines[0], currentOpts, fontSize, cellFont));
                 } else {
                     double textHeight = MeasureTableCellTextHeight(lines, 0, lineCount, leading);
-                    double formFieldTop = cellTop - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
+                    double formFieldTop = contentFrame.Top - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
+                    TableCellContentFrame? clip = cell.Viewport == null ? null : new TableCellContentFrame(cellX, cellTop, cellWidth, cellHeight);
                     RenderTableCellObjects(
                         currentPage!,
                         cell,
                         align,
-                        cellX + padLeft,
+                        contentFrame.Left + padLeft,
                         innerWidth,
                         formFieldTop,
-                        pageImage => {
-                            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
-                            sb.Append(pageImage.InlineDrawToken);
-                        });
+                        pageImage => WriteTableCellViewportImage(pageImage, clip), clip);
                 }
             }
 
             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
                 currentPage!.Annotations.Add(new LinkAnnotation {
-                    X1 = cellX + padLeft - TableCellClipBleed,
-                    Y1 = cellBottom - TableCellClipBleed,
-                    X2 = cellX + cellWidth - padRight + TableCellClipBleed,
-                    Y2 = cellTop + TableCellClipBleed,
+                    X1 = cellX + padLeft - textClipBleed,
+                    Y1 = cellBottom - textClipBleed,
+                    X2 = cellX + cellWidth - padRight + textClipBleed,
+                    Y2 = cellTop + textClipBleed,
                     Uri = linkUri,
                     DestinationName = linkDestinationName,
                     Contents = linkContents ?? cell.Text
@@ -439,15 +464,16 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawCanvasTableCellBorder(PdfTableStyle style, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft, double[]? rowSegmentHeights, double[]? columnSegmentWidths) {
+        private void DrawCanvasTableCellBorder(ref StringBuilder? pairedBorders, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft, double[]? rowSegmentHeights, double[]? columnSegmentWidths) {
             if (style.CellBorders != null &&
                 style.CellBorders.TryGetValue((rowIndex, columnIndex), out PdfCellBorder? border) &&
                 HasRenderableCellBorder(border)) {
+                StringBuilder borderOutput = HasPairedCellBorder(border) ? pairedBorders ??= new StringBuilder() : sb;
                 if (!border.HasHiddenSegments && cornerRadius > 0D && (topLeft || topRight || bottomRight || bottomLeft)) {
                     double outerBorderWidth = style.BorderColor is not null && style.BorderWidth > 0D ? style.BorderWidth : 0D;
-                    DrawRoundedCellBorder(sb, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true);
+                    DrawRoundedCellBorder(borderOutput, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true, GetTableCellDiagonalFrame(cell, x, y, width, height));
                 } else {
-                    DrawCellBorder(sb, border, x, y, width, height, true, rowSegmentHeights, columnSegmentWidths);
+                    DrawCellBorder(borderOutput, border, x, y, width, height, true, rowSegmentHeights, columnSegmentWidths, GetTableCellDiagonalFrame(cell, x, y, width, height));
                 }
             }
         }

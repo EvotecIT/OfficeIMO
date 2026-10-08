@@ -8,20 +8,38 @@ internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
+    private readonly double _rootFontSize;
     private readonly Dictionary<IElement, HashSet<string>> _reportedUnsupportedColors = new Dictionary<IElement, HashSet<string>>();
     private readonly HashSet<IElement> _reportedSmallCapsApproximations = new HashSet<IElement>();
     private double _viewportWidth;
     private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
     private double _activeContainerHeight = double.NaN;
+    private readonly Func<HtmlRenderBoxStyle, double> _measureCharacterAdvance;
+    private double _activeCharacterAdvance = double.NaN;
+    private bool _activeUprightVerticalText;
 
-    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics,
+        Func<HtmlRenderBoxStyle, double> measureCharacterAdvance) {
         _computedStyles = computedStyles;
         _options = options;
         _diagnostics = diagnostics;
+        _measureCharacterAdvance = measureCharacterAdvance;
         _viewportWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
         _viewportHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        _rootFontSize = options.DefaultFontSize;
+        foreach (KeyValuePair<IElement, HtmlComputedStyle> entry in computedStyles.Elements) {
+            if (!string.Equals(entry.Key.LocalName, "html", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!entry.Value.IsImplicitlyInheritedValue("font-size")
+                && !entry.Value.IsInheritedValue("font-size")) {
+                _rootFontSize = ResolveFontSize(entry.Value.GetValue("font-size"),
+                    options.DefaultFontSize, options.DefaultFontSize);
+            }
+            break;
+        }
     }
+
+    internal double RootFontSize => _rootFontSize;
 
     internal void SetViewport(double width, double height) {
         _viewportWidth = width;
@@ -38,13 +56,50 @@ internal sealed partial class HtmlRenderStyleResolver {
             _viewportHeight,
             _activeContainerWidth,
             _activeContainerHeight,
-            out result);
+            out result,
+            _activeCharacterAdvance, _activeUprightVerticalText);
+
+    private bool TryResolveLength(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        out double result,
+        out bool isCalculated) =>
+        HtmlRenderCssValues.TryLength(
+            value,
+            reference,
+            fontSize,
+            rootFontSize,
+            _viewportWidth,
+            _viewportHeight,
+            _activeContainerWidth,
+            _activeContainerHeight,
+            out result,
+            out isCalculated,
+            _activeCharacterAdvance, _activeUprightVerticalText);
 
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
         HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
             ? found
             : new HtmlComputedStyle(new Dictionary<string, string>());
         return ResolveCore(element, computed, containingWidth, parent, false, string.Empty);
+    }
+
+    internal double? ResolvePositionedPercentageHeight(IElement element, double containingHeight, double fontSize) {
+        if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) return null;
+        string height = computed.GetValue("height");
+        return height.IndexOf('%') >= 0
+            ? ReadVerticalLength(height, null, containingHeight, fontSize)
+            : null;
+    }
+
+    internal double? ResolvePositionedPercentageWidth(IElement element, double containingWidth, double fontSize) {
+        if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)) return null;
+        string width = computed.GetValue("width");
+        return width.IndexOf('%') >= 0
+            ? ReadLength(width, null, containingWidth, fontSize)
+            : null;
     }
 
     internal bool TryResolvePseudo(
@@ -65,7 +120,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             HtmlPseudoElementKind.FootnoteCall => "footnote-call",
             HtmlPseudoElementKind.FootnoteMarker => "footnote-marker",
             HtmlPseudoElementKind.FirstLetter => "first-letter",
-            _ => "first-line"
+            HtmlPseudoElementKind.FirstLine => "first-line",
+            _ => "form-control"
         };
         style = ResolveCore(element, computed, containingWidth, parent, true, semanticRole);
         return true;
@@ -89,6 +145,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         string tag = element.TagName.ToLowerInvariant();
         double viewportWidth = _viewportWidth;
         double viewportHeight = _viewportHeight;
+        string writingMode = ResolveWritingMode(computed.GetValue("writing-mode"), parent?.WritingMode);
+        string textOrientation = ResolveTextOrientation(computed.GetValue("text-orientation"), parent?.TextOrientation);
+        _activeUprightVerticalText = (writingMode == "vertical-rl" || writingMode == "vertical-lr")
+            && textOrientation == "upright";
         _activeContainerWidth = parent?.ContainerType == "inline-size" || parent?.ContainerType == "size"
             ? containingWidth
             : parent?.ContainerUnitWidth ?? viewportWidth;
@@ -97,28 +157,46 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.ContainerUnitHeight ?? viewportHeight;
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
-        double fontSize = computed.IsInheritedValue("font-size")
+        _activeCharacterAdvance = ContainsCharacterUnit(fontSizeValue)
+            ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
+            : double.NaN;
+        double fontSize = computed.IsResetValue("font-size")
+            ? _options.DefaultFontSize
+            : computed.IsImplicitlyInheritedValue("font-size")
+            ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
+            : computed.IsInheritedValue("font-size")
             ? parentFontSize
             : string.IsNullOrWhiteSpace(fontSizeValue)
             ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
-            : ResolveFontSize(fontSizeValue, parentFontSize);
+            : ResolveFontSize(fontSizeValue, parentFontSize,
+                tag == "html" && !pseudoElement ? _options.DefaultFontSize : _rootFontSize);
         string fontTag = pseudoElement ? string.Empty : tag;
         OfficeFontFaceDescriptor fontDescriptor = ResolveFontFaceDescriptor(
             fontTag,
             computed,
             parent?.FontDescriptor ?? OfficeFontFaceDescriptor.Regular);
+        string display = pseudoElement
+            ? ResolvePseudoDisplay(computed.GetValue("display"))
+            : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue);
+        bool propagatedUnderline = parent != null && parent.UnderlineStyle != OfficeTextDecorationStyle.None
+            && (display == "inline" || display == "contents");
         OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
+        bool defaultLink = !pseudoElement && tag == "a" && element.HasAttribute("href");
+        if (defaultLink && !HasAuthoredValue(computed, "text-decoration-line") && !HasAuthoredValue(computed, "text-decoration")) {
+            fontStyle |= OfficeFontStyle.Underline;
+        }
+        bool ownsUnderline = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline;
+        ReportTextDecorationLoss(element, computed, fontStyle);
+        if (propagatedUnderline) fontStyle |= OfficeFontStyle.Underline;
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
         OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
         string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
             ? "Consolas"
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
+        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
         string unicodeBidi = NormalizeCssValue(computed.GetValue("unicode-bidi"), "normal");
-        string writingMode = ResolveWritingMode(computed.GetValue("writing-mode"), parent?.WritingMode);
-        string textOrientation = ResolveTextOrientation(computed.GetValue("text-orientation"), parent?.TextOrientation);
         string language = ResolveLanguage(element, parent?.Language);
 
         string fontVariant = string.IsNullOrWhiteSpace(computed.GetValue("font-variant"))
@@ -127,11 +205,18 @@ internal sealed partial class HtmlRenderStyleResolver {
         string fontVariantCaps = string.IsNullOrWhiteSpace(computed.GetValue("font-variant-caps"))
             ? fontVariant
             : computed.GetValue("font-variant-caps").Trim().ToLowerInvariant();
-        string textTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform"))
-            ? parent?.TextTransform ?? "none"
-            : computed.GetValue("text-transform").Trim().ToLowerInvariant();
+        string textTransform = ResolveTextTransform(element, computed, parent?.TextTransform ?? "none");
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
         OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
+        _activeCharacterAdvance = computed.Properties.Values.Any(ContainsCharacterUnit)
+            ? _measureCharacterAdvance(new HtmlRenderBoxStyle {
+                Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
+                FontDescriptor = fontDescriptor,
+                TextFeatureSettings = textFeatureSettings,
+                WritingMode = writingMode,
+                TextOrientation = textOrientation
+            })
+            : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
         int baselineLevel = ResolveTextBaselineLevel(
@@ -146,16 +231,22 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.Font.Size ?? fontSize,
             parent?.LineHeight ?? fontSize * 1.2D);
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
-        OfficeColor color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
+        OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
+            ? OfficeColor.FromRgb(0, 0, 238)
+            : computed.IsImplicitlyInheritedValue("color") && parent != null
+            ? parent.Color
+            : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
         var style = new HtmlRenderBoxStyle {
-            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
-            DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
+            Display = display,
+            DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
             FontDescriptor = fontDescriptor,
-            UnderlineStyle = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
-                ? decorationStyle
-                : OfficeTextDecorationStyle.None,
+            UnderlineStyle = propagatedUnderline && !ownsUnderline
+                ? parent!.UnderlineStyle
+                : (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
+                    ? decorationStyle
+                    : OfficeTextDecorationStyle.None,
             StrikethroughStyle = (fontStyle & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
                 ? decorationStyle
                 : OfficeTextDecorationStyle.None,
@@ -168,11 +259,18 @@ internal sealed partial class HtmlRenderStyleResolver {
             BaselineScale = baselineScale,
             BaselineOffset = baselineOffset,
             Color = color,
-            DecorationColor = ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
-            Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
-            LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
-            LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
-            WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
+            DecorationColor = propagatedUnderline && !ownsUnderline
+                ? parent!.DecorationColor
+                : ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
+            Alignment = (tag == "caption" || (tag == "math" && display == "block"))
+                && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
+                ? OfficeTextAlignment.Center
+                : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
+            TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
+            CharacterAdvance = _activeCharacterAdvance,
+            LineHeight = ResolveComputedLineHeight(computed, fontSize, parent),
+            LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
+            WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
@@ -230,9 +328,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlComputedStyle physicalComputed = PhysicalizeLogicalProperties(computed, writingMode, direction);
         if (!pseudoElement) ApplyDefaultMargins(tag, fontSize, style);
         ApplyBoxValues(physicalComputed, containingWidth, fontSize, style);
+        if (!pseudoElement && tag == "table"
+            && string.Equals(element.GetAttribute("align")?.Trim(), "center", StringComparison.OrdinalIgnoreCase)) {
+            // Legacy table alignment is a presentational hint. Authored CSS margins win.
+            if (!HasAuthoredValue(physicalComputed, "margin-left")) style.MarginLeftAuto = true;
+            if (!HasAuthoredValue(physicalComputed, "margin-right")) style.MarginRightAuto = true;
+        }
         ApplyDimensions(element, physicalComputed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(element, computed, style, pseudoElement);
+        ApplyInheritedTextShadows(computed, style, parent);
         if (style.OutlineColorInvert) {
             OfficeColor backdrop = style.BackgroundColor ?? parent?.BackgroundColor ?? OfficeColor.White;
             style.OutlineColor = OfficeColor.FromRgba((byte)(255 - backdrop.R), (byte)(255 - backdrop.G), (byte)(255 - backdrop.B), backdrop.A);
@@ -241,9 +346,19 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
+        if (style.Display == "flex"
+            && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(computed.GetValue("-webkit-box-orient").Trim(), "vertical", StringComparison.OrdinalIgnoreCase)) {
+            style.FlexDirection = "column";
+        }
         ApplyColumns(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
         ApplyTable(computed, style);
+        if (computed.IsInheritedValue("border-spacing") && parent != null) {
+            style.BorderSpacingX = parent.BorderSpacingX;
+            style.BorderSpacingY = parent.BorderSpacingY;
+            style.UnsupportedBorderSpacing = parent.UnsupportedBorderSpacing;
+        }
         ApplyBreaks(computed, style);
         ApplyPdfSemanticTag(computed.GetValue("-officeimo-pdf-tag-type"), style);
         ApplyBookmark(computed, style);
@@ -335,7 +450,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveHyphenateLimitZone(string value, double containingWidth, double fontSize, double inherited) {
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
-        if (TryResolveLength(normalized, containingWidth, fontSize, _options.DefaultFontSize, out double parsed)) return Math.Max(0D, parsed);
+        if (TryResolveLength(normalized, containingWidth, fontSize, _rootFontSize, out double parsed)) return Math.Max(0D, parsed);
         return 0D;
     }
 
@@ -367,7 +482,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             return;
         }
         if (HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
-            && TryResolveLength(normalized, fontSize, fontSize, _options.DefaultFontSize, out parsed)
+            && TryResolveLength(normalized, fontSize, fontSize, _rootFontSize, out parsed)
             && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)) {
             size = parsed;
             isLength = true;
@@ -381,7 +496,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
         if (normalized == "normal") return 0D;
-        return TryResolveLength(normalized, fontSize, fontSize, _options.DefaultFontSize, out double parsed)
+        return TryResolveLength(normalized, fontSize, fontSize, _rootFontSize, out double parsed)
             && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
             ? parsed
             : 0D;
@@ -437,11 +552,11 @@ internal sealed partial class HtmlRenderStyleResolver {
             && !HtmlCssOverflowClipMarginParser.TryParse(
                 overflowClipMargin,
                 style.Font.Size,
-                _options.DefaultFontSize,
+                _rootFontSize,
                 _viewportWidth,
                 _viewportHeight,
                 out style.OverflowClipMarginBox,
-                out style.OverflowClipMargin)) {
+                out style.OverflowClipMargin, style.CharacterAdvance)) {
             style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
         }
 
@@ -492,7 +607,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         string borderSpacing = computed.GetValue("border-spacing");
         if (!string.IsNullOrWhiteSpace(borderSpacing)
-            && !HtmlCssTableParser.TryParseBorderSpacing(borderSpacing, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, out style.BorderSpacingX, out style.BorderSpacingY)) {
+            && !HtmlCssTableParser.TryParseBorderSpacing(borderSpacing, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, out style.BorderSpacingX, out style.BorderSpacingY, style.CharacterAdvance)) {
             style.UnsupportedBorderSpacing = borderSpacing.Trim().ToLowerInvariant();
         }
     }
@@ -529,8 +644,9 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private static string ResolveLanguage(IElement element, string? inherited) {
         string? language = element.GetAttribute("lang");
-        if (string.IsNullOrWhiteSpace(language)) language = element.GetAttribute("xml:lang");
-        return string.IsNullOrWhiteSpace(language) ? inherited ?? string.Empty : language!.Trim();
+        if (language == null) language = element.GetAttribute("xml:lang");
+        // An explicit empty language means unknown, rather than inheriting an ancestor's dictionary.
+        return language == null ? inherited ?? string.Empty : language.Trim();
     }
 
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {
@@ -538,10 +654,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (display == "none" || display == "contents") return false;
         if (display == "block" || display == "table" || display == "list-item" || display == "flex" || display == "grid" || display == "flow-root") return true;
         if (display == "inline" || display == "inline-block" || display == "inline-flex" || display == "inline-grid") return false;
-        return IsDefaultBlockTag(element.TagName);
+        return HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
     }
 
     internal static string DescribeSource(IElement element) {
+        if (HtmlRenderSourceIdentity.TryGet(element, out string identity)) return identity;
         string tag = element.TagName.ToLowerInvariant();
         if (!string.IsNullOrWhiteSpace(element.Id)) return tag + "#" + element.Id;
         string? className = element.GetAttribute("class");
@@ -549,7 +666,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private double ResolveFontSize(string value, double parentFontSize) {
+    internal double ResolveFontSize(string value, double parentFontSize, double rootFontSize) {
         if (string.IsNullOrWhiteSpace(value)) return parentFontSize;
         string normalized = value.Trim().ToLowerInvariant();
         if (HtmlRenderCssValues.TryResolveFontSizeKeyword(
@@ -557,8 +674,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             return keywordSize;
         }
 
-        return TryResolveLength(normalized, parentFontSize, parentFontSize, _options.DefaultFontSize, out double size) &&
-            !double.IsNaN(size) && !double.IsInfinity(size) && size > 0D
+        return TryResolveLength(normalized, parentFontSize, parentFontSize, rootFontSize, out double size) &&
+            !double.IsNaN(size) && !double.IsInfinity(size) && size >= 0D
             ? size
             : parentFontSize;
     }
@@ -581,6 +698,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (tag == "s" || tag == "strike" || tag == "del" || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Strikethrough;
         return result;
     }
+
+    private static bool HasAuthoredValue(HtmlComputedStyle computed, string property) =>
+        !computed.IsOriginRevertedValue(property)
+        && (computed.IsSpecifiedValue(property)
+            || computed.IsResetValue(property)
+            || computed.IsInheritedValue(property) && !computed.IsImplicitlyInheritedValue(property));
 
     private static OfficeTextDecorationStyle ResolveTextDecorationStyle(string value) => value.Trim().ToLowerInvariant() switch {
         "double" => OfficeTextDecorationStyle.Double,
@@ -615,7 +738,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             return (inheritedScale * 0.65D, inheritedOffset + effectiveParentSize * 0.15D);
         }
         if (normalized.Length == 0 || normalized == "baseline") return (inheritedScale, inheritedOffset);
-        if (TryResolveLength(normalized, parentLineHeight, effectiveParentSize, _options.DefaultFontSize, out double shift)) {
+        if (TryResolveLength(normalized, parentLineHeight, effectiveParentSize, _rootFontSize, out double shift)) {
             return (inheritedScale, inheritedOffset - shift);
         }
         return (inheritedScale, inheritedOffset);
@@ -637,13 +760,31 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
-    private static string ResolveDisplay(IElement element, string value) {
-        if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
+    internal static string ResolveDisplay(IElement element, string value, string webkitBoxOrient = "", bool hasLineClamp = false) {
         string tag = element.TagName.ToLowerInvariant();
+        if (tag == "dialog" && !element.HasAttribute("open") && string.IsNullOrWhiteSpace(value)) return "none";
+        if (string.Equals(value.Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)) {
+            // A vertical box with one text item uses inline line layout for clamping;
+            // boxes with multiple child items retain their vertical flex stacking.
+            return hasLineClamp
+                && element.Children.Length <= 1
+                && string.Equals(webkitBoxOrient.Trim(), "vertical", StringComparison.OrdinalIgnoreCase)
+                ? "block"
+                : "flex";
+        }
+        if (!string.IsNullOrWhiteSpace(value)) return value.Trim().ToLowerInvariant();
         if (tag == "math" && string.Equals(element.GetAttribute("display"), "block", StringComparison.OrdinalIgnoreCase)) return "block";
         if (tag == "li") return "list-item";
         if (tag == "table") return "table";
-        return IsDefaultBlockTag(tag) ? "block" : "inline";
+        if (tag == "caption") return "table-caption";
+        if (tag == "colgroup") return "table-column-group";
+        if (tag == "col") return "table-column";
+        if (tag == "thead") return "table-header-group";
+        if (tag == "tbody") return "table-row-group";
+        if (tag == "tfoot") return "table-footer-group";
+        if (tag == "tr") return "table-row";
+        if (tag == "td" || tag == "th") return "table-cell";
+        return HtmlElementDisplay.GetDefaultValue(element);
     }
 
     private static string ResolvePseudoDisplay(string value) =>
@@ -681,17 +822,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return "none";
     }
 
-    private static bool IsDefaultBlockTag(string tagName) {
-        string tag = tagName.ToLowerInvariant();
-        return tag == "html" || tag == "body" || tag == "address" || tag == "article" || tag == "aside" || tag == "blockquote"
-            || tag == "details" || tag == "dialog" || tag == "div" || tag == "dl" || tag == "dt" || tag == "dd" || tag == "fieldset"
-            || tag == "figcaption" || tag == "figure" || tag == "footer" || tag == "form" || tag == "h1" || tag == "h2" || tag == "h3"
-            || tag == "h4" || tag == "h5" || tag == "h6" || tag == "header" || tag == "hr" || tag == "li" || tag == "main"
-            || tag == "nav" || tag == "ol" || tag == "p" || tag == "pre" || tag == "section" || tag == "summary" || tag == "table"
-            || tag == "ul";
-    }
-
-    internal static bool IsDefaultBlockElement(IElement element) => IsDefaultBlockTag(element.TagName);
+    internal static bool IsDefaultBlockElement(IElement element) => HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
 
     private OfficeColor ResolveColor(IElement element, string value, OfficeColor fallback, bool pseudoElement, string property) {
         string normalized = value.Trim();
@@ -737,9 +868,22 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveLineHeight(string value, double fontSize) {
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return fontSize * _options.DefaultLineHeight;
         if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier) && multiplier > 0D) return fontSize * multiplier;
-        return TryResolveLength(value, fontSize, fontSize, _options.DefaultFontSize, out double lineHeight) && lineHeight > 0D
+        return TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight > 0D
             ? lineHeight
             : fontSize * _options.DefaultLineHeight;
+    }
+
+    private double ResolveComputedLineHeight(HtmlComputedStyle computed, double fontSize, HtmlRenderBoxStyle? parent) {
+        string value = computed.GetValue("line-height");
+        // A length or percentage becomes an absolute computed line height on its
+        // originating element. A unitless number remains a multiplier when inherited.
+        if (parent != null && computed.IsInheritedValue("line-height")
+            && !string.IsNullOrWhiteSpace(value)
+            && !string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)
+            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+            return parent.LineHeight;
+        }
+        return ResolveLineHeight(value, fontSize);
     }
 
     private static string ResolveSemanticRole(string tag) {
@@ -752,12 +896,19 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private static bool IsPreformatted(string tag, string whiteSpace) => tag == "pre" || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
+    private static bool IsPreformatted(string tag, string whiteSpace) =>
+        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
 
     private static bool PreventsTextWrapping(string tag, string whiteSpace) =>
-        tag == "pre" || whiteSpace == "pre" || whiteSpace == "nowrap";
+        (tag == "pre" && string.IsNullOrWhiteSpace(whiteSpace)) || whiteSpace == "pre" || whiteSpace == "nowrap";
 
-    private static void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
+    private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
+        if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
+            style.MarginTop = 8D;
+            style.MarginRight = 8D;
+            style.MarginBottom = 8D;
+            style.MarginLeft = 8D;
+        }
         if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "table" || tag == "figure" || tag == "ul" || tag == "ol") {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {
@@ -771,10 +922,21 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.MarginLeft = fontSize * 2D;
             style.MarginRight = fontSize * 2D;
         }
+        if (tag == "ul" || tag == "ol") {
+            if (string.Equals(style.Direction, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                style.PaddingRight = fontSize * 2.5D;
+            } else {
+                style.PaddingLeft = fontSize * 2.5D;
+            }
+        }
     }
 
     private void ApplyBoxValues(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
         ApplyAutoMargins(computed, style);
+        ResetUserAgentMargin(computed, "margin-top", ref style.MarginTop);
+        ResetUserAgentMargin(computed, "margin-right", ref style.MarginRight);
+        ResetUserAgentMargin(computed, "margin-bottom", ref style.MarginBottom);
+        ResetUserAgentMargin(computed, "margin-left", ref style.MarginLeft);
         ApplyMarginLength(computed.GetValue("margin-top"), reference, fontSize, ref style.MarginTop);
         ApplyMarginLength(computed.GetValue("margin-right"), reference, fontSize, ref style.MarginRight);
         ApplyMarginLength(computed.GetValue("margin-bottom"), reference, fontSize, ref style.MarginBottom);
@@ -786,6 +948,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyLength(computed.GetValue("padding-left"), reference, fontSize, ref style.PaddingLeft);
 
         ApplyBorderAndOutlinePaint(computed, reference, fontSize, style);
+    }
+
+    private static void ResetUserAgentMargin(HtmlComputedStyle computed, string property, ref double target) {
+        if (computed.IsResetValue(property) && !computed.IsOriginRevertedValue(property)) target = 0D;
     }
 
     private static void ApplyAutoMargins(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
@@ -811,13 +977,24 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlRenderBoxStyle? parent,
         HtmlRenderBoxStyle style,
         bool includeAttributes) {
-        style.ExplicitWidth = ReadLength(computed.GetValue("width"), includeAttributes ? element.GetAttribute("width") : null, reference, fontSize);
+        string cssWidth = computed.GetValue("width");
+        IElement dimensionSource = includeAttributes ? ResolveDimensionAttributeSource(element) : element;
+        string? attributeWidth = includeAttributes ? dimensionSource.GetAttribute("width") : null;
+        style.ExplicitWidth = ReadLength(cssWidth, attributeWidth, reference, fontSize);
+        style.ExplicitWidthUsesPercentage = (cssWidth?.IndexOf('%') ?? -1) >= 0
+            || (attributeWidth?.IndexOf('%') ?? -1) >= 0;
         double? parentContentHeight = ResolveDefiniteContentHeight(parent);
-        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, reference, parentContentHeight, fontSize);
-        style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
-        style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, reference, fontSize);
-        style.MinHeight = ReadVerticalLength(computed.GetValue("min-height"), null, reference, parentContentHeight, fontSize);
-        style.MaxHeight = ReadVerticalLength(computed.GetValue("max-height"), null, reference, parentContentHeight, fontSize);
+        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? dimensionSource.GetAttribute("height") : null, parentContentHeight, fontSize);
+        string cssMinWidth = computed.GetValue("min-width");
+        style.MinWidth = ReadLength(cssMinWidth, null, reference, fontSize);
+        style.MinWidthWithIndefiniteReference = cssMinWidth.IndexOf('%') >= 0
+            ? ReadLength(cssMinWidth, null, 0D, fontSize)
+            : null;
+        string cssMaxWidth = computed.GetValue("max-width");
+        style.MaxWidth = ReadLength(cssMaxWidth, null, reference, fontSize);
+        style.MaxWidthUsesPercentage = cssMaxWidth.IndexOf('%') >= 0;
+        style.MinHeight = ReadVerticalLength(computed.GetValue("min-height"), null, parentContentHeight, fontSize);
+        style.MaxHeight = ReadVerticalLength(computed.GetValue("max-height"), null, parentContentHeight, fontSize);
     }
 
     private void ApplyPaint(IElement element, HtmlComputedStyle computed, HtmlRenderBoxStyle style, bool pseudoElement) {
@@ -834,18 +1011,23 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
+        if (HtmlCssTransformParser.TryParseIndividualScale(computed.GetValue("scale"), out string scale)
+            && scale.Length > 0) {
+            style.IndividualScale = scale;
+            style.Transform = style.Transform == "none" ? scale : scale + " " + style.Transform;
+        }
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
         style.ClipPath = NormalizeCssValue(computed.GetValue("clip-path"), "none");
         style.BoxDecorationBreak = NormalizeCssValue(computed.GetValue("box-decoration-break"), "slice");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
-        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
+        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows, style.CharacterAdvance, _activeUprightVerticalText)) {
             style.UnsupportedBoxShadow = boxShadow;
         } else {
             style.BoxShadowLayerCount = shadows.Count;
             style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
-        string textShadow = computed.GetValue("text-shadow");
-        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount)) {
+        string textShadow = NormalizeCssValue(computed.GetValue("text-shadow"), "none");
+        if (!HtmlCssTextShadowParser.TryParse(textShadow, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, _options.MaxTextShadowLayers, out IReadOnlyList<HtmlCssTextShadow> textShadows, out int textShadowLayerCount, style.CharacterAdvance)) {
             style.UnsupportedTextShadow = textShadow.Length <= 256 ? textShadow : textShadow.Substring(0, 256);
         } else {
             style.TextShadowLayerCount = textShadowLayerCount;
@@ -1066,11 +1248,22 @@ internal sealed partial class HtmlRenderStyleResolver {
         string inside = FirstNonEmpty(computed.GetValue("break-inside"), computed.GetValue("page-break-inside"));
         style.BreakBefore = ResolvePageBreakTarget(before);
         style.BreakAfter = ResolvePageBreakTarget(after);
-        style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase) || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
+        style.AvoidBreakBefore = IsAvoidPageBreak(before);
+        style.AvoidBreakAfter = IsAvoidPageBreak(after);
+        style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase)
+            // Scroll containers establish an independent formatting context. Keep a
+            // page-sized one intact when paginating, as Chromium does for WAI cards.
+            || style.OverflowX is "auto" or "scroll"
+            || style.OverflowY is "auto" or "scroll";
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));
     }
+
+    private static bool IsAvoidPageBreak(string value) =>
+        string.Equals(value, "avoid", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "avoid-page", StringComparison.OrdinalIgnoreCase);
 
     private static void ApplyPositioning(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string position = computed.GetValue("position");
@@ -1093,10 +1286,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.AlignContent = NormalizeCssValue(computed.GetValue("align-content"), "normal");
         style.AlignSelf = NormalizeCssValue(computed.GetValue("align-self"), "auto");
         ApplyFlexShorthand(computed.GetValue("flex"), style);
-        if (TryNonNegativeNumber(computed.GetValue("flex-grow"), out double grow)) style.FlexGrow = grow;
-        if (TryNonNegativeNumber(computed.GetValue("flex-shrink"), out double shrink)) style.FlexShrink = shrink;
+        if (computed.ShouldOverride("flex-grow", "flex")
+            && TryNonNegativeNumber(computed.GetValue("flex-grow"), out double grow)) style.FlexGrow = grow;
+        if (computed.ShouldOverride("flex-shrink", "flex")
+            && TryNonNegativeNumber(computed.GetValue("flex-shrink"), out double shrink)) style.FlexShrink = shrink;
         string basis = computed.GetValue("flex-basis");
-        if (!string.IsNullOrWhiteSpace(basis)) style.FlexBasis = basis.Trim().ToLowerInvariant();
+        if (computed.ShouldOverride("flex-basis", "flex") && !string.IsNullOrWhiteSpace(basis))
+            style.FlexBasis = basis.Trim().ToLowerInvariant();
         if (int.TryParse(computed.GetValue("order"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int order)) style.Order = order;
         ApplyGap(computed, reference, fontSize, style);
     }
@@ -1192,7 +1388,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             return true;
         }
         return HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
-            && TryResolveLength(normalized, reference, fontSize, _options.DefaultFontSize, out width)
+            && TryResolveLength(normalized, reference, fontSize, _rootFontSize, out width)
             && width >= 0D;
     }
 
@@ -1212,7 +1408,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private bool TryResolveColumnWidth(string value, double reference, double fontSize, out double width) {
         width = 0D;
         return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: false)
-            && TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out width)
+            && TryResolveLength(value, reference, fontSize, _rootFontSize, out width)
             && width > 0D;
     }
 
@@ -1225,54 +1421,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.GridAutoFlow = NormalizeCssValue(computed.GetValue("grid-auto-flow"), "row");
         style.JustifyItems = NormalizeCssValue(computed.GetValue("justify-items"), "normal");
         style.JustifySelf = NormalizeCssValue(computed.GetValue("justify-self"), "auto");
-        ApplyGridPair(computed.GetValue("grid-column"), ref style.GridColumnStart, ref style.GridColumnEnd);
-        ApplyGridPair(computed.GetValue("grid-row"), ref style.GridRowStart, ref style.GridRowEnd);
-        style.GridArea = NormalizeCssValue(computed.GetValue("grid-area"), "auto");
-        ApplyGridArea(computed.GetValue("grid-area"), style);
-        OverrideGridValue(computed.GetValue("grid-column-start"), ref style.GridColumnStart);
-        OverrideGridValue(computed.GetValue("grid-column-end"), ref style.GridColumnEnd);
-        OverrideGridValue(computed.GetValue("grid-row-start"), ref style.GridRowStart);
-        OverrideGridValue(computed.GetValue("grid-row-end"), ref style.GridRowEnd);
-        ApplyPlacePair(computed.GetValue("place-items"), ref style.AlignItems, ref style.JustifyItems);
-        ApplyPlacePair(computed.GetValue("place-self"), ref style.AlignSelf, ref style.JustifySelf);
-        ApplyPlacePair(computed.GetValue("place-content"), ref style.AlignContent, ref style.JustifyContent);
-    }
-
-    private static void ApplyGridPair(string value, ref string start, ref string end) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitTopLevel(value, '/');
-        if (parts.Count > 0 && !string.IsNullOrWhiteSpace(parts[0])) start = parts[0].Trim().ToLowerInvariant();
-        if (parts.Count > 1 && !string.IsNullOrWhiteSpace(parts[1])) end = parts[1].Trim().ToLowerInvariant();
-    }
-
-    private static void ApplyGridArea(string value, HtmlRenderBoxStyle style) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitTopLevel(value, '/');
-        if (parts.Count > 0 && !string.IsNullOrWhiteSpace(parts[0])) style.GridRowStart = parts[0].Trim().ToLowerInvariant();
-        if (parts.Count > 1 && !string.IsNullOrWhiteSpace(parts[1])) style.GridColumnStart = parts[1].Trim().ToLowerInvariant();
-        if (parts.Count > 2 && !string.IsNullOrWhiteSpace(parts[2])) style.GridRowEnd = parts[2].Trim().ToLowerInvariant();
-        if (parts.Count > 3 && !string.IsNullOrWhiteSpace(parts[3])) style.GridColumnEnd = parts[3].Trim().ToLowerInvariant();
-    }
-
-    private static void ApplyPlacePair(string value, ref string first, ref string second) {
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
-        if (parts.Count == 0) return;
-        int index = 0;
-        first = ReadPlaceComponent(parts, ref index);
-        second = index < parts.Count ? ReadPlaceComponent(parts, ref index) : first;
-    }
-
-    private static string ReadPlaceComponent(IReadOnlyList<string> parts, ref int index) {
-        string value = parts[index++].Trim().ToLowerInvariant();
-        if ((value == "first" || value == "last")
-            && index < parts.Count
-            && string.Equals(parts[index], "baseline", StringComparison.OrdinalIgnoreCase)) {
-            value += " baseline";
-            index++;
-        }
-        return value;
-    }
-
-    private static void OverrideGridValue(string value, ref string target) {
-        if (!string.IsNullOrWhiteSpace(value)) target = value.Trim().ToLowerInvariant();
+        style.GridColumnStart = NormalizeCssValue(computed.GetValue("grid-column-start"), "auto");
+        style.GridColumnEnd = NormalizeCssValue(computed.GetValue("grid-column-end"), "auto");
+        style.GridRowStart = NormalizeCssValue(computed.GetValue("grid-row-start"), "auto");
+        style.GridRowEnd = NormalizeCssValue(computed.GetValue("grid-row-end"), "auto");
     }
 
     private static void ApplyFlexFlow(string value, HtmlRenderBoxStyle style) {
@@ -1315,11 +1467,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private void ApplyGap(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
-        IReadOnlyList<string> gap = HtmlRenderCssValues.SplitWhitespace(computed.GetValue("gap"));
-        string row = gap.Count > 0 ? gap[0] : string.Empty;
-        string column = gap.Count > 1 ? gap[1] : row;
-        if (!string.IsNullOrWhiteSpace(computed.GetValue("row-gap"))) row = computed.GetValue("row-gap");
-        if (!string.IsNullOrWhiteSpace(computed.GetValue("column-gap"))) column = computed.GetValue("column-gap");
+        string row = computed.GetValue("row-gap");
+        string column = computed.GetValue("column-gap");
         style.ColumnGapWasSpecified = !string.IsNullOrWhiteSpace(column) && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
         style.RowGapWasSpecified = !string.IsNullOrWhiteSpace(row) && !string.Equals(row.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
         style.RowGap = ResolveGap(row, reference, fontSize, out bool rowUnsupported);
@@ -1331,7 +1480,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveGap(string value, double reference, double fontSize, out bool unsupported) {
         unsupported = false;
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return 0D;
-        if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double resolved) && resolved >= 0D) return resolved;
+        if (TryResolveLength(value, reference, fontSize, _rootFontSize, out double resolved) && resolved >= 0D) return resolved;
         unsupported = true;
         return 0D;
     }
@@ -1358,42 +1507,40 @@ internal sealed partial class HtmlRenderStyleResolver {
             : fallback;
 
     private void ApplyLength(string value, double reference, double fontSize, ref double target) {
-        if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed)) target = Math.Max(0D, parsed);
+        if (TryResolveLength(value, reference, fontSize, _rootFontSize, out double parsed)) target = Math.Max(0D, parsed);
     }
 
     private void ApplyMarginLength(string value, double reference, double fontSize, ref double target) {
-        if (TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed)) target = parsed;
+        if (TryResolveLength(value, reference, fontSize, _rootFontSize, out double parsed)) target = parsed;
     }
 
     private double? ReadLength(string cssValue, string? attributeValue, double reference, double fontSize) {
-        string value = cssValue.Length > 0 ? cssValue : attributeValue ?? string.Empty;
-        return TryResolveLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed) && parsed >= 0D ? parsed : null;
+        string value = cssValue.Length > 0 ? cssValue : NormalizeHtmlDimensionAttribute(attributeValue);
+        if (!TryResolveLength(value, reference, fontSize, _rootFontSize,
+                out double parsed, out bool isCalculated)) return null;
+        if (parsed >= 0D) return parsed;
+        return cssValue.Length > 0 && isCalculated ? 0D : null;
     }
 
     private double? ReadVerticalLength(
         string cssValue,
         string? attributeValue,
-        double fallbackReference,
         double? parentContentHeight,
         double fontSize) {
-        string value = cssValue.Length > 0 ? cssValue : attributeValue ?? string.Empty;
-        string normalized = value.Trim();
-        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
-            if (!parentContentHeight.HasValue
-                || !double.TryParse(
-                    normalized.Substring(0, normalized.Length - 1),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double percentage)
-                || percentage < 0D
-                || double.IsNaN(percentage)
-                || double.IsInfinity(percentage)) {
-                return null;
-            }
-            return parentContentHeight.Value * percentage / 100D;
-        }
+        string value = cssValue.Length > 0 ? cssValue : NormalizeHtmlDimensionAttribute(attributeValue);
+        if (!TryResolveLength(value, parentContentHeight ?? double.NaN, fontSize, _rootFontSize,
+                out double parsed, out bool isCalculated)) return null;
+        if (parsed >= 0D) return parsed;
+        return cssValue.Length > 0 && isCalculated ? 0D : null;
+    }
 
-        return ReadLength(cssValue, attributeValue, fallbackReference, fontSize);
+    private static string NormalizeHtmlDimensionAttribute(string? value) {
+        string normalized = (value ?? string.Empty).Trim();
+        if (normalized.Length == 0 || normalized.EndsWith("%", StringComparison.Ordinal)) return normalized;
+        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            && !double.IsNaN(number) && !double.IsInfinity(number)
+            ? normalized + "px"
+            : normalized;
     }
 
     private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) {

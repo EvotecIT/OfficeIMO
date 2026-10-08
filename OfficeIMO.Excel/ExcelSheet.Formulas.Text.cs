@@ -6,6 +6,11 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private static bool IsSupportedTextFunction(string function) => function is
+            "FORMULATEXT" or "CONCAT" or "CONCATENATE" or "TEXTJOIN" or "TEXT" or "TEXTBEFORE" or "TEXTAFTER" or
+            "LEFT" or "RIGHT" or "MID" or "LEN" or "TRIM" or "UPPER" or "LOWER" or "PROPER" or "SUBSTITUTE" or
+            "FIND" or "SEARCH" or "VALUE" or "EXACT" or "REPT";
+
         private bool TryEvaluateTextFunction(string function, string args, out FormulaArgumentValue result) {
             result = default;
             var tokens = SplitFormulaArguments(args);
@@ -29,12 +34,15 @@ namespace OfficeIMO.Excel {
                     || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue delimiterValue)
                     || delimiterValue.IsUnresolvedFormula) return false;
                 if (delimiterValue.IsError) { result = delimiterValue; return true; }
-                if (TryResolveFormulaArgument(tokens[1], out FormulaArgumentValue emptyPolicy) && emptyPolicy.IsError) {
+                if (!TryResolveFormulaArgument(tokens[1], out FormulaArgumentValue emptyPolicy)
+                    || emptyPolicy.IsUnresolvedFormula) return false;
+                if (emptyPolicy.IsError) {
                     result = emptyPolicy;
                     return true;
                 }
-                if (!TryResolveBooleanArgument(tokens[1], out bool ignoreEmpty)
+                if (!emptyPolicy.Number.HasValue
                     || !TryResolveTextArgumentValues(tokens.Skip(2), out var parts, out string? error)) return false;
+                bool ignoreEmpty = Math.Abs(emptyPolicy.Number.Value) >= double.Epsilon;
                 if (error != null) { result = FormulaArgumentValue.Error(error); return true; }
                 if (ignoreEmpty) parts = parts.Where(part => part.Length > 0).ToList();
                 result = CombineFormulaText(parts, FormulaValueToText(delimiterValue));

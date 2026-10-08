@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.ChartForgeX.Markdown\OfficeIMO.ChartForgeX.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.Word\OfficeIMO.Markup.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markup.PowerPoint\OfficeIMO.Markup.PowerPoint.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="Images\EvotecLogo.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="Images\Kulek.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+</Project>

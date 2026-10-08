@@ -18,7 +18,12 @@ public sealed record OfficeAiLimits {
     public int MaxResponseCharacters { get; init; } = 64_000;
     /// <summary>Maximum model requests in the whole operation; no automatic repair requests are made.</summary>
     public int MaxRequests { get; init; } = 32;
-    /// <summary>Maximum hierarchical summary reduction passes sharing the operation request budget.</summary>
+    /// <summary>Calls reserved for combining Ask, Explain and Summarize drafts; zero disables reservation.</summary>
+    /// <remarks>The effective reserve leaves at least two evidence calls when possible. One- and two-call budgets
+    /// retain their evidence capacity. Extraction and parsing use the full request budget. Reservation does not
+    /// guarantee that every synthesis group fits; incomplete output retains its source-linked drafts.</remarks>
+    public int ReservedSynthesisRequests { get; init; } = 1;
+    /// <summary>Maximum hierarchical combination passes for Ask, Explain and Summarize, sharing the operation request budget.</summary>
     public int MaxSynthesisPasses { get; init; } = 3;
     /// <summary>Maximum records of each result kind per batch.</summary>
     public int MaxResultItems { get; init; } = 200;
@@ -37,7 +42,7 @@ public sealed record OfficeAiLimits {
         if (MaxInputBytes is < 1 or > 268_435_456 || MaxDocumentCharacters is < 1 or > 20_000_000
             || MaxDocumentBlocks is < 1 or > 200_000 || MaxPages is < 1 or > 10_000 || MaxDocumentImages is < 1 or > 10_000
             || MaxRequestCharacters is < 4096 or > 2_000_000 || MaxResponseCharacters is < 1024 or > 2_000_000
-            || MaxSynthesisPasses is < 1 or > 8 || MaxRequests is < 1 or > 256 || MaxResultItems is < 1 or > 200
+            || MaxSynthesisPasses is < 1 or > 8 || MaxRequests is < 1 or > 256 || ReservedSynthesisRequests is < 0 or > 255 || MaxResultItems is < 1 or > 200
             || MaxTableCells is < 1 or > 100_000 || MaxTableColumns is < 1 or > 100 || MaxImageBytes is < 1 or > 67_108_864
             || MaxImagePixels is < 1 or > 100_000_000 || Timeout <= TimeSpan.Zero || Timeout > TimeSpan.FromHours(1))
             throw new ArgumentOutOfRangeException(nameof(OfficeAiLimits), "Document AI limits are outside the supported bounds.");

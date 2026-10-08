@@ -11,8 +11,10 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderShape visual,
         OfficeDrawing drawing,
+        PdfImageResourceCache imageResources,
         PdfCore.PdfConversionReport conversionReport,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool suppressLink) {
         IReadOnlyList<OfficeGradientStop>? stops = visual.Shape.FillRadialGradient?.Stops ?? visual.Shape.FillGradient?.Stops;
         if (stops == null || stops.All(stop => stop.Color.A == byte.MaxValue)) return false;
 
@@ -21,7 +23,7 @@ internal static partial class HtmlPdfRenderedConverter {
             Background = OfficeColor.Transparent,
             CancellationToken = cancellationToken
         });
-        PdfCore.PdfCanvasImageResource? image = GetSharedPdfImageResource(png, "image/png");
+        PdfCore.PdfCanvasImageResource? image = imageResources.GetOrCreate(png, "image/png");
         if (image != null) {
             canvas.ImageShared(
                 image,
@@ -29,8 +31,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 visual.Y * PointsPerCssPixel,
                 visual.Width * PointsPerCssPixel,
                 visual.Height * PointsPerCssPixel,
-                linkUri: visual.LinkUri,
-                linkContents: visual.LinkUri == null ? null : visual.Source);
+                linkUri: suppressLink ? null : visual.LinkUri,
+                linkContents: suppressLink || visual.LinkUri == null ? null : visual.Source);
         }
         conversionReport.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Html.Pdf",

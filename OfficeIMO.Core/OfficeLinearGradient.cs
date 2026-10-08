@@ -22,6 +22,16 @@ public sealed partial class OfficeLinearGradient {
     /// <summary>Normalized end Y coordinate.</summary>
     public double EndY { get; }
 
+    /// <summary>Color space used to interpolate RGB channels between stops. Defaults to encoded sRGB.</summary>
+    public OfficeGradientColorInterpolation ColorInterpolation { get; private set; }
+
+    /// <summary>Returns a detached gradient using the specified color interpolation space.</summary>
+    public OfficeLinearGradient WithColorInterpolation(OfficeGradientColorInterpolation interpolation) {
+        if (interpolation != OfficeGradientColorInterpolation.Srgb && interpolation != OfficeGradientColorInterpolation.LinearRgb)
+            throw new ArgumentOutOfRangeException(nameof(interpolation));
+        var copy = Clone(); copy.ColorInterpolation = interpolation; return copy;
+    }
+
     /// <summary>Gradient stops in offset order.</summary>
     public IReadOnlyList<OfficeGradientStop> Stops { get; }
 
@@ -173,7 +183,7 @@ public sealed partial class OfficeLinearGradient {
     }
 
     /// <summary>Creates a detached copy.</summary>
-    public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops, allowOutsideUnit: true);
+    public OfficeLinearGradient Clone() => (OfficeLinearGradient)MemberwiseClone();
 
     private static IReadOnlyList<OfficeGradientStop> ValidateStops(IReadOnlyList<OfficeGradientStop>? stops) {
         if (stops == null || stops.Count < 2) {

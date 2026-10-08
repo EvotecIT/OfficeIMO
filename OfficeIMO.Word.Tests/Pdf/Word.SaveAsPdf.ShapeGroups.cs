@@ -14,6 +14,43 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed class PdfShapeGroupTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void BehindTextGroupsFollowMirroredMarginsAndRetainPageRelativePositions(bool marginRelative, int startNumber) {
+        using WordDocument word = WordDocument.Create();
+        var section = word.Sections[0];
+        section.PageSettings.Width = 6000; section.PageSettings.Height = 6000;
+        section.Margins.Left = 800; section.Margins.Right = 1400;
+        section.Margins.Top = section.Margins.Bottom = 800;
+        section.AddPageNumbering(startNumber);
+        word.Settings.MirrorMargins = true;
+        word.AddParagraph("First");
+        var paragraph = word.AddParagraph("Second");
+        paragraph.PageBreakBeforeOverride = true;
+        paragraph.AddShapeGroup(new[] {
+            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, 24, 0, 8, 12) { FillColorHex = "0000FF" }
+        }, 10, 60);
+        var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
+        anchor.BehindDoc = true;
+        anchor.RemoveAllChildren<DW.WrapSquare>();
+        anchor.AddChild(new DW.WrapNone(), true);
+        anchor.HorizontalPosition!.RelativeFrom = marginRelative ? DW.HorizontalRelativePositionValues.Margin : DW.HorizontalRelativePositionValues.Page;
+        anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Page;
+
+        var result = word.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        Assert.Equal(2, pdf.Reader.Pages().Count);
+        double x = marginRelative ? (startNumber == 1 ? 70 : 40) + 10 : 10;
+        var bitmap = Render(pdf, 2);
+        AssertPixel(bitmap, (int)x + 6, 66, 255, 0, 0);
+        AssertPixel(bitmap, (int)x + 28, 66, 0, 0, 255);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeShapeGroup"));
+    }
+
     // Public reporter fixture: https://github.com/EvotecIT/OfficeIMO/issues/2675
     [Theory]
     [InlineData(false)]
@@ -261,6 +298,33 @@ public sealed class PdfShapeGroupTests {
             if (bodyTextInSameRun) Assert.Contains("Body text", pdf.Reader.Text());
             Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
             SaveEvidence(pdf, "group-image-body-text-" + bodyTextInSameRun);
+        } finally { File.Delete(imagePath); }
+    }
+
+    [Fact]
+    public void LegacyGroupImagesShareTheParagraphPdfImageLimit() {
+        string imagePath = Path.Combine(Path.GetTempPath(), "officeimo-group-limit-" + Guid.NewGuid().ToString("N") + ".png");
+        try {
+            File.WriteAllBytes(imagePath, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Red), OfficeImageExportFormat.Png));
+            using WordDocument word = WordDocument.Create();
+            var paragraph = word.AddParagraph().AddImageVml(imagePath, 20, 20);
+            var picture = paragraph._run!.GetFirstChild<W.Picture>()!;
+            var shape = picture.Descendants<V.Shape>().Single();
+            shape.Remove();
+            shape.Style = "position:absolute;left:0;top:0;width:20;height:20";
+            var second = (V.Shape)shape.CloneNode(true);
+            second.Style = "position:absolute;left:20;top:0;width:20;height:20";
+            var group = new V.Group {
+                Style = "position:absolute;margin-left:72pt;margin-top:0pt;width:40pt;height:20pt;z-index:-1;mso-position-horizontal-relative:page",
+                CoordinateSize = "40,20"
+            };
+            group.Append(shape, second);
+            picture.Append(group);
+
+            Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+            var allowed = word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 2 });
+            var pdf = PdfCore.PdfDocument.Load(allowed.Value.ToBytes());
+            Assert.Equal(2, pdf.Images.Placements().Count());
         } finally { File.Delete(imagePath); }
     }
 

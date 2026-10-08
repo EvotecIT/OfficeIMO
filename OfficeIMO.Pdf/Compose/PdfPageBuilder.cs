@@ -11,6 +11,13 @@ public sealed class PdfPageBuilder {
     internal PdfOptions Options => _options;
     internal PdfPageBuilder(PdfDocument doc, PdfOptions options) { _doc = doc; _options = options; }
 
+    /// <summary>Sets or clears the parity required at the start of a later page group. Optionally uses the continuing page number before this group's numbering restart.</summary>
+    public PdfPageBuilder StartOnPageParity(PdfPageParity? parity, bool useContinuingPageNumber = false) {
+        Options.PageStartParity = parity;
+        Options.UseContinuingPageNumberForStartParity = useContinuingPageNumber;
+        return this;
+    }
+
     /// <summary>Sets page size using a predefined <see cref="PageSize"/>.</summary>
     public PdfPageBuilder Size(PageSize size) {
         Guard.Positive(size.Width, nameof(size));
@@ -244,6 +251,11 @@ public sealed class PdfPageBuilder {
         Options.Margins = margins;
         return this;
     }
+    /// <summary>Swaps left and right margins on even visible page numbers, including numbering restarts.</summary>
+    public PdfPageBuilder MirrorMargins(bool enabled = true) {
+        Options.MirrorMargins = enabled;
+        return this;
+    }
     /// <summary>Sets page margins (left, top, right, bottom in points).</summary>
     public PdfPageBuilder Margin(double left, double top, double right, double bottom) {
         Guard.NonNegative(left, nameof(left));
@@ -330,7 +342,7 @@ public sealed class PdfPageBuilder {
     /// <summary>Adds foreground page content at absolute top-left page coordinates.</summary>
     public PdfPageBuilder Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Defines the header layout and content.</summary>
-    public PdfPageBuilder Header(System.Action<PdfHeaderBuilder> build) { Guard.NotNull(build, nameof(build)); var h = new PdfHeaderBuilder(Options); build(h); return this; }
+    public PdfPageBuilder Header(System.Action<PdfHeaderBuilder> build) { Guard.NotNull(build, nameof(build)); var h = new PdfHeaderBuilder(_doc, Options); build(h); return this; }
     /// <summary>Defines the footer layout and content.</summary>
-    public PdfPageBuilder Footer(System.Action<PdfFooterBuilder> build) { Guard.NotNull(build, nameof(build)); var f = new PdfFooterBuilder(Options); build(f); return this; }
+    public PdfPageBuilder Footer(System.Action<PdfFooterBuilder> build) { Guard.NotNull(build, nameof(build)); var f = new PdfFooterBuilder(_doc, Options); build(f); return this; }
 }

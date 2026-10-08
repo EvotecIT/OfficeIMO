@@ -33,6 +33,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtEndSheetData = 146;
         private const int BrtWsProp = 147;
         private const int BrtWsDim = 148;
+        private const int BrtBeginWsView = 137;
         private const int BrtPane = 151;
         private const int BrtWbProp = 153;
         private const int BrtBeginBundleShs = 143;
@@ -539,6 +540,11 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtWsFmtInfo record.");
                         }
                         worksheet.FormatInfo = ParseWorksheetFormatInfo(record);
+                        break;
+                    case BrtBeginWsView:
+                        if (!worksheet.ShowGridLines.HasValue) {
+                            worksheet.ShowGridLines = XlsbWorksheetViewReader.ReadGridlines(record);
+                        }
                         break;
                     case BrtPane:
                         if (worksheet.Pane != null) {

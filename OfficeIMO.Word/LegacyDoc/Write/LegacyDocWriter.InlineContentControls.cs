@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
-            MainDocumentPart mainPart,
+            OpenXmlPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
@@ -34,18 +34,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                                 inheritedFormatting,
                                 allowHyperlinkRunStyle: false,
                                 pictures,
-                                mainPart);
+                                relationshipOwner);
                         }
 
                         break;
                     case InsertedRun insertedRun:
-                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting, pictures, mainPart);
+                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting, pictures, relationshipOwner);
                         break;
                     case DeletedRun deletedRun:
-                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting, pictures, mainPart);
+                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting, pictures, relationshipOwner);
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, inheritedFormatting);
+                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, relationshipOwner, footnotes, endnotes, inheritedFormatting);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, inheritedFormatting);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, mainPart, pictures, footnotes, endnotes, inheritedFormatting, context);
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, relationshipOwner, pictures, footnotes, endnotes, inheritedFormatting, context);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);

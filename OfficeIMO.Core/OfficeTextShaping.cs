@@ -40,6 +40,8 @@ public interface IOfficeTextShapingProviderMetadata {
 
 /// <summary>Describes a Unicode text run and font passed to a shared shaping provider.</summary>
 public sealed class OfficeTextShapingRequest {
+    private static readonly IReadOnlyDictionary<string, float> EmptyVariationCoordinates =
+        new ReadOnlyDictionary<string, float>(new Dictionary<string, float>(StringComparer.Ordinal));
     private readonly byte[] _fontData;
     private readonly object? _fontProgramCacheKey;
     private readonly IReadOnlyDictionary<string, float> _variationCoordinates;
@@ -295,6 +297,7 @@ public sealed class OfficeTextShapingRequest {
 
     private static IReadOnlyDictionary<string, float> SnapshotVariationCoordinates(
         IReadOnlyDictionary<string, float>? coordinates) {
+        if (coordinates == null || coordinates.Count == 0) return EmptyVariationCoordinates;
         var snapshot = new Dictionary<string, float>(StringComparer.Ordinal);
         if (coordinates != null) {
             if (coordinates.Count > 64) {
@@ -349,7 +352,8 @@ public sealed class OfficeTextShapingResult {
             throw new ArgumentOutOfRangeException(nameof(direction));
         }
 
-        var snapshot = new List<OfficeShapedGlyph>();
+        var snapshot = glyphs is ICollection<OfficeShapedGlyph> collection
+            ? new List<OfficeShapedGlyph>(collection.Count) : new List<OfficeShapedGlyph>();
         foreach (OfficeShapedGlyph glyph in glyphs) {
             snapshot.Add(glyph);
         }

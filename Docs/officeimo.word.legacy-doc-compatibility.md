@@ -61,10 +61,12 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Paragraphs, runs, tabs, line/page/column breaks | Projected |
 | Common character and paragraph formatting | Projected |
 | Built-in and custom paragraph styles | Projected |
+| Supported list definitions, marker formatting, starts and instance restarts | Projected; missing, malformed or unsupported definitions report numbering loss |
 | Simple and supported nested tables | Projected |
-| Sections, page setup, headers, and footers | Projected |
+| Sections, page setup, headers, and footers | Projected, including supported tables in default, first-page, and even-page stories |
 | Bookmarks and supported internal/external hyperlinks | Projected |
 | Static and supported field display results | Projected |
+| SECTIONPAGES fields | Projected as editable fields, retaining the source instruction, format switches and cached result |
 | Footnotes and endnotes, including supported formatting | Projected |
 | Comments with readable comment tables | Projected |
 | Revision-tracking settings | Projected |
@@ -80,7 +82,25 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
 
+Default, first-page, and even-page headers and footers retain supported tables as editable rows and cells, alongside ordinary story paragraphs. Their tables use the same width, merge, border, palette-shading, nesting, and formatting limits as body tables. Hyperlinks and inline pictures resolve against the containing header or footer part, including pictures within supported nested tables.
+
+SECTIONPAGES fields remain editable through native import and save in the body, supported table cells, headers, footers, footnotes and endnotes. Simple and supported adjacent-run complex fields retain their instruction, format switches, cached result and result formatting. The binary writer emits the parsed SECTIONPAGES field type. A field without a cached result receives a placeholder of `1`; import and native saving do not calculate pagination. `InspectFields()` exposes the imported instruction and cached text, and the existing typed `AddField(WordFieldType.SectionPages, ...)` API authors the field. Layout-dependent field evaluation and PDF rendering have separate contracts.
+
+Lists retain supported native numbering formats, marker text, alignment, suffixes, paragraph/run formatting, abstract starting values and per-instance start or formatting overrides. An explicit instance restart takes precedence over the abstract start. Native definitions contain level 0 alone or all nine levels; starts range from 0 through 32,767 and instance IDs from 1 through 32,767. Sparse instance IDs keep their paragraph references. A marker can contain at most one placeholder per available level: one at level 0, two at level 1, up to nine at level 8. Linked numbering styles, picture bullets, section-break restarts, unsupported level properties and references to absent instances or levels raise `NotSupportedException` before output is committed. Missing or malformed binary list tables produce a `Numbering` entry in `LegacyDocUnsupportedFeatures`; review that loss before explicitly allowing output.
+
+Supported nested tables retain their cell boundaries, multiple paragraphs per cell, widths and row/cell settings. Native output containing nested tables declares the Word 2000 binary format so Microsoft Word interprets the nested grid. Documents without nested tables retain the Word 97 format declaration.
+
+Table layout retains each format's default. A DOC table without an AutoFit flag imports with `LayoutMode` set to `Fixed`. When saving DOCX content as DOC, an omitted layout setting retains DOCX's AutoFit behavior. `LayoutMode` reads direct settings, named table styles, their base styles and the document's default table style. Explicit and supported inherited layout settings take precedence over the format default. PDF conversion also retains the effective layout algorithm; preferred cell widths remain sizing inputs when layout defaults to AutoFit.
+
 The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet, including multiple, exact and at-least line spacing. Exact line spacing accepts 1–31,680 twips; exact zero is unrepresentable in DOC and is rejected before writing output. Paragraph boundaries are retained even when adjacent paragraphs have identical formatting.
+
+Paragraph and style pagination flags retain explicit false values as well as true values. This includes page-break-before, keep-with-next, keep-lines-together, widow/orphan control, contextual spacing, line-number suppression, hyphenation suppression, and mirrored indentation. Direct outline levels retain values 0–9, including body text (9); built-in Heading styles retain their required heading levels. These are file-format preservation contracts; fixed-layout export has separate rendering limits.
+
+Page setup retains section gutter widths and right-edge gutter settings. Document options retain the default tab interval, mirrored margins and top gutters alongside revision tracking and odd/even header selection.
+
+Native DOC output retains footnote and endnote placement, numbering format, starting number and restart policy. The emitted Word 97 and Word 2000 formats store these options for the whole document. Sections with different effective note options raise `NotSupportedException`; save as DOCX to retain those section-specific settings. When importing later Word formats, the reader uses the effective FIB version and retains their authoritative section note settings.
+
+Each section retains its own start type: continuous, next-column, next-page, odd-page, or even-page. Native section marks remain distinct from manual page breaks within paragraphs. An empty section-mark paragraph retains its paragraph and paragraph-mark formatting; import attaches the section to that paragraph without adding another terminator. `AddSection()` continues page numbering; explicit numbering restarts remain properties of the new section. PDF and image export resolve odd/even starts and numbering restarts through their layout engines.
 
 The writer preflights the complete document before committing output. Unsupported destination features, including floating drawings, rotated or mirrored inline pictures, unsupported image effects, embedded objects, and richer table/story structures, raise `NotSupportedException` and leave an existing destination intact. The [generated capability matrix](Compatibility/generated/word-legacy-doc.md) lists the current feature families.
 

@@ -96,9 +96,15 @@ byte[] envelope = security.EncryptCms(content, new[] { recipientCertificate });
 CmsDecryptionResult decrypted = security.DecryptCms(envelope, recipientWithPrivateKey);
 ```
 
-Recipient selection is exact and caller-owned. The current Bouncy Castle key-transport adapter requires an
-exportable RSA private key for envelope decryption; a non-exportable key produces the stable
-`EnvelopePrivateKeyNotExportable` finding.
+Recipient selection is exact and caller-owned. On .NET 8 and later, RSA PKCS#1/OAEP recipients
+with AES-128/192/256-CBC content use the supplied platform RSA handle without exporting private
+parameters or searching certificate stores. Platform OAEP profiles require SHA-1, SHA-256,
+SHA-384, or SHA-512 with the same MGF1 digest and an empty label. This supports keys that permit decryption while
+prohibiting export. Keychain identity selection, authorization prompts, and retained access belong
+to the application. Other envelope profiles and older target frameworks use the Bouncy Castle
+adapter and require an exportable RSA key; unavailable export produces
+`EnvelopePrivateKeyNotExportable`. Plaintext size is bounded before platform decryption where the
+ciphertext length establishes it, then checked exactly before returning content.
 
 `VerifyTimestamp(...)` validates RFC 3161 signatures, TSA certificate profiles, message imprints, caller trust policy,
 and revocation as a separate operation. TSA chain validation defaults to the token generation time unless the caller

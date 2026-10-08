@@ -1,5 +1,6 @@
 using System.Globalization;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html.Css;
 
 namespace OfficeIMO.Html;
 
@@ -26,8 +27,8 @@ internal static class HtmlRenderCssValues {
         return result > 0D;
     }
 
-    internal static bool TryLength(string? value, double reference, double fontSize, double rootFontSize, out double result) {
-        return TryLength(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, out result);
+    internal static bool TryLength(string? value, double reference, double fontSize, double rootFontSize, out double result, double characterAdvance = double.NaN) {
+        return TryLength(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, out result, characterAdvance);
     }
 
     internal static bool TryLength(
@@ -37,8 +38,8 @@ internal static class HtmlRenderCssValues {
         double rootFontSize,
         double viewportWidth,
         double viewportHeight,
-        out double result) {
-        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out result);
+        out double result, double characterAdvance = double.NaN) {
+        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out result, characterAdvance);
     }
 
     internal static bool TryLength(
@@ -50,126 +51,63 @@ internal static class HtmlRenderCssValues {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out double result) {
+        out double result,
+        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
+        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight,
+            containerWidth, containerHeight, out result, out _, characterAdvance, uprightVerticalText);
+    }
+
+    internal static bool TryLength(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        out double result,
+        out bool isCalculated,
+        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
         result = 0D;
-        if (string.IsNullOrWhiteSpace(value)) {
-            return false;
-        }
-
-        string normalized = value!.Trim().ToLowerInvariant();
-        if (normalized == "0") {
+        isCalculated = false;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        try {
+            HtmlCssMathParseResult parsed = HtmlCssMathParser.ParseLengthPercentage(value!);
+            if (!parsed.IsParsed) return false;
+            isCalculated = parsed.Expression!.IsCalculated;
+            var context = new HtmlCssLengthResolutionContext {
+                PercentageReference = FiniteOrNull(reference),
+                FontSize = FiniteOrNull(fontSize),
+                RootFontSize = FiniteOrNull(rootFontSize),
+                UprightVerticalText = uprightVerticalText,
+                CharacterAdvance = FiniteOrNull(characterAdvance),
+                ViewportWidth = FiniteOrNull(viewportWidth),
+                ViewportHeight = FiniteOrNull(viewportHeight),
+                ContainerWidth = FiniteOrNull(containerWidth),
+                ContainerHeight = FiniteOrNull(containerHeight),
+                ContainerInlineSize = FiniteOrNull(containerWidth),
+                ContainerBlockSize = FiniteOrNull(containerHeight)
+            };
+            HtmlCssLengthResolutionResult resolved = HtmlCssMathResolver.ResolveLength(parsed.Expression, context);
+            if (!resolved.IsResolved || !resolved.Value.HasValue) return false;
+            result = resolved.Value.Value;
             return true;
-        }
-
-        if (normalized == "auto" || normalized == "none") {
+        } catch (HtmlCssMathLimitException) {
             return false;
-        }
-
-        if (normalized.IndexOf('(') >= 0) {
-            return HtmlCssLengthMathEvaluator.TryEvaluate(normalized, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out result);
-        }
-
-        string unit = string.Empty;
-        int unitStart = normalized.Length;
-        while (unitStart > 0 && (char.IsLetter(normalized[unitStart - 1]) || normalized[unitStart - 1] == '%')) {
-            unitStart--;
-        }
-
-        if (unitStart < normalized.Length) {
-            unit = normalized.Substring(unitStart);
-            normalized = normalized.Substring(0, unitStart).Trim();
-        }
-
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            || double.IsNaN(number)
-            || double.IsInfinity(number)) {
+        } catch (HtmlCssTokenizationLimitException) {
             return false;
-        }
-
-        switch (unit) {
-            case "":
-            case "px":
-                result = number;
-                return IsFinite(result);
-            case "pt":
-                result = number * HtmlRenderOptions.CssPixelsPerInch / 72D;
-                return IsFinite(result);
-            case "pc":
-                result = number * HtmlRenderOptions.CssPixelsPerInch / 6D;
-                return IsFinite(result);
-            case "in":
-                result = number * HtmlRenderOptions.CssPixelsPerInch;
-                return IsFinite(result);
-            case "cm":
-                result = number * HtmlRenderOptions.CssPixelsPerInch / 2.54D;
-                return IsFinite(result);
-            case "mm":
-                result = number * HtmlRenderOptions.CssPixelsPerInch / 25.4D;
-                return IsFinite(result);
-            case "q":
-                result = number * HtmlRenderOptions.CssPixelsPerInch / 101.6D;
-                return IsFinite(result);
-            case "em":
-                result = number * fontSize;
-                return IsFinite(result);
-            case "rem":
-                result = number * rootFontSize;
-                return IsFinite(result);
-            case "vw":
-            case "svw":
-            case "lvw":
-            case "dvw":
-                result = number * viewportWidth / 100D;
-                return IsFinite(result);
-            case "vh":
-            case "svh":
-            case "lvh":
-            case "dvh":
-                result = number * viewportHeight / 100D;
-                return IsFinite(result);
-            case "vmin":
-            case "svmin":
-            case "lvmin":
-            case "dvmin":
-                result = number * Math.Min(viewportWidth, viewportHeight) / 100D;
-                return IsFinite(result);
-            case "vmax":
-            case "svmax":
-            case "lvmax":
-            case "dvmax":
-                result = number * Math.Max(viewportWidth, viewportHeight) / 100D;
-                return IsFinite(result);
-            case "cqw":
-            case "cqi":
-                result = number * (IsFinite(containerWidth) ? containerWidth : viewportWidth) / 100D;
-                return IsFinite(result);
-            case "cqh":
-            case "cqb":
-                result = number * (IsFinite(containerHeight) ? containerHeight : viewportHeight) / 100D;
-                return IsFinite(result);
-            case "cqmin":
-                result = number * Math.Min(
-                    IsFinite(containerWidth) ? containerWidth : viewportWidth,
-                    IsFinite(containerHeight) ? containerHeight : viewportHeight) / 100D;
-                return IsFinite(result);
-            case "cqmax":
-                result = number * Math.Max(
-                    IsFinite(containerWidth) ? containerWidth : viewportWidth,
-                    IsFinite(containerHeight) ? containerHeight : viewportHeight) / 100D;
-                return IsFinite(result);
-            case "%":
-                result = reference * number / 100D;
-                return IsFinite(result);
-            default:
-                return false;
         }
     }
+
+    private static double? FiniteOrNull(double value) => IsFinite(value) ? value : null;
 
     internal static bool HasExplicitLengthSyntax(string? value, bool allowPercentage, bool allowUnitlessZero) {
         if (string.IsNullOrWhiteSpace(value)) return false;
 
         string normalized = value!.Trim().ToLowerInvariant();
-        if (normalized == "0") return allowUnitlessZero;
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            && number == 0D) return allowUnitlessZero;
         if (!allowPercentage && normalized.IndexOf('%') >= 0) return false;
         if (normalized.IndexOf('(') >= 0) return true;
 
@@ -182,8 +120,8 @@ internal static class HtmlRenderCssValues {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left) {
-        ApplyBoxShorthand(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, ref top, ref right, ref bottom, ref left);
+    internal static void ApplyBoxShorthand(string? value, double reference, double fontSize, double rootFontSize, ref double top, ref double right, ref double bottom, ref double left, double characterAdvance = double.NaN) {
+        ApplyBoxShorthand(value, reference, fontSize, rootFontSize, double.NaN, double.NaN, ref top, ref right, ref bottom, ref left, characterAdvance);
     }
 
     internal static void ApplyBoxShorthand(
@@ -196,7 +134,7 @@ internal static class HtmlRenderCssValues {
         ref double top,
         ref double right,
         ref double bottom,
-        ref double left) {
+        ref double left, double characterAdvance = double.NaN) {
         ApplyBoxShorthand(
             value,
             reference,
@@ -209,7 +147,7 @@ internal static class HtmlRenderCssValues {
             ref top,
             ref right,
             ref bottom,
-            ref left);
+            ref left, characterAdvance);
     }
 
     internal static void ApplyBoxShorthand(
@@ -224,7 +162,7 @@ internal static class HtmlRenderCssValues {
         ref double top,
         ref double right,
         ref double bottom,
-        ref double left) {
+        ref double left, double characterAdvance = double.NaN) {
         IReadOnlyList<string> parts = SplitWhitespace(value);
         if (parts.Count == 0 || parts.Count > 4) {
             return;
@@ -232,7 +170,7 @@ internal static class HtmlRenderCssValues {
 
         var values = new double[parts.Count];
         for (int i = 0; i < parts.Count; i++) {
-            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[i])) {
+            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[i], characterAdvance)) {
                 return;
             }
         }

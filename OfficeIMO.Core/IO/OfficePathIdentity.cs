@@ -9,21 +9,41 @@ using System.Text;
 namespace OfficeIMO.Internal {
     /// <summary>Provides strict physical, link-aware path identity for trusted in-process consumers.</summary>
     internal static partial class OfficePathIdentity {
+        // iOS ARM64 uses the same public stat ABI and filesystem flags as macOS.
+        private static bool IsIosFileSystem =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.Create("IOS")) &&
+            RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+
+        private static bool IsDarwinFileSystem =>
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || IsIosFileSystem;
+
         internal static bool SupportsPhysicalIdentity =>
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
             RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
-            RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+            IsDarwinFileSystem;
 
         internal static string Normalize(string path) {
             string identity = ResolvePhysicalPath(path);
             return Normalize(identity, IsCaseInsensitiveFileSystem(identity));
         }
 
+        /// <summary>Identifies an entry being replaced by its physical parent and name, independent of the entry's current inode or existence.</summary>
+        /// <remarks>Parent aliases share a key. The final entry is not followed because publication replaces that entry itself.</remarks>
+        internal static string NormalizeDirectoryEntry(string path) {
+            string fullPath = TrimEndingDirectorySeparators(Path.GetFullPath(path));
+            string? parent = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(parent)) throw new ArgumentException("Publication requires a parent directory.", nameof(path));
+            string physicalParent = ResolvePhysicalPath(parent);
+            return Normalize(Path.Combine(physicalParent, Path.GetFileName(fullPath)),
+                IsCaseInsensitiveFileSystem(physicalParent));
+        }
+
         internal static string ResolvePhysicalPath(string path) {
             string fullPath = ResolveLinkSegments(Path.GetFullPath(path));
             string existingPath = TrimEndingDirectorySeparators(fullPath);
             var missingSegments = new Stack<string>();
-            while (!TryGetPathMetadata(existingPath, out _)) {
+            string resolvedPath;
+            while (!TryResolveExistingPhysicalPath(existingPath, out resolvedPath)) {
                 if (HasUnresolvedLinkEntry(existingPath)) {
                     throw new IOException("Could not safely resolve linked path '" + existingPath + "'.");
                 }
@@ -36,7 +56,6 @@ namespace OfficeIMO.Internal {
                 existingPath = parent;
             }
 
-            string resolvedPath = ResolveExistingPhysicalPath(existingPath);
             foreach (string segment in missingSegments) resolvedPath = Path.Combine(resolvedPath, segment);
             return TrimEndingDirectorySeparators(Path.GetFullPath(resolvedPath));
         }
@@ -72,7 +91,7 @@ namespace OfficeIMO.Internal {
 
         internal static string Normalize(string path, bool caseInsensitive) {
             string identity = Path.GetFullPath(path);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) identity = identity.Normalize(NormalizationForm.FormC);
+            if (IsDarwinFileSystem) identity = identity.Normalize(NormalizationForm.FormC);
             return caseInsensitive ? identity.ToUpperInvariant() : identity;
         }
 
@@ -123,7 +142,7 @@ namespace OfficeIMO.Internal {
             }
             string fullPath = Path.GetFullPath(path);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return GetWindowsMetadata(fullPath, handle);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 return GetUnixMetadata(handle);
             }
             throw new PlatformNotSupportedException("Physical file identity is not supported on this platform.");
@@ -136,7 +155,7 @@ namespace OfficeIMO.Internal {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 handle = OpenWindowsDirectoryForIdentity(fullPath);
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
-                       RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                       IsDarwinFileSystem) {
                 handle = OpenUnixDirectoryForIdentity(fullPath);
             } else {
                 throw new PlatformNotSupportedException("Directory identity is not supported on this platform.");
@@ -172,15 +191,16 @@ namespace OfficeIMO.Internal {
             }
         }
 
-        internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize) {
+        internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize,
+            FileShare share = FileShare.Read) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (physicalRoot == null) throw new ArgumentNullException(nameof(physicalRoot));
             if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
             string fullPath = Path.GetFullPath(path);
             FileStream stream;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                stream = OpenWindowsRegularFileForRead(fullPath, bufferSize);
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                stream = OpenWindowsRegularFileForRead(fullPath, bufferSize, share);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 stream = OpenUnixRegularFileForRead(fullPath, bufferSize);
             } else {
                 throw new PlatformNotSupportedException("Regular-file opening is not supported on this platform.");
@@ -191,7 +211,7 @@ namespace OfficeIMO.Internal {
                     : GetUnixOpenedPath(stream.SafeFileHandle);
                 bool isWithinRoot = openedPath != null
                     ? IsPhysicalPathWithinRoot(openedPath, physicalRoot)
-                    : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    : (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsIosFileSystem)
                         && IsOpenedFileWithinRootByIdentity(fullPath, physicalRoot, stream.SafeFileHandle);
                 if (!isWithinRoot) {
                     throw new InvalidDataException("The opened filesystem entry resolves outside the source directory.");
@@ -254,7 +274,7 @@ namespace OfficeIMO.Internal {
                 TryGetWindowsDirectoryCaseInsensitive(directory, out caseInsensitive)) return true;
             if (TryGetPathMetadata(directory, out OfficeFileMetadata directoryMetadata) && directoryMetadata.IsDirectory) {
                 if ((RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
-                     RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) &&
+                     IsDarwinFileSystem) &&
                     TryGetUnixDirectoryCaseInsensitive(directory, out caseInsensitive)) return true;
                 try {
                     foreach (string entry in Directory.EnumerateFileSystemEntries(directory))
@@ -267,12 +287,12 @@ namespace OfficeIMO.Internal {
         }
 
         private static bool IsConservativelyCaseInsensitivePlatform =>
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || IsDarwinFileSystem;
 
-        private static string ResolveExistingPhysicalPath(string path) {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return ResolveWindowsExistingPath(path);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                return ResolveUnixExistingPath(path);
+        private static bool TryResolveExistingPhysicalPath(string path, out string resolvedPath) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return TryResolveWindowsExistingPath(path, out resolvedPath);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
+                return TryResolveUnixExistingPath(path, out resolvedPath);
             }
             throw new PlatformNotSupportedException("Physical path resolution is not supported on this platform.");
         }
@@ -327,7 +347,7 @@ namespace OfficeIMO.Internal {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 return TryGetWindowsMetadata(fullPath, out metadata);
             }
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 return TryGetUnixMetadata(fullPath, out metadata);
             }
             throw new PlatformNotSupportedException("Physical file identity is not supported on this platform.");
@@ -337,7 +357,8 @@ namespace OfficeIMO.Internal {
             out string relativeTail, out string existingPath) {
             existingPath = TrimEndingDirectorySeparators(Path.GetFullPath(path));
             var missing = new Stack<string>();
-            while (!TryGetPathMetadata(existingPath, out _)) {
+            OfficeFileMetadata metadata;
+            while (!TryGetPathMetadata(existingPath, out metadata)) {
                 if (HasUnresolvedLinkEntry(existingPath)) {
                     throw new IOException("Could not safely inspect linked path '" + existingPath + "'.");
                 }
@@ -351,7 +372,7 @@ namespace OfficeIMO.Internal {
                 if (!string.IsNullOrEmpty(name)) missing.Push(name);
                 existingPath = parent;
             }
-            identity = GetMetadata(existingPath).Identity;
+            identity = metadata.Identity;
             relativeTail = string.Join("/", missing.ToArray());
             return true;
         }
@@ -365,7 +386,7 @@ namespace OfficeIMO.Internal {
 
         private static string NormalizeMissingTail(string tail, bool caseInsensitive) {
             string normalized = tail.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) normalized = normalized.Normalize(NormalizationForm.FormC);
+            if (IsDarwinFileSystem) normalized = normalized.Normalize(NormalizationForm.FormC);
             return caseInsensitive ? normalized.ToUpperInvariant() : normalized;
         }
 
@@ -410,7 +431,7 @@ namespace OfficeIMO.Internal {
 
         private static bool TryReadLinkTarget(string path, out string? target) {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return TryReadWindowsLinkTarget(path, out target);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 return TryReadUnixLinkTarget(path, out target);
             }
             target = null;
@@ -419,7 +440,7 @@ namespace OfficeIMO.Internal {
 
         private static bool HasUnresolvedLinkEntry(string path) {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return HasWindowsReparsePoint(path);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || IsDarwinFileSystem) {
                 return IsUnixLink(path);
             }
             return false;

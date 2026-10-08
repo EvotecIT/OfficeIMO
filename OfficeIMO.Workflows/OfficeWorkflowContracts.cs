@@ -354,8 +354,8 @@ public sealed class OfficeWorkflowRoute {
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
     private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
-        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf",
-        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html"
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf",
+        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub"
     };
 
     private static readonly IReadOnlyList<OfficeWorkflowRoute> AllRoutesValue = Array.AsReadOnly(
@@ -384,9 +384,13 @@ public static class OfficeWorkflowCatalog {
 
     /// <summary>Finds the unique catalog route matching source and target extensions.</summary>
     public static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, bool executableOnly = false) {
+        return Find(sourceExtension, targetExtension, executableOnly ? ExecutableRoutesValue : AllRoutesValue);
+    }
+
+    /// <summary>Applies canonical extension selection to the executable routes captured from one runner.</summary>
+    internal static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, IReadOnlyList<OfficeWorkflowRoute> routes) {
         string source = NormalizeExtension(sourceExtension);
         string target = NormalizeExtension(targetExtension);
-        IReadOnlyList<OfficeWorkflowRoute> routes = executableOnly ? ExecutableRoutesValue : AllRoutesValue;
         // A literal text file defaults to literal conversion. Markup remains available through Via(routeId).
         if (source == ".txt" && target == ".pdf") return routes.FirstOrDefault(route => route.Id == "txt-pdf");
         OfficeWorkflowRoute? match = null;

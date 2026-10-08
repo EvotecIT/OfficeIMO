@@ -349,12 +349,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (builtInStyleIndex == null || builtInStyleIndex.Value == 0 || builtInStyleIndex.Value > 9) {
                 if (allowDirectOutlineLevel) {
                     int directLevel = outlineLevel.Val?.Value ?? 9;
-                    if (directLevel >= 0 && directLevel <= 8) {
+                    if (directLevel >= 0 && directLevel <= 9) {
                         return checked((byte)directLevel);
-                    }
-
-                    if (directLevel == 9) {
-                        return null;
                     }
                 }
 
@@ -444,8 +440,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? styleId = paragraphStyleId.Val?.Value;
             if (string.IsNullOrWhiteSpace(styleId)
-                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(styleId, "ListParagraph", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 
@@ -457,7 +452,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return customStyleIndex;
             }
 
-            throw new NotSupportedException($"Native DOC saving currently supports only built-in Normal and Heading1 through Heading9 paragraph styles. Unsupported paragraph style: {styleId}.");
+            throw new NotSupportedException($"Native DOC saving cannot resolve paragraph style '{styleId}' in the document style sheet.");
         }
 
         private static bool TryMapBuiltInParagraphStyleIndex(string styleId, out ushort styleIndex) {
@@ -578,12 +573,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return result;
         }
 
-        private static bool? ReadOnOffValue(OnOffType property) {
-            if (property.Val == null || property.Val.Value) {
-                return true;
-            }
-
-            return null;
-        }
+        private static bool? ReadOnOffValue(OnOffType property) => property.Val?.Value ?? true;
     }
 }

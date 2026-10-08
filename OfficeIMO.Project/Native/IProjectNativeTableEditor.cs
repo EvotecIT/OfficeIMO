@@ -5,6 +5,7 @@ internal interface IProjectNativeTableEditor : IDisposable {
     bool Contains(int uid);
     bool HasField(uint id);
     IEnumerable<int> Uids { get; }
+    int? SourceInteger(int uid, uint id);
     void Integer(int uid, uint id, int value);
     void Set(int uid, uint id, byte[]? value);
     void Add(int uid);

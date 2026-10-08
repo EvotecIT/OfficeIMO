@@ -31,6 +31,29 @@ public sealed partial class IWorkSourceDocument {
         });
     }
 
+    private IWorkSourceDocument(IWorkSourceDocument source, CancellationToken cancellationToken) {
+        Kind = source.Kind;
+        ContainerKind = source.ContainerKind;
+        ContainerLengthBytes = source.ContainerLengthBytes;
+        Entries = source.Entries;
+        Records = source.Records;
+        BuildVersions = source.BuildVersions;
+        Previews = source.Previews;
+        Diagnostics = source.Diagnostics;
+        _options = source._options;
+        _cancellationToken = cancellationToken;
+        _index = source._index.WithCancellation(cancellationToken);
+    }
+
+    /// <summary>Creates a source view whose subsequent projections and conversions use the supplied cancellation token.</summary>
+    /// <remarks>The view shares the already loaded package and parsed-message cache. Its token replaces, rather than links to,
+    /// the token used when this source was opened. Pass <see cref="CancellationToken.None"/> to reuse a source after that token is cancelled.
+    /// Saving a destination remains a separate owner operation.</remarks>
+    public IWorkSourceDocument WithCancellation(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return cancellationToken == _cancellationToken ? this : new(this, cancellationToken);
+    }
+
     /// <summary>Gets the source application.</summary>
     public IWorkDocumentKind Kind { get; }
     /// <summary>Gets the physical source layout.</summary>
@@ -422,7 +445,7 @@ public sealed partial class IWorkSourceDocument {
             if (recognizedPaths.Contains(entry.Path)
                 || !HasExpectedSignature(entry.Bytes, mediaType, cancellationToken)) continue;
             IWorkVisualCoverage coverage = mediaType == "application/pdf"
-                ? IWorkVisualCoverage.FullDocument
+                ? IWorkVisualCoverage.Unknown
                 : IWorkVisualCoverage.FirstPageOrCompositePreview;
             (int? width, int? height) = IWorkImageInfo.Read(
                 entry.Bytes, mediaType, remainingDecodedBytes, out long decodedBytes,

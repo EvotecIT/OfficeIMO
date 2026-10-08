@@ -2,22 +2,6 @@ using System;
 using System.Threading;
 namespace OfficeIMO.Drawing;
 
-internal sealed class OfficeImageMetadataSnapshot {
-    internal OfficeImageMetadataKinds Kinds { get; set; }
-    internal bool HasColorRenderingMetadata { get; set; }
-    internal byte[]? Exif { get; set; }
-    internal byte[]? Xmp { get; set; }
-    internal byte[]? Icc { get; set; }
-    internal bool HasDuplicateJpegExif { get; set; }
-    internal bool HasExtendedJpegXmp { get; set; }
-    internal bool HasDuplicateStandardJpegXmp { get; set; }
-    internal bool ExifContainsResolution { get; set; }
-    internal bool HasPhysicalResolution { get; set; }
-    internal bool HasUnitlessResolution { get; set; }
-    internal double? PhysicalDpiX { get; set; }
-    internal double? PhysicalDpiY { get; set; }
-}
-
 internal static partial class OfficeImageMetadataInspector {
     private static readonly byte[] ExifPrefix = { (byte)'E', (byte)'x', (byte)'i', (byte)'f', 0, 0 };
     private static readonly byte[] XmpPrefix = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
@@ -41,6 +25,9 @@ internal static partial class OfficeImageMetadataInspector {
         if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation) &&
             orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
         switch (format) {
+            case OfficeImageFormat.JpegXr:
+                InspectJpegXr(data, snapshot, cancellationToken);
+                break;
             case OfficeImageFormat.Jpeg:
                 InspectJpeg(data, snapshot, retainedManagedBytes, cancellationToken);
                 break;
@@ -67,7 +54,8 @@ internal static partial class OfficeImageMetadataInspector {
         byte[] data,
         OfficeImageMetadataSnapshot snapshot,
         long retainedManagedBytes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        int maximumIccBytes = OfficeRasterGuards.MaximumEncodedBytes) {
         JpegIccPart?[]? iccParts = null;
         bool invalidIccSequence = false;
         int offset = 2;
@@ -103,6 +91,12 @@ internal static partial class OfficeImageMetadataInspector {
             if (length < 2 || offset > data.Length - length) break;
             int payload = offset + 2;
             int count = length - 2;
+            if (OfficeImageReader.IsStartOfFrame((byte)marker) && count >= 6 &&
+                count == 6 + 3 * data[payload + 5]) {
+                snapshot.JpegSamplePrecision = data[payload];
+                snapshot.JpegFrameMarker = marker;
+                if (data[payload + 5] == 4) snapshot.HasDeviceCmyk = true;
+            }
             if (marker == 0xE0 && Matches(data, payload, count, "JFIF\0")) {
                 bool physical = count >= 12 && data[payload + 7] >= 1 && data[payload + 7] <= 2;
                 MarkResolution(snapshot, physical);
@@ -157,7 +151,7 @@ internal static partial class OfficeImageMetadataInspector {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!iccParts[index].HasValue) return;
                 JpegIccPart part = iccParts[index]!.Value;
-                if (part.Length > OfficeRasterGuards.MaximumEncodedBytes - length) return;
+                if (part.Length > maximumIccBytes - length) return;
                 length += part.Length;
             }
             long inspectorRetainedBytes;
@@ -185,6 +179,7 @@ internal static partial class OfficeImageMetadataInspector {
     private static void InspectPng(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
         int offset = 8;
         bool hasStandardRgb = false;
+        bool hasCanonicalCicp = false;
         bool hasGamma = false;
         bool hasStandardGamma = false;
         bool hasChromaticities = false;
@@ -194,7 +189,9 @@ internal static partial class OfficeImageMetadataInspector {
             int length = ReadBigEndian(data, offset);
             if (length < 0 || offset > data.Length - 12 - length) break;
             string type = ReadAscii(data, offset + 4, 4);
-            if (type == "eXIf") {
+            if (type == "acTL") {
+                snapshot.HasPngAnimation = true;
+            } else if (type == "eXIf") {
                 InspectExifPayload(data, offset + 8, length, snapshot, cancellationToken);
             } else if (type == "iCCP") {
                 snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
@@ -213,6 +210,7 @@ internal static partial class OfficeImageMetadataInspector {
                     data[offset + 9] == 13 &&
                     data[offset + 10] == 0 &&
                     data[offset + 11] == 1;
+                hasCanonicalCicp = canonicalSrgb;
                 if (!canonicalSrgb) snapshot.HasColorRenderingMetadata = true;
             }
             else if (type == "pHYs") {
@@ -231,11 +229,14 @@ internal static partial class OfficeImageMetadataInspector {
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
         }
+        snapshot.HasOtherPngColorRenderingMetadata = snapshot.HasColorRenderingMetadata;
         // Matching gAMA/cHRM values alone do not declare the exact sRGB transfer
         // function. The decoder leaves those chunks unapplied, so classification
         // can only use the original bytes when an sRGB declaration is present.
-        if ((hasGamma || hasChromaticities) &&
-            (!hasStandardRgb || hasGamma && !hasStandardGamma || hasChromaticities && !hasStandardChromaticities)) {
+        // A recognized canonical cICP declaration has precedence over gAMA/cHRM.
+        snapshot.HasNonSrgbPngCalibration = (hasGamma || hasChromaticities) &&
+            (!hasStandardRgb || hasGamma && !hasStandardGamma || hasChromaticities && !hasStandardChromaticities);
+        if (!hasCanonicalCicp && snapshot.HasNonSrgbPngCalibration) {
             snapshot.HasColorRenderingMetadata = true;
         }
     }
@@ -328,6 +329,7 @@ internal static partial class OfficeImageMetadataInspector {
                 SetPhysicalResolution(snapshot, resolutionX.Value * scale, resolutionY.Value * scale, overwrite: true);
             }
         }
+        snapshot.HasDeviceCmyk = photometricInterpretation == 5;
         bool hasTiffColorimetry = transferFunctionEntry >= 0 || whitePointEntry >= 0 || primaryChromaticitiesEntry >= 0;
         if (hasTiffColorimetry && !IsCanonicalSrgbTiffColorimetry(
                 data,

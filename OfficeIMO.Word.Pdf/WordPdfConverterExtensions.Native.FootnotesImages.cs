@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -11,19 +10,26 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, Dictionary<long, int> footnoteNumbersById) {
+        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, NativeNoteNumbering footnoteNumbersById,
+            List<PdfFootnote> documentEndnotes) {
             var footnotes = new List<PdfFootnote>();
             foreach (WordElement element in elements) {
                 CollectNativeFootnotes(element, footnotes, footnoteNumbersById, structuredDocumentTagDepth: 0, tableDepth: 0);
             }
 
-            return footnotes;
+            if (!footnoteNumbersById.EndnotesAtDocumentEnd) return footnotes;
+            var sectionNotes = new List<PdfFootnote>(footnotes.Count);
+            foreach (PdfFootnote note in footnotes) {
+                if (note.IsEndnote) documentEndnotes.Add(note);
+                else sectionNotes.Add(note);
+            }
+            return sectionNotes;
         }
 
         private static void CollectNativeFootnotes(
             WordElement element,
             List<PdfFootnote> footnotes,
-            Dictionary<long, int> footnoteNumbersById,
+            NativeNoteNumbering footnoteNumbersById,
             int structuredDocumentTagDepth,
             int tableDepth) {
             switch (element) {
@@ -97,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFootnote(WordFootNote footNote, List<PdfFootnote> footnotes, Dictionary<long, int> footnoteNumbersById) {
+        private static void AddNativeFootnote(WordFootNote footNote, List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
             long? referenceId = footNote.ReferenceId;
             if (!referenceId.HasValue || referenceId.Value == 0) {
                 return;
@@ -108,15 +114,13 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnoteNumbersById.Keys.Count(key => key > 0) + 1;
-            footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
-                Number = number,
+                Label = footnoteNumbersById.Add(key, endnote: false),
                 Text = GetNativeFootnoteText(footNote)
             });
         }
 
-        private static void AddNativeEndnote(WordEndNote endNote, List<PdfFootnote> footnotes, Dictionary<long, int> footnoteNumbersById) {
+        private static void AddNativeEndnote(WordEndNote endNote, List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
             long? referenceId = endNote.ReferenceId;
             if (!referenceId.HasValue || referenceId.Value == 0) {
                 return;
@@ -127,11 +131,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnoteNumbersById.Keys.Count(key => key < 0) + 1;
-            footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
-                Number = number,
-                Text = GetNativeEndnoteText(endNote)
+                Label = footnoteNumbersById.Add(key, endnote: true),
+                Text = GetNativeEndnoteText(endNote),
+                IsEndnote = true
             });
         }
 
@@ -157,11 +160,12 @@ namespace OfficeIMO.Word.Pdf {
             return string.Join(" ", parts);
         }
 
-        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById) {
+        private static IReadOnlyList<int> GetNativeFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, NativeNoteNumbering footnoteNumbersById, HashSet<long>? seenKeys = null) {
             var numbers = new List<int>();
+            seenKeys ??= new HashSet<long>();
             for (int i = index + 1; i < elements.Count && (elements[i] is WordFootNote || elements[i] is WordEndNote); i++) {
                 long? key = GetNativeNoteKey(elements[i]);
-                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number)) {
+                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number) && seenKeys.Add(key.Value)) {
                     numbers.Add(number);
                 }
             }
@@ -169,26 +173,34 @@ namespace OfficeIMO.Word.Pdf {
             return numbers;
         }
 
-        private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, Dictionary<long, int> footnoteNumbersById) {
-            var numbers = new List<int>(followingFootnoteNumbers);
-            AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById);
+        private static List<int> GetNativeParagraphFootnoteNumbers(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, IReadOnlyList<int> followingFootnoteNumbers, NativeNoteNumbering footnoteNumbersById) {
+            var numbers = new List<int>();
+            var seenKeys = new HashSet<long>();
+            AddNativeParagraphFootnoteNumber(paragraph, numbers, footnoteNumbersById, seenKeys);
             foreach (WordParagraph run in runs) {
-                AddNativeParagraphFootnoteNumber(run, numbers, footnoteNumbersById);
+                AddNativeParagraphFootnoteNumber(run, numbers, footnoteNumbersById, seenKeys);
             }
 
-            return numbers.Distinct().ToList();
+            // Paragraph and traversal wrappers can expose the same reference twice.
+            // Tokens retain identity even when displayed labels repeat.
+            var unmatched = numbers.GroupBy(number => number).ToDictionary(group => group.Key, group => group.Count());
+            foreach (int number in followingFootnoteNumbers) {
+                if (unmatched.TryGetValue(number, out int count) && count > 0) unmatched[number] = count - 1;
+                else numbers.Add(number);
+            }
+            return numbers;
         }
 
-        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, Dictionary<long, int> footnoteNumbersById) {
+        private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<long> seenKeys) {
             WordFootNote? footNote = paragraph.FootNote;
             long? footnoteKey = footNote?.ReferenceId.HasValue == true && footNote.ReferenceId.Value != 0 ? GetNativeFootnoteKey(footNote.ReferenceId.Value) : null;
-            if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number)) {
+            if (footnoteKey.HasValue && footnoteNumbersById.TryGetValue(footnoteKey.Value, out int number) && seenKeys.Add(footnoteKey.Value)) {
                 numbers.Add(number);
             }
 
             WordEndNote? endNote = paragraph.EndNote;
             long? endnoteKey = endNote?.ReferenceId.HasValue == true && endNote.ReferenceId.Value != 0 ? GetNativeEndnoteKey(endNote.ReferenceId.Value) : null;
-            if (endnoteKey.HasValue && footnoteNumbersById.TryGetValue(endnoteKey.Value, out number)) {
+            if (endnoteKey.HasValue && footnoteNumbersById.TryGetValue(endnoteKey.Value, out number) && seenKeys.Add(endnoteKey.Value)) {
                 numbers.Add(number);
             }
         }
@@ -217,7 +229,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (PdfFootnote footnote in footnotes) {
                 pdf.Paragraph(builder => {
                     builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
-                    builder.Text(footnote.Number.ToString(CultureInfo.InvariantCulture));
+                    builder.Text(footnote.Label);
                     builder.Baseline(PdfCore.PdfTextBaseline.Normal);
                     if (!string.IsNullOrWhiteSpace(footnote.Text)) {
                         builder.Text(" ");
@@ -227,13 +239,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordToPdfOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null) {
             if (image == null) {
-                return;
+                return false;
             }
 
             if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) {
-                return;
+                return false;
             }
 
             if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
@@ -245,7 +257,7 @@ namespace OfficeIMO.Word.Pdf {
                         "Word image was not exported because the shared PDF raster pipeline could not prepare it. " + unsupportedReason);
                 }
 
-                return;
+                return false;
             }
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
@@ -269,12 +281,13 @@ namespace OfficeIMO.Word.Pdf {
                     zOrder: image.ZOrder);
                 if (anchoredCanvas == null)
                     anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(canvas.Items);
-                return;
+                return false;
             }
             if (image.WrapText == WordImageTextWrapping.InFrontOfText && options != null)
                 AddNativeExportWarning(options, "NativeAnchoredImageFlowed", source,
                     "The image's anchor, clipping, rotation, or page bounds are outside the fixed-placement export contract; it was placed in document flow.");
-            pdf.Image(preparedBytes, width, height, align);
+            RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align));
+            return true;
         }
 
         private static bool TryGetNativeBodyImageBytes(WordImage image, WordToPdfOptions? options, string source, out byte[] bytes) {

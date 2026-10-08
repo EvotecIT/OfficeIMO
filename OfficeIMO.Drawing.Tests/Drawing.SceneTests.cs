@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -60,6 +61,47 @@ public class DrawingSceneTests {
         Assert.Empty(report.Issues);
     }
 
+    [Theory]
+    [InlineData(10, false)]
+    [InlineData(190, true)]
+    public void DrawingQualityMeasuresEffectContentsInsteadOfTransparentBuffer(double translation, bool overflow) {
+        var contents = new OfficeDrawing(200, 200).AddShape(OfficeShape.Rectangle(20, 20), 10, 10);
+        var drawing = new OfficeDrawing(200, 200).AddEffectDrawing(contents, OfficeTransform.Translate(translation, 0));
+        var report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
+        if (overflow) {
+            var issue = Assert.Single(report.Issues);
+            Assert.Equal(OfficeDrawingQualityIssueKind.ElementOutsideBounds, issue.Kind);
+            Assert.Equal(0, issue.ElementIndex);
+        } else Assert.Empty(report.Issues);
+    }
+
+    [Fact]
+    public void DrawingQualityComposesNestedEffectsAndIgnoresEmptyBuffers() {
+        var leaf = new OfficeDrawing(200, 200).AddShape(OfficeShape.Rectangle(20, 20), 10, 10);
+        var group = new OfficeDrawing(300, 300).AddEffectDrawing(leaf, OfficeTransform.Scale(2, 2));
+        var drawing = new OfficeDrawing(100, 100)
+            .AddEffectDrawing(group, OfficeTransform.Translate(5, 5))
+            .AddEffectDrawing(new OfficeDrawing(500, 500), OfficeTransform.Translate(-100, -100));
+        Assert.Empty(OfficeDrawingQualityAnalyzer.Analyze(drawing).Issues);
+    }
+
+    [Theory]
+    [InlineData(5, true)]
+    [InlineData(60, false)]
+    public void DrawingQualityRetainsTransformedTextOverlapAndRootIndices(double translation, bool overlap) {
+        var contents = new OfficeDrawing(200, 200).AddText("Inside", 4, 4, 20, 10);
+        var drawing = new OfficeDrawing(100, 100)
+            .AddEffectDrawing(contents, OfficeTransform.Translate(translation, 5))
+            .AddText("Outside", 10, 10, 20, 10);
+        var report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
+        if (overlap) {
+            var issue = Assert.Single(report.Issues);
+            Assert.Equal(OfficeDrawingQualityIssueKind.TextOverlap, issue.Kind);
+            Assert.Equal(0, issue.ElementIndex);
+            Assert.Equal(1, issue.RelatedElementIndex);
+        } else Assert.Empty(report.Issues);
+    }
+
     [Fact]
     public void OfficeDrawingQualityAnalyzerReportsOverlappingTextBoxes() {
         var drawing = new OfficeDrawing(160, 80)
@@ -75,5 +117,20 @@ public class DrawingSceneTests {
         Assert.Equal(1, issue.RelatedElementIndex);
         Assert.Contains("Revenue", issue.Message);
         Assert.Contains("Target", issue.Message);
+    }
+
+    [Fact]
+    public void OfficeDrawingQualityAnalyzerBoundsCoincidentTextDiagnostics() {
+        var drawing = new OfficeDrawing(160, 80);
+        for (int index = 0; index < 100; index++)
+            drawing.AddText("Point", 12, 12, 70, 16);
+
+        Assert.Throws<NotSupportedException>(() => OfficeDrawingQualityAnalyzer.Analyze(drawing));
+    }
+
+    [Fact]
+    public void ChartLayoutRejectsSeparatorCopiedIntoEveryPointBeyondLimit() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartLayout(
+            dataLabelSeparator: new string('x', OfficeChartLayout.MaximumDataLabelSeparatorCharacters + 1)));
     }
 }

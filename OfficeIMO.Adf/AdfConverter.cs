@@ -11,7 +11,10 @@ public static class AdfConverter {
         AdfDocument document,
         AdfConversionOptions? options = null) {
         AdfConversionResult<string> result = ToMarkdown(document, options);
-        return new AdfConversionResult<MarkdownDoc>(MarkdownReader.Parse(result.Value), result.Report.Diagnostics);
+        options ??= new AdfConversionOptions();
+        MarkdownDoc value = MarkdownReader.Parse(result.Value, new MarkdownReaderOptions { MaxInputCharacters = options.MaxOutputCharacters, MaxNestingDepth = options.MaxDepth });
+        options.CancellationToken.ThrowIfCancellationRequested();
+        return new AdfConversionResult<MarkdownDoc>(value, result.Report.Diagnostics);
     }
 
     /// <summary>Converts an ADF document to Markdown text.</summary>
@@ -19,8 +22,11 @@ public static class AdfConverter {
         AdfDocument document,
         AdfConversionOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        options ??= new AdfConversionOptions();
+        AdfGraphSafety.EnsureSafe(document, options);
         var diagnostics = new List<AdfConversionDiagnostic>();
-        string markdown = AdfToMarkdownConverter.Convert(document, options ?? new AdfConversionOptions(), diagnostics);
+        string markdown = AdfToMarkdownConverter.Convert(document, options, diagnostics);
+        AdfGraphGuard.Output(markdown, options);
         return new AdfConversionResult<string>(markdown, diagnostics);
     }
 
@@ -37,29 +43,62 @@ public static class AdfConverter {
             "$",
             "ADF is projected through the OfficeIMO Markdown model before HTML rendering.",
             AdfConversionSeverity.Warning));
-        return new AdfConversionResult<string>(result.Value.ToHtmlFragment(htmlOptions), diagnostics);
+        string html = result.Value.ToHtmlFragment(htmlOptions);
+        AdfGraphGuard.Output(html, options ?? new AdfConversionOptions());
+        return new AdfConversionResult<string>(html, diagnostics);
     }
 
     /// <summary>Converts Markdown text to ADF.</summary>
     public static AdfConversionResult<AdfDocument> FromMarkdown(string markdown) {
+        return FromMarkdown(markdown, new AdfConversionOptions());
+    }
+
+    /// <summary>Converts Markdown text with resource limits, cancellation, task identities and destination validation.</summary>
+    public static AdfConversionResult<AdfDocument> FromMarkdown(string markdown, AdfConversionOptions options) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        return FromMarkdown(MarkdownReader.Parse(markdown));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        AdfGraphGuard.Input(markdown, options);
+        return FromMarkdown(MarkdownReader.Parse(markdown, new MarkdownReaderOptions { MaxInputCharacters = Math.Max(1, markdown.Length), MaxNestingDepth = options.MaxDepth }), options);
     }
 
     /// <summary>Converts an OfficeIMO Markdown document to ADF.</summary>
     public static AdfConversionResult<AdfDocument> FromMarkdown(MarkdownDoc markdown) {
+        return FromMarkdown(markdown, new AdfConversionOptions());
+    }
+
+    /// <summary>Converts a Markdown document with caller-configured task identity generation.</summary>
+    public static AdfConversionResult<AdfDocument> FromMarkdown(MarkdownDoc markdown, AdfConversionOptions options) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        AdfGraphGuard.CheckMarkdown(markdown, options);
         var diagnostics = new List<AdfConversionDiagnostic>();
-        AdfDocument value = MarkdownToAdfConverter.Convert(markdown, diagnostics);
+        AdfDocument value = MarkdownToAdfConverter.Convert(markdown, diagnostics, options);
+        AdfGraphSafety.EnsureSafe(value, options);
+        if (options.DestinationValidation != null) {
+            AdfValidationResult validation = value.Validate(options.DestinationValidation, options.CancellationToken);
+            foreach (AdfValidationIssue issue in validation.Issues) {
+                AdfConversionSeverity severity = issue.Severity == AdfValidationSeverity.Error ? AdfConversionSeverity.Error :
+                    issue.Severity == AdfValidationSeverity.Warning ? AdfConversionSeverity.Warning : AdfConversionSeverity.Information;
+                diagnostics.Add(new AdfConversionDiagnostic(issue.Code, issue.Path, issue.Message, severity));
+            }
+        }
         return new AdfConversionResult<AdfDocument>(value, diagnostics);
     }
 
     /// <summary>Converts HTML to ADF through OfficeIMO.Html and OfficeIMO.Markdown.Html.</summary>
     /// <remarks>The report always includes a warning for the intermediate Markdown projection.</remarks>
     public static AdfConversionResult<AdfDocument> FromHtml(string html, HtmlToMarkdownOptions? options = null) {
+        return FromHtml(html, options, new AdfConversionOptions());
+    }
+
+    /// <summary>Converts HTML to ADF with caller-configured task identities and destination validation.</summary>
+    /// <remarks>The report includes the intermediate Markdown projection and any destination validation issues.</remarks>
+    public static AdfConversionResult<AdfDocument> FromHtml(string html, HtmlToMarkdownOptions? options, AdfConversionOptions adfOptions) {
         if (html == null) throw new ArgumentNullException(nameof(html));
+        if (adfOptions == null) throw new ArgumentNullException(nameof(adfOptions));
+        AdfGraphGuard.Input(html, adfOptions);
         MarkdownDoc markdown = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
-        AdfConversionResult<AdfDocument> result = FromMarkdown(markdown);
+        AdfConversionResult<AdfDocument> result = FromMarkdown(markdown, adfOptions);
         var diagnostics = result.Report.Diagnostics.ToList();
         diagnostics.Insert(0, new AdfConversionDiagnostic(
             "ADF_HTML_VIA_MARKDOWN",

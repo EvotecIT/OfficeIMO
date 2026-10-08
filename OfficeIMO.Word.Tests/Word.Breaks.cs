@@ -120,10 +120,10 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph();
                 var contentControl = new SdtRun(
                     new SdtContentRun(
-                        new Run(new Text("Visible ")),
+                        new Run(new Text("Visible ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                     new DeletedRun(new Run(new Text("Deleted "))) { Id = "1", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
                     new MoveFromRun(new Run(new Text("MovedFrom "))) { Id = "2", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
-                    new InsertedRun(new Run(new Text("Inserted "))) { Id = "3", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
+                    new InsertedRun(new Run(new Text("Inserted ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) { Id = "3", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
                         new MoveToRun(new Run(new Text("MovedTo"))) { Id = "4", Author = "OfficeIMO Tests", Date = DateTime.UtcNow }));
                 paragraph._paragraph.Append(contentControl);
 

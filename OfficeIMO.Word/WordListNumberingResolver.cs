@@ -14,6 +14,26 @@ internal static class WordListNumberingResolver {
     private static readonly ConditionalWeakTable<MainDocumentPart, CachedStyleCatalog> StyleCatalogs = new();
     private static readonly ConditionalWeakTable<Numbering, NumberingRevision> NumberingRevisions = new();
 
+    /// <summary>
+    /// Resolves abstract IDs to the first definition with the same authored numbering identity.
+    /// Definitions without an identity remain independent; source XML is preserved.
+    /// </summary>
+    internal static Dictionary<int, AbstractNum> GetCanonicalAbstractDefinitions(Numbering numbering) {
+        var definitions = new Dictionary<int, AbstractNum>();
+        var identities = new Dictionary<string, AbstractNum>(StringComparer.OrdinalIgnoreCase);
+        foreach (AbstractNum definition in numbering.Elements<AbstractNum>()) {
+            if (definition.AbstractNumberId?.Value is not int id || definitions.ContainsKey(id)) continue;
+            AbstractNum canonical = definition;
+            string? identity = definition.Nsid?.Val?.Value;
+            if (!string.IsNullOrEmpty(identity)) {
+                if (identities.TryGetValue(identity!, out AbstractNum? first)) canonical = first;
+                else identities.Add(identity!, definition);
+            }
+            definitions.Add(id, canonical);
+        }
+        return definitions;
+    }
+
     private sealed class NumberingRevision {
         internal int Value;
     }
@@ -49,10 +69,7 @@ internal static class WordListNumberingResolver {
             ListDefinitions = WordDocumentTraversal.BuildListNumberingDefinitions(mainPart);
             Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
             if (numbering == null) return;
-            Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
-                .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
-                .GroupBy(abstractNum => abstractNum.AbstractNumberId!.Value)
-                .ToDictionary(group => group.Key, group => group.First());
+            Dictionary<int, AbstractNum> abstracts = GetCanonicalAbstractDefinitions(numbering);
             foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
                 if (instance.NumberID?.Value is not int numberId ||
                     instance.AbstractNumId?.Val?.Value is not int abstractId ||

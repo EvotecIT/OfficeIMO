@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             HeaderPart headerPart = GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, kind);
-            return ReadSimpleHeaderFooterStory(headerPart.Header, headerPart, pictures, kind, styleIndexes);
+            return ReadSimpleHeaderFooterStory(headerPart.Header, headerPart, pictures, kind, styleIndexes, mainPart);
         }
 
         private static LegacyDocWritableHeaderFooterStory? ReadFooterStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes) {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             FooterPart footerPart = GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, kind);
-            return ReadSimpleHeaderFooterStory(footerPart.Footer, footerPart, pictures, kind, styleIndexes);
+            return ReadSimpleHeaderFooterStory(footerPart.Footer, footerPart, pictures, kind, styleIndexes, mainPart);
         }
 
         private static TPart GetReferencedPart<TPart>(MainDocumentPart mainPart, string? relationshipId, string kind)
@@ -206,7 +206,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return GetHeaderFooterDescription(type, kind);
         }
 
-        private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, MainDocumentPart mainPart) {
             if (container == null || !container.HasChildren) {
                 return LegacyDocWritableHeaderFooterStory.Empty;
             }
@@ -217,11 +217,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             foreach (OpenXmlElement child in container.ChildElements) {
-                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, pictures, kind, styleIndexes);
+                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, pictures, kind, styleIndexes, mainPart);
             }
 
             bool hasVisibleText = paragraphs.Any(paragraph => paragraph.Length > 0);
-            if (!hasVisibleText && !bookmarks.HasBookmarkMarkers) {
+            if (!hasVisibleText && !container.Descendants<Table>().Any() && !bookmarks.HasBookmarkMarkers) {
                 return LegacyDocWritableHeaderFooterStory.Empty;
             }
 
@@ -239,13 +239,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             string kind,
-            IReadOnlyDictionary<string, ushort> styleIndexes) {
+            IReadOnlyDictionary<string, ushort> styleIndexes,
+            MainDocumentPart mainPart) {
             switch (child) {
+                case Table table:
+                    AppendTable(storyText, formattedRuns, formattedParagraphs, bookmarks, table,
+                        mainPart, pictures, styleIndexes, ReadTableStyleDefinitions(mainPart),
+                        LegacyDocWritableFootnotes.Empty, LegacyDocWritableEndnotes.Empty,
+                        relationshipOwner: relationshipOwner);
+                    break;
                 case Paragraph paragraph:
                     AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, pictures, kind, styleIndexes);
                     break;
                 case SdtBlock sdtBlock:
-                    AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, pictures, kind, styleIndexes);
+                    AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, pictures, kind, styleIndexes, mainPart);
                     break;
                 case BookmarkStart bookmarkStart:
                     bookmarks.AddStart(bookmarkStart, storyText.Length);
@@ -254,7 +261,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks.AddEnd(bookmarkEnd, storyText.Length);
                     break;
                 default:
-                    throw new NotSupportedException($"Native DOC saving currently supports only text paragraphs, content controls, and bookmarks in {kind}s. Unsupported {kind} element: {child.LocalName}.");
+                    throw new NotSupportedException($"Native DOC saving currently supports text paragraphs, tables, content controls, and bookmarks in {kind}s. Unsupported {kind} element: {child.LocalName}.");
             }
         }
 
@@ -268,14 +275,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             string kind,
-            IReadOnlyDictionary<string, ushort> styleIndexes) {
+            IReadOnlyDictionary<string, ushort> styleIndexes,
+            MainDocumentPart mainPart) {
             SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
             if (contentBlock == null) {
                 throw new NotSupportedException($"Native DOC saving supports {kind} content controls only when they contain simple paragraphs.");
             }
 
             foreach (OpenXmlElement child in contentBlock.ChildElements) {
-                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, pictures, kind, styleIndexes);
+                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, pictures, kind, styleIndexes, mainPart);
             }
         }
 
@@ -303,7 +311,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
             var text = new StringBuilder();
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedHeaderFooterParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
             for (int index = 0; index < children.Length; index++) {
                 OpenXmlElement child = children[index];
@@ -356,23 +364,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             paragraphText = text.ToString();
             return paragraphFormatting;
-        }
-
-        private static LegacyDocWritableParagraphFormatting ReadSupportedHeaderFooterParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) {
-            ParagraphStyleId? paragraphStyleId = paragraphProperties?.GetFirstChild<ParagraphStyleId>();
-            string? styleId = paragraphStyleId?.Val?.Value;
-            if (!IsHeaderFooterParagraphStyle(styleId)) {
-                return ReadSupportedParagraphFormatting(paragraphProperties, styleIndexes);
-            }
-
-            ParagraphProperties clonedProperties = (ParagraphProperties)paragraphProperties!.CloneNode(true);
-            clonedProperties.RemoveAllChildren<ParagraphStyleId>();
-            return ReadSupportedParagraphFormatting(clonedProperties, styleIndexes);
-        }
-
-        private static bool IsHeaderFooterParagraphStyle(string? styleId) {
-            return string.Equals(styleId, "Header", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(styleId, "Footer", StringComparison.OrdinalIgnoreCase);
         }
 
         private static void AppendFormattedHeaderFooterHyperlink(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableBookmarksBuilder bookmarks, Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner, string kind) {

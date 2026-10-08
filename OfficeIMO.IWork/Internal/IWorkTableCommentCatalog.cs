@@ -77,9 +77,7 @@ internal sealed class IWorkTableCommentCatalog(IWorkSourceDocument source, IWork
             references.Declarations.Record(record, "2", message.FieldCount(2), IWorkSourceDeclarationIssueKind.InvalidValue);
             return null;
         }
-        DateTime timestamp;
-        try { timestamp = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(seconds.Value); }
-        catch (ArgumentOutOfRangeException) {
+        if (!IWorkDateTime.TryFromAppleSeconds(seconds.Value, out DateTime timestamp)) {
             references.Declarations.Record(record, "2", message.FieldCount(2), IWorkSourceDeclarationIssueKind.InvalidValue);
             return null;
         }

@@ -367,6 +367,7 @@ public static partial class ReaderHierarchicalChunker {
         return new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
+            LogicalOrder = source.LogicalOrder,
             SourceBlockIndex = source.SourceBlockIndex,
             StartLine = source.StartLine,
             EndLine = source.EndLine,

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Internal;
 using OfficeIMO.Provenance;
 using static OfficeIMO.Workflows.OfficeProvenanceWorkflowAdapter;
 
@@ -63,6 +64,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             Report(progress, validated.Id, "validate", "Validating provenance input and limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
             failureStage = WorkflowFailureStage.Input;
+            if (request.AuditRootPhysicalPath != null &&
+                (!OfficePathIdentity.IsSameOrDescendant(validated.InputPath, request.AuditRootPhysicalPath) ||
+                 request.AuditRootIdentity != null &&
+                 !string.Equals(OfficePathIdentity.GetPhysicalIdentityKey(request.AuditRootPhysicalPath),
+                     request.AuditRootIdentity, StringComparison.Ordinal)))
+                throw new InvalidDataException("The audited input moved outside its selected root.");
             inputBytes = new FileInfo(validated.InputPath).Length;
             long operationInputLimit = GetOperationInputLimit(validated);
             EnforceInputLimit(validated.InputPath, inputBytes, operationInputLimit);
@@ -70,7 +77,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             inputSnapshot = OfficeProvenanceFileSnapshot.Capture(
                 validated.InputPath,
                 operationInputLimit,
-                cancellationToken);
+                cancellationToken,
+                request.AuditRootPhysicalPath,
+                request.AuditRootIdentity);
             inputSnapshot.SealForProviderAccess();
             string operationInputPath = inputSnapshot.FilePath;
             inputBytes = inputSnapshot.Length;
@@ -170,7 +179,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                             OfficeProvenanceAssessment.Check.TextIntegrity => checks with { TextIntegrity = state },
                             OfficeProvenanceAssessment.Check.Verification => checks with { Verification = state },
                             _ => checks with { ProviderSignals = state }
-                        }),
+                        }, validated.Owner == ProvenanceOwner.Word
+                            ? () => OfficeProvenanceWorkflowAdapter.InspectDocumentText(validated.Owner,
+                                operationInputPath, validated.Assessment, structural.ExpandedInspectionBytes, cancellationToken)
+                            : null),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 inputSnapshot!.VerifyPrimaryFile(cancellationToken);

@@ -37,7 +37,7 @@ public sealed class OdsAnnotation {
 
     /// <summary>Plain annotation body with ODF spaces, tabs, and line breaks decoded.</summary>
     public string Text {
-        get => string.Join("\n", ReadTextBlocks(_element));
+        get => OdfTextCodec.JoinBounded(ReadTextBlocks(_element));
         set {
             if (value == null) throw new ArgumentNullException(nameof(value));
             _element.Elements().Where(IsAnnotationTextBlock).Remove();

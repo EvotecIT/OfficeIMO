@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight = 0D;
         for (int index = 0; index < partitions.Count; index++) {
             MultiColumnSpanPartition partition = partitions[index];
-            IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(
+            IReadOnlyList<HtmlRenderFlowBlock> children = BuildMultiColumnChildBlocks(
                 element,
                 partition.Nodes,
                 columnWidth,
@@ -170,7 +170,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = fragment.Column * (columnWidth + gap);
             double y = offsetY + fragment.Y;
-            IReadOnlyList<HtmlRenderVisual> fragmentVisuals = SliceBlockVisuals(fragment.Block, fragment.Start, fragment.End);
+            IReadOnlyList<HtmlRenderVisual> fragmentVisuals = SliceColumnFragmentVisuals(fragment);
             foreach (HtmlRenderVisual visual in fragmentVisuals) {
                 visuals.Add(visual.Translate(x, y, visuals.Count));
             }

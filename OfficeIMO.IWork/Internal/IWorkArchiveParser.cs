@@ -4,8 +4,9 @@ namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkObjectIndex {
     private readonly Dictionary<ulong, IWorkArchiveRecord> _objects;
-    private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages = new();
-    private readonly object _messageLock = new();
+    private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages;
+    private readonly Dictionary<IWorkArchiveRecord, InvalidDataException> _malformedMessages;
+    private readonly object _messageLock;
     private readonly IWorkReadOptions _options;
     private readonly CancellationToken _cancellationToken;
 
@@ -13,6 +14,9 @@ internal sealed class IWorkObjectIndex {
         CancellationToken cancellationToken = default) {
         _options = options;
         _cancellationToken = cancellationToken;
+        _messages = new();
+        _malformedMessages = new();
+        _messageLock = new();
         _objects = new Dictionary<ulong, IWorkArchiveRecord>();
         foreach (IWorkArchiveRecord record in records) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -25,15 +29,34 @@ internal sealed class IWorkObjectIndex {
         }
     }
 
+    private IWorkObjectIndex(IWorkObjectIndex source, CancellationToken cancellationToken) {
+        _objects = source._objects;
+        _messages = source._messages;
+        _malformedMessages = source._malformedMessages;
+        _messageLock = source._messageLock;
+        _options = source._options;
+        _cancellationToken = cancellationToken;
+    }
+
+    internal IWorkObjectIndex WithCancellation(CancellationToken cancellationToken) =>
+        new(this, cancellationToken);
+
     internal IEnumerable<IWorkArchiveRecord> PrimaryRecords => _objects.Values;
 
     internal IWorkWireMessage Message(IWorkArchiveRecord record) {
         _cancellationToken.ThrowIfCancellationRequested();
         lock (_messageLock) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (_messages.TryGetValue(record, out IWorkWireMessage? cached)) return cached;
-            IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
-            _messages.Add(record, parsed);
-            return parsed;
+            if (_malformedMessages.TryGetValue(record, out InvalidDataException? malformed)) throw malformed;
+            try {
+                IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
+                _messages.Add(record, parsed);
+                return parsed;
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+                _malformedMessages.Add(record, exception);
+                throw;
+            }
         }
     }
 
@@ -83,8 +106,9 @@ internal sealed class IWorkObjectIndex {
         out int unresolvedReferenceCount) => DereferenceAll(message, field, out unresolvedReferenceCount, out _);
 
     internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
-        out int unresolvedReferenceCount, out bool rejectedReferenceSet) {
+        out int unresolvedReferenceCount, out bool rejectedReferenceSet, List<int>? resolvedPositions = null) {
         var result = new List<IWorkArchiveRecord>();
+        resolvedPositions?.Clear();
         unresolvedReferenceCount = 0;
         IReadOnlyList<IWorkWireMessage> references = TryGetMessages(message, field, out bool malformed);
         rejectedReferenceSet = malformed;
@@ -92,7 +116,9 @@ internal sealed class IWorkObjectIndex {
             unresolvedReferenceCount = message.FieldCount(field);
             return result;
         }
+        int position = 0;
         foreach (IWorkWireMessage reference in references) {
+            position++;
             if (reference.FieldCount(1) != 1
                 || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
                 unresolvedReferenceCount++;
@@ -101,6 +127,7 @@ internal sealed class IWorkObjectIndex {
             ulong? identifier = reference.GetUnsigned(1);
             if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) {
                 result.Add(record);
+                resolvedPositions?.Add(position);
             } else {
                 unresolvedReferenceCount++;
             }

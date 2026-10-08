@@ -8,7 +8,8 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderTable(PdfCore.PdfDocument pdf, TableBlock table, MarkdownPdfStyle visualTheme) {
+    private static void RenderTable(PdfCore.PdfDocument pdf, TableBlock table, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        RenderCaption(pdf, table.Attributes.GetAttribute("caption"), visualTheme.FigureStyleSnapshot);
         int columnCount = GetMarkdownTableColumnCount(table);
         if (columnCount == 0) {
             return;
@@ -19,19 +20,19 @@ public static partial class MarkdownPdfConverterExtensions {
         bool useStructuredCells = hasSpans || TableHasCellTextStyles(table);
         if (table.Headers.Count > 0) {
             rows.Add(useStructuredCells
-                ? CreateTableRow(table.HeaderCells, columnCount, visualTheme, preserveSpans: hasSpans)
-                : CreateTableRow(table.HeaderInlines, columnCount, visualTheme));
+                ? CreateTableRow(table.HeaderCells, columnCount, visualTheme, options.Anchors, preserveSpans: hasSpans)
+                : CreateTableRow(table.HeaderInlines, columnCount, visualTheme, options.Anchors));
         }
 
         if (useStructuredCells) {
             IReadOnlyList<IReadOnlyList<TableCell>> bodyCells = table.RowCells;
             for (int rowIndex = 0; rowIndex < bodyCells.Count; rowIndex++) {
-                rows.Add(CreateTableRow(bodyCells[rowIndex], columnCount, visualTheme, preserveSpans: hasSpans));
+                rows.Add(CreateTableRow(bodyCells[rowIndex], columnCount, visualTheme, options.Anchors, preserveSpans: hasSpans));
             }
         } else {
             IReadOnlyList<IReadOnlyList<InlineSequence>> bodyRows = table.RowInlines;
             for (int rowIndex = 0; rowIndex < bodyRows.Count; rowIndex++) {
-                rows.Add(CreateTableRow(bodyRows[rowIndex], columnCount, visualTheme));
+                rows.Add(CreateTableRow(bodyRows[rowIndex], columnCount, visualTheme, options.Anchors));
             }
         }
 
@@ -273,8 +274,8 @@ public static partial class MarkdownPdfConverterExtensions {
         return true;
     }
 
-    private static InlineStyle CreateTableCellInlineStyle(TableCell cell, MarkdownPdfStyle visualTheme) {
-        InlineStyle style = CreateInlineStyle(visualTheme).With(
+    private static InlineStyle CreateTableCellInlineStyle(TableCell cell, MarkdownPdfStyle visualTheme, AnchorContext? anchors) {
+        InlineStyle style = CreateInlineStyle(visualTheme, anchors).With(
             bold: cell.Bold ? true : null,
             italic: cell.Italic ? true : null,
             underline: cell.Underline ? true : null,
@@ -389,11 +390,11 @@ public static partial class MarkdownPdfConverterExtensions {
         };
     }
 
-    private static PdfCore.PdfTableCell[] CreateTableRow(IReadOnlyList<InlineSequence> cells, int columnCount, MarkdownPdfStyle visualTheme) {
+    private static PdfCore.PdfTableCell[] CreateTableRow(IReadOnlyList<InlineSequence> cells, int columnCount, MarkdownPdfStyle visualTheme, AnchorContext? anchors) {
         var row = new PdfCore.PdfTableCell[columnCount];
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             InlineSequence? sequence = columnIndex < cells.Count ? cells[columnIndex] : null;
-            IReadOnlyList<PdfTextRun> runs = sequence == null ? Array.Empty<PdfTextRun>() : ToTextRuns(sequence, CreateInlineStyle(visualTheme));
+            IReadOnlyList<PdfTextRun> runs = sequence == null ? Array.Empty<PdfTextRun>() : ToTextRuns(sequence, CreateInlineStyle(visualTheme, anchors));
             row[columnIndex] = runs.Count == 0
                 ? PdfCore.PdfTableCell.TextCell(string.Empty)
                 : PdfCore.PdfTableCell.RichTextCell(runs);
@@ -402,13 +403,13 @@ public static partial class MarkdownPdfConverterExtensions {
         return row;
     }
 
-    private static PdfCore.PdfTableCell[] CreateTableRow(IReadOnlyList<TableCell> cells, int columnCount, MarkdownPdfStyle visualTheme, bool preserveSpans) {
+    private static PdfCore.PdfTableCell[] CreateTableRow(IReadOnlyList<TableCell> cells, int columnCount, MarkdownPdfStyle visualTheme, AnchorContext? anchors, bool preserveSpans) {
         var row = new List<PdfCore.PdfTableCell>();
         int meaningfulCount = preserveSpans ? GetMeaningfulCellCount(cells) : cells.Count;
         int logicalColumn = 0;
         for (int cellIndex = 0; cellIndex < meaningfulCount && logicalColumn < columnCount; cellIndex++) {
             TableCell cell = cells[cellIndex] ?? new TableCell();
-            IReadOnlyList<PdfTextRun> runs = CreateTableCellRuns(cell, visualTheme);
+            IReadOnlyList<PdfTextRun> runs = CreateTableCellRuns(cell, visualTheme, anchors);
             int columnSpan = preserveSpans ? Math.Max(1, Math.Min(cell.ColumnSpan, columnCount - logicalColumn)) : 1;
             int rowSpan = preserveSpans ? Math.Max(1, cell.RowSpan) : 1;
             row.Add(runs.Count == 0
@@ -426,8 +427,8 @@ public static partial class MarkdownPdfConverterExtensions {
         return row.ToArray();
     }
 
-    private static IReadOnlyList<PdfTextRun> CreateTableCellRuns(TableCell cell, MarkdownPdfStyle visualTheme) {
-        InlineStyle style = CreateTableCellInlineStyle(cell, visualTheme);
+    private static IReadOnlyList<PdfTextRun> CreateTableCellRuns(TableCell cell, MarkdownPdfStyle visualTheme, AnchorContext? anchors) {
+        InlineStyle style = CreateTableCellInlineStyle(cell, visualTheme, anchors);
         if (cell.ChildBlocks.Count == 1 && cell.ChildBlocks[0] is ParagraphBlock paragraph) {
             return ToTextRuns(paragraph.Inlines, style);
         }
@@ -501,7 +502,7 @@ public static partial class MarkdownPdfConverterExtensions {
                     if (IsEmpty(callout.TitleInlines)) {
                         builder.Bold(title);
                     } else {
-                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
+                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
                     }
                 });
                 RenderBlocks(pdf, children, document, options, visualTheme);
@@ -515,7 +516,7 @@ public static partial class MarkdownPdfConverterExtensions {
                     if (IsEmpty(callout.TitleInlines)) {
                         builder.Bold(title);
                     } else {
-                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
+                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
                     }
 
                     builder.LineBreak();
@@ -525,38 +526,18 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        bool renderedInsidePanel = false;
-        pdf.PanelParagraph(builder => {
-            if (IsEmpty(callout.TitleInlines)) {
-                builder.Bold(title);
-            } else {
-                AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
-            }
-
-            if (canRenderChildrenInsidePanel) {
-                renderedInsidePanel = TryAppendBlocksInsidePanel(builder, children, CreateInlineStyle(visualTheme), visualTheme, lineBreakBeforeFirst: true);
-            } else if (children.Count == 0 && !string.IsNullOrWhiteSpace(callout.Body)) {
-                builder.LineBreak();
-                AppendTextWithLineBreaks(builder, callout.Body);
-                renderedInsidePanel = true;
-            }
-        }, panelStyle);
-
-        if (children.Count > 0 && !renderedInsidePanel) {
+        if (children.Count > 0) {
             RenderBlocksWithPanelRuns(
-                pdf,
-                children,
-                document,
-                options,
-                visualTheme,
-                panelStyle,
+                pdf, children, document, options, visualTheme, panelStyle,
                 panel => panel.Paragraph(builder => {
-                    if (IsEmpty(callout.TitleInlines)) {
-                        builder.Bold(title);
-                    } else {
-                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
-                    }
+                    if (IsEmpty(callout.TitleInlines)) builder.Bold(title);
+                    else AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
                 }));
+        } else {
+            pdf.PanelParagraph(builder => {
+                if (IsEmpty(callout.TitleInlines)) builder.Bold(title);
+                else AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
+            }, panelStyle);
         }
     }
 
@@ -564,14 +545,28 @@ public static partial class MarkdownPdfConverterExtensions {
         if (details.Summary != null) {
             pdf.PanelParagraph(builder => {
                 builder.Bold(details.Open ? "Details: " : "Collapsed details: ");
-                AppendInlines(builder, details.Summary.Inlines, CreateInlineStyle(visualTheme).With(bold: true));
+                AppendInlines(builder, details.Summary.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
             }, visualTheme.DetailsPanelStyleSnapshot);
         }
 
         RenderBlocks(pdf, details.ChildBlocks, document, options, visualTheme);
     }
 
-    private static void RenderDefinitionList(PdfCore.PdfDocument pdf, DefinitionListBlock definitionList, MarkdownPdfStyle visualTheme) {
+    private static bool HasStructuredDefinitions(DefinitionListBlock definitionList) => definitionList.Groups.Any(group =>
+        group.Definitions.Any(definition => definition.ChildBlocks.Count > 1 ||
+            definition.ChildBlocks.Count == 1 && definition.ChildBlocks[0] is not ParagraphBlock));
+
+    private static void RenderDefinitionList(PdfCore.PdfDocument pdf, DefinitionListBlock definitionList, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        if (HasStructuredDefinitions(definitionList)) {
+            foreach (DefinitionListGroup group in definitionList.Groups) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                foreach (InlineSequence term in group.Terms)
+                    pdf.Paragraph(builder => AppendInlines(builder, term, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true)));
+                foreach (DefinitionListDefinition definition in group.Definitions)
+                    RenderBlocks(pdf, definition.ChildBlocks, document, options, visualTheme);
+            }
+            return;
+        }
         IReadOnlyList<DefinitionListInlineItem> items = definitionList.InlineItems;
         if (items.Count == 0) {
             return;
@@ -579,8 +574,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
         var rows = new List<PdfCore.PdfKeyValueRow>();
         for (int i = 0; i < items.Count; i++) {
-            IReadOnlyList<PdfTextRun> termRuns = ToTextRuns(items[i].Term, CreateInlineStyle(visualTheme).With(bold: true));
-            IReadOnlyList<PdfTextRun> definitionRuns = ToTextRuns(items[i].Definition, CreateInlineStyle(visualTheme));
+            IReadOnlyList<PdfTextRun> termRuns = ToTextRuns(items[i].Term, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
+            IReadOnlyList<PdfTextRun> definitionRuns = ToTextRuns(items[i].Definition, CreateInlineStyle(visualTheme, options.Anchors));
             rows.Add(PdfCore.PdfKeyValueRow.Rich(termRuns, definitionRuns));
         }
 
@@ -596,15 +591,16 @@ public static partial class MarkdownPdfConverterExtensions {
         pdf.Paragraph(builder => {
             builder.Superscript(footnote.Label);
             builder.Text(" ");
-            if (footnote.ChildBlocks.Count == 1 && footnote.ChildBlocks[0] is ParagraphBlock paragraph) {
-                AppendInlines(builder, paragraph.Inlines, CreateInlineStyle(visualTheme));
-            } else {
+            if (footnote.ChildBlocks.Count > 0 && footnote.ChildBlocks[0] is ParagraphBlock paragraph) {
+                AppendInlines(builder, paragraph.Inlines, CreateInlineStyle(visualTheme, options.Anchors));
+            } else if (footnote.ChildBlocks.Count == 0) {
                 AppendTextWithLineBreaks(builder, footnote.Text);
             }
         }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
 
-        if (footnote.ChildBlocks.Count > 1) {
-            for (int i = 1; i < footnote.ChildBlocks.Count; i++) {
+        if (footnote.ChildBlocks.Count > 0) {
+            int firstChild = footnote.ChildBlocks[0] is ParagraphBlock ? 1 : 0;
+            for (int i = firstChild; i < footnote.ChildBlocks.Count; i++) {
                 RenderBlock(pdf, footnote.ChildBlocks[i], document, options, visualTheme);
             }
         }

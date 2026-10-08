@@ -1,0 +1,381 @@
+{
+  "BaselineSource": "b854ad35b547d1ad5b98355349e7bcbf2bb8cb30",
+  "CandidateSource": "15b5f2848d571932ed1607511b588ff6cdb99ac6",
+  "SnapshotHashes": {
+    "Stage": "Implicit worksheet coordinates",
+    "BaselineCommit": "b854ad35b547d1ad5b98355349e7bcbf2bb8cb30",
+    "PreviousSnapshotHashes": {
+      "BaselineProduct": "203D497961E09EF0AC3292C35054DFBF1303059C299C76F538E2BB40CBABF14D",
+      "CandidateProduct": "C532403562CAC1973D7FB82336E60E6984B9F07019092134BADF15CFCD281ADF",
+      "Benchmark": "3E8A2353B9C8BC3CAF36C722E3599FE1E2E9A2CB25D73B1EBA5D37841C01C6F8"
+    },
+    "BaselineProduct": "C532403562CAC1973D7FB82336E60E6984B9F07019092134BADF15CFCD281ADF",
+    "CandidateProduct": "85D9A613D5504C988D9A3D01C126ED9D921368943A621BAAF87B5B8351E91F65",
+    "Benchmark": "5BF5549A31659C9EC5E96CDD55EC56149DC0D93FC04257D5026F6A0E4A2BFD12"
+  },
+  "Native": {
+    "Runtime": "10.0.12",
+    "SDK": "10.0.112",
+    "BenchmarkDotNet": "0.15.8",
+    "Affinity": "0xFFFF",
+    "Priority": "Normal",
+    "Warmups": 12,
+    "Iterations": 12,
+    "Operations": 4,
+    "Outliers": "Retained",
+    "Cases": 12
+  },
+  "Rotated": {
+    "Owner": "PowerForge Invoke-BenchmarkSuite",
+    "Masks": [
+      "0xFFFF",
+      "0xFFFF0000"
+    ],
+    "Priority": "Normal",
+    "Warmups": 12,
+    "Iterations": 24,
+    "Operations": 4,
+    "Outliers": "Retained",
+    "Samples": 576
+  },
+  "Tests": [
+    {
+      "File": "implicit-rows-before-net10.trx",
+      "Total": 36,
+      "Passed": 0,
+      "Failed": 36,
+      "Skipped": 0,
+      "Sha256": "D0BE775836683153FDA5BF3D28D152486EE5C1FB452AA6ADB0C384F242E26CAF"
+    },
+    {
+      "File": "implicit-cells-before-net10.trx",
+      "Total": 84,
+      "Passed": 75,
+      "Failed": 9,
+      "Skipped": 0,
+      "Sha256": "FD4C442727D5C1F296A82319061A1334AEF4CABFB493AF853A11F72DE10954A5"
+    },
+    {
+      "File": "implicit-headers-before-net10.trx",
+      "Total": 2,
+      "Passed": 1,
+      "Failed": 1,
+      "Skipped": 0,
+      "Sha256": "664D9F126287D74145C66F0A81026B54FEF3FC895F9BEBF43B4D7563DE2B9C14"
+    },
+    {
+      "File": "implicit-headers-unsorted-before-net10.trx",
+      "Total": 4,
+      "Passed": 2,
+      "Failed": 2,
+      "Skipped": 0,
+      "Sha256": "7D605C393816518204E57D4EAADA22ED5EFBBD7EB8A7BF9CFB57240F9044CCA6"
+    },
+    {
+      "File": "implicit-coordinates-full-net10.trx",
+      "Total": 5364,
+      "Passed": 5359,
+      "Failed": 0,
+      "Skipped": 5,
+      "Sha256": "A0829D3352FC437DC7D90214A2FFDD5EE1939AC05A02E7EBF957D0578F5F7976"
+    },
+    {
+      "File": "implicit-coordinates-net8.0.trx",
+      "Total": 739,
+      "Passed": 739,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "2FA9869C091EFD1F12C28E7DDCCCA9EA898D67572B670206EB8BFFC5E9CBF846"
+    },
+    {
+      "File": "implicit-coordinates-net472.trx",
+      "Total": 734,
+      "Passed": 734,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "49F5B7FE0CDE6734071F8A2B50D32BC0DDECD17AC1EBD74798CB927B09ADCCE6"
+    },
+    {
+      "File": "linux/implicit-coordinates-linux-net10.trx",
+      "Total": 739,
+      "Passed": 739,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "A269426BB930C73E589A716BA6842BA82D89F96B75BC6CA78C2A90DD07615BA4"
+    },
+    {
+      "File": "implicit-coordinates-final-net10.trx",
+      "Total": 741,
+      "Passed": 741,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "A66DCA1789E06BD702A9E5D6991F2770582B553BAFAC643872008CE3BC956419"
+    },
+    {
+      "File": "implicit-coordinates-final-net8.0.trx",
+      "Total": 96,
+      "Passed": 96,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "EF5BBEC82014FCEB572B97C6894E3702E7070311DC1FFA4C0015DE2B46D1B255"
+    },
+    {
+      "File": "implicit-coordinates-final-net472.trx",
+      "Total": 96,
+      "Passed": 96,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "0D10CC97AE0D753C3632C860DC7DA2C35231A3B94DB2CEFD479B3AD5C100189D"
+    },
+    {
+      "File": "linux/implicit-coordinates-final-linux-net10.trx",
+      "Total": 96,
+      "Passed": 96,
+      "Failed": 0,
+      "Skipped": 0,
+      "Sha256": "068ED80A98DDFDD9AB62DA38B6BC5FF27C6E4FCF3D15109B06B5C91B99A782D9"
+    }
+  ],
+  "Builds": [
+    "Product netstandard2.0 and benchmark net8.0/net10.0: zero warnings or errors"
+  ],
+  "Review": {
+    "InitialFingerprint": {
+      "Base": "4c26b3e166bea0a6ec8eef456059eb872233add3",
+      "PatchSha256": "F29FD7142F0414277337554784392AC18F610FCD7EC590230B0B4A667A5A5812",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Excel.Tests/Excel.Reader.ImplicitRows.cs",
+          "Sha256": "28F1BB5200B7F8EB680909E2ECDB902244D0EC0D9CB783AFB88A794CFCA2B370"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Columns.cs",
+          "Sha256": "52042895436885FE54DCF56BE1736138C19CAB7E33E1B7D795222F5B8FB5BEA9"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.cs",
+          "Sha256": "F69A1F5170C788C18CB6A5E247A17EA35C38BEF7038BACB0BF860CCC4D21FCE4"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.EnumerateRange.cs",
+          "Sha256": "8AED514B9D408EA9BD3C4951B12732F1AF74037DABE3B39A6E86196F6D77EA8A"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Objects.cs",
+          "Sha256": "6429F45BB27DF7DD89FE279A8A8DE7E806EA7418EF47F2C97A72083A19699CE1"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Objects.Stream.cs",
+          "Sha256": "15D77A053887723CBE2E3F20FF5DC7F3788B78FCBC5C4DB3C163A7B17D7A5B7B"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.cs",
+          "Sha256": "35BAB92BED597D416377E93AD445B95146769E816C14E8C09512F862F150B91B"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.cs",
+          "Sha256": "B6BCBE136E9B11DAD7C82D98B0C4879E48B0942DB7B539572383BA88B0F6DD7C"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs",
+          "Sha256": "078E60B116294ED7315BA904F4974A9A6DF4821B2D17D3CDFDF5360845BEC464"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.Rows.cs",
+          "Sha256": "E5F53BFE6FA33B2DE9EB4F2F89DF846E901025DD684CD18B86A51F4AA87FC71E"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Xml.cs",
+          "Sha256": "6B9491E9F9DC439C34E58734A8591182E270EC2946E9CA0121318AFE74F1D294"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataTableBuffer.cs",
+          "Sha256": "D012ED0F5BD9892DBAB9D7B86FFD2C5BB526EE5123298695CC23C63195D38F81"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataTableXml.cs",
+          "Sha256": "157F874C6A19A1D4A2A0A94257693B5432FB788598A0192F4A6E9772BBD362BF"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.ObjectsDictionary.cs",
+          "Sha256": "82D1E5FCE47C31C0EB0F55CC88E4FA4CF4A7FA354476266791C51CEE2D35216D"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.Snapshot.cs",
+          "Sha256": "71F3B3F93AAF4BA8762FA35A3A48BE0F6CF9413560F561DAE1B68E06298D0CCA"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.Styles.cs",
+          "Sha256": "F610753187F6B0D2140367AA16B31417434D0B89A0BD2D9EDD7B57F0CFB78F95"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.Used.cs",
+          "Sha256": "A1FF0C06069C212968DD107E70002ED33E0BA77501E99B7E055E4A2E84DAFD03"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.RowCoordinates.cs",
+          "Sha256": "B439284970D1353DABFA33697C0B76327F2E837F05C192EA629B9F5C52114FFC"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.RowCoordinates.Dom.cs",
+          "Sha256": "5761DB276C3D3E3E18C5FE0439FCE91A8F0B2AB70D9CDD5EA9BA7407104864DC"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Rows.cs",
+          "Sha256": "4537ACFF24FB47BA7AB6B61CE9796B377C1F64AD1971963D013A5C9EB78D21B4"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.cs",
+          "Sha256": "4CE77F84734760D1D90F7B552B34DE926A7F29B9700D61CA5BAA0E9739125FEE"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.Sorting.cs",
+          "Sha256": "4D6E78642A40E79F373FC9171A39EE4C49A7657AB1CAD9BE890C8CDD94DF8B34"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.XmlBuffered.cs",
+          "Sha256": "350814C340E1CD79F50E2FF65D1A0C8EB65521C14A07D647A095F2F8323E936C"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.XmlSingle.cs",
+          "Sha256": "E4A0B3628CC35FB8BA4889393B9B1F9C7D50129A6135B6AE75EF4305B9F1E929"
+        }
+      ],
+      "ProductSha256": "2B8802666F03A1AA7C65D200D2993BD6C9FB45AD317675CFBE7BCEFA410FA403"
+    },
+    "ConfirmationFingerprint": {
+      "Base": "4c26b3e166bea0a6ec8eef456059eb872233add3",
+      "PatchSha256": "D8E9A1A1DF86D8E1F6A882E7312AE756D7632D3D36BD7D293B4A6CF0A2D75A07",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Excel.Tests/Excel.Reader.ImplicitRows.cs",
+          "Sha256": "0AC09BFC26DC3BD77621B2EE9F3F8E609B02C4898492018D64741B4AF7782D75"
+        },
+        {
+          "Path": "OfficeIMO.Excel/ExcelSheet.Dimension.cs",
+          "Sha256": "74E89569402C15D8488B9D0F1B4D59DCEA52DA5BAF41CF551B881C5BE651255C"
+        },
+        {
+          "Path": "OfficeIMO.Excel/ExcelSheet.Headers.cs",
+          "Sha256": "CA6621815A3B4EE5DB805D4DA953AB3C2E92ACF9E254604E4742E9DD8506CDCF"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Columns.cs",
+          "Sha256": "7A32524044D65047D1D814AADDBAAFF54E71B1B395D72A3DC4F7FF81D854C420"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.cs",
+          "Sha256": "315078F70DEB6AF202C30B7234870FA1508EF6649FB4094B7BD88A6F7ABF6D58"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.EnumerateRange.cs",
+          "Sha256": "5A7B24A44F0CD16FBE811A33D9CBAAD9287630161E507318995E433B5127CA7A"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Objects.cs",
+          "Sha256": "6429F45BB27DF7DD89FE279A8A8DE7E806EA7418EF47F2C97A72083A19699CE1"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Objects.Sequential.cs",
+          "Sha256": "A6DCD2C231ED73FA9B1AC0F5420468F3EF27141CBB30DB7C54AC1507A5B35780"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Objects.Stream.cs",
+          "Sha256": "15D77A053887723CBE2E3F20FF5DC7F3788B78FCBC5C4DB3C163A7B17D7A5B7B"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.cs",
+          "Sha256": "35BAB92BED597D416377E93AD445B95146769E816C14E8C09512F862F150B91B"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.cs",
+          "Sha256": "713CA440B6F5B0E6954C3C1EEF470E916EB447D664E51EC5FAED684991744F9A"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.cs",
+          "Sha256": "078E60B116294ED7315BA904F4974A9A6DF4821B2D17D3CDFDF5360845BEC464"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Utf8.Rows.cs",
+          "Sha256": "E5F53BFE6FA33B2DE9EB4F2F89DF846E901025DD684CD18B86A51F4AA87FC71E"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.Xml.cs",
+          "Sha256": "6B9491E9F9DC439C34E58734A8591182E270EC2946E9CA0121318AFE74F1D294"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataTableBuffer.cs",
+          "Sha256": "D012ED0F5BD9892DBAB9D7B86FFD2C5BB526EE5123298695CC23C63195D38F81"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataTableSequential.cs",
+          "Sha256": "2B33925FE01DC27211B6FB58B9E40139FFCBE5E387C680E0DC04167AF04DE375"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataTableXml.cs",
+          "Sha256": "157F874C6A19A1D4A2A0A94257693B5432FB788598A0192F4A6E9772BBD362BF"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.ObjectsDictionary.cs",
+          "Sha256": "FBE41FBA9FD0200CB9E110BDE7E27B35A2F5747F3833318E23D2C02A3430AEA1"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.Snapshot.cs",
+          "Sha256": "503170CCF0BDE1013EC59BC868244AD82623ECDF2D6E4735375970E4189D6C55"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.Styles.cs",
+          "Sha256": "F610753187F6B0D2140367AA16B31417434D0B89A0BD2D9EDD7B57F0CFB78F95"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Range.Used.cs",
+          "Sha256": "A1FF0C06069C212968DD107E70002ED33E0BA77501E99B7E055E4A2E84DAFD03"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.RowCoordinates.cs",
+          "Sha256": "B439284970D1353DABFA33697C0B76327F2E837F05C192EA629B9F5C52114FFC"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.RowCoordinates.Dom.cs",
+          "Sha256": "18060AFA66537E354DD39CD9F686B4676FB6D2F8A8D50661C66457B4BAF5BD71"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Rows.cs",
+          "Sha256": "61678B60627D3CEC359B7FD3C0F8DFF7664F71A5549ACC617C14BFDA4FE0F175"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.cs",
+          "Sha256": "699D31909E49D6053E5CC408AFBA8DD226A2902ADE451574DAAB06CBABD1007B"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.Sorting.cs",
+          "Sha256": "4D6E78642A40E79F373FC9171A39EE4C49A7657AB1CAD9BE890C8CDD94DF8B34"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.XmlBuffered.cs",
+          "Sha256": "350814C340E1CD79F50E2FF65D1A0C8EB65521C14A07D647A095F2F8323E936C"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/ExcelSheetReader.Stream.XmlSingle.cs",
+          "Sha256": "E4A0B3628CC35FB8BA4889393B9B1F9C7D50129A6135B6AE75EF4305B9F1E929"
+        },
+        {
+          "Path": "OfficeIMO.Excel/Read/Helpers/ExcelWorksheetCoordinates.cs",
+          "Sha256": "5A4AEC3BA76A00549F91194976BCCBE70F86C9353478A20809FED1FAB581ADB7"
+        }
+      ]
+    },
+    "Findings": [
+      "P2: missing DOM cell references dropped values or exposed column zero.",
+      "Pre-existing sibling: live headers inferred row ordinals instead of referenced row positions.",
+      "Targeted confirmation: unsorted live header rows still ended the search early."
+    ],
+    "Disposition": "All reproduced and fixed. One full read-only review and one targeted confirmation completed. The final unsorted-header correction has direct regression and runtime proof; no additional independent review was requested."
+  },
+  "Qualification": "Correctness checkpoint. Implicit-row throughput regressions remain material and are not performance-qualified. Full 5359-pass suite precedes the final narrow unsorted-header correction; final 741 focused checks plus 96 coordinate cases on each additional runtime qualify that correction.",
+  "Limits": [
+    "No general speed or competitor leadership claim.",
+    "Managed allocation is not retained or peak memory.",
+    "Windows .NET10 timing and WSL correctness do not qualify native Linux/macOS timing."
+  ]
+}

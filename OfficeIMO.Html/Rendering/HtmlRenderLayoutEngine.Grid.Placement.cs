@@ -9,17 +9,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int explicitRowCount,
         HtmlRenderBoxStyle containerStyle,
         string source,
-        IReadOnlyDictionary<string, GridAreaDefinition> areas,
         IReadOnlyDictionary<string, int> columnLineNames,
         IReadOnlyDictionary<string, int> rowLineNames,
         out int columnCount,
-        out int rowCount) {
+        out int rowCount,
+        out int leadingColumnCount,
+        out int leadingRowCount,
+        bool allowImplicitColumns = true,
+        bool allowImplicitRows = true) {
         var gridItems = items
             .OrderBy(item => item.Style.Order)
             .ThenBy(item => item.SourceIndex)
-            .Select(item => CreateGridItem(item, areas, columnLineNames, rowLineNames))
+            .Select(item => CreateGridItem(item, columnLineNames, rowLineNames, explicitColumnCount, explicitRowCount))
             .ToList();
-        columnCount = Math.Max(1, explicitColumnCount);
+        leadingColumnCount = 0;
+        leadingRowCount = 0;
+        foreach (GridItem item in gridItems) {
+            if (!allowImplicitColumns) {
+                GridAxisPlacement column = ClampGridAxisPlacement(item.RequestedColumn, item.ColumnSpan, explicitColumnCount);
+                item.RequestedColumn = column.Start;
+                item.ColumnSpan = column.Span;
+            }
+            if (!allowImplicitRows) {
+                GridAxisPlacement row = ClampGridAxisPlacement(item.RequestedRow, item.RowSpan, explicitRowCount);
+                item.RequestedRow = row.Start;
+                item.RowSpan = row.Span;
+            }
+            if (allowImplicitColumns) leadingColumnCount = Math.Max(leadingColumnCount, -Math.Min(0, item.RequestedColumn ?? 0));
+            if (allowImplicitRows) leadingRowCount = Math.Max(leadingRowCount, -Math.Min(0, item.RequestedRow ?? 0));
+        }
+        EnsureGridPlacementLimit((long)explicitColumnCount + leadingColumnCount);
+        EnsureGridPlacementLimit((long)explicitRowCount + leadingRowCount);
+        foreach (GridItem item in gridItems) {
+            item.RequestedColumn = OffsetGridPosition(item.RequestedColumn, leadingColumnCount);
+            item.RequestedRow = OffsetGridPosition(item.RequestedRow, leadingRowCount);
+        }
+        columnCount = Math.Max(1, explicitColumnCount + leadingColumnCount);
         foreach (GridItem item in gridItems) {
             if (item.RequestedColumn.HasValue) columnCount = Math.Max(columnCount, GridPlacementEnd(item.RequestedColumn.Value, item.ColumnSpan));
             else columnCount = Math.Max(columnCount, item.ColumnSpan);
@@ -38,7 +63,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var placed = new HashSet<GridItem>();
         int cursorRow = 0;
         int cursorColumn = 0;
-        rowCount = Math.Max(1, explicitRowCount);
+        rowCount = Math.Max(1, explicitRowCount + leadingRowCount);
 
         foreach (GridItem item in gridItems.Where(item => item.RequestedRow.HasValue && item.RequestedColumn.HasValue)) {
             item.Row = item.RequestedRow!.Value;
@@ -61,16 +86,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         foreach (GridItem item in gridItems) {
             if (placed.Contains(item)) continue;
-            if (item.RequestedRow.HasValue) {
-                item.Row = item.RequestedRow.Value;
-                item.Column = FindGridColumn(occupied, item.Row, item.RowSpan, item.ColumnSpan, columnCount);
-            } else if (item.RequestedColumn.HasValue) {
-                item.Column = item.RequestedColumn.Value;
-                item.Row = FindGridRow(occupied, item.Column, item.RowSpan, item.ColumnSpan);
+            if (!columnFlow && item.RequestedColumn.HasValue) {
+                int requestedColumn = item.RequestedColumn.Value;
+                if (requestedColumn < cursorColumn) cursorRow++;
+                cursorColumn = requestedColumn;
+                while (!CanPlaceGridArea(occupied, cursorRow, requestedColumn, item.RowSpan, item.ColumnSpan)) cursorRow++;
+                item.Row = cursorRow;
+                item.Column = requestedColumn;
+                cursorColumn = GridPlacementEnd(requestedColumn, item.ColumnSpan);
+                if (cursorColumn >= columnCount) {
+                    cursorRow++;
+                    cursorColumn = 0;
+                }
+            } else if (columnFlow && item.RequestedRow.HasValue) {
+                int requestedRow = item.RequestedRow.Value;
+                if (requestedRow < cursorRow) cursorColumn++;
+                cursorRow = requestedRow;
+                while (!CanPlaceGridArea(occupied, requestedRow, cursorColumn, item.RowSpan, item.ColumnSpan)) cursorColumn++;
+                item.Row = requestedRow;
+                item.Column = cursorColumn;
+                cursorRow = GridPlacementEnd(requestedRow, item.RowSpan);
+                int columnFlowRowCount = Math.Max(explicitRowCount, item.RowSpan);
+                if (cursorRow >= columnFlowRowCount) {
+                    cursorColumn++;
+                    cursorRow = 0;
+                }
             } else {
                 int searchRow = dense ? 0 : cursorRow;
                 int searchColumn = dense ? 0 : cursorColumn;
-                int columnFlowRowCount = Math.Max(explicitRowCount, item.RowSpan);
+                int columnFlowRowCount = Math.Max(explicitRowCount + leadingRowCount, item.RowSpan);
                 EnsureGridPlacementLimit(columnFlowRowCount);
                 if (columnFlow) FindAutomaticGridPositionColumn(occupied, item.RowSpan, item.ColumnSpan, columnFlowRowCount, ref searchRow, ref searchColumn);
                 else FindAutomaticGridPosition(occupied, item.RowSpan, item.ColumnSpan, columnCount, ref searchRow, ref searchColumn);
@@ -115,19 +159,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private GridItem CreateGridItem(
         FlexItem item,
-        IReadOnlyDictionary<string, GridAreaDefinition> areas,
         IReadOnlyDictionary<string, int> columnLineNames,
-        IReadOnlyDictionary<string, int> rowLineNames) {
-        string areaName = item.Style.GridArea;
-        if (areaName != "auto" && areaName.IndexOf('/') < 0 && !int.TryParse(areaName, out _) && !areaName.StartsWith("span ", StringComparison.Ordinal)) {
-            if (areas.TryGetValue(areaName, out GridAreaDefinition? area)) {
-                return new GridItem(item, area.Row, area.Column, area.RowSpan, area.ColumnSpan);
-            }
-            ReportUnsupportedGridValue(item.Source, "grid-area=" + areaName);
-            return new GridItem(item, null, null, 1, 1);
-        }
-        GridAxisPlacement column = ParseGridAxisPlacement(item.Style.GridColumnStart, item.Style.GridColumnEnd, item.Source, "grid-column", columnLineNames);
-        GridAxisPlacement row = ParseGridAxisPlacement(item.Style.GridRowStart, item.Style.GridRowEnd, item.Source, "grid-row", rowLineNames);
+        IReadOnlyDictionary<string, int> rowLineNames,
+        int explicitColumnCount,
+        int explicitRowCount) {
+        GridAxisPlacement column = ParseGridAxisPlacement(item.Style.GridColumnStart, item.Style.GridColumnEnd, item.Source, "grid-column", columnLineNames, explicitColumnCount);
+        GridAxisPlacement row = ParseGridAxisPlacement(item.Style.GridRowStart, item.Style.GridRowEnd, item.Source, "grid-row", rowLineNames, explicitRowCount);
         return new GridItem(item, row.Start, column.Start, row.Span, column.Span);
     }
 
@@ -136,22 +173,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string endValue,
         string source,
         string property,
-        IReadOnlyDictionary<string, int> lineNames) {
-        GridLine start = ParseGridLine(startValue, source, property + "-start", lineNames);
-        GridLine end = ParseGridLine(endValue, source, property + "-end", lineNames);
+        IReadOnlyDictionary<string, int> lineNames,
+        int explicitTrackCount,
+        int explicitStart = 0) {
+        GridLine start = ParseGridLine(startValue, source, property + "-start", lineNames, explicitTrackCount, explicitStart);
+        GridLine end = ParseGridLine(endValue, source, property + "-end", lineNames, explicitTrackCount, explicitStart);
         int span = start.Kind == GridLineKind.Span ? start.Value : end.Kind == GridLineKind.Span ? end.Value : 1;
         int? position = null;
         if (start.Kind == GridLineKind.Line) {
-            position = start.Value - 1;
-            if (end.Kind == GridLineKind.Line && end.Value > start.Value) span = end.Value - start.Value;
+            position = start.Value;
+            if (end.Kind == GridLineKind.Line && end.Value != start.Value) {
+                position = Math.Min(start.Value, end.Value);
+                long resolvedSpan = Math.Abs((long)end.Value - start.Value);
+                EnsureGridPlacementLimit(resolvedSpan);
+                span = (int)resolvedSpan;
+            }
         } else if (end.Kind == GridLineKind.Line) {
-            position = Math.Max(0, end.Value - 1 - span);
+            long resolvedStart = (long)end.Value - span;
+            EnsureGridPlacementLimit(Math.Abs(resolvedStart));
+            position = (int)resolvedStart;
         }
 
         return new GridAxisPlacement(position, Math.Max(1, span));
     }
 
-    private GridLine ParseGridLine(string value, string source, string property, IReadOnlyDictionary<string, int> lineNames) {
+    private GridLine ParseGridLine(string value, string source, string property, IReadOnlyDictionary<string, int> lineNames, int explicitTrackCount, int explicitStart) {
         string normalized = string.IsNullOrWhiteSpace(value) ? "auto" : value.Trim().ToLowerInvariant();
         if (normalized == "auto") return GridLine.Auto;
         if (normalized.StartsWith("span ", StringComparison.Ordinal)
@@ -160,14 +206,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
             EnsureGridPlacementLimit(span);
             return new GridLine(GridLineKind.Span, span);
         }
-        if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int line) && line > 0) {
-            EnsureGridPlacementLimit(line);
-            return new GridLine(GridLineKind.Line, line);
+        if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int line) && line != 0) {
+            EnsureGridPlacementLimit(Math.Abs((long)line));
+            // Negative indices count from the explicit end, before auto-placement
+            // creates implicit tracks. Coordinates may precede the explicit start.
+            long coordinate = explicitStart + (line > 0 ? (long)line - 1 : (long)explicitTrackCount + line + 1);
+            EnsureGridPlacementLimit(Math.Abs(coordinate));
+            return new GridLine(GridLineKind.Line, (int)coordinate);
         }
-        if (lineNames.TryGetValue(normalized, out int namedLine)) return new GridLine(GridLineKind.Line, namedLine + 1);
+        string areaEdge = normalized + (property.EndsWith("-start", StringComparison.Ordinal) ? "-start" : "-end");
+        if (lineNames.TryGetValue(areaEdge, out int areaLine)) return new GridLine(GridLineKind.Line, areaLine);
+        if (lineNames.TryGetValue(normalized, out int namedLine)) return new GridLine(GridLineKind.Line, namedLine);
 
         ReportUnsupportedGridValue(source, property + "=" + value);
         return GridLine.Auto;
+    }
+
+    private static GridAxisPlacement ClampGridAxisPlacement(int? requestedStart, int span, int trackCount) {
+        if (trackCount <= 0) return new GridAxisPlacement(requestedStart, span);
+        if (!requestedStart.HasValue) return new GridAxisPlacement(null, Math.Min(span, trackCount));
+        int end = (int)Math.Min(trackCount, Math.Max(1L, (long)requestedStart.Value + span));
+        int start = Math.Min(trackCount - 1, Math.Max(0, requestedStart.Value));
+        return new GridAxisPlacement(start, Math.Max(1, end - start));
+    }
+
+    private int? OffsetGridPosition(int? position, int leadingTracks) {
+        if (!position.HasValue) return null;
+        long offset = Math.Max(0L, (long)position.Value + leadingTracks);
+        EnsureGridPlacementLimit(offset);
+        return (int)offset;
     }
 
     private int FindGridColumn(HashSet<long> occupied, int row, int rowSpan, int columnSpan, int columnCount) {
@@ -278,8 +345,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HasExplicitHeight = item.Style.ExplicitHeight.HasValue;
         }
         internal FlexItem Item { get; }
-        internal int? RequestedRow { get; }
-        internal int? RequestedColumn { get; }
+        internal int? RequestedRow { get; set; }
+        internal int? RequestedColumn { get; set; }
         internal int RowSpan { get; set; }
         internal int ColumnSpan { get; set; }
         internal int Row { get; set; }

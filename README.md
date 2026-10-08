@@ -40,6 +40,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| JavaScript and browser assets | None | Strict TypeScript document layers, streaming XLSX/CSV and embedded portable scripts |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML document contracts (`OfficeIMO.Html.Core`) | None | Owned nodes, immutable snapshots, edits and parser/charset contracts |
@@ -63,7 +64,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | --- | ---: |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, `.vssm` |
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
-| First-party Apple iWork source support | Modern IWA-based `.pages`, `.numbers`, and `.key` read/inspect plus editable or visual-fallback projection; no iWork authoring |
+| First-party Apple iWork support | Modern IWA-based `.pages`, `.numbers`, and `.key` read/inspect plus editable or visual-fallback projection; bounded template-free `.key` creation with static slides and plain text |
 | First-party offline OneNote support | Desktop/FSSHTTP `.one`, `.onetoc2`, `.onepkg` |
 | Managed PNG/JPEG/TIFF/WebP/SVG document export | Drawing; Word, Excel, PowerPoint, HTML, OneNote, Visio, and PDF; HTML-backed email and EPUB; ODT/ODS/ODP through their Office adapters |
 
@@ -102,7 +103,8 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Extended semantic projections: rich Pages content/layout/images/tables; sparse typed Numbers cells/formulas/merges/table metadata; and positioned Keynote rich text/images/tables/notes
 - [x] Opt-in `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, and `OfficeIMO.PowerPoint.IWork` adapters with editable reconstruction versus visual fallback reports
 - [x] Independently sourced corpus evidence across Pages 14.1/14.5, Numbers 11.1–15.1 histories, and Keynote 8.1/14.5/15.2.1
-- [x] Explicit read-only boundary: unsupported payloads remain inspectable, while Pages, Numbers, and Keynote authoring is intentionally absent
+- [x] Template-free native Keynote creation with static slides, opaque sRGB backgrounds and positioned plain text; independent decoding and fixture-specific Keynote 15.4 reopen/export/edit evidence
+- [x] Loaded sources remain read-only; native Pages/Numbers writing and edited-package save-back are unsupported
 
 _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are first-party implementations. Word, Excel, and PowerPoint remain independent unless an iWork adapter is installed explicitly.
 
@@ -147,6 +149,13 @@ _Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages
 - [x] ChartForgeX watermarks and render options flow through the same conversion, while document/page watermarks remain owned by OfficeIMO
 
 _Dependency footprint:_ ChartForgeX and the OfficeIMO Word, Excel, PowerPoint, PDF, Visio, and Core packages. Existing format packages remain independently usable and do not depend on ChartForgeX.
+
+#### [OfficeIMO.ChartForgeX.Markdown](OfficeIMO.ChartForgeX.Markdown/README.md)
+
+- [x] Optional static Mermaid fence rendering for Markdown-to-Word, PDF, HTML, and PowerPoint pipelines
+- [x] Embedded PNG images for documents and isolated SVG images for HTML, with captions, accessibility text, diagnostics, and source fallback
+
+_Dependency footprint:_ ChartForgeX.Markup.Mermaid and OfficeIMO.MarkdownRenderer. The document and Markdown cores remain independently usable.
 
 #### [OfficeIMO.Word](OfficeIMO.Word/README.md)
 
@@ -285,6 +294,7 @@ _Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this 
 #### [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md)
 
 - [x] Any `IOcrEngine` over bounded rendered PDF pages without a Reader or provider dependency
+- [x] Standalone raster image recognition at source resolution, with reusable text/table reconstruction and review snapshots for editable format adapters
 - [x] Pixel, point, and normalized geometry projection into cropped and rotated visual PDF coordinates
 - [x] Confidence and native-text overlap filtering followed by the canonical language-neutral PDF understanding pipeline
 - [x] Searchable invisible-text output with per-page provider, model, language, word, rejection, and diagnostic evidence
@@ -326,6 +336,16 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 - [x] Dependency-free AES-256-CBC password encryption/decryption with bounded aggregate KDF work and hash-pinned LibreOffice interoperability evidence
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
+
+#### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
+
+Portable XPS/OpenXPS package reading, native page editing, and writing, with
+embedded fonts, paths, images, and explicit conversion diagnostics. SVG and raster
+export reuse the shared drawing engine; [OfficeIMO.Xps.Pdf](OfficeIMO.Xps.Pdf/README.md)
+adds vector PDF export. [Rendering and preservation boundaries](OfficeIMO.Xps/SUPPORT.md)
+are documented separately. [OfficeIMO.Reader.Xps](OfficeIMO.Reader.Xps/README.md)
+adds bounded Unicode, logical-order and page ingestion. The core package references
+only `OfficeIMO.Core`.
 
 #### [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md)
 
@@ -484,6 +504,18 @@ _Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified b
 - [x] Cross-library BenchmarkDotNet coverage with row-count and payload checks so lanes cannot win by under-reading
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
+
+#### [OfficeIMO.Browser](OfficeIMO.Browser/README.md)
+
+- [x] Value-only tabular XLSX and CSV exports from synchronous or asynchronous JavaScript row iterables
+- [x] Current-view projection, multiple sheets, column styles, date formats, frozen headers and autofilters
+- [x] Platform raw-deflate compression with stored ZIP fallback, cooperative yielding, progress and cancellation
+- [x] CSV formula protection with shared .NET/JavaScript byte vectors
+- [x] [Strict TypeScript library](OfficeIMO.JavaScript/README.md) under `@evotecit/officeimo`, compiled ES modules and generated declarations
+- [x] Public core, ZIP, XML, OPC, XLSX and CSV subpaths, reusable style registry, custom column writers and package parts
+- [x] Embedded .NET assets with content-hashed names and a [single-file/bundle example](OfficeIMO.Browser.Examples/README.md)
+
+_Dependency footprint:_ no JavaScript or third-party .NET runtime dependencies.
 
 #### [OfficeIMO.Email](OfficeIMO.Email/README.md)
 

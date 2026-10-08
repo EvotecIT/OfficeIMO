@@ -10,12 +10,17 @@ public sealed class IWorkConversionOptions {
     public bool AllowPartialEditableReconstruction { get; set; }
 
     /// <summary>Gets or sets whether visual fallback must use an asset known to cover the complete source.</summary>
-    /// <remarks>Set this to true when a first-page or composite preview is not an acceptable document conversion.</remarks>
-    public bool RequireCompleteVisualCoverage { get; set; }
+    /// <remarks>Defaults to true. Set this to false explicitly when a first-page or composite preview is acceptable, and retain the conversion result to inspect its coverage report.</remarks>
+    public bool RequireCompleteVisualCoverage { get; set; } = true;
 
     /// <summary>Gets or sets whether the Numbers adapter may normalize destination worksheet names using the Excel owner's collision-safe rules.</summary>
     /// <remarks>Defaults to false. Renames are reported and the original source sheet/table identity remains available on the conversion result.</remarks>
     public bool NormalizeWorksheetNames { get; set; }
+
+    /// <summary>Returns a known destination omission that requires the explicit partial policy.</summary>
+    internal string? FindUnacceptedDestinationOmission(IEnumerable<IWorkDiagnostic> diagnostics) =>
+        AllowPartialEditableReconstruction ? null : diagnostics.FirstOrDefault(diagnostic =>
+            diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission)?.Message;
 
     internal void ValidateVisualPreview(IWorkPreviewAsset? preview) {
         if (RequireCompleteVisualCoverage && preview?.Coverage != IWorkVisualCoverage.FullDocument) {

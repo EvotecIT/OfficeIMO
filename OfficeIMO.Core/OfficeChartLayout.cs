@@ -10,6 +10,11 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public sealed partial class OfficeChartLayout {
     internal const int MaxNumberFormatLength = 1024;
+    /// <summary>Maximum length of a separator copied into each rendered data label.</summary>
+    public const int MaximumDataLabelSeparatorCharacters = 64;
+    private readonly HashSet<int>? _dataLabelSeriesIndexSet;
+    private readonly Dictionary<int, HashSet<int>>? _dataLabelPointIndexSets;
+    private readonly Dictionary<int, HashSet<int>>? _hiddenDataLabelPointIndexSets;
 
     private static readonly OfficeChartLayout DefaultLayout = new OfficeChartLayout();
 
@@ -435,6 +440,9 @@ public sealed partial class OfficeChartLayout {
         ShowDataLabelPercentages = showDataLabelPercentages;
         ShowDataLabelCategoryNames = showDataLabelCategoryNames;
         ShowDataLabelSeriesNames = showDataLabelSeriesNames;
+        if (dataLabelSeparator?.Length > MaximumDataLabelSeparatorCharacters)
+            throw new ArgumentOutOfRangeException(nameof(dataLabelSeparator),
+                $"Data label separators cannot exceed {MaximumDataLabelSeparatorCharacters} characters.");
         DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
         DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 8.2D, nameof(dataLabelFontSize));
         DataLabelFontFamily = string.IsNullOrWhiteSpace(dataLabelFontFamily) ? null : dataLabelFontFamily;
@@ -444,6 +452,9 @@ public sealed partial class OfficeChartLayout {
         DataLabelSeriesIndexes = SnapshotIndexes(dataLabelSeriesIndexes);
         DataLabelPointIndexes = SnapshotIndexesBySeries(dataLabelPointIndexes);
         HiddenDataLabelPointIndexes = SnapshotIndexesBySeries(hiddenDataLabelPointIndexes);
+        _dataLabelSeriesIndexSet = DataLabelSeriesIndexes == null ? null : new HashSet<int>(DataLabelSeriesIndexes);
+        _dataLabelPointIndexSets = SnapshotIndexSets(DataLabelPointIndexes);
+        _hiddenDataLabelPointIndexSets = SnapshotIndexSets(HiddenDataLabelPointIndexes);
         HiddenCategoryLegendIndexes = SnapshotIndexes(hiddenCategoryLegendIndexes);
         ShowMarkers = showMarkers;
         AxisNumberFormat = NormalizeNumberFormat(axisNumberFormat);
@@ -604,6 +615,18 @@ public sealed partial class OfficeChartLayout {
 
     /// <summary>Optional zero-based category or slice legend indexes that should be suppressed for category legends.</summary>
     public IReadOnlyCollection<int>? HiddenCategoryLegendIndexes { get; }
+
+    internal bool IncludesDataLabelSeries(int seriesIndex) =>
+        _dataLabelSeriesIndexSet == null || _dataLabelSeriesIndexSet.Contains(seriesIndex);
+
+    internal bool HasDataLabelPointSelection(int seriesIndex) =>
+        _dataLabelPointIndexSets?.ContainsKey(seriesIndex) == true;
+
+    internal bool IncludesDataLabelPoint(int seriesIndex, int pointIndex) =>
+        _dataLabelPointIndexSets?.TryGetValue(seriesIndex, out HashSet<int>? points) == true && points.Contains(pointIndex);
+
+    internal bool HidesDataLabelPoint(int seriesIndex, int pointIndex) =>
+        _hiddenDataLabelPointIndexSets?.TryGetValue(seriesIndex, out HashSet<int>? points) == true && points.Contains(pointIndex);
 
     /// <summary>Whether point markers should be rendered for marker-capable chart families.</summary>
     public bool ShowMarkers { get; }
@@ -784,6 +807,15 @@ public sealed partial class OfficeChartLayout {
         }
 
         return Array.AsReadOnly(snapshot);
+    }
+
+    private static Dictionary<int, HashSet<int>>? SnapshotIndexSets(
+        IReadOnlyDictionary<int, IReadOnlyCollection<int>>? indexesBySeries) {
+        if (indexesBySeries == null) return null;
+        var sets = new Dictionary<int, HashSet<int>>(indexesBySeries.Count);
+        foreach (KeyValuePair<int, IReadOnlyCollection<int>> pair in indexesBySeries)
+            sets.Add(pair.Key, new HashSet<int>(pair.Value));
+        return sets;
     }
 
     private static IReadOnlyDictionary<int, IReadOnlyCollection<int>>? SnapshotIndexesBySeries(

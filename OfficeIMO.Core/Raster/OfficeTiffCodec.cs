@@ -44,6 +44,10 @@ public sealed class OfficeTiffEncodeOptions {
     /// <summary>Vertical resolution in dots per inch.</summary>
     public double DpiY { get; set; } = 96D;
 
+    /// <summary>Optional native resolution values used instead of physical DPI when writing resolution tags.</summary>
+    /// <remarks>The same override applies to every encoded TIFF page. A null override retains the existing DPI behavior. Meter-based values are represented as centimeters; aspect ratios use TIFF ResolutionUnit 1. Native values must fit positive unsigned rational storage within one part in a trillion; unsupported values are rejected before output.</remarks>
+    public OfficeImageResolution? Resolution { get; set; }
+
     /// <summary>Writes TIFF XResolution, YResolution, and ResolutionUnit tags.</summary>
     public bool WriteResolution { get; set; } = true;
 }
@@ -121,7 +125,8 @@ public static partial class OfficeTiffCodec {
             WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
         }
         WriteShortEntry(output, ref entry, 284, 1);
-        if (effective.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
+        GetEncodingResolution(effective, out double resolutionX, out double resolutionY, out int resolutionUnit);
+        if (effective.WriteResolution) WriteShortEntry(output, ref entry, 296, resolutionUnit);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)effective.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
@@ -131,8 +136,8 @@ public static partial class OfficeTiffCodec {
         WriteUInt16(output, bitsPerSampleOffset + 4, 8);
         WriteUInt16(output, bitsPerSampleOffset + 6, 8);
         if (effective.WriteResolution) {
-            WriteRational(output, xResolutionOffset, effective.DpiX);
-            WriteRational(output, yResolutionOffset, effective.DpiY);
+            WriteRational(output, xResolutionOffset, resolutionX);
+            WriteRational(output, yResolutionOffset, resolutionY);
         }
         if (effective.Compression == OfficeTiffCompression.PackBits) {
             int written = EncodePackBitsRows(pixels, image.Width * 4, image.Height, output, stripOffset);
@@ -189,181 +194,6 @@ public static partial class OfficeTiffCodec {
             return false;
         } catch (OverflowException) {
             pageCount = 0;
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Attempts to decode a classic baseline grayscale, palette, RGB, RGBA, or device-CMYK TIFF using
-    /// chunky or planar strips or tiles with uncompressed, LZW, PackBits, or Deflate payloads.
-    /// Floating-point, JPEG-compressed, and BigTIFF payloads remain optional caller-codec responsibilities.
-    /// </summary>
-    public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
-        TryDecodePage(encodedBytes, 0, options: null, out image);
-
-    /// <summary>Attempts to decode one zero-based page from a bounded classic TIFF container.</summary>
-    public static bool TryDecodePage(byte[]? encodedBytes, int pageIndex, out OfficeRasterImage? image) =>
-        TryDecodePage(encodedBytes, pageIndex, options: null, out image);
-
-    internal static bool TryDecodePage(
-        byte[]? encodedBytes,
-        int pageIndex,
-        OfficeRasterDecodeOptions? options,
-        out OfficeRasterImage? image) {
-        image = null;
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
-        effective.Validate();
-        effective.CancellationToken.ThrowIfCancellationRequested();
-        if (!IsTiff(encodedBytes) || encodedBytes == null ||
-            encodedBytes.Length > effective.MaximumEncodedBytes ||
-            !OfficeTiffStructureValidator.TryValidate(
-                encodedBytes, 0, encodedBytes.Length, effective.CancellationToken)) {
-            return false;
-        }
-        try {
-            bool littleEndian = encodedBytes[0] == (byte)'I';
-            if (ReadUInt16(encodedBytes, 2, littleEndian) != 42) return false;
-            int ifdOffset = ReadOffset(encodedBytes, 4, littleEndian);
-            var visitedIfds = new System.Collections.Generic.HashSet<int>();
-            int currentPageIndex = 0;
-            while (ifdOffset != 0) {
-                effective.CancellationToken.ThrowIfCancellationRequested();
-                if (visitedIfds.Count >= MaximumIfdCount || !visitedIfds.Add(ifdOffset) ||
-                    !HasBytes(encodedBytes, ifdOffset, 2)) {
-                    return false;
-                }
-                int entryCount = ReadUInt16(encodedBytes, ifdOffset, littleEndian);
-                if (entryCount <= 0 || !HasBytes(encodedBytes, ifdOffset + 2, checked(entryCount * 12 + 4))) return false;
-
-                var entries = new System.Collections.Generic.Dictionary<int, TiffEntry>();
-                int entryOffset = ifdOffset + 2;
-                for (int index = 0; index < entryCount; index++, entryOffset += 12) {
-                    if ((index & 0xFF) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
-                    int tag = ReadUInt16(encodedBytes, entryOffset, littleEndian);
-                    int type = ReadUInt16(encodedBytes, entryOffset + 2, littleEndian);
-                    uint count = ReadUInt32(encodedBytes, entryOffset + 4, littleEndian);
-                    if (count == 0 || count > int.MaxValue || entries.ContainsKey(tag) ||
-                        !HasValidEntryValueRange(
-                            encodedBytes,
-                            type,
-                            (int)count,
-                            entryOffset + 8,
-                            littleEndian)) {
-                        return false;
-                    }
-                    entries.Add(tag, new TiffEntry(type, (int)count, entryOffset + 8));
-                }
-
-                int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
-                int nextIfdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
-                if (currentPageIndex != pageIndex) {
-                    ifdOffset = nextIfdOffset;
-                    currentPageIndex++;
-                    continue;
-                }
-
-                if (!TryReadScalar(encodedBytes, entries, 256, littleEndian, out int width) ||
-                    !TryReadScalar(encodedBytes, entries, 257, littleEndian, out int height) ||
-                    !IsWithinPixelLimit(width, height, effective.MaximumDecodedPixels)) {
-                    return false;
-                }
-
-                if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 278, littleEndian, height, out int rowsPerStrip) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor)) {
-                    return false;
-                }
-                if (!TryGetBaseSampleCount(photometric, out int baseSamples) ||
-                    !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples)) {
-                    return false;
-                }
-                if (photometric == 5 &&
-                    (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) ||
-                     inkSet != 1)) {
-                    return false;
-                }
-                if ((compression != (int)OfficeTiffCompression.None &&
-                     compression != (int)OfficeTiffCompression.Lzw &&
-                     compression != (int)OfficeTiffCompression.PackBits &&
-                     compression != (int)OfficeTiffCompression.Deflate &&
-                     compression != 32946) ||
-                    orientation < 1 || orientation > 8 ||
-                    (samples != baseSamples && samples != baseSamples + 1) ||
-                    rowsPerStrip < 1 ||
-                    (planarConfiguration != 1 && planarConfiguration != 2) ||
-                    (predictor != 1 && predictor != 2)) {
-                    return false;
-                }
-
-                if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-                    Array.Exists(bitsPerSample, value => value != 8)) {
-                    return false;
-                }
-
-                int[]? colorMap = null;
-                if (photometric == 3 &&
-                    !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out colorMap)) {
-                    return false;
-                }
-
-                int alphaKind = 2;
-                if (samples == baseSamples + 1) {
-                    if (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-                        (extraSamples[0] != 1 && extraSamples[0] != 2)) {
-                        return false;
-                    }
-                    alphaKind = extraSamples[0];
-                }
-
-                long maximumDecodeWorkBytes = OfficeRasterGuards.MaximumDecodedBytes - effective.RetainedManagedBytes;
-                if (maximumDecodeWorkBytes < 1L) return false;
-                var decodeWorkBudget = new TiffValidationBudget(maximumDecodeWorkBytes);
-                if (!TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
-                        compression, planarConfiguration, predictor, effective, decodeWorkBudget,
-                        retainPixels: true, out byte[] source)) return false;
-
-                int orientedWidth = orientation >= 5 ? height : width;
-                int orientedHeight = orientation >= 5 ? width : height;
-                byte[] rgba = OfficeRasterGuards.AllocateRgba32(orientedWidth, orientedHeight, "TIFF decoded pixels exceed the managed limit.");
-                for (int y = 0; y < height; y++) {
-                    if ((y & 31) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
-                    for (int x = 0; x < width; x++) {
-                        if ((x & 0xFFF) == 0) effective.CancellationToken.ThrowIfCancellationRequested();
-                        int sourcePixel = ((y * width) + x) * samples;
-                        ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
-                        int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
-                        byte alpha = samples == baseSamples + 1
-                            ? source[sourcePixel + baseSamples]
-                            : (byte)255;
-                        ConvertPixel(
-                            source,
-                            sourcePixel,
-                            photometric,
-                            alphaKind,
-                            alpha,
-                            colorMap,
-                            out byte red,
-                            out byte green,
-                            out byte blue);
-                        rgba[targetPixel] = red;
-                        rgba[targetPixel + 1] = green;
-                        rgba[targetPixel + 2] = blue;
-                        rgba[targetPixel + 3] = alpha;
-                    }
-                }
-                image = OfficeRasterImage.FromOwnedRgba32(orientedWidth, orientedHeight, rgba);
-                return true;
-            }
-            return false;
-        } catch (ArgumentException) {
-            return false;
-        } catch (FormatException) {
-            return false;
-        } catch (OverflowException) {
             return false;
         }
     }
@@ -428,6 +258,20 @@ public static partial class OfficeTiffCodec {
 
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
+        GetEncodingResolution(options, out double x, out double y, out _);
+        if (options.WriteResolution) {
+            OfficeUnsignedRational.FromPositiveDouble(x, nameof(options.Resolution));
+            OfficeUnsignedRational.FromPositiveDouble(y, nameof(options.Resolution));
+        }
+    }
+
+    private static void GetEncodingResolution(OfficeTiffEncodeOptions options, out double x, out double y, out int unit) {
+        OfficeImageResolution? resolution = options.Resolution;
+        x = resolution?.Horizontal ?? options.DpiX;
+        y = resolution?.Vertical ?? options.DpiY;
+        OfficeImageResolutionUnit nativeUnit = resolution?.Unit ?? OfficeImageResolutionUnit.PixelsPerInch;
+        unit = nativeUnit == OfficeImageResolutionUnit.AspectRatio ? 1 : nativeUnit == OfficeImageResolutionUnit.PixelsPerCentimeter || nativeUnit == OfficeImageResolutionUnit.PixelsPerMeter ? 3 : 2;
+        if (nativeUnit == OfficeImageResolutionUnit.PixelsPerMeter) { x /= 100D; y /= 100D; }
     }
 
     private static bool UsesHorizontalPredictor(OfficeTiffEncodeOptions options) =>
@@ -661,6 +505,7 @@ public static partial class OfficeTiffCodec {
             2 => 3,
             3 => 1,
             5 => 4,
+            6 => 3,
             _ => 0
         };
         return samples != 0;
@@ -698,8 +543,8 @@ public static partial class OfficeTiffCodec {
             case 3:
                 int paletteIndex = source[offset];
                 red = ColorMapByte(colorMap![paletteIndex]);
-                green = ColorMapByte(colorMap[256 + paletteIndex]);
-                blue = ColorMapByte(colorMap[512 + paletteIndex]);
+                green = ColorMapByte(colorMap[colorMap.Length / 3 + paletteIndex]);
+                blue = ColorMapByte(colorMap[2 * (colorMap.Length / 3) + paletteIndex]);
                 return;
             case 5:
                 int cyan = Component(0);
@@ -725,15 +570,26 @@ public static partial class OfficeTiffCodec {
         int rows,
         int width,
         int samples,
+        int sampleBytes,
+        bool littleEndian,
         CancellationToken cancellationToken) {
-        int rowBytes = checked(width * samples);
+        int pixelBytes = checked(samples * sampleBytes);
+        int rowBytes = checked(width * pixelBytes);
         for (int row = 0; row < rows; row++) {
             if ((row & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = checked(offset + row * rowBytes);
             int rowEnd = checked(rowOffset + rowBytes);
-            for (int index = rowOffset + samples; index < rowEnd; index++) {
+            for (int index = rowOffset + pixelBytes; index < rowEnd; index += sampleBytes) {
                 if (((index - rowOffset) & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-                pixels[index] = unchecked((byte)(pixels[index] + pixels[index - samples]));
+                if (sampleBytes == 1) {
+                    pixels[index] = unchecked((byte)(pixels[index] + pixels[index - pixelBytes]));
+                } else {
+                    // Horizontal prediction adds complete sample words modulo 65536.
+                    ushort value = unchecked((ushort)(ReadUInt16(pixels, index, littleEndian) +
+                        ReadUInt16(pixels, index - pixelBytes, littleEndian)));
+                    pixels[index] = littleEndian ? (byte)value : (byte)(value >> 8);
+                    pixels[index + 1] = littleEndian ? (byte)(value >> 8) : (byte)value;
+                }
             }
         }
     }
@@ -899,10 +755,9 @@ public static partial class OfficeTiffCodec {
     }
 
     private static void WriteRational(byte[] output, int offset, double value) {
-        const int denominator = 1000;
-        int numerator = checked((int)Math.Round(value * denominator));
-        WriteUInt32(output, offset, numerator);
-        WriteUInt32(output, offset + 4, denominator);
+        OfficeRational rational = OfficeUnsignedRational.FromPositiveDouble(value);
+        WriteUInt32(output, offset, unchecked((int)rational.Numerator));
+        WriteUInt32(output, offset + 4, unchecked((int)rational.Denominator));
     }
 
     private static void WriteUInt16(byte[] output, int offset, int value) {

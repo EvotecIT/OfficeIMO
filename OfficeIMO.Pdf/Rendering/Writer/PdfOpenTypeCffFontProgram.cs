@@ -7,12 +7,15 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private const uint OpenTypeCffScalerType = 0x4F54544F;
 
     private readonly byte[] _data;
-    private readonly ushort[] _advanceWidths;
+    // Immutable PDF-unit widths are shared by document forks.
+    private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
 
     private PdfOpenTypeCffFontProgram(
         byte[] data,
@@ -28,11 +31,12 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         double italicAngle,
         int flags,
         int stemV,
-        ushort[] advanceWidths,
+        int[] advanceWidths1000,
         Dictionary<int, int> cmap,
         Dictionary<string, TableRecord> tables,
         int cffTableLength) {
         _data = data.ToArray();
+        LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
         UnitsPerEm = unitsPerEm;
@@ -43,13 +47,14 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         ItalicAngle = italicAngle;
         Flags = flags;
         StemV = stemV;
-        _advanceWidths = advanceWidths;
+        _advanceWidths1000 = advanceWidths1000;
         _cmap = cmap;
         CffTableLength = cffTableLength;
     }
 
     private PdfOpenTypeCffFontProgram(PdfOpenTypeCffFontProgram source) {
         _data = source._data;
+        LineMetrics = source.LineMetrics;
         _tables = source._tables;
         FontName = source.FontName;
         UnitsPerEm = source.UnitsPerEm;
@@ -60,7 +65,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         ItalicAngle = source.ItalicAngle;
         Flags = source.Flags;
         StemV = source.StemV;
-        _advanceWidths = source._advanceWidths;
+        _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
         CffTableLength = source.CffTableLength;
     }
@@ -68,6 +73,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
 
     public string FontName { get; }
+    internal OfficeOpenTypeLineMetrics? LineMetrics { get; }
     public int UnitsPerEm { get; }
     public int[] FontBBox { get; }
     public int Ascent { get; }
@@ -76,7 +82,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public double ItalicAngle { get; }
     public int Flags { get; }
     public int StemV { get; }
-    public int GlyphCount => _advanceWidths.Length;
+    public int GlyphCount => _advanceWidths1000.Length;
     public int CffTableLength { get; }
     public int FontDataLength => _data.Length;
     internal byte[] FontDataForInspection => _data;
@@ -143,7 +149,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             fixedPitch = ReadUInt32(data, post.Value.Offset + 12) != 0;
         }
 
-        ushort[] widths = ReadAdvanceWidths(data, hmtx, numberOfHMetrics, info.GlyphCount);
+        int[] widths = ReadAdvanceWidths1000(data, hmtx, numberOfHMetrics, info.GlyphCount, unitsPerEm);
         int flags = 32;
         if (fixedPitch) flags |= 1;
         if ((macStyle & 0x02) != 0 || Math.Abs(italicAngle) > 0.01D) flags |= 64;
@@ -173,11 +179,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _cmap.TryGetValue(unicodeScalar, out glyphId);
 
     public int GetGlyphWidth1000(int glyphId) {
-        if (glyphId < 0 || glyphId >= _advanceWidths.Length) {
-            return _advanceWidths.Length == 0 ? 500 : ScaleMetric(_advanceWidths[_advanceWidths.Length - 1], UnitsPerEm);
+        if (glyphId < 0 || glyphId >= _advanceWidths1000.Length) {
+            return _advanceWidths1000.Length == 0 ? 500 : _advanceWidths1000[_advanceWidths1000.Length - 1];
         }
 
-        return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
+        return _advanceWidths1000[glyphId];
     }
 
     public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
@@ -185,7 +191,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             return 0D;
         }
 
-        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings)).TotalAdvanceWidth1000 * fontSize / 1000D;
+        PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures
+            ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
+            : ShapeText(text!, options).TotalAdvanceWidth1000;
+        return advance * fontSize / 1000D;
     }
 
     public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) {
@@ -200,6 +210,18 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
+        if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
+            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, true, true);
+            return cached;
+        }
+        PdfGlyphRun result = ShapeUncachedText(text, options);
+        if (cacheable && !result.HasMissingGlyphs) _shortGlyphRuns.Add(text, options, result, result.Glyphs.Count);
+        return result;
+    }
+
+    private PdfGlyphRun ShapeUncachedText(string text, PdfTextShapingOptions options) {
         if (PdfExternalTextShaper.TryShapeText(text, this, options, out PdfGlyphRun glyphRun)) {
             return glyphRun;
         }
@@ -302,16 +324,18 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     internal void RecordGlyphUsage(int glyphId, int unicodeScalar) {
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
+            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
+            // A stored mapping already owns this glyph in the usage set; reset clears both.
+            if (!hasMapping) _usedGlyphIds.Add(glyphId);
             // Called per glyph occurrence; the glyph -> unicode map needs the string only once per unique
             // glyph, so skip the ConvertFromUtf32 allocation when the glyph already maps to this scalar.
-            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+            if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
                 return;
             }
 
             string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
             if (!string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
                 _usedGlyphToUnicode[glyphId] = unicodeText;
             }
         }
@@ -333,9 +357,10 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     internal void RecordGlyphUsage(int glyphId, string unicodeText) {
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
+            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText);
+            if (!hasMapping) _usedGlyphIds.Add(glyphId);
             if (!string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existingText!))) {
                 _usedGlyphToUnicode[glyphId] = unicodeText;
             }
         }
@@ -387,14 +412,14 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return record;
     }
 
-    private static ushort[] ReadAdvanceWidths(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount) {
-        var widths = new ushort[glyphCount];
-        ushort lastAdvance = 500;
+    private static int[] ReadAdvanceWidths1000(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount, int unitsPerEm) {
+        var widths = new int[glyphCount];
+        int lastAdvance = ScaleMetric(500, unitsPerEm);
         for (int glyph = 0; glyph < glyphCount; glyph++) {
             if (glyph < numberOfHMetrics) {
                 int metricOffset = hmtx.Offset + glyph * 4;
                 EnsureRange(data, metricOffset, 4);
-                lastAdvance = ReadUInt16(data, metricOffset);
+                lastAdvance = ScaleMetric(ReadUInt16(data, metricOffset), unitsPerEm);
             }
 
             widths[glyph] = lastAdvance;

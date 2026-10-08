@@ -23,9 +23,9 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
                     nextRowIndex = rowIndex + 1;
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
 
                         int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
                         if (columnIndex >= firstColumn && columnIndex <= lastColumn) {
-                            uint styleIndex = TryParseUInt(reader.GetAttribute("s"), out uint parsedStyle)
+                            uint styleIndex = TryReadXmlStyleIndex(reader, out uint parsedStyle)
                                 ? parsedStyle
                                 : 0U;
                             styles[rowIndex - firstRow, columnIndex - firstColumn] = styleIndex;

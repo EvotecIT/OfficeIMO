@@ -180,12 +180,13 @@ namespace OfficeIMO.Excel {
                 object?[]? arr = null;
                 bool canCancelCell = token.CanBeCanceled;
 
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancelCell) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int cc = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cc = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
                     if (cc < firstColumn || cc > lastColumn) continue;
                     arr ??= new object?[rowWidth];
                     if (TryConvertCell(cell, out object? value)) {
@@ -222,7 +223,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -232,17 +232,13 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -254,7 +250,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     object?[]? rowValues = ReadXmlRowValue(reader, c1, c2, width, ct);
-                    seenRows.MarkSeen(rowOffset);
                     if (denseRows != null) {
                         denseRows[rowOffset] = rowValues;
                         continue;
@@ -402,7 +397,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -412,17 +406,13 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -434,7 +424,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     rows[rowOffset] = ReadXmlRowValue(reader, c1, c2, width, ct);
-                    seenRows.MarkSeen(rowOffset);
                 }
 
                 return true;
@@ -469,9 +458,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;

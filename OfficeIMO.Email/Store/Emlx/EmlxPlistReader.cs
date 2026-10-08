@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Email.Store;
 
-/// <summary>Small, bounded XML property-list reader for EMLX metadata.</summary>
+/// <summary>Bounded XML and binary property-list reader for EMLX metadata.</summary>
 internal static class EmlxPlistReader {
     internal static bool LooksLikeBinaryPlist(byte[] data, int offset) {
         byte[] signature = Encoding.ASCII.GetBytes("bplist00");
@@ -17,6 +17,9 @@ internal static class EmlxPlistReader {
     internal static IReadOnlyDictionary<string, object?> Read(byte[] data, int offset,
         EmailStoreReaderOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (LooksLikeBinaryPlist(data, offset)) {
+            return new EmlxBinaryPlistReader(data, offset, options, cancellationToken).Read();
+        }
         var settings = new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Ignore,
             XmlResolver = null,
@@ -87,12 +90,13 @@ internal static class EmlxPlistReader {
             try { return Convert.FromBase64String(element.Value); }
             catch (FormatException) { throw new FormatException("An EMLX property-list data value is invalid base64."); }
         }
-        return element.Value;
+        if (string.Equals(name, "string", StringComparison.OrdinalIgnoreCase)) return element.Value;
+        throw new NotSupportedException("An XML plist contains a value type that is retained as opaque metadata.");
     }
 
     private static Dictionary<string, object?> ParseDictionary(XElement dictionary,
         EmailStoreReaderOptions options, CancellationToken cancellationToken, ref int propertyCount, int depth) {
-        var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
         List<XElement> elements = dictionary.Elements().ToList();
         for (int index = 0; index < elements.Count; index += 2) {
             cancellationToken.ThrowIfCancellationRequested();

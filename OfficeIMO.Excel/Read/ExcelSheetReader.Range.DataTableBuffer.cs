@@ -134,8 +134,9 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(rows);
-                while (reader.Read()) {
+                bool advanceReader = true;
+                while (!advanceReader || reader.Read()) {
+                    advanceReader = true;
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
@@ -144,24 +145,20 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     if (rowIndex <= 0) {
-                        rowIndex = nextRowIndex;
+                        rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                     }
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
-                            break;
-                        }
-
-                        SkipXmlElement(reader, "row");
+                        reader.Skip();
+                        advanceReader = false;
                         continue;
                     }
 
                     if (headersInFirstRow && rowIndex == r1) {
                         ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, headerValues, null, null, ct);
-                        seenRows.MarkSeen(0);
                         continue;
                     }
 
@@ -176,7 +173,6 @@ namespace OfficeIMO.Excel {
                         completeRowsWithoutNulls![rr] = true;
                     }
 
-                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 Type[] columnTypes = new Type[cols];

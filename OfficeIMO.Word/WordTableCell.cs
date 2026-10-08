@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a single cell within a <see cref="WordTable"/>.
     /// </summary>
-    public class WordTableCell : System.IEquatable<WordTableCell> {
+    public partial class WordTableCell : System.IEquatable<WordTableCell> {
         private WordTableCellBorder? _borders;
 
         /// <summary>
@@ -134,6 +134,7 @@ namespace OfficeIMO.Word {
                 AddTableCellProperties();
                 if (value != "") {
                     var color = value.Replace("#", "").ToUpperInvariant();
+                    if (color == "AUTO") color = "auto";
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Fill = color;
                     _tableCellProperties.Shading.Val ??= ShadingPatternValues.Clear;
@@ -226,11 +227,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Get or set the background color of a cell using OfficeIMO color.
+        /// An automatic or unspecified fill has no RGB color and returns null.
         /// </summary>
         public Color? ShadingFillColor {
             get {
-                if (ShadingFillColorHex != "") {
-                    return Helpers.ParseColor(ShadingFillColorHex);
+                string fill = ShadingFillColorHex;
+                if (fill != "" && !string.Equals(fill, "auto", StringComparison.OrdinalIgnoreCase)) {
+                    return Helpers.ParseColor(fill);
                 }
 
                 return null;
@@ -530,76 +533,6 @@ namespace OfficeIMO.Word {
                 }
             }
         }
-
-        /// <summary>
-        /// Gets or sets whether text wraps within the cell.
-        /// </summary>
-        public bool WrapText {
-            get {
-                return _tableCellProperties?.GetFirstChild<NoWrap>() == null;
-            }
-            set {
-                AddTableCellProperties();
-                var current = _tableCellProperties!.GetFirstChild<NoWrap>();
-                if (value) {
-                    current?.Remove();
-                } else {
-                    if (current == null) {
-                        _tableCellProperties.Append(new NoWrap());
-                        NormalizeTableCellPropertiesOrder();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets whether text is compressed to fit within the cell width.
-        /// </summary>
-        public bool FitText {
-            get {
-                var tcPr = _tableCell.GetFirstChild<TableCellProperties>();
-                return tcPr?.GetFirstChild<TableCellFitText>() != null;
-            }
-            set {
-                AddTableCellProperties();
-                var current = _tableCellProperties!.GetFirstChild<TableCellFitText>();
-                if (value) {
-                    if (current == null) {
-                        _tableCellProperties.Append(new TableCellFitText { Val = OnOffOnlyValues.On });
-                        NormalizeTableCellPropertiesOrder();
-                    } else {
-                        current.Val = OnOffOnlyValues.On;
-                    }
-                } else {
-                    current?.Remove();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets whether the empty cell mark is hidden for this cell.
-        /// </summary>
-        public bool HideMark {
-            get {
-                var tcPr = _tableCell.GetFirstChild<TableCellProperties>();
-                return tcPr?.GetFirstChild<HideMark>() != null;
-            }
-            set {
-                AddTableCellProperties();
-                var current = _tableCellProperties!.GetFirstChild<HideMark>();
-                if (value) {
-                    if (current == null) {
-                        _tableCellProperties.Append(new HideMark { Val = OnOffOnlyValues.On });
-                        NormalizeTableCellPropertiesOrder();
-                    } else {
-                        current.Val = OnOffOnlyValues.On;
-                    }
-                } else {
-                    current?.Remove();
-                }
-            }
-        }
-
 
         /// <summary>
         /// Create a WordTableCell and add it to given Table Row

@@ -37,6 +37,14 @@ presentation.Save();
 `Create(...)` starts with zero slides, and each `AddSlide()` call creates exactly one. This keeps creation and
 editing deterministic; there is no hidden placeholder slide to reuse.
 
+For a deck from an untrusted source, use the bounded load profile:
+
+```csharp
+using var incoming = PowerPointPresentation.Load("upload.pptx", PowerPointLoadOptions.UntrustedDefaults);
+```
+
+It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with decks containing those parts; set `PackageSecurity` explicitly for another policy.
+
 Load operations are detached from their source. Persistence is explicit by default, and read-only intent or
 save-on-dispose behavior uses the same shared lifecycle options as Word and Excel:
 
@@ -735,6 +743,10 @@ static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
 - **Security:** Open XML, legacy binary, and VBA signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. OPC and VBA creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+### Hyperlink text colors
+
+Assigning `PowerPointTextRun.Color` keeps that explicit color on hyperlinks in readers supporting the native text-color extension. New links without an explicit color use the theme hyperlink color. To use a style-inherited text color, create the link and set `run.HyperlinkUsesTextColor = true`; set it to `false` to select the theme hyperlink color. Clearing `run.Color` preserves this policy, so a link using text color then inherits its color from the surrounding style. The extension is supported by Office 2019 and newer; older readers may ignore it.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

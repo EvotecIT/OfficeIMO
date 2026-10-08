@@ -22,42 +22,50 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         if (engine == null) throw new ArgumentNullException(nameof(engine));
 
         ExecutionOptionsSnapshot effective = ExecutionOptionsSnapshot.Create(options);
-        OcrEngineExecution engineExecution = OcrEngineRunner.CreateExecution(engine);
+        return await ApplyOcrDocumentAsync(document, OcrEngineRunner.CreateExecution(engine), effective,
+            new ExecutionBudget(effective), new TimedOutOcrOperationTracker(), "root", document.Source?.Path,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<OfficeDocumentOcrExecutionResult> ApplyOcrDocumentAsync(
+        OfficeDocumentReadResult document, OcrEngineExecution engineExecution, ExecutionOptionsSnapshot effective,
+        ExecutionBudget budget, TimedOutOcrOperationTracker timedOutOperations, string documentId,
+        string? documentPath, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string engineId = engineExecution.Id;
-        IReadOnlyList<OfficeDocumentOcrCandidate> candidates = document.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>();
-        IReadOnlyList<OfficeDocumentAsset> assets = document.Assets ?? Array.Empty<OfficeDocumentAsset>();
+        IReadOnlyList<OfficeDocumentOcrCandidate> candidates = OfficeDocumentOcrCandidates.Collect(document);
+        IReadOnlyList<OfficeDocumentAsset> assets = (document.Assets ?? Array.Empty<OfficeDocumentAsset>())
+            .Concat((document.Pages ?? Array.Empty<OfficeDocumentPage>()).SelectMany(page => page.Assets ?? Array.Empty<OfficeDocumentAsset>())).ToArray();
         OcrEngineCapabilities capabilities = engineExecution.Capabilities;
         var diagnostics = new List<OfficeDocumentDiagnostic>();
-        List<CandidateJob> jobs = BuildJobs(document, candidates, assets, capabilities, engineId, effective, diagnostics);
+        int selectedCount = Math.Min(candidates.Count, effective.MaxCandidates - budget.SelectedCandidates);
+        List<CandidateJob> jobs = BuildJobs(document, candidates, assets, capabilities, engineId, effective, budget, diagnostics, cancellationToken);
         int degree = capabilities.SupportsConcurrentRequests ? Math.Min(effective.MaxDegreeOfParallelism, Math.Max(1, jobs.Count)) : 1;
 
-        var timedOutOperations = new TimedOutOcrOperationTracker();
-        CandidateOutcome[] outcomes = await ExecuteCandidatesAsync(
-            document,
-            engineExecution,
-            engineId,
-            jobs,
-            effective,
-            degree,
-            timedOutOperations,
-            cancellationToken).ConfigureAwait(false);
-
-        var recognitions = new List<OfficeDocumentOcrRecognition>(outcomes.Length);
-        var recognizedText = new List<OfficeDocumentOcrTextResult>(outcomes.Length);
+        var recognitions = new List<OfficeDocumentOcrRecognition>(jobs.Count);
+        var recognizedText = new List<OfficeDocumentOcrTextResult>(jobs.Count);
         int failedCount = 0;
         int emptyCount = 0;
         int attemptedCount = 0;
-        foreach (CandidateOutcome outcome in outcomes.OrderBy(static outcome => outcome.Job.Index)) {
+        long inputBytes = 0;
+        void Accept(CandidateOutcome outcome) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (outcome.WasAttempted) inputBytes += outcome.Job.Payload.LongLength;
             if (outcome.WasAttempted) attemptedCount++;
             if (outcome.FailureDiagnostic != null) {
                 if (outcome.WasAttempted) failedCount++;
                 diagnostics.Add(outcome.FailureDiagnostic);
-                continue;
+                return;
             }
 
             OcrResult engineResult = outcome.Result ?? new OcrResult();
-            NormalizeEngineResult(engineResult, engineId, effective, outcome.Job.Candidate, diagnostics);
+            int diagnosticStart = diagnostics.Count;
+            NormalizeEngineResult(engineResult, engineId, effective, budget, outcome.Job.Candidate, diagnostics, cancellationToken);
+            bool normalizationLoss = diagnostics.Skip(diagnosticStart).Any(item => item.Severity != OfficeDocumentDiagnosticSeverity.Information);
+            budget.Consume(engineResult);
             recognitions.Add(new OfficeDocumentOcrRecognition {
+                DocumentId = documentId,
+                DocumentPath = documentPath,
                 CandidateId = outcome.Job.Candidate.Id,
                 AssetId = outcome.Job.Asset.Id,
                 Result = engineResult
@@ -76,7 +84,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                     "ocr-empty-result",
                     "The OCR engine completed without recognized text.",
                     true));
-                continue;
+                return;
             }
 
             recognizedText.Add(new OfficeDocumentOcrTextResult {
@@ -85,9 +93,13 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Confidence = engineResult.Confidence,
                 Language = engineResult.Language,
                 Provider = engineResult.Provider,
-                Model = engineResult.Model
+                Model = engineResult.Model,
+                Recognition = CaptureRecognitionEvidence(engineResult, normalizationLoss)
             });
         }
+
+        await ExecuteCandidatesAsync(document, engineExecution, engineId, jobs, effective, budget, degree,
+            timedOutOperations, documentPath, Accept, cancellationToken).ConfigureAwait(false);
 
         OfficeDocumentOcrEnrichmentResult enrichment = document.ApplyOcrResults(recognizedText, effective.EnrichmentOptions);
         OfficeDocumentReadResult enriched = enrichment.Document;
@@ -96,8 +108,9 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         int skippedCount = candidates.Count - attemptedCount;
         var report = new OfficeDocumentOcrExecutionReport {
             EngineId = engineId,
+            DocumentCount = 1,
             CandidateCount = candidates.Count,
-            SelectedCandidateCount = Math.Min(candidates.Count, effective.MaxCandidates),
+            SelectedCandidateCount = selectedCount,
             AttemptedCandidateCount = attemptedCount,
             RecognizedCandidateCount = recognizedText.Count,
             EmptyCandidateCount = emptyCount,
@@ -106,7 +119,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             LineSpanCount = CountSpans(recognitions, OcrTextSpanLevel.Line),
             WordSpanCount = CountSpans(recognitions, OcrTextSpanLevel.Word),
             CharacterSpanCount = CountSpans(recognitions, OcrTextSpanLevel.Character),
-            InputBytes = outcomes.Where(static outcome => outcome.WasAttempted).Sum(static outcome => (long)outcome.Job.Payload.LongLength),
+            InputBytes = inputBytes,
             EffectiveDegreeOfParallelism = attemptedCount == 0 ? 0 : degree
         };
         enriched.Metadata = BuildExecutionMetadata(enriched.Metadata, report);
@@ -119,42 +132,40 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         };
     }
 
-    private static async Task<CandidateOutcome[]> ExecuteCandidatesAsync(
-        OfficeDocumentReadResult document,
-        OcrEngineExecution engineExecution,
-        string engineId,
-        IReadOnlyList<CandidateJob> jobs,
-        ExecutionOptionsSnapshot options,
-        int degree,
-        TimedOutOcrOperationTracker timedOutOperations,
+    private static async Task ExecuteCandidatesAsync(
+        OfficeDocumentReadResult document, OcrEngineExecution engineExecution, string engineId,
+        IReadOnlyList<CandidateJob> jobs, ExecutionOptionsSnapshot options, ExecutionBudget budget,
+        int degree, TimedOutOcrOperationTracker timedOutOperations, string? documentPath, Action<CandidateOutcome> accept,
         CancellationToken cancellationToken) {
-        var outcomes = new List<CandidateOutcome>(jobs.Count);
         var running = new List<Task<CandidateOutcome>>(degree);
         int nextJob = 0;
-
-        while (nextJob < jobs.Count || running.Count > 0) {
-            while (nextJob < jobs.Count && running.Count < degree) {
-                running.Add(ExecuteCandidateAsync(document, engineExecution, engineId, jobs[nextJob++], options,
-                    timedOutOperations, cancellationToken));
-            }
-
-            await Task.WhenAny(running).ConfigureAwait(false);
-            Task<CandidateOutcome>[] completed = running
-                .Where(static task => task.IsCompleted)
-                .OrderBy(static task => task.IsFaulted ? 0 : 1)
-                .ToArray();
-            try {
-                foreach (Task<CandidateOutcome> task in completed) {
-                    running.Remove(task);
-                    outcomes.Add(await task.ConfigureAwait(false));
+        try {
+            while (nextJob < jobs.Count || running.Count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                Task<CandidateOutcome>? fault = running.FirstOrDefault(task => task.IsFaulted || task.IsCanceled);
+                if (fault != null) await fault.ConfigureAwait(false);
+                while (nextJob < jobs.Count && running.Count < degree) {
+                    if (!budget.CanRecognize) {
+                        CandidateJob skipped = jobs[nextJob++];
+                        accept(CandidateOutcome.Skipped(skipped, BuildDiagnostic(skipped.Candidate, skipped.Asset, engineId,
+                            OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
+                            budget.RemainingTime <= TimeSpan.Zero ? "ocr-total-time-limit" : "ocr-total-text-limit",
+                            "OCR was not started because the execution's total time or recognized-text budget was reached.", true)));
+                    } else {
+                        running.Add(ExecuteCandidateAsync(document, engineExecution, engineId, jobs[nextJob++], options,
+                            budget, timedOutOperations, documentPath, cancellationToken));
+                    }
                 }
-            } catch {
-                await AwaitRemainingCandidatesAsync(running).ConfigureAwait(false);
-                throw;
+                if (running.Count == 0) continue;
+                // Bound retained raw responses to the in-flight window; normalize in source order.
+                CandidateOutcome outcome = await running[0].ConfigureAwait(false);
+                running.RemoveAt(0);
+                accept(outcome);
             }
+        } catch {
+            await AwaitRemainingCandidatesAsync(running).ConfigureAwait(false);
+            throw;
         }
-
-        return outcomes.ToArray();
     }
 
     private static async Task AwaitRemainingCandidatesAsync(IEnumerable<Task<CandidateOutcome>> running) {
@@ -171,8 +182,9 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         string engineId,
         CandidateJob job,
         ExecutionOptionsSnapshot options,
+        ExecutionBudget budget,
         TimedOutOcrOperationTracker timedOutOperations,
-        CancellationToken cancellationToken) {
+        string? documentPath, CancellationToken cancellationToken) {
         try {
             cancellationToken.ThrowIfCancellationRequested();
             if (timedOutOperations.HasTimedOutOperation) {
@@ -191,7 +203,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 MediaType = job.Asset.MediaType ?? string.Empty,
                 FileName = job.Asset.FileName,
                 SourceId = document.Source?.SourceId,
-                SourceName = document.Source?.Path,
+                SourceName = documentPath,
                 CandidateId = job.Candidate.Id,
                 CandidateKind = job.Candidate.Kind,
                 PageNumber = job.Candidate.Location?.Page,
@@ -202,17 +214,22 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Language = options.Language,
                 ProviderOptions = options.ProviderOptions
             };
+            TimeSpan timeout = budget.RemainingTime;
+            bool totalDeadline = timeout <= options.CandidateTimeout;
+            if (timeout > options.CandidateTimeout) timeout = options.CandidateTimeout;
+            if (timeout <= TimeSpan.Zero) timeout = TimeSpan.FromTicks(1);
             try {
                 // Each retained diagnostic can have one empty key; other unique keys consume characters.
                 OcrResult result = await engineExecution.RecognizeAsync(
                     request,
-                    options.CandidateTimeout,
+                    timeout,
                     new OcrResultCaptureLimits(options.MaxSpansPerCandidate, options.MaxProviderDiagnosticsPerCandidate,
                         (int)Math.Min(options.MaxProviderDiagnosticAttributesPerCandidate, (long)options.MaxProviderDiagnosticAttributeCharactersPerCandidate + options.MaxProviderDiagnosticsPerCandidate)),
                     cancellationToken).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
             } catch (OcrEngineTimeoutException exception) {
                 timedOutOperations.MarkTimedOut();
+                if (totalDeadline) budget.MarkDeadlineExpired();
                 if (options.ContinueOnError) {
                     OfficeDocumentDiagnostic diagnostic = BuildDiagnostic(
                         job.Candidate,
@@ -220,8 +237,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                         engineId,
                         OfficeDocumentDiagnosticSeverity.Error,
                         OfficeDocumentDiagnosticCategory.Ocr,
-                        "ocr-engine-timeout",
-                        exception.ProviderCallStarted
+                        totalDeadline ? "ocr-total-time-limit" : "ocr-engine-timeout",
+                        totalDeadline
+                            ? "OCR exceeded the execution TotalTimeout (" + options.TotalTimeout + ")."
+                            : exception.ProviderCallStarted
                             ? "OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ")."
                             : "OCR was not started because the shared engine remained busy through CandidateTimeout (" + options.CandidateTimeout + ").",
                         true);
@@ -266,6 +285,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         var entries = (existing ?? Array.Empty<OfficeDocumentMetadataEntry>())
             .Where(static entry => !entry.Id.StartsWith("reader-ocr-execution-", StringComparison.Ordinal))
             .ToList();
+        AddExecutionCount(entries, "document-count", "DocumentCount", report.DocumentCount);
+        AddExecutionCount(entries, "skipped-document-count", "SkippedDocumentCount", report.SkippedDocumentCount);
         AddExecutionCount(entries, "candidate-count", "CandidateCount", report.CandidateCount);
         AddExecutionCount(entries, "attempted-count", "AttemptedCount", report.AttemptedCandidateCount);
         AddExecutionCount(entries, "recognized-count", "RecognizedCount", report.RecognizedCandidateCount);
@@ -332,75 +353,4 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         internal static CandidateOutcome Skipped(CandidateJob job, OfficeDocumentDiagnostic diagnostic) => new CandidateOutcome(job, null, diagnostic, false);
     }
 
-    private sealed class ExecutionOptionsSnapshot {
-        private ExecutionOptionsSnapshot() { }
-
-        internal string? Language { get; private set; }
-        internal int MaxCandidates { get; private set; }
-        internal long MaxInputBytesPerCandidate { get; private set; }
-        internal long MaxTotalInputBytes { get; private set; }
-        internal int MaxDegreeOfParallelism { get; private set; }
-        internal TimeSpan CandidateTimeout { get; private set; }
-        internal int MaxRecognizedCharactersPerCandidate { get; private set; }
-        internal int MaxSpansPerCandidate { get; private set; }
-        internal int MaxSpanCharactersPerCandidate { get; private set; }
-        internal int MaxResultMetadataCharactersPerCandidate { get; private set; }
-        internal int MaxProviderDiagnosticsPerCandidate { get; private set; }
-        internal int MaxProviderDiagnosticCharactersPerCandidate { get; private set; }
-        internal int MaxProviderDiagnosticAttributesPerCandidate { get; private set; }
-        internal int MaxProviderDiagnosticAttributeCharactersPerCandidate { get; private set; }
-        internal bool ContinueOnError { get; private set; }
-        internal bool RequirePayloadHashMatch { get; private set; }
-        internal IReadOnlyDictionary<string, string> ProviderOptions { get; private set; } = new Dictionary<string, string>(StringComparer.Ordinal);
-        internal OfficeDocumentOcrEnrichmentOptions EnrichmentOptions { get; private set; } = new OfficeDocumentOcrEnrichmentOptions();
-
-        internal static ExecutionOptionsSnapshot Create(OfficeDocumentOcrExecutionOptions? options) {
-            OfficeDocumentOcrExecutionOptions source = options ?? new OfficeDocumentOcrExecutionOptions();
-            if (source.MaxCandidates < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxCandidates));
-            if (source.MaxInputBytesPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxInputBytesPerCandidate));
-            if (source.MaxTotalInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxTotalInputBytes));
-            if (source.MaxDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxDegreeOfParallelism));
-            if (source.CandidateTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(source.CandidateTimeout));
-            if (source.MaxRecognizedCharactersPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxRecognizedCharactersPerCandidate));
-            if (source.MaxSpansPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxSpansPerCandidate));
-            if (source.MaxSpanCharactersPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxSpanCharactersPerCandidate));
-            if (source.MaxResultMetadataCharactersPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxResultMetadataCharactersPerCandidate));
-            if (source.MaxProviderDiagnosticsPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxProviderDiagnosticsPerCandidate));
-            if (source.MaxProviderDiagnosticCharactersPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxProviderDiagnosticCharactersPerCandidate));
-            if (source.MaxProviderDiagnosticAttributesPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxProviderDiagnosticAttributesPerCandidate));
-            if (source.MaxProviderDiagnosticAttributeCharactersPerCandidate < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxProviderDiagnosticAttributeCharactersPerCandidate));
-            return new ExecutionOptionsSnapshot {
-                Language = string.IsNullOrWhiteSpace(source.Language) ? null : source.Language!.Trim(),
-                MaxCandidates = source.MaxCandidates,
-                MaxInputBytesPerCandidate = source.MaxInputBytesPerCandidate,
-                MaxTotalInputBytes = source.MaxTotalInputBytes,
-                MaxDegreeOfParallelism = source.MaxDegreeOfParallelism,
-                CandidateTimeout = source.CandidateTimeout,
-                MaxRecognizedCharactersPerCandidate = source.MaxRecognizedCharactersPerCandidate,
-                MaxSpansPerCandidate = source.MaxSpansPerCandidate,
-                MaxSpanCharactersPerCandidate = source.MaxSpanCharactersPerCandidate,
-                MaxResultMetadataCharactersPerCandidate = source.MaxResultMetadataCharactersPerCandidate,
-                MaxProviderDiagnosticsPerCandidate = source.MaxProviderDiagnosticsPerCandidate,
-                MaxProviderDiagnosticCharactersPerCandidate = source.MaxProviderDiagnosticCharactersPerCandidate,
-                MaxProviderDiagnosticAttributesPerCandidate = source.MaxProviderDiagnosticAttributesPerCandidate,
-                MaxProviderDiagnosticAttributeCharactersPerCandidate = source.MaxProviderDiagnosticAttributeCharactersPerCandidate,
-                ContinueOnError = source.ContinueOnError,
-                RequirePayloadHashMatch = source.RequirePayloadHashMatch,
-                ProviderOptions = source.ProviderOptions == null
-                    ? new Dictionary<string, string>(StringComparer.Ordinal)
-                    : source.ProviderOptions.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal),
-                EnrichmentOptions = CloneEnrichmentOptions(source.EnrichmentOptions)
-            };
-        }
-
-        private static OfficeDocumentOcrEnrichmentOptions CloneEnrichmentOptions(OfficeDocumentOcrEnrichmentOptions? source) {
-            source ??= new OfficeDocumentOcrEnrichmentOptions();
-            return new OfficeDocumentOcrEnrichmentOptions {
-                RemoveResolvedCandidates = source.RemoveResolvedCandidates,
-                RemoveResolvedOcrNeededDiagnostics = source.RemoveResolvedOcrNeededDiagnostics,
-                AppendRecognizedTextToMarkdown = source.AppendRecognizedTextToMarkdown,
-                BlockKind = source.BlockKind
-            };
-        }
-    }
 }

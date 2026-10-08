@@ -72,9 +72,10 @@ public class PdfOpenTypeDefaultLigatureTests {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'a', 'h', 'l', 'p');
         byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
             .Canvas(c => c.Text("Alpha", 40, 40, 200, 30, fontSize: 12)).ToBytes();
-        var target = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().Single(s => s.Text == "p");
+        using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var target = reader.GetPage(1).Letters.Single(letter => letter.Value == "p").BoundingBox;
         byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
-            target.X + 0.1, target.Y - target.FontSize, target.Advance - 0.2, target.FontSize * 1.5, "character") });
+            target.Left + 0.1, target.Bottom - 0.1, target.Width - 0.2, target.Height + 0.2, "character") });
         Assert.Equal("Alha", string.Concat(PdfReadDocument.Open(redacted).Pages[0].GetTextSpans().Select(span => span.Text)));
         Assert.Equal("Al ha", PdfTextExtractor.ExtractAllText(redacted).Trim());
     }
@@ -547,6 +548,35 @@ public class PdfOpenTypeDefaultLigatureTests {
         string content = output.ToString();
         Assert.Contains("<000100020003> Tj", content);
         Assert.Equal(1, content.Split(new[] { "/ActualText" }, System.StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void OverlappingSourceClustersShareOneRedactionScope() {
+        var glyphs = new[] {
+            new PdfGlyphInfo(1, "AB", 0, 600, 600, 0, 0, 0, logicalClusterStart: 0),
+            new PdfGlyphInfo(2, "C", 2, 600, 600, 0, 0, 0, logicalClusterStart: 1)
+        };
+        var output = new System.Text.StringBuilder();
+        new ContentStreamBuilder(output).BeginText().TextMatrix(40, 400)
+            .ShowText(new PdfGlyphRun(glyphs, System.Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true).ToTextShowCommand(), 12).EndText();
+        string content = output.ToString();
+        Assert.Contains("<00010002> Tj", content);
+        Assert.Equal(1, content.Split(new[] { "/ActualText" }, System.StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public void DefaultMultipleSubstitutionFallsBackBeforeQuadraticGlyphExpansion() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithMultipleSubstitution('A',
+            scriptTag: "latn", featureTag: "liga");
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
+        PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures);
+        Assert.Equal(2, font.ShapeText("A", options).Glyphs.Count);
+        string text = new string('A', 3000);
+
+        PdfGlyphRun run = font.ShapeText(text, options);
+
+        Assert.Equal(text.Length, run.Glyphs.Count);
+        Assert.Equal(text, string.Concat(run.Glyphs.Select(glyph => glyph.UnicodeText)));
     }
 
     [Theory]

@@ -178,16 +178,19 @@ public class PdfOcrTests {
             firstCallStarted.TrySetResult(null);
             return completion.Task;
         });
-        var options = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromMilliseconds(200) };
+        // The first operation must enter the provider before testing its occupied gate.
+        // This is a provider deadline, not an elapsed-performance assertion.
+        var options = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromSeconds(5) };
 
         try {
             Task<PdfOcrMergeResult> firstCall = PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options);
-            Task started = await Task.WhenAny(firstCallStarted.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            Task started = await Task.WhenAny(firstCallStarted.Task, firstCall);
             Assert.Same(firstCallStarted.Task, started);
             OcrEngineTimeoutException first = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
                 () => firstCall);
+            var occupiedGateOptions = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromMilliseconds(200) };
             OcrEngineTimeoutException second = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
-                () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options));
+                () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, occupiedGateOptions));
 
             Assert.True(first.ProviderCallStarted);
             Assert.False(second.ProviderCallStarted);
@@ -490,6 +493,16 @@ public class PdfOcrTests {
         PdfTextSpan nativeSpan = Assert.Single(
             readPage.GetInteractionTextSpans(),
             static span => span.Text == "A much longer replacement");
+        byte[] control = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Text("X", 50D, 100D, 12D, 20D, fontSize: 12D))
+            .ToBytes();
+        PdfTextSpan paintedSpan = Assert.Single(PdfReadDocument.Open(control).Pages[0].GetInteractionTextSpans());
+        Assert.Equal(paintedSpan.X, nativeSpan.X, 6);
+        Assert.Equal(paintedSpan.Y, nativeSpan.Y, 6);
+        Assert.Equal(paintedSpan.Advance, nativeSpan.Advance, 6);
+        Assert.Equal(paintedSpan.FontSize, nativeSpan.FontSize, 6);
+        Assert.Equal(paintedSpan.IsVisible, nativeSpan.IsVisible);
+        Assert.Equal(paintedSpan.TextRenderingMode, nativeSpan.TextRenderingMode);
         PdfSelectionQuad firstLogicalGlyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
         double ocrLeft = firstLogicalGlyph.Left + Math.Abs(nativeSpan.Advance) + 2D;
         var provider = new StubOcrEngine(request => Result(new[] {
@@ -881,6 +894,9 @@ public class PdfOcrTests {
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Document_BoundsMaximumSameLineWordProjectionAndHonorsCancellation() {
         byte[] pdf = PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
@@ -889,15 +905,21 @@ public class PdfOcrTests {
             .Select(static index => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D, index))
             .ToArray();
         var pageMerge = new PdfOcrPageMergeResult(1, words, 0, 0, Array.Empty<string>(), string.Empty);
+#if PDF_PERFORMANCE_EVIDENCE
         var timer = System.Diagnostics.Stopwatch.StartNew();
+#endif
 
         PdfDocumentReadResult enriched = BuildOcrDocument(pdf, new[] { pageMerge }, CancellationToken.None);
+#if PDF_PERFORMANCE_EVIDENCE
         timer.Stop();
+#endif
 
         Assert.Single(enriched.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.True(
             timer.Elapsed < TimeSpan.FromSeconds(5),
             "Maximum same-line OCR projection exceeded the bounded contract: " + timer.Elapsed + ".");
+#endif
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

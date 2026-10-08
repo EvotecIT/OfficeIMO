@@ -26,7 +26,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (!FiniteFilterNumber(w) || !FiniteFilterNumber(h) || w > int.MaxValue || h > int.MaxValue) return false;
         double pixels = w * h;
-        double work = pixels * (4D + EstimateSvgFilterSourceWork(source, references.CancellationToken));
+        double work = pixels * 4D + EstimateSvgFilterSourceWork(source, pixels, references.CancellationToken);
         foreach (SvgFilterNode node in graph.Nodes) {
             if (node.Operation == SvgFilterOperation.Blur) {
                 double sx = node.X * Math.Abs(transform.M11), sy = node.Y * Math.Abs(transform.M22);

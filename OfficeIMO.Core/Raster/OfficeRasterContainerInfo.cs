@@ -97,13 +97,15 @@ public sealed class OfficeRasterContainerInfo {
         int canvasHeight,
         OfficeRasterFrameInfo[] frames,
         int loopCount,
-        OfficeColor background) {
+        OfficeColor background,
+        int? playCount = null) {
         Format = format;
         CanvasWidth = canvasWidth;
         CanvasHeight = canvasHeight;
         _frames = (OfficeRasterFrameInfo[])frames.Clone();
         _readOnlyFrames = Array.AsReadOnly(_frames);
         LoopCount = loopCount;
+        PlayCount = playCount ?? loopCount;
         Background = background;
     }
 
@@ -119,6 +121,9 @@ public sealed class OfficeRasterContainerInfo {
     public int Count => _frames.Length;
     /// <summary>Animation loop count; zero means infinite when <see cref="IsAnimated"/> is true.</summary>
     public int LoopCount { get; }
+    /// <summary>Total animation plays; zero means infinite. Static images and pages report one.</summary>
+    /// <remarks>Unlike the format-specific <see cref="LoopCount"/>, this value normalizes GIF repeat counts and APNG play counts.</remarks>
+    public int PlayCount { get; }
     /// <summary>Container canvas background, when defined.</summary>
     public OfficeColor Background { get; }
     /// <summary>Whether the container has timed animation frames.</summary>

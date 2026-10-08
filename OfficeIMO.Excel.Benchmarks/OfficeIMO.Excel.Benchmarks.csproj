@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">5.1.1</ExcelReaderBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +16,11 @@
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="ExcelDataReader" Version="3.9.0" />
     <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
-    <PackageReference Include="ExcelReader.NET" Version="3.0.1" ExcludeAssets="analyzers" />
-    <PackageReference Include="ExcelReader.Arrow" Version="3.0.1" />
+    <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
+    <PackageReference Include="ExcelReader.Arrow" Version="$(ExcelReaderBenchmarkVersion)" />
     <PackageReference Include="EPPlus" Version="8.7.0" />
     <PackageReference Include="LargeXlsx" Version="2.0.2" />
-    <PackageReference Include="MiniExcel" Version="1.45.0" />
+    <PackageReference Include="MiniExcel" Version="1.46.0" />
     <PackageReference Include="SpreadCheetah" Version="1.28.0" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.8" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.9" />
@@ -31,12 +33,13 @@
 
   <ItemGroup>
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
   </ItemGroup>
 
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\3.0.1\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
+      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\$(ExcelReaderBenchmarkVersion)\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
     </ItemGroup>
   </Target>
 

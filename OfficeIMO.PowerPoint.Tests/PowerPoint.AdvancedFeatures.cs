@@ -409,6 +409,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedMaximumAxisIdDoesNotExhaustLaterChartAuthoring() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+                        new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+                    ChartSpace chart = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!;
+                    uint oldId = chart.Descendants<AxisId>().First().Val!.Value;
+                    foreach (AxisId axis in chart.Descendants<AxisId>().Where(axis => axis.Val?.Value == oldId))
+                        axis.Val = uint.MaxValue;
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation imported = PowerPointPresentation.Load(filePath);
+                imported.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+                    new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("New", new[] { 2d }) }));
+                Assert.All(imported.Slides.Last().SlidePart.ChartParts.Single().ChartSpace!.Descendants<AxisId>(),
+                    axis => Assert.NotEqual(uint.MaxValue, axis.Val!.Value));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void BackgroundColor_ReplacesExistingBackgroundImageFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");

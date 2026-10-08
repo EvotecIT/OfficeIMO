@@ -73,5 +73,5 @@ public sealed class MalformedEmailCorpusTests {
     }
 
     private static string Hash(byte[] bytes) { using SHA256 hash = SHA256.Create(); return BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", string.Empty).ToLowerInvariant(); }
-    private static string FindRepositoryRoot() { DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory); while (directory != null && !File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) directory = directory.Parent; return directory?.FullName ?? throw new DirectoryNotFoundException(); }
+    private static string FindRepositoryRoot() => EmailTestRepository.FindRoot();
 }

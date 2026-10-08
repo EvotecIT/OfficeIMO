@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 byte[]? papx = segment.PapxOverride;
                 if (papx == null && segment.Formatting.HasFormatting) {
-                    papx = CreatePapx(segment.Formatting);
+                    papx = CreatePapx(segment.Formatting, out _);
                 }
 
                 if (papx != null) {
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             stream[pageOffset + oleSectorSize - 1] = (byte)segments.Count;
         }
 
-        private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting) {
+        private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting, out int propertyByteCount) {
             var grpprl = new List<byte>(6) {
                 (byte)((formatting.StyleIndex ?? 0) & 0xFF),
                 (byte)((formatting.StyleIndex ?? 0) >> 8)
@@ -112,64 +112,64 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmPJc, formatting.Alignment.Value);
             }
 
-            if (formatting.KeepLinesTogether == true) {
-                AddSingleByteSprm(grpprl, SprmPFKeep, 1);
+            if (formatting.KeepLinesTogether.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFKeep, (byte)(formatting.KeepLinesTogether.Value ? 1 : 0));
             }
 
-            if (formatting.KeepWithNext == true) {
-                AddSingleByteSprm(grpprl, SprmPFKeepFollow, 1);
+            if (formatting.KeepWithNext.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFKeepFollow, (byte)(formatting.KeepWithNext.Value ? 1 : 0));
             }
 
-            if (formatting.PageBreakBefore == true) {
-                AddSingleByteSprm(grpprl, SprmPFPageBreakBefore, 1);
+            if (formatting.PageBreakBefore.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFPageBreakBefore, (byte)(formatting.PageBreakBefore.Value ? 1 : 0));
             }
 
-            if (formatting.AvoidWidowAndOrphan == true) {
-                AddSingleByteSprm(grpprl, SprmPFWidowControl, 1);
+            if (formatting.AvoidWidowAndOrphan.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFWidowControl, (byte)(formatting.AvoidWidowAndOrphan.Value ? 1 : 0));
             }
 
-            if (formatting.SuppressLineNumbers == true) {
-                AddSingleByteSprm(grpprl, SprmPFNoLineNumb, 1);
+            if (formatting.SuppressLineNumbers.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFNoLineNumb, (byte)(formatting.SuppressLineNumbers.Value ? 1 : 0));
             }
 
-            if (formatting.SuppressAutoHyphens == true) {
-                AddSingleByteSprm(grpprl, SprmPFNoAutoHyph, 1);
+            if (formatting.SuppressAutoHyphens.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFNoAutoHyph, (byte)(formatting.SuppressAutoHyphens.Value ? 1 : 0));
             }
 
-            if (formatting.Kinsoku == true) {
-                AddSingleByteSprm(grpprl, SprmPFKinsoku, 1);
+            if (formatting.Kinsoku.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFKinsoku, (byte)(formatting.Kinsoku.Value ? 1 : 0));
             }
 
-            if (formatting.WordWrap == true) {
-                AddSingleByteSprm(grpprl, SprmPFWordWrap, 1);
+            if (formatting.WordWrap.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFWordWrap, (byte)(formatting.WordWrap.Value ? 1 : 0));
             }
 
-            if (formatting.OverflowPunctuation == true) {
-                AddSingleByteSprm(grpprl, SprmPFOverflowPunct, 1);
+            if (formatting.OverflowPunctuation.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFOverflowPunct, (byte)(formatting.OverflowPunctuation.Value ? 1 : 0));
             }
 
-            if (formatting.TopLinePunctuation == true) {
-                AddSingleByteSprm(grpprl, SprmPFTopLinePunct, 1);
+            if (formatting.TopLinePunctuation.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFTopLinePunct, (byte)(formatting.TopLinePunctuation.Value ? 1 : 0));
             }
 
-            if (formatting.AutoSpaceDE == true) {
-                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDE, 1);
+            if (formatting.AutoSpaceDE.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDE, (byte)(formatting.AutoSpaceDE.Value ? 1 : 0));
             }
 
-            if (formatting.AutoSpaceDN == true) {
-                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDN, 1);
+            if (formatting.AutoSpaceDN.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFAutoSpaceDN, (byte)(formatting.AutoSpaceDN.Value ? 1 : 0));
             }
 
-            if (formatting.ContextualSpacing == true) {
-                AddSingleByteSprm(grpprl, SprmPFContextualSpacing, 1);
+            if (formatting.ContextualSpacing.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFContextualSpacing, (byte)(formatting.ContextualSpacing.Value ? 1 : 0));
             }
 
-            if (formatting.MirrorIndents == true) {
-                AddSingleByteSprm(grpprl, SprmPFMirrorIndents, 1);
+            if (formatting.MirrorIndents.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFMirrorIndents, (byte)(formatting.MirrorIndents.Value ? 1 : 0));
             }
 
-            if (formatting.Bidirectional == true) {
-                AddSingleByteSprm(grpprl, SprmPFBiDi, 1);
+            if (formatting.Bidirectional.HasValue) {
+                AddSingleByteSprm(grpprl, SprmPFBiDi, (byte)(formatting.Bidirectional.Value ? 1 : 0));
             }
 
             if (formatting.NumberingLevel != null) {
@@ -299,6 +299,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmTTableHeader, 1);
             }
 
+            propertyByteCount = grpprl.Count;
             if (grpprl.Count % 2 != 0) {
                 grpprl.Add(0);
             }
@@ -320,8 +321,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return Array.Empty<byte>();
             }
 
-            byte[] papx = CreatePapx(formatting);
-            var upx = new byte[papx.Length - 2];
+            byte[] papx = CreatePapx(formatting, out int propertyByteCount);
+            // Style UPX and list LVL lengths exclude the padding required by a page PAPX.
+            // The enclosing style record writes its own external alignment byte.
+            var upx = new byte[propertyByteCount];
             Buffer.BlockCopy(papx, 2, upx, 0, upx.Length);
             return upx;
         }
@@ -721,10 +724,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (border.Style == LegacyDocTableCellBorderStyle.ExplicitNone) {
-                bytes.Add(0);
-                bytes.Add(0);
-                bytes.Add(0);
-                bytes.Add(0);
+                bytes.Add(0xFF);
+                bytes.Add(0xFF);
+                bytes.Add(0xFF);
+                bytes.Add(0xFF);
                 return;
             }
 
@@ -1020,7 +1023,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             VerticalCharacterAlignment = verticalCharacterAlignment.HasValue && verticalCharacterAlignment.Value <= 4
                 ? verticalCharacterAlignment
                 : null;
-            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 8
+            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 9
                 ? outlineLevel
                 : null;
             IsInTable = isInTable;
@@ -1034,7 +1037,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
                 ? Array.Empty<int>()
                 : tableCellWidthsTwips.ToArray();
-            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value != 0
+                && tableLeftIndentTwips.Value >= short.MinValue && tableLeftIndentTwips.Value <= short.MaxValue
                 ? tableLeftIndentTwips
                 : null;
             TableCellHorizontalMerges = tableCellHorizontalMerges == null || tableCellHorizontalMerges.Count == 0
@@ -1466,7 +1470,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
-        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false) {
+        /// <summary>Marks nested cell and row endings while retaining ordinary paragraphs at the same table depth.</summary>
+        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false, bool isCellTerminator = true) {
             if (tableDepth <= 1) {
                 throw new ArgumentOutOfRangeException(nameof(tableDepth), "Nested DOC table markers require a table depth greater than 1.");
             }
@@ -1501,32 +1506,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 true,
                 null,
                 TabStops,
-                null,
-                null,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                TableCellWidthsTwips,
+                TableLeftIndentTwips,
+                TableRowHeightTwips,
+                TableRowHeightIsExact,
+                TableRowCantSplit,
+                TableRowIsHeader,
+                TableAlignment,
+                TablePreferredWidth,
+                TableAutofit,
+                TableCellHorizontalMerges,
+                TableCellVerticalMerges,
+                TableCellVerticalAlignments,
+                TableCellTextDirections,
+                TableCellFitTexts,
+                TableCellNoWraps,
+                TableCellHideMarks,
+                TableCellMargins,
+                TableCellShadings,
+                TableCellBorders,
                 ParagraphShading,
                 ParagraphBorders,
-                null,
-                null,
+                DefaultTableCellMargins,
+                DefaultTableCellSpacingTwips,
                 outlineLevel: OutlineLevel,
                 tableDepth: tableDepth,
-                hasInnerTableCellMarker: true,
+                hasInnerTableCellMarker: isCellTerminator && !isInnerTableTerminatingParagraph,
                 hasInnerTableTerminatingParagraphMarker: isInnerTableTerminatingParagraph,
                 lineSpacingIsMultiple: LineSpacingIsMultiple);
         }

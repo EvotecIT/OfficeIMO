@@ -1,0 +1,706 @@
+{
+  "schemaVersion": 1,
+  "codeCommit": "0093a146c1dff235e26cb513a031440cc6bf5b19",
+  "component": "Normal left/right floats within multi-column flow",
+  "owner": "OfficeIMO.Html/Rendering",
+  "contract": "Share sibling float exclusions without advancing normal flow; preserve legal text cuts, whole float paint, links and column bounds.",
+  "frozenCase": {
+    "id": "column-float-left",
+    "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+    "inputSha256": "9772d72d0665d638033e9aff6ef28a3d6ea97a89183bfc879b85949fd6650970",
+    "references": {
+      "PeachPDF": "0.9.20",
+      "Chromium": "151"
+    },
+    "result": "Layout/content/link criteria pass; font warning remains bounded and no full pixel parity is claimed.",
+    "wordTokens": 172,
+    "browserTokenMultisetEqual": true,
+    "uniqueMarkers": 45,
+    "markersOnceAndInsidePage": true,
+    "engines": {
+      "officeimo": {
+        "pages": 1,
+        "sha256": "9094f79744136e3385123d54ef355572dbc1c43580239dcd3555a778f469e1b5",
+        "wordCount": 172,
+        "outsidePageWords": [],
+        "links": [
+          {
+            "uri": "https://example.test/column-link",
+            "rect": [
+              306.638,
+              269.241,
+              377.091,
+              283.89
+            ]
+          }
+        ],
+        "floatPaintBounds96dpi": [
+          24,
+          200,
+          144,
+          296
+        ],
+        "floatColorPixels": 10988,
+        "lastMarkerBounds": {
+          "END-column-float-left": {
+            "xMin": 17.999995,
+            "yMin": 594.576,
+            "xMax": 124.488247,
+            "yMax": 609.228
+          },
+          "COLAFTER-37": {
+            "xMin": 306.638099,
+            "yMin": 534.576,
+            "xMax": 372.100681,
+            "yMax": 549.228
+          },
+          "COLUMN-LINK": {
+            "xMin": 306.637868,
+            "yMin": 558.576,
+            "xMax": 377.090963,
+            "yMax": 573.228
+          }
+        }
+      },
+      "chromium": {
+        "pages": 1,
+        "sha256": "5395438fe110b035f37fdb50cb84d7aec1b37948979782d505f25cb5b3d6b77f",
+        "wordCount": 172,
+        "outsidePageWords": [],
+        "links": [
+          {
+            "uri": "https://example.test/column-link",
+            "rect": [
+              306.75,
+              268.16998,
+              377.25,
+              282.41998
+            ]
+          }
+        ],
+        "floatPaintBounds96dpi": [
+          24,
+          200,
+          144,
+          296
+        ],
+        "floatColorPixels": 10979,
+        "lastMarkerBounds": {
+          "END-column-float-left": {
+            "xMin": 17.999999,
+            "yMin": 595.324194,
+            "xMax": 124.130855,
+            "yMax": 609.972631
+          },
+          "COLAFTER-37": {
+            "xMin": 306.749987,
+            "yMin": 535.324196,
+            "xMax": 372.550766,
+            "yMax": 549.972633
+          },
+          "COLUMN-LINK": {
+            "xMin": 306.749987,
+            "yMin": 559.324195,
+            "xMax": 377.20311,
+            "yMax": 573.972632
+          }
+        }
+      },
+      "peachpdf": {
+        "pages": 1,
+        "sha256": "05ad3de55dfefa27db950b9779d904b172adfcdd59f47d4ef063dafef0b8bc4d",
+        "wordCount": 172,
+        "outsidePageWords": [],
+        "links": [
+          {
+            "uri": "https://example.test/column-link",
+            "rect": [
+              306.64,
+              483.566,
+              377.093,
+              498.214
+            ]
+          }
+        ],
+        "floatPaintBounds96dpi": [
+          24,
+          200,
+          144,
+          296
+        ],
+        "floatColorPixels": 10978,
+        "lastMarkerBounds": {
+          "END-column-float-left": {
+            "xMin": 18.0,
+            "yMin": 595.6776,
+            "xMax": 124.2275,
+            "yMax": 610.3296
+          },
+          "COLAFTER-37": {
+            "xMin": 306.6357,
+            "yMin": 319.6776,
+            "xMax": 372.4165,
+            "yMax": 334.3296
+          },
+          "COLUMN-LINK": {
+            "xMin": 306.64,
+            "yMin": 343.6776,
+            "xMax": 377.0643,
+            "yMax": 358.3296
+          }
+        }
+      }
+    },
+    "printDiagnostics": [],
+    "printOutputWarnings": [
+      {
+        "converter": "OfficeIMO.Html.Pdf",
+        "code": "unsupported-font-ligature-substitution",
+        "source": "",
+        "message": "Text contains a Latin ligature sequence at index 7, and embedded font 'FixtureSans-Regular' advertises default Latin GSUB ligature features that this output path has not applied. Generated output may be visually simplified.",
+        "severity": 1,
+        "lossKind": 1,
+        "layoutDiagnostic": {
+          "kind": 4,
+          "source": "",
+          "message": "Text contains a Latin ligature sequence at index 7, and embedded font 'FixtureSans-Regular' advertises default Latin GSUB ligature features that this output path has not applied. Generated output may be visually simplified.",
+          "hasBounds": false
+        },
+        "details": {
+          "index": "7",
+          "codePoint": "U+0066",
+          "text": "f",
+          "script": "OpenType GSUB ligature"
+        }
+      }
+    ],
+    "referenceLimit": "PeachPDF overlaps END with COLAFTER-17; Chromium is the ordinary inline-float control.",
+    "executionCapSeconds": 30,
+    "failures": []
+  },
+  "localReview": {
+    "fullFingerprint": "16b9b0c5104c1a351a34d3ce501d465bb68525bd",
+    "finalFingerprint": "13f45ed464bbf02aee3e5ca917a8b1f587c6a387",
+    "agent": "column_float_flow_review",
+    "boundary": "candidate-reviewed",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "findings": [
+      {
+        "priority": "P1",
+        "classification": "remediation-introduced",
+        "defect": "Arbitrary float edges cut adjacent text/link",
+        "disposition": "Reproduced two failures; content cuts only; focused fixed pass."
+      },
+      {
+        "priority": "P2",
+        "classification": "remediation-introduced",
+        "defect": "Uncharged quadratic historical-float filter",
+        "disposition": "Ordered merged interval sweep with cancellation/operation charges; targeted source confirmation."
+      }
+    ],
+    "remainingFindings": [],
+    "testFailureDisposition": {
+      "editableProjection": "Existing region/content assertions kept; whitespace normalized for correct float-adjacent wrapping.",
+      "net8Deadline": "Under initial concurrent full tests and compiler load, encryption not reached within100ms; final serial full3942/3942 pass. No deadline source changes."
+    }
+  },
+  "tests": {
+    "net10": {
+      "total": "3942",
+      "executed": "3942",
+      "passed": "3942",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "net8": {
+      "total": "3942",
+      "executed": "3942",
+      "passed": "3942",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "focused": {
+      "total": "78",
+      "executed": "78",
+      "passed": "78",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "originalRegression": {
+      "counters": {
+        "total": "2",
+        "executed": "2",
+        "passed": "0",
+        "failed": "2",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumns_FloatExcludesFollowingParagraphsWithoutConsumingTheirFlowHeight(side: \"left\", firstTextX: 40)",
+          "message": "OfficeIMO.Html.HtmlDomLimitException : Multi-column layout exceeded the configured maximum column count."
+        },
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumns_FloatExcludesFollowingParagraphsWithoutConsumingTheirFlowHeight(side: \"right\", firstTextX: 0)",
+          "message": "OfficeIMO.Html.HtmlDomLimitException : Multi-column layout exceeded the configured maximum column count."
+        }
+      ]
+    },
+    "remediationRegression": {
+      "counters": {
+        "total": "2",
+        "executed": "2",
+        "passed": "0",
+        "failed": "2",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "failures": [
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumns_NonLineAlignedFloatDoesNotIntroduceATextOrLinkCut(paged: True)",
+          "message": "Assert.Equal() Failure: Values differ\nExpected: 3\nActual:   2"
+        },
+        {
+          "test": "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumns_NonLineAlignedFloatDoesNotIntroduceATextOrLinkCut(paged: False)",
+          "message": "Assert.Equal() Failure: Values differ\nExpected: 3\nActual:   2"
+        }
+      ]
+    }
+  },
+  "builds": [
+    {
+      "project": "OfficeIMO.Html.Pdf",
+      "framework": "netstandard2.0",
+      "warnings": 0
+    },
+    {
+      "project": "comparison/editable/static-budget/H10-budget tools",
+      "framework": "net10.0",
+      "warnings": 0
+    }
+  ],
+  "h4": {
+    "source": {
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "commit": "0093a146c1dff235e26cb513a031440cc6bf5b19",
+      "worktreeDirty": false,
+      "caseCount": 8
+    },
+    "accepted": 8,
+    "failures": []
+  },
+  "nasa": {
+    "sourceCommit": "0093a146c1dff235e26cb513a031440cc6bf5b19",
+    "baselineSource": "b040f7d85",
+    "variants": [
+      {
+        "path": "officeimo-print-browser-ua.pdf",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7756639
+      },
+      {
+        "path": "officeimo-print-fit-1200-local-fonts.pdf",
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "sameAsAccepted": true,
+        "sizeBytes": 7688930
+      },
+      {
+        "path": "officeimo-print-fit-1200.pdf",
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "sameAsAccepted": true,
+        "sizeBytes": 7688930
+      },
+      {
+        "path": "officeimo-print-fit-browser-viewport.pdf",
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "sameAsAccepted": true,
+        "sizeBytes": 7753991
+      },
+      {
+        "path": "officeimo-print-zero-margin-local-fonts.pdf",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7756639
+      },
+      {
+        "path": "officeimo-print-zero-margin.pdf",
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7756639
+      },
+      {
+        "path": "officeimo-print.pdf",
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "sameAsAccepted": true,
+        "sizeBytes": 7813360
+      },
+      {
+        "path": "officeimo-screen-media-local-fonts.pdf",
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "sameAsAccepted": true,
+        "sizeBytes": 7684160
+      },
+      {
+        "path": "officeimo-screen-media.pdf",
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "sameAsAccepted": true,
+        "sizeBytes": 7684160
+      },
+      {
+        "path": "officeimo-screen-snapshot-local-fonts.pdf",
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "sameAsAccepted": true,
+        "sizeBytes": 7740830
+      },
+      {
+        "path": "officeimo-screen-snapshot.pdf",
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "sameAsAccepted": true,
+        "sizeBytes": 7740830
+      }
+    ],
+    "allOfficePdfBytesEqual": true,
+    "reportFailures": []
+  },
+  "macosStaticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-09-30T15:58:04.999479+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.11",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "0093a146c1dff235e26cb513a031440cc6bf5b19",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 5872.5502,
+      "peakWorkingSetBytes": 369967104,
+      "memorySampleCount": 153,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 5781.2975,
+          "managedAllocatedBytes": 1082111184,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11368.5777,
+      "peakWorkingSetBytes": 548438016,
+      "memorySampleCount": 307,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2041.3705,
+          "managedAllocatedBytes": 894424568,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1930.2782,
+          "managedAllocatedBytes": 895815344,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1922.7109,
+          "managedAllocatedBytes": 895783448,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.775,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "macosH10Budget": {
+    "sourceCommit": "0093a146c1dff235e26cb513a031440cc6bf5b19",
+    "sourceClean": true,
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "operations": [
+      {
+        "name": "pdf-print",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4516.2314,
+        "managedAllocatedBytes": 2108502016,
+        "outputBytes": 7813360,
+        "pageCount": 19,
+        "peakWorkingSetBytes": 486047744
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4510.1713,
+        "managedAllocatedBytes": 2112803800,
+        "outputBytes": 7756639,
+        "pageCount": 16,
+        "peakWorkingSetBytes": 518356992
+      },
+      {
+        "name": "pdf-screen-media",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3558.1493,
+        "managedAllocatedBytes": 1651869072,
+        "outputBytes": 7684160,
+        "pageCount": 21,
+        "peakWorkingSetBytes": 446251008
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3765.0972,
+        "managedAllocatedBytes": 1771445376,
+        "outputBytes": 7740830,
+        "pageCount": 16,
+        "peakWorkingSetBytes": 545636352
+      },
+      {
+        "name": "editable-word",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2581.5159,
+        "managedAllocatedBytes": 962002816,
+        "outputBytes": 1491233,
+        "pageCount": null,
+        "peakWorkingSetBytes": 319488000
+      },
+      {
+        "name": "editable-excel",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2046.8573,
+        "managedAllocatedBytes": 941027568,
+        "outputBytes": 1528697,
+        "pageCount": null,
+        "peakWorkingSetBytes": 313999360
+      },
+      {
+        "name": "editable-powerpoint",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2511.0925,
+        "managedAllocatedBytes": 1026640216,
+        "outputBytes": 1499718,
+        "pageCount": null,
+        "peakWorkingSetBytes": 306823168
+      },
+      {
+        "name": "editable-onenote",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1488.0115,
+        "managedAllocatedBytes": 644825232,
+        "outputBytes": 1595264,
+        "pageCount": null,
+        "peakWorkingSetBytes": 267698176
+      },
+      {
+        "name": "editable-rtf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1754.027,
+        "managedAllocatedBytes": 859271216,
+        "outputBytes": 2945978,
+        "pageCount": null,
+        "peakWorkingSetBytes": 293847040
+      },
+      {
+        "name": "editable-markdown",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1467.5861,
+        "managedAllocatedBytes": 647191600,
+        "outputBytes": 1967406,
+        "pageCount": null,
+        "peakWorkingSetBytes": 254459904
+      }
+    ],
+    "failures": []
+  },
+  "remainingBoundaries": [
+    "Page-edge and top/bottom column floats and column-scoped notes remain open.",
+    "This component does not close AVIF, filter graphs, language-pattern hyphenation or requested PDF conformance.",
+    "Windows/Linux H10 budgets and general unfamiliar-page appearance remain unqualified."
+  ],
+  "cleanup": {
+    "removedBytes": 99156947,
+    "targets": 17,
+    "proof": "Eleven obsolete NASA PDFs hash-equal current retained variants; preliminary column output and obsolete test runs compacted. Source archives, original failures and final gates retained."
+  },
+  "retainedEvidence": [
+    "static-gap-column-float-tests",
+    "static-gap-column-float-clean-0093a146c",
+    "static-gap-column-h4-clean-0093a146c",
+    "static-gap-column-nasa-clean-0093a146c",
+    "static-gap-column-static-budget-clean-0093a146c",
+    "static-gap-column-h10-budget-clean-0093a146c"
+  ]
+}

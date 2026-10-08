@@ -35,6 +35,9 @@ public sealed class EpubReadOptions {
     /// </summary>
     public long? MaxChapterBytes { get; set; } = 4L * 1024 * 1024;
 
+    /// <summary>Maximum combined extracted chapter text length in UTF-16 characters.</summary>
+    public long MaxTotalTextCharacters { get; set; } = 32L * 1024 * 1024;
+
     /// <summary>
     /// Maximum combined uncompressed bytes of raw chapter HTML retained in memory.
     /// </summary>

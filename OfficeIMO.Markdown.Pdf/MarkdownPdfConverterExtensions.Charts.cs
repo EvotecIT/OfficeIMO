@@ -32,7 +32,7 @@ public static partial class MarkdownPdfConverterExtensions {
             : "Markdown chart: " + snapshot.Title;
 
         pdf.Drawing(drawing, style: drawingStyle);
-        RenderFigureCaption(pdf, semantic.Caption, figureStyle);
+        RenderCaption(pdf, semantic.Caption, figureStyle);
         return true;
     }
 

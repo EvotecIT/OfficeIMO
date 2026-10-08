@@ -3,16 +3,24 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private double imageMeasurementReservedHeight;
+        private double containerMeasurementTopPadding;
+        private double containerMeasurementBottomInset;
 
         // Preflight visits containers before their render scopes exist. Preserve the
         // same image content height while recursively measuring those containers.
-        private T MeasureWithImageHeightReservation<T>(double reservedHeight, Func<T> measure) {
+        private T MeasureWithContainerPaddingReservation<T>(PdfPanelStyle style, Func<T> measure, bool isContinuation = false) {
             double saved = imageMeasurementReservedHeight;
-            imageMeasurementReservedHeight += reservedHeight;
+            double savedTopPadding = containerMeasurementTopPadding;
+            double savedBottomInset = containerMeasurementBottomInset;
+            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.BottomPadding, style.FragmentBottomInset);
+            containerMeasurementTopPadding += style.GetFragmentTopPadding(isContinuation: true);
+            containerMeasurementBottomInset += style.FragmentBottomInset;
             try {
                 return measure();
             } finally {
                 imageMeasurementReservedHeight = saved;
+                containerMeasurementTopPadding = savedTopPadding;
+                containerMeasurementBottomInset = savedBottomInset;
             }
         }
 
@@ -93,22 +101,21 @@ internal static partial class PdfWriter {
 
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
-                double outerWidth = style.MaxWidth.HasValue ? Math.Min(frameWidth, style.MaxWidth.Value) : frameWidth;
-                ValidatePanelStyle(style, outerWidth);
-                double contentWidth = outerWidth - 2D * style.PaddingX;
+                var containerFrame = ResolveContainerFrame(container, style, frameX, frameWidth, fontSize);
+                double contentWidth = containerFrame.ContentWidth;
                 if (contentWidth <= 0.001D) {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
 
                 double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-                double? contentHeight = MeasureWithImageHeightReservation(style.PaddingY * 2D, () => MeasureBlockSequence(
+                double? contentHeight = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
                     container.Blocks,
-                    frameX + style.PaddingX,
+                    containerFrame.X + style.PaddingX,
                     contentWidth,
                     fontSize,
-                    spacingBefore + style.PaddingY));
+                    spacingBefore + style.TopPadding));
                 return contentHeight.HasValue
-                    ? spacingBefore + style.PaddingY + contentHeight.Value + style.PaddingY + style.SpacingAfter
+                    ? spacingBefore + style.TopPadding + Math.Max(contentHeight.Value, style.MinimumContentHeight) + style.BottomPadding + style.SpacingAfter
                     : null;
             }
 
@@ -142,13 +149,39 @@ internal static partial class PdfWriter {
             }
 
             double height = MeasureKeepWithNextBlockHeight(block, frameX, frameWidth, fontSize);
-            return height > 0D || block is SpacerBlock ? height : null;
+            return height > 0D || block is SpacerBlock or ShapeBlock ? height : null;
+        }
+
+        // Resolve against this frame after image scaling. The same padded block
+        // sequence feeds page and row-column rendering, rather than relying on
+        // a consumer's requested image dimensions.
+        private IReadOnlyList<IPdfBlock> ResolveContainerContentBlocks(ContainerBlock container, PdfPanelStyle style,
+            double frameX, double frameWidth, double fontSize, double reservedImageHeight = 0D) {
+            if (style.MinimumContentHeight <= 0D) return container.Blocks;
+            double savedReservation = imageMeasurementReservedHeight;
+            double? height;
+            try {
+                imageMeasurementReservedHeight += reservedImageHeight;
+                height = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
+                    container.Blocks, frameX, frameWidth, fontSize, style.TopPadding));
+            } finally {
+                imageMeasurementReservedHeight = savedReservation;
+            }
+            if (!height.HasValue) throw new NotSupportedException("Minimum panel content height requires measurable content.");
+            double padding = style.MinimumContentHeight - height.Value;
+            if (padding <= 0.001D) return container.Blocks;
+            var result = new List<IPdfBlock>(container.Blocks.Count + 1);
+            if (style.AlignContentToBottom) result.Add(new SpacerBlock(padding));
+            result.AddRange(container.Blocks);
+            if (!style.AlignContentToBottom) result.Add(new SpacerBlock(padding));
+            return result;
         }
 
         private double GetCurrentFramePageStartY() {
             double pageStart = yStart;
-            for (int index = 0; index < activeContainerScopes.Count; index++) {
-                pageStart -= activeContainerScopes[index].Style.PaddingY;
+            for (int index = activeColumnFlow?.ContainerDepth ?? 0; index < activeContainerScopes.Count; index++) {
+                ContainerRenderScope scope = activeContainerScopes[index];
+                pageStart -= scope.Style.GetFragmentTopPadding(scope.IsContinuation);
             }
 
             return pageStart;

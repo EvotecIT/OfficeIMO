@@ -66,9 +66,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.GridTemplateRows,
             usesRowSubgrid ? rowTracks.Count + 1 : isRowSubgridOwner ? _activeSubgridRowLineCount : null,
             isRowSubgridOwner ? _activeSubgridRowLineNames : null);
-        int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
-        int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
-        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
+        int explicitColumnCount = Math.Max(columnTracks.Count, areaColumnCount);
+        int explicitRowCount = Math.Max(Math.Max(rowTracks.Count, areaRowCount),
+            isRowSubgridOwner ? Math.Max(0, (_activeSubgridRowLineCount ?? 1) - 1) : 0);
+        columnLineNames = AddGridAreaLineNames(columnLineNames, areas, rows: false);
+        rowLineNames = AddGridAreaLineNames(rowLineNames, areas, rows: true);
+        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, columnLineNames, rowLineNames,
+            out int columnCount, out int rowCount, out int leadingColumnCount, out int leadingRowCount,
+            allowImplicitColumns: !usesColumnSubgrid, allowImplicitRows: !isRowSubgridOwner);
+        PrependImplicitGridTracks(columnTracks, leadingColumnCount, style.GridAutoColumns, contentWidth, true, style, source, "grid-auto-columns");
+        PrependImplicitGridTracks(rowTracks, leadingRowCount, style.GridAutoRows, declaredContentHeight ?? 0D, declaredContentHeight.HasValue, style, source, "grid-auto-rows");
+        columnLineNames = OffsetGridLineNames(columnLineNames, leadingColumnCount);
+        rowLineNames = OffsetGridLineNames(rowLineNames, leadingRowCount);
         if (usesColumnSubgrid) {
             ClampSubgridPlacements(items, columnTracks.Count, rows: false);
             columnCount = columnTracks.Count;
@@ -83,7 +92,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double columnGap = columnCount > 1
             ? usesColumnSubgrid && !style.ColumnGapWasSpecified ? _activeSubgridColumnGap : style.ColumnGap
             : 0D;
-        List<double> columnSizes = ResolveGridTrackSizes(columnTracks, items, contentWidth, columnGap);
+        List<double> columnSizes = ResolveGridTrackSizes(columnTracks, items, contentWidth, columnGap, columnLineNames, rowLineNames, depth);
         GridAxisLayout columns = ResolveGridAxisLayout(columnTracks, columnSizes, contentWidth, columnGap, style.JustifyContent, source, "justify-content");
 
         foreach (GridItem item in items) {
@@ -117,9 +126,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight,
             columns,
             rows,
-            areas,
             columnLineNames,
-            rowLineNames);
+            rowLineNames,
+            explicitColumnCount,
+            explicitRowCount,
+            leadingColumnCount,
+            leadingRowCount);
 
         foreach (GridItem item in items) {
             CheckCancellation();
@@ -176,22 +188,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> rowBreakOffsets = Enumerable.Range(1, Math.Max(0, rowCount - 1))
             .Where(boundary => !items.Any(item => item.Row < boundary && item.Row + item.RowSpan > boundary))
             .Select(boundary => contentY + rows.Positions[boundary]);
-        var rowItemCountDeltas = new int[rowCount + 1];
-        foreach (GridItem item in items) {
-            rowItemCountDeltas[item.Row]++;
-            rowItemCountDeltas[Math.Min(rowCount, item.Row + item.RowSpan)]--;
-        }
-        var rowItemCounts = new int[rowCount];
-        int activeRowItems = 0;
-        for (int row = 0; row < rowCount; row++) {
-            activeRowItems += rowItemCountDeltas[row];
-            rowItemCounts[row] = activeRowItems;
-        }
-        IEnumerable<double> itemBreakOffsets = items
-            .Where(item => item.RowSpan == 1 && rowItemCounts[item.Row] == 1)
-            .SelectMany(item => item.Block!.BreakOffsets.Select(offset =>
-                contentY + rows.Positions[item.Row] + item.OffsetY + offset));
+        // Every participating item must permit an interior cut. Restricting cuts
+        // to rows with one item forces oversized shared rows through arbitrary
+        // coordinates, which can bisect and omit an otherwise ordinary text line.
+        IEnumerable<double> itemBreakOffsets = items.SelectMany(item => item.Block!.BreakOffsets
+            .Where(offset => offset > 0.0001D)
+            .Select(offset => contentY + rows.Positions[item.Row] + item.OffsetY + offset));
         IEnumerable<double> breakOffsets = rowBreakOffsets.Concat(itemBreakOffsets).Distinct().OrderBy(offset => offset);
+        if (_options.Mode == HtmlRenderMode.Paged)
+            breakOffsets = FilterSafeGridBreaks(breakOffsets, items, rows.Positions, contentY);
+        IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = items.SelectMany(item =>
+            item.Block!.LineBreakGroups.Select(group => group.Translate(
+                contentY + rows.Positions[item.Row] + item.OffsetY).WithInteriorBreaks()));
+        IEnumerable<HtmlRenderAvoidBreakRange> itemKeepRanges = items.SelectMany(item => {
+            HtmlRenderFlowBlock itemBlock = item.Block!;
+            IEnumerable<HtmlRenderAvoidBreakRange> ranges = itemBlock.AvoidBreakRanges;
+            if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
+            return ranges.Select(range => range.Translate(contentY + rows.Positions[item.Row] + item.OffsetY));
+        });
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -201,6 +215,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.AvoidBreakInside,
             source,
             breakOffsets,
+            lineBreakGroups: lineBreakGroups,
+            avoidBreakRanges: itemKeepRanges,
             pageName: style.PageName,
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(
@@ -376,7 +392,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double deficit = Math.Max(0D, required - current);
             if (deficit <= 0D) continue;
             List<int> flexible = Enumerable.Range(item.Row, item.RowSpan).Where(index => tracks[index].Kind != GridTrackKind.Fixed).ToList();
-            if (flexible.Count == 0) flexible.AddRange(Enumerable.Range(item.Row, item.RowSpan));
+            if (flexible.Count == 0) continue;
             double addition = deficit / flexible.Count;
             foreach (int index in flexible) sizes[index] += addition;
         }
@@ -407,6 +423,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (vertical == "stretch" && !item.HasExplicitHeight && !HasVerticalAutoMargin(style)) {
             double targetBoxHeight = Math.Max(0.01D, cellHeight - style.MarginTop - style.MarginBottom);
+            style.AutoHeightLayoutStretch = true;
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
         }
         item.Item.Style = style;
@@ -469,8 +486,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .ThenBy(text => text.X)
             .FirstOrDefault();
         if (firstText == null) return item.Block.Height;
-        double leading = Math.Max(0D, firstText.LineHeight - firstText.Font.Size);
-        return firstText.LayoutY + Math.Min(firstText.LineHeight, leading / 2D + firstText.Font.Size * 0.8D);
+        return firstText.LayoutY + firstText.Font.Size;
     }
 
     private static IEnumerable<HtmlRenderText> EnumerateGridTextVisuals(IEnumerable<HtmlRenderVisual> visuals) {

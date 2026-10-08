@@ -4,14 +4,19 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 internal sealed class OfficeFlattenedPathContour {
-    internal OfficeFlattenedPathContour(IReadOnlyList<OfficePoint> points, bool closed) {
+    internal OfficeFlattenedPathContour(IReadOnlyList<OfficePoint> points, bool closed) : this(points, closed, true, true) { }
+
+    internal OfficeFlattenedPathContour(IReadOnlyList<OfficePoint> points, bool closed, bool useStartLineCap, bool useEndLineCap) {
         Points = points ?? throw new ArgumentNullException(nameof(points));
         Closed = closed;
+        UseStartLineCap = useStartLineCap; UseEndLineCap = useEndLineCap;
     }
 
     internal IReadOnlyList<OfficePoint> Points { get; }
 
     internal bool Closed { get; }
+    internal bool UseStartLineCap { get; }
+    internal bool UseEndLineCap { get; }
 }
 
 internal static class OfficePathFlattener {
@@ -23,7 +28,14 @@ internal static class OfficePathFlattener {
         double offsetY,
         double scale,
         int curveSegments = 0,
-        double pixelsPerUnit = 1D) {
+        double pixelsPerUnit = 1D) => FlattenCore(commands, offsetX, offsetY, scale, curveSegments, pixelsPerUnit, false);
+
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenNativeStroke(IReadOnlyList<OfficePathCommand> commands,
+        double pixelsPerUnit) => FlattenCore(commands, 0D, 0D, 1D, 0, pixelsPerUnit, true);
+
+    private static IReadOnlyList<OfficeFlattenedPathContour> FlattenCore(IReadOnlyList<OfficePathCommand> commands,
+        double offsetX, double offsetY, double scale, int curveSegments, double pixelsPerUnit,
+        bool retainSinglePointClosedContours) {
         if (commands == null) {
             throw new ArgumentNullException(nameof(commands));
         }
@@ -78,7 +90,7 @@ internal static class OfficePathFlattener {
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.Close:
-                    AddClosedContour(contours, current);
+                    AddClosedContour(contours, current, retainSinglePointClosedContours);
                     current = null;
                     hasCurrentPoint = false;
                     break;
@@ -103,8 +115,8 @@ internal static class OfficePathFlattener {
         }
     }
 
-    private static void AddClosedContour(List<OfficeFlattenedPathContour> contours, List<OfficePoint>? points) {
-        if (points != null && points.Count >= 2) {
+    private static void AddClosedContour(List<OfficeFlattenedPathContour> contours, List<OfficePoint>? points, bool retainSinglePoint) {
+        if (points != null && (points.Count >= 2 || retainSinglePoint && points.Count == 1)) {
             contours.Add(new OfficeFlattenedPathContour(points, closed: true));
         }
     }

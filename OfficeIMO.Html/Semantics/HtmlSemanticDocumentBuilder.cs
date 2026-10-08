@@ -19,18 +19,22 @@ internal static class HtmlSemanticDocumentBuilder {
         var sections = new List<HtmlSemanticSection>();
         var resources = new List<HtmlSemanticResource>();
         foreach (HtmlGenericSectionProjection projection in HtmlGenericDocumentProjector.CreateSections(document)) {
+            HtmlSemanticBlock? titleHeading = projection.TitleHeading == null
+                ? null
+                : BuildBlock(document, projection.TitleHeading, styles, resources, null);
             var blocks = new List<HtmlSemanticBlock>();
             foreach (IElement element in HtmlGenericDocumentProjector.EnumerateBlocks(projection)) {
                 HtmlSemanticBlock block = BuildBlock(document, element, styles, resources, null);
                 blocks.Add(block);
             }
 
-            HtmlSemanticSourceLocation? location = blocks.FirstOrDefault()?.SourceLocation;
+            HtmlSemanticSourceLocation? location = titleHeading?.SourceLocation ?? blocks.FirstOrDefault()?.SourceLocation;
             sections.Add(new HtmlSemanticSection(
                 projection.Title,
                 projection.TitleSource,
                 blocks.AsReadOnly(),
-                location));
+                location,
+                titleHeading));
         }
         IReadOnlyList<HtmlSemanticResource> resourceOccurrences = resources.ToList().AsReadOnly();
 
@@ -434,6 +438,7 @@ internal static class HtmlSemanticDocumentBuilder {
             element.GetAttribute("name") ?? string.Empty,
             HtmlFormControlSemantics.GetValues(element),
             HtmlFormControlSemantics.IsEffectivelyChecked(element),
+            HtmlFormControlSemantics.IsIndeterminate(element),
             HtmlFormControlSemantics.IsEffectivelyDisabled(element),
             element.HasAttribute("required")
                 && HtmlFormControlSemantics.IsRequiredStateApplicable(elementName, effectiveType),

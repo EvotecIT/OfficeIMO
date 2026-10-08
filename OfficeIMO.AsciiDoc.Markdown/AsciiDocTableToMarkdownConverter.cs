@@ -5,7 +5,8 @@ internal static class AsciiDocTableToMarkdownConverter {
         AsciiDocTableBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
-        List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
+        int depth) {
         var target = new TableBlock();
         var structuredHeaders = new List<TableCell>();
         var structuredRows = new List<IReadOnlyList<TableCell>>();
@@ -18,8 +19,23 @@ internal static class AsciiDocTableToMarkdownConverter {
             for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
                 AsciiDocTableCell sourceCell = row.Cells[cellIndex];
                 values.Add(sourceCell.Value);
-                InlineSequence inlines = ParseCellInlines(sourceCell.Value, attributes, options, diagnostics, source);
-                var targetCell = new TableCell(new IMarkdownBlock[] { new ParagraphBlock(inlines) }) {
+                IReadOnlyList<IMarkdownBlock> blocks;
+                if (sourceCell.GetBody() is AsciiDocDocument body) {
+                    int remaining = options.MaximumBlockNestingDepth - depth - 1;
+                    if (remaining < 1) throw new System.IO.InvalidDataException("AsciiDoc table conversion exceeds MaximumBlockNestingDepth.");
+                    var content = MarkdownDoc.Create();
+                    var attached = new HashSet<AsciiDocBlock>(body.BlocksOfType<AsciiDocListBlock>().SelectMany(list => list.Items).SelectMany(item => item.AttachedBlocks));
+                    foreach (AsciiDocBlockContext context in body.GetBlockContextsFromSnapshot(attributes, true, remaining))
+                        if (!attached.Contains(context.Block)) AsciiDocToMarkdownConverter.AddBlock(content, context.Block, context.Attributes, options, diagnostics, depth + 1);
+                    blocks = content.Blocks.ToArray();
+                } else if (sourceCell.Style == 'l') blocks = new IMarkdownBlock[] { new CodeBlock(string.Empty, sourceCell.Value) };
+                else {
+                    InlineSequence inlines;
+                    if (sourceCell.Style == 'm') { inlines = new InlineSequence { AutoSpacing = false }; inlines.AddRaw(new CodeSpanInline(sourceCell.Value)); }
+                    else inlines = AsciiDocInlineToMarkdownConverter.Convert(sourceCell.Inlines!, attributes, options, diagnostics, source);
+                    blocks = new IMarkdownBlock[] { new ParagraphBlock(inlines) };
+                }
+                var targetCell = new TableCell(blocks) {
                     ColumnSpan = sourceCell.ColumnSpan,
                     RowSpan = sourceCell.RowSpan,
                     Bold = sourceCell.Style == 's' || sourceCell.Style == 'h',
@@ -50,15 +66,4 @@ internal static class AsciiDocTableToMarkdownConverter {
         return target;
     }
 
-    private static InlineSequence ParseCellInlines(
-        string value,
-        AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
-        List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
-        AsciiDocBlock owner) {
-        AsciiDocParagraph? paragraph = AsciiDocDocument.ParseResult(value).Document.BlocksOfType<AsciiDocParagraph>().FirstOrDefault();
-        return paragraph == null
-            ? new InlineSequence { AutoSpacing = false }.Text(value)
-            : AsciiDocInlineToMarkdownConverter.Convert(paragraph.Inlines, attributes, options, diagnostics, owner);
-    }
 }

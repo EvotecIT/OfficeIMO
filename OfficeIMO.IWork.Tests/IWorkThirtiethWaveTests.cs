@@ -43,7 +43,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: null,
             includePreview: true, documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         WordSection section = Assert.Single(result.Value.Sections);
         WordImage preview = Assert.Single(result.Value.Images);
 
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             rotation: float.MaxValue, slideWidth: 720f, slideHeight: 360f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
 
         Assert.True(result.IsVisualFallback);

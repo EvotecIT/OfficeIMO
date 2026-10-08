@@ -178,7 +178,9 @@ internal static class OfficeSvgPathDataParser {
             commands.Add(OfficePathCommand.LineTo(end));
             return true;
         }
-        if (DistanceSquared(start, end) <= 0.000000000001D) return true;
+        // Only coincident endpoints omit an arc. Small object coordinates may be
+        // magnified by the owning SVG/XPS transform after path parsing.
+        if (start.Equals(end)) return true;
 
         double phi = rotationDegrees * Math.PI / 180D;
         double cosPhi = Math.Cos(phi);
@@ -240,12 +242,6 @@ internal static class OfficeSvgPathDataParser {
         double cross = (left.X * right.Y) - (left.Y * right.X);
         double dot = (left.X * right.X) + (left.Y * right.Y);
         return Math.Atan2(cross, dot);
-    }
-
-    private static double DistanceSquared(OfficePoint left, OfficePoint right) {
-        double x = left.X - right.X;
-        double y = left.Y - right.Y;
-        return (x * x) + (y * y);
     }
 
     private sealed class PathReader {

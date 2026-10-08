@@ -83,8 +83,13 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         double? textPaintWidth = null,
         OfficeColor? decorationColor = null,
         OfficeTextFeatureSettings? featureSettings = null,
-        string? fontPalette = null)
-        : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
+        string? fontPalette = null,
+        double? layoutHeight = null,
+        OfficeFontFaceDescriptor? fontDescriptor = null,
+        double paintTopOverflow = 0D,
+        bool paintOnly = false,
+        HtmlRenderRectangle? linkBounds = null)
+        : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY, layoutHeight) {
         if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
         }
@@ -92,8 +97,14 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             (double.IsNaN(textPaintWidth.Value) || double.IsInfinity(textPaintWidth.Value) || textPaintWidth.Value < 0D)) {
             throw new ArgumentOutOfRangeException(nameof(textPaintWidth));
         }
+        if (paintTopOverflow < 0D || double.IsNaN(paintTopOverflow) || double.IsInfinity(paintTopOverflow)) {
+            throw new ArgumentOutOfRangeException(nameof(paintTopOverflow));
+        }
         Text = text ?? throw new ArgumentNullException(nameof(text));
+        IsPaintOnly = paintOnly;
+        LinkBounds = linkBounds;
         Font = font;
+        FontDescriptor = fontDescriptor ?? OfficeFontFaceDescriptor.FromStyle(font.Style);
         Color = color;
         Alignment = alignment;
         LineHeight = lineHeight;
@@ -120,13 +131,17 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
             : baseline == OfficeTextBaseline.Subscript ? -1 : 0;
         BaselineScale = baselineScale;
         BaselineOffset = baselineOffset;
+        PaintTopOverflow = paintTopOverflow;
     }
 
     /// <summary>Text content represented by this visual segment.</summary>
     public string Text { get; }
 
-    /// <summary>Resolved font descriptor.</summary>
+    /// <summary>Resolved font family, size, and compatibility style flags.</summary>
     public OfficeFontInfo Font { get; }
+
+    /// <summary>Resolved CSS face weight, stretch, and slant requested for this text.</summary>
+    public OfficeFontFaceDescriptor FontDescriptor { get; }
 
     /// <summary>Resolved text color.</summary>
     public OfficeColor Color { get; }
@@ -180,6 +195,20 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Resolved cumulative CSS baseline displacement in layout units; negative values raise text.</summary>
     public double BaselineOffset { get; }
 
+    // Selected face ascent can extend above the one-em baseline anchor used by positioned text.
+    internal double PaintTopOverflow { get; }
+
+    // Linked glyph paint and advance exclude paint-frame tolerance and extra line leading.
+    internal HtmlRenderRectangle? LinkBounds { get; }
+
+    private HtmlRenderRectangle? TranslateLinkBounds(double x, double y) =>
+        LinkBounds is HtmlRenderRectangle bounds
+            ? new HtmlRenderRectangle(bounds.X + x, bounds.Y + y, bounds.Width, bounds.Height)
+            : null;
+
+    /// <summary>Shadow clones paint text but do not contribute to scrollable layout overflow.</summary>
+    internal bool IsPaintOnly { get; }
+
     internal HtmlRenderText ResolveBaselineForPainting() =>
         Baseline == OfficeTextBaseline.Normal && BaselineScale == 1D && BaselineOffset == 0D
             ? this
@@ -188,15 +217,56 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
                 LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth,
                 BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder,
                 UnderlineStyle, StrikethroughStyle, OfficeTextBaseline.Normal, 0, 1D, 0D,
-                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+                TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor,
+                PaintTopOverflow, IsPaintOnly, LinkBounds).WithWrappedLines(WrappedLines);
+
+    // Generated margin frames retain their complete text in the scene. Both
+    // painting adapters consume the same measured lines instead of rewrapping.
+    internal IReadOnlyList<OfficeTextLine>? WrappedLines { get; }
+
+    private HtmlRenderText(HtmlRenderText source, IReadOnlyList<OfficeTextLine> wrappedLines)
+        : this(source.Text, source.X, source.Y, source.Width, source.Height, source.Font,
+            source.Color, source.Alignment, source.LineHeight, source.PaintOrder, source.LinkUri,
+            source.Source, source.SemanticRole, source.LayoutY, source.SemanticNodeId,
+            source.TextAdvanceWidth, source.BidiVisualOrderResolved, source.SemanticFragmentOrder,
+            source.LogicalTextOrder, source.UnderlineStyle, source.StrikethroughStyle, source.Baseline,
+            source.BaselineLevel, source.BaselineScale, source.BaselineOffset, source.TextPaintWidth,
+            source.DecorationColor, source.FeatureSettings, source.FontPalette, source.LayoutHeight,
+            source.FontDescriptor, source.PaintTopOverflow, source.IsPaintOnly, source.LinkBounds) {
+        WrappedLines = wrappedLines;
+    }
+
+    internal HtmlRenderText WithWrappedLines(IReadOnlyList<OfficeTextLine>? lines) =>
+        lines == null ? this : new HtmlRenderText(this, lines);
+
+    internal IEnumerable<HtmlRenderText> GetWrappedPaintFragments() {
+        if (WrappedLines == null) {
+            yield return this;
+            yield break;
+        }
+        for (int index = 0; index < WrappedLines.Count; index++) {
+            double offsetY = index * LineHeight;
+            if (offsetY >= Height) yield break;
+            OfficeTextLine line = WrappedLines[index];
+            if (line.Text.Length == 0) continue;
+            yield return new HtmlRenderText(line.Text, X + line.OffsetX, Y + offsetY,
+                Math.Max(0.01D, Width - line.OffsetX), Math.Min(LineHeight, Height - offsetY),
+                Font, Color, Alignment, LineHeight, PaintOrder, LinkUri, Source, SemanticRole,
+                LayoutY + offsetY, SemanticNodeId, line.Width, BidiVisualOrderResolved,
+                SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle,
+                Baseline, BaselineLevel, BaselineScale, BaselineOffset, null,
+                DecorationColor, FeatureSettings, FontPalette, Math.Min(LineHeight, LayoutHeight),
+                FontDescriptor, PaintTopOverflow, IsPaintOnly, LinkBounds);
+        }
+    }
 
     internal bool BidiVisualOrderResolved { get; }
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY)).WithWrappedLines(WrappedLines);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY)).WithWrappedLines(WrappedLines);
 }

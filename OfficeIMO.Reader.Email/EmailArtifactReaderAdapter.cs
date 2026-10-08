@@ -4,6 +4,8 @@ namespace OfficeIMO.Reader.Email;
 
 internal static partial class EmailArtifactReaderAdapter {
     internal static ReaderEmailOptions Clone(ReaderEmailOptions? source) {
+        EmailConcealedTextPolicy concealedPolicy = source?.ConcealedTextPolicy ?? EmailConcealedTextPolicy.Preserve;
+        if (!Enum.IsDefined(typeof(EmailConcealedTextPolicy), concealedPolicy)) throw new ArgumentOutOfRangeException(nameof(source.ConcealedTextPolicy));
         EmailReaderOptions message = CloneMessage(source?.MessageOptions ?? EmailReaderOptions.Default,
             source?.IncludeAttachmentContent ?? true);
         EmailMailboxReaderOptions mailboxSource = source?.MailboxOptions ?? EmailMailboxReaderOptions.Default;
@@ -14,6 +16,7 @@ internal static partial class EmailArtifactReaderAdapter {
             mailboxSource.MaxMessageCount);
         ContentLineReaderOptions lines = CloneContentLines(source?.ContentLineOptions ?? ContentLineReaderOptions.Default);
         return new ReaderEmailOptions {
+            ConcealedTextPolicy = concealedPolicy,
             MessageOptions = message,
             MailboxOptions = mailbox,
             ContentLineOptions = lines,
@@ -30,13 +33,13 @@ internal static partial class EmailArtifactReaderAdapter {
         if (IsMailbox(extension)) {
             EmailMailboxReadResult mailbox = new EmailMailboxReader(EffectiveMailboxOptions(options, readerOptions)).Read(path, cancellationToken);
             return EmailReaderProjection.ProjectMailboxToPathResult(mailbox, path, readerOptions, cancellationToken, computeSourceHash: false,
-                includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages);
+                includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         }
         using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(path, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToPathResult(
             new[] { result.Document }, new string?[] { path }, result.Diagnostics, result.Document.Format,
             path, path, readerOptions, cancellationToken, computeSourceHash: false,
-            includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages);
+            includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderEmailOptions options, CancellationToken cancellationToken) {
@@ -48,13 +51,13 @@ internal static partial class EmailArtifactReaderAdapter {
         if (IsMailbox(extension)) {
             EmailMailboxReadResult mailbox = new EmailMailboxReader(EffectiveMailboxOptions(options, readerOptions)).Read(stream, cancellationToken);
             return EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,
-                includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages);
+                includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         }
         using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(stream, logicalName, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToStreamResult(
             new[] { result.Document }, new string?[] { logicalName }, result.Diagnostics, result.Document.Format,
             logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,
-            includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages);
+            includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
     }
 
     internal static OfficeDocumentReadResult ReadCalendarDocument(string path, ReaderOptions readerOptions, ReaderEmailOptions options, CancellationToken cancellationToken) {

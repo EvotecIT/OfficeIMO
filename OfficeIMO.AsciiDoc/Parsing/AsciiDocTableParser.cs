@@ -1,19 +1,20 @@
 namespace OfficeIMO.AsciiDoc;
 
 internal sealed class AsciiDocTableConfiguration {
-    internal AsciiDocTableConfiguration(AsciiDocTableFormat format, string separator, int? columnCount, bool header) {
+    internal AsciiDocTableConfiguration(AsciiDocTableFormat format, string separator, IReadOnlyList<char> columnStyles, bool header) {
         Format = format;
         Separator = separator;
-        ColumnCount = columnCount;
+        ColumnStyles = columnStyles;
         Header = header;
     }
 
     internal AsciiDocTableFormat Format { get; }
     internal string Separator { get; }
-    internal int? ColumnCount { get; }
+    internal int? ColumnCount => ColumnStyles.Count == 0 ? null : ColumnStyles.Count;
+    internal IReadOnlyList<char> ColumnStyles { get; }
     internal bool Header { get; }
 
-    internal static AsciiDocTableConfiguration Create(string delimiter, IReadOnlyList<AsciiDocBlockAttributeList> metadata) {
+    internal static AsciiDocTableConfiguration Create(string delimiter, IReadOnlyList<AsciiDocBlockAttributeList> metadata, int maximumColumns) {
         string? formatValue = GetNamedValue(metadata, "format");
         AsciiDocTableFormat format = delimiter == ",==="
             ? AsciiDocTableFormat.Csv
@@ -22,7 +23,7 @@ internal sealed class AsciiDocTableConfiguration {
                 : ParseFormat(formatValue);
         string? separatorValue = GetNamedValue(metadata, "separator");
         string separator = DecodeSeparator(separatorValue) ?? DefaultSeparator(format);
-        int? columns = ParseColumnCount(GetNamedValue(metadata, "cols"));
+        IReadOnlyList<char> columns = ParseColumns(GetNamedValue(metadata, "cols"), maximumColumns);
         bool header = HasOption(metadata, "header");
         return new AsciiDocTableConfiguration(format, separator, columns, header);
     }
@@ -64,13 +65,19 @@ internal sealed class AsciiDocTableConfiguration {
         return value.Length == 0 ? null : value;
     }
 
-    private static int? ParseColumnCount(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        string trimmed = value!.Trim();
-        if (trimmed.EndsWith("*", StringComparison.Ordinal) &&
-            int.TryParse(trimmed.Substring(0, trimmed.Length - 1), out int multiplier) && multiplier > 0) return multiplier;
-        string[] parts = trimmed.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length == 0 ? null : parts.Length;
+    private static IReadOnlyList<char> ParseColumns(string? value, int maximumColumns) {
+        var styles = new List<char>();
+        if (string.IsNullOrWhiteSpace(value)) return styles;
+        foreach (string part in value!.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) {
+            string specifier = part.Trim();
+            int repeat = 1, star = specifier.IndexOf('*');
+            if (star > 0 && (!int.TryParse(specifier.Substring(0, star), out repeat) || repeat < 1))
+                throw new InvalidDataException("Invalid AsciiDoc table column repetition.");
+            if ((long)styles.Count + repeat > maximumColumns) throw new InvalidDataException("AsciiDoc source exceeds MaximumTableColumnCount.");
+            char style = specifier.Length > 0 && "adehlms".IndexOf(specifier[specifier.Length - 1]) >= 0 ? specifier[specifier.Length - 1] : 'd';
+            for (int index = 0; index < repeat; index++) styles.Add(style);
+        }
+        return styles;
     }
 }
 
@@ -91,16 +98,18 @@ internal static class AsciiDocTableParser {
         int end,
         AsciiDocTableConfiguration configuration) {
         List<CellDescriptor> descriptors = configuration.Format == AsciiDocTableFormat.Psv
-            ? ParsePsv(factory.Source.Text, start, end, configuration.Separator)
-            : ParseData(factory.Source.Text, start, end, configuration.Format, configuration.Separator);
+            ? ParsePsv(factory.Source.Text, start, end, configuration.Separator, factory)
+            : ParseData(factory.Source.Text, start, end, configuration.Format, configuration.Separator, factory);
 
         int columns = configuration.ColumnCount ?? InferColumnCount(factory.Source.Text, descriptors, configuration.Format);
         if (columns < 1) columns = Math.Max(1, descriptors.Count);
+        if (columns > factory.Options.MaximumTableColumnCount) throw new InvalidDataException("AsciiDoc source exceeds MaximumTableColumnCount.");
         var cells = new List<AsciiDocTableCell>(descriptors.Count);
         var syntaxNodes = new List<AsciiDocSyntaxNode>(descriptors.Count);
         int logicalRow = 0;
         int logicalColumn = 0;
         for (int index = 0; index < descriptors.Count; index++) {
+            if ((index & 1023) == 0) factory.CancellationToken.ThrowIfCancellationRequested();
             CellDescriptor descriptor = descriptors[index];
             if (configuration.Format != AsciiDocTableFormat.Psv) {
                 logicalRow = descriptor.Row;
@@ -117,11 +126,14 @@ internal static class AsciiDocTableParser {
                 descriptor.Specifier,
                 content,
                 logicalRow,
-                logicalColumn);
+                logicalColumn,
+                configuration.ColumnStyles.Count > 0 ? configuration.ColumnStyles[logicalColumn % configuration.ColumnStyles.Count] : 'd');
+            if (cell.ColumnSpan > factory.Options.MaximumTableSpan || cell.RowSpan > factory.Options.MaximumTableSpan)
+                throw new InvalidDataException("AsciiDoc source exceeds MaximumTableSpan.");
             cells.Add(cell);
             syntaxNodes.Add(cellSyntax);
             if (configuration.Format == AsciiDocTableFormat.Psv) {
-                logicalColumn += cell.ColumnSpan;
+                logicalColumn = checked(logicalColumn + cell.ColumnSpan);
                 if (logicalColumn >= columns) { logicalRow++; logicalColumn = 0; }
             }
         }
@@ -139,18 +151,27 @@ internal static class AsciiDocTableParser {
         return new AsciiDocTableParseResult(contentSyntax, table);
     }
 
-    private static List<CellDescriptor> ParsePsv(string source, int start, int end, string separator) {
+    private static List<CellDescriptor> ParsePsv(string source, int start, int end, string separator, AsciiDocSyntaxFactory factory) {
+        System.Threading.CancellationToken token = factory.CancellationToken;
         var starts = new List<CellStart>();
+        int lineTextStart = start;
+        while (lineTextStart < end && char.IsWhiteSpace(source[lineTextStart]) && source[lineTextStart] != '\r' && source[lineTextStart] != '\n') lineTextStart++;
         for (int index = start; index + separator.Length <= end; index++) {
+            if ((index & 1023) == 0) token.ThrowIfCancellationRequested();
+            if (source[index] == '\r' || source[index] == '\n') {
+                lineTextStart = index + 1;
+                while (lineTextStart < end && char.IsWhiteSpace(source[lineTextStart]) && source[lineTextStart] != '\r' && source[lineTextStart] != '\n') lineTextStart++;
+            }
             if (!Matches(source, separator, index, end) || IsEscaped(source, index, start)) continue;
-            int specifierStart = FindSpecifierStart(source, index, start);
-            bool atLineStart = specifierStart == FindLineStart(source, index, start);
+            int specifierStart = FindSpecifierStart(source, index, lineTextStart);
+            bool atLineStart = specifierStart == lineTextStart;
             bool separated = index == start || char.IsWhiteSpace(source[index - 1]);
             if (!atLineStart && !separated) continue;
             if (specifierStart < index && !IsCellSpecifier(source, specifierStart, index)) {
                 if (!separated) continue;
                 specifierStart = index;
             }
+            factory.ReserveTableCell();
             starts.Add(new CellStart(specifierStart, index, index + separator.Length));
             index += separator.Length - 1;
         }
@@ -170,7 +191,9 @@ internal static class AsciiDocTableParser {
         int start,
         int end,
         AsciiDocTableFormat format,
-        string separator) {
+        string separator,
+        AsciiDocSyntaxFactory factory) {
+        System.Threading.CancellationToken token = factory.CancellationToken;
         var descriptors = new List<CellDescriptor>();
         int leadingStart = start;
         int contentStart = start;
@@ -180,6 +203,7 @@ internal static class AsciiDocTableParser {
         bool quoted = false;
         int index = start;
         while (index < end) {
+            if ((index & 1023) == 0) token.ThrowIfCancellationRequested();
             char current = source[index];
             if ((format == AsciiDocTableFormat.Csv || format == AsciiDocTableFormat.Tsv) && current == '"') {
                 if (quoted && index + 1 < end && source[index + 1] == '"') { index += 2; continue; }
@@ -189,6 +213,7 @@ internal static class AsciiDocTableParser {
             }
             if (format == AsciiDocTableFormat.Dsv && current == '\\') { index += Math.Min(2, end - index); continue; }
             if (!quoted && Matches(source, separator, index, end)) {
+                factory.ReserveTableCell();
                 descriptors.Add(new CellDescriptor(leadingStart, contentStart, index, string.Empty, row, column++, leadingSeparatorStart));
                 leadingStart = index;
                 leadingSeparatorStart = index;
@@ -201,6 +226,7 @@ internal static class AsciiDocTableParser {
                 int endingLength = current == '\r' && index + 1 < end && source[index + 1] == '\n' ? 2 : 1;
                 bool hasRowContent = column > 0 || !string.IsNullOrWhiteSpace(source.Substring(contentStart, lineEnd - contentStart));
                 if (hasRowContent) {
+                    factory.ReserveTableCell();
                     descriptors.Add(new CellDescriptor(leadingStart, contentStart, lineEnd, string.Empty, row, column, leadingSeparatorStart));
                     row++;
                 }
@@ -214,6 +240,7 @@ internal static class AsciiDocTableParser {
             index++;
         }
         if (column > 0 || contentStart < end) {
+            factory.ReserveTableCell();
             descriptors.Add(new CellDescriptor(leadingStart, contentStart, end, string.Empty, row, column, leadingSeparatorStart));
         }
         return descriptors;
@@ -272,18 +299,10 @@ internal static class AsciiDocTableParser {
                original.EndsWith("\r\n\r\n", StringComparison.Ordinal);
     }
 
-    private static int FindSpecifierStart(string source, int separator, int rangeStart) {
-        int lineStart = FindLineStart(source, separator, rangeStart);
+    private static int FindSpecifierStart(string source, int separator, int lineStart) {
         int start = separator;
         while (start > lineStart && IsSpecifierCharacter(source[start - 1])) start--;
         return start;
-    }
-
-    private static int FindLineStart(string source, int index, int rangeStart) {
-        int current = index;
-        while (current > rangeStart && source[current - 1] != '\r' && source[current - 1] != '\n') current--;
-        while (current < index && char.IsWhiteSpace(source[current]) && source[current] != '\r' && source[current] != '\n') current++;
-        return current;
     }
 
     private static bool IsCellSpecifier(string source, int start, int end) {

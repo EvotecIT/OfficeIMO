@@ -146,9 +146,11 @@ flattened chunks. Each item supplies its virtual `Path` and complete `Document`,
 forms, metadata, diagnostics and assets. Identifiers inside a child result remain local to that child.
 Asset payload bytes stay in memory when requested and remain excluded from JSON transport.
 
-Document transport schema version 9 includes recursive `nestedDocuments`; versions 5 through 8 remain
-readable. Load the matching artifact with `OfficeDocumentReadResultSchema.GetJsonSchema(version)`.
-Writing an older version cannot carry nested documents.
+Document transport schema version 10 adds XPS/OpenXPS input identity and explicit native
+`ReaderLocation.LogicalOrder` across physical containers. Version 9 includes recursive
+`nestedDocuments`; versions 5 through 9 remain readable. Load the matching artifact with
+`OfficeDocumentReadResultSchema.GetJsonSchema(version)`. Versions below 9 cannot carry
+nested documents, and versions below 10 cannot carry XPS input kinds.
 
 Capability manifest version 6 includes incremental route flags and per-extension `FormatQualifications`.
 A qualification records a format ID, extraction maturity, profile, preservation, limitations and evidence
@@ -186,6 +188,16 @@ Other `OfficeIMO.Reader.*` packages follow the same rule: Core plus the format's
 network clients, hosted providers, and native tools remain explicit host choices and are not composed by All.
 
 ## Stable contracts
+
+File reads retain the same source identity and timestamps through synchronous, asynchronous and batch
+routes. Container result envelopes describe the outer input; member chunks retain their own provenance
+through document processors. Folder byte limits charge the physical files accepted for parsing.
+Native async file handlers are awaited directly. Synchronous file handlers run on a worker through the
+reader's concurrency gate; their file-specific behavior also applies to async and batch reads.
+
+Table exports accept cancellation while scanning and writing rows. Pass a token to
+`reader.ExportTables(tables, cancellationToken: token)` for CSV, Markdown and JSON together, or use
+`table.ToCsv(token)`, `table.ToMarkdownTable(token)` and `table.ToJson(indented: true, cancellationToken: token)` separately.
 
 - `ReaderOptions` and format-neutral input/processing limits
 - `ReaderChunk` and the schema-versioned `OfficeDocumentReadResult`

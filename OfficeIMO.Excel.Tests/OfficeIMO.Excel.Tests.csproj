@@ -18,6 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\PdfOperatorSearchText.cs" Link="Pdf\PdfOperatorSearchText.cs" />
     <PackageReference Include="AutoFixture" Version="4.18.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
@@ -81,6 +82,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Documents\**" Link="Documents\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <None Update="Fixtures\Pictures\*.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf" Link="Fixtures\Fonts\SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="Images\Kulek.jpg" />

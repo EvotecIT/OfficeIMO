@@ -1,0 +1,9 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 27.0.1//EN
+N:Validation;OfficeIMO;;;
+FN:OfficeIMO Validation
+EMAIL;type=INTERNET;type=WORK;type=pref:officeimo-validation@example.test
+PHOTO;ENCODING=b:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42m
+ P8/x8AAwMCAO+aTz0AAAAASUVORK5CYII=
+END:VCARD

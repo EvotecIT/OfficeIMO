@@ -31,9 +31,7 @@ namespace OfficeIMO.Excel {
         private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
-        private string? _lastDateStyleAttribute;
         private char[]? _xmlValueTextBuffer;
-        private bool _lastDateStyleAttributeResult;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
         private static readonly object BoxedTrue = true;
         private static readonly object BoxedFalse = false;
@@ -84,22 +82,6 @@ namespace OfficeIMO.Excel {
             _hasWorksheetPartStreamContent = true;
         }
 
-        private bool TryReadWorksheetPartBuffer(
-            int maximumBytes,
-            CancellationToken cancellationToken,
-            out byte[]? buffer,
-            out int length) {
-            buffer = null;
-            length = 0;
-            return _partBufferReader != null
-                && _partBufferReader.TryRead(
-                _worksheetPartName,
-                maximumBytes,
-                cancellationToken,
-                out buffer,
-                out length);
-        }
-
         private void RequireSdkWorksheetPart() {
             if (!_hasSdkWorksheetPart) {
                 throw new XlsxTabularFastPathNotSupportedException(
@@ -107,9 +89,24 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        // Native tabular readers retain the opened package snapshot. A worksheet
+        // that is too large to index can still use the existing XML projection.
+        private Stream OpenDataReaderWorksheetStream(CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
+            if (_partBufferReader != null
+                && _partBufferReader.TryGetLength(_worksheetPartName, out long length)
+                && length >= 0 && length <= int.MaxValue) {
+                return _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct);
+            }
+            if (_hasSdkWorksheetPart) {
+                return _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            }
+            RequireSdkWorksheetPart();
+            throw new InvalidOperationException("No worksheet stream is available.");
+        }
+
         private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
         private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
-        private bool IsCalendarStyleAttribute(string? attribute) => uint.TryParse(attribute, NumberStyles.None, CultureInfo.InvariantCulture, out uint index) && Styles.IsDateSystemShiftStyle(index);
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
 
@@ -132,192 +129,6 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name => _sheetName;
 
-        internal void ValidateDataReaderProjection(CancellationToken ct) {
-            if (_canStreamWorksheetPart) {
-                try {
-                    using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
-                    if (TryPrepareWorksheetStream(stream)) {
-                        ValidateDataReaderProjectionXml(stream, ct);
-                        return;
-                    }
-                } catch (XmlException) {
-                } catch (IOException) {
-                } catch (UnauthorizedAccessException) {
-                } catch (ObjectDisposedException) {
-                }
-            }
-
-            ct.ThrowIfCancellationRequested();
-            Worksheet worksheet = _wsPart.Worksheet
-                ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
-            foreach (Cell cell in worksheet.Descendants<Cell>()) {
-                ct.ThrowIfCancellationRequested();
-                string reference = cell.CellReference?.Value ?? "(unknown cell)";
-                if (cell.StyleIndex?.Value is uint styleIndex) {
-                    ValidateCellStyleReference(styleIndex, reference);
-                }
-                if (cell.DataType?.Value == CellValues.SharedString) {
-                    ValidateSharedStringReference(cell.CellValue?.Text, reference);
-                }
-
-                CellFormula? formula = cell.CellFormula;
-                if (formula?.FormulaType?.Value != CellFormulaValues.Shared
-                    || !string.IsNullOrWhiteSpace(formula?.Text)) {
-                    continue;
-                }
-                if (_opt.UseCachedFormulaResult && cell.CellValue is not null) {
-                    continue;
-                }
-
-                throw new NotSupportedException(
-                    $"Data-reader projection cannot safely expand the shared-formula follower " +
-                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
-                    "shared-formula text is required.");
-            }
-        }
-
-        private void ValidateDataReaderProjectionXml(
-            Stream stream,
-            CancellationToken ct) {
-            using var reader = OpenWorksheetXmlReader(stream);
-            while (reader.Read()) {
-                ct.ThrowIfCancellationRequested();
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
-                    continue;
-                }
-
-                string reference = reader.GetAttribute("r") ?? "(unknown cell)";
-                string? styleIndex = reader.GetAttribute("s");
-                if (styleIndex != null) {
-                    ValidateCellStyleReference(styleIndex, reference);
-                }
-                bool sharedStringCell = string.Equals(
-                    reader.GetAttribute("t"),
-                    "s",
-                    StringComparison.Ordinal);
-                bool sharedFollower = false;
-                bool hasCachedValue = false;
-                string? sharedStringReference = null;
-                if (reader.IsEmptyElement) {
-                    if (sharedStringCell) {
-                        ValidateSharedStringReference(null, reference);
-                    }
-                    continue;
-                }
-
-                int cellDepth = reader.Depth;
-                while (reader.Read()) {
-                    ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType == XmlNodeType.EndElement
-                        && reader.Depth == cellDepth
-                        && reader.LocalName == "c") {
-                        break;
-                    }
-                    if (reader.NodeType != XmlNodeType.Element
-                        || reader.Depth != cellDepth + 1
-                        || (!string.Equals(
-                                reader.NamespaceURI,
-                                SpreadsheetNamespace,
-                                StringComparison.Ordinal)
-                            && !string.Equals(
-                                reader.NamespaceURI,
-                                StrictSpreadsheetNamespace,
-                                StringComparison.Ordinal))) {
-                        continue;
-                    }
-
-                    if (reader.LocalName == "v") {
-                        hasCachedValue = true;
-                        if (sharedStringCell) {
-                            sharedStringReference = reader.IsEmptyElement
-                                ? string.Empty
-                                : ReadSimpleElementText(reader, ct, reference);
-                        }
-                        continue;
-                    }
-
-                    if (reader.LocalName != "f"
-                        || !string.Equals(
-                            reader.GetAttribute("t"),
-                            "shared",
-                            StringComparison.OrdinalIgnoreCase)) {
-                        continue;
-                    }
-
-                    bool isFollower = reader.IsEmptyElement;
-                    if (!isFollower) {
-                        isFollower = string.IsNullOrWhiteSpace(
-                            ReadSimpleElementText(reader, ct, reference));
-                    }
-                    sharedFollower |= isFollower;
-                }
-
-                if (sharedStringCell) {
-                    ValidateSharedStringReference(sharedStringReference, reference);
-                }
-
-                if (!sharedFollower
-                    || (_opt.UseCachedFormulaResult && hasCachedValue)) {
-                    continue;
-                }
-
-                throw new NotSupportedException(
-                    $"Data-reader projection cannot safely expand the shared-formula follower " +
-                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
-                    "shared-formula text is required.");
-            }
-        }
-
-        private static string ReadSimpleElementText(
-            XmlReader reader,
-            CancellationToken ct,
-            string cellReference) {
-            int elementDepth = reader.Depth;
-            string elementName = reader.LocalName;
-            string elementNamespace = reader.NamespaceURI;
-            string value = reader.ReadString();
-            ct.ThrowIfCancellationRequested();
-            if (reader.NodeType != XmlNodeType.EndElement
-                || reader.Depth != elementDepth
-                || !string.Equals(reader.LocalName, elementName, StringComparison.Ordinal)
-                || !string.Equals(reader.NamespaceURI, elementNamespace, StringComparison.Ordinal)) {
-                throw new InvalidDataException(
-                    $"Worksheet cell {cellReference} element '{elementName}' must contain only text.");
-            }
-
-            return value;
-        }
-
-        private void ValidateCellStyleReference(string rawIndex, string reference) {
-            if (TryParseUInt(rawIndex, out uint styleIndex)) {
-                ValidateCellStyleReference(styleIndex, reference);
-                return;
-            }
-
-            throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference} contains an invalid cell style index.");
-        }
-
-        private void ValidateCellStyleReference(uint styleIndex, string reference) {
-            if (styleIndex < (uint)Styles.CellFormatCount) {
-                return;
-            }
-
-            throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference} references a missing cell style.");
-        }
-
-        private void ValidateSharedStringReference(string? rawIndex, string reference) {
-            var items = _sharedStringItems ??= _sst.GetItems();
-            if (TryParseSharedStringIndex(rawIndex, out int index)
-                && (uint)index < (uint)items.Count) {
-                return;
-            }
-
-            throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference} references a missing shared string.");
-        }
-
         /// <summary>
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
         /// </summary>
@@ -335,12 +146,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 var rIndex = checked((int)row.RowIndex!.Value);
+                int nextDomColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    int cIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    if (cIndex <= 0) continue;
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
                         yield return new ExcelCellValueInfo(rIndex, cIndex, value);
@@ -365,9 +178,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) {
-                    rowIndex = nextRowIndex;
+                    rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 }
 
                 nextRowIndex = rowIndex + 1;
@@ -419,7 +232,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryReadXmlCellValueForCellEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value, out bool explicitBlank) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
@@ -450,7 +263,7 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<Row> EnumerateWorksheetRows(CancellationToken ct = default) {
             if (CanStreamWorksheetPart()) {
-                foreach (var row in EnumerateWorksheetRowsFromPart(ct)) {
+                foreach (var row in EnumerateRowsWithCoordinates(EnumerateWorksheetRowsFromPart(ct), ct)) {
                     yield return row;
                 }
 
@@ -463,7 +276,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool canCancel = ct.CanBeCanceled;
-            foreach (var row in sheetData.Elements<Row>()) {
+            foreach (var row in EnumerateRowsWithCoordinates(sheetData.Elements<Row>(), ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
@@ -536,7 +349,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static XmlReader OpenWorksheetXmlReader(Stream stream) {
-            return XmlReader.Create(stream, WorksheetXmlReaderSettings);
+            return XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(WorksheetXmlReaderSettings));
         }
 
         private static XmlReaderSettings CreateWorksheetXmlReaderSettings() {
@@ -621,27 +434,6 @@ namespace OfficeIMO.Excel {
                 && typeHint != CellValues.InlineString
                 && typeHint != CellValues.Date
                 && Styles.HasDateStyles;
-        }
-
-        private bool IsDateStyleAttribute(string? styleAttribute) {
-            if (string.IsNullOrEmpty(styleAttribute)) {
-                return false;
-            }
-
-            if (string.Equals(styleAttribute, _lastDateStyleAttribute, StringComparison.Ordinal)) {
-                return _lastDateStyleAttributeResult;
-            }
-
-            if (!Styles.HasDateStyles) {
-                _lastDateStyleAttribute = styleAttribute;
-                _lastDateStyleAttributeResult = false;
-                return false;
-            }
-
-            bool result = TryParseUInt(styleAttribute, out uint styleIndex) && Styles.IsDateLike(styleIndex);
-            _lastDateStyleAttribute = styleAttribute;
-            _lastDateStyleAttributeResult = result;
-            return result;
         }
 
         private static XmlCellKind ParseXmlCellKind(string? type) {

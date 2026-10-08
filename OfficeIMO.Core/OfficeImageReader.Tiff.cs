@@ -9,7 +9,7 @@ public static partial class OfficeImageReader {
     private static bool TryReadTiff(byte[] data, out OfficeImageInfo info) =>
         TryReadTiff(data, CancellationToken.None, out info);
 
-    private static bool TryReadTiff(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info) {
+    private static bool TryReadTiff(byte[] data, CancellationToken cancellationToken, out OfficeImageInfo info, bool ignoreOrientation = false) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 8) {
             return false;
@@ -25,8 +25,8 @@ public static partial class OfficeImageReader {
         }
 
         return ReadUInt16(data, 2, littleEndian) switch {
-            ClassicTiffMagic => TryReadClassicTiff(data, littleEndian, cancellationToken, out info),
-            BigTiffMagic => TryReadBigTiff(data, littleEndian, cancellationToken, out info),
+            ClassicTiffMagic => TryReadClassicTiff(data, littleEndian, cancellationToken, out info, ignoreOrientation),
+            BigTiffMagic => TryReadBigTiff(data, littleEndian, cancellationToken, out info, ignoreOrientation),
             _ => false
         };
     }
@@ -35,7 +35,8 @@ public static partial class OfficeImageReader {
         byte[] data,
         bool littleEndian,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) {
+        out OfficeImageInfo info,
+        bool ignoreOrientation) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         int ifdOffset = ReadInt32(data, 4, littleEndian);
         if (ifdOffset < 8 || ifdOffset > data.Length - 2) {
@@ -56,6 +57,8 @@ public static partial class OfficeImageReader {
         bool hasDpiY = false;
         int unit = 2;
         int orientation = 1;
+        int photometricTags = 0;
+        int? photometric = null;
 
         for (int i = 0; i < entryCount; i++) {
             if ((i & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -65,6 +68,11 @@ public static partial class OfficeImageReader {
             int count = ReadInt32(data, entry + 4, littleEndian);
             int valueOrOffset = ReadInt32(data, entry + 8, littleEndian);
 
+            if (tag == 262) {
+                photometricTags++;
+                photometric = type == 3 && count == 1
+                    ? ReadUInt16(data, entry + 8, littleEndian) : (int?)null;
+            }
             if (tag == 256) width = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
             else if (tag == 257) height = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
             else if (tag == 282 && TryReadClassicTiffRational(data, valueOrOffset, type, count, littleEndian, out double parsedDpiX)) {
@@ -73,18 +81,21 @@ public static partial class OfficeImageReader {
             } else if (tag == 283 && TryReadClassicTiffRational(data, valueOrOffset, type, count, littleEndian, out double parsedDpiY)) {
                 dpiY = parsedDpiY;
                 hasDpiY = true;
-            } else if (tag == 274) orientation = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
+            } else if (tag == 274 && !ignoreOrientation) orientation = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
             else if (tag == 296) unit = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
         }
 
-        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
+        bool identified = CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
+        info.TiffPhotometricInterpretation = photometricTags == 1 ? photometric : null;
+        return identified;
     }
 
     private static bool TryReadBigTiff(
         byte[] data,
         bool littleEndian,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) {
+        out OfficeImageInfo info,
+        bool ignoreOrientation) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         if (data.Length < 16 ||
             ReadUInt16(data, 4, littleEndian) != 8 ||
@@ -121,6 +132,8 @@ public static partial class OfficeImageReader {
         bool hasDpiY = false;
         int unit = 2;
         int orientation = 1;
+        int photometricTags = 0;
+        int? photometric = null;
 
         for (int i = 0; i < entryCount; i++) {
             if ((i & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -129,6 +142,11 @@ public static partial class OfficeImageReader {
             int type = ReadUInt16(data, entry + 2, littleEndian);
             ulong count = ReadUInt64(data, entry + 4, littleEndian);
 
+            if (tag == 262) {
+                photometricTags++;
+                photometric = type == 3 && count == 1
+                    ? ReadUInt16(data, entry + 12, littleEndian) : (int?)null;
+            }
             if (tag == 256) width = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
             else if (tag == 257) height = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
             else if (tag == 282 && TryReadBigTiffRational(data, entry + 12, type, count, littleEndian, out double parsedDpiX)) {
@@ -137,11 +155,13 @@ public static partial class OfficeImageReader {
             } else if (tag == 283 && TryReadBigTiffRational(data, entry + 12, type, count, littleEndian, out double parsedDpiY)) {
                 dpiY = parsedDpiY;
                 hasDpiY = true;
-            } else if (tag == 274) orientation = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
+            } else if (tag == 274 && !ignoreOrientation) orientation = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
             else if (tag == 296) unit = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
         }
 
-        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
+        bool identified = CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
+        info.TiffPhotometricInterpretation = photometricTags == 1 ? photometric : null;
+        return identified;
     }
 
     private static bool CompleteTiffInfo(

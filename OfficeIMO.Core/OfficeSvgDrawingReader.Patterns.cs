@@ -45,19 +45,11 @@ public static partial class OfficeSvgDrawingReader {
         var tile = new OfficeDrawing(tileWidth, tileHeight);
         tile.Fonts.AddRange(drawing.Fonts);
         SvgPaintContext tileStyle = ResolveDefinitionPaintContext(pattern, paintServers, ref unsupported);
-        OfficeTransform contentTransform;
-        double contentViewX;
-        double contentViewY;
-        if (objectBoundingBoxContent) {
-            contentTransform = OfficeTransform.Scale(shape.Shape.Width, shape.Shape.Height);
-            contentViewX = 0D;
-            contentViewY = 0D;
-        } else {
-            contentTransform = OfficeTransform.Identity;
-            contentViewX = originX;
-            contentViewY = originY;
-        }
-        AddChildren(pattern, tile, tileStyle, paintServers, references, contentTransform, contentViewX, contentViewY,
+        OfficeTransform contentTransform = objectBoundingBoxContent
+            ? OfficeTransform.Scale(shape.Shape.Width, shape.Shape.Height)
+            : OfficeTransform.Identity;
+        // Pattern x/y places the tile. Its content starts at the tile origin.
+        AddChildren(pattern, tile, tileStyle, paintServers, references, contentTransform, 0D, 0D,
             maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
             ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
         if (tile.Elements.Count == 0) {
@@ -99,7 +91,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         var clipped = new OfficeDrawing(drawing.Width, drawing.Height);
         try {
-            clipped.AddClippedDrawing(repeated, shape.X, shape.Y, clipPath!, -shape.X, -shape.Y);
+            clipped.AddClippedDrawingForRendering(repeated, shape.X, shape.Y, clipPath!, -shape.X, -shape.Y);
         } catch (ArgumentOutOfRangeException) {
             unsupported++;
             ClearShapeFill(shape.Shape);

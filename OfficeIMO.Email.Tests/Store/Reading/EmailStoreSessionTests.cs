@@ -261,7 +261,7 @@ public sealed class EmailStoreSessionTests {
             using var source = new MemoryStream(PstTestFileBuilder.Create());
             using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst");
 
-            EmailStoreExportReport report = session.ExportToDirectory(destination);
+            EmailStoreExportReport report = session.ExportToDirectory(destination, new EmailStoreExportOptions(writerOptions: new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)));
 
             EmailStoreExportEntry entry = Assert.Single(report.Entries);
             Assert.True(entry.Succeeded);
@@ -288,12 +288,12 @@ public sealed class EmailStoreSessionTests {
         try {
             using var source = new MemoryStream(PstTestFileBuilder.Create());
             using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst");
-            EmailStoreExportReport first = session.ExportToDirectory(destination);
+            EmailStoreExportReport first = session.ExportToDirectory(destination, new EmailStoreExportOptions(writerOptions: new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)));
             string path = Assert.Single(first.Entries).DestinationPath!;
             byte[] sentinel = Encoding.ASCII.GetBytes("existing artifact");
             File.WriteAllBytes(path, sentinel);
 
-            EmailStoreExportReport second = session.ExportToDirectory(destination);
+            EmailStoreExportReport second = session.ExportToDirectory(destination, new EmailStoreExportOptions(writerOptions: new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)));
 
             Assert.Equal(1, first.SucceededCount);
             EmailStoreExportEntry failed = Assert.Single(second.Entries);
@@ -347,7 +347,8 @@ public sealed class EmailStoreSessionTests {
             using var source = new MemoryStream(PstTestFileBuilder.Create());
             using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst");
 
-            EmailStoreMboxExportReport report = session.ExportToMbox(destination);
+            EmailStoreMboxExportReport report = session.ExportToMbox(destination, new EmailStoreMboxExportOptions(
+                writerOptions: new EmailMailboxWriterOptions(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn))));
 
             Assert.Equal(Path.GetFullPath(destination), report.DestinationPath);
             Assert.Equal(1, report.SucceededCount);

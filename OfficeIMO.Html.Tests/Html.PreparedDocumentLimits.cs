@@ -10,10 +10,23 @@ public sealed class HtmlPreparedDocumentLimitTests {
     [Fact]
     public void PreparedStylesUseTheSameDefaultCssBudgetAsRawInput() {
         int rules = HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules!.Value + 1;
-        string source = "<style>" + string.Concat(Enumerable.Repeat(".unused{color:red}", rules)) + "p{color:blue}</style><p>Text</p>";
-        HtmlDocument owned = AngleSharpHtmlParser.Instance.Parse(source, new HtmlParseOptions());
+        string source = "<style>" + string.Concat(Enumerable.Repeat(".used{color:red}", rules)) + "p{color:blue}</style><p class='used'>Text</p>";
+        HtmlDocument owned = AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
         Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(owned)).LimitSource);
+        Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(owned,
+            new HtmlComputedStyleOptions())).LimitSource);
         Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(source)).LimitSource);
+    }
+
+    [Fact]
+    public void PreparedStylesBoundExaminedSelectorsEvenWhenNoneCanMatch() {
+        const string source = "<style>.absentA{color:red}.absentB{color:blue}.absentC{color:green}</style><p>Text</p>";
+        var options = new HtmlConversionDocumentOptions {
+            Limits = new HtmlConversionLimits { MaxCssRuleCandidates = 2 }
+        };
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(source, options);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssRuleCandidates),
+            Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary).LimitSource);
     }
 
     [Fact]

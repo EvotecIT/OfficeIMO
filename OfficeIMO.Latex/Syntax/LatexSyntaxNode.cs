@@ -27,7 +27,9 @@ public enum LatexSyntaxKind {
     /// <summary>Ordinary token or recoverable unmatched delimiter.</summary>
     Text,
     /// <summary>Opaque inline verbatim command or verbatim-like environment.</summary>
-    Verbatim
+    Verbatim,
+    /// <summary>A required argument bound to one TeX character or control-sequence token without braces.</summary>
+    SingleTokenArgument
 }
 
 /// <summary>Immutable node in the lossless LaTeX syntax tree.</summary>
@@ -109,6 +111,8 @@ public sealed class LatexSyntaxNode {
     }
 
     internal bool HasSource(LatexSourceText source) => ReferenceEquals(GetSource(), source);
+
+    internal LatexSourceText Source => GetSource();
 
     private LatexSourceText GetSource() {
         LatexSyntaxNode? current = this;

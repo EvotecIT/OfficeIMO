@@ -10,18 +10,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         ref int sourceIndex,
         ICollection<FlexItem> items,
-        ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments) {
+        ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments,
+        bool registerOutOfFlowElements) {
+        if (IsClosedDisclosureChild(node)) return true;
         if (node is IText text) {
-            if (string.IsNullOrWhiteSpace(text.Data)) return true;
+            if (string.IsNullOrWhiteSpace(text.Data) || parentStyle.Font.Size <= 0D) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
             IElement owner = text.ParentElement!;
-            items.Add(new FlexItem(text.Data, owner, source, ResolveFlexItemLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
+            items.Add(new FlexItem(text.Data, owner, source, ResolveAncestorLink(owner), CreateAnonymousFlexStyle(parentStyle), sourceIndex++, paintAnonymousBox: false));
             return true;
         }
 
         if (!(node is IElement element) || ShouldSkipElement(element)) return true;
         EnsureDepth(depth, element);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, containingWidth, parentStyle);
+        style = PrepareButtonChildStyle(element, style);
         if (style.Display == "none") return true;
         if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
             if (runningElementAssignments != null) {
@@ -41,22 +44,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.Display == "contents") {
             FlattenedSemanticBoundary boundary = CreateFlattenedSemanticBoundary(element, style);
+            int boundarySourceIndex = sourceIndex;
             var flattenedItems = new List<FlexItem>();
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, flattenedItems);
             foreach (INode child in element.ChildNodes) {
-                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, flattenedItems, runningElementAssignments)) return false;
+                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, flattenedItems,
+                    runningElementAssignments, registerOutOfFlowElements)) return false;
             }
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, flattenedItems);
             for (int index = 0; index < flattenedItems.Count; index++) {
                 FlexItem flattenedItem = flattenedItems[index];
-                flattenedItem.FlattenedSemanticPlacements.Add(new FlattenedSemanticPlacement(boundary, index == 0));
+                flattenedItem.FlattenedSemanticPlacements.Add(new FlattenedSemanticPlacement(boundary, index == 0, boundarySourceIndex));
                 items.Add(flattenedItem);
             }
             return true;
         }
 
         if (style.Position == "absolute" || style.Position == "fixed") {
-            RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, parentStyle, depth);
+            if (registerOutOfFlowElements) RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, parentStyle, depth);
             return true;
         }
         if (style.Position != "static" && style.Position != "relative" && style.Position != "sticky") return false;
@@ -83,20 +88,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
             content,
             element,
             source,
-            ResolveFlexItemLink(element),
+            ResolveAncestorLink(element),
             BlockifyFlexItemStyle(style),
             sourceIndex++,
             paintAnonymousBox: true));
     }
 
-    private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth) {
+    private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth,
+        PagedFloatBoundary? pageBoundary = null) {
         HtmlRenderFlowBlock block = item.Element != null
-            ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth)
+            ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth, pageBoundary: pageBoundary)
             : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        block = ApplyFlexItemSemantics(block, item);
         foreach (FlattenedSemanticPlacement placement in item.FlattenedSemanticPlacements) {
-            block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment);
+            block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment, placement.LogicalOrder);
         }
         return block;
+    }
+
+    private void ApplyRowFlexMainSize(FlexItem item) {
+        if (item.Element == null) return;
+        HtmlRenderBoxStyle style = item.Style.Clone();
+        double targetBoxWidth = Math.Max(0.01D, item.MainSize - style.MarginLeft - style.MarginRight);
+        double horizontalInsets = IsFormControlElement(item.TagName) && !IsInputType(item.Element, "image")
+            ? CreateFormControlStyle(item.Element, style).HorizontalInsets
+            : style.HorizontalInsets;
+        // LayoutTable treats explicit width as the used border-box width even with content-box sizing.
+        bool table = string.Equals(item.TagName, "table", StringComparison.OrdinalIgnoreCase);
+        style.ExplicitWidth = style.BorderBox || table
+            ? targetBoxWidth
+            : Math.Max(0.01D, targetBoxWidth - horizontalInsets);
+        if (table) {
+            // Flex sizing has already applied these bounds to the border-box width.
+            // Applying them again in LayoutTable would subtract padding a second time.
+            style.MinWidth = null;
+            style.MaxWidth = null;
+        }
+        style.ExplicitWidthUsesPercentage = false;
+        item.Style = style;
     }
 
     private HtmlRenderFlowBlock LayoutAnonymousFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle) {
@@ -104,8 +133,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source);
-        HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
+        IReadOnlyList<HtmlInlineRun> runs = style.Font.Size <= 0D
+            ? Array.Empty<HtmlInlineRun>()
+            : new[] { new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source) };
+        HtmlInlineLayout inline = LayoutInlineRuns(runs, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
@@ -131,7 +162,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return ApplyPositioning(block, style, containingWidth, ResolveContainingBlockHeight(parentStyle), item.Source);
     }
 
-    private string? ResolveFlexItemLink(IElement element) {
+    private string? ResolveAncestorLink(IElement element) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (string.Equals(current.TagName, "a", StringComparison.OrdinalIgnoreCase)) {
                 return ResolveSafeLink(current.GetAttribute("href"), current);
@@ -159,7 +190,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         LineHeight = parentStyle.LineHeight,
         PreserveWhitespace = parentStyle.PreserveWhitespace,
         TextTransform = parentStyle.TextTransform,
-        SemanticRole = "anonymous-flex-item",
+        SemanticRole = parentStyle.SemanticRole == "form-control" ? "form-control" : "anonymous-flex-item",
         Orphans = parentStyle.Orphans,
         Widows = parentStyle.Widows,
         PageName = parentStyle.PageName

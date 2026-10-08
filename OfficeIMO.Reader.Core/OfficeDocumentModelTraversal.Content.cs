@@ -43,7 +43,8 @@ internal static partial class OfficeDocumentModelTraversal {
         return OrderSourceItems(items, item => item.Location, document.Pages, item => hints[item]);
     }
 
-    private static bool SameContainerWhenKnown(ReaderLocation left, ReaderLocation right) =>
+    /// <summary>Matches source containers without treating absent provenance as a conflicting container.</summary>
+    internal static bool SameContainerWhenKnown(ReaderLocation left, ReaderLocation right) =>
         (string.IsNullOrWhiteSpace(left.Path) || string.IsNullOrWhiteSpace(right.Path) || left.Path == right.Path)
         && (!left.Page.HasValue || !right.Page.HasValue || left.Page == right.Page)
         && (!left.Slide.HasValue || !right.Slide.HasValue || left.Slide == right.Slide)
@@ -72,6 +73,8 @@ internal static partial class OfficeDocumentModelTraversal {
         int PathIndex(ReaderLocation? location) => !string.IsNullOrWhiteSpace(location?.Path) ? pathOrder[location!.Path!] : int.MaxValue;
         ordered.Sort((left, right) => {
             int comparison = PathIndex(left.Location).CompareTo(PathIndex(right.Location));
+            if (comparison != 0) return comparison;
+            comparison = (left.Location?.LogicalOrder ?? long.MaxValue).CompareTo(right.Location?.LogicalOrder ?? long.MaxValue);
             if (comparison != 0) return comparison;
             comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Location, sheetOrder), BuildContainerOrderKey(right.Location, sheetOrder));
             if (comparison != 0) return comparison;

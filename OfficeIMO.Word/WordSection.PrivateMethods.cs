@@ -920,7 +920,9 @@ namespace OfficeIMO.Word {
 
                 if (child is LastRenderedPageBreak) {
                     FlushCurrentChildren();
-                    result.Add(CreateLogicalRun(runProperties, new OpenXmlElement[] { new Break { Type = BreakValues.Page } }));
+                    Run cachedBreak = CreateLogicalRun(runProperties, new OpenXmlElement[] { new Break { Type = BreakValues.Page } });
+                    cachedBreak.AddAnnotation(new LastRenderedPageBreak());
+                    result.Add(cachedBreak);
                     continue;
                 }
 
@@ -1290,15 +1292,14 @@ namespace OfficeIMO.Word {
                     } else if (element is FootnoteProperties footnoteProps) {
                         if (canMoveInheritedSectionParts) {
                             var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
-                            cloned.RemoveAllChildren<NumberingRestart>();
-                            newSectionProperties.Append(cloned);
+                            // The copy belongs to the preceding section; the new final section continues by default.
+                            newSectionProperties.AddChild(cloned, true);
                             footnoteProps.RemoveAllChildren<NumberingRestart>();
                         }
                     } else if (element is EndnoteProperties endnoteProps) {
                         if (canMoveInheritedSectionParts) {
                             var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
-                            cloned.RemoveAllChildren<NumberingRestart>();
-                            newSectionProperties.Append(cloned);
+                            newSectionProperties.AddChild(cloned, true);
                             endnoteProps.RemoveAllChildren<NumberingRestart>();
                         }
                     } else if (element is TitlePage) {

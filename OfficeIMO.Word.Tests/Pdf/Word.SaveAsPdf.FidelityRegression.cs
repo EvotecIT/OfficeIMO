@@ -15,6 +15,20 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void SaveAsPdf_RejectsCollapsedBorderGridBeforeExpandedOccupancyAllocation() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = document.AddTable(17, 1);
+        for (int row = 0; row < table.Rows.Count; row++) {
+            WordTableCell cell = table.Rows[row].Cells[0];
+            cell._tableCell.TableCellProperties!.GridSpan = new GridSpan { Val = 16_384 };
+            cell.Borders.TopStyle = WordBorderStyle.Nil;
+        }
+
+        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
+            new WordToPdfOptions { IncludePageNumbers = false }));
+    }
+
+    [Fact]
     public void SaveAsPdf_PositionedTableReservesFollowingTextSpace() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
@@ -387,7 +401,9 @@ public partial class Word {
 
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Issued 2020-01-02 approved", pdfText);
-        Assert.Contains("Cell date 2020-01-03 done", pdfText);
+        // The authored narrow cell can wrap its field and following text.
+        string normalizedText = string.Join(" ", pdfText.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("Cell date 2020-01-03 done", normalizedText);
     }
 
     [Fact]

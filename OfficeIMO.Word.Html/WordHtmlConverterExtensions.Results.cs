@@ -116,17 +116,7 @@ public static partial class WordHtmlConverterExtensions {
     }
 
     private static WordPageSizeDefinition ResolveWordPageSizeDefinition(WordPageSize? pageSize) =>
-        pageSize switch {
-            WordPageSize.A3 => WordPageSizes.A3,
-            WordPageSize.A5 => WordPageSizes.A5,
-            WordPageSize.A6 => WordPageSizes.A6,
-            WordPageSize.B5 => WordPageSizes.B5,
-            WordPageSize.Executive => WordPageSizes.Executive,
-            WordPageSize.Legal => WordPageSizes.Legal,
-            WordPageSize.Letter => WordPageSizes.Letter,
-            WordPageSize.Statement => WordPageSizes.Statement,
-            _ => WordPageSizes.A4
-        };
+        pageSize.HasValue ? WordPageSizes.GetDefinition(pageSize.Value) ?? WordPageSizes.A4 : WordPageSizes.A4;
 
     private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {
         return new HtmlToWordResult(document, options.ConversionReport);

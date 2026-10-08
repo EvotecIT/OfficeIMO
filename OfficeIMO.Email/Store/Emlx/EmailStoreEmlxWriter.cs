@@ -9,7 +9,7 @@ public sealed class EmailStoreEmlxWriter {
     private const string MetadataPropertyPrefix = "Emlx:Metadata:";
     private static readonly HashSet<string> DerivedMetadataKeys = new HashSet<string>(
         new[] { "flags", "date-received", "date-sent", "subject", "message-id" },
-        StringComparer.OrdinalIgnoreCase);
+        StringComparer.Ordinal);
     private readonly EmailStoreEmlxWriterOptions _options;
 
     /// <summary>Creates a writer with the default policy.</summary>
@@ -25,43 +25,43 @@ public sealed class EmailStoreEmlxWriter {
 
     /// <summary>Serializes one message to complete EMLX bytes.</summary>
     public byte[] ToBytes(EmailDocument document) {
-        byte[] bytes = Create(document, out EmailWriteResult result);
-        if (!result.HasErrors) return bytes;
-        EmailDiagnostic error = result.Diagnostics.First(diagnostic =>
-            diagnostic.Severity == EmailDiagnosticSeverity.Error);
-        throw new InvalidDataException("The EMLX artifact could not be serialized: " +
-            error.Code + ": " + error.Message);
+        using EmlxArtifact artifact = Stage(document);
+        if (artifact.Result.HasErrors) {
+            EmailDiagnostic error = artifact.Result.Diagnostics.First(diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+            throw new InvalidDataException("The EMLX artifact could not be serialized: " + error.Code + ": " + error.Message);
+        }
+        using var output = new EmailBoundedMemoryStream(Math.Min(_options.MaxOutputBytes, int.MaxValue));
+        artifact.CopyTo(output);
+        return output.ToArray();
     }
 
-    /// <summary>Atomically writes one EMLX file.</summary>
+    /// <summary>Atomically writes one EMLX file using a bounded, owner-only staging file.</summary>
     public EmailWriteResult Write(EmailDocument document, string filePath) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        byte[] bytes = Create(document, out EmailWriteResult result);
-        if (result.HasErrors) return result;
-        OfficeFileCommit.WriteAllBytes(filePath, bytes);
-        return result;
+        using EmlxArtifact artifact = Stage(document);
+        if (!artifact.Result.HasErrors) OfficeFileCommit.Write(filePath, artifact.CopyTo);
+        return artifact.Result;
     }
 
     /// <summary>Writes one EMLX artifact to a caller-owned stream without closing it.</summary>
     public EmailWriteResult Write(EmailDocument document, Stream stream) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        byte[] bytes = Create(document, out EmailWriteResult result);
-        if (result.HasErrors) return result;
-        OfficeStreamWriter.WriteAllBytes(stream, bytes);
-        return result;
+        using EmlxArtifact artifact = Stage(document);
+        if (!artifact.Result.HasErrors) OfficeStreamWriter.Write(stream, artifact.CopyTo);
+        return artifact.Result;
     }
 
-    /// <summary>Asynchronously atomically writes one EMLX file.</summary>
+    /// <summary>Asynchronously stages message and attachment I/O and atomically writes one EMLX file.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailDocument document, string filePath,
         CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        cancellationToken.ThrowIfCancellationRequested();
-        byte[] bytes = Create(document, out EmailWriteResult result);
-        if (result.HasErrors) return result;
-        await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        return result;
+        using EmlxArtifact artifact = await StageAsync(document, cancellationToken).ConfigureAwait(false);
+        if (!artifact.Result.HasErrors) {
+            await OfficeFileCommit.WriteAsync(filePath, artifact.CopyToAsync,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        return artifact.Result;
     }
 
     /// <summary>Asynchronously writes to a caller-owned stream without closing it.</summary>
@@ -69,70 +69,142 @@ public sealed class EmailStoreEmlxWriter {
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        cancellationToken.ThrowIfCancellationRequested();
-        byte[] bytes = Create(document, out EmailWriteResult result);
-        if (result.HasErrors) return result;
-        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
-        return result;
+        using EmlxArtifact artifact = await StageAsync(document, cancellationToken).ConfigureAwait(false);
+        if (!artifact.Result.HasErrors) {
+            await OfficeStreamWriter.WriteAsync(stream, artifact.CopyToAsync, cancellationToken).ConfigureAwait(false);
+        }
+        return artifact.Result;
     }
 
-    private byte[] Create(EmailDocument document, out EmailWriteResult result) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        byte[] metadata = _options.IncludeMetadata
-            ? CreateMetadata(document, _options.MaxOutputBytes, _options.MaxMetadataDepth,
-                _options.MaxMetadataProperties)
-            : Array.Empty<byte>();
-        long fixedBytes = checked(metadata.LongLength + (metadata.Length > 0 ? 1L : 0L) + 2L);
-        if (fixedBytes >= _options.MaxOutputBytes) {
-            throw new EmailLimitExceededException(
-                nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
-                checked(fixedBytes + 1L), _options.MaxOutputBytes);
-        }
-        long messageBudget = Math.Min(_options.MessageOptions.MaxOutputBytes,
-            Math.Min(_options.MaxOutputBytes - fixedBytes, int.MaxValue));
-        EmailWriterOptions sourceOptions = _options.MessageOptions;
-        var boundedMessageOptions = new EmailWriterOptions(
-            sourceOptions.ConversionLossPolicy,
-            sourceOptions.UsePreservedRawSource,
-            sourceOptions.IncludeBccHeader,
-            sourceOptions.Base64LineLength,
-            sourceOptions.MaxNestedMessageDepth,
-            messageBudget);
-        var messageWriter = new EmailDocumentWriter(boundedMessageOptions);
-        byte[] message;
-        EmailWriteResult messageResult;
+    private EmlxArtifact Stage(EmailDocument document) {
+        byte[] metadata = PrepareMetadata(document, out List<EmailDiagnostic> diagnostics, out bool addSeparator);
+        if (diagnostics.Any(item => item.Severity == EmailDiagnosticSeverity.Error)) return Blocked(document, diagnostics);
+        FileStream message = OfficeTemporaryFile.Create("OfficeIMO.Email.Emlx.", ".eml", FileOptions.SequentialScan, out _);
         try {
-            message = messageWriter.ToBytes(document, EmailFileFormat.Eml, out messageResult);
-        } catch (EmailLimitExceededException exception) when (
-            exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            EmailWriteResult result = CreateMessageWriter(metadata.Length, addSeparator).Write(document, message);
+            return Complete(document, message, metadata, addSeparator, diagnostics, result);
+        } catch (EmailLimitExceededException exception) when (exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            message.Dispose();
             throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
                 exception.ActualValue, _options.MaxOutputBytes);
+        } catch { message.Dispose(); throw; }
+    }
+
+    private async Task<EmlxArtifact> StageAsync(EmailDocument document, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] metadata = PrepareMetadata(document, out List<EmailDiagnostic> diagnostics, out bool addSeparator);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (diagnostics.Any(item => item.Severity == EmailDiagnosticSeverity.Error)) return Blocked(document, diagnostics);
+        FileStream message = OfficeTemporaryFile.Create("OfficeIMO.Email.Emlx.", ".eml",
+            FileOptions.Asynchronous | FileOptions.SequentialScan, out _);
+        try {
+            EmailWriteResult result = await CreateMessageWriter(metadata.Length, addSeparator).WriteAsync(document, message,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return Complete(document, message, metadata, addSeparator, diagnostics, result);
+        } catch (EmailLimitExceededException exception) when (exception.LimitName == nameof(EmailWriterOptions.MaxOutputBytes)) {
+            message.Dispose();
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                exception.ActualValue, _options.MaxOutputBytes);
+        } catch { message.Dispose(); throw; }
+    }
+
+    private EmailDocumentWriter CreateMessageWriter(int metadataLength, bool addSeparator) {
+        long fixedBytes = metadataLength + (metadataLength > 0 && addSeparator ? 1L : 0L) + 2L;
+        if (fixedBytes >= _options.MaxOutputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes),
+                fixedBytes + 1L, _options.MaxOutputBytes);
         }
+        EmailWriterOptions source = _options.MessageOptions;
+        return new EmailDocumentWriter(new EmailWriterOptions(source.ConversionLossPolicy, source.UsePreservedRawSource,
+            source.IncludeBccHeader, source.Base64LineLength, source.MaxNestedMessageDepth,
+            Math.Min(source.MaxOutputBytes, _options.MaxOutputBytes - fixedBytes)), preservesAppleMailMetadata: true);
+    }
+
+    private EmlxArtifact Complete(EmailDocument document, FileStream message, byte[] metadata, bool addSeparator,
+        List<EmailDiagnostic> diagnostics, EmailWriteResult messageResult) {
+        diagnostics.AddRange(messageResult.Diagnostics);
         if (messageResult.HasErrors) {
-            result = new EmailWriteResult(0, document.Format, EmailFileFormat.Emlx,
-                messageResult.Diagnostics, EmailArtifactSourceSelection.None,
-                EmailConversionLossDisposition.Blocked,
-                messageResult.AttachmentContentLifetime);
-            return Array.Empty<byte>();
+            message.Dispose();
+            return Blocked(document, diagnostics);
         }
-        byte[] prefix = Encoding.ASCII.GetBytes(message.LongLength.ToString(CultureInfo.InvariantCulture) + "\n");
-        long total = checked(prefix.LongLength + message.LongLength + metadata.LongLength +
-            (metadata.Length > 0 ? 1L : 0L));
-        if (total > _options.MaxOutputBytes || total > int.MaxValue)
-            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), total,
-                Math.Min(_options.MaxOutputBytes, int.MaxValue));
-        var output = new byte[(int)total];
-        int offset = 0;
-        Buffer.BlockCopy(prefix, 0, output, offset, prefix.Length); offset += prefix.Length;
-        Buffer.BlockCopy(message, 0, output, offset, message.Length); offset += message.Length;
-        if (metadata.Length > 0) {
-            output[offset++] = (byte)'\n';
-            Buffer.BlockCopy(metadata, 0, output, offset, metadata.Length);
+        byte[] prefix = Encoding.ASCII.GetBytes(message.Length.ToString(CultureInfo.InvariantCulture) + "\n");
+        long total = checked(prefix.LongLength + message.Length + metadata.LongLength + (metadata.Length > 0 && addSeparator ? 1L : 0L));
+        if (total > _options.MaxOutputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), total, _options.MaxOutputBytes);
         }
-        result = new EmailWriteResult(total, document.Format, EmailFileFormat.Emlx,
-            messageResult.Diagnostics, EmailArtifactSourceSelection.Regenerated, messageResult.LossDisposition,
-            messageResult.AttachmentContentLifetime);
-        return output;
+        bool loss = messageResult.LossDisposition == EmailConversionLossDisposition.Accepted ||
+            diagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
+        return new EmlxArtifact(message, prefix, metadata, addSeparator, new EmailWriteResult(total, document.Format, EmailFileFormat.Emlx,
+            diagnostics.AsReadOnly(), EmailArtifactSourceSelection.Regenerated,
+            loss ? EmailConversionLossDisposition.Accepted : EmailConversionLossDisposition.None,
+            messageResult.AttachmentContentLifetime));
+    }
+
+    private static EmlxArtifact Blocked(EmailDocument document, List<EmailDiagnostic> diagnostics) =>
+        new EmlxArtifact(null, Array.Empty<byte>(), Array.Empty<byte>(), false,
+            new EmailWriteResult(0, document.Format, EmailFileFormat.Emlx, diagnostics.AsReadOnly(),
+                EmailArtifactSourceSelection.None, EmailConversionLossDisposition.Blocked, EmailAttachmentContentLifetime.NotAccessed));
+
+    private byte[] PrepareMetadata(EmailDocument document, out List<EmailDiagnostic> diagnostics, out bool addSeparator) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        diagnostics = new List<EmailDiagnostic>();
+        addSeparator = true;
+        bool hasMetadata = document.Properties.ContainsKey("Emlx:RawMetadata") || document.Properties.ContainsKey("Emlx:Metadata") ||
+            document.Properties.Keys.Any(key => key.StartsWith(MetadataPropertyPrefix, StringComparison.OrdinalIgnoreCase));
+        bool opaque = PropertyFlag(document, "Emlx:MetadataOpaque");
+        if (hasMetadata && (!_options.IncludeMetadata || opaque)) {
+            EmailConversionLossPolicy policy = _options.MessageOptions.ConversionLossPolicy;
+            diagnostics.Add(new EmailDiagnostic(opaque && _options.IncludeMetadata ? "EMAIL_EMLX_METADATA_OPAQUE" : "EMAIL_EMLX_METADATA_OMITTED",
+                opaque && _options.IncludeMetadata
+                    ? "The original opaque metadata trailer is retained without reconciling edited message fields or flags."
+                    : "The source Apple Mail metadata trailer is omitted by the writer policy.",
+                policy == EmailConversionLossPolicy.Block ? EmailDiagnosticSeverity.Error :
+                    policy == EmailConversionLossPolicy.Allow ? EmailDiagnosticSeverity.Information : EmailDiagnosticSeverity.Warning,
+                "Emlx:Metadata", opaque && _options.IncludeMetadata ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.Omission));
+            if (policy == EmailConversionLossPolicy.Block) return Array.Empty<byte>();
+        }
+        if (!_options.IncludeMetadata) return Array.Empty<byte>();
+        if (opaque && document.Properties.TryGetValue("Emlx:RawMetadata", out object? raw) && raw is byte[] bytes) {
+            if (bytes.LongLength > _options.MaxOutputBytes) {
+                throw new EmailLimitExceededException(nameof(EmailStoreEmlxWriterOptions.MaxOutputBytes), bytes.LongLength, _options.MaxOutputBytes);
+            }
+            // Raw metadata already includes every byte after the declared RFC message.
+            addSeparator = false;
+            return bytes;
+        }
+        return CreateMetadata(document, _options.MaxOutputBytes, _options.MaxMetadataDepth, _options.MaxMetadataProperties);
+    }
+
+    private sealed class EmlxArtifact : IDisposable {
+        private readonly FileStream? _message;
+        private readonly byte[] _prefix;
+        private readonly byte[] _metadata;
+        private readonly bool _addSeparator;
+        internal EmlxArtifact(FileStream? message, byte[] prefix, byte[] metadata, bool addSeparator, EmailWriteResult result) {
+            _message = message;
+            _prefix = prefix;
+            _metadata = metadata;
+            _addSeparator = addSeparator;
+            Result = result;
+        }
+        internal EmailWriteResult Result { get; }
+        internal void CopyTo(Stream output) {
+            output.Write(_prefix, 0, _prefix.Length);
+            _message!.Position = 0;
+            _message.CopyTo(output, 81920);
+            if (_metadata.Length == 0) return;
+            if (_addSeparator) output.WriteByte((byte)'\n');
+            output.Write(_metadata, 0, _metadata.Length);
+        }
+        internal async Task CopyToAsync(Stream output, CancellationToken cancellationToken) {
+            await output.WriteAsync(_prefix, 0, _prefix.Length, cancellationToken).ConfigureAwait(false);
+            _message!.Position = 0;
+            await _message.CopyToAsync(output, 81920, cancellationToken).ConfigureAwait(false);
+            if (_metadata.Length == 0) return;
+            if (_addSeparator) await output.WriteAsync(new byte[] { (byte)'\n' }, 0, 1, cancellationToken).ConfigureAwait(false);
+            await output.WriteAsync(_metadata, 0, _metadata.Length, cancellationToken).ConfigureAwait(false);
+        }
+        public void Dispose() => _message?.Dispose();
     }
 
     private static byte[] CreateMetadata(EmailDocument document, long maxOutputBytes,
@@ -186,18 +258,21 @@ public sealed class EmailStoreEmlxWriter {
     }
 
     private static IEnumerable<KeyValuePair<string, object?>> GetRetainedMetadata(EmailDocument document) {
-        var retained = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        var retained = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (document.Properties.TryGetValue("Emlx:Metadata", out object? catalog) &&
+            catalog is IReadOnlyDictionary<string, object?> exact) {
+            foreach (KeyValuePair<string, object?> pair in exact) {
+                if (!DerivedMetadataKeys.Contains(pair.Key)) retained.Add(pair.Key, pair.Value);
+            }
+            return retained.OrderBy(pair => pair.Key, StringComparer.Ordinal);
+        }
         foreach (KeyValuePair<string, object?> pair in document.Properties) {
             if (!pair.Key.StartsWith(MetadataPropertyPrefix, StringComparison.OrdinalIgnoreCase)) continue;
             string key = pair.Key.Substring(MetadataPropertyPrefix.Length);
             if (key.Length == 0)
                 throw new InvalidDataException("A retained EMLX metadata property has an empty plist key.");
             if (DerivedMetadataKeys.Contains(key)) continue;
-            if (retained.ContainsKey(key)) {
-                throw new InvalidDataException(
-                    "Retained EMLX metadata contains duplicate plist keys that differ only by case.");
-            }
-            retained.Add(key, pair.Value);
+            retained[key] = pair.Value;
         }
         return retained.OrderBy(pair => pair.Key, StringComparer.Ordinal);
     }
@@ -224,7 +299,7 @@ public sealed class EmailStoreEmlxWriter {
             writer.WriteElementString("data", Convert.ToBase64String(data));
         } else if (value is IReadOnlyDictionary<string, object?> dictionary) {
             writer.WriteStartElement("dict");
-            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var keys = new HashSet<string>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> pair in dictionary.OrderBy(
                 pair => pair.Key, StringComparer.Ordinal)) {
                 if (!keys.Add(pair.Key)) {
@@ -252,7 +327,12 @@ public sealed class EmailStoreEmlxWriter {
     }
 
     private static long CreateFlags(EmailDocument document) {
-        long flags = 0;
+        long original = 0;
+        if (document.Properties.TryGetValue("Emlx:Metadata", out object? catalog) &&
+            catalog is IReadOnlyDictionary<string, object?> exact) {
+            if (exact.TryGetValue("flags", out object? stored) && stored is long retainedFlags) original = retainedFlags;
+        } else if (document.Properties.TryGetValue("Emlx:Metadata:flags", out object? flat) && flat is long flatFlags) original = flatFlags;
+        long flags = original & ~((1L << 26) - 1);
         if (document.MessageMetadata.IsRead == true) flags |= 1L << 0;
         if (PropertyFlag(document, "Emlx:Flag:Deleted")) flags |= 1L << 1;
         if (PropertyFlag(document, "Emlx:Flag:Answered")) flags |= 1L << 2;

@@ -81,8 +81,9 @@ public static partial class OfficeTiffCodec {
                         encodedBytes, entries, littleEndian, width, height, options,
                         validationBudget!, ref validatedPixels)) return false;
 
-                bool hasValidOrientation =
-                    TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) &&
+                int orientation = 1;
+                bool hasValidOrientation = options.IgnoreTiffOrientation ||
+                    TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out orientation) &&
                     orientation >= 1 && orientation <= 8;
                 // Full inventory may not advertise malformed page orientation. Selected-page decoding
                 // still skips unsupported metadata on pages that the caller did not select.
@@ -146,8 +147,11 @@ public static partial class OfficeTiffCodec {
         if (!TryReadScalarOrDefault(encodedBytes, entries, 296, littleEndian, 2, out int unit) ||
             unit < 1 || unit > 3) return false;
         if (unit == 1 || !hasX || !hasY) return true;
-        if (!TryReadPositiveRational(encodedBytes, entries, 282, littleEndian, out double x) ||
-            !TryReadPositiveRational(encodedBytes, entries, 283, littleEndian, out double y)) return false;
+        if (!TryReadDensityRational(encodedBytes, entries, 282, littleEndian, out double x) ||
+            !TryReadDensityRational(encodedBytes, entries, 283, littleEndian, out double y)) return false;
+        // Optional zero density is unknown, not a malformed pixel payload. Leave
+        // both axes unspecified, matching the metadata reader's fallback policy.
+        if (x <= 0D || y <= 0D) return true;
         double scale = unit == 3 ? 2.54D : 1D;
         double physicalDpiX = x * scale;
         double physicalDpiY = y * scale;
@@ -158,7 +162,7 @@ public static partial class OfficeTiffCodec {
         return true;
     }
 
-    private static bool TryReadPositiveRational(
+    private static bool TryReadDensityRational(
         byte[] data,
         IReadOnlyDictionary<int, TiffEntry> entries,
         int tag,
@@ -172,9 +176,8 @@ public static partial class OfficeTiffCodec {
         if (!HasBytes(data, offset, 8)) return false;
         uint numerator = ReadUInt32(data, offset, littleEndian);
         uint denominator = ReadUInt32(data, offset + 4, littleEndian);
-        if (numerator == 0 || denominator == 0) return false;
-        value = numerator / (double)denominator;
-        return value > 0D;
+        if (numerator != 0 && denominator != 0) value = numerator / (double)denominator;
+        return true;
     }
 
     private static Dictionary<int, TiffEntry>? ReadEntries(
@@ -225,40 +228,40 @@ public static partial class OfficeTiffCodec {
         TiffValidationBudget validationBudget) {
         if (!TryReadScalarOrDefault(encodedBytes, entries, 259, littleEndian, 1, out int compression) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 262, littleEndian, 2, out int photometric) ||
-            !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 284, littleEndian, 1, out int planarConfiguration) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 317, littleEndian, 1, out int predictor) ||
             !TryGetBaseSampleCount(photometric, out int baseSamples) ||
             !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples) ||
             (planarConfiguration != 1 && planarConfiguration != 2) ||
-            (predictor != 1 && predictor != 2) ||
-            (samples != baseSamples && samples != baseSamples + 1) ||
-            orientation < 1 || orientation > 8 ||
+            (predictor < 1 || predictor > 3) ||
+            !TryGetAlphaSample(encodedBytes, entries, littleEndian, samples, baseSamples, out int alphaIndex, out _) ||
             (compression != (int)OfficeTiffCompression.None &&
              compression != (int)OfficeTiffCompression.Lzw &&
              compression != (int)OfficeTiffCompression.PackBits &&
              compression != (int)OfficeTiffCompression.Deflate &&
-             compression != 32946)) return false;
+            compression != 32946 && compression != 6 && compression != 7 && !IsTiffFaxCompression(compression))) return false;
 
-        if (!TryReadValues(encodedBytes, entries, 258, littleEndian, samples, out int[] bitsPerSample) ||
-            Array.Exists(bitsPerSample, value => value != 8)) return false;
+        if (!options.IgnoreTiffOrientation &&
+            (!TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out int orientation) ||
+             orientation < 1 || orientation > 8)) return false;
+
+        if (!TryGetSampleByteCount(encodedBytes, entries, littleEndian, samples, photometric, compression, out int sampleBytes, out bool floating, out int packedBits, out int sampleBits) ||
+                    (IsTiffFaxCompression(compression) && (packedBits != 1 || photometric > 1)) ||
+                    (photometric == 6 && compression != 6 && compression != 7) ||
+                    ((compression == 6 || compression == 7) && ((sampleBytes != 1 && sampleBytes != 2) || floating || packedBits != 0 || predictor != 1 ||
+                        photometric == 3)) ||
+                    (packedBits != 0 || sampleBits == 12 ? predictor != 1 : !IsSupportedSamplePredictor(predictor, floating, compression))) return false;
 
         if (photometric == 5 &&
             (!TryReadScalarOrDefault(encodedBytes, entries, 332, littleEndian, 1, out int inkSet) || inkSet != 1)) {
             return false;
         }
-        if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 768, out _)) {
+        if (photometric == 3 && !TryReadValues(encodedBytes, entries, 320, littleEndian, 3 * (1 << (packedBits == 0 ? 8 : packedBits)), out _)) {
             return false;
         }
-        if (samples == baseSamples + 1 &&
-            (!TryReadValues(encodedBytes, entries, 338, littleEndian, 1, out int[] extraSamples) ||
-             (extraSamples[0] != 1 && extraSamples[0] != 2))) {
-            return false;
-        }
-
-        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples,
-            compression, planarConfiguration, predictor, options, validationBudget,
-            retainPixels: false, out _);
+        return TryDecodePixelSegments(encodedBytes, entries, littleEndian, width, height, samples, sampleBytes, sampleBits, packedBits, photometric,
+            compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, options, validationBudget,
+            retainPixels: false, out _, out _);
     }
 
     private sealed class TiffValidationBudget {

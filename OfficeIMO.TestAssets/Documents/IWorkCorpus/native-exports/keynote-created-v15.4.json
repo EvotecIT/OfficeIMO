@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "license": "MIT, OfficeIMO repository",
+  "generation": {
+    "engine": "OfficeIMO.IWork C# owned native codec",
+    "base_commit": "1a721c9897f4aaab582299372929a6425e3a646c",
+    "source_files": [
+      {
+        "path": "OfficeIMO.IWork/Creation/IWorkKeynoteDocument.cs",
+        "sha256": "3debd5486e9f5d1084cfb71779cb8becad889fe82dac6c404db68ce87710e1dd"
+      },
+      {
+        "path": "OfficeIMO.IWork/Creation/IWorkKeynoteSlideBuilder.cs",
+        "sha256": "9ddeeedf1c57f2f8ef10faad7c6d97808bccdf44142fd3edd590d7a90708e282"
+      },
+      {
+        "path": "OfficeIMO.IWork/Creation/IWorkKeynoteTextBox.cs",
+        "sha256": "eef5dbba69ba6d54b0a275faed1fe79b345655b40acc0ddd753f06cf106cdc98"
+      },
+      {
+        "path": "OfficeIMO.IWork/IWorkKeynoteWriteOptions.cs",
+        "sha256": "921b2def8ebf207985f96f1b0aa1f7bbaf891764b52b594dcc2637bdfc1e3abf"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/Writing/IWorkKeynoteArchiveBuilder.Styles.cs",
+        "sha256": "1504c613cd192cb0680fa2f033650f798f0cb1ef4587329276451f8c37837fb6"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/Writing/IWorkKeynoteArchiveBuilder.cs",
+        "sha256": "5ca3de5f5c38356f208cb92a38db50b3c227a1b8ef93dad566f3cbd428490a8b"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/Writing/IWorkKeynoteIdentity.cs",
+        "sha256": "71e5b8d70e3e3067a8a57f1888e92ef73818c7a0b934721ae490957fe848dc5f"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/Writing/IWorkKeynotePackageWriter.cs",
+        "sha256": "e2bf9a2ce2f0c04871bf18e72aa66aefb27c219415e6fb91c5e765cb5e88c6ad"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/Writing/IWorkProtoWriter.cs",
+        "sha256": "b479691716cb1a0c1f7d51c2c76448dbebd20eb9e02fcaadd6aba1fc6e009802"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/Writing/IWorkSnappy.Write.cs",
+        "sha256": "0e6ab9d6b5c04fd411401d416581d931d66406ba06916e70d73ae0d5fbe166b4"
+      }
+    ],
+    "seed_package": null,
+    "external_writer": null,
+    "framework": "Microsoft.NETCore.App 8",
+    "template": null
+  },
+  "native_application": {
+    "name": "Apple Keynote",
+    "version": "15.4",
+    "macOS": "27.0.1 (26A434)"
+  },
+  "files": [
+    {
+      "path": "keynote-created-v15.4.key",
+      "sha256": "8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1",
+      "bytes": 7423,
+      "role": "OfficeIMO C# template-free native generation"
+    },
+    {
+      "path": "keynote-created-v15.4.pdf",
+      "sha256": "3137f944966ab7ef741a295d860cd48f554e7cc287fd5f2e9f80577cca4d9754",
+      "bytes": 83514,
+      "role": "Apple PDF export of the generated package before text editing"
+    },
+    {
+      "path": "keynote-created-edited-v15.4.key",
+      "sha256": "aa71d1dedd7069c8e164fc0790024c50647a516acc2adf0f30898c63f4dcbbdf",
+      "bytes": 83427,
+      "role": "Apple saved after changing café to Edited in Keynote; closed and reopened"
+    }
+  ],
+  "independent_decode": {
+    "schema_source": "https://github.com/obriensp/iwork-converter",
+    "schema_commit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schema_license": "MIT, Steve Dunham",
+    "descriptor_sha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216",
+    "numbers_parser_version": "4.19.0",
+    "records": 37,
+    "required_fields_complete": true,
+    "declared_references_match_decoded_graph": true,
+    "plists_valid": true,
+    "modern_and_legacy_text_colors_match": true
+  },
+  "native_acceptance": {
+    "open_without_repair": true,
+    "pdf_export_pages": 3,
+    "canvas_points": [
+      960,
+      540
+    ],
+    "edit": "café → Edited in Keynote",
+    "native_save_close_reopen_preserves_edit": true,
+    "native_edit_retains_polish_emoji_geometry_and_text_color": true,
+    "officeimo_reads_native_edit_completely": true,
+    "strict_pptx_save_reopen_preserves_edit": true
+  },
+  "pdf_text": [
+    "OfficeIMO native Keynote\nCreated without a template",
+    "Times New Roman — 24 pt",
+    "Zażółć gęślą jaźń\nA😀B — café",
+    ""
+  ],
+  "pdf_fonts": [
+    "ArialMT",
+    "TimesNewRomanPSMT",
+    "AppleColorEmoji"
+  ],
+  "font_inputs": [
+    {
+      "name": "Arial.ttf",
+      "path": "/System/Library/Fonts/Supplemental/Arial.ttf",
+      "sha256": "525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9"
+    },
+    {
+      "name": "Times New Roman.ttf",
+      "path": "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+      "sha256": "f3b4ffff71c2a0c7227d37497683b2498fb2d0a4e8beae26f022e3ccfcaabfa3"
+    },
+    {
+      "name": "Apple Color Emoji.ttc",
+      "path": "/System/Library/Fonts/Apple Color Emoji.ttc",
+      "sha256": "12bc8221a908c5bcf05f0fce940d3c3f6e9d09d8d806ffe31a969b4ac9be8f9e"
+    }
+  ],
+  "render_assessment": [
+    {
+      "page": 1,
+      "backgroundRgb": [
+        230,
+        242,
+        255
+      ],
+      "nativeText003366Pixels": 326,
+      "size": [
+        960,
+        540
+      ],
+      "pngSha256": "93ede90c610ee9f5b65cd3ae663c5ed923e4a006eb1a95ec1716d7d580fde816",
+      "decodedRgbSha256": "e75f030ce785bce3274688c4e892bf9230c9962f74db2250b445bbcefe886d6f"
+    },
+    {
+      "page": 2,
+      "backgroundRgb": [
+        255,
+        230,
+        217
+      ],
+      "nativeText003366Pixels": 2932,
+      "size": [
+        960,
+        540
+      ],
+      "pngSha256": "4f2f26c832b44a0f18f3e4906e35dd942357193d2f4f442eac2dbaef28c78a3c",
+      "decodedRgbSha256": "2c3fd85aa8ae2e0945b1519a8b8399851498b493b003bed0963e445e81be1a7d"
+    },
+    {
+      "page": 3,
+      "backgroundRgb": [
+        255,
+        255,
+        255
+      ],
+      "nativeText003366Pixels": 0,
+      "size": [
+        960,
+        540
+      ],
+      "pngSha256": "93009dec6257eec93102461dce1107b7359ddac16ef950c71c824d105a8dd11f",
+      "decodedRgbSha256": "0b1143d74772541f8227f3c7a0213df70398adb1f8560b3e1bbe08841c0be6d2"
+    }
+  ],
+  "determinism": {
+    "framework8_timezones": [
+      "Europe/Warsaw",
+      "UTC",
+      "America/Los_Angeles"
+    ],
+    "sha256": "8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1",
+    "same_bytes": true,
+    "framework10": {
+      "same_bytes_as_framework8": true,
+      "sha256": "8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1"
+    }
+  },
+  "limits": [
+    "Fixture-specific Keynote 15.4 acceptance only",
+    "No qualification of other native versions, all fonts, scripts, shaping or wrapping",
+    "Creation does not edit or preserve loaded packages",
+    "Native writer AOT and portable resource ceilings remain unqualified"
+  ],
+  "reproduce": "Create the model in IWorkKeynoteWritingTests.Example through the public API; export PDF in Keynote with best quality and all optional content/password off; render with pdftoppm -r 72 -png."
+}

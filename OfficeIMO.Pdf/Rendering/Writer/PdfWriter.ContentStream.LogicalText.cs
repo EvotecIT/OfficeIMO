@@ -2,11 +2,11 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class ContentStreamBuilder {
     private double _textA = 1, _textB, _textC, _textD = 1, _textE, _textF, _lineE, _lineF;
-    private double _textScale = 1, _textLeading, _textWordSpacing;
+    private double _textScale = 1, _textLeading, _textWordSpacing, _textCharacterSpacing;
     private const double SyntheticObliqueShear = 1D / 3D;
     private bool _syntheticOblique, _hasTextMatrix;
     private bool _isolatedText;
-    private readonly Stack<(double Scale, double Leading, double WordSpacing, bool SyntheticOblique)> _textStates = new();
+    private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique)> _textStates = new();
 
     private void ResetTrackedTextMatrix() {
         _textA = _textD = 1; _textB = _textC = _textE = _textF = _lineE = _lineF = 0;
@@ -27,25 +27,61 @@ internal sealed partial class ContentStreamBuilder {
 
     // Isolate source clusters so conservative ActualText redaction cannot discard
     // independent neighboring source characters.
-    private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double textRise) {
+    private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, PdfTextShowCommand command, double fontSize, double textRise) {
         double lineE = _lineE, lineF = _lineF;
+        double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
+            * 1000D / command.UnitsPerEm * (command.NegativeTracking ? -1D : 1D);
         for (int index = 0; index < glyphs.Count;) {
+            int firstGlyph = index;
+            PdfGlyphInfo single = glyphs[index];
+            int singleLogicalEnd = Math.Max(single.LogicalClusterStart + 1,
+                single.TextIndex + single.UnicodeText.Length);
+            if (!single.HasPositioning &&
+                (index + 1 == glyphs.Count || glyphs[index + 1].LogicalClusterStart >= singleLogicalEnd)) {
+                // Keep the same isolated text object and ActualText boundary, but
+                // avoid allocating a list, builders and formatted strings per scalar.
+                _sb.Append("ET\nBT\n");
+                TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
+                bool singleMarked = single.UnicodeText.Length != 0;
+                if (singleMarked) {
+                    _sb.Append("/Span << /ActualText ");
+                    PdfSyntaxEscaper.AppendTextStringCancellable(_sb, single.UnicodeText, default);
+                    _sb.Append(" >> BDC\n");
+                }
+                _sb.Append('<');
+                PdfGlyphRun.AppendGlyphHex(_sb, single.GlyphId);
+                _sb.Append("> Tj\n");
+                if (singleMarked) _sb.Append("EMC\n");
+                double trackingAdvance1000 = command.TrackingBoundaries != null && command.TrackingBoundaries[index]
+                    ? tracking1000 : 0D;
+                AdvanceTrackedText((single.AdvanceWidth1000 + trackingAdvance1000) * fontSize / 1000D + _textCharacterSpacing);
+                index++;
+                continue;
+            }
             var cluster = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
-            int clusterStart = glyphs[index].LogicalClusterStart;
+            int logicalEnd = glyphs[index].LogicalClusterStart;
             do {
                 PdfGlyphInfo glyph = glyphs[index++];
                 cluster.Add(glyph);
                 logical.Append(glyph.UnicodeText);
-            } while (index < glyphs.Count && glyphs[index].LogicalClusterStart == clusterStart);
+                // GSUB multiple substitution and a later ligature can give
+                // neighboring glyphs different starts but overlapping source
+                // ownership. Keep that whole interval in one redaction scope.
+                logicalEnd = Math.Max(logicalEnd, Math.Max(glyph.LogicalClusterStart + 1,
+                    glyph.TextIndex + glyph.UnicodeText.Length));
+            } while (index < glyphs.Count && glyphs[index].LogicalClusterStart < logicalEnd);
             _sb.Append("ET\nBT\n");
             TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;
             if (marked) _sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(logical.ToString())).Append(" >> BDC\n");
-            if (cluster.Any(glyph => glyph.HasPositioning)) AppendPositionedGlyphs(cluster, fontSize, textRise);
+            bool[]? boundaries = command.TrackingBoundaries?.Skip(firstGlyph).Take(cluster.Count).ToArray();
+            if (command.Tracking != null || cluster.Any(glyph => glyph.HasPositioning))
+                AppendPositionedGlyphs(cluster, fontSize, textRise, tracking1000, boundaries);
             else ShowHexText(string.Concat(cluster.Select(glyph => glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture))));
             if (marked) _sb.Append("EMC\n");
-            AdvanceTrackedText(cluster.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D);
+            AdvanceTrackedText((cluster.Sum(glyph => glyph.AdvanceWidth1000)
+                + tracking1000 * (boundaries?.Count(boundary => boundary) ?? 0)) * fontSize / 1000D + cluster.Count * _textCharacterSpacing);
         }
         _sb.Append("ET\nBT\n");
         TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);

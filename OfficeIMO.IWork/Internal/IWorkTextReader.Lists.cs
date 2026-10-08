@@ -1,31 +1,38 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTextReader {
-    private static (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind) ResolveList(IWorkObjectIndex index,
+    private static (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout) ResolveList(IWorkObjectIndex index,
         ulong? identifier, double? paragraphLeftIndentPoints, int? explicitLevel,
         IWorkProjectionBudget projectionBudget,
-        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)>> cache,
+        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout)>> cache,
+        Dictionary<ulong, Cached<ListStyleData>> decodedStyles,
         bool tolerateStyleDepth,
         IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
-        if (!identifier.HasValue) return (-1, null, null, IWorkListMarkerKind.None);
+        if (!identifier.HasValue) return (-1, null, null, IWorkListMarkerKind.None, null);
         var cacheKey = (identifier.Value, paragraphLeftIndentPoints, explicitLevel);
-        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)> cached)) {
+        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout)> cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
-        bool resolvedCompletely = true;
-        var data = new ListStyleData();
-        var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
-            projectionBudget.MaximumTextStyleInheritanceDepth,
-            type => type == ListStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
-        for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
-            IWorkWireMessage message = chain[styleIndex].Message;
-            ApplyStyleName(message, value => data.Name = value, projectionBudget, chain[styleIndex].Record, references, ref resolvedCompletely);
-            OverlayList(message, data, projectionBudget,
-                new StylePropertyEvidence(chain[styleIndex].Record, "", references.Declarations),
-                ref resolvedCompletely);
+        if (!decodedStyles.TryGetValue(identifier.Value, out Cached<ListStyleData> decoded)) {
+            bool decodedCompletely = true;
+            var style = new ListStyleData();
+            var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
+                projectionBudget.MaximumTextStyleInheritanceDepth,
+                type => type == ListStyleArchive, tolerateStyleDepth, references, ref decodedCompletely);
+            for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
+                IWorkWireMessage message = chain[styleIndex].Message;
+                ApplyStyleName(message, value => style.Name = value, projectionBudget, chain[styleIndex].Record, references, ref decodedCompletely);
+                OverlayList(message, style, projectionBudget,
+                    new StylePropertyEvidence(chain[styleIndex].Record, "", references.Declarations),
+                    ref decodedCompletely);
+            }
+            decoded = new Cached<ListStyleData>(style, decodedCompletely);
+            decodedStyles.Add(identifier.Value, decoded);
         }
+        bool resolvedCompletely = decoded.IsComplete;
+        ListStyleData data = decoded.Value;
         int level = explicitLevel ?? ResolveListLevel(data, paragraphLeftIndentPoints, ref resolvedCompletely);
         if (level >= data.LabelTypes.Count) resolvedCompletely = false;
         ulong labelType = level >= 0 && level < data.LabelTypes.Count
@@ -48,11 +55,11 @@ internal static partial class IWorkTextReader {
             resolvedCompletely = false;
         }
         if (labelType != 0 && selectedLabel == null) resolvedCompletely = false;
-        (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind) result = labelType == 0
+        (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout) result = labelType == 0
             || string.Equals(data.Name, "None", StringComparison.OrdinalIgnoreCase)
-            ? (-1, null, null, IWorkListMarkerKind.None)
-            : (level, selectedLabel, data.FontName, (IWorkListMarkerKind)labelType);
-        cache.Add(cacheKey, new Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)>(result, resolvedCompletely));
+            ? (-1, null, null, IWorkListMarkerKind.None, null)
+            : (level, selectedLabel, data.FontName, (IWorkListMarkerKind)labelType, ResolveListLayout(data, level, ref resolvedCompletely));
+        cache.Add(cacheKey, new Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout)>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
     }
@@ -121,6 +128,7 @@ internal static partial class IWorkTextReader {
         if (message.HasUnexpectedWireKind(13, IWorkWireKind.Fixed32) || indents.Any(indent => !IsFinite(indent))) {
             evidence.Record(message, 13); complete = false;
         } else if (indents.Count > 0) data.LeftIndents = indents;
+        OverlayListLayout(message, data, projectionBudget, evidence, ref complete);
     }
 
     private static int ResolveListLevel(ListStyleData data, double? paragraphLeftIndentPoints,
@@ -166,6 +174,8 @@ internal static partial class IWorkTextReader {
         internal IReadOnlyList<ulong> NumberTypes = Array.Empty<ulong>();
         internal IReadOnlyList<string> Labels = Array.Empty<string>();
         internal IReadOnlyList<float> LeftIndents = Array.Empty<float>();
+        internal IReadOnlyList<float> TextIndents = Array.Empty<float>();
+        internal IReadOnlyList<float> MarkerScales = Array.Empty<float>();
     }
 
 }

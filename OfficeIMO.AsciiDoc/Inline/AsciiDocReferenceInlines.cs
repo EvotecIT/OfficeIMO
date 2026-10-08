@@ -52,10 +52,14 @@ public sealed class AsciiDocAnchorInline : AsciiDocInline {
     private string _id;
     private string? _referenceText;
 
-    internal AsciiDocAnchorInline(AsciiDocSyntaxNode syntax, string id, string? referenceText) : base(syntax) {
+    internal AsciiDocAnchorInline(AsciiDocSyntaxNode syntax, string id, string? referenceText, bool isBibliography = false) : base(syntax) {
         _id = id;
         _referenceText = referenceText;
+        IsBibliography = isBibliography;
     }
+
+    /// <summary>Whether this is a bibliography entry anchor written with triple square brackets.</summary>
+    public bool IsBibliography { get; }
 
     /// <summary>Anchor ID.</summary>
     public string Id {
@@ -70,5 +74,5 @@ public sealed class AsciiDocAnchorInline : AsciiDocInline {
     }
 
     internal override string WriteCore(AsciiDocWriterContext context) =>
-        "[[" + Id + (ReferenceText == null ? string.Empty : "," + ReferenceText) + "]]";
+        (IsBibliography ? "[[[" : "[[") + Id + (ReferenceText == null ? string.Empty : "," + ReferenceText) + (IsBibliography ? "]]]" : "]]");
 }

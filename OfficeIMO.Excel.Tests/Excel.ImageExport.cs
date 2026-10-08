@@ -2614,7 +2614,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportEmbedsJpegInSvgAndUsesVisibleRasterFallback() {
+        public void ExcelRange_ImageExportEmbedsJpegInSvgAndReportsMalformedRasterOmission() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Jpeg");
@@ -2631,7 +2631,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeImageFormat.Jpeg, image.DetectedFormat);
             Assert.Contains("data:image/jpeg;base64,", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("Jpeg!PhotoJpeg", diagnostic.Source);
         }

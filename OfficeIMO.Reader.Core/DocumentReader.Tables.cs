@@ -120,10 +120,11 @@ internal static partial class DocumentReaderEngine {
             }
 
             exports ??= new List<ReaderTableExportBundle>();
-            exports.Add(BuildTableExport(table, index, indentedJson));
+            exports.Add(BuildTableExport(table, index, indentedJson, cancellationToken));
             index++;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return exports == null || exports.Count == 0 ? Array.Empty<ReaderTableExportBundle>() : exports.ToArray();
     }
 
@@ -178,15 +179,15 @@ internal static partial class DocumentReaderEngine {
         };
     }
 
-    private static ReaderTableExportBundle BuildTableExport(ReaderTable table, int index, bool indentedJson) {
+    private static ReaderTableExportBundle BuildTableExport(ReaderTable table, int index, bool indentedJson, CancellationToken cancellationToken) {
         string id = BuildTableExportId(table, index);
         return new ReaderTableExportBundle {
             Id = id,
             FileNamePrefix = OfficeDocumentAssetNaming.BuildFileName(id, null),
             Table = table,
-            Csv = table.ToCsv(),
-            Markdown = table.ToMarkdownTable(),
-            Json = table.ToJson(indentedJson)
+            Csv = table.ToCsv(cancellationToken),
+            Markdown = table.ToMarkdownTable(cancellationToken),
+            Json = table.ToJson(indentedJson, cancellationToken)
         };
     }
 

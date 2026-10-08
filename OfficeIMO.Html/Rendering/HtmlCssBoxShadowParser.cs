@@ -12,7 +12,8 @@ internal static class HtmlCssBoxShadowParser {
         double containerWidth,
         double containerHeight,
         OfficeColor currentColor,
-        out IReadOnlyList<HtmlCssBoxShadow> shadows) {
+        out IReadOnlyList<HtmlCssBoxShadow> shadows,
+        double characterAdvance = double.NaN, bool uprightVerticalText = false) {
         shadows = Array.Empty<HtmlCssBoxShadow>();
         string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value.Trim().ToLowerInvariant();
         if (normalized == "none") return true;
@@ -20,7 +21,7 @@ internal static class HtmlCssBoxShadowParser {
         if (layers.Count == 0) return false;
         var parsed = new List<HtmlCssBoxShadow>(layers.Count);
         for (int index = 0; index < layers.Count; index++) {
-            if (!TryParseLayer(layers[index], fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, currentColor, out HtmlCssBoxShadow? shadow)) return false;
+            if (!TryParseLayer(layers[index], fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, currentColor, out HtmlCssBoxShadow? shadow, characterAdvance, uprightVerticalText)) return false;
             parsed.Add(shadow!);
         }
         shadows = parsed;
@@ -36,7 +37,8 @@ internal static class HtmlCssBoxShadowParser {
         double containerWidth,
         double containerHeight,
         OfficeColor currentColor,
-        out HtmlCssBoxShadow? shadow) {
+        out HtmlCssBoxShadow? shadow,
+        double characterAdvance, bool uprightVerticalText) {
         shadow = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(layer);
         if (tokens.Count < 2) return false;
@@ -64,7 +66,7 @@ internal static class HtmlCssBoxShadowParser {
                 continue;
             }
             if (token.EndsWith("%", StringComparison.Ordinal)
-                || !HtmlRenderCssValues.TryLength(token, 0D, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double length)) return false;
+                || !HtmlRenderCssValues.TryLength(token, 0D, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double length, characterAdvance, uprightVerticalText)) return false;
             lengths.Add(length);
         }
 

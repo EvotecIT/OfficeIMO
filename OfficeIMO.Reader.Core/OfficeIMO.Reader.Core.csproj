@@ -28,6 +28,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v10.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v10.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v10.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v10.schema.json</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundDocumentDetector.cs" Link="Internal\Compound\OfficeCompoundDocumentDetector.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFile.cs" Link="Internal\Compound\OfficeCompoundFile.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileEntry.cs" Link="Internal\Compound\OfficeCompoundFileEntry.cs" />
@@ -84,6 +93,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Ocr" />
+    <InternalsVisibleTo Include="OfficeIMO.AI" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Email" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
@@ -102,6 +113,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Subtitles" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Visio" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Xps" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Web" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />

@@ -50,8 +50,12 @@ public static partial class HtmlResourcePipeline {
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll(ResourceSelector)) {
-            AddElementResources(manifest, element, baseUri, options, 0);
+        var preferredSets = new Dictionary<IDocument, string?>();
+        // XML may bind XLink to any prefix; qualified-name selectors miss such aliases.
+        IEnumerable<IElement> candidates = document.QuerySelectorAll(ResourceSelector).Concat(document.All.Where(element =>
+            element.Attributes.Any(attribute => attribute.LocalName == "href" && attribute.NamespaceUri == "http://www.w3.org/1999/xlink"))).Distinct();
+        foreach (IElement element in candidates) {
+            AddElementResources(manifest, element, baseUri, options, 0, preferredSets);
         }
 
         AddCssResources(manifest, document, baseUri, options);

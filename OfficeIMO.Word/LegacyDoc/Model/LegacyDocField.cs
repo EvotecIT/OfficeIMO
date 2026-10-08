@@ -197,6 +197,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsNumberOfPagesInstruction(instruction);
         }
 
+        /// <summary>Reads an editable section count, retaining switches even when the cached result is absent.</summary>
+        internal static bool TryReadSectionPages(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            return TryReadField(characters, startIndex, out instruction,
+                out resultStartIndex, out resultEndIndex, out fieldEndIndex, allowEmptyResult: true)
+                && IsInstruction(instruction.Trim(), "SECTIONPAGES");
+        }
+
         internal static bool TryReadDateTimeField(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
@@ -364,14 +377,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            int anchorSwitch = IndexOfHyperlinkAnchorSwitch(trimmed, position);
+            string? tooltip = null;
+            int tooltipSwitch = IndexOfHyperlinkSwitch(trimmed, position, 'O');
+            if (tooltipSwitch >= 0) {
+                if (!TryReadQuotedValue(trimmed, tooltipSwitch + 2, out string tooltipValue, allowEmpty: true, requireAdjacentQuote: true)) return false;
+                tooltip = tooltipValue;
+            }
+            string? targetFrame = null;
+            int targetSwitch = IndexOfHyperlinkSwitch(trimmed, position, 'T');
+            if (targetSwitch >= 0) {
+                if (!TryReadQuotedValue(trimmed, targetSwitch + 2, out string targetValue, allowEmpty: true, requireAdjacentQuote: true)) return false;
+                targetFrame = targetValue;
+            }
+            int anchorSwitch = IndexOfHyperlinkSwitch(trimmed, position, 'L');
             if (anchorSwitch >= 0) {
                 int anchorPosition = anchorSwitch + 2;
                 if (!TryReadQuotedValue(trimmed, anchorPosition, out string? anchor)) {
                     return false;
                 }
 
-                target = LegacyDocHyperlinkTarget.ForAnchor(anchor);
+                target = LegacyDocHyperlinkTarget.ForAnchor(anchor, tooltip, targetFrame);
                 return true;
             }
 
@@ -383,7 +408,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            target = LegacyDocHyperlinkTarget.ForUri(parsed.ToString());
+            target = LegacyDocHyperlinkTarget.ForUri(parsed.ToString(), tooltip, targetFrame);
             return true;
         }
 
@@ -393,7 +418,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
-            out int fieldEndIndex) {
+            out int fieldEndIndex,
+            bool allowEmptyResult = false) {
             instruction = string.Empty;
             resultStartIndex = -1;
             resultEndIndex = -1;
@@ -406,10 +432,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             int separatorIndex = -1;
+            int emptyFieldEndIndex = -1;
             for (int index = startIndex + 1; index < characters.Count; index++) {
                 char character = characters[index].Character;
                 if (character == Separator) {
                     separatorIndex = index;
+                    break;
+                }
+
+                if (character == End && allowEmptyResult) {
+                    emptyFieldEndIndex = index;
                     break;
                 }
 
@@ -419,7 +451,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (separatorIndex < 0) {
-                return false;
+                if (emptyFieldEndIndex < 0) return false;
+                instruction = new string(characters.Skip(startIndex + 1)
+                    .Take(emptyFieldEndIndex - startIndex - 1).Select(character => character.Character).ToArray());
+                resultStartIndex = resultEndIndex = fieldEndIndex = emptyFieldEndIndex;
+                return true;
             }
 
             int endIndex = -1;
@@ -435,7 +471,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
             }
 
-            if (endIndex <= separatorIndex + 1) {
+            if (endIndex < separatorIndex + 1 || (!allowEmptyResult && endIndex == separatorIndex + 1)) {
                 return false;
             }
 
@@ -525,7 +561,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return true;
         }
 
-        private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {
+        private static int IndexOfHyperlinkSwitch(string instruction, int startIndex, char switchName) {
             bool inQuotedText = false;
             bool escaped = false;
             for (int index = startIndex; index < instruction.Length - 1; index++) {
@@ -549,7 +585,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (instruction[index] != '\\' || char.ToUpperInvariant(instruction[index + 1]) != 'L') {
+                if (instruction[index] != '\\' || char.ToUpperInvariant(instruction[index + 1]) != switchName) {
                     continue;
                 }
 
@@ -563,9 +599,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return -1;
         }
 
-        private static bool TryReadQuotedValue(string text, int startIndex, out string value) {
+        private static bool TryReadQuotedValue(string text, int startIndex, out string value, bool allowEmpty = false, bool requireAdjacentQuote = false) {
             value = string.Empty;
-            int quoteStart = text.IndexOf('"', startIndex);
+            int quoteStart = startIndex;
+            if (requireAdjacentQuote) {
+                while (quoteStart < text.Length && char.IsWhiteSpace(text[quoteStart])) quoteStart++;
+                if (quoteStart >= text.Length || text[quoteStart] != '"') return false;
+            } else {
+                quoteStart = text.IndexOf('"', startIndex);
+            }
             if (quoteStart < 0) {
                 return false;
             }
@@ -587,7 +629,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 if (character == '"') {
                     value = builder.ToString();
-                    return !string.IsNullOrWhiteSpace(value);
+                    return allowEmpty || !string.IsNullOrWhiteSpace(value);
                 }
 
                 builder.Append(character);

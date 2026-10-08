@@ -68,8 +68,8 @@ internal sealed class HtmlCssGradientStops {
 
     internal static bool IsConicColorStop(string value) => TryParseConicColorStop(value, out _, out _, out _);
 
-    internal bool TryResolve(double referenceLength, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out IReadOnlyList<OfficeGradientStop>? stops) {
-        return TryResolve(referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, repeating: false, out stops, out _);
+    internal bool TryResolve(double referenceLength, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out IReadOnlyList<OfficeGradientStop>? stops, double characterAdvance = double.NaN) {
+        return TryResolve(referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, repeating: false, out stops, out _, characterAdvance);
     }
 
     internal bool TryResolve(
@@ -80,8 +80,8 @@ internal sealed class HtmlCssGradientStops {
         double viewportHeight,
         bool repeating,
         out IReadOnlyList<OfficeGradientStop>? stops,
-        out bool stopLimitExceeded) {
-        return TryResolve(referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, repeating, out stops, out stopLimitExceeded);
+        out bool stopLimitExceeded, double characterAdvance = double.NaN) {
+        return TryResolve(referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, repeating, out stops, out stopLimitExceeded, characterAdvance);
     }
 
     internal bool TryResolve(
@@ -94,7 +94,7 @@ internal sealed class HtmlCssGradientStops {
         double containerHeight,
         bool repeating,
         out IReadOnlyList<OfficeGradientStop>? stops,
-        out bool stopLimitExceeded) {
+        out bool stopLimitExceeded, double characterAdvance = double.NaN) {
         stops = null;
         stopLimitExceeded = false;
         if (referenceLength <= 0D || double.IsNaN(referenceLength) || double.IsInfinity(referenceLength)) return false;
@@ -104,7 +104,7 @@ internal sealed class HtmlCssGradientStops {
             HtmlCssGradientStop stop = _stops[index];
             colors[index] = stop.Color;
             if (stop.Position == null) continue;
-            if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double pixels)) return false;
+            if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double pixels, characterAdvance)) return false;
             double offset = pixels / referenceLength;
             if (double.IsNaN(offset) || double.IsInfinity(offset)) return false;
             offsets[index] = offset;

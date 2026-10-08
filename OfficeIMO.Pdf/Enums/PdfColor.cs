@@ -42,13 +42,13 @@ public readonly struct PdfColor {
 
     /// <summary>
     /// Creates a PDF RGB color from a shared OfficeIMO color. Alpha is ignored because
-    /// the current PDF writer does not yet support transparency.
+    /// opacity is handled separately from RGB color components.
     /// </summary>
     public static PdfColor FromOfficeColor(OfficeColor color) => FromRgb(color.R, color.G, color.B);
 
     /// <summary>
     /// Creates a PDF RGB color from a shared OfficeIMO color, returning null for fully transparent colors.
-    /// Partially transparent colors are converted to their RGB components until PDF transparency is supported.
+    /// Partially transparent colors retain their RGB components; apply opacity separately.
     /// </summary>
     public static PdfColor? FromOfficeColorOrNull(OfficeColor color) => color.A == 0 ? (PdfColor?)null : FromOfficeColor(color);
 

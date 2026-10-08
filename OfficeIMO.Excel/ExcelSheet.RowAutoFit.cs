@@ -41,7 +41,10 @@ namespace OfficeIMO.Excel {
 
             Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
             if (row == null) return 0;
+            return CalculateRowHeight(row);
+        }
 
+        private double CalculateRowHeight(Row row, AutoFitTextContext? textContext = null) {
             double defaultHeight = GetDefaultRowHeightPoints();
             double maxHeight = defaultHeight; // Start with default as minimum
             bool hasContent = false;
@@ -68,7 +71,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var cell in row.Elements<Cell>()) {
-                string text = GetCellAutoFitText(cell);
+                string text = GetCellAutoFitText(cell, textContext);
                 if (string.IsNullOrWhiteSpace(text)) continue;
                 hasContent = true;
 
@@ -93,7 +96,7 @@ namespace OfficeIMO.Excel {
 
                 if (wrap) {
                     // Available width in pixels for this cell (span-aware)
-                    double availPx = GetAvailableWidthPx(cell);
+                    double availPx = GetAvailableWidthPx(cell) / AutoFitTextWidthSafetyFactor;
                     if (availPx > 0) {
                         int linesCount = 0;
                         foreach (var hard in hardLines) {
@@ -156,22 +159,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (w > maxWidthPx) {
-                    // Word itself too long: split by characters
-                    var chars = token.ToCharArray();
-                    var sb = new StringBuilder();
-                    for (int c = 0; c < chars.Length; c++) {
-                        string candidate = (current > 0 ? " " : string.Empty) + sb.ToString() + chars[c];
-                        float cw = textMeasurer.MeasureWidthOrDefault(candidate, style, 0);
-                        if (cw > maxWidthPx) {
-                            // break before this char
+                    // The owner measures additive grapheme widths. Measure each once;
+                    // growing zero-width prefixes must not be copied or rescanned.
+                    if (current > 0) current += textMeasurer.MeasureWidthOrDefault(" ", style, 0);
+                    foreach (string element in OfficeTextElements.Enumerate(token)) {
+                        float elementWidth = textMeasurer.MeasureWidthOrDefault(element, style, 0);
+                        if (elementWidth > 0 && current > 0 && current + elementWidth > maxWidthPx) {
                             lines++;
-                            sb.Clear();
                             current = 0;
-                            candidate = chars[c].ToString();
-                            cw = textMeasurer.MeasureWidthOrDefault(candidate, style, 0);
                         }
-                        sb.Append(chars[c]);
-                        current = cw;
+                        current += elementWidth;
                     }
                     continue;
                 }
@@ -264,20 +261,19 @@ namespace OfficeIMO.Excel {
             return Math.Min(height, 409D);
         }
 
-        private void SetRowHeightCore(int rowIndex, double height, bool normalizeForExcelVisibleHeight = false,
-            bool roundToHundredths = true) {
+        private void SetRowHeightCore(int rowIndex, double height, bool roundToHundredths = true) {
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
             Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
             if (row == null) return;
+            SetRowHeightCore(row, height, roundToHundredths);
+        }
 
+        private static void SetRowHeightCore(Row row, double height, bool roundToHundredths = true) {
             height = NormalizeRowHeight(height);
             if (height > 0) {
-                double storedHeight = normalizeForExcelVisibleHeight
-                    ? height * 1.5
-                    : height;
-                row.Height = roundToHundredths ? Math.Round(storedHeight, 2) : storedHeight;
+                row.Height = roundToHundredths ? Math.Round(height, 2) : height;
                 row.CustomHeight = true;
             } else {
                 row.Height = null;
@@ -287,6 +283,7 @@ namespace OfficeIMO.Excel {
 
         private void UpdateSheetFormat() {
             var worksheet = WorksheetRoot;
+            EnsureDefaultSheetView(worksheet);
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
 
@@ -295,7 +292,8 @@ namespace OfficeIMO.Excel {
 
             if (anyCustom) {
                 if (sheetFormat == null) {
-                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                    sheetFormat = new SheetFormatProperties();
+                    worksheet.AddChild(sheetFormat, true);
                 }
                 if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value <= 0) {
                     sheetFormat.DefaultRowHeight = 15D;
@@ -318,15 +316,14 @@ namespace OfficeIMO.Excel {
                 var worksheet = WorksheetRoot;
                 SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData == null) return;
-                var rowIndexes = sheetData.Elements<Row>()
-                    .Select(r => (int)r.RowIndex!.Value)
-                    .ToList();
-                if (rowIndexes.Count == 0) return;
+                var rows = sheetData.Elements<Row>().ToList();
+                if (rows.Count == 0) return;
+                var textContext = CreateAutoFitTextContext();
 
-                for (int i = 0; i < rowIndexes.Count; i++) {
+                foreach (Row row in rows) {
                     ct.ThrowIfCancellationRequested();
-                    double height = CalculateRowHeight(rowIndexes[i]);
-                    SetRowHeightCore(rowIndexes[i], height, normalizeForExcelVisibleHeight: true);
+                    double height = CalculateRowHeight(row, textContext);
+                    SetRowHeightCore(row, height);
                 }
 
                 UpdateSheetFormat();
@@ -365,9 +362,7 @@ namespace OfficeIMO.Excel {
         public void AutoFitRow(int rowIndex) {
             WriteLockConditional(() => {
                 var height = CalculateRowHeight(rowIndex);
-                // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
-                // pixel-equivalent height so the visible Excel row height matches the measured value.
-                SetRowHeightCore(rowIndex, height, normalizeForExcelVisibleHeight: true);
+                SetRowHeightCore(rowIndex, height);
                 UpdateSheetFormat();
                 if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                     WorksheetRoot.Save();
@@ -395,8 +390,8 @@ namespace OfficeIMO.Excel {
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
-                GetOrCreateRowElement(sheetData, rowIndex);
-                SetRowHeightCore(rowIndex, height, roundToHundredths: roundToHundredths);
+                Row row = GetOrCreateRowElement(sheetData, rowIndex);
+                SetRowHeightCore(row, height, roundToHundredths: roundToHundredths);
                 UpdateSheetFormat();
                 WorksheetRoot.Save();
             });

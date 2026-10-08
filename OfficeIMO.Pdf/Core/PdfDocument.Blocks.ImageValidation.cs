@@ -227,15 +227,20 @@ public sealed partial class PdfDocument {
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
-            bool hasComponentCount = PdfWriter.TryGetJpegComponentCount(data, cancellationToken, out int componentCount);
+            bool hasComponentCount = PdfWriter.TryGetJpegFrameMetadata(data, cancellationToken,
+                out int componentCount, out int samplePrecision, out byte frameMarker);
+            bool requiresNormalization = hasComponentCount &&
+                (samplePrecision != 8 || frameMarker is not (0xC0 or 0xC1 or 0xC2));
             if (hasEmbeddedIccProfile && !hasComponentCount) {
                 throw new NotSupportedException(
                     SupportedImageMessage + " The tagged JPEG component count cannot be verified; four-component JPEG data cannot be normalized safely.");
             }
-            if (hasComponentCount && componentCount == 4) {
+            if (requiresNormalization || (hasComponentCount && componentCount == 4)) {
                 if (hasEmbeddedIccProfile) {
                     throw new NotSupportedException(
-                        SupportedImageMessage + " A four-component JPEG with an embedded ICC profile cannot be normalized safely.");
+                        SupportedImageMessage + (componentCount == 4
+                            ? " A four-component JPEG with an embedded ICC profile cannot be normalized safely."
+                            : " An arithmetic, lossless or high-precision JPEG with an embedded ICC profile cannot be normalized safely."));
                 }
                 if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
                         sourceInfo,
@@ -245,7 +250,7 @@ public sealed partial class PdfDocument {
                 }
                 if (!OfficeImagePngConverter.TryConvertToPng(data, cancellationToken, out byte[] normalizedJpegPng) ||
                     !OfficeImageReader.TryIdentify(normalizedJpegPng, null, cancellationToken, out OfficeImageInfo normalizedJpegInfo)) {
-                    throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding.");
+                    throw new NotSupportedException(SupportedImageMessage + " JPEG data could not be normalized safely for PDF embedding.");
                 }
                 if (!PdfWriter.TryGetPngImageData(
                         normalizedJpegPng,
@@ -253,7 +258,7 @@ public sealed partial class PdfDocument {
                         out PdfWriter.PdfImageStream normalizedJpegStream,
                         out string? normalizedJpegReason)) {
                     string suffix = string.IsNullOrWhiteSpace(normalizedJpegReason) ? string.Empty : " " + normalizedJpegReason;
-                    throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding." + suffix);
+                    throw new NotSupportedException(SupportedImageMessage + " JPEG data could not be normalized safely for PDF embedding." + suffix);
                 }
                 return new PreparedImage(
                     normalizedJpegPng,

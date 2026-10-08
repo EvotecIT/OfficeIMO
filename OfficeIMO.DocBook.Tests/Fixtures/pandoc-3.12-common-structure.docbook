@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE article>
+<article
+  xml:lang="en"
+  xmlns="http://docbook.org/ns/docbook" version="5.0"
+  xmlns:mml="http://www.w3.org/1998/Math/MathML"
+  xmlns:xlink="http://www.w3.org/1999/xlink" >
+  <info>
+    <title>Producer document</title>
+    <authorgroup>
+      <author>
+        <personname>
+          <firstname>Fixture</firstname>
+          <surname>author</surname>
+        </personname>
+      </author>
+    </authorgroup>
+  </info>
+  <para>
+    Introduction with <emphasis>emphasis</emphasis>,
+    <emphasis role="strong">strong text</emphasis>,
+    <literal>literal text</literal>, and a
+    <link xlink:href="https://example.com/guide">link</link>.
+  </para>
+  <section xml:id="section">
+    <title>Section</title>
+    <itemizedlist spacing="compact">
+      <listitem>
+        <para>
+          First item
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Second item
+        </para>
+      </listitem>
+    </itemizedlist>
+    <programlisting>
+one &lt; two &amp; three
+</programlisting>
+    <informaltable>
+      <tgroup cols="2">
+        <colspec align="left" />
+        <colspec align="left" />
+        <thead>
+          <row>
+            <entry>
+              Name
+            </entry>
+            <entry>
+              Value
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              Alpha
+            </entry>
+            <entry>
+              12
+            </entry>
+          </row>
+          <row>
+            <entry>
+              Beta
+            </entry>
+            <entry>
+              34
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </section>
+</article>

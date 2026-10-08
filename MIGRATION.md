@@ -1,5 +1,44 @@
 # Upgrading OfficeIMO
 
+## PDF mutation assessment cancellation
+
+Replace `pdf.AssessMutations(default)` with
+`pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
+the positional `default` literal ambiguous. Parameterless calls and calls with
+an explicit operation collection retain their existing behavior.
+
+## EPUB XHTML image export
+
+Image export parses retained `application/xhtml+xml` chapters as XML. Repair malformed
+XHTML and replace DTD-defined entities with numeric references or Unicode characters
+before exporting. Use lowercase XHTML names and remove unsupported processing
+instructions. XML errors are no longer silently recovered using HTML parsing.
+
+## HTML widths larger than their container
+
+The shared HTML renderer honors explicit `width` and `min-width` values that exceed
+the containing block. It no longer silently reduces these boxes to the available
+width. If a document relied on that reduction, use `max-width:100%` and remove any
+conflicting `min-width`, or choose an explicit overflow policy. Check fixed-layout
+EPUB canvas and clipping diagnostics after changing the layout.
+
+## EPUB chapter selector reconciliation
+
+Replace `EpubChapterMergeOptions.RewriteSecondChapterIdSelectors` with
+`RewriteChapterSelectors`. The option repairs reference-attribute selectors in both
+source chapters; the identifier map still applies only to the second chapter.
+Linked stylesheets receive separate private copies for each chapter, so merges may
+use more entries and retained bytes. Keep `AppendSecondStyles` explicit, and handle
+atomic rejection when first-chapter selectors are ambiguous or unsupported.
+
+## Book project revision storage
+
+`BookProject.ToProjectBytes()` writes version-2 `.oibook` files, including named
+publication revisions. Update applications that read these projects before sharing
+newly saved files with them; older readers reject version 2. Existing version-1
+projects remain readable. `MaximumProjectBytes` is now 260 MiB to accommodate the
+current publication and bounded revision storage. Session undo/redo remains transient.
+
 This guide contains version-to-version changes that require application code, package references, or configuration to change. It is not a release history or a second API manual.
 
 - Use [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) for release notes and downloadable artifacts.
@@ -8,6 +47,263 @@ This guide contains version-to-version changes that require application code, pa
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
+
+## Word content-control form locks
+
+`FillContentControlValues` rejects supplied values for content-locked controls
+before applying any form values. `ValidateContentControlValues` reports these
+targets as `WordContentControlFormIssueKind.LockedControl`. Remove locked fields
+from the supplied map to fill only editable fields; when validating a partial
+map, pass `requireAllControls: false`.
+
+Controls with `sdtLocked` remain fillable. That lock prevents deleting the
+control, while `contentLocked` and `sdtContentLocked` prevent content edits.
+Picture and repeating-section replacements also reject operations that would
+remove locked nested controls. Use direct control setters for intentional
+authoring changes that bypass form-fill safeguards.
+
+## XPS radial focal points
+
+For radial gradients with a focal point on or outside the end ellipse,
+`XpsPage.ToDrawing()`, raster `ExportImage()`, `XpsDocument.ToPdf()` and `ToSvg()`
+retain native Pad fields, including stop alpha and endpoint paint outside the
+cone. Boundary/exterior Repeat and Reflect fields use bounded vector expansion
+or explicit periodic fields; PDF retains vector shading when expansion is not
+finite or exceeds its stop budget. Check the [XPS support matrix](OfficeIMO.Xps/SUPPORT.md)
+for the native-consumer and sampling limits.
+
+## XPS gradient mapping
+
+Native `LinearGradientBrush` and `RadialGradientBrush` markup must contain
+`MappingMode="Absolute"`, as required by the XPS/OpenXPS format. Add that attribute
+to custom page or resource-dictionary markup before converting it. Strict SVG,
+Drawing and PDF conversion reject missing or relative mapping modes;
+`ToSvg(allowPartial: true)` reports the missing paint explicitly. Native package
+load/save still preserves the original markup.
+
+## XPS integer image defaults
+
+JPEG/TIFF gray and RGB resources without a usable ICC profile use native sRGB
+sample defaults, including resources with non-ICC calibration metadata. TIFF
+display orientation is ignored by XPS conversion; document geometry controls
+placement. An unspecified TIFF extra sample is ignored rather than used as alpha.
+The shared managed TIFF decoder rejects signed and undefined sample encodings
+instead of interpreting them as unsigned eight-bit components. Qualified floating-point
+TIFF images retain their declared sample encoding.
+
+## XPS/OpenXPS Reader identity and native order
+
+Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
+`.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
+schema version 10. Exhaustive kind switches and transport bindings must accept
+this value and version. Versions 5 through 9 remain readable; they cannot carry
+XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
+artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
+page citations remain separate. Null order values retain existing container order.
+
+`XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
+`XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
+for bounded chunks, tables, page citations and diagnostics.
+
+## XPS PDF reading order
+
+`XpsDocument.ToPdf()` maps authored native logical structure by default. Its search
+layer and structure tree follow story-reference order while the physical pages and
+paint keep their original order. Unsupported structure extensions, unresolved names
+and overlapping semantic references reject export. Use
+`ToPdf(preserveLogicalStructure: false)` to retain the previous fixed-canvas and
+markup-order search-text contract. Unstructured input retains that behavior by
+default. PDF/UA conformance and figure descriptions are not inferred.
+
+## XPS image color profiles
+
+Unusable associated image profiles fall back to usable embedded profiles. If no
+usable profile remains, strict conversion reports an error. Unprofiled CMYK
+JPEG/TIFF images now require an associated or embedded ICC profile; conversion
+rejects the previous unqualified device-color approximation. Add the intended
+profile to the source rather than treating a partial render as color preservation.
+
+## XPS structural metadata edits
+
+Use `XpsPage.ReplaceStoryFragmentsMarkup()` and
+`XpsFixedDocument.ReplaceDocumentStructureMarkup()` for the native structure parts.
+`ReplaceResource()` rejects these structural content types. When renaming page
+content referenced by StoryFragments, update both detached trees and call
+`page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
+commit together. Page-only edits that leave dangling native names are rejected.
+
+## Static HTML rendering and capability profiles
+
+Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
+
+`HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
+
+## Native HTML disclosure rendering
+
+Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.
+
+## PNG scan sample layout
+
+`OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
+one-bit grayscale PNGs. Other opaque images use eight-bit RGB samples. Decoded
+pixels, dimensions, and density remain unchanged.
+Consumers that inspect samples or add color-dependent PNG chunks must read the
+IHDR bit depth and color type instead of assuming eight-bit RGBA output.
+`EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
+encoding retains eight-bit RGBA output.
+
+## PDF editing protection and source fonts
+
+Authenticated page, text, form, metadata and redaction rewrites preserve the
+source's password protection. Extraction and splitting also retain encryption;
+reopen their output with the source password. Merge output follows the primary
+source's protection settings. If an application depended on these operations
+producing plaintext, call `Security.Decrypt(ownerPassword)` explicitly before or
+after the operation. Permission restrictions and signed-rewrite blocking still
+apply.
+
+Text replacement and movement reuse supported embedded TrueType and Identity-H
+CID fonts when `PdfTextEditOptions.Font` is null. Text outside the existing subset's
+Unicode map now throws instead of substituting silently. Set `Font` to a Standard
+14 font when substitution is intended and inspect `PdfTextEditResult.Warnings`.
+Source-font reuse rejects replacements requiring shaping, bidirectional layout
+or combining-mark positioning.
+
+## Owned HTML parser providers
+
+`IHtmlParserProvider.Parse` is replaced by `ParseDocument`, and providers implement
+`ParseFragment` with an owned context element. Rename direct calls to
+`AngleSharpHtmlParser.Instance.Parse` to `ParseDocument`. The conversion entrypoint
+`HtmlConversionDocument.Parse` retains its API. Custom providers return frozen owned
+snapshots for both operations; contextual fragments have an independent document and
+can be imported into a mutable destination with `ImportNode`.
+
+## Long-document AI request budgets
+
+Ask, Explain and Summarize reserve one model call for synthesis by default when `MaxRequests` is at least three. This can process one fewer evidence batch at the same total budget; omitted evidence remains explicit in a `Partial` result. Set `OfficeAiLimits.ReservedSynthesisRequests = 0` to retain evidence-first budgeting, or raise the total/reserve for hierarchical synthesis. Extraction, parsing, and one- or two-call budgets retain their evidence capacity.
+
+## OCR review and AI evidence
+
+A single adaptive OCR attempt that passes confidence checks now has `OcrReviewStatus.Unassessed`, emits `adaptive-ocr-unassessed`, and sets `ReviewRecommended` to true. Use `Quality.MeetsThresholds` when you specifically need the old confidence-only signal. Use `new OcrReviewPolicy(OcrRetryMode.CompareAll)` to run every configured variant within the shared deadline. `ChecksPassed` reports agreement and passing checks, not correctness or approval.
+
+Reader OCR blocks carry `Recognition` provenance through JSON and nested projection. AI includes it in evidence snapshot hashes, requests, citations and reports. Recreate cached snapshots/results together; do not combine results with newly captured evidence merely because the original source hash matches. Extraction consumers can inspect `TextValueMatched` and `RecognitionReviewRequired` alongside field status.
+
+## ZIP, drawing links, and MCP filesystem access
+
+`OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.
+
+`OfficeDrawing.AddLink` rejects script, data, file, unknown-scheme, and ambiguous targets. SVG import keeps the visible content inside a rejected link but does not export its interactive target. Replace such targets with HTTP(S), mail, telephone, or local relative/fragment links where appropriate.
+
+The OfficeIMO.Tool STDIO MCP server requires `OFFICEIMO_MCP_ALLOWED_ROOTS` at startup. Set it to the document and output directories the client may access. The direct `officeimo agent` command keeps its existing local filesystem behavior when the variable is unset.
+
+## Portable report exports
+
+The npm source and archive owner is [OfficeIMO.JavaScript](OfficeIMO.JavaScript/README.md). Contributor builds use `npm ci`, `npm run build` and `npm test` from that directory. Replace source imports from `OfficeIMO.Browser/JavaScript` or `OfficeIMO.Browser/Assets` with public `@evotecit/officeimo` subpaths. Declarations are generated by `tsc`; do not maintain the removed handwritten `.d.ts` files. `OfficeIMO.Browser` embeds the generated bundles from the TypeScript package. Its eight `BrowserAssets` members and content-hash API remain available; every content change produces a new hashed filename.
+
+`Workbook`, `Worksheet`, `Cell` and `StyleRegistry` expose the typed object model. Replace `createWorkbook(options)` with `new Workbook(options)` and `addSheet(name, options)` with `addWorksheet(name, options)`. For a single table use `writeXlsx(rows, options)` or `writeCsv(rows, options)`; their `To` variants accept a caller-owned `ByteSink` or `WritableStream<Uint8Array>` and return `{ rows, columns, bytes }`. CSV callers that assumed a void completion can ignore the result. Stream locks are released without closing or aborting the destination.
+
+`Column<T>` is the portable projection shared by Excel and CSV. Literal keys select exportable value fields; project nested objects and arrays through `value`. Use `XlsxColumn<T>` for registered styles and advanced `Cell` fields or getter results on a `Workbook`. Table helpers and the DataTables adapter accept portable style definitions and `ExportCell` values, and reject workbook-local column/header/component indexes and advanced `Cell` values in their selected rows and options.
+
+Use `Column<RowType>` for checked literal object keys or synchronous `value(row, context)` getters. Object columns need a key or getter; array columns remain positional. Getters allow unselected nested domain fields and can return portable `ExportCell` values. Writer declarations require TypeScript 5.4 or newer. Data callbacks use zero-based `rowIndex` and `columnIndex`; replace XLSX callback `row` with one-based `worksheetRow` and subtract one from old XLSX `columnIndex` comparisons. Replace CSV formatter `row` with zero-based `rowIndex`. In DataTables `project`, the old native `rowIndex`/`columnIndex` become `sourceRowIndex`/`sourceColumnIndex`; the old `rowOrdinal` becomes `rowIndex`. XLSX progress `rows` is now workbook-wide; use `sheetRows` for the named worksheet.
+
+Worksheet `mergedCells`, `hyperlinks` and the documented native `conditionalFormats` are supported. `dataValidation` remains reserved and throws `NotSupportedError` even when empty; remove that option until the supported contract includes it.
+
+Hosts adopting [OfficeIMO.Browser](OfficeIMO.Browser/README.md) can export a reader's current table view without a server callback. Pass the filtered and sorted rows with only the visible columns in their displayed order. Keep full-dataset, build-time Excel generation on OfficeIMO.Excel. Use the embedded classic asset for single-file reports and `file://` bundles; ES-module loading can be blocked by local-file origin policy.
+
+Browser CSV enables OfficeIMO.CSV's apostrophe-prefix formula protection by default. Existing .NET CSV defaults are unchanged. When replacing another browser CSV writer, expect dangerous string prefixes to gain an apostrophe; disable protection only for a trusted non-spreadsheet consumer. Browser XLSX dates default to local wall-clock fields; choose `dateMode: "utc"` explicitly when an existing export uses UTC fields.
+
+## DocBook, ADF and Data projection contracts
+
+ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
+
+DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
+
+Arrow decimals must fit both declared scale and precision. Redundant fractional zeros are accepted. Increase `DecimalPrecision` for values outside the declared coefficient range rather than relying on invalid Arrow output. `CollectionColumnMapping.HeaderPrefix` now changes displayed Excel and PowerPoint headers; use `null` for the original collection-path prefix. Column selection, formatting and flattened dictionary keys retain their original paths.
+
+## OCR and AI extraction
+
+`OfficeDocumentOcrExecutionOptions` bounds a whole operation with a five-minute `TotalTimeout`, 4 Mi recognized characters, 100,000 detailed spans and 4 Mi span characters by default. These totals also apply across attachments in `ApplyOcrTreeAsync`. Set `MaxTotalRecognizedCharacters`, `MaxTotalSpans`, `MaxTotalSpanCharacters` and `TotalTimeout` explicitly for workloads that require larger accepted output or longer execution. Limit diagnostics report truncation or skipped recognition; unresolved candidates remain available.
+
+Decimal field extraction rejects precision loss and underflow instead of returning a rounded `Present` value. Handle `Invalid` and review its exact raw value and citations when the requested decimal cannot represent the source exactly.
+
+## ODS row layout conversion
+
+ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
+## ODT-to-Word image copies
+
+ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by default across the resulting document. Set `WordOpenDocumentConversionOptions.MaxConvertedImageBytes` to a larger value for trusted documents that need every image, and inspect the conversion report or use `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when skipped images must fail conversion.
+
+## Chart data label separators
+
+`OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
+
+## RTF Unicode fallback width
+
+
+Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
+
+## Apple Mail and Outlook for Mac stores
+
+`EmailStoreReaderOptions` adds `maxDirectoryEntryCount` while retaining its original constructor
+signature. The new bound counts all visited directory entries rather than only message files.
+Use `MaxDirectoryFileCount` for candidate message and Apple sibling-storage files, and `MaxItemCount`
+for cataloged messages. Reader's `MaxItems` independently limits the projected selection.
+Files inside identified Apple attachment storage are payloads, including
+those with `.eml` extensions, and are no longer indexed as independent messages.
+Account directories and empty mailbox folders now participate in directory folder identity. Reopen
+directory sessions and recreate durable checkpoints after upgrading; old fingerprints do not use
+the current catalog schema.
+
+Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]` when editing
+Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
+when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`.
+The default `Block` loss policy also rejects omitted EMLX, OLM and MAPI/TNEF metadata, and partial
+content whose completeness cannot be established, including regenerated embedded messages and
+synthesized Outlook task payloads. Embedded calendar, contact and protected-content losses use the
+same policy. Transport signatures retain the separate `SignatureMutationPolicy` contract.
+Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
+when intentionally exporting the common message content, and inspect the returned diagnostics.
+Strict PST creation rejects omitted EMLX/OLM metadata.
+
+Live EMLX, mbox and OLM sessions verify the complete source before and after selected reads,
+including same-length edits. Directory sessions pin message and recovered attachment files at
+first projection. Detected changes invalidate retained attachment readers. Reopen a changed source,
+or use `EmailStoreSession.OpenSnapshot` for a private, stable copy of a standalone archive whose
+repeated reads avoid additional source-fingerprint scans. Keep actively written archives quiescent
+while opening; source validation does not take an atomic filesystem snapshot.
+
+OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
+`EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
+content has been copied or written. Session disposal expires both new and outstanding readers.
+
+Reader's default store handler also streams OLM and EMLX attachments. Supported attachment text
+is projected before the session closes, while returned assets carry metadata without `PayloadBytes`.
+If an application needs retained attachment bytes, register the handler with
+`new ReaderEmailStoreOptions { StreamAttachmentContent = false }` and leave the item's explicit
+streaming preference disabled. Keep `StoreOptions.RetainAttachmentContent` enabled for that workflow.
+
+## LaTeX editing and conversion contracts
+
+Known required arguments now accept an unbraced character or control sequence as one token. Code that treated `LATEX007` as a rejection of every unbraced argument should instead inspect `LatexArgument.IsSingleToken` and the actual missing-argument diagnostics. For example, `\textbf ABC` binds only `A`; an edited replacement is written in braces. Handle the additive `LatexSyntaxKind.SingleTokenArgument` enum member in exhaustive syntax switches.
+
+LaTeX footnotes now produce typed Markdown references and definitions. Reader block mode includes `SourceBlockKind = "footnote"` at the note's source location and heading path. Consumers that switch on block kinds should handle it; definition text is separate from the surrounding paragraph.
+
+LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
+
+Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.
+
+Document-level macro expansion honors edited definitions and defaults. Reverse fragment links now use explicit `\hyperref[label]{visible text}` navigation links instead of replacing their text with `\ref{label}`. Custom list numbering, task markers, callout layout and omitted image metadata produce conversion diagnostics. Missing PDF reference targets retain visible text with an `UnresolvedInternalLink` warning instead of failing the entire export.
+
+Generated TeX labels reserve `_XXXX_` escape sequences and encode every literal underscore as `_005F_`, preventing collisions between literal text and encoded Unicode identifiers. Existing generated labels containing underscores therefore change. Regenerate declarations and references together when persisting generated label names outside the document.
+
+Missing or unbraced required arguments, graphics options, counter-based references, custom list markers, nested formatting flattened into scalar code or underline nodes, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.
+
+## iWork destination omissions and Reader identity
+
+Editable iWork output with known destination omissions requires `AllowPartialEditableReconstruction = true`. This includes Numbers cell padding, unsupported rich text and table paragraph styles, along with assessed Pages and Keynote destination omissions. Automatic conversion otherwise uses an available permitted visual preview; `EditableOnly` rejects the omission. Inspect `Report.IsPartialEditableReconstruction` and use `RequireCompleteEditableReconstruction()` when partial output is unacceptable. The shared workflow defaults reject these results before publication. Accepted approximation diagnostics and conservative unassessed source records retain their separate fidelity categories.
+
+Reader file and stream hashes and byte lengths now describe the captured bytes used for extraction. Reingest sources whose stored content and hash could have come from different file versions. Directory bundles retain their logical package-content hashes. Nested `Index.zip` detection accepts both supported document paths. Recovered Keynote slides retain their source positions after missing or malformed earlier references; refresh stored slide citations that depended on compacted indices.
 
 ## iWork list-marker interpretation
 
@@ -50,6 +346,12 @@ Reader retains attachment order and emits image-anchor blocks even when alternat
 Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.
 
 The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
+
+## Excel HTML named-table reports
+
+Excel HTML export reports classify omitted native named-table definitions as loss, even when all worksheet cells are preserved. Callers requiring lossless conversion must account for table names, filters, styles and totals metadata that HTML does not restore.
+
+Worksheet exports and `ExcelSheet.GetTables()` require a handle belonging to the current workbook package. When a save reloads that package, reacquire the worksheet from `document.Sheets` before inspecting or exporting it; stale or removed handles raise `InvalidOperationException`. Workbook exports and `document.GetTables()` use the current package directly.
 
 ## Excel and iWork TEXTJOIN formulas
 
@@ -105,6 +407,38 @@ continue to accept files. Document results use schema version 9 as described bel
 The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `2^3^2` evaluates to `64`. Aggregate functions distinguish scalar arguments from references; `COUNT` ignores referenced errors. Call `Recalculate` explicitly to refresh caches that depend on these corrected results. Oversized text results return an evaluation error under `MaximumResultCharacters` and `MaximumTotalResultCharacters`.
 
 ODT-to-Word conversion enforces aggregate table expansion limits before allocation. Adjust `WordOpenDocumentConversionOptions` for trusted larger workloads. Reader OpenDocument format settings belong to `ReaderOpenDocumentOptions`, passed to `AddOpenDocumentHandler`; generic size and password settings remain in `ReaderOptions`.
+
+## EPUB reading positions, text, and completeness
+
+Authoring and rewriting reject unresolved document-local ARIA, table-header,
+form-control and microdata ID references, and missing local image-map names. Repair
+the source relationship or keep both ends in the same chapter before splitting.
+For an image map, retain the matching `map name` alongside its `usemap` reference.
+
+EPUB extraction preserves repeated and empty spine positions. Applications that
+deduplicate or count chapters by resource path should use `SpineIndex` or `Order`
+for reading positions and retain path-based identity only for resources.
+`PreferSpineOrder = false` changes ordering while retaining spine selection;
+it does not include non-linear or unreferenced archive content implicitly.
+
+Extracted inline text no longer gains spaces between formatting elements.
+Rebuild persisted text hashes or search indexes when this changes their stored values.
+Invalid chapter encodings produce `epub.chapter.invalid-encoding` and are skipped.
+
+`MaxTotalTextCharacters` defaults to 32 Mi UTF-16 characters. Increase it explicitly
+when a larger publication is required. Check `ReadSummary.IsComplete` and structured
+diagnostics when limits or unreadable content can produce partial output; archive
+recovery scanning cannot establish publication completeness.
+
+## CSL contributor roles, availability dates, and item types
+
+CSL JSON parsing places all standard contributor roles in `BibliographyItem.Contributors`, all standard date roles in `Dates`, and all standard item types in `Type`. Applications reading recognized properties such as `director`, `container-author`, or `available-date` from item `NativeFields` should use the corresponding contributor role or `GetDate(BibliographyDateRole.Available)`. Incorrectly shaped and unknown properties remain native fields, and unchanged preserve-mode writing retains the original source.
+
+Existing enum numeric values remain stable; the additional item types, contributor roles, and availability date are appended. Extend application switches that assumed the earlier enum set. When converting to a format with a smaller vocabulary, inspect the conversion report or enable `RequireNoLoss` to reject unsupported roles, dates, and types.
+
+## Bibliography and AsciiDoc path saves
+
+`BibliographyDocument.Save` / `SaveAsync` and `AsciiDocDocument.Save` / `SaveAsync` require atomic file publication. If a filesystem cannot atomically replace an existing destination, the operation fails and preserves that file. Applications saving to such filesystems should catch the filesystem exception and choose a destination that supports atomic replacement. Caller-owned stream saves retain their stream-writing behavior and can leave partial output on failure or cancellation.
 
 ## Conversion batches replace the PDF archive surface
 
@@ -246,6 +580,10 @@ they no longer use OLE Automation's negative-fraction convention.
 
 ## OCR outcomes and AI evaluation
 
+Multi-batch `Ask` and `Explain` combine validated observations when multiple batches contribute facts. Budget for combination requests through `MaxRequests` and inspect `SynthesisStatus`: unfinished combination returns `Partial` with `answer-synthesis-incomplete`, replacing `cross-batch-reasoning-not-supported`. Original citations and quote offsets are preserved. This change can increase model request counts; it does not certify answer correctness.
+
+Process OCR retains the version-2 text-recognition request shape. Orientation bridges must explicitly advertise `SupportsOrientationDetection`, handle the `DetectOrientation` operation and return orientation evidence. Tesseract's complete resolution-estimation stderr is informational; unknown or truncated stderr still triggers review warnings.
+
 Calls through `OcrEngineRunner` now throw `OcrEngineExecutionException` for provider exceptions, null results, and nonrecoverable error diagnostics. Catch this type and inspect `Kind` instead of parsing provider exception messages. Provider exception text and inner exceptions are omitted; caller cancellation and shared timeouts remain distinct. Reader's continue-on-error mode records a failed candidate rather than enriching from a nonrecoverable result.
 
 Invalid Reader OCR confidence values now become `null` instead of being clamped to zero or one. Treat them as unavailable quality evidence. PDF workflows reject recognition with no eligible words and no native text; deliberate empty review selections still create an unchanged source copy. Image workflows reject empty recognition before review and publication.
@@ -307,6 +645,24 @@ Folder and detailed path reads apply the configured document processor pipeline.
 second processing pass that previously compensated for these routes bypassing processors.
 Word tables preserve complete Markdown when an atomic table exceeds `MaxChars` and emit a warning.
 Applications that require terminal limits should configure `ReaderOptions.ResourceLimits`.
+
+## Reader XML limits and changing sources
+
+XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
+`MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
+`ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
+XML and YAML values within their configured limits retain their full normalized text.
+
+Path reads reject a detected source change with `IOException`. Retry against a stable file.
+Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
+chunks already delivered to the consumer.
+
+Async file reads use the same normalized file identity and timestamps as synchronous reads.
+Rebuild indexes that stored the previous async stream-derived source IDs or chunk hashes.
+Chunk-based container results describe the outer input in `Kind` and `Source`; member identity,
+hash, length and timestamps remain on the member chunks, including after document processing.
+Folder byte budgets charge the physical file size. Consumers that inferred the first member's
+kind or metadata from the root envelope should read that member's chunk instead.
 
 ## Reader document schema version 8
 
@@ -436,6 +792,14 @@ Image stamp streams continue to read from their current position.
 
 PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
 
+## Imported SVG text scenes
+
+SVG drawings containing positioned text retain an explicit root viewport clip.
+Applications that inspect `OfficeDrawing.Elements` should traverse
+`OfficeDrawingGroup.Drawing` and `OfficeDrawingEffectGroup.Drawing` instead of
+assuming imported text and shapes are always top-level elements. Pass the complete
+drawing to renderers so the viewport clip stays effective.
+
 ## PDF drawing font family names
 
 `PdfReadPage.ToDrawing()` now gives every embedded font program a drawing-local family name derived from its PDF base name and content, including full fonts without a subset prefix. This keeps different page and annotation programs with the same PDF name from replacing each other. If an application matched `OfficeDrawingText.Font.FamilyName` to the original PDF font name, use that name to find the face in the drawing's `Fonts.Faces` instead. Read the PDF name from `PdfTextSpan.BaseFont` when that source label is needed.
@@ -482,6 +846,14 @@ these methods.
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
 
 ## OfficeIMO 3.4: one document and conversion grammar
+
+### iWork conversion acceptance and source reuse
+
+`RequireCompleteVisualCoverage` defaults to `true`. Incomplete raster previews and embedded PDFs with unknown source coverage are rejected. Applications intentionally accepting a preview must use `ToWordDocumentResult`, `ToExcelDocumentResult` or `ToPowerPointPresentationResult` (or the static result equivalent), set `RequireCompleteVisualCoverage = false`, and inspect the retained report before saving.
+
+Value-only conversion APIs require complete editable reconstruction even when `AllowPartialEditableReconstruction` or preview acceptance is enabled. Use a result API to handle reported partial output. `result.RequireCompleteEditableReconstruction()` checks assessed completeness, returns the destination on success and disposes rejected output. Record-level fidelity and identical appearance remain separate checks.
+
+Use `source.WithCancellation(newToken)` for another independently cancellable operation on an already loaded source. It replaces the old token while sharing source bytes and parsed messages. Empty shared line-spacing/tab-stop declarations now resolve to single spacing and no custom tabs; sources previously incomplete solely for these defaults can convert strictly. Numbers Natural alignment maps to General rather than forcing numeric cells left. Apple epoch timestamps use tick arithmetic consistently across runtimes, retaining submillisecond root-comment times on legacy consumers.
 
 ### iWork cell decoding evidence
 
@@ -627,6 +999,20 @@ CLI single and batch reports use `officeimo.provenance.result.v2` and `officeimo
 The browser provenance download uses this shared result contract instead of the former anonymous `schemaVersion: 1` envelope. Read `inspection` for an inspection and `before`, `after`, and `changes` for carrier removal. Enum values are strings with camelCase property names. Cryptographic and provider checks remain distinct from structural inspection.
 
 A null `assessment.textIntegrity` means no text report was produced. Use `assessment.textIntegrityStatus` or `checks.textIntegrity` to distinguish disabled, unsupported and unrequested checks. Use the verification/provider check states to distinguish an absent provider from a check that completed or failed. Do not interpret null as a completed zero-finding report.
+
+### ONIX translation languages
+
+When a translation list contains more than one entry, give every entry a distinct
+explicit ONIX list 74 `LanguageCode`. This applies to subject and audience headings,
+edition statements, audience descriptions, collateral `Texts` (plain text or XHTML),
+and collateral `SourceTitles`. Export rejects a mixture of named and unspecified
+languages within each list. A single value may still omit its language; separate
+composites do not inherit or share a language requirement.
+
+`BookOnixAudienceCode.Value` is nullable so a declaration can carry headings without
+a code. Consumers reading this property must handle null; use `Headings` for the
+supplied labels. Existing code-only declarations retain their output. An explicitly
+empty code remains invalid.
 
 ### Provenance format ownership
 

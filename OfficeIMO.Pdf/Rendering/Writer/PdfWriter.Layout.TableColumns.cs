@@ -15,8 +15,8 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveTableFrameWidth(PdfTableStyle style, double containerWidth) {
-        if (style.LeftIndent < 0 || double.IsNaN(style.LeftIndent) || double.IsInfinity(style.LeftIndent)) {
-            throw new ArgumentException("Table left indent must be a non-negative finite value.");
+        if (double.IsNaN(style.LeftIndent) || double.IsInfinity(style.LeftIndent)) {
+            throw new ArgumentException("Table left indent must be a finite value.");
         }
 
         double frameWidth = containerWidth - style.LeftIndent;
@@ -49,13 +49,15 @@ internal static partial class PdfWriter {
         int columnCount,
         double columnGap) {
         double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
-        if (!style.PreferredWidth.HasValue) {
+        if (!style.PreferredWidth.HasValue && !style.AutoFitUnspecifiedWidthToContent) {
             return availableWidth;
         }
 
-        double preferredWidth = Math.Min(availableWidth, style.PreferredWidth.Value);
+        // An imported automatic grid with no authored width grows from its
+        // content minimum. Generic PDF tables retain their page-width default.
+        double preferredWidth = style.PreferredWidth.HasValue ? Math.Min(availableWidth, style.PreferredWidth.Value) : 0D;
         double measuredContentWidth = 0D;
-        if (autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
+        if (!style.AutoFitWidthUsesContentMinimum && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
             measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());
         }
 
@@ -194,6 +196,12 @@ internal static partial class PdfWriter {
             throw new ArgumentException("Table cell spacing must leave a positive table width.");
         }
 
+        // Imported tables grow proportionally once their preferred content fits.
+        // Residual flexibility is useful when shrinking below those preferences,
+        // but using it during growth redistributes space merely because of no-wrap.
+        bool fitsImportedPreferences = style.AutoFitWidthUsesContentMinimum &&
+            autoFitWeights != null && autoFitWeights.Sum() <= tableInnerWidth + .001D;
+
         double[] columnWidths = new double[columns];
         double[] columnWeights = new double[columns];
         bool[] fixedColumns = new bool[columns];
@@ -204,8 +212,9 @@ internal static partial class PdfWriter {
 
         for (int column = 0; column < columns; column++) {
             double? minWidth = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column, "Table minimum column widths must be positive finite values.");
-            if (!minWidth.HasValue && autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length) {
-                minWidth = autoFitMinimumWidths[column];
+            if (autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length &&
+                (!minWidth.HasValue || style.AutoFitWidthUsesContentMinimum)) {
+                minWidth = Math.Max(minWidth ?? 0D, autoFitMinimumWidths[column]);
             }
 
             double? maxWidth = GetOptionalColumnWidth(style.ColumnMaxWidthPoints, column, "Table maximum column widths must be positive finite values.");
@@ -249,7 +258,7 @@ internal static partial class PdfWriter {
                 weight = autoFitWeights[column];
             }
 
-            if (!hasExplicitWeight && autoFitWeights != null && minWidth.HasValue) {
+            if (!hasExplicitWeight && autoFitWeights != null && minWidth.HasValue && !fitsImportedPreferences) {
                 AutoFitColumnProfile profile = autoFitProfiles != null && column < autoFitProfiles.Length
                     ? autoFitProfiles[column]
                     : default;

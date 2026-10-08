@@ -56,7 +56,9 @@ public enum OfficeDocumentFormat {
     /// <summary>DocBook XML content.</summary>
     DocBook,
     /// <summary>Apple Pages, Numbers, or Keynote content.</summary>
-    IWork
+    IWork,
+    /// <summary>Native XPS or OpenXPS fixed-page content.</summary>
+    Xps
 }
 
 /// <summary>
@@ -137,6 +139,8 @@ public sealed class OfficeDocumentModelSource {
 
 /// <summary>Source location shared by neutral document elements.</summary>
 public sealed class OfficeDocumentModelLocation {
+    /// <summary>Explicit native reading-order position across physical containers, when authored.</summary>
+    public long? LogicalOrder { get; set; }
     /// <summary>Source path or logical name.</summary>
     public string? Path { get; set; }
     /// <summary>Zero-based output block index.</summary>

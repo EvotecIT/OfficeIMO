@@ -56,6 +56,9 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
         if (options == null) return null;
         return new ZipTraversalOptions {
             MaxEntries = options.MaxEntries,
+            MaxPhysicalEntries = options.MaxPhysicalEntries,
+            MaxArchiveBytes = options.MaxArchiveBytes,
+            MaxWarnings = options.MaxWarnings,
             MaxDepth = options.MaxDepth,
             MaxTotalUncompressedBytes = options.MaxTotalUncompressedBytes,
             MaxEntryUncompressedBytes = options.MaxEntryUncompressedBytes,

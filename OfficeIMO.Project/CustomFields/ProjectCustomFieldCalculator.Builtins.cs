@@ -11,7 +11,7 @@ internal sealed partial class ProjectCustomFieldCalculator {
             "unique id" or "188743766" => (decimal)task.Uid,
             "start" or "188743715" or "188744965" => task.Start,
             "finish" or "188743716" or "188744966" => task.Finish,
-            "duration" or "188743709" or "188744967" => task.Duration is ProjectDuration duration ? duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document) : null,
+            "duration" or "188743709" or "188744967" => task.Duration is ProjectDuration duration ? duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document)) : null,
             "work" or "188743680" => task.Work?.Minutes,
             "actual work" or "188743682" => task.ActualWork?.Minutes,
             "remaining work" or "188743684" => task.RemainingWork?.Minutes,

@@ -149,10 +149,20 @@ public static partial class HtmlComputedStyleEngine {
             || IsCssWideKeyword(value.Trim().ToLowerInvariant())) {
             return true;
         }
+        if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
+            return IsSupportedBorderDeclarationSyntax(propertyName, value);
+        }
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
+        if (string.Equals(propertyName, "text-indent", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: true, allowUnitlessZero: true)
+                && TryValidateCssLength(normalized, out _);
+        }
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
-            return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end");
+            return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end", "top", "bottom", "block-start", "block-end", "snap");
+        }
+        if (string.Equals(propertyName, "float-reference", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "inline", "page");
         }
         if (string.Equals(propertyName, "clear", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "both", "inline-start", "inline-end");
@@ -252,6 +262,9 @@ public static partial class HtmlComputedStyleEngine {
                 && !double.IsNaN(opacity)
                 && !double.IsInfinity(opacity);
         }
+        if (string.Equals(propertyName, "color", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlRenderCssValues.TryColor(value.Trim(), out _);
+        }
         if (string.Equals(propertyName, "object-fit", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssReplacedElementParser.IsSupportedObjectFitSyntax(normalized);
         }
@@ -269,6 +282,9 @@ public static partial class HtmlComputedStyleEngine {
         }
         if (string.Equals(propertyName, "transform", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedTransformSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "scale", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTransformParser.IsSupportedIndividualScaleSyntax(normalized);
         }
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
@@ -302,47 +318,11 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "slice" || normalized == "clone";
         }
-        if (string.Equals(propertyName, "border", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-width", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-style", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-top-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-right-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-bottom-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-color", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-width", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedWidthSyntax(normalized);
-        }
         if (string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
         }
-        if (string.Equals(propertyName, "border-style", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedStyleSyntax(normalized);
-        }
         if (string.Equals(propertyName, "outline-style", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
-        }
-        if (string.Equals(propertyName, "border-color", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssBoxStrokeParser.IsSupportedColorSyntax(normalized);
         }
         if (string.Equals(propertyName, "outline-color", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
@@ -389,6 +369,11 @@ public static partial class HtmlComputedStyleEngine {
             return false;
         }
 
+        if (string.Equals(propertyName, "all", StringComparison.OrdinalIgnoreCase)
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            return false;
+        }
+
         if (HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
             return true;
         }
@@ -397,10 +382,49 @@ public static partial class HtmlComputedStyleEngine {
         if (IsCssWideKeyword(rawNormalized)) {
             return true;
         }
+        if (BorderDeclarationNames.Contains(propertyName.ToLowerInvariant())) {
+            // Authored border declarations bypass external parser expansion so
+            // invalid later values must be rejected before replacing an earlier one.
+            return IsSupportedBorderDeclarationSyntax(propertyName, value);
+        }
+        OfficeIMO.Html.Css.HtmlCssPropertyParseResult owned =
+            OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(propertyName, value, UnboundedPropertyTokenization);
+        if (owned.Definition != null && owned.IsAccepted) return true;
+        if (owned.Definition != null
+            && (string.Equals(owned.Definition.Name, "display", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "place-items":
+            case "place-self":
+            case "place-content":
+                return TryExpandAlignmentShorthand(propertyName.ToLowerInvariant(), value, out _);
+            case "gap":
+                return TryExpandGapShorthand(value, out _);
+            case "row-gap":
+            case "column-gap":
+                return IsGapComponentSyntax(value);
+            case "grid-template-columns":
+            case "grid-template-rows":
+            case "grid-template-areas":
+                return IsGridTemplateSyntax(propertyName.ToLowerInvariant(), value);
+            case "grid-column":
+            case "grid-row":
+            case "grid-area":
+                return TryExpandGridShorthand(propertyName.ToLowerInvariant(), value, out _);
+            case "grid-column-start":
+            case "grid-column-end":
+            case "grid-row-start":
+            case "grid-row-end":
+                return IsGridLineSyntax(value);
+            case "float-reference":
+                return IsKnownKeyword(normalized, "inline", "column", "region", "page");
+            case "scale":
+                return HtmlCssTransformParser.IsSupportedIndividualScaleSyntax(normalized);
             case "font":
                 return TryExpandFontShorthand(value, out _);
+            case "text-decoration":
+                return TryExpandTextDecorationShorthand(value, out _);
             case "font-size":
                 return IsKnownKeyword(normalized, "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "xxx-large", "smaller", "larger")
                     || IsSupportedFontLength(value);
@@ -427,16 +451,23 @@ public static partial class HtmlComputedStyleEngine {
                     && (containerNames == "none" || TryParseContainerNameList(containerNames, out _))
                     && IsKnownKeyword(containerType, "normal", "size", "inline-size");
             case "display":
-                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-row", "table-cell", "list-item", "contents", "flow-root");
+                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-caption", "table-column-group", "table-column", "table-header-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
+            case "-webkit-box-orient":
+                return IsKnownKeyword(normalized, "vertical", "horizontal");
             case "visibility":
                 return IsKnownKeyword(normalized, "visible", "hidden", "collapse");
+            case "pointer-events":
+                return IsKnownKeyword(normalized, "auto", "none");
             case "text-transform":
-                return IsKnownKeyword(normalized, "none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana");
+                return IsKnownKeyword(normalized, "none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana", "math-auto");
             case "text-decoration-line":
-                return normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
-                    .All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"));
+                return IsTextDecorationLineSyntax(HtmlRenderCssValues.SplitWhitespace(normalized));
             case "text-decoration-color":
                 return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(value.Trim(), out _);
+            case "text-decoration-style":
+                return IsKnownKeyword(normalized, "solid", "double", "dotted", "dashed", "wavy");
+            case "text-decoration-thickness":
+                return IsTextDecorationThicknessSyntax(value);
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
             case "font-stretch":
@@ -551,14 +582,19 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         out HashSet<string> inheritedProperties,
         out HashSet<string> resetProperties,
+        out HashSet<string> originRevertedProperties,
         out HashSet<string> specifiedProperties,
         out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
+        out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
+        bool includeCascadeTraces,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null,
         bool enforceResolutionLimits = true) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var deferredLayout = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var originReverted = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var specified = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var priorities = new Dictionary<string, HtmlCssCascadePriority>(HtmlCssPropertyNameComparer.Instance);
         if (parentProperties != null) {
@@ -576,8 +612,15 @@ public static partial class HtmlComputedStyleEngine {
             if (effective?.HasValue == true) {
                 raw[pair.Key] = effective.Value;
                 if (effective.IsDeferredFontShorthand) deferredFonts.Add(pair.Key);
+                if (effective.DeferredLayoutShorthand != null) deferredLayout[pair.Key] = effective.DeferredLayoutShorthand;
                 priorities[pair.Key] = ToCascadePriority(effective);
                 reset.Remove(pair.Key);
+                if (effective.InheritsComputedValue
+                    && string.Equals(pair.Value.AuthoredValue.Trim(), "revert", StringComparison.OrdinalIgnoreCase)) {
+                    originReverted.Add(pair.Key);
+                } else {
+                    originReverted.Remove(pair.Key);
+                }
                 if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) {
                     inherited.Add(pair.Key);
                     specified.Remove(pair.Key);
@@ -595,6 +638,7 @@ public static partial class HtmlComputedStyleEngine {
                     ids: -1, classes: -1, elements: -1, ruleOrder: -1, declarationOrder: -1);
                 inherited.Add(pair.Key);
                 reset.Remove(pair.Key);
+                originReverted.Add(pair.Key);
                 specified.Remove(pair.Key);
             } else {
                 raw.Remove(pair.Key);
@@ -602,33 +646,51 @@ public static partial class HtmlComputedStyleEngine {
                 inherited.Remove(pair.Key);
                 specified.Remove(pair.Key);
                 reset.Add(pair.Key);
+                CascadedProperty resetSource = effective ?? pair.Value;
+                priorities[pair.Key] = ToCascadePriority(resetSource);
+                if (string.Equals(resetSource.AuthoredValue.Trim(), "revert", StringComparison.OrdinalIgnoreCase)
+                    || resetSource.RevertsLayer) {
+                    originReverted.Add(pair.Key);
+                } else {
+                    originReverted.Remove(pair.Key);
+                }
             }
         }
         ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations, enforceResolutionLimits);
-        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, enforceResolutionLimits);
+        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, specified, enforceResolutionLimits);
+        ResolveDeferredLayoutLonghands(raw, deferredLayout, parentProperties, inherited, reset, specified, enforceResolutionLimits);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
+        var invalidAtComputedValue = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         Dictionary<string, string> resolved = requiresCustomPropertyResolution
-            ? ResolveCustomPropertyValues(raw, parentProperties, enforceResolutionLimits)
+            ? ResolveCustomPropertyValues(raw, parentProperties, inherited, reset, specified, invalidAtComputedValue, enforceResolutionLimits)
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
+        NormalizeOwnedComputedValues(resolved);
+        ResolveRelativeComputedFontWeight(resolved, parentProperties);
 
         inherited.IntersectWith(resolved.Keys);
         inheritedProperties = inherited;
         reset.ExceptWith(resolved.Keys);
         resetProperties = reset;
+        originReverted.IntersectWith(reset.Concat(resolved.Keys));
+        originRevertedProperties = originReverted;
         specified.IntersectWith(resolved.Keys);
         specifiedProperties = specified;
         List<string>? removedPriorityNames = null;
         foreach (string name in priorities.Keys) {
-            if (!resolved.ContainsKey(name)) (removedPriorityNames ??= new List<string>()).Add(name);
+            if (!resolved.ContainsKey(name) && !reset.Contains(name))
+                (removedPriorityNames ??= new List<string>()).Add(name);
         }
         if (removedPriorityNames != null) {
             foreach (string name in removedPriorityNames) priorities.Remove(name);
         }
         cascadePriorities = priorities;
+        cascadeTraces = includeCascadeTraces
+            ? BuildCascadeTraces(properties, resolved, inherited, reset, invalidAtComputedValue)
+            : null;
         return resolved;
     }
 
@@ -683,6 +745,10 @@ public static partial class HtmlComputedStyleEngine {
     private static Dictionary<string, string> ResolveCustomPropertyValues(
         IReadOnlyDictionary<string, string> raw,
         IReadOnlyDictionary<string, string>? parentProperties,
+        ISet<string> inheritedProperties,
+        ISet<string> resetProperties,
+        ISet<string> specifiedProperties,
+        ISet<string> invalidAtComputedValueProperties,
         bool enforceResolutionLimits) {
         var resolved = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in raw) {
@@ -698,7 +764,43 @@ public static partial class HtmlComputedStyleEngine {
                     : parentProperties != null && parentProperties.TryGetValue(name, out string? inherited) ? inherited : null,
                 out string value, enforceResolutionLimits);
             if (success && IsSupportedDeclarationValue(pair.Key, value)) {
-                resolved[pair.Key] = value;
+                // Value keywords obtained through var() need the same parent and
+                // initial-value resolution as directly authored declarations.
+                if (IsKnownKeyword(value.Trim().ToLowerInvariant(), "inherit", "initial", "unset")) {
+                    CssKeywordResolution keyword = ResolveCssWideKeyword(pair.Key, value, parentProperties);
+                    if (keyword.HasValue) {
+                        resolved[pair.Key] = keyword.Value;
+                        resetProperties.Remove(pair.Key);
+                        if (keyword.InheritsComputedValue) {
+                            inheritedProperties.Add(pair.Key);
+                            specifiedProperties.Remove(pair.Key);
+                        } else {
+                            inheritedProperties.Remove(pair.Key);
+                            specifiedProperties.Add(pair.Key);
+                        }
+                    } else {
+                        inheritedProperties.Remove(pair.Key);
+                        specifiedProperties.Remove(pair.Key);
+                        resetProperties.Add(pair.Key);
+                    }
+                } else {
+                    resolved[pair.Key] = value;
+                }
+                continue;
+            }
+            if (!OfficeIMO.Html.Css.HtmlCssPropertyCatalog.TryGet(pair.Key,
+                    out OfficeIMO.Html.Css.HtmlCssPropertyDefinition? definition)) continue;
+
+            invalidAtComputedValueProperties.Add(pair.Key);
+            specifiedProperties.Remove(pair.Key);
+            if (definition!.IsInherited
+                && parentProperties != null
+                && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
+                resolved[pair.Key] = inheritedValue;
+                inheritedProperties.Add(pair.Key);
+            } else {
+                resolved[pair.Key] = definition.InitialValue;
+                inheritedProperties.Remove(pair.Key);
             }
         }
 

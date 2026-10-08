@@ -1,0 +1,643 @@
+{
+  "functionalSourceHead": "f3980cbfbb333823be894c0930c05b8bd0e6434b",
+  "scope": "Font-use report attribution; no new page-appearance or performance acceptance",
+  "wai": {
+    "sourceSha256": "e412cfda033d9aa02b7abd455ae0fab917c2e44ba0ad0f4bc83f233877a4397d",
+    "textRuns": 190,
+    "textGeometryUnchanged": true,
+    "registeredFacesUnchanged": true,
+    "diagnosticChanges": [
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "Noto Sans",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notosans/notosans-bolditalic.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notosans/notosans-bolditalic.woff\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "Noto Sans",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "Noto Sans",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notosans/notosans-bolditalic.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notosans/notosans-bolditalic.woff\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "Noto Sans",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      },
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "Noto Sans Mono",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notosansmono/notosansmono-bold.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notosansmono/notosansmono-bold.woff\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "Noto Sans Mono",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "Noto Sans Mono",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notosansmono/notosansmono-bold.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notosansmono/notosansmono-bold.woff\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "Noto Sans Mono",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      },
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "Noto Naskh Arabic Minimal",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular-minimal.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular-minimal.woff\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic Minimal",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "Noto Naskh Arabic Minimal",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular-minimal.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular-minimal.woff\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic Minimal",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      },
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "Noto Naskh Arabic Minimal",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold-minimal.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold-minimal.woff\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic Minimal",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "Noto Naskh Arabic Minimal",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold-minimal.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold-minimal.woff\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic Minimal",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      },
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "Noto Naskh Arabic",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular.woff\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "Noto Naskh Arabic",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/regular.woff\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      },
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "Noto Naskh Arabic",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold.woff\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "Noto Naskh Arabic",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold.woff2\") format(\"woff2\"), url(\"https://www.w3.org/WAI/assets/fonts/notonaskh/bold.woff\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "Noto Naskh Arabic",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      },
+      {
+        "before": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "Source": "able",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/button-icons/fonts/able.ttf?dqripi\") format(\"truetype\"), url(\"https://www.w3.org/WAI/assets/button-icons/fonts/able.woff?dqripi\") format(\"woff\")",
+          "LossKind": 1,
+          "Provenance": {
+            "SourceAddress": "able",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        },
+        "after": {
+          "Component": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 0,
+          "Source": "able",
+          "Detail": "url(\"https://www.w3.org/WAI/assets/button-icons/fonts/able.ttf?dqripi\") format(\"truetype\"), url(\"https://www.w3.org/WAI/assets/button-icons/fonts/able.woff?dqripi\") format(\"woff\")",
+          "LossKind": 0,
+          "Provenance": {
+            "SourceAddress": "able",
+            "SourceLine": 0,
+            "SourceColumn": 0,
+            "TargetAddress": "OfficeIMO.Html.Renderer"
+          }
+        }
+      }
+    ]
+  },
+  "h4RasterComparison": [
+    {
+      "file": "columns-footnotes-brief/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "212f318fa62d6a2d14c4efcd6ae18a8d702dbf6fd2278a7746a3584ad4e2a8ab"
+    },
+    {
+      "file": "columns-footnotes-brief/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "793b4c3d36cdc36e8d8aa66419c839fa3f8c12685471199ae6a9c55e1f0c1a28"
+    },
+    {
+      "file": "columns-footnotes-brief/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "8abf90a63700773059f432beeecb1c62fc40f9c9fad4b70f9e00fb3fd7147748"
+    },
+    {
+      "file": "columns-footnotes-brief/officeimo-screen.png",
+      "same": true,
+      "sha256": "67a775aa1103fc010db4a63c983d989046cce5964910360b3955a433eef307d6"
+    },
+    {
+      "file": "legacy-portal/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "24b66d312ddd8c56e9fdf4024fb95c48f94d0801fd5aceaab20d8d65eb6a87f1"
+    },
+    {
+      "file": "legacy-portal/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "7ad8cc6041528b303a03e74f37b7218178111845774bcc7a2870a16292c7642a"
+    },
+    {
+      "file": "legacy-portal/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "872d46cf6a821bff69e3b8ca4d076048455d00b4ea905dc93c7c51c0ba7e51ad"
+    },
+    {
+      "file": "legacy-portal/officeimo-screen.png",
+      "same": true,
+      "sha256": "d0ff308437ef31082306d3280d4196afe79bfb17ca03e24937e1a488d3590cda"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "964c1b0e92400922b86e20de693b8e15ea0fa3888e34fd764b5398d279a94d15"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-print-page-2.png",
+      "same": true,
+      "sha256": "7ce05d4a5d12cfaa4875e30e05f6bccf445a6b1ecc57b6c027b243ba641cf579"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-print-page-3.png",
+      "same": true,
+      "sha256": "5fd931b462915818711669a4bcae9e7a7ddf30b14f8e01c32c7b394357e19f48"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "322b18ff6ea0edf570b80d9727d7f8115fd38f2e8112eebce84e362c050354f8"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-print-scene-page-2.png",
+      "same": true,
+      "sha256": "3d3d065d88e3f938de4ff864fc4c55cf80d111db6fd2c5ee4cde257bfd469329"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-print-scene-page-3.png",
+      "same": true,
+      "sha256": "8c6dffa1099b2fa454cb41151d46c7fb7c009ab2a626c94ae97fc12a31a9018f"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "50ae0080351bce1e781675ae993e134cb70e39ac1e3a2131cea35c4462e2e13d"
+    },
+    {
+      "file": "named-pages-brochure/officeimo-screen.png",
+      "same": true,
+      "sha256": "a5fa99b075b9a902dd608fe908326019a6ed2abe593c301862d7fdfd059a0a8d"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "3b38d2fa4b0a1b3540fbc853111fa95cf00f68ef2b765c2038ae5c122b14a0b8"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-print-page-2.png",
+      "same": true,
+      "sha256": "f96938fc6728142d67b3fcbd7859cc65d25bcd66a12a4e9c8d1af1347f5f4c20"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-print-page-3.png",
+      "same": true,
+      "sha256": "6c5db0b49f60e87c520c9b773272a2e5b21c76302fbc79eb6c8f16ffc7380147"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "f61897816a3182e898564ecae088ee7dc46d69187a55d26ed24a20028401b87f"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-print-scene-page-2.png",
+      "same": true,
+      "sha256": "9c0936ff618a02eeab4eb8b8b1b35dcce034e77a8a5e68d096974680ef32280d"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-print-scene-page-3.png",
+      "same": true,
+      "sha256": "f803cc78a34c5a551b7a93bc91cedad04a71a06c6f7e20acef7da8072bbce669"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "8da133c83d6e03a411034e0efc796f95b77adecc2596acc8e0b986e9c51541bc"
+    },
+    {
+      "file": "nested-fragmentation-report/officeimo-screen.png",
+      "same": true,
+      "sha256": "b4f75df037d4bb871d8c947c71475c049176f3738b6151338dc753d57dad03f9"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "39cecc087dd8af3b3499b6e9b803bb5cb56d6408c2d3da8e0b906164d5bea21d"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-print-page-2.png",
+      "same": true,
+      "sha256": "5149f1a9dbb98b660a8a9b50beef749e759fba87eea2be8185c2b98aa8a68ce0"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "2764f905bd9130b9abc12cfce81e450a0c30b0330853320661bc78e425397f46"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-print-scene-page-2.png",
+      "same": true,
+      "sha256": "2e3aac34d7c18847b8fc9b110cdc29679bf6107c0bd92374ebfafd15a5c0850b"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "65e85452c26dbd6f5792136f51789b81fdee7e7c5648e3e8eecfeda4fdd6640a"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-screen-to-pdf-page-2.png",
+      "same": true,
+      "sha256": "c6ab135ff5c172f41c5e6a45c6cdc76fa0e9cc974d8189b91e1fad2d94c6df32"
+    },
+    {
+      "file": "professional-print-catalog/officeimo-screen.png",
+      "same": true,
+      "sha256": "77d8b98df3658850550aae2dc9269a128d4e879cb7e0484fb9c21cb7c8f3c280"
+    },
+    {
+      "file": "stacking-clipping-board/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "17dc3f9028f9ded891b2dce9b291f7de8d0190bff3fc802c1dde7258c9f7c2cd"
+    },
+    {
+      "file": "stacking-clipping-board/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "2704aa528b57fccb8e8745c9e0046713a26c62201159d0fd95b2cd528e736ad7"
+    },
+    {
+      "file": "stacking-clipping-board/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "c2c8ee72316155f927c896e44b931176bcf18f144e6080401cbc5d1694bd6299"
+    },
+    {
+      "file": "stacking-clipping-board/officeimo-screen.png",
+      "same": true,
+      "sha256": "f6286120a0ff1b96adaad57176233b933be1a1da51aed50336cdb9f22442562a"
+    },
+    {
+      "file": "subgrid-operations/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "e048b9e93fd2b0fc05b858cd5b1f63a17d2bfd7f255ddf8a58e674507d6434a4"
+    },
+    {
+      "file": "subgrid-operations/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "ace54e7f48da2afea73e479fb0a51081b205c50ce1df19e7085730469a7ea457"
+    },
+    {
+      "file": "subgrid-operations/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "c9c988bb673b643f95b3f0864fefd735e22d4cc248ee86fbb09e964119c89dfe"
+    },
+    {
+      "file": "subgrid-operations/officeimo-screen.png",
+      "same": true,
+      "sha256": "c890251aa391bc27e62e9ed61bc2f4a19925f2323f1838250a97e81750e81937"
+    },
+    {
+      "file": "typography-specimen/officeimo-print-page-1.png",
+      "same": true,
+      "sha256": "d7a9e1b80b7c4ff29f349b3cfb954c21ef32f497547001f03142cacbeb6fcb95"
+    },
+    {
+      "file": "typography-specimen/officeimo-print-scene-page-1.png",
+      "same": true,
+      "sha256": "26f7103c75790da5187ba452b83e875c7522c0e431ac7408e356344326a38ace"
+    },
+    {
+      "file": "typography-specimen/officeimo-screen-to-pdf-page-1.png",
+      "same": true,
+      "sha256": "c3d64033b2b32eb9378e03c142341878eb32d25ce2425f1f48f15a79e41315e5"
+    },
+    {
+      "file": "typography-specimen/officeimo-screen.png",
+      "same": true,
+      "sha256": "c834b125730896626a497822867f3513a3e6d67347e2c98ff6944c355d9ac1a8"
+    }
+  ],
+  "fwsPdfComparison": [
+    {
+      "file": "PrintPaged.pdf",
+      "same": true,
+      "bytes": 7712495,
+      "sha256": "1cf58572b38286378b499052aaa2cc1a49687ecd1eca98f87a53767482555c5a"
+    },
+    {
+      "file": "ScreenMediaPaged.pdf",
+      "same": true,
+      "bytes": 7994781,
+      "sha256": "2e34d0e1e0baa1d0e9011cd7731eb4744a9effc188a5caaf988d9a6929565403"
+    },
+    {
+      "file": "ScreenSnapshotPaged.pdf",
+      "same": true,
+      "bytes": 8045949,
+      "sha256": "2e0611a4ae5b2eb99fd340fb5d470a6955bc5ab997c70c807e2e2b6b201eb986"
+    }
+  ],
+  "fwsFontReports": [
+    {
+      "intent": "PrintPaged",
+      "pages": 7,
+      "diagnosticsRetained": 112,
+      "lossBearingBefore": 112,
+      "lossBearingAfter": 2,
+      "remainingMissingFaces": [
+        {
+          "Converter": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Source": "Source Sans Pro Web",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "LossKind": 1,
+          "LayoutDiagnostic": null,
+          "Details": {
+            "Detail": "url(\"https://www.fws.gov/themes/custom/fws/styles/fonts/source-sans-pro/sourcesanspro-regular-webfont.woff2\") format(\"woff2\")"
+          }
+        },
+        {
+          "Converter": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Source": "Source Sans Pro Web",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "LossKind": 1,
+          "LayoutDiagnostic": null,
+          "Details": {
+            "Detail": "url(\"https://www.fws.gov/themes/custom/fws/styles/fonts/source-sans-pro/sourcesanspro-bold-webfont.woff2\") format(\"woff2\")"
+          }
+        }
+      ]
+    },
+    {
+      "intent": "ScreenMediaPaged",
+      "pages": 8,
+      "diagnosticsRetained": 112,
+      "lossBearingBefore": 112,
+      "lossBearingAfter": 2,
+      "remainingMissingFaces": [
+        {
+          "Converter": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Source": "Source Sans Pro Web",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "LossKind": 1,
+          "LayoutDiagnostic": null,
+          "Details": {
+            "Detail": "url(\"https://www.fws.gov/themes/custom/fws/styles/fonts/source-sans-pro/sourcesanspro-regular-webfont.woff2\") format(\"woff2\")"
+          }
+        },
+        {
+          "Converter": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Source": "Source Sans Pro Web",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "LossKind": 1,
+          "LayoutDiagnostic": null,
+          "Details": {
+            "Detail": "url(\"https://www.fws.gov/themes/custom/fws/styles/fonts/source-sans-pro/sourcesanspro-bold-webfont.woff2\") format(\"woff2\")"
+          }
+        }
+      ]
+    },
+    {
+      "intent": "ScreenSnapshotPaged",
+      "pages": 7,
+      "diagnosticsRetained": 112,
+      "lossBearingBefore": 112,
+      "lossBearingAfter": 2,
+      "remainingMissingFaces": [
+        {
+          "Converter": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Source": "Source Sans Pro Web",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "LossKind": 1,
+          "LayoutDiagnostic": null,
+          "Details": {
+            "Detail": "url(\"https://www.fws.gov/themes/custom/fws/styles/fonts/source-sans-pro/sourcesanspro-regular-webfont.woff2\") format(\"woff2\")"
+          }
+        },
+        {
+          "Converter": "OfficeIMO.Html.Renderer",
+          "Code": "HtmlRenderFontFaceUnavailable",
+          "Source": "Source Sans Pro Web",
+          "Message": "No usable source from an @font-face rule was available to the renderer.",
+          "Severity": 1,
+          "LossKind": 1,
+          "LayoutDiagnostic": null,
+          "Details": {
+            "Detail": "url(\"https://www.fws.gov/themes/custom/fws/styles/fonts/source-sans-pro/sourcesanspro-bold-webfont.woff2\") format(\"woff2\")"
+          }
+        }
+      ]
+    }
+  ],
+  "review": {
+    "boundary": "Font-face use attribution and direct-paint entrypoints",
+    "fullPass": "Four P2 findings reproduced and fixed in one remediation",
+    "targetedConfirmation": "Original findings confirmed; control-only grapheme false positive found, reproduced in three cases and fixed with focused validation",
+    "residualGap": "Final control-only correction has direct regression proof; no second targeted review was requested"
+  },
+  "validation": {
+    "focusedFontUsage": {
+      "framework": "net10.0",
+      "passed": 29,
+      "failed": 0
+    },
+    "htmlFull": {
+      "net8.0": {
+        "passed": 3609,
+        "failed": 0
+      },
+      "net10.0": {
+        "passed": 3609,
+        "failed": 0
+      }
+    },
+    "drawingFull": {
+      "net8.0": {
+        "passed": 2638,
+        "failed": 0
+      },
+      "net10.0": {
+        "passed": 2638,
+        "failed": 0
+      },
+      "testedCoreHead": "27e2e3e3210fc3bb59e8fc4992279ecd464f9095",
+      "scope": "Core source unchanged through final functional head; later correction is in HTML attribution"
+    },
+    "portableHtml": {
+      "framework": "netstandard2.0",
+      "warnings": 0,
+      "errors": 0
+    },
+    "h4": {
+      "cases": 8,
+      "acceptance": "Passed",
+      "runnerFailures": 0
+    },
+    "timingSensitiveRetry": {
+      "firstConcurrentNet10Run": {
+        "passed": 3608,
+        "failed": 1,
+        "test": "DirectPdfByteEntryPointsKeepSerializationInsideTheRenderDeadline(true)",
+        "failure": "100ms render timeout elapsed before encryption; EncryptOperations assertion failed while concurrent builds and corpus replays were active"
+      },
+      "isolatedDeadlineCases": {
+        "passed": 2,
+        "failed": 0
+      },
+      "fullNet10WithoutConcurrentTaskBuildsAndReplays": {
+        "passed": 3609,
+        "failed": 0
+      },
+      "interpretation": "Recorded timing-sensitive test failure and successful retries; no performance acceptance inferred"
+    },
+    "assemblyHeadVerification": "OfficeIMO.Core and OfficeIMO.Html net10.0 DLL informational metadata contain the final functional source head"
+  },
+  "retention": {
+    "h4": "Ignore/HtmlUnknownPageQualification/h10-h4-font-usage-clean-f3980cbfb (compact evidence and acceptance reports only)",
+    "wai": "Ignore/HtmlUnknownPageQualification/h10-fws-font-audit/wai-current-f3980cbfb.json",
+    "fws": "Ignore/HtmlUnknownPageQualification/h10-fws-font-usage-clean-f3980cbfb/integration-results.json",
+    "cleanup": "Removed newly generated duplicate H4 artifacts, three byte-identical FWS PDFs, and recreated probe bin/obj; prior frozen sources and inspected baseline artifacts remain."
+  }
+}

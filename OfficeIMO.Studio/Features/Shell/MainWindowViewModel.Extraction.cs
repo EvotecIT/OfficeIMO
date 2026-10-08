@@ -25,7 +25,7 @@ public sealed partial class MainWindowViewModel {
             bool provider = _services.Storage.UsesProviderPublication(destination);
             var preview = new PageExtractionPreviewViewModel(workspace.Pages.Count, pages, destination, provider, _localizer,
                 path => _openDocumentInTab is null ? _openUri(new Uri(path)) : _openDocumentInTab(path, CancellationToken.None),
-                path => _openUri(new Uri(Path.GetDirectoryName(path)!)));
+                OutputActions.SupportsFolderNavigation ? path => _openUri(new Uri(Path.GetDirectoryName(path)!)) : null);
             if (!await _reviewPageExtraction(preview).ConfigureAwait(true) || !preview.CanApply) return;
             if (!IsReviewedCopyCurrent(workspace, revision) || !CanExtractPages) return;
             int[] selectedPages = preview.SelectedPages;

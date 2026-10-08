@@ -12,7 +12,7 @@ public sealed class KeynoteToPowerPointResult : IDisposable {
         Report = report;
     }
 
-    /// <summary>Gets the converted editable OfficeIMO PowerPoint presentation.</summary>
+    /// <summary>Gets the converted OfficeIMO PowerPoint presentation.</summary>
     public PowerPointPresentation Value { get; }
     /// <summary>Gets the bounded source package and preserved IWA records.</summary>
     public IWorkSourceDocument Source { get; }
@@ -27,6 +27,18 @@ public sealed class KeynoteToPowerPointResult : IDisposable {
 
     /// <summary>Returns the converted PowerPoint presentation.</summary>
     public PowerPointPresentation RequireValue() => Value;
+
+    /// <summary>Returns the converted PowerPoint presentation or throws unless its report permits complete editable reconstruction.</summary>
+    /// <remarks>This checks assessed content completeness, not full appearance or record-level fidelity. A rejected value is disposed.</remarks>
+    public PowerPointPresentation RequireCompleteEditableReconstruction() {
+        try {
+            Report.RequireCompleteEditableReconstruction();
+            return Value;
+        } catch {
+            Value.Dispose();
+            throw;
+        }
+    }
 
     /// <summary>Returns the converted PowerPoint presentation or throws when the conversion was lossy.</summary>
     public PowerPointPresentation RequireNoLoss() {

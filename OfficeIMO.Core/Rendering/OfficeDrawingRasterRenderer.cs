@@ -16,6 +16,12 @@ public static partial class OfficeDrawingRasterRenderer {
 
     /// <summary>Renders a drawing with an optional external image codec.</summary>
     public static OfficeRasterImage Render(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return RenderCore(drawing, options, options.Scale, options.Scale);
+    }
+
+    private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
+        double scaleX, double scaleY, OfficeRasterExportPlan? allocationPlan = null) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
@@ -31,18 +37,19 @@ public static partial class OfficeDrawingRasterRenderer {
             throw new ArgumentOutOfRangeException(nameof(options.MaximumRasterPixels), "Maximum raster pixels must be positive.");
         }
 
-        _ = OfficeRasterExportPlanner.Resolve(
-            drawing.Width,
-            drawing.Height,
+        bool uniform = scaleX == scale && scaleY == scale;
+        OfficeRasterExportPlan plan = allocationPlan ?? OfficeRasterExportPlanner.Resolve(
+            uniform ? drawing.Width : drawing.Width * scaleX,
+            uniform ? drawing.Height : drawing.Height * scaleY,
             OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
-                Scale = scale,
+                Scale = uniform ? scale : 1D,
                 MaximumRasterPixels = options.MaximumRasterPixels,
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
 
-        int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
-        int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
+        int width = plan.Limit.PixelWidth;
+        int height = plan.Limit.PixelHeight;
         OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
@@ -53,6 +60,8 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: options.DiagnosticSink,
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
+        canvas.FontMetricScale = scale;
+        canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)
@@ -135,7 +144,7 @@ public static partial class OfficeDrawingRasterRenderer {
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateGroupClipContours(drawingGroup, scale);
         if (contours.Count > 0) {
             return contours.Count == 1 && drawingGroup.ClipPath.Kind != OfficeClipPathKind.Path
-                ? canvas.PushClipPolygon(contours[0])
+                ? PushSingleContourClip(canvas, drawingGroup.ClipPath.Kind, contours[0])
                 : PushClipPolygons(canvas, contours, drawingGroup.ClipPath.FillRule);
         }
 
@@ -250,7 +259,7 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {
+    internal static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {
         OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
         double contentX = (text.X * scale) + scaledPadding.Left;
         double contentY = (text.Y * scale) + scaledPadding.Top;
@@ -290,55 +299,21 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         return contours.Count == 1 && clipPath.Kind != OfficeClipPathKind.Path
-            ? canvas.PushClipPolygon(contours[0])
+            ? PushSingleContourClip(canvas, clipPath.Kind, contours[0])
             : PushClipPolygons(canvas, contours, clipPath.FillRule);
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {
-        return CreateClipContours(clipPath, contour => TransformClipContour(drawingShape, contour, scale));
+        return OfficeClipPathGeometry.CreateContours(clipPath, contour => TransformClipContour(drawingShape, contour, scale));
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateGroupClipContours(OfficeDrawingGroup drawingGroup, double scale) {
         OfficeTransform? transform = drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform
             ? drawingGroup.FrameTransform.Value.CreateDestinationTransform()
             : null;
-        return CreateClipContours(
+        return OfficeClipPathGeometry.CreateContours(
             drawingGroup.ClipPath,
             contour => TransformGroupClipContour(drawingGroup, contour, scale, transform));
-    }
-
-    private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeClipPath clipPath, Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour) {
-        IReadOnlyList<OfficePoint> basis = transformContour(new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(0, 1) });
-        double dx1 = basis[1].X - basis[0].X, dy1 = basis[1].Y - basis[0].Y;
-        double dx2 = basis[2].X - basis[0].X, dy2 = basis[2].Y - basis[0].Y;
-        double pixelsPerUnit = Math.Sqrt(dx1 * dx1 + dy1 * dy1 + dx2 * dx2 + dy2 * dy2);
-
-        IReadOnlyList<OfficePoint> contour;
-        switch (clipPath.Kind) {
-            case OfficeClipPathKind.Rectangle:
-                contour = new[] {
-                    new OfficePoint(0D, 0D),
-                    new OfficePoint(clipPath.Width, 0D),
-                    new OfficePoint(clipPath.Width, clipPath.Height),
-                    new OfficePoint(0D, clipPath.Height)
-                };
-                return new[] { transformContour(contour) };
-            case OfficeClipPathKind.RoundedRectangle:
-                contour = CreateRoundedRectangleContour(clipPath.Width, clipPath.Height, clipPath.CornerRadius, pixelsPerUnit);
-                return new[] { transformContour(contour) };
-            case OfficeClipPathKind.Path:
-                IReadOnlyList<OfficeFlattenedPathContour> flattened = OfficePathFlattener.Flatten(clipPath.Commands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
-                List<IReadOnlyList<OfficePoint>> contours = new List<IReadOnlyList<OfficePoint>>();
-                for (int i = 0; i < flattened.Count; i++) {
-                    if (flattened[i].Closed && flattened[i].Points.Count >= 3) {
-                        contours.Add(transformContour(flattened[i].Points));
-                    }
-                }
-
-                return contours;
-            default:
-                return Array.Empty<IReadOnlyList<OfficePoint>>();
-        }
     }
 
     private static void FillPathContours(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeColor color, OfficeFillRule fillRule) {
@@ -379,28 +354,6 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         return hasPoint && right > left && bottom > top;
-    }
-
-    private static OfficeLinearGradient TransformShapeFillGradient(
-        OfficeDrawingShape drawingShape,
-        double scale,
-        IReadOnlyList<IReadOnlyList<OfficePoint>> transformedContours,
-        OfficeLinearGradient gradient) {
-        if (!TryGetContourBounds(transformedContours, out double left, out double top,
-                out double right, out double bottom)) {
-            return gradient;
-        }
-
-        OfficeShape shape = drawingShape.Shape;
-        double width = right - left;
-        double height = bottom - top;
-        OfficeTransform coordinates = OfficeTransform.Scale(shape.Width, shape.Height)
-            .Then(shape.Transform ?? OfficeTransform.Identity)
-            .Then(OfficeTransform.Translate(drawingShape.X, drawingShape.Y))
-            .Then(OfficeTransform.Scale(scale, scale))
-            .Then(OfficeTransform.Translate(-left, -top))
-            .Then(OfficeTransform.Scale(1D / width, 1D / height));
-        return gradient.TransformCoordinates(coordinates);
     }
 
     private static IDisposable PushClipPolygons(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>
@@ -511,7 +464,7 @@ public static partial class OfficeDrawingRasterRenderer {
             gradient.StartY,
             gradient.EndX,
             gradient.EndY,
-            stops);
+            stops).WithColorInterpolation(gradient.ColorInterpolation);
     }
 
     private static OfficeRadialGradient ApplyOpacity(OfficeRadialGradient gradient, double? opacity) {
@@ -527,16 +480,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 ApplyOpacity(stop.Color, opacity) ?? stop.Color));
         }
 
-        return new OfficeRadialGradient(
-            gradient.StartX,
-            gradient.StartY,
-            gradient.StartRadiusX,
-            gradient.StartRadiusY,
-            gradient.EndX,
-            gradient.EndY,
-            gradient.EndRadiusX,
-            gradient.EndRadiusY,
-            stops);
+        return gradient.WithStops(stops);
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {
@@ -597,7 +541,8 @@ public static partial class OfficeDrawingRasterRenderer {
             baseStrokeWidth,
             hasFill,
             hasStroke,
-            OfficeShadowLayerPlanner.CanExpand(shape));
+            OfficeShadowLayerPlanner.CanExpand(shape),
+            Math.Min(shape.Width, shape.Height));
         var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
         for (int index = 0; index < layers.Count; index++) {
             OfficeShadowLayer layer = layers[index];
@@ -608,7 +553,7 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {
         OfficeShape shape = drawingShape.Shape;
-        OfficeShape shadowShape = layer.Expansion > 0D
+        OfficeShape shadowShape = Math.Abs(layer.Expansion) > 0.000000001D
             ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
             : shape.Clone();
         shadowShape.Shadow = null;

@@ -36,7 +36,7 @@ internal static partial class OfficeDocumentModelTraversal {
             // Project fallback locations without mutating the aggregate or page model. Aggregate content wins.
             yield return (location != null && !ReferenceEquals(location, block.Location)) || !ReferenceEquals(region, block.Region)
                 ? new OfficeDocumentBlock { Id = block.Id, Kind = block.Kind, Text = block.Text, Level = block.Level,
-                    Marker = block.Marker, Region = region, Location = location ?? block.Location }
+                    Marker = block.Marker, ListIndex = block.ListIndex, Recognition = block.Recognition, Region = region, Location = location ?? block.Location }
                 : block;
         }
     }
@@ -226,6 +226,7 @@ internal static partial class OfficeDocumentModelTraversal {
         return new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
+            LogicalOrder = source.LogicalOrder,
             SourceBlockIndex = source.SourceBlockIndex,
             StartLine = source.StartLine,
             EndLine = source.EndLine,
@@ -264,6 +265,12 @@ internal static partial class OfficeDocumentModelTraversal {
         !string.IsNullOrWhiteSpace(block.Id) ? "id:" + block.Id : "anchor:" + block.Location?.BlockAnchor;
 
     internal static string BuildBlockIdentity(OfficeDocumentBlock block) => BuildBlockIdentity(block, block.Location);
+
+    /// <summary>Separates a promoted fallback chunk from its possibly empty structural block projection.</summary>
+    /// <remarks>Named chunks keep their identity across reordering; anonymous chunks use their source ordinal. The shared identifier survives JSON transport without copying adapter metadata into blocks.</remarks>
+    internal static string BuildFallbackChunkBlockId(ReaderChunk chunk, int chunkIndex) =>
+        !string.IsNullOrWhiteSpace(chunk.Id) ? "chunk-text/id:" + chunk.Id
+            : "chunk-text/index:" + chunkIndex.ToString(CultureInfo.InvariantCulture);
 
     private static string BuildBlockIdentity(OfficeDocumentBlock block, ReaderLocation? location) {
         string? anchor = location?.BlockAnchor;
@@ -371,6 +378,7 @@ internal static partial class OfficeDocumentModelTraversal {
         var fallback = new ReaderLocation {
             Path = source.Path,
             BlockIndex = source.BlockIndex,
+            LogicalOrder = source.LogicalOrder,
             SourceBlockIndex = source.SourceBlockIndex,
             StartLine = source.StartLine,
             EndLine = source.EndLine,
@@ -415,6 +423,7 @@ internal static partial class OfficeDocumentModelTraversal {
         return new ReaderLocation {
             Path = Prefer(location?.Path, fallback.Path),
             BlockIndex = location?.BlockIndex ?? fallback.BlockIndex,
+            LogicalOrder = location?.LogicalOrder ?? fallback.LogicalOrder,
             SourceBlockIndex = location?.SourceBlockIndex ?? fallback.SourceBlockIndex,
             StartLine = location?.StartLine ?? fallback.StartLine,
             EndLine = location?.EndLine ?? fallback.EndLine,

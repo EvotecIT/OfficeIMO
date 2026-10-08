@@ -26,12 +26,21 @@ internal static class OfficeConversionSupportAssessments {
                 "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
         }
         return routeId switch {
+        "book-project-epub" => Targeted(
+            "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
+            "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),
+        "html-epub" or "markdown-epub" or "docx-epub" => Targeted(
+            "Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
+            "Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."),
         "doc-pdf" => Targeted(
             "Legacy DOC import and first-party PDF rendering retain separate fidelity reports; known import loss blocks conversion by default.",
             "Only the supported Word 97-2003 import subset is projected. Preserved-only graphics and richer structures cannot be rendered; Word pagination may differ."),
         "txt-pdf" => Targeted(
             "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
             "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
+        "xps-pdf" => Targeted(
+            "Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
+            "Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts."),
         "docx-pdf" => Advanced(
             "Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",
             "Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced."),

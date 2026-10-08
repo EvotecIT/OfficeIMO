@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 
 /// <summary>Operation-scoped bounded cache for successful configured-shaper measurements.</summary>
 internal sealed class HtmlShapedTextMeasurementCache {
-    internal const int MaximumEntries = 1024;
+    internal const int MaximumEntries = 4096;
     internal const int MaximumRetainedTextCharacters = 256 * 1024;
     internal const int MaximumCacheableTextCharacters = 1024;
 

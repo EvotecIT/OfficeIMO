@@ -2,7 +2,9 @@ using System.Collections.ObjectModel;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
+using OfficeIMO.Provenance.C2pa;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
@@ -13,16 +15,28 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     private readonly Func<CancellationToken, Task<string?>> _pickFolder;
     private readonly IOfficeProvenanceWorkflowRunner _runner;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobs;
     private OfficeProvenanceWorkflowResult? _review, _lastResult;
     private CancellationTokenSource? _cancellation;
     private int _revision;
     private bool _disposed;
 
     public ProvenanceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInput,
-        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner = null, IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner = null, IOfficeWorkflowPublicationGuard? publicationGuard = null)
+        : this(pickInput, pickFolder, runner, publicationGuard, null) { }
+
+    internal ProvenanceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInput,
+        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner,
+        IOfficeWorkflowPublicationGuard? publicationGuard, StudioJobHistory? jobHistory) {
         _pickInput = pickInput; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner(); _publicationGuard = publicationGuard;
+        _jobs = jobHistory;
     }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
+    /// <summary>Whether the host imports private copies and shares results instead of exposing local paths.</summary>
+    public bool UsesWorkingCopies { get; internal set; }
+    public string InputName => Path.GetFileName(InputPath);
+    public string OutputName => Path.GetFileName(OutputPath);
+    public string ReportName => Path.GetFileName(ReportPath);
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(InputName)), NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
     private string _inputPath = "";
     [ObservableProperty] private string _outputFolder = "";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy)), NotifyPropertyChangedFor(nameof(CanExportReport))]
@@ -32,8 +46,8 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCreateCopy))] private bool _removeDeclarations;
     [ObservableProperty] private string _status = "Choose a local file and assess its supported provenance evidence.";
     [ObservableProperty] private string _checks = "Structural: NotRequested · Text integrity: NotRequested · Verification: NotConfigured · Providers: NotConfigured";
-    [ObservableProperty] private string _outputPath = "";
-    [ObservableProperty] private string _reportPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OutputName))] private string _outputPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ReportName))] private string _reportPath = "";
     [ObservableProperty] private string _inputHash = "";
     [ObservableProperty] private string _outputHash = "";
     [ObservableProperty] private string _coverage = "";
@@ -55,8 +69,17 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [RelayCommand] private async Task ChooseInputAsync() {
         if (IsBusy || _disposed) return;
         int revision = _revision;
-        string? path = await _pickInput(CancellationToken.None);
-        if (!_disposed && revision == _revision && path != null) InputPath = path;
+        using var cancellation = new CancellationTokenSource();
+        _cancellation = cancellation;
+        IsBusy = true;
+        try {
+            string? path = await _pickInput(cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (!_disposed && revision == _revision && path != null) InputPath = path;
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            if (!_disposed) Status = "Import cancelled.";
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status = error.Message; }
+        finally { _cancellation = null; IsBusy = false; }
     }
     [RelayCommand] private async Task ChooseFolderAsync() {
         if (IsBusy || _disposed) return;
@@ -83,8 +106,21 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         request.Removal.SignatureMutationPolicy = OfficeSignatureMutationPolicy.BlockSave;
         IsBusy = true; Status = remove ? "Creating and re-inspecting a separate copy…" : "Assessing local file…";
         using var cancellation = new CancellationTokenSource(); _cancellation = cancellation;
+        StudioJobRecord? job = null;
+        bool ownerStarted = false;
         try {
-            OfficeProvenanceWorkflowResult result = await _runner.RunProvenanceAsync(request, cancellationToken: cancellation.Token);
+            job = _jobs?.Start(remove ? "Provenance copy" : "Provenance assessment", request.InputPath, request.OutputPath, cancellation.Cancel);
+            using IDisposable? permit = _jobs is null ? null : await _jobs.EnterAsync(cancellation.Token);
+            job?.Report(new("provenance", "execute", Status, 0, 0));
+            ownerStarted = true;
+            IOfficeProvenanceWorkflowRunner runner = _runner;
+            if (!remove && CanConfigureProvider && !string.IsNullOrWhiteSpace(C2paToolPath)) {
+                runner = new OfficeWorkflowRunner(new C2paToolProvenanceVerifier(C2paToolPath.Trim()));
+                request.Assessment.Verification.TrustAnchorsPath = string.IsNullOrWhiteSpace(TrustAnchorsPath) ? null : TrustAnchorsPath.Trim();
+                request.Assessment.Verification.AllowedListPath = string.IsNullOrWhiteSpace(AllowedListPath) ? null : AllowedListPath.Trim();
+            }
+            OfficeProvenanceWorkflowResult result = await runner.RunProvenanceAsync(request, cancellationToken: cancellation.Token);
+            job?.Complete(result.Status, result.OutputPath, result.Summary);
             if (_disposed || revision != _revision) return;
             _lastResult = result;
             if (!remove) _review = result.Succeeded ? result : null;
@@ -99,12 +135,30 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
             foreach (OfficeProvenanceEvidence evidence in report?.Evidence ?? Array.Empty<OfficeProvenanceEvidence>())
                 Findings.Add($"{evidence.Carrier} · {evidence.Location} · {(evidence.IsStructurallyValid ? "Structurally recognized" : "Malformed or ambiguous")}");
             foreach (OfficeTextIntegrityFinding finding in result.Assessment?.TextIntegrity?.Findings ?? Array.Empty<OfficeTextIntegrityFinding>())
-                Findings.Add($"{finding.UnicodeNotation} · {finding.Kind} · {finding.Risk} · UTF-16 offset {finding.TextOffset}");
+                Findings.Add($"{finding.UnicodeNotation} · {finding.Kind} · {finding.Risk} · {finding.Location} · UTF-16 offset {finding.TextOffset}");
+            if (result.Assessment?.Verification is { } verification) {
+                Findings.Add($"{verification.ProviderName} · Verification: {verification.Status}");
+                foreach (string finding in verification.Findings) Findings.Add(finding);
+            }
+            foreach (var signal in result.Assessment?.ProviderSignals ?? Array.Empty<OfficeProvenanceSignalResult>()) {
+                Findings.Add($"{signal.ProviderName} · {signal.SignalKind} · {signal.Status}");
+                if (signal.Measurement is { } measurement)
+                    Findings.Add(FormattableString.Invariant($"{measurement.Algorithm} · detector {measurement.DetectorVersion} · {measurement.ScoreName}: {measurement.Score} · threshold: {measurement.Threshold} · tokens: {measurement.TokenCount}"));
+                foreach (string finding in signal.Findings) Findings.Add(finding);
+            }
             foreach (OfficeProvenanceChange change in result.Changes) Changes.Add($"{change.Carrier} · {change.Location} · {change.RemovedBytes} bytes removed");
             foreach (OfficeWorkflowDiagnostic diagnostic in result.Diagnostics) Diagnostics.Add($"{diagnostic.Severity}: {diagnostic.Message}");
             foreach (string diagnostic in report?.Diagnostics ?? Array.Empty<string>()) Diagnostics.Add(diagnostic);
-        } catch (OperationCanceledException) { if (!_disposed) Status = "Cancelled."; }
-        catch (Exception error) when (error is not OutOfMemoryException) { if (!_disposed) Status = "Provenance workflow failed: " + error.Message; }
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            string message = remove && ownerStarted ? "Cancelled. Check the output folder before retrying." : "Cancelled.";
+            job?.Complete(remove && ownerStarted ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Cancelled, null, message);
+            if (!_disposed) Status = message;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+            string message = "Provenance workflow failed: " + error.Message;
+            job?.Complete(remove && ownerStarted ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Failed, null, message);
+            if (!_disposed) Status = message;
+        }
         finally { _cancellation = null; IsBusy = false; OnPropertyChanged(nameof(CanCreateCopy)); OnPropertyChanged(nameof(CanExportReport)); }
     }
     [RelayCommand] private async Task ExportReportAsync() {
@@ -112,14 +166,40 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         if (!Path.IsPathFullyQualified(OutputFolder) || !Directory.Exists(OutputFolder)) { Status = "Choose an existing local folder for the report."; return; }
         var result = _lastResult!; int revision = _revision;
         string path = Path.Combine(OutputFolder, "provenance-report-" + Guid.NewGuid().ToString("N") + ".json");
-        string temporary = path + ".tmp";
+        using var cancellation = new CancellationTokenSource(); _cancellation = cancellation;
+        StudioJobRecord? job = null;
         IsBusy = true;
+        async Task VerifyDestinationAsync(CancellationToken token) {
+            if (_disposed || revision != _revision) cancellation.Cancel();
+            token.ThrowIfCancellationRequested();
+            if (_publicationGuard != null && !await _publicationGuard.CanPublishAsync(path, false, token).ConfigureAwait(false))
+                throw new IOException("The report destination is protected by the host publication policy.");
+            token.ThrowIfCancellationRequested();
+        }
         try {
-            await File.WriteAllTextAsync(temporary, OfficeProvenanceReportSerializer.Serialize(result), new UTF8Encoding(false));
+            job = _jobs?.Start("Provenance report", result.InputPath ?? InputPath, path, cancellation.Cancel);
+            Status = "Queued";
+            using IDisposable? permit = _jobs is null ? null : await _jobs.EnterAsync(cancellation.Token);
+            Status = "Exporting report…";
+            job?.Report(new("provenance-report", "publish", Status, 0, 0));
+            await VerifyDestinationAsync(cancellation.Token);
+            byte[] bytes = Encoding.UTF8.GetBytes(OfficeProvenanceReportSerializer.Serialize(result));
+            await OfficeFileCommit.WriteAsync(path, async (stream, token) => {
+                await stream.WriteAsync(bytes, token).ConfigureAwait(false);
+                await VerifyDestinationAsync(token).ConfigureAwait(false);
+            }, OfficeFileCommit.ConflictPolicy.FailIfExists, cancellation.Token);
+            job?.Complete(OfficeWorkflowStatus.Completed, path, "Report exported.");
             if (_disposed || revision != _revision) return;
-            File.Move(temporary, path); ReportPath = path; Status = "Report exported.";
-        } catch (Exception error) when (error is not OutOfMemoryException) { if (!_disposed) Status = "Report export failed: " + error.Message; }
-        finally { if (File.Exists(temporary)) File.Delete(temporary); IsBusy = false; }
+            ReportPath = path; Status = "Report exported.";
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            job?.Complete(OfficeWorkflowStatus.Cancelled, null, "Report export cancelled.");
+            if (!_disposed) Status = "Report export cancelled.";
+        } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+            string message = "Report export failed: " + error.Message;
+            job?.Complete(OfficeWorkflowStatus.Failed, null, message);
+            if (!_disposed) Status = message;
+        }
+        finally { _cancellation = null; IsBusy = false; }
     }
     [RelayCommand] private void Cancel() => _cancellation?.Cancel();
     public void Dispose() { if (_disposed) return; _disposed = true; _revision++; _cancellation?.Cancel(); }

@@ -301,16 +301,14 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfUnderstandingTableCandidate>? projectedTableCandidates = analysis is null
             ? null
             : GetProjectedTableCandidates(analysis, retainedLines!, retainedRuns!, cancellationToken);
-        IReadOnlyList<PdfUnderstandingTableCandidate>? nativeStructuredTableCandidates = projectedTableCandidates?
-            .Where(static candidate => candidate.SourceKind == PdfLogicalContentSourceKind.Native)
-            .ToArray();
         var structured = analysis is null
             ? page.ExtractStructured(options)
             : CreateStructuredProjection(
                 page,
                 retainedLines!,
-                nativeStructuredTableCandidates!,
+                projectedTableCandidates!,
                 analysis,
+                options,
                 cancellationToken);
         var elements = new List<IPdfLogicalElement>();
         var textBlocks = new List<PdfLogicalTextBlock>();
@@ -440,7 +438,7 @@ public sealed partial class PdfLogicalPage {
             analysis is null
                 ? BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex)
                 : BuildParagraphsFromSemanticRegions(pageNumber, textBlocks, semanticByTextBlock),
-            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<StructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex),
+            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<StructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
             tables.AsReadOnly(),
             vectorPrimitiveCount,
             unrepresentedVectorPrimitiveCount,
@@ -687,14 +685,18 @@ public sealed partial class PdfLogicalPage {
     private static StructuredPage CreateStructuredProjection(
         PdfReadPage page,
         List<PdfUnderstandingLine> sourceLines,
-        IReadOnlyList<PdfUnderstandingTableCandidate> nativeTableCandidates,
+        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates,
         PdfUnderstandingPageResult analysis,
+        PdfTextLayoutOptions? options,
         CancellationToken cancellationToken) {
         var structured = new StructuredPage();
-        ReplaceProjectionLines(page, structured, sourceLines, cancellationToken);
-        for (int tableIndex = 0; tableIndex < nativeTableCandidates.Count; tableIndex++) {
+        ReplaceProjectionLines(page, structured,
+            SplitTableProjectionLines(sourceLines, tableCandidates, analysis, options, cancellationToken),
+            cancellationToken);
+        for (int tableIndex = 0; tableIndex < tableCandidates.Count; tableIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            StructuredTable table = nativeTableCandidates[tableIndex].ToStructuredTable(
+            if (tableCandidates[tableIndex].SourceKind != PdfLogicalContentSourceKind.Native) continue;
+            StructuredTable table = tableCandidates[tableIndex].ToStructuredTable(
                 page,
                 analysis.ConsumeWork,
                 analysis.CancellationCheck);
@@ -742,7 +744,7 @@ public sealed partial class PdfLogicalPage {
 
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             PdfLogicalTextBlock block = textBlocks[blockIndex];
-            if (block.Kind != PdfLogicalElementKind.TextBlock) {
+            if (block.Kind != PdfLogicalElementKind.TextBlock || block.IsTableContent) {
                 FlushCurrent();
                 continue;
             }
@@ -776,13 +778,15 @@ public sealed partial class PdfLogicalPage {
         List<PdfLogicalTextBlock> textBlocks,
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
-        LogicalTextBlockSourceIndex textBlockSourceIndex) {
+        LogicalTextBlockSourceIndex textBlockSourceIndex,
+        PdfUnderstandingPageResult analysis) {
         var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
+        AddTaggedListItems(pageNumber, textBlocks, semanticByTextBlock, analysis, result, represented);
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             PdfLogicalTextBlock block = textBlocks[blockIndex];
-            if (block.Kind != PdfLogicalElementKind.ListItem ||
+            if (represented.Contains(block) || block.Kind != PdfLogicalElementKind.ListItem ||
                 !semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic) ||
                 semantic.Kind != PdfUnderstandingSemanticKind.ListItem ||
                 !PreservesListContinuationOwnership(semantic)) continue;
@@ -1017,10 +1021,12 @@ public sealed partial class PdfLogicalPage {
         }
 
         internal bool Contains(StructuredLine line) {
+            bool hasSourceRun = false;
             for (int runIndex = 0; runIndex < line.Spans.Count; runIndex++) {
-                if (_sourceRuns.Contains(line.Spans[runIndex])) return true;
+                if (!_sourceRuns.Contains(line.Spans[runIndex])) return false;
+                hasSourceRun = true;
             }
-            return _sourceLines.Contains((
+            return hasSourceRun || _sourceLines.Contains((
                 line.SourceKind,
                 GetBucket(line.Y, 0.25D),
                 GetBucket(line.XStart, 0.5D),

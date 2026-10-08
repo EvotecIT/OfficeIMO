@@ -66,10 +66,11 @@ internal static partial class PdfWriter {
                 shape.StrokeWidth,
                 hasFill,
                 hasStroke,
-                OfficeShadowLayerPlanner.CanExpand(shape));
+                OfficeShadowLayerPlanner.CanExpand(shape),
+                Math.Min(shape.Width, shape.Height));
             for (int index = 0; index < layers.Count; index++) {
                 OfficeShadowLayer layer = layers[index];
-                OfficeShape layerShape = layer.Expansion > 0D
+                OfficeShape layerShape = Math.Abs(layer.Expansion) > 0.000000001D
                     ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
                     : shape;
                 DrawShapeShadowLayerAt(
@@ -160,10 +161,10 @@ internal static partial class PdfWriter {
                     DrawEllipse(sb, fillColor, ToPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, xShape, bottomY, shape.Width, shape.Height);
                 } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Polygon) {
                     pageDirty = true;
-                    DrawPolygon(sb, fillColor, ToPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, xShape, bottomY, shape.Height);
+                    DrawPolygon(sb, fillColor, ToPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, xShape, bottomY, shape.Height, shape.FillRule);
                 } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Path) {
                     pageDirty = true;
-                    DrawPath(sb, fillColor, ToPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, xShape, bottomY, shape.Height);
+                    DrawPath(sb, fillColor, ToPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, xShape, bottomY, shape.Height, shape.FillRule);
                 }
 
                 if (shape.ClipPath != null) {
@@ -210,38 +211,41 @@ internal static partial class PdfWriter {
         private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, OfficeDrawingTextMetrics? textMetrics = null) {
             textMetrics ??= CreateDrawingTextMetrics(currentOpts);
             for (int i = 0; i < drawing.Elements.Count; i++) {
-                if (drawing.Elements[i] is OfficeDrawingShape shape) {
+                cancellationToken.ThrowIfCancellationRequested();
+                OfficeDrawingElement element = drawing.Elements[i];
+                DrawSourceStructuredElement(element, () => DrawDrawingElement(element, originX, originTopY, textMetrics));
+            }
+        }
+
+        private void DrawDrawingElement(OfficeDrawingElement element, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
+                if (element is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
                     DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
-                } else if (drawing.Elements[i] is OfficeDrawingText text) {
+                } else if (element is OfficeDrawingLink link) {
+                    DrawDrawingLinkAt(link, originX, originTopY);
+                } else if (element is OfficeDrawingText text) {
                     DrawDrawingTextAt(text, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingRichText richText) {
+                } else if (element is OfficeDrawingRichText richText) {
                     DrawDrawingRichTextAt(richText, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingImage image) {
+                } else if (element is OfficeDrawingImage image) {
                     DrawDrawingImageAt(image, originX, originTopY);
-                } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
+                } else if (element is OfficeDrawingGroup group) {
                     DrawDrawingGroupAt(group, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
-                    if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
-                        throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
-                    }
-
-                    OfficeTransform pageTransform = ToTopLeftPageTransform(effectGroup.Transform, originX, originTopY);
-                    RenderEffectGroup(
-                        pageTransform,
-                        effectGroup.Opacity,
-                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY, textMetrics));
+                } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                    DrawDrawingEffectAt(effectGroup, originX, originTopY, textMetrics);
+                } else if (element is OfficeDrawingTilingPattern pattern) {
+                    DrawDrawingPatternAt(pattern, originX, originTopY, textMetrics);
                 } else {
                     throw new NotSupportedException(
                         "OfficeIMO.Pdf does not yet support drawing elements of type " +
-                        drawing.Elements[i].GetType().Name + ".");
+                        element.GetType().Name + ".");
                 }
-            }
         }
 
         private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             void DrawGroupContent() {
+                int linkStart = currentPage!.Annotations.Count;
                 double clipX = originX + group.X;
                 double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
                 new ContentStreamBuilder(sb).SaveState();
@@ -250,6 +254,7 @@ internal static partial class PdfWriter {
                     group.InnerDrawing,
                     clipX + group.ContentOffsetX,
                     originTopY - group.Y - group.ContentOffsetY, textMetrics);
+                ClipCanvasLinkAnnotations(currentPage.Annotations, linkStart, clipX, clipBottomY, group.ClipPath.Width, group.ClipPath.Height, group.ClipPath);
                 new ContentStreamBuilder(sb).RestoreState();
             }
 
@@ -317,6 +322,7 @@ internal static partial class PdfWriter {
                 targetBottomY,
                 projection.Width,
                 projection.Height);
+            pageImage.Interpolate = image.Interpolate;
             pageImage.Opacity = image.Opacity;
             pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
             pageImage.HorizontalFlip = projection.FlipHorizontal;
@@ -416,17 +422,14 @@ internal static partial class PdfWriter {
         }
 
         private void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Shape");
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            double needed = spacingBefore + block.Shape.Height + style.SpacingAfter;
-            EnsureFixedFlowBlockFits("Shape", block.Shape.Width, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Shape", block.Shape.Width, block.Shape.Height,
+                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
@@ -434,28 +437,34 @@ internal static partial class PdfWriter {
         }
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Drawing");
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            double needed = spacingBefore + block.Drawing.Height + style.SpacingAfter;
-            EnsureFixedFlowBlockFits("Drawing", block.Drawing.Width, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) {
-                NewPage();
-                spacingBefore = 0D;
-            }
+            double spacingBefore = PlaceFixedFlowBlock("Drawing", block.Drawing.Width, block.Drawing.Height,
+                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align), y - block.Drawing.Height, block.Drawing.Width, block.Drawing.Height);
             y -= block.Drawing.Height + style.SpacingAfter;
         }
 
-        private void KeepFixedBlockWithNext(double needed, double nextHeight) {
-            double keepHeight = needed + nextHeight;
-            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-            if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
-                NewPage();
+        private void KeepFixedBlockWithNext(double objectWidth, double objectHeight, double spacingBefore, double spacingAfter,
+            IList<IPdfBlock> blocks, int blockIndex) {
+            while (true) {
+                double needed = ResolveTopLevelSpacingBefore(spacingBefore) + objectHeight + spacingAfter;
+                EnsureFixedFlowBlockFits("Kept object", objectWidth, objectHeight + spacingAfter, GetMaximumFixedFlowWidth(width));
+                if (objectWidth > width + .001D || ShouldAdvanceForBlockHeight(needed)) {
+                    NewBlockFrame();
+                    continue;
+                }
+                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
+                    width, currentOpts.DefaultFontSize, needed);
+                double keepHeight = needed + nextHeight;
+                if (nextHeight <= .001D || keepHeight > GetMaximumBlockContinuationHeight() + .001D || !ShouldAdvanceForBlockHeight(keepHeight)) break;
+                NewBlockFrame();
             }
         }
 

@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfExternalSignatureOptions {
     /// <summary>Default maximum PDF source size accepted by one-shot signing APIs (512 MiB).</summary>
     public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
+    internal const int MaximumReservedSignatureContentsBytes = 1024 * 1024;
 
     private string _fieldName = "Signature1";
     private int _reservedSignatureContentsBytes = 32768;
@@ -69,7 +70,7 @@ public sealed class PdfExternalSignatureOptions {
                 throw new ArgumentOutOfRangeException(nameof(value), "Reserve at least 256 signature bytes.");
             }
 
-            if (value > 1024 * 1024) {
+            if (value > MaximumReservedSignatureContentsBytes) {
                 throw new ArgumentOutOfRangeException(nameof(value), "Reserved signature contents cannot exceed 1 MB.");
             }
 

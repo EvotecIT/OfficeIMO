@@ -14,11 +14,12 @@ public sealed partial class OfficeRasterCanvas {
     private const int MaximumContourCoverageTileWidth = 8192;
     private const double MinimumDashSegmentAdvance = 1E-9D;
     private const double MinimumRasterDashLength = 0.25D;
-    private static readonly OfficeTrueTypeFont? DefaultFont = OfficeTrueTypeFont.TryLoadDefault();
+    private static readonly Lazy<OfficeTrueTypeFont?> DefaultFont = new Lazy<OfficeTrueTypeFont?>(OfficeTrueTypeFont.TryLoadDefault);
     private readonly OfficeRasterImage? _image;
     private readonly OfficeRasterRenderTarget? _target;
     private readonly OfficeTrueTypeFont? _font;
     private readonly OfficeFontFaceCollection? _fonts;
+    private readonly bool _scopedFontResolutionOnly;
     private readonly IOfficeTextShapingProvider? _textShapingProvider;
     private readonly string? _textShapingLanguage;
     private readonly ICollection<OfficeImageExportDiagnostic>? _diagnosticSink;
@@ -26,8 +27,6 @@ public sealed partial class OfficeRasterCanvas {
     private readonly System.Threading.CancellationToken _cancellationToken;
     private bool _reportedBoundedTextShapingFallback;
     private bool _reportedIncompleteTextShapingFallback;
-    private const long MaximumTransformedTextIntermediatePixels = 64_000_000L;
-    private OfficeRasterTransformedTextBudget _transformedTextBudget = new OfficeRasterTransformedTextBudget();
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -61,7 +60,7 @@ public sealed partial class OfficeRasterCanvas {
         string? diagnosticSource = null,
         System.Threading.CancellationToken cancellationToken = default) {
         _image = image ?? throw new ArgumentNullException(nameof(image));
-        _font = font ?? DefaultFont;
+        _font = font ?? DefaultFont.Value;
         _fonts = fonts?.Clone();
         _textShapingProvider = textShapingProvider;
         _textShapingLanguage = NormalizeTextShapingLanguage(textShapingLanguage);
@@ -99,7 +98,7 @@ public sealed partial class OfficeRasterCanvas {
         string? diagnosticSource = null,
         System.Threading.CancellationToken cancellationToken = default) {
         _target = target ?? throw new ArgumentNullException(nameof(target));
-        _font = font ?? DefaultFont;
+        _font = font ?? DefaultFont.Value;
         _fonts = fonts?.Clone();
         _textShapingProvider = textShapingProvider;
         _textShapingLanguage = NormalizeTextShapingLanguage(textShapingLanguage);
@@ -124,31 +123,6 @@ public sealed partial class OfficeRasterCanvas {
     internal OfficeTrueTypeFont? OutlineFont => _font;
 
     internal OfficeFontFaceCollection? Fonts => _fonts;
-
-    internal void ChargeTransformedTextIntermediatePixels(long pixels, long maximumRasterPixels) {
-        long consumed = _transformedTextBudget.Pixels;
-        if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - consumed) {
-            throw new OfficeImageExportLimitException(1D,
-                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
-                MaximumTransformedTextIntermediatePixels,
-                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
-        }
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
-        _transformedTextBudget.Pixels = consumed + pixels;
-    }
-
-    internal void ReleaseTransformedTextIntermediatePixels(long pixels) {
-        _transformedTextBudget.Pixels -= pixels;
-        _transformedTextBudget.ReleaseIntermediateSurfacePixels(pixels);
-    }
-
-    internal OfficeRasterTransformedTextBudget TransformedTextBudget => _transformedTextBudget;
-
-    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) =>
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
-
-    internal void ShareTransformedTextBudget(OfficeRasterTransformedTextBudget budget) =>
-        _transformedTextBudget = budget;
 
     internal System.Threading.CancellationToken CancellationToken => _cancellationToken;
 
@@ -508,16 +482,17 @@ public sealed partial class OfficeRasterCanvas {
             rotationCenterY,
             flipHorizontal,
             flipVertical);
-        OfficeTransform imageTransform = projection.CreateUnitSquareTransform();
+        OfficeTransform imageTransform = ScaleCoordinates(projection.CreateUnitSquareTransform());
         if (!imageTransform.TryInvert(out OfficeTransform inverseTransform)) {
             return;
         }
 
+        (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterImage(image,
             SamplingAxisLength(inverseTransform.M11, inverseTransform.M21) * image.Width * sourceWidth,
             SamplingAxisLength(inverseTransform.M12, inverseTransform.M22) * image.Height * sourceHeight);
 
-        (double minX, double minY, double maxX, double maxY) = projection.GetDestinationBounds();
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -551,6 +526,7 @@ public sealed partial class OfficeRasterCanvas {
         DrawAffineImage(image, transform, opacity, interpolate: true);
 
     internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
+        transform = ScaleCoordinates(transform);
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
@@ -558,6 +534,7 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
@@ -721,14 +698,15 @@ public sealed partial class OfficeRasterCanvas {
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(value)));
 
     private static OfficeColor InterpolateGradient(OfficeLinearGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio);
+        return InterpolateGradientStops(gradient.Stops, ratio, interpolation: gradient.ColorInterpolation);
     }
 
     private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) {
-        return InterpolateGradientStops(gradient.Stops, ratio);
+        return double.IsNaN(ratio) ? gradient.OutsideColor ?? OfficeColor.Transparent
+            : InterpolateGradientStops(gradient.Stops, ratio, gradient.SpreadMode != OfficeGradientSpreadMode.Pad || gradient.OutsideColor != null || gradient.StartRadius > gradient.EndRadius, gradient.ColorInterpolation);
     }
 
-    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio) {
+    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio, bool separateAlpha = false, OfficeGradientColorInterpolation interpolation = OfficeGradientColorInterpolation.Srgb) {
         if (ratio <= stops[0].Offset) {
             return stops[0].Color;
         }
@@ -739,52 +717,23 @@ public sealed partial class OfficeRasterCanvas {
                 OfficeGradientStop previous = stops[i - 1];
                 double span = next.Offset - previous.Offset;
                 double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
-                return Interpolate(previous.Color, next.Color, Clamp(localRatio, 0D, 1D));
+                localRatio = Clamp(localRatio, 0D, 1D);
+                // Native XPS radial paint interpolates color and alpha separately,
+                // consistently with paths, strokes, SVG composition and PDF.
+                if (interpolation == OfficeGradientColorInterpolation.LinearRgb) return OfficeGradientColors.Interpolate(previous.Color, next.Color, localRatio, interpolation);
+                if (separateAlpha) return OfficeColor.FromRgba(
+                    InterpolateByte(previous.Color.R, next.Color.R, localRatio),
+                    InterpolateByte(previous.Color.G, next.Color.G, localRatio),
+                    InterpolateByte(previous.Color.B, next.Color.B, localRatio),
+                    InterpolateByte(previous.Color.A, next.Color.A, localRatio));
+                return Interpolate(previous.Color, next.Color, localRatio);
             }
         }
 
         return stops[stops.Count - 1].Color;
     }
 
-    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) {
-        double endRadiusX = Math.Max(gradient.EndRadiusX, 0.0000001D);
-        double endRadiusY = Math.Max(gradient.EndRadiusY, 0.0000001D);
-        double normalizedX = (x - gradient.EndX) / endRadiusX;
-        double normalizedY = (y - gradient.EndY) / endRadiusY;
-        double startX = (gradient.StartX - gradient.EndX) / endRadiusX;
-        double startY = (gradient.StartY - gradient.EndY) / endRadiusY;
-        double startRadius = gradient.StartRadiusX / endRadiusX;
-        double vx = normalizedX - startX;
-        double vy = normalizedY - startY;
-        double dx = -startX;
-        double dy = -startY;
-        double dr = 1D - startRadius;
-        double a = (dx * dx) + (dy * dy) - (dr * dr);
-        double b = -2D * ((vx * dx) + (vy * dy) + (startRadius * dr));
-        double c = (vx * vx) + (vy * vy) - (startRadius * startRadius);
-        if (Math.Abs(a) < 0.0000001D) {
-            if (Math.Abs(b) < 0.0000001D) {
-                return 0D;
-            }
-
-            return Clamp(-c / b, 0D, 1D);
-        }
-
-        double discriminant = (b * b) - (4D * a * c);
-        if (discriminant < 0D) {
-            return 0D;
-        }
-
-        double sqrt = Math.Sqrt(discriminant);
-        double t1 = (-b - sqrt) / (2D * a);
-        double t2 = (-b + sqrt) / (2D * a);
-        double ratio = Math.Max(t1, t2);
-        if (ratio < 0D) {
-            ratio = Math.Min(t1, t2);
-        }
-
-        return Clamp(ratio, 0D, 1D);
-    }
+    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
 
     private static byte InterpolateByte(byte start, byte end, double ratio) =>
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio))));
@@ -792,26 +741,4 @@ public sealed partial class OfficeRasterCanvas {
     private static int Clamp(int value, int min, int max) => value < min ? min : value > max ? max : value;
 
     private static double Clamp(double value, double min, double max) => value < min ? min : value > max ? max : value;
-}
-
-internal sealed class OfficeRasterTransformedTextBudget {
-    internal long Pixels;
-    internal long IntermediatePixels;
-
-    internal void EnsureIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
-        long consumed = IntermediatePixels;
-        if (pixels < 0L || pixels > maximumRasterPixels - consumed) {
-            throw new OfficeImageExportLimitException(1D,
-                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
-                maximumRasterPixels,
-                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
-        }
-    }
-
-    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
-        EnsureIntermediateSurfacePixels(pixels, maximumRasterPixels);
-        IntermediatePixels += pixels;
-    }
-
-    internal void ReleaseIntermediateSurfacePixels(long pixels) => IntermediatePixels -= pixels;
 }
