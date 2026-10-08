@@ -123,6 +123,24 @@ public partial class Word {
         Assert.False(LegacyDocField.TryReadSectionPages(characters, 0, out _, out _, out _, out _));
     }
 
+    [Theory]
+    [InlineData("header-table-start5", false)]
+    [InlineData("header-table-continuing", true)]
+    [InlineData("footer-table-start5", false)]
+    [InlineData("footer-table-continuing", true)]
+    public void LegacyDoc_SectionPagesImportedFieldsCalculatePhysicalCountsInPdf(string fixture, bool continuing) {
+        string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Word", "LegacyFields", fixture + ".doc");
+        using WordDocument document = WordDocument.Load(path);
+        using var pdf = OpenJoinedParagraphPdf(document);
+        int expectedPages = continuing ? 4 : 2;
+        Assert.Equal(expectedPages, pdf.NumberOfPages);
+        for (int index = 1; index <= expectedPages; index++) {
+            string section = index > 2 ? "Second" : "First";
+            int visible = continuing ? index : index + 4;
+            Assert.Contains($"{section}/{visible}/2/{expectedPages}", pdf.GetPage(index).Text);
+        }
+    }
+
     private static WordParagraph AddSectionPagesStoryParagraph(WordDocument document, string story) {
         if (story == "cell") return document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         if (story == "header" || story == "footer") {

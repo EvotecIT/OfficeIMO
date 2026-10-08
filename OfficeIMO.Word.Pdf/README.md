@@ -20,7 +20,7 @@ foreach (var report in conversion.SourceConversionReports)
         Console.WriteLine($"{finding.Code}: {finding.Message}");
 ```
 
-Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature. Binary DOC SECTIONPAGES fields import as stored text and are unsupported by native authoring.
+Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature. Supported binary DOC SECTIONPAGES fields retain their editable instruction and cached result during import; PDF header/footer fields use calculated section counts during pagination.
 
 ## Install
 
