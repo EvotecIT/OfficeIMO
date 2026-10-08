@@ -112,8 +112,7 @@ internal static class PdfImageExportEngine {
         effective.Scale = options.ResolveScale(pageSize.Width, pageSize.Height);
         if (options.TargetDpi.HasValue && effective.Scale < requestedScale) {
             double effectiveDpi = effective.Scale * effective.LogicalUnitsPerInch;
-            effective.RasterEncoding.DpiX = effectiveDpi;
-            effective.RasterEncoding.DpiY = effectiveDpi;
+            effective.RasterEncoding.Resolution = new OfficeImageResolution(effectiveDpi, effectiveDpi);
         }
         // The target DPI has already been resolved into Scale. Keeping it on the clone would let
         // the shared validation step overwrite a stricter thumbnail scale.

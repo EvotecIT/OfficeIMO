@@ -79,7 +79,7 @@ public sealed class XpsColorTests {
     public void TiffImagesPreservePixelsAndPhysicalViewbox(XpsFormat format) {
         var image = new OfficeRasterImage(8, 4, OfficeColor.Red);
         for (int y = 0; y < 4; y++) for (int x = 4; x < 8; x++) image.SetPixel(x, y, OfficeColor.Blue);
-        byte[] tiff = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff, new OfficeRasterEncodingOptions { DpiX = 192, DpiY = 192, WriteResolutionMetadata = true });
+        byte[] tiff = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff, new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(192, 192), WriteResolutionMetadata = true });
         var doc = XpsDocument.Create(format);
         string uri = doc.AddResource("Images/color.tif", tiff, "image/tiff");
         var page = doc.AddPage(80, 40).AddImage(uri, 0, 0, 80, 40);

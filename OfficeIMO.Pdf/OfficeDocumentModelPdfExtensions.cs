@@ -32,7 +32,10 @@ public static class OfficeDocumentModelPdfExtensions {
         PdfDocument document = PdfDocument.Create(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
-        rasterDecodeOptions.CancellationToken = cancellationToken;
+        using var rasterCancellation = rasterDecodeOptions.CancellationToken.CanBeCanceled
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(rasterDecodeOptions.CancellationToken, cancellationToken)
+            : null;
+        rasterDecodeOptions.CancellationToken = rasterCancellation?.Token ?? cancellationToken;
         var identities = new ProjectionIdentitySet();
         AssetProjectionSummary assetSummary = default;
 
@@ -247,7 +250,7 @@ public static class OfficeDocumentModelPdfExtensions {
                     sourceLabel,
                     "Frame " + decodeInfo.SelectedFrameIndex + " of " + decodeInfo.FrameCount + " was embedded as a static image; remaining animation frames were not retained."));
             } else {
-                string code = rasterDecodeOptions.AnimationPolicy == OfficeRasterAnimationPolicy.RejectAnimated
+                string code = rasterDecodeOptions.FrameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames
                     ? "pdf-projection-asset-animation-rejected"
                     : "pdf-projection-asset-animation-not-supported";
                 report.Add(Warning(code, sourceLabel, decodeInfo.Diagnostic ?? "The animated raster asset could not be represented as a static PDF image."));
