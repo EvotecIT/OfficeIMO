@@ -961,7 +961,7 @@ class TrueTypeFont extends FontReader {
         for (let i = 0; i <= this.glyphCount; i++)
             if (this.offsets[i] > glyf.length || (i && this.offsets[i] < this.offsets[i - 1]))
                 throw new TypeError("Invalid TrueType glyph offsets.");
-        const cmap = this.table("cmap", 4), maps = [];
+        const cmap = this.table("cmap", 4), maps = [], validated = new Set();
         const encodings = this.u16(cmap.offset + 2);
         if (4 + encodings * 8 > cmap.length)
             throw new TypeError("Invalid TrueType cmap directory.");
@@ -973,6 +973,9 @@ class TrueTypeFont extends FontReader {
                 throw new TypeError("Invalid cmap subtable offset.");
             const offset = cmap.offset + relative, type = this.u16(offset);
             if (type !== 4 && type !== 12)
+                continue;
+            // Encoding records may share a Unicode subtable; validate its contents once.
+            if (validated.has(offset))
                 continue;
             if (type === 12 && relative + 16 > cmap.length)
                 throw new TypeError("Truncated cmap format 12.");
@@ -1003,8 +1006,8 @@ class TrueTypeFont extends FontReader {
                     previous = end;
                 }
             }
-            if (!maps.some(m => m.offset === offset))
-                maps.push({ offset, length });
+            validated.add(offset);
+            maps.push({ offset, length });
         }
         this.cmaps = maps.sort((a, b) => this.u16(b.offset) - this.u16(a.offset));
         if (!maps.length)
