@@ -1120,6 +1120,14 @@ bounded by `MaxFormResourceTraversals`.
 For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
 was not declared and retains an explicit or inherited authored `Normal` value.
 
+Named composite font encodings such as `UniJIS-UCS2-H` require a usable `ToUnicode`
+map for text extraction and redaction search. If shown text lacks that mapping,
+extraction throws `NotSupportedException` and redaction planning reports an error
+instead of interpreting the character codes as WinAnsi text. Supply a PDF with
+an explicit Unicode map before using those text operations. Unused font resources
+do not block extraction; the existing `Identity-H` and `Identity-V` paths retain
+their current behavior and editability limits.
+
 Text extraction excludes PDF artifact marked content by default, which is the
 logical-text behavior expected for decorative headers, footers, and chart
 labels. Opt into visual text when those marked artifacts are part of the

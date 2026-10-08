@@ -11,11 +11,34 @@ internal static partial class PdfRedactionPlanner {
         return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false, excludeGeneratedRedactionMarks: false, cancellationToken);
     }
 
+    private static PdfRedactionPlan CreateUnsupportedTextMappingPlan(byte[] pdf, PdfUnsupportedTextMappingException error,
+        PdfLoadOptions? options, string code, CancellationToken cancellationToken) =>
+        new(PdfInspector.Preflight(pdf, options, cancellationToken), Array.Empty<PdfRedactionArea>(),
+            Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, code, error.Message) },
+            Array.Empty<string>(), PdfRedactionPlan.ComputeSourceSha256(pdf));
+
     internal static PdfRedactionPlan PlanForVerification(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfLoadOptions? options, CancellationToken cancellationToken = default) {
         return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true, excludeGeneratedRedactionMarks: true, cancellationToken);
     }
 
     private static PdfRedactionPlan Plan(
+        byte[] pdf,
+        IEnumerable<PdfRedactionArea> areas,
+        PdfTextLayoutOptions? layoutOptions,
+        PdfLoadOptions? options,
+        bool includeHiddenOptionalContentText,
+        bool excludeGeneratedRedactionMarks,
+        CancellationToken cancellationToken) {
+        try {
+            return PlanCore(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText,
+                excludeGeneratedRedactionMarks, cancellationToken);
+        } catch (PdfUnsupportedTextMappingException error) {
+            return CreateUnsupportedTextMappingPlan(pdf, error, options,
+                "RedactionSourceTextMappingUnsupported", cancellationToken);
+        }
+    }
+
+    private static PdfRedactionPlan PlanCore(
         byte[] pdf,
         IEnumerable<PdfRedactionArea> areas,
         PdfTextLayoutOptions? layoutOptions,
