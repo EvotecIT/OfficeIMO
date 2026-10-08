@@ -41,6 +41,7 @@ public sealed partial class OfficeVbaProject {
         || _modules.Any(module => module.IsNew || module.Name != module.OriginalName || module.Source != module.OriginalSource);
 
     /// <summary>Loads a detached project with aggregate input, compound-stream, and expanded-source limits.</summary>
+    /// <exception cref="InvalidDataException">The project is malformed or its persisted text encoding is invalid or unavailable.</exception>
     public static OfficeVbaProject Load(byte[] projectBytes, OfficeVbaReadOptions? options = null) {
         if (projectBytes == null) throw new ArgumentNullException(nameof(projectBytes));
         options ??= new OfficeVbaReadOptions();
@@ -52,6 +53,13 @@ public sealed partial class OfficeVbaProject {
         if (!OfficeCompoundFileReader.TryRead(bytes, readOptions, out OfficeCompoundFile? compound, out string? error) || compound == null) {
             throw new InvalidDataException(error ?? "The VBA project is not a valid compound file.");
         }
+        try { return LoadContents(bytes, compound, options); }
+        catch (Exception exception) when (exception is System.Text.DecoderFallbackException || exception is NotSupportedException) {
+            throw new InvalidDataException("The VBA project has invalid text or an unavailable persisted encoding.", exception);
+        }
+    }
+
+    private static OfficeVbaProject LoadContents(byte[] bytes, OfficeCompoundFile compound, OfficeVbaReadOptions options) {
         if (!compound.Streams.TryGetValue("VBA/dir", out byte[]? compressedDirectory)
             || !compound.Streams.TryGetValue("PROJECT", out byte[]? projectText)) {
             throw new InvalidDataException("A VBA project must contain PROJECT and VBA/dir streams.");

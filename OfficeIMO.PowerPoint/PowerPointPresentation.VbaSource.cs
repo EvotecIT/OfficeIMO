@@ -20,7 +20,6 @@ public sealed partial class PowerPointPresentation {
             throw new ArgumentException("PowerPoint source projects cannot contain document modules bound to another Office host.", nameof(project));
         }
         byte[] bytes = project.Write(options).GetBytes();
-        var part = _presentationPart.VbaProjectPart ?? _presentationPart.AddNewPart<DocumentFormat.OpenXml.Packaging.VbaProjectPart>();
-        OfficeVbaProjectPartEditor.Apply(part, bytes, options);
+        OfficeVbaProjectPartEditor.Apply(_presentationPart, _presentationPart.VbaProjectPart, bytes, options, out _);
     }
 }

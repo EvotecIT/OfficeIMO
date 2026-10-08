@@ -50,14 +50,12 @@ internal static class OfficeVbaText {
         ValidateClassAttributes(lines);
         // VBE .cls exports have a designer preamble; the compound module holds only attributes and code.
         if (lines.Length > 0 && lines[0].TrimStart().StartsWith("VERSION ", StringComparison.OrdinalIgnoreCase)) {
-            int firstAttribute = Array.FindIndex(lines, line => line.StartsWith("Attribute VB_Name", StringComparison.OrdinalIgnoreCase));
+            int firstAttribute = Array.FindIndex(lines, line => HasAttributeName(line, "VB_Name"));
             if (firstAttribute < 0) throw new InvalidDataException("An exported class module must contain Attribute VB_Name.");
             lines = lines.Skip(firstAttribute).ToArray();
         }
         string expected = "Attribute VB_Name = \"" + name + "\"";
-        int nameIndex = Array.FindIndex(lines, line => line.StartsWith("Attribute VB_Name", StringComparison.OrdinalIgnoreCase));
-        if (nameIndex >= 0) lines[nameIndex] = expected;
-        else lines = new[] { expected }.Concat(lines).ToArray();
+        lines = new[] { expected }.Concat(lines.Where(line => !HasAttributeName(line, "VB_Name"))).ToArray();
         if (existingSource != null) {
             if (kind == OfficeVbaModuleKind.Document || kind == OfficeVbaModuleKind.Designer) {
                 string? persistedBase = GetBaseIdentity(existingSource);
@@ -67,32 +65,33 @@ internal static class OfficeVbaText {
                 }
             }
             var additions = existingSource.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')
-                .Where(line => line.StartsWith("Attribute VB_", StringComparison.OrdinalIgnoreCase))
-                .Where(line => {
-                    int equals = line.IndexOf('=');
-                    string attribute = equals < 0 ? line : line.Substring(0, equals).TrimEnd();
-                    return !lines.Any(candidate => candidate.StartsWith(attribute + " ", StringComparison.OrdinalIgnoreCase)
-                        || candidate.StartsWith(attribute + "=", StringComparison.OrdinalIgnoreCase));
-                }).ToArray();
+                .Where(line => GetClassAttributeName(line) is string attribute && !lines.Any(candidate => HasAttributeName(candidate, attribute)))
+                .ToArray();
             lines = new[] { lines[0] }.Concat(additions).Concat(lines.Skip(1)).ToArray();
         }
-        if (kind == OfficeVbaModuleKind.Class && !lines.Any(line => line.StartsWith("Attribute VB_Creatable", StringComparison.OrdinalIgnoreCase))) {
-            lines = new[] { lines[0], "Attribute VB_GlobalNameSpace = False", "Attribute VB_Creatable = False", "Attribute VB_PredeclaredId = False", "Attribute VB_Exposed = False" }.Concat(lines.Skip(1)).ToArray();
+        if (kind == OfficeVbaModuleKind.Class) {
+            lines = AddMissingAttributes(lines, "Attribute VB_GlobalNameSpace = False", "Attribute VB_Creatable = False",
+                "Attribute VB_PredeclaredId = False", "Attribute VB_Exposed = False");
         }
-        if (kind == OfficeVbaModuleKind.Class && !lines.Any(line => line.StartsWith("Attribute VB_Base", StringComparison.OrdinalIgnoreCase))) {
+        if (kind == OfficeVbaModuleKind.Class) {
             // Office's native generic class identity; VBE export omits this persisted attribute.
-            lines = new[] { lines[0], "Attribute VB_Base = \"0{FCFB3D2A-A0FA-1068-A738-08002B3371B5}\"" }.Concat(lines.Skip(1)).ToArray();
+            lines = AddMissingAttributes(lines, "Attribute VB_Base = \"0{FCFB3D2A-A0FA-1068-A738-08002B3371B5}\"");
         }
         if (kind == OfficeVbaModuleKind.Class || kind == OfficeVbaModuleKind.Document) {
             foreach (string attribute in new[] { "Attribute VB_TemplateDerived = False", "Attribute VB_Customizable = " + (kind == OfficeVbaModuleKind.Document ? "True" : "False") }) {
-                string key = attribute.Substring(0, attribute.IndexOf('='));
-                if (!lines.Any(line => line.StartsWith(key, StringComparison.OrdinalIgnoreCase))) {
-                    lines = new[] { lines[0], attribute }.Concat(lines.Skip(1)).ToArray();
-                }
+                lines = AddMissingAttributes(lines, attribute);
             }
         }
+        ValidateClassAttributes(lines);
         return string.Join("\r\n", lines);
     }
+
+    private static bool HasAttributeName(string line, string name) =>
+        string.Equals(GetClassAttributeName(line), name, StringComparison.OrdinalIgnoreCase);
+
+    private static string[] AddMissingAttributes(string[] lines, params string[] attributes) =>
+        new[] { lines[0] }.Concat(attributes.Where(attribute => !lines.Any(line => HasAttributeName(line, GetClassAttributeName(attribute)!))))
+            .Concat(lines.Skip(1)).ToArray();
 
     internal static void ValidateIdentifier(string name, int maximumLength = 31) {
         if (string.IsNullOrEmpty(name) || name.Length > maximumLength || !IsLetter(name[0])

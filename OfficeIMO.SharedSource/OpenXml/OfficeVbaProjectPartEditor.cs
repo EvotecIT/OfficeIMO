@@ -13,6 +13,17 @@ internal static class OfficeVbaProjectPartEditor {
         return OfficeStreamReader.ReadAllBytes(input, maximumBytes);
     }
 
+    /// <summary>Removes a newly created relationship and payload if its first write fails.</summary>
+    internal static bool Apply(OpenXmlPart owner, VbaProjectPart? existing, byte[] bytes,
+        OfficeVbaWriteOptions options, out VbaProjectPart part) {
+        part = existing ?? owner.AddNewPart<VbaProjectPart>();
+        try { return Apply(part, bytes, options); }
+        catch {
+            if (existing == null) owner.DeletePart(part);
+            throw;
+        }
+    }
+
     internal static bool Apply(VbaProjectPart part, byte[] bytes, OfficeVbaWriteOptions options) {
         if (IsUnchanged(part, bytes)) return false;
         OpenXmlPart[] signatures = part.Parts.Where(pair =>
