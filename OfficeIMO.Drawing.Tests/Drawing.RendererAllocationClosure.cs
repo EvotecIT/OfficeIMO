@@ -298,6 +298,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(.018D)]
+        [InlineData(.13D)]
+        public void SubpixelPeriodicTilesRetainOpaqueCoverage(double density) {
+            var tile = new OfficeDrawing(10D, 10D);
+            AddRectangle(tile, 0D, 0D, 10D, 10D, OfficeColor.Black);
+            var drawing = new OfficeDrawing(10D, 10D).AddTilingPattern(tile,
+                new OfficeImagePlacement(0D, 0D, 10D, 10D), 10D, 10D,
+                transform: OfficeTransform.Scale(density, density));
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++)
+                Assert.Equal(OfficeColor.Black, image.GetPixel(x, y));
+        }
+
+        [Fact]
+        public void FractionalTileDimensionsRetainTheirPlannedPixelBudget() {
+            var tile = new OfficeDrawing(.3D, 1D);
+            AddRectangle(tile, 0D, 0D, .3D, 1D, OfficeColor.Black);
+            var drawing = new OfficeDrawing(7D, 1D).AddTilingPattern(tile,
+                new OfficeImagePlacement(0D, 0D, 7D, 1D), .3D, 1D,
+                transform: OfficeTransform.Scale(22D, 1D));
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing,
+                new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 7L });
+
+            Assert.Equal(7, image.Width);
+            Assert.Equal(1, image.Height);
+            for (int x = 0; x < image.Width; x++) Assert.Equal(OfficeColor.Black, image.GetPixel(x, 0));
+        }
+
+        [Theory]
         [InlineData(95L, false)]
         [InlineData(96L, true)]
         [InlineData(123L, true)]
