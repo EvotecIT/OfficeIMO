@@ -65,6 +65,13 @@ internal static partial class PdfRedactionApplier {
                     foreach (Regex regex in regexes) if (workBudget.IsMatch(regex, block.Text)) ThrowSurvivingText(pageNumber);
                 }
             }
+            if (page.Value.Any(static area => area.RequiresGlyphRewrite)) {
+                foreach (Regex regex in regexes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (PdfTextEditor.HasRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
+                        ThrowSurvivingText(pageNumber);
+                }
+            }
             if (sourceLogical != null) {
                 PdfLogicalTextBlock[] sourceBlocks = sourceBlocksByPage != null &&
                     sourceBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageSourceBlocks)
@@ -95,6 +102,9 @@ internal static partial class PdfRedactionApplier {
                         foreach (PdfRedactionArea area in page.Value) {
                             cancellationToken.ThrowIfCancellationRequested();
                             workBudget.Charge(1L);
+                            // Precise plans retain the rest of the matching block. Their glyph
+                            // residuals and expected survivors are checked by VerifyAppliedPlan.
+                            if (area.RequiresGlyphRewrite) continue;
                             if (!area.IntersectsRectangle(sourceBounds.Left, sourceBounds.Bottom, sourceBounds.Width, sourceBounds.Height))
                                 continue;
                             foreach ((PdfTextSpan candidateSpan, PdfTextSpanBounds candidateBounds) in rewrittenSpans) {

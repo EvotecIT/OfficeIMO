@@ -69,6 +69,13 @@ internal static partial class PdfRedactionApplier {
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
         VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
+        if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
+            // Even the non-evidence Apply route must preserve unselected text for precise plans.
+            PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true, FailOnUndecodablePdfStreams = true,
+                CancellationToken = effectiveOptions.CancellationToken
+            }, PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), appliedImageMatches).ThrowIfFailed();
+        }
         return output;
     }
 

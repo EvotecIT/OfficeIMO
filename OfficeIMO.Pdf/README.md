@@ -1600,9 +1600,44 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
-Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. Search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+
+Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging
+to literal or regular-expression occurrences. This uses the same native text flows,
+wrapped-line matching, and table boundaries as located text search. `ContentScope`
+controls the generated areas independently; choose `TextOnly` to preserve artwork
+and images beneath the selected text:
+
+```csharp
+var search = new PdfRedactionSearchOptions {
+    TextSelection = PdfRedactionTextSelection.MatchedGlyphs,
+    ContentScope = PdfRedactionContentScope.TextOnly
+}.AddLiteral("Account: 123-45-6789");
+PdfRedactionPlan precise = source.Redactions.Search(search);
+// Present precise.Areas and any blocking precise.Findings before applying it.
+PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(precise);
+result.ThrowIfUnverified();
+```
+
+Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
+unsupported clipping or glyph evidence, and areas that intersect unselected text
+(including hidden layers and tightly spaced lines whose conservative glyph bounds overlap).
+Inspect `IsReviewable` and `Findings`: a blocked selection cannot be applied, even
+when other criteria matched safely. Its reviewed areas never fall back to complete
+text-object removal. Ordinary `Apply(plan)` also verifies preservation for these
+areas before returning output. Regex criteria must select non-empty source text;
+logical-kind criteria require complete-block selection. Glyph geometry remains the
+reader's positioned width model, rather than an exact glyph-outline guarantee.
+Complete logical blocks and `TextAndUnderlay` remain the search defaults.
+Evidence for `TextOnly` includes text and annotation removals; preserved image and
+vector underlays remain visible in the plan without being counted as removals.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
+
+Configured removed and retained markers and external validators check the final
+sanitized artifact. A marker in policy-selected metadata can remain until
+sanitization; it must be absent from the final PDF. The intermediate redaction still
+requires evidence for every reviewed area and the configured stream and rendering checks.
 
 Save `PdfRedactionSharingResult.ToBytes()` and serialize its `Summary` when sharing content-free evidence. For redaction without sanitization, use `redacted.Evidence.CreateShareableSummary()`. These summaries include hexadecimal SHA-256 fingerprints and counts, but omit matched text, search criteria, reasons, paths, and detailed diagnostics. The detailed evidence remains suitable for local review and can contain sensitive document content.
 
@@ -2237,7 +2272,17 @@ PdfMutationPortfolioReport mutations = pdf.AssessMutations();
 PdfRenderCompatibilityReport rendering = pdf.AssessRenderCompatibility();
 Console.WriteLine($"Executable mutation families: {mutations.ExecutablePlans.Count}");
 Console.WriteLine($"Render capability findings: {rendering.DiagnosticCount}");
+
+foreach (PdfMutationPlan blocked in mutations.BlockedPlans) {
+    Console.WriteLine($"{blocked.Operation}: {string.Join(", ", blocked.BlockerCodes)}");
+}
 ```
+
+Pass your job's cancellation token to `pdf.AssessMutations(cancellationToken)`
+when assessing large documents or a document collection. The assessment checks
+cancellation while collecting requests, during parsing and preflight, and between
+individual plans. Each plan retains its own blocker codes; a blocked page edit does
+not mean that metadata updates, form filling, or signing are also blocked.
 
 ### Convert PDFs through adapter packages
 

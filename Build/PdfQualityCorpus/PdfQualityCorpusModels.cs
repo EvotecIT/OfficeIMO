@@ -129,6 +129,7 @@ internal sealed class QualityCaseMetrics {
     public int AppendOnlyMutationPlanCount { get; set; }
     public int BlockedMutationPlanCount { get; set; }
     public IReadOnlyDictionary<string, string> MutationPlanModes { get; set; } = new Dictionary<string, string>();
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> MutationPlanBlockerCodes { get; set; } = new Dictionary<string, IReadOnlyList<string>>();
     public int DeclaredComplianceClaimCount { get; set; }
     public int RecognizedComplianceClaimCount { get; set; }
     public int ClaimableComplianceClaimCount { get; set; }

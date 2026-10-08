@@ -6,7 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfRedactionApplierTests {
+public partial class PdfRedactionApplierTests {
     [Fact]
     public void Apply_RemovesWatermarkActualTextWithItsPaintedGlyphs() {
         const string secret = "Watermark secret";

@@ -1,5 +1,12 @@
 # Upgrading OfficeIMO
 
+## PDF mutation assessment cancellation
+
+Replace `pdf.AssessMutations(default)` with
+`pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
+the positional `default` literal ambiguous. Parameterless calls and calls with
+an explicit operation collection retain their existing behavior.
+
 ## EPUB XHTML image export
 
 Image export parses retained `application/xhtml+xml` chapters as XML. Repair malformed

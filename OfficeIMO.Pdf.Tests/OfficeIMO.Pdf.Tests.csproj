@@ -78,7 +78,10 @@
   <ItemGroup>
     <None Include="Pdf\Fixtures\Interoperability\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Pdf\Fixtures\Rendering\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf" Link="OfficeIMO.Pdf.Tests\Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf" Link="Typography\Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-Regular.ttf" Link="Typography\OfficeIMOBaselineSans-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\PdfEditing\source-font-*.pdf" Link="PdfEditing\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansArabic-Regular.ttf" Link="Typography\NotoSansArabic-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansDevanagari-Regular.ttf" Link="Typography\NotoSansDevanagari-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansSC-BaselineSubset.ttf" Link="Typography\NotoSansSC-BaselineSubset.ttf" CopyToOutputDirectory="PreserveNewest" />

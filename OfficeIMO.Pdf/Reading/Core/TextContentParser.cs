@@ -353,7 +353,8 @@ internal static partial class TextContentParser {
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         MarkedContentState? inheritedActualTextState = null,
-        Action<int, MarkedContentState>? onActualTextForm = null) {
+        Action<int, MarkedContentState>? onActualTextForm = null,
+        bool preserveGlyphText = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -1136,7 +1137,7 @@ internal static partial class TextContentParser {
                     StringComparison.Ordinal);
                 // Visual projection draws the painted glyphs: interior whitespace runs stay as painted,
                 // while logical text collapses them. Only edge whitespace is removed from the visual run.
-                string spanText = normalizedText;
+                string spanText = preserveGlyphText && actualTextState is null ? paintedText : normalizedText;
                 int visualTrimmedLeadingChars = 0;
                 if (!useLogicalTextFilters && actualTextState is null) {
                     string paintedVisual = TrimUnpaintedEdgeWhitespace(paintedText, decodedGlyphCharacterLengths,
