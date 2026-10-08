@@ -283,7 +283,7 @@
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2930",
     "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
     "initialFeedback": "complete paginated threads/reviews/raw/issue comments/reactions, zero findings",
-    "state": "OPEN; current-head CI failure/cancellation and pending lanes block merge",
+    "state": "OPEN; original failed/canceled jobs have one bounded rerun queued; current-head completion remains held",
     "delayedCurrentHeadGate": "complete paginated feedback on current head; no actionable findings; CI still held"
   },
   "integrationPreflight": {
@@ -425,5 +425,94 @@
     "sourceBlobsExact": 20,
     "acceptedFontPreserved": true,
     "status": "read-only alternate index; not adopted, built, packaged or profile-qualified"
+  },
+  "settlement0515Utc20261008": {
+    "checkedUtc": "2026-10-08T05:16:38.991720+00:00",
+    "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
+    "completeSnapshot": "Ignore/H10ReferenceAppearanceQualification-20261007/pr-2930-2026-10-08T05-16-38.json",
+    "snapshotSha256": "dbc97e3f721ed562bd8ccda8f2436d6c5af26e8e3117322f611119e7fe393964",
+    "threadPages": 1,
+    "unresolved": 0,
+    "reviews": 0,
+    "rawReviewComments": 0,
+    "rawIssueComments": 1,
+    "reactionGroups": [
+      {
+        "content": "THUMBS_UP",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "THUMBS_DOWN",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "LAUGH",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "HOORAY",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "CONFUSED",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "HEART",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "ROCKET",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "EYES",
+        "users": {
+          "totalCount": 0
+        }
+      }
+    ],
+    "prText": "unchanged current shape/limits reviewed",
+    "parentTerminal": "cancelled",
+    "oneFailedJobRerun": {
+      "requestedUtc": "2026-10-08T05:18:23.914793+00:00",
+      "pr": 2930,
+      "run": 37713553719,
+      "head": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
+      "previousAttempt": 1,
+      "allowedReruns": 1,
+      "requestState": "accepted",
+      "cliExit": 0,
+      "stdout": "",
+      "stderr": "",
+      "registration": {
+        "head_sha": "e62f99d29dbe774f5b003db1a64f38d669a908f1",
+        "run_attempt": 1,
+        "status": "queued",
+        "conclusion": null,
+        "updated_at": "2026-10-08T05:18:26Z"
+      },
+      "futureReruns": "EXHAUSTED; never rerun this parent again",
+      "queuedResetVerified": true,
+      "registrationScope": "Exact head queued/reset and CLI accepted; API attempt counter still1 at immediate read, so attempt2 job/TRX evidence remains pending",
+      "attempt2CounterVerified": false
+    },
+    "repeatRerun": "never rerun these parents again; diagnose concrete failures",
+    "newSourcePatch": false,
+    "reviewerOnlyUnchangedCount": 0
   }
 }

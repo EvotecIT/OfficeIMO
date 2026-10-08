@@ -6,7 +6,7 @@
   "milestone": "H10ReferenceSystemsGeneratedInlineBoxes",
   "publication": {
     "url": "https://github.com/EvotecIT/OfficeIMO/pull/2937",
-    "state": "OPEN; current-head CI failure/cancellation and pending lanes block merge",
+    "state": "OPEN; original failed/canceled jobs have one bounded rerun queued; current-head completion remains held",
     "delayedCurrentHeadGate": "complete paginated feedback on current head; no actionable findings; CI still held",
     "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
     "initialCompleteFeedback": {
@@ -336,5 +336,107 @@
     "sourceChanged": false,
     "sharedCacheOrHistoryChanged": false,
     "summary": "Ignore/H10ReferenceAppearanceQualification-20261007/ci-studio-cleanup-summary-20261008.json"
+  },
+  "settlement0515Utc20261008": {
+    "checkedUtc": "2026-10-08T05:16:42.907116+00:00",
+    "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+    "completeSnapshot": "Ignore/H10ReferenceAppearanceQualification-20261007/pr-2937-2026-10-08T05-16-42.json",
+    "snapshotSha256": "063bcbd6e8651a1cc926d84ac34be6d5f13e5377d311468a4ef794ae12ef1bff",
+    "threadPages": 1,
+    "unresolved": 0,
+    "reviews": 0,
+    "rawReviewComments": 0,
+    "rawIssueComments": 1,
+    "reactionGroups": [
+      {
+        "content": "THUMBS_UP",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "THUMBS_DOWN",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "LAUGH",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "HOORAY",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "CONFUSED",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "HEART",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "ROCKET",
+        "users": {
+          "totalCount": 0
+        }
+      },
+      {
+        "content": "EYES",
+        "users": {
+          "totalCount": 0
+        }
+      }
+    ],
+    "prText": "unchanged current shape/limits reviewed",
+    "parentTerminal": "failure",
+    "oneFailedJobRerun": {
+      "requestedUtc": "2026-10-08T05:18:27.513526+00:00",
+      "pr": 2937,
+      "run": 37713849433,
+      "head": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+      "previousAttempt": 1,
+      "allowedReruns": 1,
+      "requestState": "accepted",
+      "cliExit": 0,
+      "stdout": "",
+      "stderr": "",
+      "registration": {
+        "head_sha": "bd100b2f2fa566acfec538eec74f362e2b20aa74",
+        "run_attempt": 1,
+        "status": "queued",
+        "conclusion": null,
+        "updated_at": "2026-10-08T05:18:28Z"
+      },
+      "futureReruns": "EXHAUSTED; never rerun this parent again",
+      "queuedResetVerified": true,
+      "registrationScope": "Exact head queued/reset and CLI accepted; API attempt counter still1 at immediate read, so attempt2 job/TRX evidence remains pending",
+      "attempt2CounterVerified": false
+    },
+    "repeatRerun": "never rerun these parents again; diagnose concrete failures",
+    "newSourcePatch": false,
+    "reviewerOnlyUnchangedCount": 0
+  },
+  "evidencePreservationPreflight0515Utc20261008": {
+    "archive": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-generated-bd100b2f2/evidence.zip",
+    "manifest": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-generated-bd100b2f2/preservation-manifest.json",
+    "verification": "Ignore/H10ReferenceAppearanceQualification-20261007/preserved-generated-bd100b2f2/independent-verification.json",
+    "utc": "2026-10-08T05:21:19.403346+00:00",
+    "success": true,
+    "independentlyDecodedAndOriginalHashesVerified": 507,
+    "logicalBytes": 110209591,
+    "archiveBytes": 86626610,
+    "archiveSha256": "3d85682a610631bd285b67fb7eed7f2690ae150dd97848dd9aa7c3f37dff5c1d",
+    "sourceRemoved": false,
+    "removalHeld": "exact-head CI rerun and accepted merge; fresh clean/handles/ancestry and archive preflight required"
   }
 }
