@@ -104,8 +104,10 @@ internal static class OfficeVbaText {
         foreach (string line in lines) {
             if (!string.Equals(GetClassAttributeName(line), "VB_Base", StringComparison.OrdinalIgnoreCase)) continue;
             string value = line.Substring(line.IndexOf('=') + 1).Trim();
-            return value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"'
-                ? value.Substring(1, value.Length - 2) : null;
+            if (value.Length < 3 || value[0] != '"' || value.IndexOf('"', 1) != value.Length - 1) {
+                throw new InvalidDataException("VBA source has an invalid VB_Base string attribute.");
+            }
+            return value.Substring(1, value.Length - 2);
         }
         return null;
     }
