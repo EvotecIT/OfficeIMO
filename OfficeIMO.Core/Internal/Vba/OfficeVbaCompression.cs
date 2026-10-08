@@ -7,8 +7,8 @@ namespace OfficeIMO.Core.Internal;
 
 /// <summary>Bounded MS-OVBA source compression shared by editing and signature binding.</summary>
 internal static class OfficeVbaCompression {
-    /// <summary>Writes MS-OVBA literal/copy tokens, with raw chunks for incompressible data.</summary>
-    internal static byte[] Compress(byte[] source, bool allowRaw = true) {
+    /// <summary>Writes native-compatible MS-OVBA literal/copy chunks without changing source bytes.</summary>
+    internal static byte[] Compress(byte[] source) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         using var output = new MemoryStream();
         output.WriteByte(1);
@@ -17,21 +17,28 @@ internal static class OfficeVbaCompression {
             int count = Math.Min(4096, source.Length - position);
             byte[] compressed = CompressChunk(source, position, count);
             if (compressed.Length > 4096) {
-                if (!allowRaw) throw new NotSupportedException("This VBA source requires a raw compression chunk that is not qualified for native Office source loading. The project was not written.");
-                output.WriteByte(0xff);
-                output.WriteByte(0x3f);
-                output.Write(source, position, count);
-                // MS-OVBA 2.4.1.3.10 requires a raw final chunk to be padded to 4096.
-                for (int pad = count; pad < 4096; pad++) output.WriteByte(0);
-            } else {
-                ushort header = (ushort)(0xb000 | (compressed.Length - 1));
-                output.WriteByte((byte)header);
-                output.WriteByte((byte)(header >> 8));
-                output.Write(compressed, 0, compressed.Length);
+                // Keep newly written source token-compressed for native Office compatibility.
+                // 3640 literals plus 455 flag bytes fit without padding the source.
+                count = Math.Min(count, 3640);
+                compressed = CompressChunk(source, position, count);
             }
+            ushort header = (ushort)(0xb000 | (compressed.Length - 1));
+            output.WriteByte((byte)header);
+            output.WriteByte((byte)(header >> 8));
+            output.Write(compressed, 0, compressed.Length);
             position += count;
         }
         return output.ToArray();
+    }
+
+    /// <summary>Checks chunk flags in a module container already validated by project loading.</summary>
+    internal static bool ContainsRawChunk(byte[] validatedModuleStream, int sourceOffset) {
+        for (int position = sourceOffset + 1; position < validatedModuleStream.Length;) {
+            ushort header = ReadUInt16(validatedModuleStream, position);
+            if ((header & 0x8000) == 0) return true;
+            position += (header & 0x0fff) + 3;
+        }
+        return false;
     }
 
     private static byte[] CompressChunk(byte[] source, int start, int count) {

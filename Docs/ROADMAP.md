@@ -8,8 +8,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## VBA host integration
 
-- [ ] Qualify newly written raw MS-OVBA source chunks against Office's source loader and remove the explicit write rejection after independent host proof. Cover full chunks, short final chunks, and source streams crossing the compound mini-stream cutoff; preserve statements and attributes without inserting source padding.
-
 - [ ] Connect the Access carrier to the [shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects) after native database storage is available. Keep database reading/writing in the Access owner, preserve database-specific module identities, and qualify source edits against Access-produced files.
 
 ## OfficeIMO JavaScript

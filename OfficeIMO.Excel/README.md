@@ -1504,7 +1504,7 @@ base-class identity and must match an existing workbook code name. Worksheet and
 chart-sheet modules must match exactly one existing sheet code name and host type;
 the display name is not used to infer a binding. Foreign document classes are rejected.
 Save in a macro-enabled Open XML format. Source and reference edits preserve unrelated
-workbook parts and unchanged module bytes.
+workbook parts and follow the shared model's preservation policy.
 
 Changing a signed VBA project fails by default. Pass
 `new OfficeVbaWriteOptions { AllowSignatureRemoval = true }` to remove invalidated

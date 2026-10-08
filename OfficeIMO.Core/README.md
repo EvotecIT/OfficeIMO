@@ -54,19 +54,19 @@ or resolving a type library.
 | Read | Bounded directory, reference, standard/class, document, and designer-source decoding. Unsupported directory records fail explicitly. |
 | Create | Template-free project, standard modules, ordinary classes, and explicit registered references. Document adapters own host identities. |
 | Edit | Replace source; rename/delete standard and ordinary class modules. Document/designer source retains its existing identity and opaque design. |
-| Preserve | An unchanged write returns the exact original bytes. Edits retain unrelated streams, storage metadata, reference records, and untouched module stream bytes. |
+| Preserve | An unchanged write returns the exact original bytes. Edits retain unrelated streams, storage metadata, reference records, and untouched token-compressed module stream bytes. Existing raw source chunks are normalized without changing the source or its stream prefix. |
 | Import/export | UTF-8 `.bas`/`.cls` source with an XML manifest. Import validates the entire batch before changing the model; omitted modules remain present. |
 | Protection | Protected projects are readable and support unchanged writes. Mutation is rejected; protection is never bypassed or removed. |
 | Signatures | The containing document adapter rejects a changed signed project unless `AllowSignatureRemoval` is explicit. Re-sign after editing, before signing the whole package. |
 
-Changed module streams contain source without stale compiled code. Writes clear
+Modules with source changes are rewritten without compiled prefixes. Writes clear
 project compilation state and `__SRP_` caches so Office rebuilds them. Source uses
 CRLF and the project's code page with strict character checks. Windows-1252 is
 built in; other code pages must be available in the application's runtime or its
-already registered encoding provider. A write that requires an incompressible raw
-chunk is rejected before applying the artifact to a document. Reading raw chunks
-and unchanged-byte preservation remain supported; native Office source-loading
-qualification of newly written raw chunks is an open compatibility boundary.
+already registered encoding provider. The writer uses token-compressed chunks
+and adapts their length for incompressible source, preserving the source bytes
+without inserting padding. Reading existing raw chunks and unchanged-byte
+preservation remain supported.
 
 Input/output compound bytes and aggregate expanded directory/source each default
 to 64 MiB. Configure `OfficeVbaReadOptions` and `OfficeVbaWriteOptions` for a

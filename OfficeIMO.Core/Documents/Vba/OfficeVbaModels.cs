@@ -73,6 +73,6 @@ public sealed class OfficeVbaWriteResult {
     public byte[] GetBytes() => (byte[])_bytes.Clone();
     /// <summary>Gets whether the result changes the loaded artifact.</summary>
     public bool Changed { get; }
-    /// <summary>Gets the edited, added, renamed, and deleted module names.</summary>
+    /// <summary>Gets the edited, added, renamed, deleted, and compression-normalized module names.</summary>
     public IReadOnlyList<string> ChangedModules { get; }
 }

@@ -105,17 +105,30 @@ public sealed class OfficeVbaProjectTests {
         Assert.Contains("NativeSum = 73", changed.GetModule("Module1").Source);
     }
 
-    [Fact]
-    public void UnqualifiedRawCompressionIsRejectedBeforeChangingTheDocument() {
+    [Theory]
+    [InlineData(40)]
+    [InlineData(50)]
+    [InlineData(55)]
+    [InlineData(65)]
+    [InlineData(130)]
+    public void IncompressibleSourceIsPreservedWithoutRawChunksOrPadding(int lines) {
         var random = new Random(432);
-        string source = string.Join("\r\n", Enumerable.Range(0, 55).Select(_ => "'" + new string(
-            Enumerable.Range(0, 70).Select(__ => (char)random.Next(33, 123)).ToArray()))) + "\r\n";
+        string source = string.Join("\r\n", Enumerable.Range(0, lines).Select(_ => "'" + new string(
+            Enumerable.Range(0, 70).Select(__ => (char)random.Next(33, 123)).ToArray()))) + "\r\nPublic Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n";
         var project = OfficeVbaProject.Create();
         project.AddModule("Helpers", source);
-        Assert.Throws<NotSupportedException>(() => project.Write());
-        using var document = WordDocument.Create();
-        Assert.Throws<NotSupportedException>(() => document.SetVbaProject(project));
-        Assert.Null(document.ReadVbaProject());
+        byte[] bytes = project.Write().GetBytes();
+        var loaded = OfficeVbaProject.Load(bytes);
+        Assert.Equal(project.GetModule("Helpers").Source, loaded.GetModule("Helpers").Source);
+        Assert.True(OfficeIMO.Core.Internal.OfficeCompoundFileReader.TryRead(bytes, out OfficeIMO.Core.Internal.OfficeCompoundFile? compound, out _));
+        byte[] stream = compound!.Streams["VBA/Helpers"];
+        for (int position = 1; position < stream.Length;) {
+            int header = stream[position] | stream[position + 1] << 8;
+            Assert.NotEqual(0, header & 0x8000);
+            position += (header & 0x0fff) + 3;
+            Assert.True(position <= stream.Length);
+        }
+        Assert.Equal(bytes, loaded.Write().GetBytes());
     }
 
     [Fact]

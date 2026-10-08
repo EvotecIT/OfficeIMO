@@ -10,7 +10,7 @@ public sealed partial class OfficeVbaProject {
     private readonly string _projectText;
 
     /// <summary>Produces a bounded complete project; unchanged projects retain their original bytes and signatures.</summary>
-    /// <remarks>Edits emit source-only changed module streams and invalidate project/compiled caches. No source is executed.</remarks>
+    /// <remarks>Edits emit source-only changed module streams, normalize existing raw source chunks, and invalidate project/compiled caches. No source is executed.</remarks>
     public OfficeVbaWriteResult Write(OfficeVbaWriteOptions? options = null) {
         options ??= new OfficeVbaWriteOptions();
         ValidateLimits(options.MaximumProjectBytes, options.MaximumExpandedBytes);
@@ -45,11 +45,24 @@ public sealed partial class OfficeVbaProject {
                 string path = "VBA/" + streamName;
                 // A deleted/recreated or renamed module can intentionally take an old module's stream identity.
                 removals.Remove(path);
-                replacements[path] = OfficeVbaCompression.Compress(source, allowRaw: false);
+                replacements[path] = OfficeVbaCompression.Compress(source);
                 changed.Add(module.Name);
+            } else {
+                string path = "VBA/" + module.Directory.StreamName;
+                byte[] original = _compound.Streams[path];
+                if (OfficeVbaCompression.ContainsRawChunk(original, module.Directory.TextOffset)) {
+                    // Project cache invalidation also makes untouched source reachable by the
+                    // native loader. Preserve its source offset and prefix while replacing raw chunks.
+                    byte[] compressed = OfficeVbaCompression.Compress(source);
+                    byte[] normalized = new byte[checked(module.Directory.TextOffset + compressed.Length)];
+                    Buffer.BlockCopy(original, 0, normalized, 0, module.Directory.TextOffset);
+                    Buffer.BlockCopy(compressed, 0, normalized, module.Directory.TextOffset, compressed.Length);
+                    replacements[path] = normalized;
+                    changed.Add(module.Name);
+                }
             }
         }
-        replacements["VBA/dir"] = OfficeVbaCompression.Compress(directory, allowRaw: false);
+        replacements["VBA/dir"] = OfficeVbaCompression.Compress(directory);
         replacements["VBA/_VBA_PROJECT"] = new byte[] { 0xcc, 0x61, 0xff, 0xff, 0, 1, 0 };
         replacements["PROJECT"] = OfficeVbaText.Encode(OfficeVbaProjectText.Update(_projectText, _modules, _deletedModules), CodePage);
         replacements["PROJECTwm"] = OfficeVbaDirectoryWriter.ProjectNames(_modules, CodePage);

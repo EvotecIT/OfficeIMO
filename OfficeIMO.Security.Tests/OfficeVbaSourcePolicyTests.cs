@@ -39,6 +39,60 @@ public sealed class OfficeVbaSourcePolicyTests {
     }
 
     [Fact]
+    public void EditingAnotherModuleNormalizesRawSourceAndPreservesItsPrefix() {
+        var project = OfficeVbaProject.Create();
+        project.AddModule("RawSource", "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+        project.AddModule("Helpers", "'original\r\n");
+        byte[] baseline = project.Write().GetBytes();
+        project = OfficeVbaProject.Load(baseline);
+        var rawModule = project.GetModule("RawSource");
+        byte[] source = OfficeVbaText.Encode(rawModule.Source, 1252);
+        byte[] prefix = Enumerable.Range(0, 64).Select(value => (byte)value).ToArray();
+        byte[] rawStream = new byte[prefix.Length + 4099];
+        Buffer.BlockCopy(prefix, 0, rawStream, 0, prefix.Length);
+        rawStream[64] = 1; rawStream[65] = 0xff; rawStream[66] = 0x3f;
+        Buffer.BlockCopy(source, 0, rawStream, 67, source.Length);
+        // Give this fixture a nonzero source offset, as in an Office-authored module.
+        using (var records = new MemoryStream(rawModule.Directory.Serialized, writable: true))
+        using (var reader = new BinaryReader(records))
+        using (var writer = new BinaryWriter(records)) {
+            while (records.Position < records.Length) {
+                ushort id = reader.ReadUInt16();
+                uint size = reader.ReadUInt32();
+                if (id == 0x0031) { writer.Write(64U); break; }
+                records.Position += size;
+            }
+        }
+        Assert.True(OfficeCompoundFileReader.TryRead(baseline, out OfficeCompoundFile? compound, out _));
+        Assert.True(OfficeVbaDirectoryCodec.DirectoryModel.TryParse(
+            Decompress(compound!.Streams["VBA/dir"]), 64 * 1024 * 1024, out var directory, out _));
+        byte[] bytes = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> {
+            ["VBA/RawSource"] = rawStream,
+            ["VBA/dir"] = OfficeVbaCompression.Compress(OfficeVbaDirectoryWriter.SerializeDirectory(directory!, project.Modules, project.References, 1252)),
+            ["Opaque"] = prefix
+        });
+        project = OfficeVbaProject.Load(bytes);
+        Assert.Equal(rawModule.Source, project.GetModule("RawSource").Source);
+        Assert.Equal(bytes, project.Write().GetBytes());
+        project.SetModuleSource("Helpers", "'changed\r\n");
+        OfficeVbaWriteResult result = project.Write();
+        Assert.Contains("RawSource", result.ChangedModules);
+        Assert.Contains("Helpers", result.ChangedModules);
+        var loaded = OfficeVbaProject.Load(result.GetBytes());
+        Assert.Equal(rawModule.Source, loaded.GetModule("RawSource").Source);
+        Assert.Equal(64, loaded.GetModule("RawSource").Directory.TextOffset);
+        Assert.True(OfficeCompoundFileReader.TryRead(result.GetBytes(), out OfficeCompoundFile? changed, out _));
+        Assert.Equal(prefix, changed!.Streams["VBA/RawSource"].Take(64));
+        Assert.False(OfficeVbaCompression.ContainsRawChunk(changed.Streams["VBA/RawSource"], 64));
+        Assert.Equal(prefix, changed.Streams["Opaque"]);
+    }
+
+    private static byte[] Decompress(byte[] bytes) {
+        Assert.True(OfficeVbaCompression.TryDecompress(bytes, 64 * 1024 * 1024, out byte[] source, out _));
+        return source;
+    }
+
+    [Fact]
     public void EditsPreserveOpaqueStreamsAndUnchangedModuleBytes() {
         var project = OfficeVbaProject.Create();
         project.AddModule("Helpers", "'initial\r\n");
