@@ -245,7 +245,7 @@
     "qualification": "../OfficeIMO-html-generated-inline-boxes/Ignore/GeneratedInlineBoxQualification",
     "independentControls": "Ignore/H10ReferenceAppearanceQualification-20261007/footer-typography-20261007/footer-placement-20261008"
   },
-  "next": "Complete clean engine four-profile acceptance and generated-output cleanup. Wider typography, resource/native/profile/manual-accessibility and historical timing criteria remain on Docs/ROADMAP.md.",
+  "next": "Remaining appearance, native/resource/profile/manual-accessibility/runtime and historical timing criteria stay in Docs/ROADMAP.md; selected publication/branch cleanup is closed.",
   "storage20261008": {
     "finishCleanupVerifiedTargets": 143,
     "logicalBytesRemoved": 3239388617,
@@ -472,7 +472,7 @@
       "source": "68b0400e863d03a9165c907a0a98453c6b7da399",
       "contractDeltasExactAcceptedPatchIds": true,
       "scope": "Exact approved owner corrections; unrelated accepted master additions are excluded",
-      "qualification": "Affected integration regressions and H4 pass on both frameworks; normal netstandard build passes. Clean four-profile replay remains pending.",
+      "qualification": "Accepted exact owner deltas pass combined framework/H4/standard and clean four-profile proof",
       "focusedTests": {
         "net8.0": 488,
         "net10.0": 488,
@@ -484,7 +484,67 @@
       "normalStandardBuild": {
         "warnings": 0,
         "errors": 0
-      }
+      },
+      "profileCleanHead": "9a3c7ee1042f6094e5ed4dd25f63cec2ad23a5fa",
+      "profiles": {
+        "print-zero-margin": {
+          "pages": 9,
+          "links": 63,
+          "allOriginalNonWhitespaceCharactersPreserved": true,
+          "decodedImagesExact": true,
+          "uriRectanglesExact": true,
+          "rawExtractionExactAcceptedGeneratedControl": true,
+          "readerTextExactAcceptedGeneratedControl": true,
+          "reportExactAcceptedDecorationControl": true,
+          "oldReportExact": false
+        },
+        "print-paged": {
+          "pages": 10,
+          "links": 63,
+          "allOriginalNonWhitespaceCharactersPreserved": true,
+          "decodedImagesExact": true,
+          "uriRectanglesExact": true,
+          "rawExtractionExactAcceptedGeneratedControl": true,
+          "readerTextExactAcceptedGeneratedControl": true,
+          "reportExactAcceptedDecorationControl": true,
+          "oldReportExact": false
+        },
+        "screen-media-paged": {
+          "pages": 12,
+          "links": 63,
+          "allOriginalNonWhitespaceCharactersPreserved": true,
+          "decodedImagesExact": true,
+          "uriRectanglesExact": true,
+          "rawExtractionExactAcceptedGeneratedControl": true,
+          "readerTextExactAcceptedGeneratedControl": true,
+          "reportExactAcceptedDecorationControl": true,
+          "oldReportExact": false
+        },
+        "screen-snapshot-paged": {
+          "pages": 8,
+          "links": 71,
+          "allOriginalNonWhitespaceCharactersPreserved": true,
+          "decodedImagesExact": true,
+          "uriRectanglesExact": true,
+          "rawExtractionExactAcceptedGeneratedControl": true,
+          "readerTextExactAcceptedGeneratedControl": true,
+          "reportExactAcceptedDecorationControl": true,
+          "oldReportExact": false
+        }
+      },
+      "paint": {
+        "pages": 39,
+        "baselinePixelIdentical": 31,
+        "onlyClassifiedOwnerChanges": 8,
+        "allPagesExactPreviouslyInspectedComposedControls": true,
+        "pairedChangedCropsInspected": 8
+      },
+      "normalApiOwnerCopiesExact": 10,
+      "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-owner-integration-20261008/final-combined-profile-acceptance.json",
+      "ownerHashReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-owner-integration-20261008/clean-profile-owner-origin-receipt.json",
+      "sourcePatchIdentityReceipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-owner-integration-20261008/source-identity.json",
+      "observerCorrection": "Original strict baseline-report assertion failed and is retained. The only report delta is the accepted loss-bearing thickness approximation, three entries per profile for 0.05em. All original report content is preserved. Raw text spacing/order differences relative to older baseline remain explicit; current arrays and Poppler bytes equal the accepted generated control.",
+      "limits": "Affected integration/project-reference/profile acceptance only; no fresh full-engine/platform/package/timing, browser parity or manual-accessibility claim."
     },
     "combinedSourceReview": "Both exact published deltas retain their completed full/targeted reviews. No new behavior, API or dependency is introduced by this integration. Affected CSS/generated/font/H4 regressions and independently checked composed page paint protect the combination.",
     "branchCleanup": {
@@ -495,6 +555,18 @@
         "fix/html-pdf-accessibility"
       ],
       "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/merged-pr-worktree-removal-20261008.json"
+    },
+    "storageAndFinish": {
+      "generatedTargetsRemoved": 66,
+      "generatedLogicalBytesRemoved": 1205880201,
+      "boundedNativeFilesystemRecovery": 34,
+      "allAbsent": true,
+      "onlyTaskOwnedHtmlCheckout": "OfficeIMO-html-provider-forks",
+      "onlyHtmlBranchLocalAndRemote": "feature/html-engine",
+      "retained": "Ignore/H10ReferenceAppearanceQualification-20261007",
+      "retainedLogicalBytes": 318773779,
+      "receipt": "Ignore/H10ReferenceAppearanceQualification-20261007/accepted-owner-integration-20261008/final-cleanup-and-source-identity.json",
+      "broaderMilestoneCompletionClaim": false
     }
   }
 }
