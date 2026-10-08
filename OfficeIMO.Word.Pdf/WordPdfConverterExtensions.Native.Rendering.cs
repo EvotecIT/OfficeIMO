@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
             List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
             if (textBoxes.Count > 0) {
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
-                    footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0);
+                    footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;
             }
 
@@ -588,7 +588,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
             bool needsAnchorLine = false,
-            double? inlineMarkerColumnWidth = null) {
+            double? inlineMarkerColumnWidth = null,
+            bool projectedContentOnly = false) {
             if (needsAnchorLine) {
                 // An image-only paragraph still participates in pagination and decoration.
                 builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
@@ -657,7 +658,7 @@ namespace OfficeIMO.Word.Pdf {
 
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
-            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             if (hasRenderableRuns && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (run.IsImage && run.Image != null) {
@@ -682,7 +683,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             } else if (hasEquationContent) {
                 AddNativeEquationContent(builder, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
-            } else if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
+            } else if (!projectedContentOnly && paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
                 ApplyNativeTextStyle(builder, style);
                 AddNativeHyperLinkRun(builder, paragraph.Hyperlink.Text, paragraph.Hyperlink, tabStops, ref tabIndex, style);
