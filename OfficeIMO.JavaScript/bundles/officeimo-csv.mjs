@@ -56,8 +56,77 @@ async function* inputRows(input, signal) {
         }
     }
 }
+const rowConsumers = new WeakMap();
+/** @internal Keep bounded pages as ordinary async rows, with direct batch consumption for owned writers. */
+function rowsFromBatches(batches) {
+    let consumed = false;
+    const claim = () => { if (consumed)
+        throw new TypeError("A row source can be consumed only once."); consumed = true; };
+    const rows = { [Symbol.asyncIterator]() { claim(); return iterate(); } };
+    async function* iterate() { for await (const batch of inputRows(batches))
+        yield* batch; }
+    rowConsumers.set(rows, (signal, accept) => {
+        claim();
+        return consumeRows(batches, signal, batch => consumeRows(batch, signal, accept));
+    });
+    return rows;
+}
+/** @internal Concatenate headings, body and footer without another per-row async delegation. */
+function concatRows(...sources) {
+    const rows = { async *[Symbol.asyncIterator]() { for (const source of sources)
+            yield* source; } };
+    rowConsumers.set(rows, async (signal, accept) => { for (const source of sources)
+        await consumeRows(source, signal, accept); });
+    return rows;
+}
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+async function consumeRows(input, signal, accept) {
+    checkAbort(signal);
+    const consume = rowConsumers.get(input);
+    if (consume)
+        return consume(signal, accept);
+    const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
+    if (!iterator)
+        throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+    let done = false;
+    try {
+        while (true) {
+            checkAbort(signal);
+            let item = iterator.next();
+            const next = item;
+            if (typeof next?.then === "function")
+                item = await withAbort(next, signal);
+            checkAbort(signal);
+            const result = item;
+            if (result.done) {
+                done = true;
+                return;
+            }
+            let value = result.value;
+            if (typeof value?.then === "function")
+                value = await withAbort(value, signal);
+            checkAbort(signal);
+            const pending = accept(value);
+            if (pending !== undefined)
+                await withAbort(pending, signal);
+        }
+    }
+    finally {
+        if (!done && iterator.return) {
+            // Any exit before exhaustion is a producer/consumer failure or cancellation.
+            // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+            try {
+                void Promise.resolve(iterator.return()).catch(() => { });
+            }
+            catch { /* Preserve the original failure. */ }
+        }
+    }
+}
 let taskDeadline;
-const taskBudgetMs = 16;
+const taskBudgetMs = 32;
+/** @internal Start a new write phase without carrying an idle operation's expired deadline. */
+function beginTask() { taskDeadline = performance.now() + taskBudgetMs; }
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
 function taskYieldDue() {
     const now = performance.now();
@@ -66,27 +135,21 @@ function taskYieldDue() {
 }
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
+    const scheduler = globalThis.scheduler;
+    // A normal-priority task keeps the export progressing beside a busy host.
+    // It has no boosted continuation; due input and cancellation can still run.
+    if (typeof scheduler?.postTask === "function")
+        return scheduler.postTask(() => {
+            taskDeadline = performance.now() + taskBudgetMs;
+        }, { priority: "user-visible" });
     return new Promise(resolve => {
-        let done = false, channel;
-        const finish = () => {
-            if (done)
-                return;
-            done = true;
-            clearTimeout(timer);
-            channel?.port1.close();
-            channel?.port2.close();
+        setTimeout(function finish() {
             taskDeadline = performance.now() + taskBudgetMs;
             resolve();
-        };
-        const timer = setTimeout(finish, 0);
-        if (typeof MessageChannel === "function") {
-            channel = new MessageChannel();
-            channel.port1.onmessage = finish;
-            channel.port2.postMessage(undefined);
-        }
+        }, 0);
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, rowsFromBatches: rowsFromBatches, concatRows: concatRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
 return _exports;
 })();
 
@@ -112,7 +175,7 @@ return _exports;
 })();
 
 const _m2 = (() => {
-const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m1;
+const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m1;
 
 const { OfficeIMOError } = _m3;
 
@@ -206,11 +269,14 @@ class ChunkedTextSink {
 }
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 async function writeBytes(source, sink, signal) {
-    for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+    await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
         if (!(bytes instanceof Uint8Array))
             throw new TypeError("Byte sources must yield Uint8Array chunks.");
-        await withAbort(Promise.resolve(sink.write(bytes)), signal);
-    }
+        const pending = sink.write(bytes);
+        if (taskYieldDue())
+            return Promise.resolve(pending).then(() => { checkAbort(signal); return pause(); });
+        return pending;
+    });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
 return _exports;
@@ -248,6 +314,10 @@ class ExportBudget {
     cell(value, reservedCharacters) {
         if (reservedCharacters !== undefined)
             this.release(1, reservedCharacters);
+        // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
+        // when neither emitted-cell nor text totals are observable by a resource cap.
+        if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined)
+            return;
         this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
         this.check("maxTextCharacters", this.text + this.reservedText + length);
@@ -289,7 +359,8 @@ class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
-    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+    const kind = typeof value;
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -297,8 +368,9 @@ function assertScalar(value) {
 }
 /** @internal Validate selected values before a destination interprets presentation. */
 function assertExportValue(value) {
-    if (!(value instanceof ExportCell))
-        assertScalar(value);
+    if (value !== null && typeof value === "object" && value instanceof ExportCell)
+        return;
+    assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
 return _exports;
@@ -411,7 +483,7 @@ return _exports;
 })();
 
 const _m0 = (() => {
-const { checkAbort, inputRows, withAbort } = _m1;
+const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
 
@@ -454,6 +526,7 @@ async function writeCsvTo(rows, destination, configuration) {
     return withDestination(destination, sink => write(rows, sink, options));
 }
 async function write(rows, sink, options) {
+    beginTask();
     const columns = copyColumns(options.columns).map(c => Object.freeze(c)), delimiter = options.delimiter ?? ",", lineEnding = options.lineEnding ?? "\r\n", quote = options.quote ?? "minimal";
     if (![",", ";", "\t"].includes(delimiter))
         throw new RangeError("Delimiter must be comma, semicolon or tab.");
@@ -479,31 +552,39 @@ async function write(rows, sink, options) {
     if (options.bom)
         await withAbort(Promise.resolve(sink.write(new Uint8Array([239, 187, 191]))), signal);
     let count = 0;
-    async function record(values, header = false) {
-        const resolved = (value) => value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
-        const snapshot = hasFormatters ? Object.freeze(columns.map((_, i) => resolved(values[i]))) : undefined;
-        for (let i = 0; i < columns.length; i++) {
+    const resolved = (value) => value !== null && typeof value === "object" && value instanceof ExportCell ? options.valueMode === "display" && value.text !== undefined ? value.text : value.value : value;
+    function record(values, header = false, first = 0, snapshot) {
+        if (!header && hasFormatters && first === 0)
+            snapshot = Object.freeze(columns.map((_, i) => resolved(values[i])));
+        let text = "";
+        for (let i = first; i < columns.length; i++) {
+            checkAbort(signal);
             const column = columns[i];
             const raw = resolved(values[i]);
             let value = !header && column.valueFormatter ? column.valueFormatter(raw, { rowIndex: count, columnIndex: i, column, values: snapshot }) : raw;
             if (value == null && options.nullValue !== undefined)
                 value = options.nullValue;
             budget.cell(value);
-            if (buffer.append((i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue)))
-                await buffer.flush();
+            checkAbort(signal);
+            text += (i ? delimiter : "") + csvField(value, delimiter, protect, quote, options.nullValue);
+            if (text.length >= buffer.chunkSize || (i & 127) === 127 && taskYieldDue()) {
+                if (buffer.append(text))
+                    return buffer.flush().then(() => record(values, header, i + 1, snapshot));
+                text = "";
+            }
         }
-        if (buffer.append(lineEnding)) {
-            await buffer.flush();
-            options.onProgress?.({ phase: "rows", rows: count });
-        }
+        if (buffer.append(text + lineEnding))
+            return buffer.flush().then(() => { options.onProgress?.({ phase: "rows", rows: count }); });
     }
     if (options.includeHeader !== false && columns.length)
         await record(columns.map(c => c.header), true);
-    for await (const row of inputRows(rows, signal)) {
+    await consumeRows(rows, signal, row => {
         budget.row(count + 1);
-        await record(project(row, count));
+        const pending = record(project(row, count));
+        if (pending)
+            return pending.then(() => { count++; });
         count++;
-    }
+    });
     await buffer.close();
     options.onProgress?.({ phase: "complete", rows: count, bytes });
     checkAbort(signal);

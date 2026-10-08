@@ -4,6 +4,8 @@ namespace OfficeIMO.Reader.Email;
 
 /// <summary>Options for projecting email stores through OfficeIMO.Reader.</summary>
 public sealed class ReaderEmailStoreOptions {
+    /// <summary>Controls concealed HTML in derived item content. Selected bodies are inspected under either policy.</summary>
+    public OfficeIMO.Email.EmailConcealedTextPolicy ConcealedTextPolicy { get; set; }
     private int _maxItems = 1_000;
 
     /// <summary>

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, Workbook, ExportCell, Cell } from "../dist/index.js";
+import { writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, writePdfTo, Workbook, ExportCell, Cell } from "../dist/index.js";
 import { BlobByteSink } from "../dist/core/index.js";
 import { readZip } from "./zip-reader.mjs";
 
@@ -8,6 +8,22 @@ const rows = [{ person: { name: "Łódź 🧪" }, amount: 12.5, seen: new Date("
 const columns = [{ header: "Name", key: "name", value: row => row.person.name },
   { header: "Amount", key: "amount", type: "number", format: "0.00" },
   { header: "Seen", key: "seen", type: "date", format: "yyyy-mm-dd" }];
+
+for (const [format, writeTo] of [["csv", writeCsvTo], ["xlsx", writeXlsxTo], ["pdf", writePdfTo]])
+  test(format + " preserves consumer failures and releases the destination while producer cleanup fails or waits", { timeout: 2000 }, async () => {
+    for (const cleanup of ["throw", "reject", "wait"]) {
+      const failure = new Error("consumer failed"), cleanupFailure = new Error("cleanup failed"); let returned = 0, produced = 0;
+      const source = { [Symbol.iterator]() { return {
+        next() { produced++; return { done: false, value: ["Value"] }; },
+        return() { returned++; if (cleanup === "throw") throw cleanupFailure;
+          return cleanup === "reject" ? Promise.reject(cleanupFailure) : new Promise(() => {}); }
+      }; } };
+      const stream = new WritableStream({ write() {} });
+      await assert.rejects(writeTo(source, stream, { columns: [{ header: "V", value() { throw failure; } }] }), error => error === failure);
+      assert.equal(returned, 1); assert.equal(produced, 1); assert.equal(stream.locked, false);
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  });
 
 test("one-table XLSX preflights required portable columns without reading rows or borrowing a destination", async () => {
   let read = false, acquired = false, written = false;

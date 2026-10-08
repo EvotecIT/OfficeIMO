@@ -199,7 +199,7 @@ public static class EmailStoreItemReader {
                     readerOptions,
                     cursor,
                     cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics,
-                    includeEmbeddedMessageContent: EmailStoreReaderAdapter.IncludesEmbeddedContent(adapterOptions));
+                    includeEmbeddedMessageContent: EmailStoreReaderAdapter.IncludesEmbeddedContent(adapterOptions), concealedTextPolicy: adapterOptions.ConcealedTextPolicy);
             return new ReaderEmailStoreItemResult(
                 reference, summary, logicalPath, chunks, projectedDiagnostics,
                 itemIndex == 0 ? openingDiagnostics : null);

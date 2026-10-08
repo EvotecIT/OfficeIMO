@@ -336,6 +336,22 @@ internal static partial class PdfWriter {
         private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double runFontSizeScale, double cellYFromTop) {
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
+            if (cell.TextRotation != 0) {
+                PdfColumnAlign orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
+                PdfColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
+                var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
+                string orientedRole = rowIsHeader ? "TH" : "TD";
+                int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
+                RenderOrientedTableCellContent(cell, style, rowIndex, columnIndex, contentFrame, cellX, cellTop, cellWidth, cellHeight,
+                    GetTableRowFont(currentOpts, rowUsesBold), fontSize, leading, runFontSizeScale, orientedParagraph, orientedRole, orientedId);
+                MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
+                AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
+                if (HasCellLinkTarget(cell.LinkUri, cell.LinkDestinationName))
+                    currentPage!.Annotations.Add(new LinkAnnotation { X1 = cellX, Y1 = cellBottom, X2 = cellX + cellWidth, Y2 = cellTop,
+                        Uri = cell.LinkUri, DestinationName = cell.LinkDestinationName, Contents = cell.LinkContents ?? cell.Text });
+                return;
+            }
+
             PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             double padLeft = GetTableCellPaddingLeft(style, rowIndex, columnIndex);
             double padRight = GetTableCellPaddingRight(style, rowIndex, columnIndex);
