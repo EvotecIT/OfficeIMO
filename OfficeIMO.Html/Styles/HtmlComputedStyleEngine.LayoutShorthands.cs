@@ -6,7 +6,7 @@ public static partial class HtmlComputedStyleEngine {
         "grid-column", "grid-row", "grid-area", "grid-column-start", "grid-column-end", "grid-row-start", "grid-row-end",
         "grid-template-columns", "grid-template-rows", "grid-template-areas", "gap", "row-gap", "column-gap",
         "place-items", "place-self", "place-content", "align-items", "justify-items", "align-self", "justify-self", "align-content", "justify-content",
-        "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "text-decoration-thickness"
+        "text-decoration", "text-decoration-line", "text-decoration-style", "text-decoration-color", "text-decoration-thickness", "text-underline-offset", "text-underline-position", "text-decoration-skip-ink"
     };
     private static readonly string[] GapLonghands = { "row-gap", "column-gap" };
 

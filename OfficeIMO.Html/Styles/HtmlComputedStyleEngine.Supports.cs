@@ -465,6 +465,13 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "solid", "double", "dotted", "dashed", "wavy");
             case "text-decoration-thickness":
                 return IsTextDecorationThicknessSyntax(value);
+            case "text-underline-offset":
+                return normalized == "auto" || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
+                    && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out _);
+            case "text-decoration-skip-ink":
+                return IsKnownKeyword(normalized, "auto", "none", "all");
+            case "text-underline-position":
+                return IsKnownKeyword(normalized, "auto", "under", "left", "right", "from-font");
             case "font-style":
                 return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
             case "font-stretch":

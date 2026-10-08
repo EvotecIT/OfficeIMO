@@ -618,7 +618,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             textY,
                             Math.Max(0.01D, frameWidth),
                             Math.Max(0.01D, paintHeight),
-                            segment.Run.Style.Font,
+                            segment.Run.Style.VectorTextDecoration
+                                ? new OfficeFontInfo(segment.Run.Style.Font.FamilyName, segment.Run.Style.Font.Size,
+                                    segment.Run.Style.FontDescriptor, segment.Run.Style.Font.Style & ~(OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough))
+                                : segment.Run.Style.Font,
                             segment.Run.Style.Color,
                             OfficeTextAlignment.Left,
                             textLineHeight,
@@ -632,8 +635,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             bidiVisualOrderResolved: segment.BidiResolved,
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
                             logicalTextOrder: segment.Run.LogicalTextOrder,
-                            underlineStyle: segment.Run.Style.UnderlineStyle,
-                            strikethroughStyle: segment.Run.Style.StrikethroughStyle,
+                            underlineStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.UnderlineStyle,
+                            strikethroughStyle: segment.Run.Style.VectorTextDecoration ? OfficeTextDecorationStyle.None : segment.Run.Style.StrikethroughStyle,
                             baseline: segment.Run.Style.Baseline,
                             baselineLevel: segment.Run.Style.BaselineLevel,
                             baselineScale: segment.Run.Style.BaselineScale,
@@ -665,6 +668,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             layoutY: lineY,
                             layoutHeight: textLineHeight)
                         : textVisuals[0];
+                    AddInlineTextDecorations(visuals, ownedVisuals, segment.Run, formattingContainer, textVisuals, aboveText: false);
                     AddTextShadowVisuals(
                         visuals,
                         ownedVisuals,
@@ -677,6 +681,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ApplyInlineElementSemantics(textVisual.TranslateRelativePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count), segment.Run),
                         segment.Run.OwnerElement,
                         formattingContainer);
+                    AddInlineTextDecorations(visuals, ownedVisuals, segment.Run, formattingContainer, textVisuals, aboveText: true);
                 }
                 cursor += rightToLeftLine ? -segment.Width : segment.Width;
             }

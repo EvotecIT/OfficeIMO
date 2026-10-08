@@ -182,7 +182,6 @@ internal sealed partial class HtmlRenderStyleResolver {
             fontStyle |= OfficeFontStyle.Underline;
         }
         bool ownsUnderline = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline;
-        ReportTextDecorationLoss(element, computed, fontStyle);
         if (propagatedUnderline) fontStyle |= OfficeFontStyle.Underline;
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         fontStyle |= fontDescriptor.ToStyle();
@@ -344,6 +343,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyBookmark(computed, style);
         style.StringSet = computed.GetValue("string-set").Trim();
         CaptureIntrinsicWidths(element, physicalComputed, style, parent, pseudoElement, containingWidth, fontSize);
+        ResolveTextDecorationGeometry(element, computed, style, parent, propagatedUnderline && !ownsUnderline);
         ReportUnsupportedIntrinsicDimensions(element, physicalComputed, style, parent, pseudoElement);
         return style;
     }
