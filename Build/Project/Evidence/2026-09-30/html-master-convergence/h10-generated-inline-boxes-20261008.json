@@ -325,5 +325,16 @@
     "sourceBlobsExact": 20,
     "acceptedFontPreserved": true,
     "status": "read-only alternate index; not adopted, built, packaged or profile-qualified"
+  },
+  "ciDiagnosisStorage20261008": {
+    "utc": "2026-10-08T03:46:17.361413+00:00",
+    "verifiedAbsentTargets": 100,
+    "logicalBytesRemoved": 2161659836,
+    "nativeFilesystemErrors": 51,
+    "boundedRecovery": "one fresh guarded DotNet preflight and execution for each actual read-only/hidden filesystem error; all51 absent",
+    "retained": "current local diagnostic4case TRX/logs; prior final package feed/native references/full TRX and original failures",
+    "sourceChanged": false,
+    "sharedCacheOrHistoryChanged": false,
+    "summary": "Ignore/H10ReferenceAppearanceQualification-20261007/ci-studio-cleanup-summary-20261008.json"
   }
 }
