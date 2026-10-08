@@ -62,18 +62,20 @@ public static class EmailIndexText {
     internal static string CreateInspectionText(string html, int maximum, out bool truncated) {
         var builder = new EmailIndexTextBuilder(maximum);
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForConversion();
-        Walk(document.Body ?? (HtmlNode)document, builder, EmailIndexRegionKind.Unclassified, "unclassified", true);
+        Walk(document.Body ?? (HtmlNode)document, builder, EmailIndexRegionKind.Unclassified, "unclassified", true, includeHiddenText: true);
         truncated = builder.Truncated;
         return builder.Build(EmailBodySourceKind.Html, false, false, Array.Empty<EmailDiagnostic>()).FullText;
     }
 
-    private static void Walk(HtmlNode node, EmailIndexTextBuilder builder, EmailIndexRegionKind region, string reason, bool preformatted) {
+    private static void Walk(HtmlNode node, EmailIndexTextBuilder builder, EmailIndexRegionKind region, string reason,
+        bool preformatted, bool includeHiddenText = false) {
         if (builder.Truncated) return;
         if (node.Kind == HtmlNodeKind.Text) { builder.Append(node.TextContent, region, reason, preformatted); return; }
         var element = node as HtmlElement;
         string name = element?.LocalName ?? string.Empty;
-        if (name == "head" || name == "script" || name == "style" || name == "template" ||
-            element?.HasAttribute("hidden") == true || element?.GetAttribute("aria-hidden") == "true") return;
+        if (name == "head" || name == "script" || name == "style" || name == "template") return;
+        // Indexing exclusions are not proof of physical concealment. Inspection includes these subtrees.
+        if (!includeHiddenText && (element?.HasAttribute("hidden") == true || element?.GetAttribute("aria-hidden") == "true")) return;
         bool block = IsBlock(name);
         if (block || name == "br") builder.LineBreak(region, reason);
         if (region == EmailIndexRegionKind.Unclassified && element != null) {
@@ -84,7 +86,7 @@ public static class EmailIndexText {
             else if (signature != null) { region = EmailIndexRegionKind.Signature; reason = signature; }
         }
         foreach (HtmlNode child in node.ChildNodes) {
-            Walk(child, builder, region, reason, preformatted || name == "pre");
+            Walk(child, builder, region, reason, preformatted || name == "pre", includeHiddenText);
             if (builder.Truncated) break;
         }
         if (block) builder.LineBreak(region, reason);
