@@ -38,6 +38,8 @@ internal static partial class PdfWriter {
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
         int pendingLeadingSpaceCount = 0;
+        var pendingSpaceFragments = new List<PendingSpaceFragment>();
+        RichSeg? currentSpaceStyle = null;
         bool pendingLeadingSeparator = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         PdfColor? pendingLeadingDecorationColor = null;
@@ -194,6 +196,7 @@ internal static partial class PdfWriter {
         void ResetPendingLeading() {
             pendingLeadingAdvance = 0;
             pendingLeadingSpaceCount = 0;
+            pendingSpaceFragments.Clear();
             pendingLeadingSeparator = false;
             pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingDecorationColor = null;
@@ -220,6 +223,11 @@ internal static partial class PdfWriter {
             if (!hadTab) {
                 pendingLeadingAdvance = preserveWhitespace ? pendingLeadingAdvance + spaceW : spaceW;
                 pendingLeadingSpaceCount = preserveWhitespace ? pendingLeadingSpaceCount + 1 : 1;
+                if (preserveWhitespace && currentSpaceStyle != null) {
+                    if (pendingSpaceFragments.Count > 0 && ReferenceEquals(pendingSpaceFragments[pendingSpaceFragments.Count - 1].Style, currentSpaceStyle))
+                        pendingSpaceFragments[pendingSpaceFragments.Count - 1].AddSpace();
+                    else pendingSpaceFragments.Add(new PendingSpaceFragment(currentSpaceStyle));
+                }
                 pendingLeadingUnderlineStyle = currentRunUnderlineStyle;
                 pendingLeadingDecorationColor = currentRunUnderlineColor;
                 pendingLeadingDecorationFontSize = currentRunDecorationFontSize;
@@ -233,6 +241,7 @@ internal static partial class PdfWriter {
             }
 
             PdfTabStop? explicitTabStop = ResolveNextExplicitTabStop();
+            pendingSpaceFragments.Clear();
             pendingLeadingSpaceCount = 0;
             pendingLeadingTabAlignment = explicitTabStop?.Alignment ?? tabAlignment;
             pendingLeadingTabLeader = explicitTabStop?.Leader ?? tabLeader;
@@ -284,6 +293,15 @@ internal static partial class PdfWriter {
             double spaceW = text.IndexOfAny(SoftLineSplitChars) >= 0
                 ? MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
                 : 0D;
+            currentSpaceStyle = preserveWhitespace ? new RichSeg(string.Empty, bold, italic, underline, strike,
+                color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, 0,
+                leadingSpace: true, leadingAdvance: spaceW, leadingSpaceIsExpandable: !preformattedWhitespace,
+                namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle,
+                decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings,
+                textDirection: run.TextDirection, leadingUnderlineStyle: currentRunUnderlineStyle,
+                leadingDecorationColor: currentRunUnderlineColor, leadingDecorationFontSize: currentRunDecorationFontSize,
+                leadingDecorationTextRise: currentRunDecorationTextRise,
+                horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing) : null;
             if (run.InlineElement != null) {
                 PdfInlineElement inlineElement = run.InlineElement;
                 currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
@@ -323,6 +341,11 @@ internal static partial class PdfWriter {
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
                 }
 
+                if (preserveWhitespace && !pendingLeadingIsTab && leadingAdvance != 0D) {
+                    currentLine.AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, leadingAdvance));
+                    lineWidth += leadingAdvance;
+                    leadingAdvance = 0D;
+                }
                 currentLine.Add(new RichSeg(
                     string.Empty,
                     bold,
@@ -376,32 +399,35 @@ internal static partial class PdfWriter {
                 double wordFontSize = Math.Max(runFontSize, continuation.FontSize);
                 if (token.Length > 0) PrepareLineFrame(RunLineHeight(wordFontSize),
                     continuation.Width > 0D && wordWidth <= maxWidthPts ? wordWidth : 0D);
-                if (preserveWhitespace && !pendingLeadingIsTab && pendingLeadingAdvance > 0 && (token.Length > 0 || hadNewline)) {
-                    // Literal spacing consumes line capacity just like visible text. Keep
-                    // its advance on the line it occupies, including completely blank lines.
+                if (whitespaceMode == PdfTextWhitespaceMode.Preserve && hadNewline && token.Length == 0 && !pendingLeadingIsTab)
+                    ResetPendingLeading();
+                if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0 && (token.Length > 0 || hadNewline)) {
+                    // Retain the originating runs, including clipped portions of literal
+                    // spaces, so a later cell/column continuation can remeasure them.
+                    if (pendingLeadingAdvance <= 0.001D) {
+                        lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, pendingLeadingAdvance));
+                        lineWidth += pendingLeadingAdvance;
+                    }
                     while (pendingLeadingAdvance > 0.001D) {
                         double available = CurrentMaxWidth() - lineWidth;
                         if (available <= 0.001D) {
+                            // Imported indentation can clamp a measurement frame to
+                            // effectively zero width. Flow spaces cannot create capacity.
+                            if (!preformattedWhitespace && CurrentMaxWidth() <= 0.001D) break;
                             StartNewLine();
                             PrepareLineFrame(RunLineHeight(runFontSize));
                             available = CurrentMaxWidth();
-                            if (available <= 0.001D) throw new InvalidOperationException("No width is available for preserved text spacing.");
+                            if (available <= 0.001D) {
+                                if (!preformattedWhitespace) break;
+                                throw new InvalidOperationException("No width is available for preserved text spacing.");
+                            }
                         }
                         double advance = Math.Min(available, pendingLeadingAdvance);
-                        lines[lines.Count - 1].Add(new RichSeg(string.Empty, bold, italic, underline, strike, color, backgroundColor,
-                            uri, destinationName, contents, fontForRun, runFontSize, baseline, 0,
-                            leadingSpace: true, leadingAdvance: advance, leadingSpaceIsExpandable: !preformattedWhitespace,
-                            namedFont: currentRunNamedFont, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing,
-                            leadingSpaceCount: pendingLeadingSpaceCount));
+                        lines[lines.Count - 1].AddRange(ConsumePreservedSpaceFragments(pendingSpaceFragments, advance));
                         RegisterLineHeight(runFontSize);
                         lineWidth += advance;
                         pendingLeadingAdvance -= advance;
-                        if (!preformattedWhitespace) {
-                            // Flow spaces can occupy the remainder of this line, but their
-                            // excess never creates more blank lines or a residual indent.
-                            pendingLeadingAdvance = 0;
-                            break;
-                        }
+                        if (!preformattedWhitespace) break;
                     }
                     ResetPendingLeading();
                 }

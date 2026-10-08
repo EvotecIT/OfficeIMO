@@ -187,7 +187,7 @@ internal static partial class PdfWriter {
                 }
 
                 double wSeg = GetRichSegmentWidth(s);
-                if (s.BackgroundColor.HasValue && wSeg > 0) {
+                if (s.BackgroundColor.HasValue && (wSeg > 0 || leadingAdvance > 0)) {
                     double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
                     double asc = GetAscenderForOptions(s.Font, s.NamedFont, runFontSize, opts);
