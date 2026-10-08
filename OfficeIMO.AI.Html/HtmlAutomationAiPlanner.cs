@@ -42,23 +42,25 @@ public sealed class HtmlAutomationAiPlannerOptions {
 
 /// <summary>Adapts an OfficeIMO AI executor to the bounded HTML automation planner callback.</summary>
 public sealed class HtmlAutomationAiPlanner {
-    private readonly OfficeAiToolPlanner _planner;
+    private readonly IOfficeAiExecutor _executor;
     private readonly HtmlAutomationAiInstructionFactory _instructions;
     private readonly HtmlAutomationAiPlannerOptions _limits;
-    private readonly IReadOnlyList<OfficeAiToolDefinition> _tools;
+    private readonly string _schema;
+    private readonly IReadOnlyList<HtmlAutomationToolDefinition> _tools;
 
     /// <summary>Creates a bridge without taking ownership of the caller's executor.</summary>
     public HtmlAutomationAiPlanner(IOfficeAiExecutor executor, HtmlAutomationAiInstructionFactory instructions,
         HtmlAutomationAiPlannerOptions? options = null) {
-        _planner = new OfficeAiToolPlanner(executor ?? throw new ArgumentNullException(nameof(executor)));
+        _executor = executor ?? throw new ArgumentNullException(nameof(executor));
+        _executor.Profile.Validate();
         _instructions = instructions ?? throw new ArgumentNullException(nameof(instructions));
         _limits = (options ?? new HtmlAutomationAiPlannerOptions()).Snapshot();
-        _tools = Array.AsReadOnly(HtmlAutomationToolCatalog.GetDefinitions().Select(tool =>
-            new OfficeAiToolDefinition(tool.Name, tool.Description, tool.InputSchema)).ToArray());
+        _tools = HtmlAutomationToolCatalog.GetDefinitions();
+        _schema = HtmlAutomationAiDecisionCodec.Schema(_tools, _limits.MaxToolCallsPerTurn);
     }
 
     /// <summary>Owned tool declarations supplied to the OfficeIMO AI executor.</summary>
-    public IReadOnlyList<OfficeAiToolDefinition> Tools => _tools;
+    public IReadOnlyList<HtmlAutomationToolDefinition> Tools => _tools;
 
     /// <summary>
     /// Returns the callback consumed by <see cref="HtmlAutomationRunner"/>. The runner's dispatcher validates each
@@ -70,21 +72,19 @@ public sealed class HtmlAutomationAiPlanner {
         ArgumentNullException.ThrowIfNull(turn);
         string instructions = _instructions(turn);
         if (string.IsNullOrWhiteSpace(instructions)) throw new InvalidOperationException("The application returned no HTML automation instructions.");
-        OfficeAiToolPlanningDecision decision = await _planner.PlanAsync(new OfficeAiToolPlanningRequest {
-            RequestId = $"html-automation-{turn.Step}",
-            Instructions = instructions,
-            InputJson = SerializeTurn(turn),
-            Tools = _tools,
-            MaxToolCalls = _limits.MaxToolCallsPerTurn,
-            MaxResponseCharacters = _limits.MaxResponseCharacters,
-            MaxArgumentBytes = _limits.MaxArgumentBytes,
-            MaxJsonDepth = _limits.MaxJsonDepth,
-            MaxArgumentItems = _limits.MaxArgumentItems
-        }, cancellationToken).ConfigureAwait(false);
-        return decision.IsComplete
-            ? HtmlAutomationPlannerDecision.Complete(decision.Message)
-            : HtmlAutomationPlannerDecision.Execute(decision.Calls.Select(call =>
-                new HtmlAutomationToolCall(call.Id, call.Name, call.Arguments)).ToArray());
+        cancellationToken.ThrowIfCancellationRequested();
+        var request = new OfficeAiExecutionRequest($"html-automation-{turn.Step}", instructions,
+            SerializeTurn(turn), _schema,
+            Array.Empty<OfficeAiImage>(), _limits.MaxResponseCharacters);
+        OfficeAiExecutionProfile profile = _executor.Profile;
+        profile.Validate();
+        int measured = _executor.MeasureRequestCharacters(request);
+        if (measured < 0 || measured > profile.MaxRequestCharacters)
+            throw new InvalidOperationException("The HTML planning request exceeds the executor's character limit.");
+        OfficeAiExecutionResponse response = await _executor.ExecuteAsync(request, cancellationToken)
+            .WaitAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return HtmlAutomationAiDecisionCodec.Parse(response, _limits);
     }
 
     private static string SerializeTurn(HtmlAutomationTurn turn) {

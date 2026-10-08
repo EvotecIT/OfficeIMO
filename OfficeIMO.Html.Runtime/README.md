@@ -358,6 +358,10 @@ selected single-key input contract. Focus events, `document.activeElement`,
 `:focus` and `:focus-within` share session state. Fill sends cancelable `beforeinput`,
 changes the live value, then sends `input`; a changed text control sends `change`
 when it loses focus.
+In `WebApplicationV1`, script focus and keyboard traversal also exclude controls
+hidden by computed `display` or `visibility`; offscreen controls remain focusable.
+Focus eligibility does not require painted bounds or pointer reception. Interaction
+measurement preserves the live focus state for `:focus` and `:focus-within` rules.
 `SetCheckedAsync` leaves an already matching checked state untouched, including
 indeterminate presentation. Option values must identify unique options; an empty
 selection clears them. Disabled, readonly, hidden and inert markup affect readiness.
@@ -527,7 +531,13 @@ budgets. It supports the bounded fetch methods, request headers and bodies, buff
 text, JSON and ArrayBuffer responses, response headers, the standard ready-state
 constants, `readystatechange`, `loadstart`, `load`, `error`, `abort` and `loadend`,
 and `abort()`. HTTP error statuses complete through `load`; policy and transport
-failures complete through `error`. Synchronous requests, credentials, cookies,
+failures complete through `error`. `open()` resolves and stores the request URL
+against the current document base. Later base or history changes do not retarget it.
+XHR and `AbortSignal` use native `Event` dispatch, including target capture before
+non-capturing handlers and listeners, registration order within each invocation,
+`once`, `passive`, and propagation control. XHR lifecycle
+events other than `readystatechange` are `ProgressEvent` objects.
+Synchronous requests, credentials, cookies,
 streaming and upload progress, MIME overrides and a separate per-request XHR timeout
 are unsupported. The runtime resource deadline remains authoritative.
 

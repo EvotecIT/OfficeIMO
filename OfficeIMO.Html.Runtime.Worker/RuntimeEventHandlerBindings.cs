@@ -4,6 +4,7 @@ using AngleSharp.Js.Dom;
 using Jint;
 using Jint.Native;
 using Jint.Native.Function;
+using Jint.Runtime;
 using Jint.Runtime.Interop;
 
 namespace OfficeIMO.Html.Runtime.Worker;
@@ -11,7 +12,7 @@ namespace OfficeIMO.Html.Runtime.Worker;
 // Handler properties share one native registration per target/event, regardless of the
 // DOM wrapper or prototype through which script accesses them. Replacing a function
 // preserves its listener position; clearing and assigning again creates a new position.
-internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget window, Action<string> report) : IDisposable {
+internal sealed class RuntimeEventHandlerBindings(Engine engine, RuntimeEventTargets targets, Action<string> report) : IDisposable {
     private bool _disposed;
     private readonly ConditionalWeakTable<IEventTarget, TargetHandlers> _targets = new();
     private readonly Dictionary<string, (JsValue Get, JsValue Set)> _accessors = new(StringComparer.Ordinal);
@@ -48,8 +49,10 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
                     registration = new Registration(callback);
                     registration.Handler = (sender, ev) => {
                         if (_disposed) return;
-                        var result = engine.Invoke(registration.Callback,
-                            JsValue.FromObject(engine, sender), new[] { JsValue.FromObject(engine, ev) });
+                        JsValue result;
+                        try { result = engine.Invoke(registration.Callback,
+                            targets.Wrap(sender), new[] { JsValue.FromObject(engine, ev) }); }
+                        catch (JavaScriptException) when (RuntimeEventTargets.IsTransport(target)) { return; }
                         if (eventType == "beforeunload") {
                             try { BeforeUnloadEvent.ApplyHandlerResult(ev, result); }
                             catch (Exception error) { report(error.Message); throw; }
@@ -88,8 +91,7 @@ internal sealed class RuntimeEventHandlerBindings(Engine engine, IEventTarget wi
     }
 
     private IEventTarget? Target(JsValue receiver, string eventType) {
-        var target = ReferenceEquals(receiver, engine.Global) ? window
-            : receiver.ToObject() as IEventTarget ?? throw new ArgumentException("An event handler requires a DOM event target.");
+        var target = targets.Resolve(receiver);
         if (target is IElement element && element.NamespaceUri == "http://www.w3.org/1999/xhtml"
             && element.LocalName is "body" or "frameset" && WindowBodyEvents.Contains(eventType)) {
             var view = element.Owner?.DefaultView;

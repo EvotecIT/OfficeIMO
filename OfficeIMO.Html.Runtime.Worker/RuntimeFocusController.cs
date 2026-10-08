@@ -13,10 +13,15 @@ internal sealed class RuntimeFocusController {
     private string? _initialValue;
     private bool _dirty;
     private long _transition;
+    private RuntimeViewport? _viewport;
+    private bool _measuringVisibility;
+    internal IElement? Current => _focused;
+    internal void UseViewport(RuntimeViewport viewport) => _viewport = viewport;
     internal void Reset() {
         _focused = null;
         _initialValue = null;
         _dirty = false;
+        _viewport = null;
         _transition++;
     }
 
@@ -61,8 +66,15 @@ internal sealed class RuntimeFocusController {
             if (_transition != transition) return false;
             old.Dispatch(new FocusEvent("focusout", true, false, old.Owner!.DefaultView, 0, target));
         }
-        if (_transition != transition || target != null && !CanFocus(target)) return false;
+        if (_transition != transition) return false;
         _focused = target;
+        // CSS eligibility must use the destination focus state. A transient
+        // gap between blur and focus would hide :focus-within controls even
+        // when both the old and new focused elements belong to that subtree.
+        if (target != null && !CanFocus(target)) {
+            _focused = null;
+            return false;
+        }
         _initialValue = target == null ? null : Value(target);
         if (target != null) {
             target.Dispatch(new FocusEvent("focus", false, false, target.Owner!.DefaultView, 0, old));
@@ -93,10 +105,19 @@ internal sealed class RuntimeFocusController {
     }
     internal static bool Disabled(IElement element) => element is IHtmlInputElement or IHtmlTextAreaElement or IHtmlSelectElement or IHtmlButtonElement
         && HtmlFormControlSemantics.IsEffectivelyDisabled(element);
-    internal static bool CanFocus(IElement element) => element is IHtmlElement && IsConnected(element) && !Disabled(element) && !HiddenByMarkup(element)
+    internal bool CanFocus(IElement element) => element is IHtmlElement && IsConnected(element) && !Disabled(element) && !HiddenByMarkup(element)
         && (element.HasAttribute("tabindex") || element is IHtmlTextAreaElement or IHtmlSelectElement or IHtmlButtonElement
             || element is IHtmlInputElement input && input.Type != "hidden"
-            || element is IHtmlAnchorElement && element.HasAttribute("href"));
+            || element is IHtmlAnchorElement && element.HasAttribute("href")) && HasVisibleLayout(element);
+
+    private bool HasVisibleLayout(IElement element) {
+        if (_viewport?.Enabled != true || _measuringVisibility) return true;
+        // Computing a layout can match :focus selectors, which read this owner's
+        // current focus. Keep that nested read from starting another layout.
+        _measuringVisibility = true;
+        try { return _viewport.Measure(element, _viewport.CurrentCommandToken, measureGeometry: false).IsCssVisible; }
+        finally { _measuringVisibility = false; }
+    }
 
     private sealed class FocusSelector(RuntimeFocusController owner, bool within) : ISelector {
         public string Text => within ? ":focus-within" : ":focus";

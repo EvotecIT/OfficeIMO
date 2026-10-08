@@ -23,7 +23,8 @@ internal sealed class RuntimeFetchBindings : IDisposable {
     private int _nextId;
     private bool _disposed;
 
-    internal RuntimeFetchBindings(Engine engine, IDocument document, IEventLoop loop, RuntimeResourceLoader loader, HtmlScriptRequest options, RuntimeScriptErrors errors) {
+    internal RuntimeFetchBindings(Engine engine, IDocument document, IEventLoop loop, RuntimeResourceLoader loader, HtmlScriptRequest options, RuntimeScriptErrors errors,
+        RuntimeTransportEventBindings events) {
         _engine = engine; _document = document; _loop = loop; _loader = loader; _options = options; _errors = errors;
         using var stream = typeof(RuntimeFetchBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeFetchBootstrap.js")!;
         using var reader = new StreamReader(stream);
@@ -35,15 +36,23 @@ internal sealed class RuntimeFetchBindings : IDisposable {
             string value = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
             return value.StartsWith('\uFEFF') ? value[1..] : value;
         }));
-        var report = JsValue.FromObject(engine, (Action<string>)errors.Report);
-        var exports = engine.Invoke(factory, new[] { start, cancel, encode, decode, report, JsValue.FromObject(engine, options.ResourcePolicy.MaxRequestBytes) }).AsObject();
+        var exports = engine.Invoke(factory, new[] { start, cancel, encode, decode, JsValue.FromObject(engine, options.ResourcePolicy.MaxRequestBytes), events.Exports }).AsObject();
         var window = JsValue.FromObject(engine, document.DefaultView).AsObject();
         Install(exports);
         using var xhrStream = typeof(RuntimeFetchBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeXmlHttpRequestBootstrap.js")!;
         using var xhrReader = new StreamReader(xhrStream);
         JsValue xhrFactory = engine.Evaluate(xhrReader.ReadToEnd());
         var xhrExports = engine.Invoke(xhrFactory, new[] { exports.Get("fetch"), exports.Get("Headers"),
-            exports.Get("AbortController"), report }).AsObject();
+            exports.Get("AbortController"), events.Exports,
+            new ClrFunction(engine, "resolveRequestUrl", (_, args) => {
+                var url = new AngleSharp.Dom.Url(args[0].AsString(), RuntimeDocumentUrls.Base(document));
+                if (url.IsInvalid) {
+                    var error = engine.Intrinsics.Error.Construct("Invalid XMLHttpRequest URL.");
+                    error.Set("name", "SyntaxError");
+                    throw new JavaScriptException(error);
+                }
+                return url.Href;
+            }) }).AsObject();
         Install(xhrExports);
 
         void Install(Jint.Native.Object.ObjectInstance values) {

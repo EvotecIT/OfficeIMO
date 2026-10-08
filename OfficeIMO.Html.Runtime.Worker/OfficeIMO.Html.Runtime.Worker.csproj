@@ -13,6 +13,7 @@
     <None Include="../External/Jint/LICENSE.txt" Link="Jint.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="OfficeIMO.Html.Runtime.Worker.manifest.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="RuntimeBootstrap.js" LogicalName="OfficeIMO.RuntimeBootstrap.js" />
+    <EmbeddedResource Include="RuntimeTransportEvents.js" LogicalName="OfficeIMO.RuntimeTransportEvents.js" />
     <EmbeddedResource Include="RuntimeFetchBootstrap.js" LogicalName="OfficeIMO.RuntimeFetchBootstrap.js" />
     <EmbeddedResource Include="RuntimeXmlHttpRequestBootstrap.js" LogicalName="OfficeIMO.RuntimeXmlHttpRequestBootstrap.js" />
     <EmbeddedResource Include="RuntimeUrlBootstrap.js" LogicalName="OfficeIMO.RuntimeUrlBootstrap.js" />
@@ -29,8 +30,8 @@
     <ProjectReference Include="../External/AngleSharp/src/AngleSharp/AngleSharp.Core.csproj" />
     <!-- The isolated worker loads the pinned fork assembly; static consumers retain
          their normal package dependency. Do not copy that package DLL into this worker. -->
-    <PackageReference Include="AngleSharp" Version="1.8.2" ExcludeAssets="all" />
-    <PackageReference Include="AngleSharp.Css" Version="1.0.1" />
+    <PackageReference Include="AngleSharp" Version="1.8.3" ExcludeAssets="all" />
+    <PackageReference Include="AngleSharp.Css" Version="1.1.2" />
     <ProjectReference Include="../External/AngleSharp.Js/src/AngleSharp.Js/AngleSharp.Js.csproj" />
     <ProjectReference Include="../External/Jint/Jint/Jint.csproj" />
     <PackageReference Include="Jint" Version="4.16.0" ExcludeAssets="all" />

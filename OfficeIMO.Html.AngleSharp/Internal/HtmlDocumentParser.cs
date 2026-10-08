@@ -20,11 +20,15 @@ internal static class HtmlDocumentParser {
     /// Parses an HTML fragment or document into an AngleSharp document with cooperative cancellation.
     /// </summary>
     public static IHtmlDocument ParseDocument(string html, CancellationToken cancellationToken) {
+        return ParseDocument(html, cancellationToken, null);
+    }
+
+    internal static IHtmlDocument ParseDocument(string html, CancellationToken cancellationToken, AngleSharp.IBrowsingContext? context) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         cancellationToken.ThrowIfCancellationRequested();
         var parserOptions = new HtmlParserOptions { IsKeepingSourceReferences = true };
         MathMlSourceCapture? sourceCapture = MathMlSourceCapture.Configure(ref parserOptions, html, cancellationToken);
-        var parser = new HtmlParser(parserOptions);
+        var parser = context == null ? new HtmlParser(parserOptions) : new HtmlParser(parserOptions, context);
         string normalized = NormalizeSvgHrefAttributeOrder(html, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument document = parser.ParseDocumentAsync(normalized, cancellationToken).GetAwaiter().GetResult();

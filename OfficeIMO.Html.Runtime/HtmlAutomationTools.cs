@@ -41,7 +41,7 @@ public sealed class HtmlAutomationToolDefinition {
 public static class HtmlAutomationToolCatalog {
     private static readonly IReadOnlyList<HtmlAutomationToolDefinition> Tools = Array.AsReadOnly(new[] {
         new HtmlAutomationToolDefinition(HtmlAutomationToolNames.ObservePage, "Observe the current page as bounded semantic and visual data.",
-            """{"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["Semantic","Visual","Combined"]},"maxElements":{"type":"integer","minimum":1,"maximum":10000},"maxTextCharacters":{"type":"integer","minimum":1},"includeHidden":{"type":"boolean"},"actionableOnly":{"type":"boolean"}}}"""),
+            """{"type":"object","additionalProperties":false,"properties":{"mode":{"type":"string","enum":["Semantic","Visual","Combined"]},"maxElements":{"type":"integer","minimum":1,"maximum":10000},"maxTextCharacters":{"type":"integer","minimum":1},"includeHidden":{"type":"boolean"},"actionableOnly":{"type":"boolean"},"includeScreenshotReference":{"type":"boolean"}}}"""),
         new HtmlAutomationToolDefinition(HtmlAutomationToolNames.Act, "Run one structured action against an observed element reference or locator.",
             """{"type":"object","additionalProperties":false,"required":["action"],"properties":{"reference":{"type":"object","additionalProperties":false,"required":["pageId","revision","elementIndex","elementName","elementId"],"properties":{"pageId":{"type":"string"},"revision":{"type":"integer","minimum":1},"elementIndex":{"type":"integer","minimum":0},"elementName":{"type":"string"},"elementId":{"type":"string"}}},"css":{"type":"string"},"action":{"type":"string","enum":["Inspect","Count","Click","Hover","Press","Fill","SetChecked","SelectOptions","Focus","Blur","ScrollIntoView","Wait","SetSelection"]},"value":{"type":"string"},"values":{"type":"array","items":{"type":"string"}},"checked":{"type":"boolean"},"modifiers":{"type":"string","enum":["None","Alt","Control","Meta","Shift","Alt, Control","Alt, Meta","Alt, Shift","Control, Meta","Control, Shift","Meta, Shift","Alt, Control, Meta","Alt, Control, Shift","Alt, Meta, Shift","Control, Meta, Shift","Alt, Control, Meta, Shift"]},"waitState":{"type":"string","enum":["Attached","Detached","Enabled","Disabled","Editable","Focused","Visible","Hidden","InViewport","Value","Text","Checked"]},"waitForReady":{"type":"boolean"},"selectionStart":{"type":"integer","minimum":0},"selectionEnd":{"type":"integer","minimum":0}}}"""),
         new HtmlAutomationToolDefinition(HtmlAutomationToolNames.Navigate, "Navigate the current WebApplicationV1 page to an allowed absolute URL.",
@@ -52,6 +52,13 @@ public static class HtmlAutomationToolCatalog {
 
     /// <summary>Returns immutable definitions for every built-in tool.</summary>
     public static IReadOnlyList<HtmlAutomationToolDefinition> GetDefinitions() => Tools;
+
+    /// <summary>Validates built-in arguments and removes null values for optional fields.</summary>
+    public static JsonElement NormalizeArguments(string toolName, JsonElement arguments) {
+        HtmlAutomationToolDefinition definition = Tools.FirstOrDefault(tool => tool.Name == toolName)
+            ?? throw new ArgumentException("The call names an undeclared tool.", nameof(toolName));
+        return HtmlAutomationArgumentValidator.Normalize(arguments, definition.InputSchema);
+    }
 }
 
 /// <summary>One planner or caller-issued tool call.</summary>
@@ -141,22 +148,8 @@ public sealed class HtmlAutomationToolDispatcher {
     }
 
     private static T Deserialize<T>(HtmlAutomationToolCall call) where T : class {
-        RejectDuplicateProperties(call.Arguments, "$arguments");
-        return call.Arguments.Deserialize(HtmlAutomationToolJson.TypeInfo<T>())
+        return HtmlAutomationToolCatalog.NormalizeArguments(call.Name, call.Arguments).Deserialize(HtmlAutomationToolJson.TypeInfo<T>())
             ?? throw new ArgumentException("The tool arguments are invalid.", nameof(call));
-    }
-
-    private static void RejectDuplicateProperties(JsonElement value, string path) {
-        if (value.ValueKind == JsonValueKind.Object) {
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (JsonProperty property in value.EnumerateObject()) {
-                if (!names.Add(property.Name)) throw new ArgumentException($"Duplicate tool argument '{path}.{property.Name}'.");
-                RejectDuplicateProperties(property.Value, path + "." + property.Name);
-            }
-        } else if (value.ValueKind == JsonValueKind.Array) {
-            int index = 0;
-            foreach (JsonElement item in value.EnumerateArray()) RejectDuplicateProperties(item, $"{path}[{index++}]");
-        }
     }
 
     private static HtmlAutomationToolResult Success(HtmlAutomationToolCall call, HtmlPageObservation? observation = null,

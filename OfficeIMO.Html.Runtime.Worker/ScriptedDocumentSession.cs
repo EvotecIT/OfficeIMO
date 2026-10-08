@@ -152,7 +152,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             var normalizeWindow = RuntimeWindowBindings.Install(engine, document.DefaultView!, _realms);
             _auxiliary.Install(engine, document.DefaultView!);
             RuntimeNativeNavigationBindings.Install(engine, document.DefaultView!, _realms.IsAuxiliaryNavigation);
-            RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow, resource => _realms.Own(document, resource));
+            var transportEvents = RuntimeEventBindings.Install(engine, document.DefaultView!, _errors.Report, normalizeWindow, resource => _realms.Own(document, resource));
             RuntimeDocumentOpenBindings.Install(engine, document, _scriptEntry, opened => {
                 if (_histories.TryGetValue(opened, out var history)) history.RewriteDocumentUrl();
             }, (window, args) => _auxiliary.Open(engine, window, args));
@@ -161,7 +161,7 @@ internal sealed class ScriptedDocumentSession : IDisposable {
             RuntimeObserverBindings.Install(engine, document, _errors.Report, loop.EnqueueMicrotask, resource => _realms.Own(document, resource));
             RuntimeStorageBindings.Install(engine, _options.MaxStorageCharacters, _storage,
                 RuntimeDocumentUrls.Origin(document));
-            var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors);
+            var fetch = new RuntimeFetchBindings(engine, document, loop, _resources, _options, _errors, transportEvents);
             _realms.Own(document, fetch);
             RuntimeWindowNavigationBindings.Install(engine, document.DefaultView!, _realms);
             if (!root) {
@@ -172,7 +172,8 @@ internal sealed class ScriptedDocumentSession : IDisposable {
                 _realms.CaptureWindowSurface(document);
                 return engine;
             }
-            var viewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture);
+            var viewport = new RuntimeViewport((IHtmlDocument)document, _options, () => _activeCommandToken, _resources.Capture, () => _focus.Current);
+            _focus.UseViewport(viewport);
             _history = new RuntimeHistoryBindings(engine, document, loop, _options, viewport, _historyState, _navigate);
             _histories.Add(document, _history);
             _automation = new RuntimeAutomation(document, _options, _focus, _history, viewport, engine, _diagnostics);

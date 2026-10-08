@@ -7,13 +7,14 @@ using Jint.Runtime.Descriptors;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal static class RuntimeEventBindings {
-    internal static void Install(Engine engine, AngleSharp.Dom.IEventTarget window, Action<string> report, JsValue normalizeWindow, Action<IDisposable> own) {
+    internal static RuntimeTransportEventBindings Install(Engine engine, AngleSharp.Dom.IEventTarget window, Action<string> report, JsValue normalizeWindow, Action<IDisposable> own) {
         using var stream = typeof(RuntimeEventBindings).Assembly.GetManifestResourceStream("OfficeIMO.RuntimeBootstrap.js")!;
         using var reader = new StreamReader(stream);
         JsValue factory = engine.Evaluate(reader.ReadToEnd());
         JsValue reporter = JsValue.FromObject(engine, report);
-        var listeners = new RuntimeListenerBindings(engine, window);
-        var handlers = new RuntimeEventHandlerBindings(engine, window, report);
+        var targets = new RuntimeEventTargets(engine, window);
+        var listeners = new RuntimeListenerBindings(engine, targets);
+        var handlers = new RuntimeEventHandlerBindings(engine, targets, report);
         own(listeners);
         own(handlers);
         var untrust = new Jint.Runtime.Interop.ClrFunction(engine,"untrust",(_,args)=>{
@@ -21,6 +22,7 @@ internal static class RuntimeEventBindings {
             return JsValue.Undefined;
         });
         var listenerMethods = engine.Invoke(factory, new[] { listeners.Add, listeners.RemoveListener, reporter, JsValue.Undefined, normalizeWindow }).AsObject();
+        var transports = new RuntimeTransportEventBindings(engine, targets, listenerMethods, handlers, factory, reporter, normalizeWindow, untrust);
         var visited = new HashSet<ObjectInstance>(ReferenceEqualityComparer.Instance) { engine.Global };
         foreach (var property in engine.Global.GetOwnProperties().ToArray()) {
             if (property.Value.Value is Function constructor && constructor.Get("prototype") is ObjectInstance prototype) visited.Add(prototype);
@@ -40,7 +42,9 @@ internal static class RuntimeEventBindings {
             }
             if (prototype.GetOwnProperty("dispatchEvent").Value is Function dispatch) {
                 // Normalize the JS return contract against the event's cancellation state.
-                var wrapper = engine.Invoke(factory, new JsValue[] { dispatch, JsValue.Undefined, reporter, "dispatch", normalizeWindow, untrust });
+                var nativeOrTransport = new Jint.Runtime.Interop.ClrFunction(engine, "dispatchEvent", (receiver, args) =>
+                    engine.Invoke(targets.IsTransport(receiver) ? transports.DispatchUntrusted : dispatch, receiver, args));
+                var wrapper = engine.Invoke(factory, new JsValue[] { nativeOrTransport, JsValue.Undefined, reporter, "dispatch", normalizeWindow, untrust });
                 prototype.FastSetProperty("dispatchEvent", new PropertyDescriptor(wrapper, true, false, true));
             }
             if (prototype.GetOwnProperty("composedPath").Value is Function) {
@@ -55,5 +59,6 @@ internal static class RuntimeEventBindings {
                 prototype.FastSetProperty(handler.Key, new GetSetPropertyDescriptor(accessors.Get("get"), accessors.Get("set"), handler.Value.Enumerable, true));
             }
         }
+        return transports;
     }
 }

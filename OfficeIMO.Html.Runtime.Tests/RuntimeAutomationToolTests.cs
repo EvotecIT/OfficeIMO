@@ -9,6 +9,37 @@ public sealed class RuntimeAutomationToolTests {
     private static HtmlProcessRuntimeProvider Runtime() => new(
         Path.Combine(AppContext.BaseDirectory, "RuntimeWorker", "OfficeIMO.Html.Runtime.Worker.dll"), AngleSharpDomServices.Instance);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TypedObserveArgumentsPreserveScreenshotRequestDuringNormalization(bool screenshot) {
+        HtmlAutomationToolCall call = HtmlAutomationToolCall.Observe("observe", new HtmlPageObservationRequest {
+            IncludeScreenshotReference = screenshot
+        });
+
+        JsonElement arguments = HtmlAutomationToolCatalog.NormalizeArguments(call.Name, call.Arguments);
+
+        Assert.Equal(screenshot, arguments.GetProperty("includeScreenshotReference").GetBoolean());
+    }
+
+    [Fact]
+    public async Task TypedObserveDispatchesAndReportsUnsupportedScreenshotCapability() {
+        await using IHtmlRuntimeContext context = await Runtime().CreateContextAsync();
+        await using IHtmlRuntimePage page = await context.OpenPageAsync(new() { Html = "<p>Observed</p>" });
+        var dispatcher = new HtmlAutomationToolDispatcher();
+
+        HtmlAutomationToolResult observed = await dispatcher.ExecuteAsync(page, HtmlAutomationToolCall.Observe("observe"));
+        HtmlAutomationToolResult screenshot = await dispatcher.ExecuteAsync(page, HtmlAutomationToolCall.Observe("screenshot", new() {
+            IncludeScreenshotReference = true
+        }));
+
+        Assert.True(observed.IsSuccess);
+        Assert.NotNull(observed.Observation);
+        Assert.False(screenshot.IsSuccess);
+        Assert.Contains("screenshot", screenshot.Error!, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("unknown", screenshot.Error!, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void ToolCatalogContainsDetachedJsonSchemasWithoutAnAgentSdkDependency() {
         IReadOnlyList<HtmlAutomationToolDefinition> tools = HtmlAutomationToolCatalog.GetDefinitions();

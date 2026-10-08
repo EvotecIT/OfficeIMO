@@ -1,4 +1,4 @@
-(function (fetch, Headers, AbortController, report) {
+(function (fetch, Headers, AbortController, events, resolveUrl) {
     "use strict";
     const xhrState = new WeakMap();
     const supportedMethods = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
@@ -14,26 +14,9 @@
         error.name = name;
         return error;
     }
-    function event(type, target) {
-        return { type, target, currentTarget: target, bubbles: false, cancelable: false, defaultPrevented: false,
-            lengthComputable: false, loaded: 0, total: 0 };
-    }
     function dispatch(target, type) {
-        const data = state(target), value = event(type, target);
-        for (const item of data.listeners.slice()) {
-            if (item.type !== type || !data.listeners.includes(item)) continue;
-            if (item.once) data.listeners.splice(data.listeners.indexOf(item), 1);
-            try {
-                if (typeof item.callback === "function") item.callback.call(target, value);
-                else if (typeof item.callback?.handleEvent === "function") item.callback.handleEvent(value);
-            } catch (error) { report(String(error)); }
-        }
-        let handler;
-        try { handler = target["on" + type]; }
-        catch (error) { report(String(error)); return; }
-        if (typeof handler === "function") {
-            try { handler.call(target, value); } catch (error) { report(String(error)); }
-        }
+        state(target);
+        events.fire(target, type, type !== "readystatechange");
     }
     function ready(target, value) {
         const data = state(target);
@@ -84,10 +67,11 @@
         dispatch(target, "loadend");
     }
 
-    class XMLHttpRequest {
+    class XMLHttpRequest extends events.EventTarget {
         constructor() {
+            super(128);
             xhrState.set(this, { readyState: 0, method: null, url: null, headers: new Headers(), send: false,
-                controller: null, generation: 0, responseType: "", timeout: 0, listeners: [],
+                controller: null, generation: 0, responseType: "", timeout: 0,
                 status: 0, statusText: "", responseURL: "", responseHeaders: null, responseText: "", response: null });
         }
         get readyState() { return state(this).readyState; }
@@ -138,10 +122,11 @@
             if (!supportedMethods.has(method)) throw domError("NotSupportedError", "Unsupported XMLHttpRequest method");
             if (typeof url !== "string" && !(typeof URL !== "undefined" && url instanceof URL))
                 throw new TypeError("XMLHttpRequest.open requires a URL string or URL");
+            const resolved = resolveUrl(String(url));
             data.generation++;
             data.controller?.abort();
             data.method = method;
-            data.url = String(url);
+            data.url = resolved;
             data.headers = new Headers();
             data.send = false;
             data.controller = null;
@@ -205,25 +190,11 @@
             finishFailure(this, generation, "abort");
             if (data.generation === generation && !data.send) data.readyState = XMLHttpRequest.UNSENT;
         }
-        addEventListener(type, callback, options) {
-            const data = state(this);
-            type = String(type);
-            if (callback == null) return;
-            const capture = typeof options === "boolean" ? options : !!options?.capture;
-            if (!data.listeners.some(item => item.type === type && item.callback === callback && item.capture === capture)) {
-                if (data.listeners.length >= 128) throw domError("QuotaExceededError", "XMLHttpRequest listener limit exceeded");
-                data.listeners.push({ type, callback, capture, once: !!options?.once });
-            }
-        }
-        removeEventListener(type, callback, options) {
-            const data = state(this), capture = typeof options === "boolean" ? options : !!options?.capture;
-            type = String(type);
-            data.listeners = data.listeners.filter(item => item.type !== type || item.callback !== callback || item.capture !== capture);
-        }
     }
+    events.handlers(XMLHttpRequest.prototype, ["readystatechange", "loadstart", "progress", "abort", "error", "load", "timeout", "loadend"]);
     for (const pair of [["UNSENT", 0], ["OPENED", 1], ["HEADERS_RECEIVED", 2], ["LOADING", 3], ["DONE", 4]]) {
         Object.defineProperty(XMLHttpRequest, pair[0], { value: pair[1] });
         Object.defineProperty(XMLHttpRequest.prototype, pair[0], { value: pair[1] });
     }
-    return { XMLHttpRequest };
+    return { XMLHttpRequest, ProgressEvent: events.ProgressEvent };
 })

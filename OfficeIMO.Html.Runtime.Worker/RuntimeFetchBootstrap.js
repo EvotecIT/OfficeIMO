@@ -1,4 +1,4 @@
-(function (start, cancel, encode, decode, report, maxBodyBytes) {
+(function (start, cancel, encode, decode, maxBodyBytes, events) {
     "use strict";
     const headerState = new WeakMap(), responseState = new WeakMap(), signalState = new WeakMap(), controllerState = new WeakMap();
     const internalKey = {};
@@ -52,12 +52,13 @@
         has(name) { return state(headerState, this).values.has(headerName(name)); }
         *entries() {
             // Re-sort on each step so additions during iteration have normal Headers ordering.
-            let previous;
+            let index = 0;
             while (true) {
                 const values = state(headerState, this).values;
-                const next = Array.from(values.keys()).sort().find(key => previous === undefined || key > previous);
-                if (next === undefined) return;
-                previous = next; yield [next, values.get(next)];
+                const keys = Array.from(values.keys()).sort();
+                if (index >= keys.length) return;
+                const next = keys[index++];
+                yield [next, values.get(next)];
             }
         }
         *keys() { for (const pair of this.entries()) yield pair[0]; }
@@ -66,29 +67,18 @@
         forEach(callback, receiver) { for (const pair of this.entries()) callback.call(receiver, pair[1], pair[0], this); }
     }
     function abortError() { const error = new Error("The operation was aborted"); error.name = "AbortError"; return error; }
-    class AbortSignal {
+    class AbortSignal extends events.EventTarget {
         constructor(key) {
             if (key !== internalKey) throw new TypeError("Illegal constructor");
-            signalState.set(this, { aborted: false, reason: undefined, listeners: [], algorithms: new Set(), handler: null });
+            super();
+            signalState.set(this, { aborted: false, reason: undefined, algorithms: new Set() });
         }
         get aborted() { return state(signalState, this).aborted; }
         get reason() { return state(signalState, this).reason; }
-        get onabort() { return state(signalState, this).handler; }
-        set onabort(value) { state(signalState, this).handler = typeof value === "function" ? value : null; }
         throwIfAborted() { if (this.aborted) throw this.reason; }
-        addEventListener(type, callback, options) {
-            const data = state(signalState, this);
-            if (String(type) !== "abort" || callback == null) return;
-            const capture = typeof options === "boolean" ? options : !!options?.capture;
-            if (!data.listeners.some(item => item.callback === callback && item.capture === capture))
-                data.listeners.push({ callback, capture, once: !!options?.once });
-        }
-        removeEventListener(type, callback, options) {
-            const data = state(signalState, this), capture = typeof options === "boolean" ? options : !!options?.capture;
-            if (String(type) === "abort") data.listeners = data.listeners.filter(item => item.callback !== callback || item.capture !== capture);
-        }
         static abort(reason) { const controller = new AbortController(); controller.abort(reason); return controller.signal; }
     }
+    events.handlers(AbortSignal.prototype, ["abort"]);
     class AbortController {
         constructor() { controllerState.set(this, new AbortSignal(internalKey)); }
         get signal() { return state(controllerState, this); }
@@ -98,16 +88,7 @@
             data.aborted = true; data.reason = reason === undefined ? abortError() : reason;
             for (const algorithm of Array.from(data.algorithms)) algorithm();
             data.algorithms.clear();
-            const event = { type: "abort", target: signal, currentTarget: signal, bubbles: false, cancelable: false, defaultPrevented: false };
-            for (const item of data.listeners.slice()) {
-                if (!data.listeners.includes(item)) continue;
-                if (item.once) data.listeners.splice(data.listeners.indexOf(item), 1);
-                try {
-                    if (typeof item.callback === "function") item.callback.call(signal, event);
-                    else if (typeof item.callback.handleEvent === "function") item.callback.handleEvent(event);
-                } catch (error) { report(String(error)); }
-            }
-            if (data.handler) { try { data.handler.call(signal, event); } catch (error) { report(String(error)); } }
+            events.fire(signal, "abort");
         }
     }
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

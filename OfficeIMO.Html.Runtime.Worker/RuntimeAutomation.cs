@@ -80,18 +80,20 @@ internal sealed partial class RuntimeAutomation {
         if (RuntimeFocusController.Disabled(element) || RuntimeFocusController.HiddenByMarkup(element))
             return Failure(HtmlAutomationStatus.NotReady, "The element is disabled, hidden by markup or inside an inert subtree.", 1, inspected);
         if (_viewport.Enabled) {
-            if (!layout.IsVisible) return Failure(HtmlAutomationStatus.NotReady, "The element has no visible layout box.", 1, inspected);
+            bool focusAction = request.Action is HtmlAutomationAction.Focus or HtmlAutomationAction.Press;
+            if (focusAction ? !layout.IsCssVisible : !layout.IsVisible)
+                return Failure(HtmlAutomationStatus.NotReady, focusAction ? "The element is hidden by computed CSS." : "The element has no visible layout box.", 1, inspected);
             if (request.Action is (HtmlAutomationAction.Click or HtmlAutomationAction.SetChecked or HtmlAutomationAction.Hover) && !layout.AcceptsPointerEvents)
                 return Failure(HtmlAutomationStatus.NotReady, "The element does not accept pointer events.", 1, inspected);
             if (request.Action is (HtmlAutomationAction.Click or HtmlAutomationAction.SetChecked or HtmlAutomationAction.Hover) && !layout.ReceivesPointerAtCenter)
                 return Failure(HtmlAutomationStatus.NotReady, "Another element covers the target's interaction point.", 1, inspected);
-            if (!layout.IsInViewport) layout = _viewport.ScrollIntoView(element, token);
+            if (layout.IsVisible && !layout.IsInViewport) layout = _viewport.ScrollIntoView(element, token);
             if (request.Action is (HtmlAutomationAction.Click or HtmlAutomationAction.SetChecked or HtmlAutomationAction.Hover)
                 && !layout.ReceivesPointerAtCenter)
                 return Failure(HtmlAutomationStatus.NotReady, "Another element covers the target's interaction point, or scrolled sticky positioning is unqualified.", 1, Inspect(element, layout));
         }
         return request.Action switch {
-            HtmlAutomationAction.Focus => RuntimeFocusController.CanFocus(element)
+            HtmlAutomationAction.Focus => _focus.CanFocus(element)
                 ? _focus.Focus(element) ? Success(element) : Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element))
                 : Failure(HtmlAutomationStatus.Unsupported, "This element is not focusable.", 1, Inspect(element)),
             HtmlAutomationAction.Fill => Fill(element, request.Value!),
@@ -189,7 +191,7 @@ internal sealed partial class RuntimeAutomation {
         HtmlKeyboardModifiers modifiers = HtmlKeyboardModifiers.None) {
         if (element is not IHtmlElement) return Failure(HtmlAutomationStatus.Unsupported, "DOM activation requires an HTML element.", 1);
         if (RuntimeFocusController.Disabled(element)) return Failure(HtmlAutomationStatus.NotReady, "The element is disabled.", 1, Inspect(element));
-        if (focusTarget && RuntimeFocusController.CanFocus(element) && !_focus.Focus(element))
+        if (focusTarget && _focus.CanFocus(element) && !_focus.Focus(element))
             return Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element));
         if (RuntimeFocusController.Disabled(element) || focusTarget && (!RuntimeFocusController.IsConnected(element) || RuntimeFocusController.HiddenByMarkup(element))) return Failure(HtmlAutomationStatus.Rejected, "The activation target changed during focus.", 1, Inspect(element));
         var anchor = element is IHtmlButtonElement or IHtmlInputElement ? null : element.Closest("a[href]") as IHtmlAnchorElement;

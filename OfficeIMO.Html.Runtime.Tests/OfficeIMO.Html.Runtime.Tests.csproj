@@ -19,14 +19,24 @@
     <ProjectReference Include="../OfficeIMO.Html.Runtime/OfficeIMO.Html.Runtime.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Rendering/OfficeIMO.Html.Runtime.Rendering.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Conformance/OfficeIMO.Html.Runtime.Conformance.csproj" />
-    <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" />
-    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" />
     <ProjectReference Include="../OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <ProjectReference Include="../OfficeIMO.AI/OfficeIMO.AI.csproj" />
+    <ProjectReference Include="../OfficeIMO.AI.Html/OfficeIMO.AI.Html.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
+    <Compile Remove="RuntimeOfficeAiTests.cs" />
+  </ItemGroup>
   <Target Name="CopyRuntimeWorker" AfterTargets="Build">
-    <ItemGroup><RuntimeWorkerFile Include="../OfficeIMO.Html.Runtime.Worker/bin/$(Configuration)/$(TargetFramework)/**/*" /></ItemGroup>
+    <MSBuild Projects="../OfficeIMO.Html.Runtime.Worker/OfficeIMO.Html.Runtime.Worker.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="RuntimeWorkerAssembly" />
+    </MSBuild>
+    <PropertyGroup><RuntimeWorkerDirectory>@(RuntimeWorkerAssembly->'%(RootDir)%(Directory)')</RuntimeWorkerDirectory></PropertyGroup>
+    <ItemGroup><RuntimeWorkerFile Include="$(RuntimeWorkerDirectory)**/*" /></ItemGroup>
     <Copy SourceFiles="@(RuntimeWorkerFile)" DestinationFiles="@(RuntimeWorkerFile->'$(OutDir)RuntimeWorker/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

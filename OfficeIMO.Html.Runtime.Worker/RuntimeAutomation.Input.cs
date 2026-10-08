@@ -48,7 +48,7 @@ internal sealed partial class RuntimeAutomation {
         if (!TryRefreshPointerTarget(element, out layout, out failure)) return failure!;
         bool mouseDown = pointerDown && DispatchMouse(element, "mousedown", true, true, layout, null);
         if (!TryRefreshPointerTarget(element, out layout, out failure)) return failure!;
-        if (mouseDown && RuntimeFocusController.CanFocus(element) && !_focus.Focus(element))
+        if (mouseDown && _focus.CanFocus(element) && !_focus.Focus(element))
             return Failure(HtmlAutomationStatus.Rejected, "Page handlers redirected focus.", 1, Inspect(element));
         if (!TryRefreshPointerTarget(element, out layout, out failure)) return failure!;
         DispatchMouse(element, "pointerup", true, true, layout, null);
@@ -83,7 +83,7 @@ internal sealed partial class RuntimeAutomation {
     private HtmlAutomationResult Press(IElement element, string requestedKey, HtmlKeyboardModifiers modifiers) {
         if (!TryNormalizeKey(requestedKey, out string key, out int keyCode))
             return Failure(HtmlAutomationStatus.InvalidValue, "Press supports one text element or Enter, Space, Tab, Escape, Backspace, Delete, Home, End and arrow keys.", 1, Inspect(element));
-        if (!RuntimeFocusController.CanFocus(element))
+        if (!_focus.CanFocus(element))
             return Failure(HtmlAutomationStatus.Unsupported, "The target cannot receive keyboard focus.", 1, Inspect(element));
         bool wasFocused = ReferenceEquals(_focus.Focused, element);
         if (!_focus.Focus(element) || !ReferenceEquals(_focus.Focused, element))
@@ -216,7 +216,7 @@ internal sealed partial class RuntimeAutomation {
     private HtmlAutomationResult MoveFocus(IElement element, bool reverse) {
         IElement[] candidates = _document.QuerySelectorAll("*")
             .Select((candidate, index) => new { Element = candidate, Index = index, TabIndex = TabIndex(candidate) })
-            .Where(candidate => candidate.TabIndex >= 0 && RuntimeFocusController.CanFocus(candidate.Element))
+            .Where(candidate => candidate.TabIndex >= 0 && _focus.CanFocus(candidate.Element))
             .OrderBy(candidate => candidate.TabIndex == 0 ? int.MaxValue : candidate.TabIndex)
             .ThenBy(candidate => candidate.Index)
             .Select(candidate => candidate.Element)

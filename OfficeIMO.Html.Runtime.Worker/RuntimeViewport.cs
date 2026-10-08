@@ -4,7 +4,8 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html.Runtime.Worker;
 
 internal sealed class RuntimeViewport(IHtmlDocument document, HtmlScriptRequest options,
-    Func<CancellationToken> currentCommandToken, Func<IReadOnlyList<HtmlRuntimeResource>> currentResources) {
+    Func<CancellationToken> currentCommandToken, Func<IReadOnlyList<HtmlRuntimeResource>> currentResources,
+    Func<IElement?>? currentFocusedElement = null) {
     private double _scrollX;
     private double _scrollY;
 
@@ -15,17 +16,18 @@ internal sealed class RuntimeViewport(IHtmlDocument document, HtmlScriptRequest 
     internal bool Enabled => options.Profile == HtmlRuntimeProfile.WebApplicationV1;
     internal CancellationToken CurrentCommandToken => Resolve(CancellationToken.None);
 
-    internal RuntimeElementLayout Measure(IElement element, CancellationToken token) {
+    internal RuntimeElementLayout Measure(IElement element, CancellationToken token, bool measureGeometry = true) {
         token = Resolve(token);
         if (!Enabled) return RuntimeElementLayout.Unqualified;
         if (RuntimeFocusController.HiddenByMarkup(element))
             return new RuntimeElementLayout(false, false, false, null, _scrollX, _scrollY, 0D, 0D);
         HtmlInteractionLayoutResult measured = HtmlInteractionLayoutEngine.Measure(
             document, element, Width, Height, options.DevicePixelRatio, _scrollX, _scrollY, options.MaxInputCharacters, options.MaxNodes, options.MaxDepth,
-            options.MaxStylesheetImportDepth, new Uri(RuntimeDocumentUrls.Base(document)), ResolveStylesheet, token);
+            options.MaxStylesheetImportDepth, new Uri(RuntimeDocumentUrls.Base(document)), ResolveStylesheet, token,
+            currentFocusedElement?.Invoke(), measureGeometry);
         if (!measured.IsConnected || !measured.HasLayoutBox || measured.Bounds is not HtmlInteractionRect bounds)
             return new RuntimeElementLayout(false, measured.AcceptsPointerEvents, measured.ReceivesPointerAtCenter,
-                null, _scrollX, _scrollY, measured.DocumentWidth, measured.DocumentHeight);
+                null, _scrollX, _scrollY, measured.DocumentWidth, measured.DocumentHeight) { IsCssVisible = measured.IsCssVisible };
         var box = new HtmlRuntimeRect {
             X = bounds.X - _scrollX,
             Y = bounds.Y - _scrollY,
@@ -34,7 +36,7 @@ internal sealed class RuntimeViewport(IHtmlDocument document, HtmlScriptRequest 
         };
         bool intersects = box.X < Width && box.Y < Height && box.X + box.Width > 0D && box.Y + box.Height > 0D;
         return new RuntimeElementLayout(true, measured.AcceptsPointerEvents, measured.ReceivesPointerAtCenter,
-            box, _scrollX, _scrollY, measured.DocumentWidth, measured.DocumentHeight, intersects);
+            box, _scrollX, _scrollY, measured.DocumentWidth, measured.DocumentHeight, intersects) { IsCssVisible = measured.IsCssVisible };
     }
 
     internal RuntimeElementLayout ScrollIntoView(IElement element, CancellationToken token) {
@@ -87,5 +89,6 @@ internal readonly record struct RuntimeElementLayout(
     double DocumentWidth,
     double DocumentHeight,
     bool IsInViewport = false) {
+    internal bool IsCssVisible { get; init; }
     internal static RuntimeElementLayout Unqualified => new(false, false, false, null, 0D, 0D, 0D, 0D);
 }

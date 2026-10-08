@@ -51,6 +51,39 @@ public sealed class RuntimeOfficeAiTests {
     }
 
     [Fact]
+    public async Task OfficeAiBridgeUsesHtmlOwnedArgumentsAndRejectsTruncatedOrOverBudgetRequests() {
+        var executor = new SingleResponseExecutor(Decision(false, Call("fill", HtmlAutomationToolNames.Act,
+            """{"action":"Fill","css":"#name","value":"Ada","checked":null,"reference":null}""")));
+        var adapter = new HtmlAutomationAiPlanner(executor, _ => "bounded");
+        HtmlAutomationPlannerDecision decision = await adapter.CreatePlanner()(Turn(), CancellationToken.None);
+        Assert.Single(decision.Calls);
+        Assert.Equal("Ada", decision.Calls[0].Arguments.GetProperty("value").GetString());
+        Assert.False(decision.Calls[0].Arguments.TryGetProperty("checked", out _));
+        Assert.False(decision.Calls[0].Arguments.TryGetProperty("reference", out _));
+
+        var truncated = new HtmlAutomationAiPlanner(new SingleResponseExecutor(Decision(true), complete: false), _ => "bounded");
+        Assert.Contains("truncated", (await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            truncated.CreatePlanner()(Turn(), CancellationToken.None))).Message);
+        var limited = new SingleResponseExecutor(Decision(true), requestCharacters: 4096);
+        var bounded = new HtmlAutomationAiPlanner(limited, _ => new string('x', 5000));
+        Assert.Contains("character limit", (await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            bounded.CreatePlanner()(Turn(), CancellationToken.None))).Message);
+        Assert.Empty(limited.Requests);
+    }
+
+    [Theory]
+    [InlineData("{\"action\":\"Fill\",\"action\":\"Click\",\"css\":\"#name\"}", "duplicate")]
+    [InlineData("{\"action\":\"Fill\",\"css\":\"#name\",\"selectionStart\":-1}", "range")]
+    [InlineData("{\"action\":\"Unsupported\",\"css\":\"#name\"}", "allowed values")]
+    [InlineData("{\"action\":\"Fill\",\"css\":\"#name\",\"unknown\":true}", "unknown")]
+    public async Task OfficeAiBridgeValidatesTheSameArgumentContractAsDeterministicTools(string arguments, string reason) {
+        var adapter = new HtmlAutomationAiPlanner(new SingleResponseExecutor(
+            Decision(false, Call("invalid", HtmlAutomationToolNames.Act, arguments))), _ => "bounded");
+        Assert.Contains(reason, (await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            adapter.CreatePlanner()(Turn(), CancellationToken.None))).Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task OfficeAiPlannerRejectsOversizedToolArguments() {
         var executor = new SingleResponseExecutor(Decision(false,
             Call("oversized", HtmlAutomationToolNames.Act,
@@ -109,12 +142,12 @@ public sealed class RuntimeOfficeAiTests {
         }
     }
 
-    private sealed class SingleResponseExecutor(string response) : IOfficeAiExecutor {
-        public OfficeAiExecutionProfile Profile { get; } = ProfileFor("single");
+    private sealed class SingleResponseExecutor(string response, bool complete = true, int requestCharacters = 2_000_000) : IOfficeAiExecutor {
+        public OfficeAiExecutionProfile Profile { get; } = ProfileFor("single") with { MaxRequestCharacters = requestCharacters };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
             Requests.Add(request);
-            return Task.FromResult(new OfficeAiExecutionResponse(response));
+            return Task.FromResult(new OfficeAiExecutionResponse(response, IsComplete: complete));
         }
     }
 

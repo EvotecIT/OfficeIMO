@@ -14,10 +14,10 @@ namespace OfficeIMO.Html.Runtime.Worker;
 internal sealed class RuntimeListenerBindings : IDisposable {
     private readonly ConditionalWeakTable<IEventTarget, TargetListeners> _targets = new();
     private readonly Engine _engine;
-    private readonly IEventTarget _window;
+    private readonly RuntimeEventTargets _targetsMap;
     private bool _disposed;
 
-    internal RuntimeListenerBindings(Engine engine, IEventTarget window) { _engine = engine; _window = window; }
+    internal RuntimeListenerBindings(Engine engine, RuntimeEventTargets targets) { _engine = engine; _targetsMap = targets; }
 
     internal JsValue Add => new ClrFunction(_engine, "addEventListener", (receiver, args) => {
         if (_disposed) return JsValue.Undefined;
@@ -38,15 +38,25 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         }
         var registrations = _targets.GetValue(target, CreateListeners).Registrations;
         if (registrations.Any(item => item.Type == type && item.Capture == capture && ReferenceEquals(item.Callback, callback))) return JsValue.Undefined;
+        if (registrations.Count >= RuntimeEventTargets.ListenerLimit(target)) {
+            var error = _engine.Intrinsics.Error.Construct("The event target listener limit was exceeded.");
+            error.Set("name", "QuotaExceededError");
+            throw new JavaScriptException(error);
+        }
         var registration = new Registration(type, capture, callback);
         registration.Handler = (sender, ev) => {
             if (_disposed) return;
             if (once) Remove(target, registrations, registration);
-            if (passive) {
-                using var scope = ev.BeginPassiveListener();
-                _engine.Invoke(callback, JsValue.FromObject(_engine, sender), new[] { JsValue.FromObject(_engine, ev) });
-            } else {
-                _engine.Invoke(callback, JsValue.FromObject(_engine, sender), new[] { JsValue.FromObject(_engine, ev) });
+            try {
+                if (passive) {
+                    using var scope = ev.BeginPassiveListener();
+                    _engine.Invoke(callback, _targetsMap.Wrap(sender), new[] { JsValue.FromObject(_engine, ev) });
+                } else {
+                    _engine.Invoke(callback, _targetsMap.Wrap(sender), new[] { JsValue.FromObject(_engine, ev) });
+                }
+            } catch (JavaScriptException) when (RuntimeEventTargets.IsTransport(target)) {
+                // The shared wrapper reported the failure. Transport dispatch must
+                // still invoke later listeners and finish the request lifecycle.
             }
         };
         registrations.Add(registration);
@@ -77,8 +87,7 @@ internal sealed class RuntimeListenerBindings : IDisposable {
         return JsValue.Undefined;
     });
 
-    private IEventTarget Target(JsValue receiver) => ReferenceEquals(receiver, _engine.Global) ? _window : receiver.ToObject() as IEventTarget
-        ?? throw new HtmlScriptRuntimeException("The event listener receiver must be a DOM event target.");
+    private IEventTarget Target(JsValue receiver) => _targetsMap.Resolve(receiver);
 
     private static bool Capture(JsValue options) => TypeConverter.ToBoolean(options.IsObject() ? options.AsObject().Get("capture") : options);
 

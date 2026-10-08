@@ -22,7 +22,9 @@ internal static class HtmlInteractionLayoutEngine {
         int maximumStylesheetImportDepth,
         Uri? baseUri,
         Func<Uri, string?>? stylesheetResolver,
-        CancellationToken token) {
+        CancellationToken token,
+        IElement? focusedElement = null,
+        bool measureGeometry = true) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (target == null) throw new ArgumentNullException(nameof(target));
         token.ThrowIfCancellationRequested();
@@ -43,13 +45,16 @@ internal static class HtmlInteractionLayoutEngine {
 
         string html = document.DocumentElement?.OuterHtml ?? string.Empty;
         if (html.Length > maximumCharacters) throw new ArgumentException("The live document exceeds the interaction layout input budget.");
-        IHtmlDocument clone = HtmlDocumentParser.ParseDocument("<!doctype html><html><head></head><body></body></html>", token);
+        using var focusState = new HtmlInteractionFocusState();
+        IHtmlDocument clone = HtmlDocumentParser.ParseDocument("<!doctype html><html><head></head><body></body></html>", token, focusState.Context);
         IElement? clonedTarget = null;
         if (document.DocumentElement != null && clone.DocumentElement != null) {
             var importedRoot = (IElement)clone.Import(document.DocumentElement, deep: true);
             NativeFormState.CopyTree(document.DocumentElement, importedRoot, token);
             IElement[] importedElements = new[] { importedRoot }.Concat(importedRoot.QuerySelectorAll("*")).ToArray();
             if (targetIndex < importedElements.Length) clonedTarget = importedElements[targetIndex];
+            int focusIndex = focusedElement == null ? -1 : Array.IndexOf(sourceElements, focusedElement);
+            if (focusIndex >= 0 && focusIndex < importedElements.Length) focusState.Focused = importedElements[focusIndex];
             HydrateStylesheets(clone, importedRoot, stylesheets, limits, viewportWidth, viewportHeight, mediaFeatures,
                 maximumStylesheetImportDepth, stylesheetResolver, token);
             clone.ReplaceChild(importedRoot, clone.DocumentElement);
@@ -74,6 +79,7 @@ internal static class HtmlInteractionLayoutEngine {
         bool acceptsPointerEvents = styles.Elements.TryGetValue(clonedTarget, out HtmlComputedStyle? targetStyle)
             && !string.Equals(targetStyle.GetValue("pointer-events").Trim(), "none", StringComparison.OrdinalIgnoreCase);
         if (!cssVisible) return new HtmlInteractionLayoutResult(true, false, acceptsPointerEvents, false, null, viewportWidth, viewportHeight);
+        if (!measureGeometry) return new HtmlInteractionLayoutResult(true, false, acceptsPointerEvents, false, null, viewportWidth, viewportHeight) { IsCssVisible = true };
 
         string marker = "officeimo-interaction:" + Guid.NewGuid().ToString("N") + ":";
         for (int index = 0; index < clonedElements.Length; index++)
@@ -100,7 +106,7 @@ internal static class HtmlInteractionLayoutEngine {
             && hitTargetSources.Contains(hit);
         double documentWidth = rendered.Pages.Max(page => page.Width);
         double documentHeight = rendered.Pages.Sum(page => page.Height);
-        return new HtmlInteractionLayoutResult(true, bounds.HasValue, acceptsPointerEvents, receivesPointerAtCenter, bounds, documentWidth, documentHeight);
+        return new HtmlInteractionLayoutResult(true, bounds.HasValue, acceptsPointerEvents, receivesPointerAtCenter, bounds, documentWidth, documentHeight) { IsCssVisible = true };
     }
 
     private static StylesheetSnapshot[] CaptureStylesheets(
@@ -434,5 +440,6 @@ internal readonly record struct HtmlInteractionLayoutResult(
     HtmlInteractionRect? Bounds,
     double DocumentWidth,
     double DocumentHeight) {
+    internal bool IsCssVisible { get; init; }
     internal static HtmlInteractionLayoutResult Detached => new(false, false, false, false, null, 0D, 0D);
 }
