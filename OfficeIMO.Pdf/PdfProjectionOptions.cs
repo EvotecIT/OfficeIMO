@@ -55,6 +55,7 @@ public sealed class PdfProjectionOptions {
     /// <summary>
     /// Shared raster decode settings used when assets require normalization.
     /// The converter snapshots all settings and observes their cancellation token together with the projection token.
+    /// Normalization uses the smaller of the caller pixel limit and the shared PDF transcode ceiling.
     /// A null value uses the shared decoder defaults.
     /// </summary>
     public OfficeIMO.Drawing.OfficeRasterDecodeOptions? RasterDecodeOptions { get; set; } = new OfficeIMO.Drawing.OfficeRasterDecodeOptions();
