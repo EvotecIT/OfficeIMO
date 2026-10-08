@@ -7,7 +7,6 @@
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
-             xmlns:workspace="using:OfficeIMO.Studio.Features.Workspace"
              xmlns:comments="using:OfficeIMO.Studio.Features.Comments"
              x:Class="OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView"
              x:DataType="shell:MainWindowViewModel">
@@ -637,9 +636,27 @@
         </Border>
       </Grid>
 
-      <workspace:IndependentDocumentPanesView x:Name="IndependentPanes" Grid.Column="1" IsVisible="False" />
+      <Grid Grid.Column="1" RowDefinitions="Auto,*" Background="{DynamicResource StudioCanvasBrush}">
+        <!-- Scanned pages cannot be searched, selected or cited until they have a text layer. -->
+        <Border x:Name="OcrPrompt" Classes="floating" IsVisible="{Binding ShowOcrPrompt}"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,12" Padding="12,8,6,8" MaxWidth="620">
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+            <Border Width="28" Height="28" CornerRadius="8" Background="{DynamicResource StudioAccentSoftBrush}" VerticalAlignment="Center">
+              <PathIcon Data="{StaticResource IconOcr}" Width="14" Height="14" Foreground="{DynamicResource StudioAccentBrush}" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+              <TextBlock Text="{loc:Loc Ocr.Prompt.Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <TextBlock Text="{loc:Loc Ocr.Prompt.Detail}" Classes="caption" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="primary" Content="{loc:Loc Ocr.Prompt.Action}" Command="{Binding MakeSearchableCommand}" VerticalAlignment="Center" />
+            <Button Grid.Column="3" Classes="icon" Width="26" Height="26" Command="{Binding DismissOcrPromptCommand}" VerticalAlignment="Center"
+                    AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" ToolTip.Tip="{loc:Loc MainWindow.Dismiss}"><PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" /></Button>
+          </Grid>
+        </Border>
 
-      <Grid x:Name="ReaderCanvas" Grid.Column="1" IsVisible="False" ColumnDefinitions="*,6,*" RowDefinitions="Auto,*">
+      <workspace:IndependentDocumentPanesView x:Name="IndependentPanes" Grid.Row="1" IsVisible="False" />
+
+      <Grid x:Name="ReaderCanvas" Grid.Row="1" IsVisible="False" ColumnDefinitions="*,6,*" RowDefinitions="Auto,*">
         <!-- While comparing, both documents get a header of the same height so their pages start level. -->
         <Border Grid.Column="0" Classes="compareHeader" IsVisible="{Binding IsComparisonOpen}">
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Top">
@@ -720,23 +737,6 @@
           </ListBox>
         </Panel>
 
-        <!-- Scanned pages cannot be searched, selected or cited until they have a text layer. -->
-        <Border x:Name="OcrPrompt" Grid.Row="1" Grid.ColumnSpan="3" Classes="floating" IsVisible="{Binding ShowOcrPrompt}"
-                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,12,16,0" Padding="12,8,6,8" MaxWidth="620">
-          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-            <Border Width="28" Height="28" CornerRadius="8" Background="{DynamicResource StudioAccentSoftBrush}" VerticalAlignment="Center">
-              <PathIcon Data="{StaticResource IconOcr}" Width="14" Height="14" Foreground="{DynamicResource StudioAccentBrush}" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
-              <TextBlock Text="{loc:Loc Ocr.Prompt.Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
-              <TextBlock Text="{loc:Loc Ocr.Prompt.Detail}" Classes="caption" TextWrapping="Wrap" />
-            </StackPanel>
-            <Button Grid.Column="2" Classes="primary" Content="{loc:Loc Ocr.Prompt.Action}" Command="{Binding MakeSearchableCommand}" VerticalAlignment="Center" />
-            <Button Grid.Column="3" Classes="icon" Width="26" Height="26" Command="{Binding DismissOcrPromptCommand}" VerticalAlignment="Center"
-                    AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" ToolTip.Tip="{loc:Loc MainWindow.Dismiss}"><PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" /></Button>
-          </Grid>
-        </Border>
-
         <!-- Floating page and zoom controls over the canvas. -->
         <Border x:Name="PageNumberErrorBanner" Grid.Row="1" Grid.ColumnSpan="3" Classes="floating"
                 IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,0,12,72" MaxWidth="360" Padding="12,8">
@@ -788,6 +788,7 @@
             <TextBlock Text="{loc:Loc Shell.ExitFocus}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
+      </Grid>
       </Grid>
 
       <GridSplitter x:Name="NavigationSplitter" Grid.Column="0" Width="5" HorizontalAlignment="Right"

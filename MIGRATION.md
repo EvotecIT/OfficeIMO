@@ -1,5 +1,17 @@
 # Upgrading OfficeIMO
 
+## PDF form value assessment
+
+`PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
+precision and range checks from the supported inert field/widget action profile.
+Unsupported script constraints produce assessment errors without executing code.
+Applications that previously displayed only length and choice errors must also
+display these errors and block acceptance until the assessment succeeds. Correct
+numeric values to the recovered rules; use a qualified form application for
+unsupported script constraints.
+The [form review contract](OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+defines the supported helper calls; the policy does not emulate Acrobat formatting.
+
 ## PDF mutation assessment cancellation
 
 Replace `pdf.AssessMutations(default)` with

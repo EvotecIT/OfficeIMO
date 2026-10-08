@@ -308,7 +308,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || IsFormOcrBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -589,6 +589,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     public void Dispose() {
+        ClearFormOcrReview();
         _assistant?.Dispose();
         ClearFormPreview();
         _commands?.Dispose();

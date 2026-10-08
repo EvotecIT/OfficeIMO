@@ -207,7 +207,7 @@ public sealed partial class PdfDocumentPreflight {
         if (kind == PdfRewriteBlockerKind.ActiveContent &&
             _documentInfo is not null &&
             _documentInfo.AcroFormXfa is null &&
-            _documentInfo.HasOnlyWidgetOwnedActiveContent) {
+            _documentInfo.HasOnlyFormOwnedActiveContent) {
             return false;
         }
         return kind != PdfRewriteBlockerKind.Encryption &&

@@ -18,6 +18,10 @@ public sealed partial class MainWindowViewModel {
             presentation.EditorGestureCompleted += gesture => { activatePage(page.PageNumber); OnPageEditorGestureCompleted(gesture); };
             presentation.MarkupRequested += (tool, gesture) => { activatePage(page.PageNumber); OnPageMarkupRequested(tool, gesture); };
             presentation.InlineFormNavigationRequested += direction => { activatePage(page.PageNumber); OnInlineFormNavigationRequested(direction); };
+            presentation.InlineFormEditorFocusCompleted += () => {
+                if (Pages.ElementAtOrDefault(page.PageNumber - 1) is { } canonical)
+                    canonical.FocusInlineFormEditorRequested = false;
+            };
             presentation.ObjectSelected += selection => { activatePage(page.PageNumber); OnPageObjectSelected(selection); };
             presentation.AnnotationSelectionRequested += request => { activatePage(page.PageNumber); OnPageAnnotationsSelected(request); };
             presentation.AnnotationKeyRequested += (key, modifiers) => { activatePage(page.PageNumber); OnAnnotationKeyRequested(key, modifiers); };

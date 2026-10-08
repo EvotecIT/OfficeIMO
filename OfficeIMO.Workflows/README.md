@@ -2059,6 +2059,30 @@ The runner validates the complete artifact and retains a verified local copy bef
 
 The store defaults to a 1 GiB aggregate admission limit and at most 100 records. `GetRecoveries()` restores available records after restart, `VerifyAsync()` checks a copy before use, and `Discard()` removes a copy after explicit user action. Active publications are excluded from discovery. Successful or safely rejected writes remove their copies; cleanup failures are reported and can leave a recovery record. Before admitting another output, the store removes recognized incomplete records left before metadata publication, while preserving active leases and unfamiliar contents. Retained recovery copies do not expire automatically. Keep them outside normal output locations and require Save As when opening them for editing. Provider writes cannot guarantee atomic replacement, rollback, or exclusion of concurrent writers.
 
+## Review values in existing PDF form fields
+
+`PreparePdfFormOcrAsync` captures an in-memory document and returns the shared
+`PdfFormOcrReview`. It applies workflow input limits and the canonical OCR page,
+provider, rendering and evidence budgets. Preparation does not accept values or
+save a file:
+
+```csharp
+PdfDocument source = PdfDocument.Load("scanned-form.pdf");
+var review = await new OfficeWorkflowRunner().PreparePdfFormOcrAsync(source, engine,
+    new OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions { Language = "eng", MaxPages = 20 },
+    cancellationToken: cancellationToken);
+// Present review.Proposals and RenderPage to the reviewer, then capture decisions.
+var accepted = new Dictionary<OfficeIMO.Pdf.Ocr.PdfFormOcrProposal, PdfFormFieldValue>();
+// Add only explicitly accepted, corrected values from this review.
+PdfDocument filled = review.Apply(source, accepted, cancellationToken);
+```
+
+The host owns undo and publication. A changed source, invalid value, unsupported
+script constraint or cancellation prevents application. Existing fields and
+choice export/display mappings use the PDF owner's validation and appearances;
+this workflow does not create fields. See [the form review contract](../OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+for supported constraints and qualification limits.
+
 ## Review and apply PDF redactions
 
 Searchable PDF generation uses `OfficeWorkflowRunner.MakePdfSearchableAsync` with a `PdfSearchableWorkflowRequest` and a caller-owned `IOcrEngine`:

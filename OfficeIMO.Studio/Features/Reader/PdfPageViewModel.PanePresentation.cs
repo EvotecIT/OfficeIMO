@@ -15,6 +15,9 @@ public sealed partial class PdfPageViewModel {
         ActiveSearchHighlight = source.ActiveSearchHighlight;
         ActiveSearchHighlights = source.ActiveSearchHighlights;
         FormAnchorFieldName = source.FormAnchorFieldName;
+        if (!active) FocusInlineFormEditorRequested = false;
         ShowInlineFormFields(source._inlineFormFields, source.InlineFormField, active && source.FocusInlineFormEditorRequested);
+        // Changing the field clears the local widget anchor, so mirror its identity afterwards.
+        FormAnchorObjectNumber = source.FormAnchorObjectNumber;
     }
 }

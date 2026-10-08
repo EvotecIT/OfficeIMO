@@ -31,7 +31,7 @@
       <ToggleButton Classes="icon" IsChecked="{Binding ShowComparisonDifferenceImage}" IsVisible="{Binding HasComparisonDifferenceImage}"
                     AutomationProperties.Name="{loc:Loc Comparison.Highlight}" ToolTip.Tip="{loc:Loc Comparison.Highlight}"><PathIcon Data="{StaticResource IconHighlight}" /></ToggleButton>
     </WrapPanel>
-    <TextBlock Text="{Binding ComparisonSummary}" Classes="caption" TextWrapping="Wrap" MaxLines="2" ToolTip.Tip="{Binding ComparisonSummary}" />
-    <TextBlock Text="{Binding ComparisonRangeDescription}" Classes="caption" TextWrapping="Wrap" MaxLines="2" ToolTip.Tip="{Binding ComparisonRangeDescription}" />
+    <TextBlock Text="{Binding ComparisonSummary}" Classes="caption" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" ToolTip.Tip="{Binding ComparisonSummary}" />
+    <TextBlock Text="{Binding ComparisonRangeDescription}" Classes="caption" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" ToolTip.Tip="{Binding ComparisonRangeDescription}" />
   </StackPanel>
 </UserControl>

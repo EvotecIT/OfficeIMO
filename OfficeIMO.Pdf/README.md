@@ -2026,7 +2026,12 @@ PdfDocument.Load("application-form.pdf")
 For an interactive editor, `PdfFormFieldValueAssessment.Assess(field, value)` checks
 the proposed value against declared field metadata before applying it. It reports
 read-only fields, scalar/multiple-value conflicts, text length, radio clearing,
-and non-editable choices. Empty required fields produce warnings so an unfinished
+and non-editable choices, including ambiguous display labels. It also assesses a
+bounded inert numeric helper profile from field/widget actions: separator notation,
+review precision and literal range. Unsupported or extra script code produces an error.
+This policy requires a corrected value rather than simulating Acrobat formatting.
+`PdfFormField.Actions` exposes actions on separate field dictionaries; widget actions
+remain on `PdfFormWidget.Actions`. Empty required fields produce warnings so an unfinished
 form can still be saved. Text limits count Unicode scalar values. Assessment does
 not run JavaScript or replace document permissions, appearance generation, or
 validation of the saved result; Unicode appearances still need suitable fonts.

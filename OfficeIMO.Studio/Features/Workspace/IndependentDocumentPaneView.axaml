@@ -35,14 +35,14 @@
         </StackPanel>
       </Border>
       <Grid x:Name="PaneViewport" Grid.Row="1" SizeChanged="OnViewportSizeChanged">
-        <ListBox ItemContainerTheme="{StaticResource ReaderPageContainerTheme}" x:Name="PanePages" ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}" IsVisible="{Binding !IsGrid}"
+        <ListBox ItemContainerTheme="{StaticResource ReaderPageContainerTheme}" x:Name="PanePages" Focusable="True" ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}" IsVisible="{Binding !IsGrid}"
                  Classes.readerContinuous="{Binding IsContinuous}" Classes.readerTwoPage="{Binding IsTwoPage}"
                  SelectionChanged="OnPageSelectionChanged" ScrollViewer.BringIntoViewOnFocusChange="False"
                  Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0" Padding="0,0,0,24"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
           <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Center" /></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
-        <ListBox SelectionChanged="OnPageSelectionChanged" ItemContainerTheme="{StaticResource ReaderPageContainerTheme}" x:Name="PaneGridPages" ItemsSource="{Binding GridRows}" SelectedItem="{Binding SelectedGridRow, Mode=OneWay}" IsVisible="{Binding IsGrid}"
+        <ListBox SelectionChanged="OnPageSelectionChanged" ItemContainerTheme="{StaticResource ReaderPageContainerTheme}" x:Name="PaneGridPages" Focusable="True" ItemsSource="{Binding GridRows}" SelectedItem="{Binding SelectedGridRow, Mode=OneWay}" IsVisible="{Binding IsGrid}"
                  ScrollViewer.BringIntoViewOnFocusChange="False" Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
           <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel CacheLength="1" /></ItemsPanelTemplate></ListBox.ItemsPanel>

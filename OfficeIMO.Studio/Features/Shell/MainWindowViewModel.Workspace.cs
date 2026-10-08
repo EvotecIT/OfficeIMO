@@ -384,6 +384,7 @@ public sealed partial class MainWindowViewModel {
     internal void CancelCurrentOperation() {
         _operationCancellation?.Cancel();
         _openCancellation?.Cancel();
+        _formOcrCancellation?.Cancel();
         CancelComparisonOpen();
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
         if (ConversionWorkbench.BatchExport.IsBusy) ConversionWorkbench.BatchExport.CancelCommand.Execute(null);
@@ -430,6 +431,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        NotifyFormOcrState();
         _assistant?.CheckSource();
         OnPropertyChanged(nameof(CanSearchDocument));
         OnPropertyChanged(nameof(ReaderHint));

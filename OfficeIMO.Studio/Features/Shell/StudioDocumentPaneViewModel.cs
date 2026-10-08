@@ -75,7 +75,7 @@ public sealed partial class StudioDocumentPaneViewModel : ObservableObject, IDis
         }
         PublishNavigation();
     }
-    partial void OnIsActiveChanged(bool value) => MirrorInteractions();
+    partial void OnIsActiveChanged(bool value) { MirrorInteractions(); RefreshOcrPage(); }
 
     internal void Activate() => _host.Activate(this);
     internal void ActivatePage(int pageNumber) {
@@ -88,6 +88,7 @@ public sealed partial class StudioDocumentPaneViewModel : ObservableObject, IDis
         _synchronizing = true;
         try { Document.ApplyPaneNavigation(SelectedPage?.PageNumber ?? 1, Zoom, SelectedLayout.Mode, _width, _height); }
         finally { _synchronizing = false; }
+        RefreshOcrPage();
     }
     internal void SetViewport(double width, double height) {
         if (width <= 0 || height <= 0) return;
@@ -184,6 +185,8 @@ public sealed partial class StudioDocumentPaneViewModel : ObservableObject, IDis
     }
     public void Dispose() {
         if (_disposed) return; _disposed = true;
+        if (SelectedPage is { } selected) selected.PropertyChanged -= OnSelectedSceneChanged;
+        Document.ClearPaneOcrPage(_ocrPresentationToken);
         Document.PropertyChanged -= OnDocumentChanged;
         Document.ReaderPresentationReplaced -= OnPresentationReplaced;
         foreach (var page in _sourcePages) page.PropertyChanged -= OnSourcePageChanged;

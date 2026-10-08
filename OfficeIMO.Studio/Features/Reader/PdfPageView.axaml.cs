@@ -133,7 +133,7 @@ public sealed partial class PdfPageView : UserControl {
                 ?? editors.FirstOrDefault(view => view.DataContext is PdfInlineFormWidgetViewModel { RadioChoice.IsSelected: true })
                 ?? editors.FirstOrDefault();
             if (editor is null || !editor.FocusEditor()) return;
-            model.FocusInlineFormEditorRequested = false;
+            model.CompleteInlineFormEditorFocus();
         }, Avalonia.Threading.DispatcherPriority.Loaded);
     }
 

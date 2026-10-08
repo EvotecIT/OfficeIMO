@@ -907,16 +907,16 @@ internal static class PdfMutationPlanner {
             if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Signatures && HasOnlyUnsignedSignatureFields(preflight.Probe.Security)) continue;
             if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Encryption &&
                 CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.ModifyAcroForm)) continue;
-            if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.ActiveContent && HasOnlyFormWidgetActiveContent(preflight.UncheckedDocumentInfo)) continue;
+            if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.ActiveContent && HasOnlyFormActiveContent(preflight.UncheckedDocumentInfo)) continue;
             if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAcroForm)) return false;
         }
         return true;
     }
 
-    private static bool HasOnlyFormWidgetActiveContent(PdfDocumentInfo? info) {
+    private static bool HasOnlyFormActiveContent(PdfDocumentInfo? info) {
         return info is not null &&
             info.AcroFormXfa is null &&
-            info.HasOnlyWidgetOwnedActiveContent;
+            info.HasOnlyFormOwnedActiveContent;
     }
 
     private static bool CanOptimize(PdfDocumentPreflight preflight) {
