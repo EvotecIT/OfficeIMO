@@ -29,6 +29,8 @@ Each `BrowserAsset` exposes `FileName`, `Content`, `ContentHash` and `HashedFile
 | `PdfModule` | Standalone PDF ES module |
 | `DataTablesScript` | Optional classic DataTables/Buttons bridge with XLSX/CSV/PDF writers |
 | `DataTablesModule` | Optional standalone DataTables bridge ES module |
+| `CanopyXScript` | Optional classic CanopyX record capture adapter with XLSX/CSV/PDF writers |
+| `CanopyXModule` | Optional standalone CanopyX capture adapter ES module |
 
 Classic scripts compose in either order and work in a plain `file://` page or a host-owned worker. The `Workbook`, `writeCsv` and `saveBlob` root helpers remain available. Browser local-file policy can block ES module imports; serve modules through HTTP(S). The standalone `.mjs` assets contain their module graph and require no relative runtime imports.
 
@@ -37,6 +39,8 @@ The [offline current-view example](../OfficeIMO.Browser.Examples/README.md) prod
 The PDF assets provide paginated tables, repeated headings, totals, display styling, page decorations and native TrueType subsetting. Supply embedding-permitted font bytes for Unicode text; no fonts or font loader are embedded in the package. The [PDF contract](../OfficeIMO.JavaScript/README.md#pdf-tables) owns supported text/layout profiles and resource limits.
 
 The DataTables assets expose `registerDataTablesButtons`, `createDataTablesExport`, `exportDataTable` and `writeDataTableTo`. They use an already installed DataTables/Buttons host and do not embed DataTables, jQuery or a third-party document writer. Loading an asset does not register buttons automatically. The [JavaScript integration guide](../OfficeIMO.JavaScript/README.md#datatables-excel-csv-and-pdf-exports) owns options and compatibility limits.
+
+The CanopyX assets expose `createCanopyExport`, `exportCanopy` and `writeCanopyTo`. They consume an immutable native grid capture without embedding CanopyX or registering UI controls. The [CanopyX integration guide](../OfficeIMO.JavaScript/README.md#canopyx-record-exports) owns raw/display values, semantic tones, datetime preservation, streaming and presentation diagnostics.
 
 ## Build or install a local asset package
 

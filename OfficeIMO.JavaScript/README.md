@@ -57,6 +57,7 @@ saveBlob(await writeCsv(rows, { columns }), "sales.csv");
 | Write a table to a destination | `writeXlsxTo(rows, destination, options)` / `writeCsvTo(...)` / `writePdfTo(...)` | `{ rows, columns, bytes }` |
 | Multiple worksheets, registered styles, images or extra parts | `new Workbook(options)`, `addWorksheet`, `addRows` | `toBlob()` or streamed `finish()` |
 | Export an installed DataTables grid | Optional integration below | Same writers and destination ownership |
+| Export a CanopyX record capture | `exportCanopy` / `writeCanopyTo` in the optional CanopyX entry | `Blob` or streamed `{ rows, columns, bytes }` |
 
 The table writers accept synchronous iterables and async iterables. XLSX defaults to the sheet name `Data`, a bold header, filtering when a header is present, and width sampling of up to 100 rows clamped to 6–54 characters. `sheet` supplies the existing worksheet layout options. Workbook-local style indexes belong to the advanced `Workbook` API; portable `ExportCell` presentation and row/cell style patches work with the table helper.
 
@@ -151,6 +152,66 @@ The PDF button accepts native `title`, `messageTop`, `messageBottom`, `pageSize`
 Direct sink output avoids retaining the finished file. Blob exports and registered download buttons retain it; caller-owned sinks own partial bytes after failure. The grid still holds its input. Server-side full-data export needs an application-owned paged source passed directly to the writers with the server's filter/order contract.
 
 DataTables and its DOM stay on the page. A host-owned worker can consume portable columns and bounded row batches from the source: request/acknowledge batches and output chunks rather than cloning the full matrix. Reconstruct `ExportCell` in the worker because structured cloning loses its brand. The [verification guide](../Build/BrowserExports/README.md#datatables-integration-and-comparisons) covers workers, cancellation, fallback and reproducible comparisons. Measurements describe the tested workload/browser, without a universal speed claim.
+
+## CanopyX record exports
+
+The optional `@evotecit/officeimo/integrations/canopyx` entry consumes CanopyX's immutable `prepareExport` capture. CanopyX owns the accepted query, column order, selection, source paging, revision checks and resolved presentation. OfficeIMO owns file generation. Neither package imports the other at runtime, and importing the main OfficeIMO package does not load the adapter.
+
+```typescript
+import { exportCanopy } from "@evotecit/officeimo/integrations/canopyx";
+
+const capture = grid.prepareExport({ scope: "filtered", values: "raw" });
+const blob = await exportCanopy(capture, "xlsx", {
+  tones: {
+    success: { background: "E2F0D9" },
+    warning: { background: "FFF2CC", color: "9C6500" },
+    danger: { background: "FFC7CE", color: "9C0006", bold: true }
+  },
+  columnOptions: {
+    amount: { format: "#,##0.00", width: 18 },
+    updated: { format: "yyyy-mm-dd hh:mm:ss.000", width: 28 }
+  },
+  xlsx: { sheet: { title: { text: "Inventory" }, table: {} } },
+  limits: { maxRows: 250_000, maxCells: 5_000_000 }
+});
+// Deliver the Blob through the host's download or storage policy.
+```
+
+`exportCanopy(capture, format, options)` accepts `"xlsx"`, `"csv"` or `"pdf"`. `writeCanopyTo(capture, format, destination, options)` writes to a caller-owned sink or `WritableStream`; failed partial output remains caller-owned. Format options live in `xlsx`, `csv` and `pdf`, with common cancellation, limits and progress at the top level. Common limits override matching format limits. For Unicode PDF text, supply embedding-permitted TrueType fonts through `pdf.fonts`.
+
+| Captured contract | Output behavior |
+| --- | --- |
+| Column IDs, titles and order | Preserved without re-reading the viewport or UI settings |
+| `values: "raw"` | Numeric, boolean and null values remain typed; CSV retains original ISO datetime strings |
+| `values: "display"` | Captured display strings become literal exported values; CSV formula protection still applies |
+| Resolved text | PDF uses it; XLSX retains raw values and uses explicit number/date formats |
+| Semantic tones | Host-supplied portable styles; cell tone overrides overlapping row tone properties |
+| Absolute HTTP(S)/mailto links | Native XLSX relationships and PDF annotations; CSV remains ordinary text |
+| Datetime columns | XLSX defaults to typed dates at exact millisecond precision and literal ISO text for finer precision |
+| CSS pixel width | Never treated as an Excel character width; `columnOptions.width` supplies explicit character widths and `pdf.columnWidths` supplies points |
+| `recordCount` | Used for progress when known and checked against the actual enumeration; unknown counts remain unknown |
+
+Excel/PDF reject unsupported presentation diagnostics and unmapped tones by default. The reporting runtime supplies semantic captures. For an ordinary grid, custom renderer or CSS-only presentation, choose `unsupportedPresentation: "text"` to accept the captured text fallback and optionally observe each diagnostic with synchronous `onDiagnostic`. That fallback uses capture data; it does not scrape custom DOM renderer output. CSV defaults to text because the format has no visual styling; choose `"reject"` explicitly when diagnostics should stop it. No unbounded diagnostic list is retained.
+
+`datetime: "typed"` requires exact millisecond precision; `"text"` keeps the original ISO value. The default `"preserve"` retains finer timestamps and dates outside Excel's 1900–9999 range as text rather than rounding or dropping them. An ISO value converted to a typed Excel date must carry an explicit time zone. XLSX defaults to the capture's UTC/local clock choice; `xlsx.dateMode` can override it. PDF displays the captured text, and CSV raw mode retains the original string and its zone.
+
+`createCanopyExport(capture, format, options)` exposes frozen columns, `rowCount` and fresh `rows()` enumerations for applications using the format writers directly. It retains no whole-table body. Each enumeration passes its cancellation signal into CanopyX's page requests, and destination backpressure stops reading ahead. CanopyX's source may retain identity/cursor bookkeeping for revision and duplicate detection; streamed document output does not imply constant memory for that entire source.
+
+Host export callbacks can use the already-captured enumeration:
+
+```typescript
+import { writeCanopyTo } from "@evotecit/officeimo/integrations/canopyx";
+
+const onExport = async ({ capture, format, signal }) => {
+  if (format !== "xlsx" && format !== "csv" && format !== "pdf") {
+    throw new Error("Unsupported export format");
+  }
+  const destination = await openDestination(format); // Host-owned delivery.
+  await writeCanopyTo(capture, format, destination, { signal });
+};
+```
+
+This entry exports grid records. Collapsed visual groups do not remove their records, and group summary rows or tree outlines are not synthesized. Host report composition can add the writers' headings, totals and print layout explicitly. Workers consume a host-owned bounded capture/row bridge; a live CanopyX grid remains on the page. Pass the writer's signal to the same capture enumeration and release the bridge when the host cancels it.
 
 ## PDF tables
 

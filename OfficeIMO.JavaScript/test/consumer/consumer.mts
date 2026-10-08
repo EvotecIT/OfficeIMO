@@ -12,6 +12,21 @@ import type { ConditionalFormat } from "@evotecit/officeimo/xlsx";
 import { createDataTablesExport, exportDataTable, writeDataTableTo, registerDataTablesButtons } from "@evotecit/officeimo/integrations/datatables";
 import type { DataTablesApi, DataTablesHost } from "@evotecit/officeimo/integrations/datatables";
 import type { ExportLink } from "@evotecit/officeimo";
+import { createCanopyExport, exportCanopy, writeCanopyTo } from "@evotecit/officeimo/integrations/canopyx";
+import type { CanopyCapture } from "@evotecit/officeimo/integrations/canopyx";
+async function exportCanopyGrid(capture: CanopyCapture) {
+  const source = createCanopyExport(capture, "xlsx", { tones: { warning: { background: "FFF2CC" } } });
+  await writeXlsx(source.rows(), { columns: source.columns });
+  await exportCanopy(capture, "xlsx", { xlsx: { sheet: { table: {} } }, datetime: "preserve" });
+  await writeCanopyTo(capture, "pdf", new WritableStream<Uint8Array>(), { pdf: { orientation: "landscape" } });
+  // @ts-expect-error semantic tones use portable presentation rather than private style IDs
+  await exportCanopy(capture, "xlsx", { tones: { warning: 1 } });
+  // @ts-expect-error capture determines the exported columns
+  await exportCanopy(capture, "csv", { csv: { columns: [] } });
+  // @ts-expect-error raw/display values belong to the immutable Canopy capture
+  await exportCanopy(capture, "csv", { csv: { valueMode: "display" } });
+}
+void exportCanopyGrid;
 const portableLink: ExportLink = { target: "https://example.com/report", tooltip: "Open report" };
 const linkedValue = new ExportCell(12.5, { text: "12.50 USD", link: portableLink });
 void writePdf([[linkedValue]], { columns: [{ header: "Amount" }], limits: { maxHyperlinks: 1 } });

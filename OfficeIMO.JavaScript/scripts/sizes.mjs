@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { resolve, dirname, join } from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const sizes = [];
-for (const layer of ["core", "zip", "xml", "opc", "xlsx", "csv", "pdf", "integrations/datatables"]) {
+for (const layer of ["core", "zip", "xml", "opc", "xlsx", "csv", "pdf", "integrations/datatables", "integrations/canopyx"]) {
   const visited = new Map();
   async function visit(path) {
     if (visited.has(path)) return;
@@ -17,7 +17,7 @@ for (const layer of ["core", "zip", "xml", "opc", "xlsx", "csv", "pdf", "integra
   sizes.push({ entry: "/" + layer, modules: visited.size, bytes: bytes.length, gzip9: gzipSync(bytes, { level: 9 }).length,
     perModuleGzip9: [...visited.values()].reduce((n, s) => n + gzipSync(s, { level: 9 }).length, 0) });
 }
-for (const bundle of ["officeimo", "officeimo-xlsx", "officeimo-csv", "officeimo-pdf", "officeimo-datatables"]) {
+for (const bundle of ["officeimo", "officeimo-xlsx", "officeimo-csv", "officeimo-pdf", "officeimo-datatables", "officeimo-canopyx"]) {
   const bytes = await readFile(join(root, "bundles", bundle + ".js"));
   sizes.push({ entry: bundle + ".js", bytes: bytes.length, gzip9: gzipSync(bytes, { level: 9 }).length });
 }
