@@ -34,6 +34,9 @@ export class ExportBudget {
   release(cells: number, characters: number): void { this.reservedCells -= cells; this.reservedText -= characters; }
   cell(value: unknown, reservedCharacters?: number): void {
     if (reservedCharacters !== undefined) this.release(1, reservedCharacters);
+    // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
+    // when neither emitted-cell nor text totals are observable by a resource cap.
+    if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined) return;
     this.check("maxCells", this.cells + this.reservedCells + 1);
     const length = typeof value === "string" ? value.length : 0;
     this.check("maxTextCharacters", this.text + this.reservedText + length);

@@ -5,7 +5,7 @@ const officeimo = root.OfficeIMO || (root.OfficeIMO = {});
 const cacheKey = Symbol.for("@evotecit/officeimo/modules");
 const _modules = officeimo[cacheKey] || new Map();
 if (!officeimo[cacheKey]) Object.defineProperty(officeimo, cacheKey, { value: _modules });
-const _m3 = _modules.get("e28c2c2e35aed3db224a0b5eb169742fd2053158d37ee99e3d024b00d7f46c26") ?? (() => {
+const _m3 = _modules.get("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e") ?? (() => {
 function checkAbort(signal) {
     if (signal?.aborted)
         throw signal.reason ?? new DOMException("Export cancelled.", "AbortError");
@@ -62,8 +62,77 @@ async function* inputRows(input, signal) {
         }
     }
 }
+const rowConsumers = new WeakMap();
+/** @internal Keep bounded pages as ordinary async rows, with direct batch consumption for owned writers. */
+function rowsFromBatches(batches) {
+    let consumed = false;
+    const claim = () => { if (consumed)
+        throw new TypeError("A row source can be consumed only once."); consumed = true; };
+    const rows = { [Symbol.asyncIterator]() { claim(); return iterate(); } };
+    async function* iterate() { for await (const batch of inputRows(batches))
+        yield* batch; }
+    rowConsumers.set(rows, (signal, accept) => {
+        claim();
+        return consumeRows(batches, signal, batch => consumeRows(batch, signal, accept));
+    });
+    return rows;
+}
+/** @internal Concatenate headings, body and footer without another per-row async delegation. */
+function concatRows(...sources) {
+    const rows = { async *[Symbol.asyncIterator]() { for (const source of sources)
+            yield* source; } };
+    rowConsumers.set(rows, async (signal, accept) => { for (const source of sources)
+        await consumeRows(source, signal, accept); });
+    return rows;
+}
+/** @internal Consume synchronous work without an async-generator and per-row Promise.
+ * Async producers, promised values and destination backpressure keep the same cancellation/return contract. */
+async function consumeRows(input, signal, accept) {
+    checkAbort(signal);
+    const consume = rowConsumers.get(input);
+    if (consume)
+        return consume(signal, accept);
+    const iterator = input?.[Symbol.asyncIterator]?.() ?? input?.[Symbol.iterator]?.();
+    if (!iterator)
+        throw new TypeError("Rows must be a synchronous or asynchronous iterable.");
+    let done = false;
+    try {
+        while (true) {
+            checkAbort(signal);
+            let item = iterator.next();
+            const next = item;
+            if (typeof next?.then === "function")
+                item = await withAbort(next, signal);
+            checkAbort(signal);
+            const result = item;
+            if (result.done) {
+                done = true;
+                return;
+            }
+            let value = result.value;
+            if (typeof value?.then === "function")
+                value = await withAbort(value, signal);
+            checkAbort(signal);
+            const pending = accept(value);
+            if (pending !== undefined)
+                await withAbort(pending, signal);
+        }
+    }
+    finally {
+        if (!done && iterator.return) {
+            // Any exit before exhaustion is a producer/consumer failure or cancellation.
+            // Observe cleanup, but an unresponsive return must not replace or hold the original failure.
+            try {
+                void Promise.resolve(iterator.return()).catch(() => { });
+            }
+            catch { /* Preserve the original failure. */ }
+        }
+    }
+}
 let taskDeadline;
-const taskBudgetMs = 16;
+const taskBudgetMs = 32;
+/** @internal Start a new write phase without carrying an idle operation's expired deadline. */
+function beginTask() { taskDeadline = performance.now() + taskBudgetMs; }
 /** @internal Pipeline stages share the last completed yield instead of pausing back-to-back. */
 function taskYieldDue() {
     const now = performance.now();
@@ -72,28 +141,22 @@ function taskYieldDue() {
 }
 /** Yield a task so input, rendering and cancellation can run without nested timer delays. */
 function pause() {
+    const scheduler = globalThis.scheduler;
+    // A normal-priority task keeps the export progressing beside a busy host.
+    // It has no boosted continuation; due input and cancellation can still run.
+    if (typeof scheduler?.postTask === "function")
+        return scheduler.postTask(() => {
+            taskDeadline = performance.now() + taskBudgetMs;
+        }, { priority: "user-visible" });
     return new Promise(resolve => {
-        let done = false, channel;
-        const finish = () => {
-            if (done)
-                return;
-            done = true;
-            clearTimeout(timer);
-            channel?.port1.close();
-            channel?.port2.close();
+        setTimeout(function finish() {
             taskDeadline = performance.now() + taskBudgetMs;
             resolve();
-        };
-        const timer = setTimeout(finish, 0);
-        if (typeof MessageChannel === "function") {
-            channel = new MessageChannel();
-            channel.port1.onmessage = finish;
-            channel.port2.postMessage(undefined);
-        }
+        }, 0);
     });
 }
-const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, taskYieldDue: taskYieldDue, pause: pause });
-_modules.set("e28c2c2e35aed3db224a0b5eb169742fd2053158d37ee99e3d024b00d7f46c26", _exports);
+const _exports = Object.freeze({ checkAbort: checkAbort, withAbort: withAbort, inputRows: inputRows, rowsFromBatches: rowsFromBatches, concatRows: concatRows, consumeRows: consumeRows, beginTask: beginTask, taskYieldDue: taskYieldDue, pause: pause });
+_modules.set("1ae4f4554ececbf0fc1e5d32f40275e35f228dca922cfc0760ae681fd9690d7e", _exports);
 return _exports;
 })();
 
@@ -119,8 +182,8 @@ _modules.set("dd969d5cbc3aef12718d139818e6c9d43dad3dcfea78483f90bae652bce46f53",
 return _exports;
 })();
 
-const _m2 = _modules.get("a3733b0750720ed6f39650bc9defdd326b3553778b4fe435896e97deb32c0d60") ?? (() => {
-const { checkAbort, withAbort, inputRows, pause, taskYieldDue } = _m3;
+const _m2 = _modules.get("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9") ?? (() => {
+const { checkAbort, consumeRows, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
 
@@ -214,18 +277,21 @@ class ChunkedTextSink {
 }
 /** Feed a byte source into a caller-owned sink with backpressure and cancellation. */
 async function writeBytes(source, sink, signal) {
-    for await (const bytes of inputRows(source instanceof Uint8Array ? [source] : source, signal)) {
+    await consumeRows(source instanceof Uint8Array ? [source] : source, signal, bytes => {
         if (!(bytes instanceof Uint8Array))
             throw new TypeError("Byte sources must yield Uint8Array chunks.");
-        await withAbort(Promise.resolve(sink.write(bytes)), signal);
-    }
+        const pending = sink.write(bytes);
+        if (taskYieldDue())
+            return Promise.resolve(pending).then(() => { checkAbort(signal); return pause(); });
+        return pending;
+    });
 }
 const _exports = Object.freeze({ withDestination: withDestination, BlobByteSink: BlobByteSink, ChunkedTextSink: ChunkedTextSink, writeBytes: writeBytes });
-_modules.set("a3733b0750720ed6f39650bc9defdd326b3553778b4fe435896e97deb32c0d60", _exports);
+_modules.set("30899b95dd5dd6f624c2452b62f806fd950961d21a48ccf9c2dfb3452abb67a9", _exports);
 return _exports;
 })();
 
-const _m6 = _modules.get("46ea847816fe0c13f71c4194a1184679947bcccf98ed37428ad9718ee060578a") ?? (() => {
+const _m6 = _modules.get("4b62ca824c1a5e91400d406ef9a694f4db77f63d7ecd9b12a4fe5531b908e9e3") ?? (() => {
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -246,7 +312,8 @@ class ExportCell {
 }
 /** @internal Reject async formatters while observing their rejection immediately. */
 function assertScalar(value) {
-    if (value == null || ["string", "number", "boolean"].includes(typeof value) || value instanceof Date)
+    const kind = typeof value;
+    if (value == null || kind === "string" || kind === "number" || kind === "boolean" || value instanceof Date)
         return;
     if (typeof value.then === "function")
         void Promise.resolve(value).catch(() => { });
@@ -254,15 +321,16 @@ function assertScalar(value) {
 }
 /** @internal Validate selected values before a destination interprets presentation. */
 function assertExportValue(value) {
-    if (!(value instanceof ExportCell))
-        assertScalar(value);
+    if (value !== null && typeof value === "object" && value instanceof ExportCell)
+        return;
+    assertScalar(value);
 }
 const _exports = Object.freeze({ ExportCell: ExportCell, assertScalar: assertScalar, assertExportValue: assertExportValue });
-_modules.set("46ea847816fe0c13f71c4194a1184679947bcccf98ed37428ad9718ee060578a", _exports);
+_modules.set("4b62ca824c1a5e91400d406ef9a694f4db77f63d7ecd9b12a4fe5531b908e9e3", _exports);
 return _exports;
 })();
 
-const _m5 = _modules.get("48fc484b6a7bab7039f47d43d5125ed4e15cf7120ac51c5dde2466cbbf4de116") ?? (() => {
+const _m5 = _modules.get("4d95a33b9dd3d4d071acc09835e176b11b6383e04aae1cb9f5377f39b4e9938c") ?? (() => {
 const { assertExportValue } = _m6;
 
 const { checkAbort } = _m3;
@@ -319,11 +387,11 @@ function copyColumns(columns, workbookStyles = false) {
     });
 }
 const _exports = Object.freeze({ createRowProjector: createRowProjector, copyColumns: copyColumns });
-_modules.set("48fc484b6a7bab7039f47d43d5125ed4e15cf7120ac51c5dde2466cbbf4de116", _exports);
+_modules.set("4d95a33b9dd3d4d071acc09835e176b11b6383e04aae1cb9f5377f39b4e9938c", _exports);
 return _exports;
 })();
 
-const _m8 = _modules.get("d40a14da52705d788234b8083d6d8edccdbd8df1df785aeec268b4ca946b4230") ?? (() => {
+const _m8 = _modules.get("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 /** @internal Check before accepting the next value or chunk. */
@@ -355,6 +423,10 @@ class ExportBudget {
     cell(value, reservedCharacters) {
         if (reservedCharacters !== undefined)
             this.release(1, reservedCharacters);
+        // Immutable limits cannot acquire a ceiling later. Avoid per-cell accounting
+        // when neither emitted-cell nor text totals are observable by a resource cap.
+        if (this.limits.maxCells === undefined && this.limits.maxTextCharacters === undefined)
+            return;
         this.check("maxCells", this.cells + this.reservedCells + 1);
         const length = typeof value === "string" ? value.length : 0;
         this.check("maxTextCharacters", this.text + this.reservedText + length);
@@ -372,11 +444,11 @@ function boundedSink(sink, budget) {
         } };
 }
 const _exports = Object.freeze({ ExportBudget: ExportBudget, boundedSink: boundedSink });
-_modules.set("d40a14da52705d788234b8083d6d8edccdbd8df1df785aeec268b4ca946b4230", _exports);
+_modules.set("02ec6cf227afac6ead01cf24b9e3958c71ffd2616ecf0ad6b0baed551f39b86d", _exports);
 return _exports;
 })();
 
-const _m9 = _modules.get("8bba9ccd5597ed32b8a9a623356768cdf8d6ccbdd326404904c5f5a3e9b1c7d7") ?? (() => {
+const _m9 = _modules.get("1888c9d59155546211b9e88ccfaff8d9ac235e86ab0fc21d2b973a157422fe48") ?? (() => {
 const { assertExportValue } = _m6;
 
 /** Validate one small, rectangular heading/footer matrix before any drawing. */
@@ -415,11 +487,11 @@ function tableSpans(rows, columns) {
     });
 }
 const _exports = Object.freeze({ tableSpans: tableSpans });
-_modules.set("8bba9ccd5597ed32b8a9a623356768cdf8d6ccbdd326404904c5f5a3e9b1c7d7", _exports);
+_modules.set("1888c9d59155546211b9e88ccfaff8d9ac235e86ab0fc21d2b973a157422fe48", _exports);
 return _exports;
 })();
 
-const _m7 = _modules.get("a7e2fff6478202bb9deea22b01aa67cb11c19fecc6d569a3ec81612023812775") ?? (() => {
+const _m7 = _modules.get("ce8d1336a22250489924d11fdde8e2e827bb5e5caed0d57668fe6156b1e6e0cf") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { ExportBudget } = _m8;
@@ -525,11 +597,11 @@ function settings(configuration) {
     return { options, page, margins, fontSize, padding, limits, budget };
 }
 const _exports = Object.freeze({ positive: positive, color: color, presentation: presentation, settings: settings });
-_modules.set("a7e2fff6478202bb9deea22b01aa67cb11c19fecc6d569a3ec81612023812775", _exports);
+_modules.set("ce8d1336a22250489924d11fdde8e2e827bb5e5caed0d57668fe6156b1e6e0cf", _exports);
 return _exports;
 })();
 
-const _m10 = _modules.get("3cf0623fbab7598c2470474617d5375cee04250a456351e7329ad502f14ac6fa") ?? (() => {
+const _m10 = _modules.get("5c7f5fbcd9770bbef85f5358d7403d7312c6b2e64c075112f1a3d99b5c28f62d") ?? (() => {
 const { checkAbort, withAbort, pause, taskYieldDue } = _m3;
 
 const { OfficeIMOError } = _m4;
@@ -653,7 +725,7 @@ class PdfObjects {
     }
 }
 const _exports = Object.freeze({ pdfNumber: pdfNumber, unicodeHex: unicodeHex, PdfObjects: PdfObjects });
-_modules.set("3cf0623fbab7598c2470474617d5375cee04250a456351e7329ad502f14ac6fa", _exports);
+_modules.set("5c7f5fbcd9770bbef85f5358d7403d7312c6b2e64c075112f1a3d99b5c28f62d", _exports);
 return _exports;
 })();
 
@@ -687,11 +759,11 @@ _modules.set("1e169e6ecdeceff319b5da4bf01f4c653c1a3d9e8ad696b141bf8ac52d9f446c",
 return _exports;
 })();
 
-const _m15 = _modules.get("1161e750dafd5631bd12476f27c7de1c6e97c1cc18a591946376a0636537b9a5") ?? (() => {
+const _m15 = _modules.get("0c9db038dc71b0dce6cef9061dd2dc0c1d699a1ce737d8d41b818996d47acf5e") ?? (() => {
 const { align4, checksum } = _m14;
 
 /** Preserve glyph IDs and complete composite dependencies, as in OfficeIMO.Pdf's native subsetter. */
-function subsetTrueType(font, requested) {
+function subsetTrueType(font, requested, characters) {
     const glyphs = new Set([0, ...requested]), glyfTable = font.table("glyf"), queue = [...glyphs];
     const dependencies = new Map();
     for (let i = 0; i < queue.length; i++) {
@@ -762,8 +834,9 @@ function subsetTrueType(font, requested) {
     for (let i = 0; i < offsets.length; i++)
         locaView.setUint32(i * 4, offsets[i]);
     const retained = new Set(["OS/2", "cmap", "cvt ", "fpgm", "gasp", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post", "prep"]);
+    const cmap = subsetCmap(characters), hmtx = subsetMetrics(font, glyphs);
     const tables = [...font.tables].filter(([tag]) => retained.has(tag)).sort(([a], [b]) => a < b ? -1 : 1).map(([tag, table]) => {
-        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : font.bytes.slice(table.offset, table.offset + table.length);
+        const bytes = tag === "glyf" ? glyf : tag === "loca" ? loca : tag === "cmap" ? cmap : tag === "hmtx" ? hmtx : font.bytes.slice(table.offset, table.offset + table.length);
         if (tag === "head") {
             const view = new DataView(bytes.buffer);
             view.setUint32(8, 0);
@@ -794,12 +867,54 @@ function subsetTrueType(font, requested) {
     view.setUint32(head + 8, (0xb1b0afba - checksum(output)) >>> 0);
     return output;
 }
+/** Keep original glyph IDs, advance widths and bearings for every selected/composite glyph.
+ * Empty glyph slots have no outline; their unused metrics need not inflate the compressed subset. */
+function subsetMetrics(font, glyphs) {
+    const metrics = font.u16(font.table("hhea").offset + 34), table = font.table("hmtx");
+    const result = new Uint8Array(metrics * 4 + (font.glyphCount - metrics) * 2);
+    for (const glyph of glyphs) {
+        const first = glyph < metrics ? glyph * 4 : metrics * 4 + (glyph - metrics) * 2, length = glyph < metrics ? 4 : 2;
+        result.set(font.bytes.subarray(table.offset + first, table.offset + first + length), first);
+        if (glyph >= metrics) {
+            // Trailing short records share the final full record's advance width.
+            const advance = (metrics - 1) * 4;
+            result.set(font.bytes.subarray(table.offset + advance, table.offset + advance + 2), advance);
+        }
+    }
+    return result;
+}
+/** One Unicode format-12 map covers BMP and supplementary scalars without retaining unused coverage. */
+function subsetCmap(characters) {
+    const entries = [...characters].sort(([a], [b]) => a - b), groups = [];
+    for (const [scalar, glyph] of entries) {
+        const previous = groups.at(-1);
+        if (previous && scalar === previous.last + 1 && glyph === previous.glyph + scalar - previous.first)
+            previous.last = scalar;
+        else
+            groups.push({ first: scalar, last: scalar, glyph });
+    }
+    const result = new Uint8Array(12 + 16 + groups.length * 12), view = new DataView(result.buffer);
+    view.setUint16(2, 1);
+    view.setUint16(4, 3);
+    view.setUint16(6, 10);
+    view.setUint32(8, 12);
+    view.setUint16(12, 12);
+    view.setUint32(16, result.length - 12);
+    view.setUint32(24, groups.length);
+    groups.forEach((group, i) => {
+        const p = 28 + i * 12;
+        view.setUint32(p, group.first);
+        view.setUint32(p + 4, group.last);
+        view.setUint32(p + 8, group.glyph);
+    });
+    return result;
+}
 const _exports = Object.freeze({ subsetTrueType: subsetTrueType });
-_modules.set("1161e750dafd5631bd12476f27c7de1c6e97c1cc18a591946376a0636537b9a5", _exports);
+_modules.set("0c9db038dc71b0dce6cef9061dd2dc0c1d699a1ce737d8d41b818996d47acf5e", _exports);
 return _exports;
 })();
 
-const _m13 = _modules.get("b594764a2d73e3dc5973aa361ae8f4a2686e67c6d313e12251b78dc9b3709777") ?? (() => {
+const _m13 = _modules.get("0c236a8c52738a1e0a5bdca1281d82c8e187e06dffd8f8d75cdb9b07f490c9a3") ?? (() => {
 const { NotSupportedError } = _m4;
 
 const { FontReader } = _m14;
@@ -971,14 +1086,14 @@ class TrueTypeFont extends FontReader {
         }
         return 0;
     }
-    subset(glyphs) { return this.canSubset ? subsetTrueType(this, glyphs) : this.bytes; }
+    subset(glyphs, characters) { return this.canSubset ? subsetTrueType(this, glyphs, characters) : this.bytes; }
 }
 const _exports = Object.freeze({ TrueTypeFont: TrueTypeFont });
-_modules.set("b594764a2d73e3dc5973aa361ae8f4a2686e67c6d313e12251b78dc9b3709777", _exports);
+_modules.set("0c236a8c52738a1e0a5bdca1281d82c8e187e06dffd8f8d75cdb9b07f490c9a3", _exports);
 return _exports;
 })();
 
-const _m12 = _modules.get("e29314f891108517c81fdb3a2fff91d0bdb73af0d8b61a8f52e9ce5d28bd1164") ?? (() => {
+const _m12 = _modules.get("9cc6382549c3b9917a9f7cf097b1e7d178b9f12bf443f1b05d95ae077d2ed8de") ?? (() => {
 const { TrueTypeFont } = _m13;
 
 const programs = new WeakMap();
@@ -1015,7 +1130,7 @@ class PdfFont {
     toBytes() { return fontProgram(this).bytes.slice(); }
 }
 const _exports = Object.freeze({ fontProgram: fontProgram, PdfFont: PdfFont });
-_modules.set("e29314f891108517c81fdb3a2fff91d0bdb73af0d8b61a8f52e9ce5d28bd1164", _exports);
+_modules.set("9cc6382549c3b9917a9f7cf097b1e7d178b9f12bf443f1b05d95ae077d2ed8de", _exports);
 return _exports;
 })();
 
@@ -1342,7 +1457,7 @@ _modules.set("1ed4965a6e2963a91190baa8a58ada8ce0edde8fe653bcb6609002e872af0d61",
 return _exports;
 })();
 
-const _m11 = _modules.get("68bae536cdaba60bc9eebd7c62bf2ca823fead137c7bb0798bd1e035ca615f3c") ?? (() => {
+const _m11 = _modules.get("e058733875ff38feeefc10a48b35961394b9a99657487995ffadef05239b408f") ?? (() => {
 const { NotSupportedError, OfficeIMOError } = _m4;
 
 const { PdfFont, fontProgram } = _m12;
@@ -1439,7 +1554,7 @@ class PdfFontResource {
         const program = this.program, entries = [...this.mappings], glyphs = new Set(entries.map(([, m]) => m.glyph));
         const fontName = (program.canSubset ? "OIMOAA+" : "") + "OfficeIMOFont" + this.index;
         const file = objects.reserve(), descriptor = objects.reserve(), cidFont = objects.reserve(), map = objects.reserve(), unicode = objects.reserve();
-        const subset = program.subset(glyphs);
+        const subset = program.subset(glyphs, new Map(entries.map(([scalar, mapping]) => [scalar, mapping.glyph])));
         await objects.stream(file, subset, "/Length1 " + subset.length, compression);
         await objects.object(descriptor, "<< /Type /FontDescriptor /FontName /" + fontName + " /Flags 32 /FontBBox [" + program.bbox.map(pdfNumber).join(" ") +
             "] /ItalicAngle 0 /Ascent " + pdfNumber(program.ascent) + " /Descent " + pdfNumber(program.descent) + " /CapHeight " + pdfNumber(program.ascent) + " /StemV 80 /FontFile2 " + file + " 0 R >>");
@@ -1504,7 +1619,7 @@ class PdfFontResources {
     dictionary() { return "<< " + this.resources.map(f => "/" + f.name + " " + f.object + " 0 R").join(" ") + " >>"; }
 }
 const _exports = Object.freeze({ validateScalar: validateScalar, PdfFontResource: PdfFontResource, PdfFontResources: PdfFontResources });
-_modules.set("68bae536cdaba60bc9eebd7c62bf2ca823fead137c7bb0798bd1e035ca615f3c", _exports);
+_modules.set("e058733875ff38feeefc10a48b35961394b9a99657487995ffadef05239b408f", _exports);
 return _exports;
 })();
 
@@ -1556,7 +1671,7 @@ _modules.set("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b",
 return _exports;
 })();
 
-const _m19 = _modules.get("89e85a7a65c65d6f58aacf656ca7668cfac0a7a01076dfe764979d4bdd0b205c") ?? (() => {
+const _m19 = _modules.get("40a7dd7731cb40d399dcf92351583bf8f1aea2c5ccb378f3aadee06faace4abd") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { ExportCell, assertExportValue } = _m6;
@@ -1626,11 +1741,11 @@ function wrapText(text, font, size, width, maxCharacters, maxLines, wrap = true)
     return lines;
 }
 const _exports = Object.freeze({ synchronousText: synchronousText, displayText: displayText, wrapText: wrapText });
-_modules.set("89e85a7a65c65d6f58aacf656ca7668cfac0a7a01076dfe764979d4bdd0b205c", _exports);
+_modules.set("40a7dd7731cb40d399dcf92351583bf8f1aea2c5ccb378f3aadee06faace4abd", _exports);
 return _exports;
 })();
 
-const _m17 = _modules.get("bc46062e3ddb9b421eec917feac8c339c6d4913f02318d573170ace4085abc11") ?? (() => {
+const _m17 = _modules.get("f3fd69b651432daa45bdf3eda5b52d302573263e0cd16c07cccce9f322411adc") ?? (() => {
 const { ExportCell } = _m6;
 
 const { tableSpans } = _m9;
@@ -1753,11 +1868,11 @@ class PdfTableLayout {
     }
 }
 const _exports = Object.freeze({ PdfTableLayout: PdfTableLayout });
-_modules.set("bc46062e3ddb9b421eec917feac8c339c6d4913f02318d573170ace4085abc11", _exports);
+_modules.set("f3fd69b651432daa45bdf3eda5b52d302573263e0cd16c07cccce9f322411adc", _exports);
 return _exports;
 })();
 
-const _m20 = _modules.get("c14e0dc169fc93126cd424072b40eb287aa1e013110bce900ca546bf37cf8f7c") ?? (() => {
+const _m20 = _modules.get("11880b36e002352b01765e0a8882d66e528e7a3039418dc4be0631980d6c4bdb") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -1966,14 +2081,14 @@ class PdfPages {
     xobjects() { return this.totalPages ? " /XObject << /TotalPages " + this.totalPages + " 0 R >>" : ""; }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("c14e0dc169fc93126cd424072b40eb287aa1e013110bce900ca546bf37cf8f7c", _exports);
+_modules.set("11880b36e002352b01765e0a8882d66e528e7a3039418dc4be0631980d6c4bdb", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("2bf71d79a95e5be737a21b0f620c03c51e13823b2a5cbd9e9edcb8b0b9491ae9") ?? (() => {
+const _m1 = _modules.get("9dfa9495a12e5c0b340798813c1b89859f0c01335855bba8622ca66b0fff829b") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
-const { checkAbort, inputRows, pause, taskYieldDue } = _m3;
+const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
 
 const { createRowProjector } = _m5;
 
@@ -2000,6 +2115,7 @@ async function writePdf(rows, configuration) {
 }
 async function writePdfTo(rows, destination, configuration) {
     const prepared = settings(configuration), { options, budget } = prepared;
+    beginTask();
     checkAbort(options.signal);
     return withDestination(destination, async (sink) => {
         const objects = new PdfObjects(sink, options.signal, options.limits?.maxOutputBytes), root = objects.reserve(), parent = objects.reserve(), resources = objects.reserve(), info = objects.reserve();
@@ -2009,18 +2125,20 @@ async function writePdfTo(rows, destination, configuration) {
         await objects.text("%PDF-1.7\n");
         await objects.raw(Uint8Array.of(0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a));
         await pages.start();
-        for await (const row of inputRows(rows, options.signal)) {
-            budget.row(count + 1);
-            const values = project(row, count);
-            await pages.row(layout.data(values, count));
+        const completed = () => {
             count++;
             if (count % 256 === 0) {
                 options.onProgress?.({ phase: "rows", rows: count, bytes: objects.bytes });
                 if (taskYieldDue())
-                    await pause();
+                    return pause().then(() => { checkAbort(options.signal); });
             }
             checkAbort(options.signal);
-        }
+        };
+        await consumeRows(rows, options.signal, row => {
+            budget.row(count + 1);
+            const values = project(row, count);
+            return pages.row(layout.data(values, count)).then(completed);
+        });
         const footer = layout.footer(count);
         if (footer) {
             if (options.footer?.rows)
@@ -2044,11 +2162,11 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("2bf71d79a95e5be737a21b0f620c03c51e13823b2a5cbd9e9edcb8b0b9491ae9", _exports);
+_modules.set("9dfa9495a12e5c0b340798813c1b89859f0c01335855bba8622ca66b0fff829b", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("3a2e1f99c98d394a8b194537c92295ae3cd04da2803a98a7b53fd13f46822525") ?? (() => {
+const _m21 = _modules.get("7083fe05f46460330fd2145b0b8e1101879f8e3595fabb3dbd132da6a2436301") ?? (() => {
 
 
 
@@ -2091,14 +2209,14 @@ function saveBlob(blob, fileName) {
     }
 }
 const _exports = Object.freeze({ OfficeIMOError: _m4.OfficeIMOError, NotSupportedError: _m4.NotSupportedError, BlobByteSink: _m2.BlobByteSink, ChunkedTextSink: _m2.ChunkedTextSink, writeBytes: _m2.writeBytes, ExportCell: _m6.ExportCell, checkAbort: _m3.checkAbort, withAbort: _m3.withAbort, inputRows: _m3.inputRows, pause: _m3.pause, detectFeatures: detectFeatures, saveBlob: saveBlob });
-_modules.set("3a2e1f99c98d394a8b194537c92295ae3cd04da2803a98a7b53fd13f46822525", _exports);
+_modules.set("7083fe05f46460330fd2145b0b8e1101879f8e3595fabb3dbd132da6a2436301", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("e46da80f893e95d8d64738d87f3d64a555d120adc7b587f82664b9012614a22a") ?? (() => {
+const _m0 = _modules.get("8425ddd8eba9dbaeb3fe2d138099e1bc15b19da75ce354be47ba4a189caf0883") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, PdfFont: _m12.PdfFont, ExportCell: _m6.ExportCell, saveBlob: _m21.saveBlob });
-_modules.set("e46da80f893e95d8d64738d87f3d64a555d120adc7b587f82664b9012614a22a", _exports);
+_modules.set("8425ddd8eba9dbaeb3fe2d138099e1bc15b19da75ce354be47ba4a189caf0883", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m21, pdf: _m0 });

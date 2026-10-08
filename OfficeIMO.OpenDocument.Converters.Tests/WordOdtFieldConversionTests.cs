@@ -78,7 +78,7 @@ public sealed class WordOdtFieldConversionTests {
             .Elements<Footnote>().Single(item => item.Type == null);
         note.Descendants<Paragraph>().First().Append(
             new SimpleField(new Run(new Text("7"))) { Instruction = " PAGE " },
-            new Run(new Text(" after")));
+            new Run(new Text(" after") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         OdtNote converted = Assert.Single(conversion.Value.Paragraphs.Single().Notes);
@@ -140,7 +140,7 @@ public sealed class WordOdtFieldConversionTests {
             new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
             new Run(new FieldCode(" IF 1 = 1 ")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
-            new Run(new Text("Page ")),
+            new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
@@ -404,7 +404,7 @@ public sealed class WordOdtFieldConversionTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.Append(new Hyperlink(
-            new Run(new Text("See ")),
+            new Run(new Text("See ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }) { Anchor = "section" });
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
@@ -422,9 +422,9 @@ public sealed class WordOdtFieldConversionTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.Append(new CustomXmlRun(
-            new Run(new Text("Before ")),
+            new Run(new Text("Before ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
-            new Run(new Text(" after"))));
+            new Run(new Text(" after") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })));
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Equal("Before 5 after", Assert.Single(conversion.Value.Paragraphs).Text);
@@ -436,7 +436,7 @@ public sealed class WordOdtFieldConversionTests {
     public void ContentControlInsideSimpleFieldEmitsCachedTextOnce() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
-        paragraph._paragraph.Append(new Run(new Text("Page ")),
+        paragraph._paragraph.Append(new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SimpleField(new SdtRun(new SdtContentRun(new Run(new Text("5"))))) {
                 Instruction = " PAGE "
             });
@@ -452,9 +452,9 @@ public sealed class WordOdtFieldConversionTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.Append(new SdtRun(new SdtContentRun(
-            new Run(new Text("Page ")),
+            new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
-            new Run(new Text(" today")))));
+            new Run(new Text(" today") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }))));
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Equal("Page 5 today", Assert.Single(conversion.Value.Paragraphs).Text);
@@ -470,7 +470,7 @@ public sealed class WordOdtFieldConversionTests {
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.Append(new CustomXmlRun(
             new SdtRun(new SdtContentRun(
-                new Run(new Text("Page ")),
+                new Run(new Text("Page ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
                 new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }))));
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();

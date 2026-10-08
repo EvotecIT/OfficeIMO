@@ -5,7 +5,10 @@ namespace OfficeIMO.Reader.Email;
 
 internal static class ReaderEmailStoreOptionsCloner {
     internal static ReaderEmailStoreOptions CloneOrDefault(ReaderEmailStoreOptions? options) {
+        var policy = options?.ConcealedTextPolicy ?? OfficeIMO.Email.EmailConcealedTextPolicy.Preserve;
+        if (!Enum.IsDefined(typeof(OfficeIMO.Email.EmailConcealedTextPolicy), policy)) throw new ArgumentOutOfRangeException(nameof(options.ConcealedTextPolicy));
         return new ReaderEmailStoreOptions {
+            ConcealedTextPolicy = policy,
             StoreOptions = CloneStoreOptions(options?.StoreOptions ?? EmailStoreReaderOptions.Default),
             Query = CloneQuery(options?.Query),
             ItemReadOptions = CloneItemReadOptions(options?.ItemReadOptions),

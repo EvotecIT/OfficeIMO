@@ -93,7 +93,12 @@ export interface SheetOptions<T = never> {
 /** A single merged report title above grouped/leaf headings. Print repetition includes headings only. */
 export interface ReportTitle { readonly text: string; readonly style?: CellStyle; readonly height?: number; }
 /** Widths use a bounded leading sample and an approximate character count. Automatic sampling stops within buffer budgets; an explicit sampleRows fails when its sample exceeds them. */
-export interface AutoSizeOptions { readonly sampleRows?: number; readonly minWidth?: number; readonly maxWidth?: number; }
+export interface AutoSizeOptions {
+  /** Leading rows to inspect, through Excel's row capacity. Large explicit samples require matching buffer budgets. */
+  readonly sampleRows?: number;
+  readonly minWidth?: number;
+  readonly maxWidth?: number;
+}
 export type TotalOperation = "sum" | "count" | "average" | "min" | "max";
 export interface FooterOptions {
   /** One explicit value per declared column; computed totals replace the corresponding value. */

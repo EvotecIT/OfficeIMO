@@ -80,6 +80,8 @@ public class PdfTableStyle {
     /// wrap within the preferred grid, rather than for the unwrapped line width.
     /// </summary>
     internal bool AutoFitWidthUsesContentMinimum { get; set; }
+    /// <summary>Document adapters can size an explicit automatic grid that has no positive authored width from its content minimum.</summary>
+    internal bool AutoFitUnspecifiedWidthToContent { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -727,6 +729,7 @@ public class PdfTableStyle {
             LeftIndent = LeftIndent,
             AutoFitColumns = AutoFitColumns,
             AutoFitWidthUsesContentMinimum = AutoFitWidthUsesContentMinimum,
+            AutoFitUnspecifiedWidthToContent = AutoFitUnspecifiedWidthToContent,
             RightAlignNumeric = RightAlignNumeric,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,

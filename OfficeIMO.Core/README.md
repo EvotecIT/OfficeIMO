@@ -443,6 +443,12 @@ For files, pass the encoded bytes to `Inspect(bytes)`. Strict UTF-8 and BOM-decl
 
 `OfficeIMO.ContentSafety` is separate from provenance. It reports native hidden text, white-on-white or otherwise low-contrast text, tiny or zero-size text, off-canvas/clipped content, notes/comments/alternative text, and exact Unicode evidence through the format package that understands the file. Concealment can be legitimate accessibility, review, layout, or metadata content; it is not an AI watermark or an authorship verdict.
 
+`OfficeContentInstructionDetector.Analyze(text)` also provides advisory instruction signals for text consumers.
+It inspects at most one million source characters, 32 inline Base64 candidates and 32,768 decoded characters by
+default. Base64 inspection supports one layer of printable UTF-8 text and line-wrapped tokens; it never executes
+or returns decoded instructions. `IsComplete` reports budget coverage, not safety. `Detect(text)` returns the same
+signal identifiers for callers that only need a bounded heuristic list. Source text remains unchanged.
+
 ```csharp
 using OfficeIMO.ContentSafety;
 using OfficeIMO.Word;

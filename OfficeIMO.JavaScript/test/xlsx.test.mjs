@@ -1,10 +1,43 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ExportCell } from "../dist/core/index.js";
+import { ExportCell, pause } from "../dist/core/index.js";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 import { Workbook } from "../dist/xlsx/index.js";
 import { readZip } from "./zip-reader.mjs";
+
+for (const scenario of ["small appends", "full width sample"]) {
+  test("Excel " + scenario + " lets task cancellation stop the source before all rows are accepted", async () => {
+    const original = Object.getOwnPropertyDescriptor(performance, "now");
+    let clock = performance.now() + 1000, produced = 0, returned = false;
+    Object.defineProperty(performance, "now", { configurable: true, value: () => clock });
+    const controller = new AbortController(), reason = new Error("task cancellation"), total = 200;
+    let timer, book;
+    try {
+      await pause();
+      book = new Workbook({ compression: "store", signal: controller.signal, sink: { write() {} },
+        limits: { maxBufferedCells: total, maxBufferedCharacters: total * 256 } });
+      const sheet = book.addWorksheet("Data", { columns: [{ header: "ID", value: row => { clock += 5; return row[0]; } }],
+        autoSize: { sampleRows: scenario === "full width sample" ? total : 0 } });
+      timer = setTimeout(() => controller.abort(reason), 0);
+      await assert.rejects(async () => {
+        if (scenario === "small appends") {
+          for (let i = 0; i < total; i++) { produced++; await sheet.addRows([[i]]); }
+        } else {
+          function* rows() { try { for (let i = 0; i < total; i++) { produced++; yield [i]; } } finally { returned = true; } }
+          await sheet.addRows(rows());
+        }
+        await book.finish();
+      }, error => error === reason);
+      assert.ok(produced < total, "timer cancellation must interrupt the append/sample work");
+      if (scenario === "full width sample") assert.equal(returned, true);
+    } finally {
+      clearTimeout(timer); await book?.discard(reason);
+      if (original) Object.defineProperty(performance, "now", original); else delete performance.now;
+      await pause();
+    }
+  });
+}
 
 test("typed workbook stores literal text, date serials and styles with valid ZIP payloads", async () => {
   const events = [], book = new Workbook({ creator: "A<&\"", title: "T<>&", dateMode: "utc", onProgress: p => events.push(p) });
