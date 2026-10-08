@@ -133,6 +133,21 @@ public sealed class PdfWhitespaceFlowTests {
         }
     }
 
+    [Fact]
+    public void AFontOnAnEmptySpaceFragmentDoesNotMoveTheVisibleTextBaseline() {
+        PdfOptions options = Options(PdfTextWhitespaceMode.Preserve);
+        options.DefaultParagraphStyle = new PdfParagraphStyle();
+        using var plain = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Text("ALPHA BETA")).ToBytes());
+        using var mixed = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
+            PdfTextRun.Normal("ALPHA ", fontSize: 12D), new PdfTextRun(" ", fontSize: 20D),
+            PdfTextRun.Normal(" BETA", fontSize: 12D)
+        })).ToBytes());
+        var actual = mixed.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
+        var expected = plain.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
+        Assert.Equal(expected.Length, actual.Length);
+        for (int i = 0; i < actual.Length; i++) Assert.InRange(Math.Abs(actual[i].StartBaseLine.Y - expected[i].StartBaseLine.Y), 0D, .02D);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
