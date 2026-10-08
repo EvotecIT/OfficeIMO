@@ -27,8 +27,6 @@ public sealed partial class OfficeRasterCanvas {
     private readonly System.Threading.CancellationToken _cancellationToken;
     private bool _reportedBoundedTextShapingFallback;
     private bool _reportedIncompleteTextShapingFallback;
-    private const long MaximumTransformedTextIntermediatePixels = 64_000_000L;
-    private OfficeRasterTransformedTextBudget _transformedTextBudget = new OfficeRasterTransformedTextBudget();
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -125,31 +123,6 @@ public sealed partial class OfficeRasterCanvas {
     internal OfficeTrueTypeFont? OutlineFont => _font;
 
     internal OfficeFontFaceCollection? Fonts => _fonts;
-
-    internal void ChargeTransformedTextIntermediatePixels(long pixels, long maximumRasterPixels) {
-        long consumed = _transformedTextBudget.Pixels;
-        if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - consumed) {
-            throw new OfficeImageExportLimitException(1D,
-                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
-                MaximumTransformedTextIntermediatePixels,
-                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
-        }
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
-        _transformedTextBudget.Pixels = consumed + pixels;
-    }
-
-    internal void ReleaseTransformedTextIntermediatePixels(long pixels) {
-        _transformedTextBudget.Pixels -= pixels;
-        _transformedTextBudget.ReleaseIntermediateSurfacePixels(pixels);
-    }
-
-    internal OfficeRasterTransformedTextBudget TransformedTextBudget => _transformedTextBudget;
-
-    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) =>
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
-
-    internal void ShareTransformedTextBudget(OfficeRasterTransformedTextBudget budget) =>
-        _transformedTextBudget = budget;
 
     internal System.Threading.CancellationToken CancellationToken => _cancellationToken;
 
@@ -509,16 +482,17 @@ public sealed partial class OfficeRasterCanvas {
             rotationCenterY,
             flipHorizontal,
             flipVertical);
-        OfficeTransform imageTransform = projection.CreateUnitSquareTransform();
+        OfficeTransform imageTransform = ScaleCoordinates(projection.CreateUnitSquareTransform());
         if (!imageTransform.TryInvert(out OfficeTransform inverseTransform)) {
             return;
         }
 
+        (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterImage(image,
             SamplingAxisLength(inverseTransform.M11, inverseTransform.M21) * image.Width * sourceWidth,
             SamplingAxisLength(inverseTransform.M12, inverseTransform.M22) * image.Height * sourceHeight);
 
-        (double minX, double minY, double maxX, double maxY) = projection.GetDestinationBounds();
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -552,6 +526,7 @@ public sealed partial class OfficeRasterCanvas {
         DrawAffineImage(image, transform, opacity, interpolate: true);
 
     internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
+        transform = ScaleCoordinates(transform);
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
@@ -559,6 +534,7 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
