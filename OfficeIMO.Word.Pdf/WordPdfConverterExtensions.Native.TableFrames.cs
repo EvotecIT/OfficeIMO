@@ -61,7 +61,7 @@ namespace OfficeIMO.Word.Pdf {
                 W.TableRowHeight? height = table.Rows[rowIndex]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
                 if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
                 double top = 0D, bottom = 0D;
-                double bottomMargin = GetNativeFramedRowBottomMargin(layout, style, rowIndex);
+                double bottomMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: false);
                 if (style.CellBorders != null) {
                     foreach (var entry in style.CellBorders.Where(entry => entry.Key.Row == rowIndex)) {
                         top = Math.Max(top, GetNativeFrameSide(entry.Value, top: true)?.PaintThickness ?? 0D);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word.Pdf {
             if (hasMinimum) { style.MinRowHeight = 0D; style.RowMinHeights = minimums; }
         }
 
-        private static double GetNativeFramedRowBottomMargin(TableLayout layout, PdfCore.PdfTableStyle style, int rowIndex) {
+        private static double GetNativeTableRowMargin(TableLayout layout, PdfCore.PdfTableStyle style, int rowIndex, bool top) {
             double maximum = 0D;
             int column = layout.GetRowStartColumn(rowIndex);
             foreach (WordTableCell cell in layout.Rows[rowIndex]) {
@@ -94,7 +94,10 @@ namespace OfficeIMO.Word.Pdf {
                 if (!IsNativeVerticalMergeContinuation(cell)) {
                     PdfCore.PdfCellPadding? padding = null;
                     style.CellPaddings?.TryGetValue((rowIndex, column), out padding);
-                    maximum = Math.Max(maximum, padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY);
+                    double margin = top
+                        ? padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY
+                        : padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+                    maximum = Math.Max(maximum, margin);
                 }
                 column += span;
             }
