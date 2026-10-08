@@ -395,6 +395,24 @@ internal static partial class PdfWriter {
                 double needed = lastLine.Count == 0 && !preserveWhitespace ? tokenW : pendingLeadingAdvance + tokenW;
                 double currentMaxWidth = CurrentMaxWidth();
 
+                // A list prefix consumes part of the wider hanging first line.
+                // Plan its first word against the remaining frame so a later
+                // hyphen/CJK chunk can use the narrower continuation frame.
+                if (lastLine.Count > 0 && pendingLeadingAdvance == 0D && lineWidth + tokenW > currentMaxWidth &&
+                    lastLine[lastLine.Count - 1].InlineElement is PdfInlineBox { IsTextSpacer: true } &&
+                    TryAppendMultilingualLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle,
+                        color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline,
+                        Math.Max(0D, currentMaxWidth - lineWidth))) {
+                    if (hadNewline) {
+                        MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
+                        StartNewLine();
+                        ResetPendingLeading();
+                    } else if (nextWs != -1) {
+                        SetPendingSeparator(text[nextWs] == '\t', spaceW, tabAlignment, tabLeader);
+                    }
+                    continue;
+                }
+
                 if (tokenW > currentMaxWidth) {
                     if (lastLine.Count > 0) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     ResetPendingLeading();
@@ -949,11 +967,12 @@ internal static partial class PdfWriter {
             string? contents,
             PdfStandardFont font,
             double runFontSize,
-            PdfTextBaseline baseline) {
+            PdfTextBaseline baseline,
+            double? firstChunkWidth = null) {
             var chunks = TryBuildMultilingualTokenChunks(
                 token,
                 part => MeasureRichText(part, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing),
-                CurrentMaxWidth(),
+                firstChunkWidth ?? CurrentMaxWidth(),
                 maxWidthPts);
 
             if (chunks == null) {

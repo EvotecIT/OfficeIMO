@@ -48,7 +48,7 @@ internal static partial class PdfWriter {
             int selectedBreak = -1;
             string selectedText = string.Empty;
             double selectedWidth = 0D;
-            double currentMaxWidth = Math.Max(1D, chunks.Count == 0 ? firstMaxWidth : subsequentMaxWidth);
+            double currentMaxWidth = Math.Max(0D, chunks.Count == 0 ? firstMaxWidth : subsequentMaxWidth);
 
             foreach (int candidate in EnumerateTokenBreakCandidates(breakpoints, position, token.Length)) {
                 string chunkText = token.Substring(position, candidate - position);

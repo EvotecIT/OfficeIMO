@@ -60,6 +60,7 @@ internal static partial class PdfWriter {
                         PreparedListItem preparedItem = prepared.Items[itemIndex];
                         PdfListItem item = preparedItem.Item;
                         TableCellTextLayout layout = preparedItem.TextLayout;
+                        var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
                         listItems.Add(new ColListItem {
                             Runs = item.Runs,
                             Lines = layout.Lines,
@@ -69,9 +70,9 @@ internal static partial class PdfWriter {
                             MarkerNamedFont = prepared.MarkerNamedFont,
                             MarkerSize = prepared.MarkerSize,
                             MarkerColor = prepared.Style?.MarkerColor ?? listColor,
-                            MarkerXOffset = prepared.ListLeftIndent + preparedItem.FirstLineOffset,
-                            MarkerWidth = prepared.MarkerWidth,
-                            MarkerAlign = list.GetMarkerAlign(prepared.Style),
+                            MarkerXOffset = markerPlacement.X,
+                            MarkerWidth = markerPlacement.Width,
+                            MarkerAlign = markerPlacement.Align,
                             TextXOffset = prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap,
                             TextWidth = prepared.AlignmentWidth,
                             TextAlign = list.Align,

@@ -406,6 +406,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordDocumentTraversal.ListInfo? listInfo = WordDocumentTraversal.GetListInfo(paragraph);
+            if (listInfo?.LevelSuffix == WordListLevelSuffix.Space) {
+                RegisterNativeFontCandidate("Arial", pdfOptions, registeredFamilies,
+                    registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            }
             if (listInfo.HasValue &&
                 !ShouldUseNativeListTextFontForNormalizedMarker(
                     listInfo.Value,
