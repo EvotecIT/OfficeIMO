@@ -5,6 +5,26 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.Security.Tests {
     public sealed class OfficeVbaWordBoundaryTests {
+        [Fact]
+        public void WordListsHostModulesAndPreservesProjectWhenNamedHostRemovalIsRejected() {
+            OfficeVbaProject project = OfficeVbaProject.Create();
+            project.AddModule("Helpers", "'standard source\r\n");
+            using WordDocument document = WordDocument.Create();
+            document.SetVbaProject(project);
+            Assert.Equal(new[] { "Helpers", "ThisDocument" }, document.Macros.Select(module => module.Name));
+            byte[] original = document.ExtractMacros();
+            WordMacro host = document.Macros.Single(module => module.Name == "ThisDocument");
+            Assert.Throws<NotSupportedException>(() => host.Remove());
+            Assert.Equal(original, document.ExtractMacros());
+            document.Macros.Single(module => module.Name == "Helpers").Remove();
+            Assert.Equal("ThisDocument", Assert.Single(document.Macros).Name);
+            Assert.True(document.HasMacros);
+            document.RemoveMacros();
+            Assert.False(document.HasMacros);
+            Assert.Empty(document.Macros);
+            Assert.Empty(document.ExtractMacros());
+        }
+
         [Theory]
         [InlineData(null)]
         [InlineData("1Normal.")]

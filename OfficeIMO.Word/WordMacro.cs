@@ -9,8 +9,10 @@ namespace OfficeIMO.Word {
     /// Represents a single macro module within a document.
     /// </summary>
     /// <remarks>
-    /// Instances are returned by <see cref="WordDocument.Macros"/> and can be
-    /// removed individually using <see cref="Remove"/>.
+    /// Instances are returned by <see cref="WordDocument.Macros"/>, including
+    /// host document and designer modules. Standard and class modules can be
+    /// removed individually using <see cref="Remove"/>. Use
+    /// <see cref="WordDocument.RemoveMacros"/> to remove the entire VBA project.
     /// </remarks>
     public class WordMacro {
         private readonly WordDocument _document;
@@ -28,8 +30,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Removes this macro module from the document.
+        /// Removes this standard or class module from the document.
         /// </summary>
+        /// <exception cref="NotSupportedException">The module belongs to the host document or a designer.</exception>
         public void Remove() {
             WordMacro.RemoveMacro(_document, Name);
         }
