@@ -31,7 +31,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? kerningMinimumFontSizeHalfPoints = null,
             LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
             LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
-            int? characterScalePercentage = null)
+            int? characterScalePercentage = null,
+            string? hyperlinkTooltip = null,
+            string? hyperlinkTargetFrame = null)
             : this(
                 text,
                 bold,
@@ -65,7 +67,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints,
                 styleRelative: styleRelative,
                 styleInverted: styleInverted,
-                characterScalePercentage: characterScalePercentage) {
+                characterScalePercentage: characterScalePercentage,
+                hyperlinkTooltip: hyperlinkTooltip,
+                hyperlinkTargetFrame: hyperlinkTargetFrame) {
         }
 
         internal LegacyDocTextRun(
@@ -101,7 +105,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? kerningMinimumFontSizeHalfPoints = null,
             LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
             LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
-            int? characterScalePercentage = null) {
+            int? characterScalePercentage = null,
+            string? hyperlinkTooltip = null,
+            string? hyperlinkTargetFrame = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -133,6 +139,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : characterPositions.ToArray();
             HyperlinkUri = string.IsNullOrWhiteSpace(hyperlinkUri) ? null : hyperlinkUri;
             HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
+            HyperlinkTooltip = hyperlinkTooltip;
+            HyperlinkTargetFrame = hyperlinkTargetFrame;
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
             Specified = specified;
@@ -194,6 +202,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? HyperlinkUri { get; }
 
         internal string? HyperlinkAnchor { get; }
+        internal string? HyperlinkTooltip { get; }
+        internal string? HyperlinkTargetFrame { get; }
 
         internal LegacyDocFieldKind FieldKind { get; }
 
@@ -231,11 +241,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocHyperlinkTarget HyperlinkTarget {
             get {
                 if (HyperlinkUri != null) {
-                    return LegacyDocHyperlinkTarget.ForUri(HyperlinkUri);
+                    return LegacyDocHyperlinkTarget.ForUri(HyperlinkUri, HyperlinkTooltip, HyperlinkTargetFrame);
                 }
 
                 if (HyperlinkAnchor != null) {
-                    return LegacyDocHyperlinkTarget.ForAnchor(HyperlinkAnchor);
+                    return LegacyDocHyperlinkTarget.ForAnchor(HyperlinkAnchor, HyperlinkTooltip, HyperlinkTargetFrame);
                 }
 
                 return default;
