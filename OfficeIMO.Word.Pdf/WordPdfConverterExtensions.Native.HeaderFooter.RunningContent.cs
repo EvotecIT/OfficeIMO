@@ -10,8 +10,13 @@ public static partial class WordPdfConverterExtensions {
         (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
         story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
             ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())
-            .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
-                .Any(item => item.IsField && item.Text == "{sectionpages}")));
+            .Any(paragraph => {
+                var view = new WordParagraph(story.Document, paragraph);
+                // Numbered running content needs the same marker typography,
+                // tab resolution and continuation indentation as body paragraphs.
+                return WordDocumentTraversal.GetListInfo(view)?.MarkerVisible == true ||
+                    GetNativeHeaderFooterVisibleTextRuns(view).Any(item => item.IsField && item.Text == "{sectionpages}");
+            }));
 
     private static bool UsesNativeRunningHeader(WordSection section) =>
         RequiresNativeRunningStory(section.Header?.Default) ||

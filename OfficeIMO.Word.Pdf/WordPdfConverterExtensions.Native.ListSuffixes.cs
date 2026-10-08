@@ -10,7 +10,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double ResolveNativeListTabBodyPosition(WordParagraph paragraph,
             double markerEnd, double textIndent, NativeDocumentDefaults nativeDefaults) {
-            if (!IgnoresNativeNumberingIndentStop(paragraph) && markerEnd <= textIndent + 0.01D) return textIndent;
+            double? indentStop = !IgnoresNativeNumberingIndentStop(paragraph) && markerEnd <= textIndent + 0.01D
+                ? textIndent : null;
             var stops = new Dictionary<int, WordTabStop>();
             W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
             if (levelTabs != null) {
@@ -23,8 +24,9 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTabStop tabStop in stops.Values.Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
                 .OrderBy(tab => tab.Position)) {
                 double position = tabStop.Position / 20D;
-                if (position > markerEnd + 0.01D) return position;
+                if (position > markerEnd + 0.01D) return indentStop.HasValue ? Math.Min(position, indentStop.Value) : position;
             }
+            if (indentStop.HasValue) return indentStop.Value;
             double interval = nativeDefaults.DefaultTabStopWidth ?? 36D;
             return (Math.Floor(markerEnd / interval) + 1D) * interval;
         }
@@ -45,7 +47,17 @@ namespace OfficeIMO.Word.Pdf {
             double markerStart = paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
             double bodyPosition = ResolveNativeListTabBodyPosition(paragraph, markerStart + markerWidth,
                 paragraphStyle.LeftIndent, nativeDefaults);
-            return Math.Max(width, bodyPosition - markerStart);
+            return Math.Max(0D, bodyPosition - markerStart);
+        }
+
+        private static bool HasNativeIndependentListTabAdvance(WordParagraph paragraph, string marker,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+            var paragraphStyle = new PdfCore.PdfParagraphStyle();
+            ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+            ApplyNativeInlineListMarkerAlignment(paragraph, marker, paragraphStyle, nativeDefaults, nativeFontMap);
+            double advance = ResolveNativeInlineListMarkerColumnWidth(paragraph, marker, paragraphStyle,
+                nativeDefaults, nativeFontMap);
+            return Math.Abs(advance - Math.Max(0D, -paragraphStyle.FirstLineIndent)) > 0.01D;
         }
 
         // Word emits the numbering space in Arial at the marker's size,
