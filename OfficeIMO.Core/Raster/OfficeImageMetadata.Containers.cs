@@ -87,11 +87,11 @@ public sealed partial class OfficeImageMetadata {
     }
 
     private static byte[] RewriteJpeg(byte[] input, OfficeImageMetadata metadata, CancellationToken token) => RewriteJpeg(input, metadata, token, OfficeImageMetadataProfileKinds.All & ~OfficeImageMetadataProfileKinds.C2pa, out _);
-    private static byte[] RewriteJpeg(byte[] input, OfficeImageMetadata? metadata, CancellationToken token, OfficeImageMetadataProfileKinds replace, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
+    private static byte[] RewriteJpeg(byte[] input, OfficeImageMetadata? metadata, CancellationToken token, OfficeImageMetadataProfileKinds replace, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L, bool writeDensity = true) {
         present = OfficeImageMetadataProfileKinds.None;
         using var output = CreateRewriteStream(input, metadata, token, additionallyRetainedBytes); output.Write(input, 0, 2);
         int jfifStart = -1;
-        if (metadata != null) {
+        if (metadata != null && writeDensity) {
             bool existingJfif = TryFindJpegJfif(input, token, out jfifStart, out int jfifPayload, out int jfifLength);
             byte[] jfif = existingJfif ? Slice(input, jfifPayload, jfifLength) : new byte[] { 74, 70, 73, 70, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0 };
             GetExifResolution(metadata, out double x, out double y, out ushort unit);
@@ -137,6 +137,7 @@ public sealed partial class OfficeImageMetadata {
             }
             int segmentStart = cursor;
             if (!OfficeProvenanceJpeg.TryReadMarker(input, cursor, out byte marker, out int payload, out int length, out int end)) throw new FormatException("JPEG contains a malformed segment.");
+            if (metadata != null && !writeDensity && marker == 0xE0 && PrefixAt(input, payload, length, JpegJfifPrefix)) { cursor = end; continue; }
             if (metadata != null && segmentStart == jfifStart) { cursor = end; continue; }
             OfficeImageMetadataProfileKinds kind = marker == 0xE1 && PrefixAt(input, payload, length, JpegExifPrefix) ? OfficeImageMetadataProfileKinds.Exif :
                 marker == 0xE1 && (PrefixAt(input, payload, length, JpegXmpPrefix) || PrefixAt(input, payload, length, JpegExtendedXmpPrefix)) ? OfficeImageMetadataProfileKinds.Xmp :
@@ -204,7 +205,7 @@ public sealed partial class OfficeImageMetadata {
     }
 
     private static byte[] RewritePng(byte[] input, OfficeImageMetadata metadata, CancellationToken token) => RewritePng(input, metadata, token, OfficeImageMetadataProfileKinds.All & ~OfficeImageMetadataProfileKinds.C2pa, out _);
-    private static byte[] RewritePng(byte[] input, OfficeImageMetadata? metadata, CancellationToken token, OfficeImageMetadataProfileKinds replace, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
+    private static byte[] RewritePng(byte[] input, OfficeImageMetadata? metadata, CancellationToken token, OfficeImageMetadataProfileKinds replace, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L, bool writeDensity = true) {
         if (metadata?._iptc != null) throw new NotSupportedException("PNG does not have a standard IPTC IIM profile chunk.");
         present = OfficeImageMetadataProfileKinds.None;
         using var output = CreateRewriteStream(input, metadata, token, additionallyRetainedBytes); output.Write(input, 0, 8); int cursor = 8;
@@ -220,10 +221,12 @@ public sealed partial class OfficeImageMetadata {
                 byte[]? exif = metadata.EncodeExifProfile(token); if (exif != null) WritePngChunk(output, "eXIf", exif);
                 if (metadata._icc != null) { byte[] compressed = OfficeZlibCodec.Compress(metadata._icc, token); WritePngChunk(output, "iCCP", Join(new byte[] { 73, 67, 67, 0, 0 }, compressed)); }
                 if (metadata._xmp != null) WritePngChunk(output, "iTXt", Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp\0\0\0\0\0"), metadata._xmp));
+                if (writeDensity) {
                 byte[] density = new byte[9]; double scale = metadata.ResolutionUnits == OfficeImageResolutionUnit.PixelsPerInch ? 1D / 0.0254D : metadata.ResolutionUnits == OfficeImageResolutionUnit.PixelsPerCentimeter ? 100D : 1D;
                 GetIntegerResolution(metadata.HorizontalResolution * scale, metadata.VerticalResolution * scale, metadata.ResolutionUnits == OfficeImageResolutionUnit.AspectRatio, uint.MaxValue, out uint horizontal, out uint vertical);
                 OfficeExifProfileCodec.Write(density, 0, horizontal, 4, false); OfficeExifProfileCodec.Write(density, 4, vertical, 4, false);
                 density[8] = metadata.ResolutionUnits == OfficeImageResolutionUnit.AspectRatio ? (byte)0 : (byte)1; WritePngChunk(output, "pHYs", density);
+                }
             }
             cursor += length + 12;
             if (output.Length > OfficeRasterGuards.MaximumEncodedBytes) throw new FormatException("Edited PNG exceeds the encoded-size limit.");

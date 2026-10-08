@@ -79,8 +79,7 @@ public sealed partial class DrawingRasterEncodingTests {
                 options.Tiff.DpiY = 0.0009D;
                 break;
             case OfficeImageExportFormat.Webp:
-                options.DpiX = 0.00009D;
-                options.DpiY = 0.00009D;
+                options.Resolution = new OfficeImageResolution(0.00009D, 0.00009D);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
@@ -137,8 +136,7 @@ public sealed partial class DrawingRasterEncodingTests {
     public void SharedWebpEncodingPreservesPhysicalResolutionInStandardExifMetadata() {
         OfficeRasterImage image = CreateSampleImage();
         var options = new OfficeRasterEncodingOptions {
-            DpiX = 144D,
-            DpiY = 120D
+            Resolution = new OfficeImageResolution(144D, 120D)
         };
 
         byte[] encoded = OfficeRasterImageEncoder.Encode(
@@ -340,7 +338,7 @@ public sealed partial class DrawingRasterEncodingTests {
         Assert.False(selectedInfo.AnimationDiscarded);
 
         var rejectFrameLoss = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
         };
         Assert.False(OfficeRasterImageDecoder.TryDecode(
             chained,

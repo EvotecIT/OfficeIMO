@@ -47,8 +47,8 @@ internal static class OfficeBmpWriter {
     private static void GetDensity(OfficeRasterEncodingOptions options, out uint x, out uint y) {
         x = y = 0U;
         if (!options.WriteResolutionMetadata) return;
-        x = ToPixelsPerMeter(options.DpiX);
-        y = ToPixelsPerMeter(options.DpiY);
+        x = ToPixelsPerMeter(options.ResolvedDpiX);
+        y = ToPixelsPerMeter(options.ResolvedDpiY);
     }
 
     private static uint ToPixelsPerMeter(double dpi) => checked((uint)Math.Round(

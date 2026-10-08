@@ -6,7 +6,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>An ordered snapshot of raster frame references with format-neutral animation timing.</summary>
-public sealed class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame> {
+public sealed partial class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame> {
     private const int MaximumFrameCount = 4096;
     private readonly OfficeRasterFrame[] _frames;
 

@@ -26,15 +26,27 @@ public sealed partial class OfficeImageMetadata {
     private byte[]? _icc;
     private byte[]? _iptc;
     private readonly HashSet<OfficeExifTag> _tiffOpaqueOffsets = new HashSet<OfficeExifTag>();
+    private OfficeImageResolution _resolution = new OfficeImageResolution(96D, 96D);
 
     /// <summary>Horizontal resolution in <see cref="ResolutionUnits"/>.</summary>
-    public double HorizontalResolution { get; set; } = 96D;
+    public double HorizontalResolution { get => _resolution.Horizontal; set => Resolution = new OfficeImageResolution(value, _resolution.Vertical, _resolution.Unit); }
     /// <summary>Vertical resolution in <see cref="ResolutionUnits"/>.</summary>
-    public double VerticalResolution { get; set; } = 96D;
+    public double VerticalResolution { get => _resolution.Vertical; set => Resolution = new OfficeImageResolution(_resolution.Horizontal, value, _resolution.Unit); }
     /// <summary>The unit for both resolution values.</summary>
-    public OfficeImageResolutionUnit ResolutionUnits { get; set; } = OfficeImageResolutionUnit.PixelsPerInch;
-    /// <summary>An immutable snapshot of the native resolution values, suitable for encoder overrides.</summary>
-    public OfficeImageResolution Resolution => new OfficeImageResolution(HorizontalResolution, VerticalResolution, ResolutionUnits);
+    public OfficeImageResolutionUnit ResolutionUnits { get => _resolution.Unit; set => Resolution = new OfficeImageResolution(_resolution.Horizontal, _resolution.Vertical, value); }
+    /// <summary>The authoritative native density or unitless aspect ratio, suitable for encoder overrides.</summary>
+    /// <remarks>Assigning resolution explicitly restores its Exif density fields after previous individual removals.
+    /// When Exif density fields are present or removed, the new values must fit Exif's unsigned rational representation.
+    /// Rejected assignments retain the previous resolution, fields, and removal intent.</remarks>
+    public OfficeImageResolution Resolution {
+        get => _resolution;
+        set {
+            SetResolutionAndDensityFields(value ?? throw new ArgumentNullException(nameof(value)));
+            _removed.Remove(OfficeExifTag.XResolution);
+            _removed.Remove(OfficeExifTag.YResolution);
+            _removed.Remove(OfficeExifTag.ResolutionUnit);
+        }
+    }
     /// <summary>Horizontal physical resolution in dots per inch, or null for a unitless aspect ratio.</summary>
     public double? PhysicalDpiX => ToPhysicalDpi(HorizontalResolution);
     /// <summary>Vertical physical resolution in dots per inch, or null for a unitless aspect ratio.</summary>
@@ -80,7 +92,13 @@ public sealed partial class OfficeImageMetadata {
     private void SetExifValue(OfficeExifTag tag, object value, CancellationToken token) {
         if (IsStructural(tag.Id)) throw new ArgumentException("Exif structural pointers cannot be edited as ordinary fields.", nameof(tag));
         byte[] encoded = OfficeExifProfileCodec.EncodeValue(tag.DataType, value, true, out uint count, token);
-        _changes[tag] = new OfficeExifValue(tag, OfficeExifProfileCodec.Decode(encoded, 0, checked((int)count), tag.DataType, true, token));
+        object decoded = OfficeExifProfileCodec.Decode(encoded, 0, checked((int)count), tag.DataType, true, token);
+        var change = new OfficeExifValue(tag, decoded);
+        if (tag.Equals(OfficeExifTag.XResolution) || tag.Equals(OfficeExifTag.YResolution) || tag.Equals(OfficeExifTag.ResolutionUnit)) {
+            SetResolutionAndDensityFields(ResolveExifDensityEdit(tag, decoded), restoreRemoved: false, edited: change);
+        } else {
+            _changes[tag] = change;
+        }
         _removed.Remove(tag);
         _tiffOpaqueOffsets.Remove(tag);
     }
@@ -115,17 +133,22 @@ public sealed partial class OfficeImageMetadata {
         var metadata = new OfficeImageMetadata { _exif = OfficeExifProfileCodec.Parse(profile, cancellationToken: cancellationToken, additionallyRetainedBytes: additionallyRetainedBytes) };
         // The caller's container is retained during parsing, not by this independently owned snapshot.
         metadata._exif.RetainedManagedBytes -= additionallyRetainedBytes;
+        ReadExifResolution(metadata);
         return metadata;
     }
     private void SetExifProfile(byte[]? profile, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        _exif = profile == null || profile.Length == 0 ? null : OfficeExifProfileCodec.Parse(profile, cancellationToken: token);
+        var parsed = new OfficeImageMetadata { _exif = profile == null || profile.Length == 0 ? null : OfficeExifProfileCodec.Parse(profile, cancellationToken: token) };
+        ReadExifResolution(parsed);
+        token.ThrowIfCancellationRequested();
+        _exif = parsed._exif;
         _changes.Clear(); _removed.Clear(); _tiffOpaqueOffsets.Clear();
+        _resolution = parsed._resolution;
     }
 
     /// <summary>Creates an independent copy of profiles, typed fields, pending edits, and TIFF preservation constraints.</summary>
     public OfficeImageMetadata Clone() {
-        var clone = new OfficeImageMetadata { _exif = _exif, _xmp = Copy(_xmp), _icc = Copy(_icc), _iptc = Copy(_iptc), HorizontalResolution = HorizontalResolution, VerticalResolution = VerticalResolution, ResolutionUnits = ResolutionUnits };
+        var clone = new OfficeImageMetadata { _exif = _exif, _xmp = Copy(_xmp), _icc = Copy(_icc), _iptc = Copy(_iptc), _resolution = _resolution };
         foreach (KeyValuePair<OfficeExifTag, OfficeExifValue> change in _changes) clone._changes.Add(change.Key, change.Value);
         foreach (OfficeExifTag removed in _removed) clone._removed.Add(removed);
         foreach (OfficeExifTag opaque in _tiffOpaqueOffsets) clone._tiffOpaqueOffsets.Add(opaque);
@@ -146,7 +169,7 @@ public sealed partial class OfficeImageMetadata {
             int skip = info.Format == OfficeImageFormat.Jpeg && StartsWith(snapshot.Xmp, JpegXmpPrefix) ? JpegXmpPrefix.Length : 0;
             var xmp = new byte[snapshot.Xmp.Length - skip]; Buffer.BlockCopy(snapshot.Xmp, skip, xmp, 0, xmp.Length); metadata.XmpProfile = xmp;
         }
-        if (snapshot.PhysicalDpiX.HasValue && snapshot.PhysicalDpiY.HasValue) { metadata.HorizontalResolution = snapshot.PhysicalDpiX.Value; metadata.VerticalResolution = snapshot.PhysicalDpiY.Value; }
+        if (snapshot.PhysicalDpiX.HasValue && snapshot.PhysicalDpiY.HasValue) metadata._resolution = new OfficeImageResolution(snapshot.PhysicalDpiX.Value, snapshot.PhysicalDpiY.Value);
         if (info.Format == OfficeImageFormat.Jpeg) metadata.IptcProfile = ReadJpegIptc(encodedBytes, cancellationToken);
         if (info.Format == OfficeImageFormat.Png) ReadPngProfiles(encodedBytes, metadata, cancellationToken);
         if (info.Format == OfficeImageFormat.Webp) ReadWebpProfiles(encodedBytes, metadata, cancellationToken);
@@ -160,7 +183,9 @@ public sealed partial class OfficeImageMetadata {
 
     /// <summary>Replaces supported primary-image profiles and density without recompressing image pixels.</summary>
     /// <remarks>Supports JPEG, PNG, WebP, and TIFF profile families, GIF XMP/ICC, and BMP ICC/density. TIFF edits preserve page links and encoding fields; TIFF-relative maker notes require their original container. Container-specific metadata outside these profile families is preserved. Extended XMP is replaced by the supplied standard XMP packet.</remarks>
-    public static byte[] Apply(byte[] encodedBytes, OfficeImageMetadata metadata, CancellationToken cancellationToken = default) {
+    public static byte[] Apply(byte[] encodedBytes, OfficeImageMetadata metadata, CancellationToken cancellationToken = default) => ApplyCore(encodedBytes, metadata, cancellationToken, 0L);
+
+    internal static byte[] ApplyCore(byte[] encodedBytes, OfficeImageMetadata metadata, CancellationToken cancellationToken, long additionallyRetainedBytes, bool writeDensity = true) {
         if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
         if (metadata == null) throw new ArgumentNullException(nameof(metadata));
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(encodedBytes.Length)) throw new FormatException("Image bytes exceed the metadata-edit limit.");
@@ -170,12 +195,12 @@ public sealed partial class OfficeImageMetadata {
         if (info.Format != OfficeImageFormat.Jpeg && info.Format != OfficeImageFormat.Png && info.Format != OfficeImageFormat.Webp && info.Format != OfficeImageFormat.Tiff && info.Format != OfficeImageFormat.Bmp && info.Format != OfficeImageFormat.Gif) throw new NotSupportedException("The image container does not support lossless replacement of these profile families.");
         if (metadata._icc != null && !OfficeIccProfileValidator.TryValidate(metadata._icc, 0, metadata._icc.Length, cancellationToken)) throw new FormatException("The ICC profile is malformed.");
         byte[] result = info.Format switch {
-            OfficeImageFormat.Jpeg => RewriteJpeg(encodedBytes, metadata, cancellationToken),
-            OfficeImageFormat.Png => RewritePng(encodedBytes, metadata, cancellationToken),
-            OfficeImageFormat.Webp => RewriteWebp(encodedBytes, metadata, cancellationToken),
-            OfficeImageFormat.Tiff => RewriteTiff(encodedBytes, metadata, cancellationToken),
-            OfficeImageFormat.Bmp => RewriteBmp(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, cancellationToken, out _),
-            OfficeImageFormat.Gif => RewriteGif(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, cancellationToken, out _),
+            OfficeImageFormat.Jpeg => RewriteJpeg(encodedBytes, metadata, cancellationToken, OfficeImageMetadataProfileKinds.All & ~OfficeImageMetadataProfileKinds.C2pa, out _, additionallyRetainedBytes, writeDensity),
+            OfficeImageFormat.Png => RewritePng(encodedBytes, metadata, cancellationToken, OfficeImageMetadataProfileKinds.All & ~OfficeImageMetadataProfileKinds.C2pa, out _, additionallyRetainedBytes, writeDensity),
+            OfficeImageFormat.Webp => RewriteWebp(encodedBytes, metadata, cancellationToken, OfficeImageMetadataProfileKinds.All & ~OfficeImageMetadataProfileKinds.C2pa, out _, additionallyRetainedBytes),
+            OfficeImageFormat.Tiff => RewriteTiff(encodedBytes, metadata, cancellationToken, preserveDensity: writeDensity, additionallyRetainedBytes: additionallyRetainedBytes),
+            OfficeImageFormat.Bmp => RewriteBmp(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, cancellationToken, out _, additionallyRetainedBytes, writeDensity),
+            OfficeImageFormat.Gif => RewriteGif(encodedBytes, metadata, OfficeImageMetadataProfileKinds.All, cancellationToken, out _, additionallyRetainedBytes, writeDensity),
             _ => throw new NotSupportedException("The image container does not support lossless replacement of these profile families.")
         };
         cancellationToken.ThrowIfCancellationRequested();
