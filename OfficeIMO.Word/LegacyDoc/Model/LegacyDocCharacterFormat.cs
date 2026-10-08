@@ -22,7 +22,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         FontFamily = 1 << 17,
         CharacterSpacing = 1 << 18,
         Language = 1 << 19,
-        Kerning = 1 << 20
+        Kerning = 1 << 20,
+        CharacterScale = 1 << 21
     }
 
     internal readonly struct LegacyDocCharacterFormat : IEquatable<LegacyDocCharacterFormat> {
@@ -52,7 +53,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocRevision revision = default,
             int? kerningMinimumFontSizeHalfPoints = null,
             LegacyDocCharacterFormatProperties styleRelative = LegacyDocCharacterFormatProperties.None,
-            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None) {
+            LegacyDocCharacterFormatProperties styleInverted = LegacyDocCharacterFormatProperties.None,
+            int? characterScalePercentage = null) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
@@ -73,6 +75,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            CharacterScalePercentage = characterScalePercentage;
             KerningMinimumFontSizeHalfPoints = kerningMinimumFontSizeHalfPoints;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
@@ -119,6 +122,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? CharacterSpacingTwips { get; }
 
+        internal int? CharacterScalePercentage { get; }
+
         internal int? KerningMinimumFontSizeHalfPoints { get; }
 
         internal string? Language { get; }
@@ -155,6 +160,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || ColorHex != null
             || FontFamily != null
             || CharacterSpacingTwips != null
+            || CharacterScalePercentage != null
             || KerningMinimumFontSizeHalfPoints != null
             || Language != null
             || EastAsiaLanguage != null
@@ -172,7 +178,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             new LegacyDocCharacterFormat(Bold, Italic, Strike, DoubleStrike, Outline, Shadow, Emboss, Imprint,
                 Hidden, NoProof, Caps, VerticalPosition, Underline, Highlight, FontSizeHalfPoints, ColorHex,
                 fontFamily, CharacterSpacingTwips, Language, EastAsiaLanguage,
-                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision, KerningMinimumFontSizeHalfPoints, StyleRelative, StyleInverted);
+                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision, KerningMinimumFontSizeHalfPoints, StyleRelative, StyleInverted, CharacterScalePercentage);
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
@@ -193,6 +199,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
                 && CharacterSpacingTwips == other.CharacterSpacingTwips
+                && CharacterScalePercentage == other.CharacterScalePercentage
                 && KerningMinimumFontSizeHalfPoints == other.KerningMinimumFontSizeHalfPoints
                 && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(EastAsiaLanguage, other.EastAsiaLanguage, StringComparison.OrdinalIgnoreCase)
@@ -227,6 +234,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
             hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
+            hash = (hash * 31) + CharacterScalePercentage.GetHashCode();
             hash = (hash * 31) + KerningMinimumFontSizeHalfPoints.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(Language ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(EastAsiaLanguage ?? string.Empty);

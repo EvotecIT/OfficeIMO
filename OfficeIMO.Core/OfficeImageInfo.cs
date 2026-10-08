@@ -49,6 +49,19 @@ public sealed class OfficeImageInfo {
     /// <summary>Intrinsic width-to-height ratio when known independently of complete pixel dimensions.</summary>
     public double? AspectRatio { get; }
 
+    /// <summary>
+    /// Component count declared by a JPEG frame header, or null when unavailable or not JPEG.
+    /// Three components alone do not establish RGB, an ICC profile, or valid pixel data.
+    /// </summary>
+    public int? JpegComponentCount { get; internal set; }
+
+    /// <summary>
+    /// Raw TIFF PhotometricInterpretation (tag 262) from the first image directory.
+    /// Null means absent, malformed, duplicated, or not TIFF. For example, 2 declares RGB
+    /// and 5 declares separated samples. This is header evidence, not ICC or payload validation.
+    /// </summary>
+    public int? TiffPhotometricInterpretation { get; internal set; }
+
     /// <summary>Default MIME type for the detected format.</summary>
     public string MimeType => GetMimeType(Format);
 
@@ -72,6 +85,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Jpeg2000 => "image/jp2",
         OfficeImageFormat.Jpeg2000Codestream => "image/j2c",
         OfficeImageFormat.Avif => "image/avif",
+        OfficeImageFormat.JpegXr => "image/jxr",
         _ => "application/octet-stream"
     };
 
@@ -95,6 +109,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Jpeg2000 => ".jp2",
         OfficeImageFormat.Jpeg2000Codestream => ".j2c",
         OfficeImageFormat.Avif => ".avif",
+        OfficeImageFormat.JpegXr => ".jxr",
         _ => ".bin"
     };
 
@@ -160,6 +175,7 @@ public sealed class OfficeImageInfo {
             "image/jp2" or "image/jpeg2000" => OfficeImageFormat.Jpeg2000,
             "image/j2c" => OfficeImageFormat.Jpeg2000Codestream,
             "image/avif" => OfficeImageFormat.Avif,
+            "image/jxr" or "image/vnd.ms-photo" => OfficeImageFormat.JpegXr,
             _ => OfficeImageFormat.Unknown
         };
     }

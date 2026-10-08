@@ -7,7 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderCanvasBlock(PdfCanvasBlock canvas) {
             EnsurePage();
-            foreach (PdfCanvasItem item in canvas.Items) {
+            for (int itemIndex = 0; itemIndex < canvas.Items.Count; itemIndex++) {
+                PdfCanvasItem item = canvas.Items[itemIndex];
                 switch (item) {
                     case PdfCanvasBehindTextItem behindText:
                         RenderBehindTextCanvas(behindText);
@@ -49,7 +50,7 @@ internal static partial class PdfWriter {
                         break;
                     case PdfCanvasSearchableTextItem searchableText:
                         ResolveFloatingBookmarks(currentOpts.PageHeight - searchableText.Y);
-                        RenderCanvasSearchableText(searchableText);
+                        if (!TryRenderSearchableRun(canvas.Items, ref itemIndex)) RenderCanvasSearchableText(searchableText);
                         break;
                     case PdfCanvasTextBoxItem textBox:
                         ResolveFloatingBookmarks(currentOpts.PageHeight - textBox.Y);
@@ -129,7 +130,8 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasNamedDestination(PdfCanvasNamedDestinationItem item) {
-            AddNamedDestinationName(item.Name, currentOpts.PageHeight - item.Y);
+            EnsurePage();
+            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = item.Name, X = item.X, Y = currentOpts.PageHeight - item.Y });
         }
 
         private void RenderCanvasNamedDestinationLink(PdfCanvasNamedDestinationLinkItem item) {
@@ -230,7 +232,6 @@ internal static partial class PdfWriter {
             if (_suppressCanvasActualTextChildren) return;
             EnsurePage();
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
-            string fontResource = GetFontResourceName(font, null, font);
             double baselineY = currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D);
             double baselineX = item.X, textWidth = item.Width, textHeight = item.Height;
             double a = 1D, b = 0D, c = 0D, d = 1D;
@@ -249,12 +250,11 @@ internal static partial class PdfWriter {
             int anchorCount = CountLogicalAnchorScalars(item.Text);
             PdfTextShowCommand anchor = EncodeBoundedLogicalTextAnchor(font, currentOpts, anchorCount);
             double horizontalScaling = ResolveLogicalAnchorScaling(anchor, textWidth, textHeight);
-            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement, logicalOrder: item.LogicalOrder);
 
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
-                .Font(fontResource, textHeight, preserveLogicalPrecision: item.UsesBounds)
                 .WordSpacing(0D).TextRise(0D)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)
@@ -266,7 +266,11 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(anchor, textHeight);
+            PdfTextShowCommand space = EncodeBoundedLogicalTextAnchor(font, currentOpts, 1);
+            bool cff = currentOpts.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out var _);
+            foreach (var run in currentPage!.SearchableFonts.Encode(item.Text, space, cff)) {
+                content.Font(run.Bank.Name, textHeight, preserveLogicalPrecision: item.UsesBounds).ShowHexText(run.Hex);
+            }
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 
@@ -291,14 +295,25 @@ internal static partial class PdfWriter {
                 RenderCanvasBlock(new PdfCanvasBlock(item.Items));
                 return;
             }
-            PdfCanvasStructureOptions options = item.Options;
-            string structureType = MapCanvasStructureType(item.Role);
+            PageStructElement? structureElement = ResolveCanvasStructure(item.Role, item.Options);
+            PageStructElement? previous = _canvasStructureParentElement;
+            _canvasStructureParentElement = structureElement ?? previous;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _canvasStructureParentElement = previous;
+            }
+        }
+
+        private PageStructElement? ResolveCanvasStructure(PdfCanvasStructureRole role, PdfCanvasStructureOptions options) {
+            string structureType = MapCanvasStructureType(role);
             string headerScope = MapCanvasTableHeaderScope(options.HeaderScope);
             string alternativeText = options.AlternativeText ?? string.Empty;
             PageStructElement? structureElement;
             var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText);
             if (options.StructureElementKey != null && canvasStructureElements.TryGetValue(structureKey, out PageStructElement? existingStructureElement)) {
                 structureElement = existingStructureElement;
+                if (!currentPage!.StructElements.Contains(structureElement)) structureElement.SpansPages = true;
             } else {
                 structureElement = RegisterStructureContainer(
                     structureType,
@@ -307,18 +322,15 @@ internal static partial class PdfWriter {
                     options.ColumnSpan,
                     options.RowSpan,
                     options.AlternativeText);
-                if (structureElement != null) structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
+                if (structureElement != null) {
+                    structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
+                    structureElement.LogicalOrder = options.LogicalOrder;
+                }
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
                 }
             }
-            PageStructElement? previous = _canvasStructureParentElement;
-            _canvasStructureParentElement = structureElement ?? previous;
-            try {
-                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
-            } finally {
-                _canvasStructureParentElement = previous;
-            }
+            return structureElement;
         }
 
         private static string MapCanvasStructureType(PdfCanvasStructureRole role) {
@@ -340,6 +352,8 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.TableHeaderCell) return "TH";
             if (role == PdfCanvasStructureRole.TableCell) return "TD";
             if (role == PdfCanvasStructureRole.Caption) return "Caption";
+            if (role == PdfCanvasStructureRole.Figure) return "Figure";
+            if (role == PdfCanvasStructureRole.TableBody) return "TBody";
             if (role == PdfCanvasStructureRole.Formula) return "Formula";
             return "Note";
         }
@@ -379,7 +393,7 @@ internal static partial class PdfWriter {
                 Title = item.Title,
                 Y = currentOpts.PageHeight - item.Y,
                 OutlineState = item.State,
-                DocumentOrder = item.DocumentOrder
+                DocumentOrder = item.DocumentOrder, X = item.X, Uri = item.Uri
             });
             pageDirty = true;
         }
@@ -390,7 +404,7 @@ internal static partial class PdfWriter {
             double leading = item.LineHeight ?? size * 1.2D;
             var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
             var wrap = item.PreservePositionedText
-                ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts)
+                ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts, item.PositionedFontMetricScale)
                 : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count == 0) {
                 return;
@@ -429,7 +443,7 @@ internal static partial class PdfWriter {
                 item.X,
                 bottomY,
                 width,
-                item.Height,
+                item.Height + item.PositionedClipTopOverflow,
                 item.X,
                 width,
                 structureType: structureType,
@@ -596,13 +610,15 @@ internal static partial class PdfWriter {
                 BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
 
-            bool markedContent;
-            int? structElementIndex = AppendDrawingMarkedContentBegin(
+            bool markedContent = false;
+            int? structElementIndex = item.SourceStructure == null ? AppendDrawingMarkedContentBegin(
                 style,
                 out markedContent,
-                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style));
+                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style)) : null;
+            var previousSourceStructure = _drawingSourceStructure;
+            _drawingSourceStructure = item.SourceStructure;
             bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
-            if (markedContent || style.Decorative) {
+            if (markedContent || style.Decorative || item.SourceStructure != null) {
                 _suppressCanvasAccessibilityWrappers = true;
             }
             OfficeTransform previousEffectToPage = _canvasEffectToPage;
@@ -621,6 +637,7 @@ internal static partial class PdfWriter {
                 }
             } finally {
                 _canvasEffectToPage = previousEffectToPage;
+                _drawingSourceStructure = previousSourceStructure;
                 _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
                 AppendDrawingMarkedContentEnd(markedContent);
             }
@@ -751,6 +768,9 @@ internal static partial class PdfWriter {
         }
 
         private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
+            if (transform.M11 > 0D && transform.M11 == transform.M22 && transform.M12 == 0D && transform.M21 == 0D) {
+                annotation.AppearanceScale *= transform.M11;
+            }
             (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
             for (int index = 0; index < annotation.RadioWidgets.Count; index++) {
                 RadioButtonWidgetAnnotation widget = annotation.RadioWidgets[index];

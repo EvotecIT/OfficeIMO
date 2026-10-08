@@ -1,0 +1,9 @@
+{
+  "littleCmsVersion": 2190,
+  "profiles": {
+    "icc-dci-p3-matrix.icc": "36ca884b8eb2ec24675b49e83d84d8eca23500c72f5060276353daf321b2dca3",
+    "littlecms-cmyk-lut.icc": "1a996ebe6b5d1e7a21620993ce1903df16e4e8fa6cca312bedfb5ae133e62b4d"
+  },
+  "intent": "relative colorimetric",
+  "input": "native color and alpha; fractional YCbCr interpolation and RGB conversion retained before unassociation and ICC"
+}

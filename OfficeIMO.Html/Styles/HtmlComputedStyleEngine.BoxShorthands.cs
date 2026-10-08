@@ -3,7 +3,10 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
-    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color", "border-top", "border-right", "border-bottom", "border-left" };
+    private static readonly string[] CascadeShorthands = {
+        "margin", "padding", "border", "border-width", "border-style", "border-color",
+        "border-top", "border-right", "border-bottom", "border-left", "text-decoration"
+    };
     private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
     private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
     private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
@@ -16,6 +19,7 @@ public static partial class HtmlComputedStyleEngine {
         out IReadOnlyList<KeyValuePair<string, string>> longhands) {
         string normalizedName = propertyName.Trim().ToLowerInvariant();
         if (normalizedName == "font") return TryExpandFontShorthand(value, out longhands);
+        if (normalizedName == "text-decoration") return TryExpandTextDecorationShorthand(value, out longhands);
         if (normalizedName == "gap") return TryExpandGapShorthand(value, out longhands);
         if (normalizedName is "place-items" or "place-self" or "place-content") return TryExpandAlignmentShorthand(normalizedName, value, out longhands);
         if (normalizedName is "grid-column" or "grid-row" or "grid-area") return TryExpandGridShorthand(normalizedName, value, out longhands);
@@ -44,7 +48,6 @@ public static partial class HtmlComputedStyleEngine {
             longhands = border;
             return true;
         }
-
         string[] names;
         switch (normalizedName) {
             case "margin": names = MarginLonghands; break;
@@ -93,16 +96,20 @@ public static partial class HtmlComputedStyleEngine {
         ISet<string> specified) {
 
         foreach (string shorthand in CascadeShorthands) {
+            // CSS-wide inheritance copies each computed longhand independently.
+            // The parent's retained shorthand can precede later longhand overrides.
+            if (inherited.Contains(shorthand)) continue;
             if (!properties.TryGetValue(shorthand, out string? value)
                 || !TryExpandCascadeShorthand(shorthand, value, out IReadOnlyList<KeyValuePair<string, string>> longhands)) {
                 continue;
             }
 
             foreach (KeyValuePair<string, string> longhand in longhands) {
-                if (properties.ContainsKey(longhand.Key)
+                // A missing value can still have a winning cascade priority:
+                // CSS-wide keywords such as `initial` reset the longhand.
+                if (priorities.TryGetValue(longhand.Key, out HtmlCssCascadePriority existing)
                     && (!priorities.TryGetValue(shorthand, out HtmlCssCascadePriority candidate)
-                        || priorities.TryGetValue(longhand.Key, out HtmlCssCascadePriority existing)
-                        && !candidate.OutranksOrEquals(existing))) {
+                        || !candidate.OutranksOrEquals(existing))) {
                     continue;
                 }
 

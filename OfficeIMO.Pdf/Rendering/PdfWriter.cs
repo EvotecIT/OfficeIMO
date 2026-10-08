@@ -232,6 +232,8 @@ internal static partial class PdfWriter {
             return id;
         }
 
+        var pendingSearchableFonts = new List<(int SourceId, int Id, SearchableFontBank Bank)>();
+
         void MaterializePendingFontObjects() {
             foreach (var pendingFont in pendingFontObjects) {
                 if (pendingFont.Options.TryGetEmbeddedStandardFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -259,6 +261,7 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(fontProgram, descriptorId, cidToGlyphMapId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.FontName, descriptorId, trueType: true);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     foreach (PdfOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
@@ -291,11 +294,13 @@ internal static partial class PdfWriter {
                     int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType0DescendantObject(cffFontProgram, descriptorId));
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(cffFontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, cffFontProgram.FontName, descriptorId: descriptorId, descendantId: descendantFontId);
                 } else {
                     int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
                         : 0;
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(pendingFont.Font, toUnicodeObjectId));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, pendingFont.Font.ToBaseFontName());
                 }
             }
 
@@ -567,6 +572,12 @@ internal static partial class PdfWriter {
                 fontResources.Add((kvp.Value, EnsureNamedFont(kvp.Key, pageOpts)));
             }
 
+            foreach (var bank in page.SearchableFonts.Banks) {
+                int id = ReserveObject(objects);
+                pendingSearchableFonts.Add((EnsureFont(normalFont, pageOpts), id, bank));
+                fontResources.Add((bank.Name, id));
+            }
+
             var graphicsStates = new List<(string Name, int Id)>();
             if (page.GraphicsStates.Count > 0) {
                 foreach (var state in page.GraphicsStates) {
@@ -575,13 +586,14 @@ internal static partial class PdfWriter {
                 }
             }
 
+            var xobjects = new List<(string Name, int Id)>();
             var shadings = new List<(string Name, int Id)>();
             if (page.Shadings.Count > 0) {
                 PdfPrintColorTransform? shadingColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                     ? GetPrintColorTransform(pageOpts)
                     : null;
                 foreach (var shading in page.Shadings) {
-                    string shadingObject = shading.IsRadial
+                    string shadingObject = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
                         ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
                             shading.X0,
                             shading.Y0,
@@ -590,17 +602,21 @@ internal static partial class PdfWriter {
                             shading.Y1,
                             shading.R1,
                             shading.Stops,
-                            shadingColorTransform)
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation)
                         : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
                             shading.X0,
                             shading.Y0,
                             shading.X1,
                             shading.Y1,
                             shading.Stops,
-                            shadingColorTransform);
-                    int shadingId = AddObject(objects, shadingObject);
+                            shadingColorTransform, colorInterpolation: shading.ColorInterpolation);
+                    int shadingId;
+                    if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
+                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, shadingColorTransform);
+                    } else shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                     AddGradientAlphaResources(objects, shading, graphicsStates);
+                    AddRadialPadResources(objects, shading, shadingId, xobjects, shadingColorTransform, cancellationToken);
                 }
             }
 
@@ -616,7 +632,6 @@ internal static partial class PdfWriter {
                 AssignFigureMarkedContentIds(page);
             }
 
-            var xobjects = new List<(string Name, int Id)>();
             if (page.Images.Count > 0) {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
@@ -643,6 +658,10 @@ internal static partial class PdfWriter {
                         }
                     }
 
+                    if (img.Interpolate) {
+                        imageStream.DictionarySuffix += " /Interpolate true";
+                        if (imageStream.SoftMask != null) imageStream.SoftMask.DictionarySuffix += " /Interpolate true";
+                    }
                     int imgId = EnsureImageXObject(imageStream);
                     if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
                         name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -659,6 +678,12 @@ internal static partial class PdfWriter {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
+                    if (effect.AlphaMask != null) {
+                        int maskStateId = AddObject(objects, "<< /Type /ExtGState /ca 1 /CA 1 /BM /Normal /SMask << /S /Alpha /G " +
+                            effect.AlphaMask.ObjectId.ToString(CultureInfo.InvariantCulture) + " 0 R >> >>");
+                        effect.MaskGraphicsStateName = "GM" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
+                        graphicsStates.Add(("/" + effect.MaskGraphicsStateName, maskStateId));
+                    }
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
                     PdfPrintColorTransform? effectColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
@@ -903,8 +928,8 @@ internal static partial class PdfWriter {
             if (page.FormFields.Count > 0) {
                 foreach (var field in page.FormFields) {
                     string formField;
-                    double appearanceWidth = field.X2 - field.X1;
-                    double appearanceHeight = field.Y2 - field.Y1;
+                    double appearanceWidth = (field.X2 - field.X1) / field.AppearanceScale;
+                    double appearanceHeight = (field.Y2 - field.Y1) / field.AppearanceScale;
                     if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
                         if (field.RadioWidgets.Count > 0) {
                             string selectedValue = positionedRadioValues[field.Name];
@@ -927,8 +952,8 @@ internal static partial class PdfWriter {
                                     throw new ArgumentException("Canvas radio button options must be unique within one field name.");
                                 }
                                 RadioButtonWidgetAnnotation widgetFrame = field.RadioWidgets[optionIndex];
-                                double widgetWidth = widgetFrame.X2 - widgetFrame.X1;
-                                double widgetHeight = widgetFrame.Y2 - widgetFrame.Y1;
+                                double widgetWidth = (widgetFrame.X2 - widgetFrame.X1) / field.AppearanceScale;
+                                double widgetHeight = (widgetFrame.Y2 - widgetFrame.Y1) / field.AppearanceScale;
                                 string positionedOffAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(widgetWidth, widgetHeight, selected: false, widgetFrame.Style);
                                 byte[] positionedOffBytes = PdfEncoding.Latin1GetBytes(positionedOffAppearance);
                                 string positionedOffDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedOffBytes.Length);
@@ -948,7 +973,7 @@ internal static partial class PdfWriter {
                                     selectedValue,
                                     positionedOffAppearanceId,
                                     positionedSelectedAppearanceId,
-                                    widgetFrame.Style,
+                                    ScaleFormWidgetStyle(widgetFrame.Style, field.AppearanceScale),
                                     widgetStructureReference?.StructParentIndex);
                                 int widgetObjectId = AddObject(objects, widget);
                                 CompleteAnnotationStructureReference(page, widgetStructureReference, widgetObjectId);
@@ -1016,7 +1041,7 @@ internal static partial class PdfWriter {
                         string checkedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, checkedAppearanceBytes.Length);
                         int checkedAppearanceId = AddStreamObject(objects, checkedAppearanceDictionary, checkedAppearanceBytes);
 
-                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex, field.ExportValue);
+                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, ScaleFormWidgetStyle(field.Style, field.AppearanceScale), formWidgetStructureReference?.StructParentIndex, field.ExportValue);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
                         string appearanceContent = BuildChoiceFieldAppearanceContent(
                             appearanceWidth,
@@ -1034,12 +1059,12 @@ internal static partial class PdfWriter {
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = field.ChoiceOptions.Count > 0
                             ? PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize,
-                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize * field.AppearanceScale,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, ScaleFormWidgetStyle(field.Style, field.AppearanceScale),
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex)
                             : PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize,
-                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize * field.AppearanceScale,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, ScaleFormWidgetStyle(field.Style, field.AppearanceScale),
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex);
                     } else {
                         string appearanceContent = BuildFormFieldTextAppearanceContent(
@@ -1054,7 +1079,7 @@ internal static partial class PdfWriter {
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceFontResources, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId, field.Style, formWidgetStructureReference?.StructParentIndex);
+                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize * field.AppearanceScale, appearanceId, ScaleFormWidgetStyle(field.Style, field.AppearanceScale), formWidgetStructureReference?.StructParentIndex);
                     }
 
                     int formFieldId = AddObject(objects, formField);
@@ -1370,8 +1395,9 @@ internal static partial class PdfWriter {
             var invocation = new StringBuilder();
             var stream = new ContentStreamBuilder(invocation).SaveState();
             if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);
-            stream.TransformMatrix(effect.Transform)
-                .XObject(effect.Name)
+            stream.TransformMatrix(effect.Transform);
+            if (effect.MaskGraphicsStateName != null) stream.GraphicsState(effect.MaskGraphicsStateName);
+            stream.XObject(effect.Name)
                 .RestoreState();
             result = result.Replace(effect.Token, invocation.ToString());
         }
@@ -1581,170 +1607,6 @@ internal static partial class PdfWriter {
         if (reference.StructElementIndex >= 0 && reference.StructElementIndex < page.StructElements.Count) {
             page.StructElements[reference.StructElementIndex].AnnotationObjectId = annotationObjectId;
         }
-    }
-
-    private static void BuildGeneratedStructTree(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int structTreeRootId, string? documentLanguage) {
-        if (!pages.Any(page => page.StructElements.Count > 0)) {
-            ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
-            return;
-        }
-
-        int documentStructElementId = ReserveObject(objects);
-        var documentChildElementIds = new List<int>();
-        var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
-        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
-            LayoutResult.Page page = pages[pageIndex];
-            for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
-                page.StructElements[elementIndex].ObjectId = ReserveObject(objects);
-            }
-        }
-
-        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
-            LayoutResult.Page page = pages[pageIndex];
-            if (page.StructElements.Count == 0) {
-                continue;
-            }
-
-            for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
-                PageStructElement element = page.StructElements[elementIndex];
-                int? contentStreamObjectId = element.MarkedContentId.HasValue
-                    ? FindMarkedContentStreamObjectId(page, element.MarkedContentId.Value)
-                    : null;
-                List<int?>? additionalContentStreamObjectIds = element.AdditionalMarkedContentIds?
-                    .Select(id => FindMarkedContentStreamObjectId(page, id))
-                    .ToList();
-                int parentObjectId = element.ParentElement != null
-                    ? element.ParentElement.ObjectId
-                    : element.ParentElementIndex.HasValue &&
-                    element.ParentElementIndex.Value >= 0 &&
-                    element.ParentElementIndex.Value < page.StructElements.Count
-                        ? page.StructElements[element.ParentElementIndex.Value].ObjectId
-                        : documentStructElementId;
-                string structElement;
-                if (element.AnnotationObjectId.HasValue) {
-                    structElement = PdfStructTreeRootDictionaryBuilder.BuildAnnotationStructElement(
-                        parentObjectId,
-                        pageIds[pageIndex],
-                        element.AnnotationObjectId.Value,
-                        element.MarkedContentId,
-                        element.AdditionalMarkedContentIds,
-                        element.AdditionalAnnotationObjectIds,
-                        element.StructureType,
-                        element.AlternativeText,
-                        contentStreamObjectId,
-                        additionalContentStreamObjectIds);
-                } else if (element.MarkedContentId.HasValue) {
-                    structElement = string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)
-                        ? PdfStructTreeRootDictionaryBuilder.BuildFigureStructElement(
-                            parentObjectId,
-                            pageIds[pageIndex],
-                            element.MarkedContentId.Value,
-                            element.AlternativeText,
-                            contentStreamObjectId)
-                        : PdfStructTreeRootDictionaryBuilder.BuildTextStructElement(
-                            parentObjectId,
-                            pageIds[pageIndex],
-                            element.StructureType,
-                            element.MarkedContentId.Value,
-                            element.TableHeaderScope,
-                            element.TableColumnSpan,
-                            element.TableRowSpan,
-                            element.AdditionalMarkedContentIds,
-                            contentStreamObjectId,
-                            additionalContentStreamObjectIds);
-                } else {
-                    var elementChildIds = new List<int>();
-                    for (int childIndex = 0; childIndex < page.StructElements.Count; childIndex++) {
-                        if (page.StructElements[childIndex].ParentElementIndex == elementIndex) {
-                            elementChildIds.Add(page.StructElements[childIndex].ObjectId);
-                        }
-                    }
-
-                    for (int childPageIndex = 0; childPageIndex < pages.Count; childPageIndex++) {
-                        LayoutResult.Page childPage = pages[childPageIndex];
-                        for (int childIndex = 0; childIndex < childPage.StructElements.Count; childIndex++) {
-                            if (ReferenceEquals(childPage.StructElements[childIndex].ParentElement, element)) {
-                                elementChildIds.Add(childPage.StructElements[childIndex].ObjectId);
-                            }
-                        }
-                    }
-
-                    structElement = PdfStructTreeRootDictionaryBuilder.BuildContainerStructElement(
-                        parentObjectId,
-                        pageIds[pageIndex],
-                        element.StructureType,
-                        elementChildIds,
-                        element.TableHeaderScope,
-                        element.TableColumnSpan,
-                        element.TableRowSpan,
-                        element.AlternativeText,
-                        includePageReference: !element.SpansPages,
-                        associatedFileIds: element.AssociatedFileIds);
-                }
-
-                ReplaceObject(objects, element.ObjectId, structElement);
-            }
-
-            var pageMarkedContentElements = new List<(int MarkedContentId, int ObjectId)>();
-            foreach (PageStructElement element in page.StructElements.Where(element => element.MarkedContentId.HasValue)) {
-                pageMarkedContentElements.Add((element.MarkedContentId!.Value, element.ObjectId));
-                if (element.AdditionalMarkedContentIds != null) {
-                    for (int additionalIndex = 0; additionalIndex < element.AdditionalMarkedContentIds.Count; additionalIndex++) {
-                        pageMarkedContentElements.Add((element.AdditionalMarkedContentIds[additionalIndex], element.ObjectId));
-                    }
-                }
-            }
-
-            var pageOwnedMappings = pageMarkedContentElements
-                .Where(mapping => FindMarkedContentStreamObjectId(page, mapping.MarkedContentId) == null)
-                .ToList();
-            var pageElementIds = BuildMarkedContentParentArray(pageOwnedMappings);
-
-            for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
-                PageStructElement element = page.StructElements[elementIndex];
-                if (!element.ParentElementIndex.HasValue && element.ParentElement == null) {
-                    documentChildElementIds.Add(element.ObjectId);
-                }
-            }
-
-            if (page.StructParentIndex.HasValue && pageElementIds.Count > 0) {
-                parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(page.StructParentIndex.Value, pageElementIds));
-            }
-
-            foreach (PageEffectGroup effect in page.EffectGroups.Where(effect => effect.StructParentIndex.HasValue && effect.MarkedContentIds.Count > 0)) {
-                var effectMappings = pageMarkedContentElements
-                    .Where(mapping => effect.MarkedContentIds.Contains(mapping.MarkedContentId))
-                    .ToList();
-                var effectElementIds = BuildMarkedContentParentArray(effectMappings);
-                if (effectElementIds.Count > 0) {
-                    parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentContainer(effect.StructParentIndex!.Value, effectElementIds));
-                }
-            }
-
-            foreach (PageStructElement element in page.StructElements.Where(element => element.AnnotationObjectId.HasValue && element.AnnotationStructParentIndex.HasValue).OrderBy(element => element.AnnotationStructParentIndex!.Value)) {
-                parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(element.AnnotationStructParentIndex!.Value, element.ObjectId));
-                if (element.AdditionalAnnotationStructParentIndexes != null) {
-                    for (int additionalIndex = 0; additionalIndex < element.AdditionalAnnotationStructParentIndexes.Count; additionalIndex++) {
-                        parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(element.AdditionalAnnotationStructParentIndexes[additionalIndex], element.ObjectId));
-                    }
-                }
-            }
-        }
-
-        if (documentChildElementIds.Count == 0) {
-            ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
-            ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));
-            return;
-        }
-
-        ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));
-        int parentTreeId = AddObject(objects, PdfStructTreeRootDictionaryBuilder.BuildParentTree(parentTreeEntries));
-        int parentTreeNextKey = parentTreeEntries.Count == 0
-            ? 0
-            : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
-        ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(
-            new[] { documentStructElementId }, parentTreeId, parentTreeNextKey,
-            pages.SelectMany(page => page.StructElements).Select(element => element.StructureType)));
     }
 
     private static int? FindMarkedContentStreamObjectId(LayoutResult.Page page, int markedContentId) {
@@ -2127,7 +1989,7 @@ internal static partial class PdfWriter {
                 Level = level,
                 PageIndex = pageIndex,
                 Title = bookmark.Title,
-                Y = bookmark.Y,
+                Y = bookmark.Y, X = bookmark.X, Uri = bookmark.Uri,
                 OutlineState = bookmark.OutlineState,
                 Parent = parent
             };
@@ -2165,7 +2027,7 @@ internal static partial class PdfWriter {
                 lastChildId,
                 descendantCount,
                 pageId,
-                node.Y));
+                node.Y, node.X, node.Uri));
         }
 
         ReplaceObject(objects, rootId, PdfOutlineDictionaryBuilder.BuildOutlineRoot(

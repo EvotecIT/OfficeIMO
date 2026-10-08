@@ -151,7 +151,7 @@ namespace OfficeIMO.Word {
             var element = _level.Descendants<StartNumberingValue>().FirstOrDefault();
             if (element == null) {
                 element = new StartNumberingValue { Val = 1 };
-                _level.Append(element);
+                _level.AddChild(element, true);
             } else if (element.Val == null || !element.Val.HasValue) {
                 element.Val = 1;
             }
@@ -168,11 +168,11 @@ namespace OfficeIMO.Word {
             var paragraphProperties = _level.GetFirstChild<PreviousParagraphProperties>();
             if (paragraphProperties == null) {
                 paragraphProperties = new PreviousParagraphProperties();
-                _level.Append(paragraphProperties);
+                _level.AddChild(paragraphProperties, true);
             }
 
             indentation = new Indentation { Left = "0", Hanging = "0" };
-            paragraphProperties.Append(indentation);
+            paragraphProperties.AddChild(indentation, true);
             return indentation;
         }
 
@@ -180,7 +180,7 @@ namespace OfficeIMO.Word {
             var levelText = _level.GetFirstChild<LevelText>();
             if (levelText == null) {
                 levelText = new LevelText { Val = string.Empty };
-                _level.Append(levelText);
+                _level.AddChild(levelText, true);
             } else if (levelText.Val == null) {
                 levelText.Val = string.Empty;
             }
@@ -192,7 +192,7 @@ namespace OfficeIMO.Word {
             var justification = _level.GetFirstChild<LevelJustification>();
             if (justification == null) {
                 justification = new LevelJustification { Val = LevelJustificationValues.Left };
-                _level.Append(justification);
+                _level.AddChild(justification, true);
             } else if (justification.Val == null || !justification.Val.HasValue) {
                 justification.Val = LevelJustificationValues.Left;
             }
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
             var suffix = _level.GetFirstChild<LevelSuffix>();
             if (suffix == null) {
                 suffix = new LevelSuffix { Val = LevelSuffixValues.Tab };
-                _level.Append(suffix);
+                _level.AddChild(suffix, true);
             } else if (suffix.Val == null || !suffix.Val.HasValue) {
                 suffix.Val = LevelSuffixValues.Tab;
             }

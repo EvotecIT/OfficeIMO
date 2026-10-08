@@ -243,7 +243,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -805,6 +805,8 @@ jobs:
             project: OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
           - name: Markup
             project: OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+          - name: Xps
+            project: OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
           - name: OpenDocument
             project: OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
           - name: OpenDocument-Converters
@@ -868,7 +870,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
@@ -1182,6 +1184,12 @@ jobs:
           test "${version}" = "pdftoppm version 26.05.0"
           echo "OFFICEIMO_PDF_RASTERIZER=${rasterizer}" >> "${GITHUB_ENV}"
 
+      - name: Install multilingual HTML fixture fonts
+        if: matrix.partition == 'word-rtf-html'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
+
       - name: Restore NuGet packages
         uses: actions/cache/restore@v6
         with:
@@ -1227,6 +1235,7 @@ jobs:
             dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
             dotnet restore OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj
             dotnet restore OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+            dotnet restore OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
             dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
@@ -1279,6 +1288,7 @@ jobs:
             dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1522,6 +1532,7 @@ jobs:
               run_googleworkspace_tests
               dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_markup_tests
+              dotnet test OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_opendocument_tests
               dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_powerpoint_tests
@@ -1562,7 +1573,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
@@ -1835,7 +1846,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"

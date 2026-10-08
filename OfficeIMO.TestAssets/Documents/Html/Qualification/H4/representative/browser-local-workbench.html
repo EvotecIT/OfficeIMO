@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Local Document Workbench</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 640px; margin: 0; color: #e6eef8; font: 13px/1.4 Arial, sans-serif; background: #111b29; }
+    .shell { display: grid; grid-template-columns: 150px 1fr; min-height: 620px; }
+    nav { padding: 18px 13px; background: #17263a; border-right: 1px solid #30445d; }
+    nav h1 { margin: 0 0 20px; font-size: 16px; }
+    nav a { display: block; margin: 4px 0; padding: 8px; color: #c9d8ea; text-decoration: none; border-radius: 5px; }
+    nav a[aria-current="page"] { color: white; background: #2c6093; }
+    .workspace { padding: 18px; }
+    header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 10px 0; background: #111b29; }
+    header h2 { margin: 0; }
+    .status { padding: 5px 9px; color: #bdf3da; background: #174c3a; border-radius: 999px; }
+    .dropzone { display: grid; place-items: center; height: 128px; border: 2px dashed #4e729a; border-radius: 9px; background: #162437; }
+    .dropzone strong { display: block; font-size: 17px; text-align: center; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .card { min-height: 96px; padding: 12px; border: 1px solid #30445d; border-radius: 8px; background: #17263a; }
+    .card b { display: block; margin-bottom: 6px; color: #88c5ff; }
+    .jobs { margin-top: 16px; border: 1px solid #30445d; border-radius: 8px; overflow: hidden; }
+    .job { display: grid; grid-template-columns: 1fr 86px 70px; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #30445d; }
+    .job:last-child { border-bottom: 0; }
+    .complete { color: #89e4bb; }
+    .queued { color: #ffd48b; }
+    button { border: 1px solid #5793c9; border-radius: 5px; padding: 6px 9px; color: white; background: #265d8f; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav aria-label="Workbench navigation"><h1>Document Workbench</h1><a aria-current="page" href="#convert">Convert</a><a href="#inspect">Inspect</a><a href="#compare">Compare</a><a href="#history">History</a></nav>
+    <main class="workspace">
+      <header><h2 id="convert">Local conversion</h2><span class="status">Browser-local</span></header>
+      <section class="dropzone"><div><strong>Drop HTML, MHTML or ZIP here</strong><span>Files stay in this browser workspace.</span></div></section>
+      <section class="cards"><div class="card"><b>Screen</b>Continuous layout for PNG and SVG review.</div><div class="card"><b>Print</b>Paged layout for searchable PDF output.</div><div class="card"><b>Screen-to-PDF</b>Screen CSS sliced into fixed pages.</div></section>
+      <section class="jobs" id="history" aria-label="Recent jobs"><div class="job"><span>quarterly-review.html</span><span class="complete">Complete</span><button>Open</button></div><div class="job"><span>policy-bundle.zip</span><span class="queued">Queued</span><button>Cancel</button></div><div class="job"><span>invoice-1042.mhtml</span><span class="complete">Complete</span><button>Open</button></div></section>
+    </main>
+  </div>
+</body>
+</html>

@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="PdfPig" Version="0.1.14" />
@@ -69,6 +70,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\SparseAnnotationTestSource.cs" Link="Shared\SparseAnnotationTestSource.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Tracking.cs" Link="Shared\ManagedTextShapingTestAssets.Tracking.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.LookupScenarios.cs" Link="Shared\ManagedTextShapingTestAssets.LookupScenarios.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="Shared\TypographyEvidenceCorpus.cs" />
   </ItemGroup>
@@ -76,7 +78,10 @@
   <ItemGroup>
     <None Include="Pdf\Fixtures\Interoperability\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Pdf\Fixtures\Rendering\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf" Link="OfficeIMO.Pdf.Tests\Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf" Link="Typography\Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Fonts\OfficeIMOBaselineSans-Regular.ttf" Link="Typography\OfficeIMOBaselineSans-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\PdfEditing\source-font-*.pdf" Link="PdfEditing\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansArabic-Regular.ttf" Link="Typography\NotoSansArabic-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansDevanagari-Regular.ttf" Link="Typography\NotoSansDevanagari-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansSC-BaselineSubset.ttf" Link="Typography\NotoSansSC-BaselineSubset.ttf" CopyToOutputDirectory="PreserveNewest" />
@@ -109,4 +114,12 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/p1-d1-l4-t1-s1-r0-a1.tif.jpg" Link="TestAssets/Lossless16.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/edges/h2-v2-w5-h3-s0.jpg" Link="TestAssets/Lossless8.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/b8-*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/b8-*.pdf-*.srgb" Link="TestAssets/JpegArithmeticColor/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Drawing.Tests/TestAssets/IccColorCorpus/littlecms-cmyk-lut.icc" Link="TestAssets/JpegArithmeticColor/profile.icc" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

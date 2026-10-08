@@ -16,7 +16,11 @@ public partial class Html {
 
         Assert.Equal(first, second);
         Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
-        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderProfileContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        Assert.Contains("Capability schema version: 3", first, StringComparison.Ordinal);
+        Assert.Contains("## Versioned compatibility profile manifests", first, StringComparison.Ordinal);
+        Assert.Contains("## Render intent profiles", first, StringComparison.Ordinal);
+        Assert.Contains("## Capability contracts by profile and processing stage", first, StringComparison.Ordinal);
         foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
             Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
         }
@@ -33,6 +37,12 @@ public partial class Html {
         foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
             Assert.Contains("`" + capability.Id + "`", first, StringComparison.Ordinal);
         }
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            Assert.Contains("`" + profile.Id + "`", first, StringComparison.Ordinal);
+        }
+        foreach (HtmlRenderProfileContract profile in HtmlRenderProfileContracts.All) {
+            Assert.Contains("`" + profile.Id + "`", first, StringComparison.Ordinal);
+        }
 
         Assert.Equal(HtmlDiagnosticCatalog.All.Count, HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(
@@ -44,22 +54,101 @@ public partial class Html {
     public void HtmlRenderCapabilityCatalog_IsCompleteDeterministicAndDiagnosticBacked() {
         IReadOnlyList<HtmlRenderCapability> capabilities = HtmlRenderCapabilityCatalog.All;
 
+        Assert.Equal(3, HtmlRenderCapabilityCatalog.SchemaVersion);
+        Assert.Equal(3, HtmlRenderCapabilityCatalog.ProfileManifests.Count);
+        Assert.Empty(HtmlRenderCapabilityCatalog.Validate());
+        Assert.Empty(HtmlRenderProfileContracts.Validate());
+        Assert.Equal(0, (int)HtmlRenderCapabilityKind.Css);
+        Assert.Equal(1, (int)HtmlRenderCapabilityKind.Html);
+        Assert.Equal(2, (int)HtmlRenderCapabilityKind.PagedMedia);
+        Assert.Equal(3, (int)HtmlRenderCapabilityKind.Resource);
+        Assert.Equal(4, (int)HtmlRenderCapabilityKind.Output);
+        Assert.Equal(5, (int)HtmlRenderCapabilityKind.Encoding);
+        Assert.Equal(6, (int)HtmlRenderCapabilityKind.Dom);
+        Assert.True(HtmlRenderCapabilityCatalog.TryGetProfile(HtmlCapabilityProfileIds.StaticScreenV1, out HtmlCapabilityProfileManifest staticProfile));
+        Assert.Same(staticProfile, HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.StaticScreenV1));
+        Assert.False(HtmlRenderCapabilityCatalog.TryGetProfile("missing-profile", out _));
         Assert.NotEmpty(capabilities);
         Assert.Equal(capabilities.Count, capabilities.Select(capability => capability.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Equal(
             capabilities.Select(capability => capability.Area + "\0" + capability.Id),
             capabilities.Select(capability => capability.Area + "\0" + capability.Id).OrderBy(value => value, StringComparer.Ordinal));
-        Assert.DoesNotContain(capabilities, capability => capability.SupportLevel == HtmlRenderSupportLevel.Partial);
-        foreach (HtmlRenderSupportLevel level in new[] { HtmlRenderSupportLevel.Full, HtmlRenderSupportLevel.Fallback, HtmlRenderSupportLevel.Rejected, HtmlRenderSupportLevel.Ignored }) {
-            Assert.Contains(capabilities, capability => capability.SupportLevel == level);
-        }
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Qualified && binding.Handling == HtmlCapabilityHandling.Native);
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Partial && binding.Handling == HtmlCapabilityHandling.Fallback);
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Qualified && binding.Handling == HtmlCapabilityHandling.Rejected);
+        Assert.Contains(capabilities.SelectMany(capability => capability.ProfileBindings), binding => binding.Coverage == HtmlCapabilityCoverage.Unsupported && binding.Handling == HtmlCapabilityHandling.Ignored);
         foreach (HtmlRenderCapability capability in capabilities) {
             Assert.NotEmpty(capability.Features);
+            Assert.NotEqual(HtmlCapabilityStage.None, capability.Stages);
+            Assert.NotEmpty(capability.ProfileBindings);
             Assert.Same(capability, HtmlRenderCapabilityCatalog.Get(capability.Id));
+            Assert.Equal(
+                capability.ProfileBindings.Select(binding => binding.ProfileId).OrderBy(value => value, StringComparer.Ordinal),
+                capability.ProfileBindings.Select(binding => binding.ProfileId));
+            foreach (HtmlCapabilityProfileBinding binding in capability.ProfileBindings) {
+                HtmlCapabilityProfileManifest profile = HtmlRenderCapabilityCatalog.GetProfile(binding.ProfileId);
+                Assert.Equal(profile.Promotion, binding.Promotion);
+                Assert.NotEmpty(binding.ProviderIds);
+                Assert.NotEmpty(binding.SpecificationIds);
+                Assert.NotEmpty(binding.EvidenceIds);
+                Assert.False(binding.Promotion == HtmlCapabilityPromotionState.StableDefault && binding.Coverage == HtmlCapabilityCoverage.Unqualified);
+            }
             foreach (string code in capability.DiagnosticCodes) {
                 Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), $"Capability '{capability.Id}' references uncataloged diagnostic '{code}'.");
             }
         }
+        HtmlCapabilityProfileBinding typography = HtmlRenderCapabilityCatalog.Get("text-flow")
+            .GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1);
+        Assert.DoesNotContain(HtmlCapabilityProviderIds.CallerTextShaper, typography.ProviderIds);
+        Assert.Contains(HtmlCapabilityProviderIds.CallerTextShaper, typography.OptionalProviderIds);
+
+        HtmlCapabilityEvidencePin documentEvidence = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.WebDocumentV1)
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.DocumentFoundation);
+        Assert.Equal(7, documentEvidence.Required);
+        Assert.Equal(7, documentEvidence.Passed);
+        Assert.Equal(new[] {
+            "ForeignAttributesAndSourcePositionsSurviveEdits",
+            "ForeignFragmentRetainsSvgAndMathMlNamespacesAndNames",
+            "FragmentRetainsAncestorFormParsingContext",
+            "HtmlConversionDocument_LoadDetectsMetaCharsetFromByteInput",
+            "RecoveredDoctypeSurvivesEditingAndSerialization",
+            "Snapshot_EditPreservesIdentityWithoutMutatingSourceOrLeakedHandles",
+            "TableFragmentUsesTheSuppliedRowContextAndCanBeImported"
+        }, documentEvidence.CaseIds);
+
+        HtmlCapabilityEvidencePin screenEvidence = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenRepresentative);
+        HtmlCapabilityEvidencePin pagedEvidence = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedRepresentative);
+        Assert.Equal(
+            HtmlRenderingRepresentativeCorpus.All.Where(item => item.Mode == HtmlRenderMode.Continuous).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
+            screenEvidence.CaseIds);
+        Assert.Equal(
+            HtmlRenderingRepresentativeCorpus.All.Where(item => item.Mode == HtmlRenderMode.Paged).Select(item => item.Id).OrderBy(value => value, StringComparer.Ordinal),
+            pagedEvidence.CaseIds);
+
+        HtmlRenderingAdvancedHeldOutCorpus heldOut = HtmlRenderingAdvancedHeldOutCorpus.Load();
+        HtmlCapabilityEvidencePin heldOutScreen = staticProfile.Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut);
+        HtmlCapabilityEvidencePin heldOutPaged = HtmlRenderCapabilityCatalog.GetProfile(HtmlCapabilityProfileIds.PagedPrintV1)
+            .Evidence.Single(item => item.Id == HtmlCapabilityEvidenceIds.H4PagedAdvancedHeldOut);
+        Assert.Equal(heldOut.AcceptanceSha256, heldOutScreen.Revision);
+        Assert.Equal(heldOut.AcceptanceSha256, heldOutPaged.Revision);
+        Assert.Equal(HtmlCapabilityEvidenceRole.Qualification, heldOutScreen.Role);
+        Assert.Equal(HtmlCapabilityEvidenceRole.Qualification, heldOutPaged.Role);
+        Assert.Equal(8, heldOutScreen.Required);
+        Assert.Equal(8, heldOutScreen.Passed);
+        Assert.Equal(11, heldOutScreen.Selections.Count);
+        Assert.Equal(14, heldOutPaged.Selections.Count);
+        Assert.All(heldOutScreen.Selections.Concat(heldOutPaged.Selections), selection => {
+            Assert.Equal(heldOut.Cases.Count, selection.RequiredCaseIds.Count + selection.ExcludedCaseIds.Count);
+            Assert.Equal(selection.RequiredCaseIds.Count, selection.Passed);
+            Assert.Equal(0, selection.Failed);
+            Assert.Equal(0, selection.Untested);
+            Assert.NotEmpty(selection.OutOfScope);
+        });
+        Assert.Contains(HtmlCapabilityEvidenceIds.H4ScreenAdvancedHeldOut,
+            HtmlRenderCapabilityCatalog.Get("layout-grid").GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1).EvidenceIds);
+        Assert.DoesNotContain(HtmlCapabilityEvidenceIds.WebPlatformTests,
+            HtmlRenderCapabilityCatalog.Get("layout-grid").GetProfileBinding(HtmlCapabilityProfileIds.StaticScreenV1).EvidenceIds);
     }
 
     [Fact]
@@ -527,7 +616,7 @@ public partial class Html {
                     <p class="print-only">Print target retained</p>
                     <picture>
                         <source media="screen" srcset="https://example.test/images/screen-chart.png 1x">
-                        <source media="print/*c*/ and (color)" type="image/avif" srcset="https://example.test/images/ignored-print-chart.avif 1x">
+                        <source media="print/*c*/ and (color)" type="image/x-officeimo-unsupported" srcset="https://example.test/images/ignored-print-chart.avif 1x">
                         <source media="print" srcset="https://example.test/images/print-chart.png 1x">
                         <img src="https://example.test/images/fallback-chart.png" alt="Chart">
                     </picture>
@@ -596,7 +685,7 @@ public partial class Html {
             <body>
                 <main>
                     <picture><source srcset="mailto:ops@example.test"><img src="https://example.test/images/mailto-fallback.png" alt="Mail fallback"></picture>
-                    <picture><source type="image/avif" srcset="https://example.test/images/ignored.avif 1x"><img src="https://example.test/images/adapter-fallback.png" alt="Type fallback"></picture>
+                    <picture><source type="image/x-officeimo-unsupported" srcset="https://example.test/images/ignored.avif 1x"><img src="https://example.test/images/adapter-fallback.png" alt="Type fallback"></picture>
                     <picture><source type="image/apng" srcset="https://example.test/images/ignored.apng 1x"><img src="https://example.test/images/apng-fallback.png" alt="APNG fallback"></picture>
                     <img alt="Late candidate" srcset="{{blockedSrcSet}}, https://example.test/images/late-candidate.png 33w">
                     <video><source src="mailto:media@example.test" type="video/mp4"><source src="https://example.test/media/fallback.mp4" type="video/mp4"></video>
@@ -1108,7 +1197,7 @@ public partial class Html {
                 <picture><source srcset="file:///secret/policy-source.png 1x"><img src="https://example.test/images/policy-fallback.png"></picture>
                 <picture><source srcset="file:///secret/blocked-wide.png 1x"><source srcset="https://example.test/images/next-wide.png 1x"><img src="https://example.test/images/unused-wide-fallback.png"></picture>
                 <picture><source srcset="file:///secret/mixed-picture.png 1x, https://example.test/images/mixed-picture.png 2x"><source srcset="https://example.test/images/unused-mixed-next.png 1x"><img src="https://example.test/images/unused-mixed-fallback.png"></picture>
-                <picture><source type="image/avif" srcset="https://example.test/images/word-skipped.avif 1x"><img src="https://example.test/images/word-fallback.png"></picture>
+                <picture><source type="image/x-officeimo-unsupported" srcset="https://example.test/images/word-skipped.avif 1x"><img src="https://example.test/images/word-fallback.png"></picture>
                 <div data="file:///secret/metadata"></div>
                 <x-card href="file:///secret/custom-href.png" src="file:///secret/custom-src.png"></x-card>
                 <div background="file:///secret/not-legacy-background.png"></div>
@@ -1812,14 +1901,6 @@ public partial class Html {
         Assert.InRange(figureScore.Metrics["figure-signatures"], 0D, 0.99D);
     }
 
-    private static string FindRepositoryRoot() {
-        for (DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent) {
-            if (File.Exists(Path.Combine(directory.FullName, "Directory.Build.props"))
-                && Directory.Exists(Path.Combine(directory.FullName, "OfficeIMO.Html"))) {
-                return directory.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
+    private static string FindRepositoryRoot() =>
+        RepositoryTestPaths.Find();
 }

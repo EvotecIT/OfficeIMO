@@ -1,0 +1,3171 @@
+{
+  "$schema": "officeimo.html.h10-job-native-table-evidence",
+  "recordedUtc": "2026-10-05T23:51:58.809521+00:00",
+  "sourceCommits": {
+    "routeAndNativeTableReplay": "4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+    "oneNoteReplay": "1523ae78e32fe389d89914b761452cd4dbf10a51",
+    "adoptedUnixOwner": "ed7fcf373ce5ad9fac6fcdbced75be093362f1c3",
+    "screenBodyBackground": "648391a095e231427e54aaf7b9c9a044f97ebf20",
+    "stylesheetDisplayRetention": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+    "screenBackgroundFinalReplay": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+    "flexFragmentGapReplay": "18a214d10b6ead53027b69c00567f8fd092f4b35"
+  },
+  "cleanSourceRequired": true,
+  "ownership": "HtmlConversionDocument and HtmlRenderRequest/Result with MHTML and target adapters; retained AngleSharp/Css/Js/Jint boundaries. No new runtime dependency.",
+  "pdfRoutes": {
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "resourcePolicy": "PortableDeterministic",
+    "observations": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlPdfFontProgramOutlined": 4,
+            "HtmlPdfFontOutlineBudgetApproximated": 1,
+            "HtmlPdfTranslucentGradientRasterized": 4,
+            "HtmlRenderResourceUnavailable": 45,
+            "HtmlRenderFontFaceUnavailable": 24,
+            "HtmlRenderGridValueUnsupported": 16,
+            "HtmlRenderPositionStickyStatic": 1,
+            "HtmlRenderSvgContentUnsupported": 5,
+            "HtmlRenderOpenTypeFeatureUnsupported": 6,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "unsupported-font-ligature-substitution": 4
+          }
+        }
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 22,
+        "pdfSha256": "9df7ed16dbd7d8911405af0c6ed4662bd3e20a6744d1fe617c1d625185eabf99",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlPdfFontProgramOutlined": 4,
+            "HtmlPdfFontOutlineBudgetApproximated": 1,
+            "HtmlPdfTranslucentGradientRasterized": 4,
+            "HtmlRenderResourceUnavailable": 45,
+            "HtmlRenderFontFaceUnavailable": 24,
+            "HtmlRenderGridValueUnsupported": 8,
+            "HtmlRenderPositionStickyStatic": 1,
+            "HtmlRenderSvgContentUnsupported": 2,
+            "HtmlRenderOpenTypeFeatureUnsupported": 6,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "HtmlRenderForcedFragment": 2,
+            "unsupported-font-ligature-substitution": 3
+          }
+        }
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 14,
+        "pdfSha256": "39423b2a9afa23c8aa6406903a8cafc367e566789d26da5238ead71e6adda208",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlPdfFontProgramOutlined": 4,
+            "HtmlPdfFontOutlineBudgetApproximated": 1,
+            "HtmlPdfTranslucentGradientRasterized": 6,
+            "HtmlRenderResourceUnavailable": 45,
+            "HtmlRenderFontFaceUnavailable": 24,
+            "HtmlRenderGridValueUnsupported": 8,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderSvgContentUnsupported": 2,
+            "HtmlRenderOpenTypeFeatureUnsupported": 6,
+            "unsupported-font-ligature-substitution": 4
+          }
+        }
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 1,
+          "warningCounts": {
+            "HtmlRenderResourceUnavailable": 34,
+            "HtmlRenderFontFaceUnavailable": 27,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "unsupported-font-ligature-substitution": 3
+          }
+        }
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlRenderResourceUnavailable": 34,
+            "HtmlRenderFontFaceUnavailable": 27,
+            "HtmlRenderFormFieldTypographyStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "unsupported-font-ligature-substitution": 5
+          }
+        }
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlRenderResourceUnavailable": 34,
+            "HtmlRenderFontFaceUnavailable": 27,
+            "HtmlRenderFormFieldTypographyStaticFallback": 1,
+            "unsupported-font-ligature-substitution": 4
+          }
+        }
+      }
+    ],
+    "acceptance": "API and actual Tool byte equality, independent Poppler per-page text equality, image/link occurrence observations. This is not appearance acceptance, complete archived-resource coverage, or acceptance of all eleven earlier planetary variants."
+  },
+  "nativeTables": {
+    "predeclared": {
+      "declaredUtc": "2026-10-03T23:26:42.085011+00:00",
+      "sourceArchiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "sourceMethod": "Independent MIME decode and HTML table transcription before viewing new native output. Compare five-column header and data rows; single-cell source notes retained separately, without a merged-cell acceptance claim.",
+      "columnCount": 5,
+      "tables": [
+        {
+          "sourceIndex": 0,
+          "rows": [
+            [
+              "",
+              "Mercury",
+              "Venus",
+              "Earth",
+              "Mars"
+            ],
+            [
+              "Mean distance from Sun (au)",
+              "0.387",
+              "0.723",
+              "1",
+              "1.524"
+            ],
+            [
+              "Light minutes from Sun",
+              "3.2",
+              "6.0",
+              "8.3",
+              "12.7"
+            ],
+            [
+              "Mass (x Earth)",
+              "0.0553",
+              "0.815",
+              "1",
+              "0.107"
+            ],
+            [
+              "Equatorial radius (x Earth)",
+              "0.383",
+              "0.949",
+              "1",
+              "0.533"
+            ],
+            [
+              "Rotation period (Earth days)",
+              "175.942",
+              "- 116.75 (retrograde)",
+              "1",
+              "1.027"
+            ],
+            [
+              "Orbit period (Earth years)",
+              "0.241",
+              "0.615",
+              "1",
+              "1.881"
+            ],
+            [
+              "Mean orbital velocity (km/s)",
+              "47.87",
+              "35.02",
+              "29.78",
+              "24.13"
+            ],
+            [
+              "Natural satellites",
+              "0",
+              "0",
+              "1",
+              "2"
+            ],
+            [
+              "Surface atmospheric pressure (bars)",
+              "Near 0",
+              "92",
+              "1",
+              ".0069 to .009"
+            ],
+            [
+              "Global Magnetic field",
+              "Faint",
+              "None",
+              "Yes",
+              "None"
+            ]
+          ],
+          "sourceNotes": [
+            [
+              "Here is a more extensive table of planetary data."
+            ]
+          ]
+        },
+        {
+          "sourceIndex": 1,
+          "rows": [
+            [
+              "",
+              "Jupiter",
+              "Saturn",
+              "Uranus",
+              "Neptune"
+            ],
+            [
+              "Mean distance from Sun (au)",
+              "5.20 au",
+              "9.58 au",
+              "19.20 au",
+              "30.05 au"
+            ],
+            [
+              "Light hours from Sun",
+              "0.72",
+              "1.3",
+              "2.7",
+              "4.2"
+            ],
+            [
+              "Mass (x Earth)",
+              "317.8",
+              "95.2",
+              "14.5",
+              "17.1"
+            ],
+            [
+              "Radius (x Earth)",
+              "11.21",
+              "9.45",
+              "4.01",
+              "3.88"
+            ],
+            [
+              "Rotation period (hours)",
+              "9.9",
+              "10.7",
+              "17.2",
+              "16.1"
+            ],
+            [
+              "Orbit period (Earth years)",
+              "11.9",
+              "29.4",
+              "83.7",
+              "163.7"
+            ],
+            [
+              "Mean orbital velocity (km/s)",
+              "13.07",
+              "9.69",
+              "6.81",
+              "5.43"
+            ],
+            [
+              "Known natural satellites (as of January 2013)",
+              "67",
+              "62",
+              "27",
+              "13"
+            ],
+            [
+              "Rings",
+              "Dust",
+              "Extensive system",
+              "Thin, dark",
+              "Broken ring arcs"
+            ]
+          ],
+          "sourceNotes": []
+        }
+      ],
+      "comparison": "Collapse only whitespace; preserve column order and text. Excel native numeric cells may be compared by invariant numeric value, with the original text and cell value retained. Fragmented PowerPoint tables may repeat header rows; data rows must retain original order and column ownership.",
+      "remaining": "This does not accept full chapter appearance, native image placement, manual accessibility or the all-page PDF reference contract."
+    },
+    "observations": [
+      {
+        "target": "word",
+        "nativeTableLocations": [
+          {
+            "location": "table-1",
+            "rows": 12
+          },
+          {
+            "location": "table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "3462c833fa1687b8d591c4ecb1e3041b2c3cff1dda75fac85bae7b06efc24879"
+      },
+      {
+        "target": "excel",
+        "nativeTableLocations": [
+          {
+            "location": "The Terrestrial Planets",
+            "rows": 12
+          },
+          {
+            "location": "The Terrestrial Planets 2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "890fd4a31610ef32662c7d40b6aa37fb66f10e22f70134788f3660d7903400bd"
+      },
+      {
+        "target": "powerpoint",
+        "nativeTableLocations": [
+          {
+            "location": "slide-10/table-1",
+            "rows": 4
+          },
+          {
+            "location": "slide-11/table-1",
+            "rows": 8
+          },
+          {
+            "location": "slide-12/table-1",
+            "rows": 2
+          },
+          {
+            "location": "slide-25/table-1",
+            "rows": 8
+          },
+          {
+            "location": "slide-26/table-1",
+            "rows": 3
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 3,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "4c9aed70ad290a6d3ae560aa847931d3972c93ff0cbc469f3e9e8fa7c8f00e1c"
+      },
+      {
+        "target": "onenote",
+        "nativeTableLocations": [
+          {
+            "location": "page-2/table-1",
+            "rows": 12
+          },
+          {
+            "location": "page-2/table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "5dab66c462ddf1a8da9546c42317cf7a139f76f459f540a856ad23bab0277196"
+      },
+      {
+        "target": "rtf",
+        "nativeTableLocations": [
+          {
+            "location": "table-1",
+            "rows": 12
+          },
+          {
+            "location": "table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "7d6b4474a77947ce1403fbda115fc3cfc52b3307372acb26fb6f275f4fdcabe7"
+      },
+      {
+        "target": "markdown",
+        "nativeTableLocations": [
+          {
+            "location": "table-1",
+            "rows": 12
+          },
+          {
+            "location": "table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [
+          {
+            "index": 0,
+            "expected": [
+              "",
+              "Mercury",
+              "Venus",
+              "Earth",
+              "Mars"
+            ],
+            "actual": [
+              "",
+              "[Mercury](http://nssdc.gsfc.nasa.gov/planetary/factsheet/mercuryfact.html)",
+              "[Venus](http://nssdc.gsfc.nasa.gov/planetary/factsheet/venusfact.html)",
+              "[Earth](http://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)",
+              "[Mars](http://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html)"
+            ]
+          },
+          {
+            "index": 5,
+            "expected": [
+              "Rotation period (Earth days)",
+              "175.942",
+              "- 116.75 (retrograde)",
+              "1",
+              "1.027"
+            ],
+            "actual": [
+              "Rotation period <br>(Earth days)",
+              "175.942",
+              "- 116.75 <br>(retrograde)",
+              "1",
+              "1.027"
+            ]
+          },
+          {
+            "index": 9,
+            "expected": [
+              "Surface atmospheric pressure (bars)",
+              "Near 0",
+              "92",
+              "1",
+              ".0069 to .009"
+            ],
+            "actual": [
+              "Surface atmospheric pressure (bars)",
+              "Near 0",
+              "92",
+              "1",
+              ".0069 <br>to .009"
+            ]
+          },
+          {
+            "index": 11,
+            "expected": [
+              "",
+              "Jupiter",
+              "Saturn",
+              "Uranus",
+              "Neptune"
+            ],
+            "actual": [
+              "",
+              "[Jupiter](http://nssdc.gsfc.nasa.gov/planetary/factsheet/jupiterfact.html)",
+              "[Saturn](http://nssdc.gsfc.nasa.gov/planetary/factsheet/saturnfact.html)",
+              "[Uranus](http://nssdc.gsfc.nasa.gov/planetary/factsheet/uranusfact.html)",
+              "[Neptune](http://nssdc.gsfc.nasa.gov/planetary/factsheet/neptunefact.html)"
+            ]
+          },
+          {
+            "index": 19,
+            "expected": [
+              "Known natural satellites (as of January 2013)",
+              "67",
+              "62",
+              "27",
+              "13"
+            ],
+            "actual": [
+              "Known natural satellites (as of January 2013)",
+              "[67](http://www.dtm.ciw.edu/users/sheppard/satellites/jupsatdata.html)",
+              "[62](http://www.dtm.ciw.edu/users/sheppard/satellites/satsatdata.html)",
+              "[27](http://www.dtm.ciw.edu/users/sheppard/satellites/urasatdata.html)",
+              "[13](http://www.dtm.ciw.edu/users/sheppard/satellites/nepsatdata.html)"
+            ]
+          }
+        ],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad"
+      }
+    ],
+    "owners": {
+      "runner": "1.0.0+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "MHTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "Word HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "Excel HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "PowerPoint HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "OneNote HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "RTF HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "Markdown HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+    },
+    "acceptance": "21 regular source rows including headers retain five-column ownership and order. PowerPoint repeats three fragment headers. Markdown preserves five rows with literal link/br markup differences. Source-note merges, named Excel tables, native application appearance and accessibility remain separate."
+  },
+  "fixes": [
+    {
+      "owner": "RTF",
+      "behavior": "Distinct tables separated by body content or section breaks remain distinct after reopen; consecutive rows stay grouped.",
+      "before": "one 22-row table in NASA replay",
+      "after": "two tables with 12 and 10 rows",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2759"
+    },
+    {
+      "owner": "Word.Html",
+      "behavior": "Empty, comment-only and nested-table-only cells retain required native paragraphs.",
+      "proof": "DOCX schema validation and independent LibreOffice rendering keep preceding article text outside the blank header cell.",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2760"
+    },
+    {
+      "owner": "OneNote",
+      "behavior": "Native WebP image media type survives reopen.",
+      "beforeMediaType": null,
+      "after": {
+        "AltText": "An orange, hazy view of Titan's surface.",
+        "MediaType": "image/webp",
+        "FileName": "image.webp",
+        "SourcePath": null,
+        "Length": 1390,
+        "Sha256": "4a0689bd056202047a2600100552b3738dafd63019003d584826d951fdcc2b63"
+      },
+      "reopenedPayloadCount": 16,
+      "inspectionRasterAssets": 14,
+      "nativeApplicationAccepted": false,
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2761"
+    },
+    {
+      "owner": "Core Unix file opening",
+      "behavior": "Apple ARM64 varargs place creation mode on stack; shared master owner adopted, including Drive caller.",
+      "proof": "Observed old branch plan mode0054 and two Tool failures; four direct native open/openat mode cases and full Tool tests pass after correction.",
+      "duplicatePrCreated": false
+    }
+  ],
+  "validation": {
+    "masterBasedExtractedOwners": {
+      "RTF": {
+        "net8.0": {
+          "executed": 930,
+          "passed": 930,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "net10.0": {
+          "executed": 930,
+          "passed": 930,
+          "failed": 0,
+          "notExecuted": 0
+        }
+      },
+      "Word-related HTML": {
+        "net8.0": {
+          "executed": 801,
+          "passed": 801,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "net10.0": {
+          "executed": 801,
+          "passed": 801,
+          "failed": 0,
+          "notExecuted": 0
+        }
+      },
+      "OneNote": {
+        "net8.0": {
+          "executed": 338,
+          "passed": 338,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "net10.0": {
+          "executed": 338,
+          "passed": 338,
+          "failed": 0,
+          "notExecuted": 0
+        }
+      }
+    },
+    "masterBasedStandardBuilds": [
+      "OfficeIMO.Rtf",
+      "OfficeIMO.Word.Html",
+      "OfficeIMO.OneNote"
+    ],
+    "staticBranchHtml": {
+      "source": "4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "net8": {
+        "passed": 4218,
+        "failed": 0
+      },
+      "net10": {
+        "passed": 4218,
+        "failed": 0
+      }
+    },
+    "Tool": {
+      "net8": {
+        "passed": 259,
+        "boundary": "Earlier branch validation after the Apple ARM64 mode correction; exact compiled head was not captured in this ledger."
+      },
+      "net10": {
+        "source": "1523ae78e32fe389d89914b761452cd4dbf10a51",
+        "passed": 259
+      }
+    },
+    "review": "One independent read-only CLI/native-owner review of 4b7c3aa13, no actionable P0-P2. Later canonical Unix adoption reuses master owner; OneNote mapping is a narrow reproduced native round-trip fix."
+  },
+  "visualObservations": {
+    "nativeWord": "Final LibreOffice first-table page confirms body/header ownership, but width still clips at right edge.",
+    "nativeRtf": "RTF artifact unchanged from independently rendered prior output; five wide columns can clip rightmost data.",
+    "nativeExcel": "Prior independent rendering clips long first-column labels; worksheet-grid observations do not close print layout.",
+    "nativePowerPoint": "Prior independent rendering shows low-contrast header text and fragment pagination limits.",
+    "nativeOneNote": "Saved/reopened payloads and bounded HTML projection only; native OneNote application unavailable.",
+    "pdfAllPageContactSheets": "Final f2382c0d8 replay preserves snapshot contrast and all six source/profile counts, full text, decoded images, link targets and loss reports. Five PDFs remain byte-identical; planetary media pages 2/3/14/15 change. Page 3 now carries two prose lines with authored bottom padding but remains sparse before the oversized figure. Chesapeake retains known footer/fixed-control differences."
+  },
+  "remaining": [
+    "Classify the remaining sparse planetary page 3 and oversized-figure deferral against named H10 appearance criteria; preserve qualified flex-gap, auto-height padding, exact-once content and authored paint contracts.",
+    "Complete broader source/corpus native appearance, article/photo order, slide fragmentation and target-specific native application/manual accessibility acceptance; bounded combined table and linked-header controls are qualified.",
+    "Complete remaining corpus/intent/workbench/browser surfaces and operation-level loss/resource checks.",
+    "Current clean-source local Mac H4 budget passes unchanged ceilings; hosted macOS/Windows/Linux and unfamiliar-page operation budgets remain open. Preserve prior failed runs and compare equivalent source/platform/domain controls; no timing regression or environmental cause is established merely by local determinism.",
+    "Finish deliberate combined native-owner package proof and current-head standalone gates; preserve required evidence and clean mergedowned worktrees. Supported-platform timing/remaining corpus and qualified long-lived adoption remain separate."
+  ],
+  "retainedEvidenceRoot": "Ignore/H10JobQualification",
+  "publishedPackagesOrFullHtmlPr": false,
+  "screenBackgroundQualification20261004": {
+    "source": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+    "cleanSourceReplay": true,
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "resourcePolicy": "PortableDeterministic",
+    "changes": [
+      "Preserve the body background box when html owns a distinct canvas in continuous screen rendering and snapshot slicing.",
+      "Suppress the body box for display:contents while preserving children; supported stylesheet display survives rules that use retained-provider declaration fallback."
+    ],
+    "independentFixtures": {
+      "baselineSource": "e3f2d0eac2e8818991216d18b56dde447ac44280",
+      "independentFixture": "body-canvas.html",
+      "browserObserved": {
+        "canvasBackground": "rgb(34, 34, 34)",
+        "bodyBackground": "rgb(255, 255, 255)",
+        "bodyBottomCssPx": 240,
+        "headerBottomCssPx": 40,
+        "footerTopCssPx": 200,
+        "consoleWarningsErrors": [],
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "beforeTests": {
+        "failed": 3,
+        "passed": 0,
+        "actualArticlePixel": "#222222",
+        "expectedArticlePixel": "#FFFFFF"
+      },
+      "candidateCriteria": [
+        "Article sample white across full-page/viewport/snapshot; footer black; canvas beneath body remains #222.",
+        "Frozen NASA and held-out Chesapeake same three-profile page counts, image/link occurrences, full extracted-token multisets and API/Tool bytes. Snapshot may paint the restored body background. Print and screen-media PDFs should remain byte-identical.",
+        "Full HTML net8/net10, netstandard build and H4 advanced held-out.",
+        "Inspect final snapshot PDF first page and all-page contact sheet. Broader H10 appearance/native/platform timing remain open."
+      ],
+      "contentsBrowserObserved": {
+        "canvasBackground": "rgb(34, 34, 34)",
+        "bodyDisplay": "contents",
+        "bodyBoxHeightCssPixels": 0,
+        "sectionHeightCssPixels": 80,
+        "consoleWarningsErrors": [],
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "stylesheetRetentionBefore": {
+        "publicApi": "HtmlComputedStyleEngine.Compute",
+        "standaloneDeclaration": "contents",
+        "mixedDisplayAndMarginDeclaration": "",
+        "regressionsFailed": 7,
+        "inlineRegressionsPassed": 4
+      },
+      "sourceCodeHead": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+      "retainedProviderBoundary": "Supported display declarations use the existing authored-declaration retention path; AngleSharp/Css remain the parser/style providers."
+    },
+    "validation": {
+      "stableCandidateTests": {
+        "net10.0": {
+          "passed": 4232,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "trx": "Ignore/H10JobQualification/contrast-fixture/tests/html-stylesheet-final-net10.0.trx",
+          "trxSha256": "c289af08700c70774bdb71da6afb97fb1dda0d2db0d388f394c63021c026ee2c"
+        },
+        "net8.0": {
+          "passed": 4232,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "trx": "Ignore/H10JobQualification/contrast-fixture/tests/html-stylesheet-final-net8.0.trx",
+          "trxSha256": "120c20a4ce430dcb94a789a469cb2d7a09812b0816b8850247f86299ecb08a61"
+        }
+      },
+      "netstandard2Build": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "normalCleanHeadBuilds": [
+        "ApiProbe",
+        "OfficeIMO.Tool",
+        "ContrastProbe"
+      ],
+      "review": {
+        "bodyPainting": "One independent strictly read-only full pass and one targeted confirmation; reproduced P2 body-box suppression defect fixed.",
+        "stylesheetRetention": "Narrow correction in the existing validated declaration-retention path. Seven pre-fix failures, direct public computed-style before/after proof, priority/invalid-value and inline/stylesheet raster checks; no extra full review merely for a new SHA."
+      },
+      "platformTimingRerun": false
+    },
+    "routes": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 22,
+        "pdfSha256": "9df7ed16dbd7d8911405af0c6ed4662bd3e20a6744d1fe617c1d625185eabf99",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": false,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 14,
+        "pdfSha256": "6da411b98b16f3356309c8343408531b93922718573765f8627c8d8e0df209bc",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      }
+    ],
+    "assetPreservation": {
+      "decodedImageBytesPerPageEqual": true,
+      "linkTargetsAndRectanglesPerPageEqual": true,
+      "linkRectangleComparisonDecimalPlaces": 6,
+      "artifact": "Ignore/H10JobQualification/contrast-fixture/snapshot-asset-preservation.json"
+    },
+    "visuals": {
+      "finalPlanetaryAll14SnapshotPagesInspected": true,
+      "finalContentsStylesheetPdfInspected": true,
+      "heldOutChesapeakeAll4SnapshotPagesInspected": true,
+      "articleContrastAccepted": true,
+      "broaderAppearanceAccepted": false,
+      "contactSheets": [
+        "Ignore/H10JobQualification/contrast-fixture/final-snapshot-visuals-d589345b3/planets-contact.png",
+        "Ignore/H10JobQualification/contrast-fixture/final-snapshot-visuals-d589345b3/chesapeake-contact.png"
+      ],
+      "observation": "Dark article text now paints on white body backgrounds across planetary snapshot pages. Dark header/footer and canvas margins remain distinct. Snapshot content, decoded images, link targets and per-page text are preserved; other five PDFs remain byte-identical to the baseline. Footer clipping, snapshot cuts and native appearance remain separately qualified."
+    },
+    "screenMediaBlankPage": {
+      "source": "e3f2d0eac2e8818991216d18b56dde447ac44280",
+      "sourceUnchangedForScreenMediaPdf": true,
+      "page": 3,
+      "visualCount": 5,
+      "textVisuals": 0,
+      "imageVisuals": 0,
+      "bodyFragmentHeightCssPixels": 56,
+      "visuals": [
+        {
+          "kind": "HtmlRenderShape",
+          "Source": "render-surface",
+          "PaintOrder": -2147483648,
+          "X": 0,
+          "Y": 0,
+          "Width": 793.7007874015749,
+          "Height": 1122.5196850393702,
+          "fill": "#FFFFFF",
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderShape",
+          "Source": "render-root-background",
+          "PaintOrder": -2147483647,
+          "X": 0,
+          "Y": 0,
+          "Width": 793.7007874015749,
+          "Height": 1122.5196850393702,
+          "fill": "#000000",
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderClipGroup",
+          "Source": "body.wp-singular.topic-template.topic-template-template-sidebar.topic-template-template-sidebar-php.single.single-topic.postid-107670.wp-theme-nasa.wp-child-theme-nasa-child:viewport-overflow",
+          "PaintOrder": 2,
+          "X": 0,
+          "Y": 0,
+          "Width": 793.7007874015749,
+          "Height": 1122.5196850393702,
+          "fill": null,
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderClipGroup",
+          "Source": "body.wp-singular.topic-template.topic-template-template-sidebar.topic-template-template-sidebar-php.single.single-topic.postid-107670.wp-theme-nasa.wp-child-theme-nasa-child",
+          "PaintOrder": 0,
+          "X": 48,
+          "Y": 48,
+          "Width": 697.7007874015749,
+          "Height": 56,
+          "fill": null,
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderShape",
+          "Source": "body.wp-singular.topic-template.topic-template-template-sidebar.topic-template-template-sidebar-php.single.single-topic.postid-107670.wp-theme-nasa.wp-child-theme-nasa-child",
+          "PaintOrder": 0,
+          "X": 48,
+          "Y": -1950.0542181818182,
+          "Width": 697.7007874015749,
+          "Height": 18633.485756440565,
+          "fill": "#FFFFFF",
+          "text": null
+        }
+      ],
+      "nextPageImage": {
+        "widthCssPixels": 601.7007874015749,
+        "heightCssPixels": 1749.7458897637796
+      },
+      "status": "Historical failure reproduced and padding owner corrected; current sparse-page appearance remains open.",
+      "nextDeliverable": "Assess current sparse page against predeclared profile criteria; no threshold tuning, painted-page deletion or image resize is justified by page count alone.",
+      "recheckedAtSource": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+      "page3PixelIdenticalToBaseline72dpi": true,
+      "historicalObservation": true,
+      "currentDisposition": "The 18a214d10 background-only prefix was margin16 plus container padding40, not flex gap. Source f2382c0d8 keeps the final two prose lines with that padding; sparse appearance still open. See trailingBoxPaddingQualification20261004."
+    },
+    "qualificationLimit": "Two frozen sources and three explicit PDF profiles; this does not qualify all eleven historical intents, manual accessibility, native whole-page appearance or current platform timing."
+  },
+  "flexFragmentGapQualification20261004": {
+    "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+    "baselineSource": "5840c236c1c8e828b0083bff67d6cc9749072122",
+    "cleanSourceReplay": true,
+    "owner": "OfficeIMO.Html paged layout; no host workaround, public API or dependency addition",
+    "contract": "An authored flex gap can be discarded at a page start only without content, paint, forced breaks, running strings or navigation metadata. Gap metadata cannot resume completed content.",
+    "independentFixtures": {
+      "predeclared": {
+        "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/predeclared.json",
+        "sha256": "fcc7bdd6fb9faeff9e7e02b976cb6f834d55db8199f5cac16babb133bff0654b"
+      },
+      "browserOwner": "test-only HtmlTinkerX3.0.3",
+      "browser": "Chromium151",
+      "pageCssPixels": [
+        400,
+        400
+      ],
+      "rowAndColumnBefore": {
+        "pages": 6,
+        "backgroundOnlyPage": 3
+      },
+      "rowAndColumnBrowserReference": {
+        "pages": 5,
+        "imagePages": [
+          3,
+          4,
+          5
+        ]
+      },
+      "final": {
+        "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-fixture-observations-18a214d10.json",
+        "sha256": "f08b7cc3eb102916e00adda7d3d41503c3350c824d0e648ba09c0acb962763d5"
+      },
+      "visuals": [
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-row-18a214d10-contact.png",
+          "sha256": "5e797912a0251ee0f0084ba9c8eb7c7dc2125285ab757a0971fb468f9a2a2a24"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-column-18a214d10-contact.png",
+          "sha256": "b26b04d9ef793d46933d39cf80ffd1f031cc5f913e857200b4d9e0879a9fff7c"
+        }
+      ],
+      "variablePageGeometryLimit": "Changing page geometry may retain the prior layout with PagePseudoGeometryPending; exact-once content and painted gaps are protected. This does not implement column continuation reflow.",
+      "browserReferences": [
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/chromium-wrapped.pdf",
+          "sha256": "a42820806ab80358f90f871c9e609d2e0b71e2971d2c72e090c0aa93b125427c"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/chromium-column.pdf",
+          "sha256": "a8bf97b3f19751d26e5a87e4452fe062a80487c35cf7a4b7449481f8d1d7a8bb"
+        }
+      ],
+      "sourceFixtures": [
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/wrapped-row.html",
+          "sha256": "4c5ec6c0ae3cabd747bdde5a2417f8098c1fa8fe49a00ef6d9885095c021da52"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/column-flex.html",
+          "sha256": "45c402b14d5cfcfd6f7f651af7360d61a9a7d03ba4071f193992239886472af0"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/fixture-embedded.html",
+          "sha256": "372c1227fbe304d00edcc0c5249281a85e456ffa05c917b747bc993b3b912fa8"
+        }
+      ]
+    },
+    "validation": {
+      "focusedCases": 10,
+      "frameworkSuites": {
+        "net8": {
+          "passed": 4242,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/tests/full-html-final-net8.trx",
+          "sha256": "25131e490c412e339e830fdc3c0ec32e237004fe35f09fbf207c3a9253692ea3"
+        },
+        "net10": {
+          "passed": 4242,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/tests/full-html-final-net10.trx",
+          "sha256": "131404d3cbe63240250e845a2cefaf7e1b220aec3715c24fd637fa6b7ba9ff13"
+        }
+      },
+      "standardBuild": {
+        "target": "netstandard2.0",
+        "warnings": 0,
+        "errors": 0
+      },
+      "normalCleanSourceConsumerBuilds": [
+        "ApiProbe",
+        "OfficeIMO.Tool",
+        "fixture OfficeIMO.Html/Mhtml.Pdf probe"
+      ],
+      "platformTimingRerun": false,
+      "frameworkSuiteBoundary": "Stable remediation source bytes before source commit18a214d10; no source changes after those suites. Normal clean-head owner builds and API/Tool replay were then executed at18a214d10. A new commit identity alone did not trigger duplicate suites."
+    },
+    "review": {
+      "reason": "Shared paged geometry and paint/navigation preservation",
+      "task": "flex_fragment_gap_review",
+      "boundary": "candidate-reviewed",
+      "fullReadOnlyPass": 1,
+      "targetedConfirmation": 1,
+      "initialTrackedDiffGitHash": "ee0b73e4aa0e702b107d27d8dbfb30875141b0e2",
+      "confirmedTrackedDiffGitHash": "c90967b79b940b84cf54f53c27da31df00c1d874",
+      "confirmedTestBlob": "87062cfe1b077e164ce53c04fd3aab255a6055e3",
+      "finding": "Candidate-introduced gap/resume conflation duplicated all38 leading labels when page width changed; primary also reproduced row border loss.",
+      "remediation": "Ownerless gap metadata, separate discard eligibility and explicit exclusion from continuation selection. Ten focused regressions pass; confirmation found no remaining actionable issue."
+    },
+    "routes": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": false,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 22,
+        "pdfSha256": "d1986d4f31d3fadf1efce7de84c20866e829506aec7b82caa871ed40f102be43",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 14,
+        "pdfSha256": "6da411b98b16f3356309c8343408531b93922718573765f8627c8d8e0df209bc",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "reportUnchanged": true,
+        "hasLoss": true
+      }
+    ],
+    "routeComparison": {
+      "path": "Ignore/H10JobQualification/route-equivalence-18a214d10.json",
+      "sha256": "20b8029b233a3bfe0460f466c76a1ec60c56d3db71dc742d6993f617e67f64ac"
+    },
+    "nasaScreenMedia": {
+      "pages": 22,
+      "images": 18,
+      "links": 73,
+      "sha256": "d1986d4f31d3fadf1efce7de84c20866e829506aec7b82caa871ed40f102be43",
+      "pixelIdenticalPages72dpi": 20,
+      "changedPages": [
+        14,
+        15
+      ],
+      "decodedImageBytesPerPageEqual": true,
+      "linkTargetsPerPageEqual": true,
+      "annotationChanges": [
+        {
+          "page": 14,
+          "linkIndex": 0,
+          "translationPoints": [
+            0.0,
+            24.0,
+            0.0,
+            24.0
+          ],
+          "paintTranslationVisuallyConfirmed72dpi": true
+        },
+        {
+          "page": 15,
+          "linkIndex": 0,
+          "translationPoints": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ],
+          "paintTranslationVisuallyConfirmed72dpi": true
+        }
+      ],
+      "visualInspection": "Pages14 and15 remove authored flex gap before their image; images, captions and prose move together. Page3 remains background only. Other20pages pixel identical at72dpi.",
+      "comparison": {
+        "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-nasa-media-comparison.json",
+        "sha256": "d03672319bbcf61d95cacc412a43194b8c879847c7fdbe74088e27b6e2148a80"
+      }
+    },
+    "qualificationLimit": "Six canonical API/Tool routes, two independent fixtures and selected H4 profile. Not all eleven unfamiliar-page intents, browser parity, full native acceptance, new package qualification or all-platform timing.",
+    "retainedEvidenceRoot": "Ignore/H10JobQualification/oversized-figure-5840c236c",
+    "cleanup": {
+      "removedVerifiedSupersededPaths": [
+        "browser-probe/bin",
+        "browser-probe/obj",
+        "nasa-trace",
+        "office-probe/bin",
+        "office-probe/obj",
+        "office-nasa-preview",
+        "tests/full-html-net10.trx",
+        "tests/full-html-net8.trx",
+        "candidate-source.json",
+        "Pagination.original"
+      ],
+      "approximateRemovedMiB": 220,
+      "retainedFixtureEvidenceBytes": 22010630,
+      "retainedPurpose": "Final and before-fix PDFs/fixtures/contacts, independent Chromium references, exact-source route comparisons, final suite TRX and failure logs. Normal shared build caches and unrelated worktrees preserved."
+    }
+  },
+  "standaloneMergeCheckpoint20261004": {
+    "observedUtc": "2026-10-04T03:15:00Z",
+    "merged": [
+      {
+        "pr": 2759,
+        "head": "a69416444f87c613daf5b0c875951d9c1eeb5cf3",
+        "merge": "f77b87f539d388731b33a5f9224b011957667f20",
+        "currentHeadChecks": {
+          "success": 86,
+          "skipped": 3
+        },
+        "delayedReviewClean": true,
+        "worktreeAndLocalBranchRemoved": true
+      },
+      {
+        "pr": 2760,
+        "head": "09cfba66067586da0d610b2e3ae13025c81d4e23",
+        "merge": "e3e3a26e52369471c21661ac229d12ef68de4698",
+        "currentHeadChecks": {
+          "success": 86,
+          "skipped": 3
+        },
+        "delayedReviewClean": true,
+        "worktreeAndLocalBranchRemoved": true
+      }
+    ],
+    "pendingAtSnapshot": [],
+    "completePaginatedReviewThreadsUnresolved": 0,
+    "prTextCurrent": true,
+    "masterIntegration": "Not performed here. Broader master convergence needs deliberate review/replay; merging two narrow owner fixes is not qualification of the remaining incoming master changes.",
+    "finalSnapshotUtc": "2026-10-04T04:45:39Z",
+    "additionalMerged": [
+      {
+        "pr": 2761,
+        "head": "7c3ee6df4d3b68bc8e2a12c24c28c1fdff2092c6",
+        "mergeCommit": "ba11468d4930d550aa5e17d40a7128f7c5b86148",
+        "mergedAt": "2026-10-04T04:46:53Z",
+        "checks": {
+          "success": 89,
+          "skipped": 3
+        },
+        "unresolvedThreads": 0
+      },
+      {
+        "pr": 2754,
+        "head": "27b323809f1a36b1b6dd7c1f240a4a6e9938ea31",
+        "mergeCommit": "3d92bdc924ac707de7dacc90b179efd808f46513",
+        "mergedAt": "2026-10-04T04:50:45Z",
+        "checks": {
+          "success": 90,
+          "skipped": 3
+        },
+        "unresolvedThreads": 0
+      }
+    ],
+    "additionalCleanup": {
+      "worktreesRemoved": [
+        "OfficeIMO-onenote-webp-media-type",
+        "OfficeIMO-pdf-logical-text-geometry"
+      ],
+      "localBranchesDeleted": [
+        "fix/onenote-webp-media-type",
+        "fix/pdf-logical-text-geometry"
+      ],
+      "absenceAndWorktreeRegistrationVerified": true,
+      "outsideProcessHandlesBeforeRemoval": 0,
+      "logicalTextEvidence": {
+        "location": "OfficeIMO-html-static-delivery/Ignore/StaticDeliveryQualification/merged-logical-text-3d92bdc924",
+        "files": 75,
+        "bytes": 42921880,
+        "manifestSha256": "831de7e848d2e097a44a393244665807aad92cbc3d217bc96183eddc3cd7cb44",
+        "copySha256Verified": true
+      }
+    },
+    "convergenceBoundary": "Focused fixes are merged and owned worktrees removed. H10 source is not converged to the current master; combined master replay remains a separate acceptance gate."
+  },
+  "trailingBoxPaddingQualification20261004": {
+    "baseline": "1c749e5d853144db52d26ea6cc3262334f2d8f24",
+    "state": "Bounded padding contract qualified locally; broader static delivery and H10 appearance/platform milestones remain open.",
+    "diagnosis": "Planetary ScreenMediaPaged page 3 prefix is final paragraph margin 16 CSS px plus primary container bottom padding 40 CSS px, with flex row gap zero. A flex used height must retain its authored auto-height trailing-decoration contract.",
+    "contract": "Keep the last content fragment with auto-height container bottom padding/border. A final child margin is spacing, not a content fragment. Preserve authored fixed-height behavior; do not discard padding, resize the figure or remove painted pages.",
+    "fixture": {
+      "path": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/padding-prefix.html",
+      "independentReference": "Test-only published HtmlTinkerX 3.0.3, Chromium 151, 400 by 400 CSS-pixel @page. Six pages; leading line 38 on page 3, oversized image begins on page 4.",
+      "before": "Six OfficeIMO pages with background alone on page 3.",
+      "after": "Six pages, line 38 on page 3; fitting image controls three pages. All 40 labels appear exactly once."
+    },
+    "validation": {
+      "focusedNet10Passed": 6,
+      "fullHtml": {
+        "net8": 4246,
+        "net10": 4246,
+        "h4HeldOutEachFramework": 8
+      },
+      "netstandardBuildWarnings": 0,
+      "netstandardBuildErrors": 0,
+      "independentReadOnlyReview": {
+        "agent": "block_tail_padding_review",
+        "fullPass": 1,
+        "findings": 0,
+        "targetedConfirmationNeeded": false,
+        "sourceDiffFingerprint": "ac10b525cb4cc4dbad5f53fbbea0f480504b21c4"
+      },
+      "normalCleanHeadBuilds": {
+        "ApiProbe": {
+          "warnings": 0,
+          "errors": 0
+        },
+        "OfficeIMO.Tool": {
+          "warnings": 0,
+          "errors": 0
+        }
+      },
+      "retainedSuiteResults": [
+        {
+          "path": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/tests/html-net8.trx",
+          "sha256": "65197790c7eb33971abb098ae9938714f7eb84b6473cf4368aa013bae74fe51f",
+          "passed": 4246,
+          "failed": 0
+        },
+        {
+          "path": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/tests/html-net10.trx",
+          "sha256": "971941acb8246a07663d5680b1db69729006b6af26809f3db12c183f1fb03088",
+          "passed": 4246,
+          "failed": 0
+        },
+        {
+          "path": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/tests/padding-focused.trx",
+          "sha256": "da6fe4b5b316e80201d8cd50e36afbb7230f057668428d6bb2fa893578194637",
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "additionalQualificationNotRun": [
+        "all-platform timing",
+        "new package matrix",
+        "all eleven historical intents",
+        "native applications",
+        "large master convergence"
+      ]
+    },
+    "candidateNasa": {
+      "pages": 22,
+      "decodedImagesAndLinkTargetsPerPageEqual": true,
+      "wholeTextTokenMultisetEqual": true,
+      "changedRawTextPages": [
+        2,
+        3,
+        14,
+        15
+      ],
+      "page15ImageAndLinkTranslationPdfPoints": -51.6,
+      "paintAlignmentObserved": true
+    },
+    "remaining": "NASA page 3 now has the final two prose lines but remains sparse. The independent fixture also defers the oversized image to the next page; no claim that browser/native appearance, wider corpus, all eleven historical PDF intents, all-platform timings or master convergence are complete.",
+    "retainedEvidence": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8",
+    "source": "f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+    "cleanSourceReplay": true,
+    "routes": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "decodedImagesAndLinkTargetsPerPageEqual": true,
+        "changedRawTextPages": [],
+        "linkRectangleChanges": []
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": false,
+        "baselineRawPopplerPerPageTextEqual": false,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 22,
+        "pdfSha256": "04240cae8b08761f2b36849feba784ff6e583dee4a979b8d796bd2952457ceec",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "decodedImagesAndLinkTargetsPerPageEqual": true,
+        "changedRawTextPages": [
+          2,
+          3,
+          14,
+          15
+        ],
+        "linkRectangleChanges": [
+          {
+            "page": 15,
+            "index": 0,
+            "before": {
+              "rect": [
+                72.0,
+                325.507,
+                523.276,
+                775.89
+              ],
+              "uri": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/2023/09/p/i/a/2/PIA21891_SaturnRings.png?w=1011&h=1009&fit=clip&crop=faces%2Cfocalpoint",
+              "action": "/URI",
+              "destination": null
+            },
+            "after": {
+              "rect": [
+                72.0,
+                273.907,
+                523.276,
+                724.29
+              ],
+              "uri": "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/2023/09/p/i/a/2/PIA21891_SaturnRings.png?w=1011&h=1009&fit=clip&crop=faces%2Cfocalpoint",
+              "action": "/URI",
+              "destination": null
+            }
+          }
+        ]
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 14,
+        "pdfSha256": "6da411b98b16f3356309c8343408531b93922718573765f8627c8d8e0df209bc",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "decodedImagesAndLinkTargetsPerPageEqual": true,
+        "changedRawTextPages": [],
+        "linkRectangleChanges": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "decodedImagesAndLinkTargetsPerPageEqual": true,
+        "changedRawTextPages": [],
+        "linkRectangleChanges": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "decodedImagesAndLinkTargetsPerPageEqual": true,
+        "changedRawTextPages": [],
+        "linkRectangleChanges": []
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Html.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+          "OfficeIMO.Pdf": "3.4.4+f2382c0d8b4815e0408471ae03cfa62da7aafba0"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "decodedImagesAndLinkTargetsPerPageEqual": true,
+        "changedRawTextPages": [],
+        "linkRectangleChanges": []
+      }
+    ],
+    "allPageVisuals": {
+      "source": "f2382c0d8b4815e0408471ae03cfa62da7aafba0",
+      "baseline": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+      "samePages": 18,
+      "changedPages": [
+        2,
+        3,
+        14,
+        15
+      ],
+      "perPage": [
+        {
+          "page": 1,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 2,
+          "pixelsEqualAt72Dpi": false
+        },
+        {
+          "page": 3,
+          "pixelsEqualAt72Dpi": false
+        },
+        {
+          "page": 4,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 5,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 6,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 7,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 8,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 9,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 10,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 11,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 12,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 13,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 14,
+          "pixelsEqualAt72Dpi": false
+        },
+        {
+          "page": 15,
+          "pixelsEqualAt72Dpi": false
+        },
+        {
+          "page": 16,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 17,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 18,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 19,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 20,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 21,
+          "pixelsEqualAt72Dpi": true
+        },
+        {
+          "page": 22,
+          "pixelsEqualAt72Dpi": true
+        }
+      ],
+      "contactSheet": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/geometry/final-all-pages.png",
+      "inspection": "All-page contact sheet and before/after pages 2, 3, 14 and 15 inspected. Image/link paint alignment checked against actual PDF cm/Do operators, clipping and annotation rectangles."
+    },
+    "retainedPurpose": "Independent fixture/source/Chromium PDF and before/final OfficeIMO PDFs, final full suite TRXs, final source API/Tool routes and all-page/changed-page visual evidence; superseded binaries and diagnostics removed.",
+    "cleanup": {
+      "removedPaths": 48,
+      "approximateRemovedMiB": 187.2,
+      "boundedReadOnlyRecoveryPaths": 3,
+      "absenceVerified": true,
+      "retainedFixtureEvidenceBytes": 14943320,
+      "finalApiToolRouteBytes": 51661869,
+      "manifest": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/cleanup-results.json",
+      "remainingEvidencePurpose": "Independent fixture/source/Chromium PDF and before/final OfficeIMO PDFs, final full suite TRXs, final source API/Tool routes and all-page/changed-page visual evidence; superseded binaries and diagnostics removed."
+    }
+  },
+  "nextConvergenceBoundary": {
+    "observedMaster": "3d92bdc924ac707de7dacc90b179efd808f46513",
+    "incomingCommits": 280,
+    "nextDeliverable": "Inspect current master and all worktrees, converge static/shared owners deliberately on an isolated owned milestone branch, resolve actual overlap and revalidate combined source before packages/hosted budgets and long-lived integration. Keep independent native-target fixes eligible for focused PRs when they do not need this larger runtime/static graph.",
+    "risk": "Incoming selected static/shared owners span 179 changed files (~7021 added/4591 removed lines). Prior narrow fix tests/review do not qualify this merge; use risk-appropriate read-only integration review for new interacting contracts.",
+    "preservedLongLivedHead": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
+    "qualifiedIntegrationNotPerformed": true
+  },
+  "defaultNativeTableWidthQualification20261005": {
+    "recordedUtc": "2026-10-05T17:21:32.956545+00:00",
+    "predeclaredSource": "12c99503b7aae7ac934728e5c3ba6fdf655c9a1b",
+    "scope": "Default native HTML table geometry, authored widths and containing-cell/section scope; wider native appearance and all operation losses remain separate.",
+    "observedBefore": {
+      "word": "Unstyled five-column native grid12000twips exceeds9360 body; independent LibreOffice clips the last column.",
+      "rtf": "Unstyled default boundaries12000 exceed8640 text area; independent LibreOffice clips Neptune/ring labels.",
+      "proof": "Ignore/MasterConvergenceQualification/native-table-width-12c99503b"
+    },
+    "candidate": {
+      "base": "e0e13a2403444f0d7a8b4d17a78491e3b60835fe",
+      "state": "Merged into master at b0cdc828399a639a261d4faae0bb565c93e09591; adoption into combined qualification source remains separate.",
+      "owner": "Word.Html default grids and typed CSS lengths, Word shared width scope, Html.Rtf logical boundaries and intrinsic cell images; no new public API/runtime dependency.",
+      "source": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2827",
+      "recordedWorktree": "../OfficeIMO-native-html-table-widths"
+    },
+    "review": {
+      "initialFingerprint": "805319184fea2d319a7a6de98686b1aa048d577d",
+      "full": "One independent read-only pass found3P2, all reproduced: wrapped host scope, sparse trailing rowspan logical boundaries, intrinsic-image refitting.",
+      "confirmation": "Initial targeted pass confirmed3original fixes and exposed authored-percent scope. Canonical Word scope owner implemented and independently reviewed.",
+      "remaining": "Selected standalone PR is merged and cleaned; combined-source adoption and wider native appearance remain separate gates.",
+      "canonicalWordOwner": "One scoped full plus targeted pass exposed shared-story selected section and annotation lifetime defects (resave/move). Both reproduced by3 failing regressions, fixed;18focused net10 and61focused net8 passed.",
+      "closure": "One bounded read-only lifetime/inherited-reference closure audit found inherited shared stories. Four before regressions fail, after22 width cases pass; effective per-type inherited references now followed. No unaddressed validated scope finding. No new API/dependency."
+    },
+    "nativeEvidence": "Ignore/MasterConvergenceQualification/merged-native-table-widths-b0cdc8283",
+    "adjacentTableObservation": {
+      "fixture": "Two immediately adjacent table excerpts without separating content save/reopen as one RTF table with all rows retained.",
+      "sourceDistinction": "Frozen planetary source has intervening heading/prose/figures; separated two-table controls retain21 independently transcribed rows.",
+      "disposition": "Existing RTF table ownership gap remains in Docs/ROADMAP.md; no unrelated writer edit in width candidate."
+    },
+    "remaining": [
+      "Qualified integration and whole-source native replay",
+      "Excel/PPT/OneNote appearance and ownership",
+      "Native application/manual accessibility and source operation loss acceptance"
+    ],
+    "baselineFailures": {
+      "fontContracts": "Six full HTML font assertions fail identically in focused untouched e0 base control; unrelated source font fixes remain in convergence.",
+      "rowHeight": "Exact-row PDF gap assertion fails identically on untouched e0 base: exact18/atLeast33; source/threshold unchanged.",
+      "net8DeepTextBox": "Full Word .NET8 run aborts with AppendVisibleText stack overflow; untouched e0 focused deep-textbox export control reproduces same stack/test. Trace/sequence retained; not caused or fixed by table width.",
+      "proof": "../OfficeIMO-native-html-table-widths/Ignore/NativeTableWidthQualification/base-controls"
+    },
+    "cleanup": {
+      "baseControlWorktreeRemoved": true,
+      "compactControlProofFiles": 8,
+      "discardedDuplicateCrashDumpBytes": 14719722224,
+      "crashTraceAndTestSequencePreserved": true,
+      "publicationGeneratedTargets": 94,
+      "publicationGeneratedBytesRemoved": 2443690697
+    },
+    "validation": {
+      "widthCases": {
+        "net8": 22,
+        "net10": 22,
+        "failed": 0
+      },
+      "rtfFull": {
+        "net8": 942,
+        "net10": 942,
+        "failed": 0
+      },
+      "htmlFullNet10": {
+        "passed": 3253,
+        "failed": 6,
+        "failedUntouchedBaseControls": 6
+      },
+      "wordTableSectionStoriesNet8": {
+        "passed": 1088,
+        "failed": 1,
+        "skipped": 2,
+        "failedUntouchedBaseControl": 1
+      },
+      "baselineWordNet8Abort": "Retained deep textbox base reproduction; not a passing full-suite claim."
+    },
+    "packedPublicProof": {
+      "receipt": "../OfficeIMO-native-html-table-widths/Ignore/NativeTableWidthQualification/packed-clean-2fdf11d55/packed-origin-receipt.json",
+      "sha256": "08bc4b1e641948af550d6547752e30ae2c21282a278e085732d53e9b9d065c9a",
+      "packages": 8,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "executedConsumers": [
+        "native-consumer/net8",
+        "native-consumer/net10",
+        "scope-consumer/net8",
+        "scope-consumer/net10"
+      ],
+      "all21DeclaredFiveColumnRowsSourceOrdered": true,
+      "inheritedHeaderFooterSaveReloadGridTwips": 5000,
+      "nativeRendering": "Final packed Word/RTF and inherited stories inspected in independent LibreOffice. Final-column clipping closed in bounded controls; RTF trailing blank page and wider native acceptance remain separate."
+    },
+    "publicationSnapshot": {
+      "head": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
+      "completePaginatedThreads": true,
+      "unresolvedThreads": 0,
+      "reviewComments": 0,
+      "ci": "Queued/running immediately after publication; no failure at that snapshot. Delayed exact-head check remains."
+    },
+    "mergeAndCleanup": {
+      "mergedUtc": "2026-10-05T18:57:51Z",
+      "mergeCommit": "b0cdc828399a639a261d4faae0bb565c93e09591",
+      "exactHead": "2fdf11d55ad19d06676d9a87d6c48faf16c572ef",
+      "currentHeadChecks": {
+        "success": 91,
+        "skipped": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "completeDelayedFeedback": "All review-thread pages/nested comments, raw comments/reviews and PR reactions checked; no actionable or unresolved feedback. PR text accurate.",
+      "preservationManifest": "Ignore/MasterConvergenceQualification/merged-native-table-widths-b0cdc8283/preservation-manifest.json",
+      "preservationManifestSha256": "09a067f869eff8aa248e2044c28efa280d5f0573754d8dec1e82344296c09e95",
+      "preservedFiles": 878,
+      "preservedBytes": 94462233,
+      "cleanup": "Owned ordinary worktree/local branch removed without force; remote branch auto-deleted; path and registration absence verified. Larger HTML branches and unrelated worktrees unchanged."
+    }
+  },
+  "excelNativeLabelNextSlice20261005": {
+    "predeclared": "Ignore/MasterConvergenceQualification/excel-native-labels-inspection-96d76110c/predeclared-next-slice.json",
+    "sha256": "0a7427ace2ebf512d2921680a7c917e56db6641a0014dda9db7571e3896f65d7",
+    "historicalArtifactSource": "fe05c0413",
+    "observation": "First-column labels are visibly clipped in the independently rendered five-column XLSX. Saved data is complete; no explicit column widths or wrap flags exist in either table worksheet. Current source owner formats only unspanned two-column generic tables.",
+    "boundary": "Historical native evidence, not current-source acceptance; reproduce a small current public fixture before a patch. Generic worksheet grids do not promise named Excel table objects. Preserve explicit workbook profile metadata and spans separately.",
+    "currentPublicReproduction": {
+      "head": "595767efff0a810dcfb0e90dc1237c266204cf6d",
+      "proof": "Ignore/MasterConvergenceQualification/excel-native-labels-inspection-96d76110c/current-public-native-reproduction.json",
+      "sha256": "4d3da04bdf0909b40606620623daf12c96b1f39e7f7ea6ebb2ae7c63a7b8bf92",
+      "storedCellValues": "Exact after save/reopen, all three fixtures.",
+      "independentAppearance": "Two-column control complete; three/five visibly clip first-column long label against the populated neighbor. No column widths/heights on affected grids; HasLoss false.",
+      "next": "Implement and review bounded default presentation in canonical Excel.Html/Excel sizing owners, then independent before/after native proof. No product sizing code changed in this slice.",
+      "cleanup": {
+        "targets": 15,
+        "bytes": 194891042,
+        "allAbsent": true
+      }
+    }
+  },
+  "excelGenericNativePresentationQualification20261005": {
+    "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+    "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+    "scope": "Generic worksheet default column/row presentation and shared wrapped row estimates; additive batch width owner.",
+    "sourceOrder": {
+      "nativeBaselineRawCells": 106,
+      "independentlyDeclaredSourceRows": 21,
+      "allCoordinatesAndValuesEqual": true
+    },
+    "nativeAppearance": {
+      "controls": "Two/three/five-column fixtures and both NASA table pages, independently rendered with LibreOffice26.8alpha0 and inspected.",
+      "rowFit": "Bold/plain/inline-bold fixtures retain complete labels and short control.",
+      "limit": "No native desktop Excel, full-article, manual accessibility or named-table claim."
+    },
+    "reviews": {
+      "full": "One fresh read-only full pass found candidate-introduced P2 repeated serialization.",
+      "confirmation": "One targeted pass confirmed owner batching and accepted additive API, no remaining finding.",
+      "allowancesUsed": true
+    },
+    "tests": {
+      "priorNet8": "5285passed/5skipped before batch remediation",
+      "priorNet10": "5285passed/5skipped before batch remediation",
+      "finalNet10": "5292passed/5skipped; stable remediation bytes compiled before its metadata-only commit",
+      "focusNet10": "48passed",
+      "adapterNet10": "84passed; normal current-source build",
+      "finalNet8": "5292 passed/5 skipped; normal rebuilt current source",
+      "adapterNet8": "142 passed/0 skipped; normal rebuilt current source, filter FullyQualifiedName~Excel"
+    },
+    "batchSaveProof": {
+      "before": {
+        "columns": 64,
+        "cells": 256,
+        "worksheetSaves": 64,
+        "expectedBatchSaves": 1,
+        "timingMeasured": false
+      },
+      "after": {
+        "columns": 64,
+        "cells": 256,
+        "worksheetSaves": 1,
+        "expectedBatchSaves": 1,
+        "timingMeasured": false
+      }
+    },
+    "proofHashes": {
+      "excel-final-net10.trx": "fd3bd67cc444e0d4c82722c6e8c2e2603dfbe84e8fba843fb05311c5774709a1",
+      "excel-html-final-net10.trx": "3b1f9e954aca9b1b487aa9805548d19312a74e225f95cd203bda9e80b7c84619",
+      "column-batch-autofit-net10.trx": "90b80f1672210980723a032737cb830df5a8bc6e704338a23a92df71a9b12f31",
+      "final-native-table-acceptance.json": "abdc3f6792e663094160e046eaeab38694a1b4fc4d9db01863305053a8c5b05e",
+      "row-fit-native-appearance.json": "3f25eba37dcb1e4a949d1bdfd9fe7107108864b05eb7cace615763a98452aded",
+      "excel-final-net8.trx": "5504a0deb7949a0bf49daf845e85721b6192efe32b5487a1ed130b0523dd273b",
+      "excel-html-final-net8.trx": "cb3673ba7686da86f84608089a122e4278c203b671fa9f231bbe699578edefbf",
+      "packages-final/package-hash-receipts.json": "14f4a8469f6a0b886fef7bcf7c52393e9472e54184cb9096c3c98487b96ac2fa",
+      "packages-final/packed-consumer-receipts.json": "6fc8a07d60d19aa26617e9ecda92e208df884efd2d07f88e40ef95f6d9d1d3ad"
+    },
+    "pending": [
+      "Current-head PR CI/delayed complete feedback and authorized merge/cleanup",
+      "Qualified combined-source adoption and wider H10/native/platform budgets"
+    ],
+    "setupFailuresRetained": [
+      "Event observer initially compared root instead of WorksheetPart; corrected actual saves64/1.",
+      "First scratch pack argument interpreted encoded semicolons as one target; corrected to existing quoted TargetFrameworks pattern.",
+      "Initial strict XML byte observer rejected generated hyperlink ID differences. Node-level delta showed only IDs; each resolved target/type/mode matches with all other nodes exact."
+    ],
+    "cleanup": {
+      "obsoletePrivateBuildTargets": 6,
+      "bytesRemoved": 85311514,
+      "actualNativeErrorsRecovered": 3,
+      "allAbsent": true,
+      "publicationBuilds": {
+        "targets": 83,
+        "bytes": 1753064653,
+        "actualNativeErrorsRecovered": 43,
+        "allAbsent": true,
+        "record": "publication-build-cleanup-results.json",
+        "sha256": "aae7bafc36378ef827ea76e76eff31a11339982e320a67c622ad195c688d5581"
+      }
+    },
+    "packages": {
+      "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+      "count": 6,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "normalPack": true,
+      "sourceCommitsAndAllSixHashesVerified": true,
+      "coreRuntimeDependencyCount": 0,
+      "consumerNet8": "Saved/reopened fixtures and frozen source; six actual loaded DLLs match feed hashes/source versions, isolated installed origins exact.",
+      "consumerNet10": "Same public contracts and hash/origin checks pass.",
+      "nativeInputComparison": "Geometry/styles/text/theme and resolved links equal to independently inspected C11 native input; generated hyperlink IDs differ. No text normalization or all-byte claim.",
+      "receipt": "packages-final/packed-consumer-receipts.json",
+      "windowsBoundary": "Local net472 is cross-compilation; hosted native Windows execution still required."
+    },
+    "candidate": {
+      "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2838",
+      "source": "c535d2f5a6442e8a8396be68aeced429469b9bd8",
+      "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+      "worktree": "../OfficeIMO-excel-html-generic-table-presentation",
+      "status": "Consolidated complete review wave fixed and validated; allinline threads replied/resolved, current-head CI and delayed review required. Deliberate combined-owner adoption performed and final proof being finished."
+    },
+    "proofRoot": "../OfficeIMO-excel-html-generic-table-presentation/Ignore/ExcelGenericPresentationQualification",
+    "qualificationReceiptSha256": "9853facd4b493eea8d205b0a1c80d1c3a30a29a4070cc91c483f24377232f9a1",
+    "latestReviewClosure": {
+      "source": "c535d2f5a6442e8a8396be68aeced429469b9bd8",
+      "fullEachFramework": "5301passed/5skipped",
+      "review": "Independent full closure plus targeted confirmation, no remaining findings",
+      "fixedInvariants": [
+        "BestFit only actualautofit",
+        "Manual single-column change preserves adjacent range metadata",
+        "Sparse wrap applies one canonical conditional write lock and contained style batch",
+        "Cross-sheet same-workbook nested lock and sparse no-materialization regression"
+      ],
+      "normalPackages": 6,
+      "publicConsumers": 2,
+      "sourceOrder": "21rows106rawcells;3worksheets values preserved",
+      "completeReceipt": "../OfficeIMO-excel-html-generic-table-presentation/Ignore/ExcelGenericPresentationQualification/review-wave-20261005/final-remediation-receipt.json",
+      "cleanupBytes": 1215949651,
+      "cleanupTargets": 32
+    }
+  },
+  "powerPointLinkedHeaderReproduction20261005": {
+    "proofRoot": "Ignore/MasterConvergenceQualification/ppt-native-header-current-a8df20d61",
+    "observations": {
+      "source": "a8df20d614892d1c053f520089e5e14e35d41957",
+      "controls": "Plain unlinked header and authored hex dark/light fill/text controls are readable.",
+      "linkedHeaders": "Minimal unstyled links and all four exact source-fragment slides render low-contrast blue header links; source row cells/targets not yet fully accepted by independent machine observer.",
+      "schema": "Supported authored dark #123456 / white #ffffff linked header returns two OpenXmlValidator unexpected solidFill errors. Header color is appended after hlinkClick by the shared PowerPointTextRun.Color setter; other five produced fixtures return zero schema errors.",
+      "native": "Supported authored white header link still paints blue in independent LibreOffice; no claim that schema order alone explains the separate valid unstyled-header contrast failure.",
+      "next": "Separate master-based fix: reproduce public run color/font/highlight-after-link schema ordering, sweep reachable shared setters; then preserve inherited/explicit text color for generic repeated header links through canonical table/style owner. Keep targets, underlines, explicit inline colors, row order, merges and native fragment safety.",
+      "boundary": "Bounded native LibreOffice projection; no desktop PowerPoint, full-article, accessibility or browser parity.",
+      "orderOnlyNativeControl": "Independent test-only control moves existing white solidFill before hlinkClick; text/attributes/targets are unchanged. Native LibreOffice still paints blue links. Schema ordering is a separate observed writer defect and must not be claimed to fix header contrast."
+    },
+    "preservationManifestSha256": "2c74a435692ed81372f12ba2ddf0d34b30ee9b5f8080453a5bc9f79c59a624cb",
+    "files": 61,
+    "bytes": 1021960,
+    "activeSharedWriterSlice": {
+      "worktree": "../OfficeIMO-powerpoint-run-format-order",
+      "branch": "fix/powerpoint-run-format-order",
+      "base": "24b7a28ac41a1e144cc42cb52c2cf577e103919a",
+      "source": "f3784a939457a20adf4c6adc80c27e401d02a424",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2840",
+      "scope": "Shared run/box/cell/chart formatting and hyperlink/sound schema order only; native header hyperlink contrast remains a separate criterion.",
+      "validation": {
+        "before": "Four run-order, two box/cell and four imported chart title/legend cases reproduce schema/font preservation failures.",
+        "after": "Full PowerPoint 2144 passed and 2 existing opt-in skips on each net8/net10; normal six four-target packages and both public packed consumers produce twelve schema-valid artifacts each, with exact six-owner origin/DLL hash receipts.",
+        "review": "One fresh read-only full pass and targeted chart-sibling confirmation complete; no remaining actionable finding.",
+        "native": {
+          "checkedUtc": "2026-10-05T21:28:48.544217+00:00",
+          "application": "Microsoft PowerPoint 16.112.4",
+          "source": "f3784a939457a20adf4c6adc80c27e401d02a424",
+          "artifact": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification/packages-final/consumer-net10/linked-dark.pptx",
+          "sha256": "5024c89517ab31cb00e3d3a8ca6e5c0e1b21f28999a8f2cd9c0f3fe2c6747999",
+          "openedWithoutRepair": true,
+          "appearance": "Quantity white; Mercury and Venus dark teal on dark blue as in the independent pre-fix order-only control. Native linked-header contrast not changed or claimed fixed.",
+          "closure": "Cmd-W closed owned document; subsequent observation returned noWindowsAvailable. App inventory retains running PowerPoint process; user app not quit.",
+          "boundary": "Native open/visual observation of one packaged fixture, not full native/manual accessibility acceptance."
+        },
+        "boundary": "Hosted native Windows net472, current-head CI and delayed PR feedback remain required; standalone proof is not combined H10 adoption or header-contrast acceptance."
+      },
+      "evidenceRoot": "../OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification",
+      "cleanup": {
+        "manifest": "publication-build-cleanup-results.json",
+        "targets": 27,
+        "bytes": 972335067,
+        "actualFilesystemRecoveries": 15,
+        "allAbsent": true
+      },
+      "next": "Current-head CI/delayed feedback then merge and preserve unique evidence before owned worktree removal."
+    },
+    "nativeColorProducer20261005": {
+      "application": "Microsoft PowerPoint 16.112.4",
+      "evidence": "../OfficeIMO-powerpoint-run-format-order/Ignore/PowerPointRunFormatQualification/native-color-edit-observations.json",
+      "observation": "Native white text-color override produces DrawingML hlinkClr val=tx under extension URI {A12FA001-AC4F-418D-AE19-62706E023703}; Mercury is white/underlined while unchanged Venus retains theme hyperlink color.",
+      "boundary": "Independent native producer and compatibility controls are preserved with the separate hyperlink-color owner proof; combined H10 adoption remains open."
+    },
+    "activeHyperlinkColorSlice": {
+      "recordedUtc": "2026-10-05T22:07:04.715964+00:00",
+      "worktree": "../OfficeIMO-powerpoint-hyperlink-text-color",
+      "branch": "fix/powerpoint-hyperlink-text-color",
+      "source": "d6f82ffe6f2acaaf5fd8a20d314eedc7d34c4c85",
+      "behaviorSource": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+      "base": "f3784a939457a20adf4c6adc80c27e401d02a424",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2841",
+      "stack": "https://github.com/EvotecIT/OfficeIMO/issues/2842",
+      "scope": "Canonical PowerPoint native hyperlink text/inherited/theme choice; generic and repeated HTML headers inherit native style; both semantic round-trip paths preserve the explicit true/false policy. No new dependency.",
+      "validation": {
+        "recordedUtc": "2026-10-05T22:00:05.291507+00:00",
+        "behaviorSource": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+        "currentSource": "d6f82ffe6f2acaaf5fd8a20d314eedc7d34c4c85",
+        "finalDifference": "README/XML remarks and four assertions clarify/test the preserved Color=null policy; no product behavior changed.",
+        "frameworkTests": {
+          "full-powerpoint-net10": {
+            "total": "2153",
+            "executed": "2151",
+            "passed": "2151",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "full-powerpoint-net8": {
+            "total": "2153",
+            "executed": "2151",
+            "passed": "2151",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "focused-html-net8": {
+            "total": "34",
+            "executed": "34",
+            "passed": "34",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "policy-clear-net10": {
+            "total": "7",
+            "executed": "7",
+            "passed": "7",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          },
+          "policy-clear-net8": {
+            "total": "7",
+            "executed": "7",
+            "passed": "7",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        "standard-powerpoint": {
+          "warnings": 0,
+          "errors": 0
+        },
+        "standard-powerpoint-html": {
+          "warnings": 0,
+          "errors": 0
+        }
+      },
+      "packageProof": {
+        "packages": 6,
+        "targets": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "consumers": [
+          "net8.0",
+          "net10.0"
+        ],
+        "artifacts": 24,
+        "sixLoadedOwnerHashesAndPrivateFeedOriginVerified": true,
+        "receipt": "packages-final/packed-consumer-receipts.json",
+        "boundary": "Native Windows net472 execution remains a CI gate."
+      },
+      "review": {
+        "reviewedSource": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+        "base": "f3784a939457a20adf4c6adc80c27e401d02a424",
+        "reviewer": "powerpoint_hyperlink_color_review",
+        "mode": "Fresh strictly read-only independent owner review",
+        "scope": [
+          "Native policy/extension ownership",
+          "Color-before/after link creation and target replacement",
+          "Sound/relationship/schema preservation",
+          "HTML header styles and semantic true/false round trips",
+          "Public API/dependency fit",
+          "Independent retained native control byte/paint proof"
+        ],
+        "actionableFindings": [],
+        "clarification": "Color=null intentionally preserves the independent native color policy. README and XML docs clarified; existing meaningful policy regression extended and passes on net8/net10. No product behavior change.",
+        "confirmation": "Not required for documentation and directly observed test assertion; no second full pass.",
+        "boundary": "Older-reader paint remains unqualified; exact current native fixtures observed by primary."
+      },
+      "native": {
+        "checkedUtc": "2026-10-05T22:04:39.741458+00:00",
+        "source": "d6f82ffe6f2acaaf5fd8a20d314eedc7d34c4c85",
+        "application": "Microsoft PowerPoint 16.112.4",
+        "artifact": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-powerpoint-hyperlink-text-color/Ignore/PowerPointHyperlinkColorQualification/packages-final/consumer-net10/linked-dark.pptx",
+        "sha256": "7e1a8ab860c45b1e8e092c63d81cde6611c5959af85febdad71f5a95e6a0e9a4",
+        "openedWithoutRepair": true,
+        "appearance": "White underlined Mercury and Venus links on authored dark #123456 header, matching Quantity; original table/body geometry and values retained. Inspected at 1600x900.",
+        "closure": "Cmd-W closed the owned document. PowerPoint kept its empty start screen despite close/Escape/Cancel, so the otherwise document-free validation application was quit through its native Cmd-Q. Subsequent process and artifact-handle inspection found neither PowerPoint nor open fixture handles.",
+        "boundary": "One exact packed native document, not all readers/manual accessibility. Earlier f41 project-reference default header and all eight LibreOffice fixture pages remain independent complementary proof."
+      },
+      "independentNativeFixtures": {
+        "source": "f41ee6890bd164521a3918b46ce2d3c90c2ded42",
+        "comparedWith": "f3784a939457a20adf4c6adc80c27e401d02a424",
+        "observations": [
+          {
+            "name": "linked",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 2,
+            "afterSha256": "dedcf977559e136f07a66faa7f3286eff4715bac2be58aae41216cf8aed86c30"
+          },
+          {
+            "name": "linked-dark",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 2,
+            "afterSha256": "e2644c64d7be797c679c45be903680be2b75251815c36565804f7e185b5dd36e"
+          },
+          {
+            "name": "light",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 0,
+            "afterSha256": "0479d380cd861c3eead85899669a27657c278d61ac425efe4e15f1db69d076a3"
+          },
+          {
+            "name": "source-tables",
+            "slideCount": 4,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 20,
+            "afterSha256": "e924b47ec1169dd77e11ffa4680b3467874e9636019cadce5eb4e69ffe62546b"
+          },
+          {
+            "name": "formatted-table",
+            "slideCount": 1,
+            "textGeometryAndResolvedHyperlinkRelationshipsPreserved": true,
+            "nativeTextColorExtensions": 2,
+            "afterSha256": "2fc40fcd5c4f8a22a746f7490dfa1e29fdd4b7b2ba6d37e8fa78ec002d48c394"
+          }
+        ],
+        "visuals": "All eight rendered fixture pages inspected at 1200px. Default/dark linked headers white; light authored header dark; four NASA table pages have legible linked repeated headers. Highlighted white label preserved as authored.",
+        "observerCorrections": [
+          "Compare xfrm extents rather than metadata extension nodes.",
+          "Resolve randomly generated hyperlink relationship ids to type/target/mode; raw id byte equality is not a cross-generation invariant."
+        ],
+        "boundary": "Native file geometry/resources and actual rendered fixture observations; not all readers or manual accessibility."
+      },
+      "cleanup": {
+        "targets": 77,
+        "bytes": 1830409806,
+        "actualFilesystemRecoveries": 41,
+        "allAbsent": true,
+        "preserved": "Six package feed, installed origin/hash receipts, original before-failures, final TRX, public native artifacts, independent producer/compatibility controls and final PDF/PNG visuals."
+      },
+      "evidenceRoot": "../OfficeIMO-powerpoint-hyperlink-text-color/Ignore/PowerPointHyperlinkColorQualification",
+      "next": "Exact-head hosted CI and delayed complete feedback, lower writer dependency settlement, then merge/preserve proof/owned worktree cleanup. Combined H10 source and broader native/profile acceptance remain separate.",
+      "currentHead": "e9038b96bf7792e73222f2c8e5d64416e5c37167",
+      "generatedGuidanceFix": {
+        "productBehaviorChanged": false,
+        "generator": "Build/CompatibilityCatalog",
+        "verifiedCatalogArtifacts": 18,
+        "verifiedPackageReadmeProjections": 67,
+        "cause": "Appended guidance was after generated block; canonical projection moves user guidance before final generated block.",
+        "status": "Published; new exact-headCI/delayed gate required."
+      }
+    }
+  },
+  "combinedNativeOwnerQualification20261006": {
+    "cleanSource": "d3e7381374decba717b5c36ebc35a22e9c67593d",
+    "normalPublicSourceControl": "Combined native owner only; unchanged Core/math/static source since12c, exact8owner packages stillpending.",
+    "codeScope": [
+      "Neutral-row/view shared master subset",
+      "Required direct XLSB default-view validator contract",
+      "Excel sparsewrap/manualwidth lock/preservation",
+      "PowerPoint ordered font/hyperlink/color extension ownership"
+    ],
+    "review": "One nonoverlapping integration full pass plus one targeted confirmation; P2 default-view/direct-write mismatch reproduced and fixed. Prior Excel/PPT full+targeted boundaries retained.",
+    "independentNativeObservations": "Five current Excel native table pages pixel-identical to c535 standalone; all3 sheets preserve values,21table rows106cells;12PPT native artifacts preservegeometry/links/actions and8native appearance pages.",
+    "operationLimits": "Whole planetary Excel article remains HasLoss=true; limited tablecontrolsfalse. Does not establish native app whole-article/browser/manual-accessibility acceptance.",
+    "measurementPolicy": "FourPPTstopwatch envelopes retainoriginal work/ceilings in existing opt-in lane; ordinary chartcolors/topology/compound metadata contracts retained. Original30.311s and10.872s failures retained.",
+    "frameworkResults": {
+      "sourceBeforeOptionalTimerAlignment": "ca099b420",
+      "sourceNow": "d3e7381374decba717b5c36ebc35a22e9c67593d",
+      "frameworks": {
+        "combined-ppt-qualified-net10": {
+          "total": "2144",
+          "executed": "2142",
+          "passed": "2142",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-ppt-qualified-net8": {
+          "total": "2144",
+          "executed": "2142",
+          "passed": "2142",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-native-html-net10": {
+          "total": "312",
+          "executed": "312",
+          "passed": "312",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-native-html-final-net8": {
+          "total": "312",
+          "executed": "312",
+          "passed": "312",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-xlsb-neutral-net10": {
+          "total": "249",
+          "executed": "249",
+          "passed": "249",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "combined-xlsb-neutral-net8": {
+          "total": "249",
+          "executed": "249",
+          "passed": "249",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        }
+      },
+      "boundary": "Later test-only conditional stopwatch.Stop position matches original opt-in measurement scope. Ordinary compiled paths and native runtime owners unchanged."
+    },
+    "packages": {
+      "count": 8,
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "publicConsumers": 4,
+      "freshFeedAndSourceDllOriginsVerified": true,
+      "receipt": "packages-clean-d3e738137/origin-hash-verification.json",
+      "receiptSha256": "b9b614db9f9debd9de15e61b1e1251b71fb3fcb9a8ff4ff8cb06ce445cd699e5",
+      "nativeArtifacts": "packed-native-independent-preservation.json",
+      "boundary": "Four-target packages and both native consumers onnet8/net10; native Windowsnet472 and larger nineteen-owner/package/timing adoption remain separate."
+    },
+    "requiredRemaining": [
+      "Current-head standalone CI/delayed review/merge and ownedworktreecleanup",
+      "Supported-platform unchanged timing ceilings remain failed for source/control",
+      "Named native app/wider corpus/resources/allintents/manualaccessibility",
+      "Qualified long-lived branch synchronization"
+    ],
+    "retainedProofRoot": "Ignore/MasterConvergenceQualification/next-native-owner-adoption",
+    "cleanup": {
+      "targets": 143,
+      "bytesRemoved": 3536137080,
+      "allAbsent": true,
+      "nativeFilesystemRecoveries": 77,
+      "retainedNativeEvidenceBytes": 56295546,
+      "preserved": [
+        "Eight normal four-target package feed",
+        "All fresh private-feed/installed-origin/source/DLL hash receipts",
+        "Original measurement and scratch setup failures",
+        "Full final framework TRX",
+        "Independent native fixtures/screens/PDFs and structure/source-order observations",
+        "Probe source and source archives"
+      ],
+      "scope": "No unrelated worktree/source edit/sharedcache/UI state changed."
+    }
+  },
+  "excelNativeOwnershipAndLossQualification20261006": {
+    "recordedUtc": "2026-10-06T02:04:31.912661+00:00",
+    "combinedSource": "b3ae1f35ba3b3da27082585f1891bfae8102473d",
+    "standaloneQualifiedBehavior": "493c7f37f09366d1b993ff4af4262b4efca9aad3",
+    "standalonePublishedHead": "c6a354b8b8150d89862090d1afb905e02e57dede",
+    "pullRequest": "https://github.com/EvotecIT/OfficeIMO/pull/2849",
+    "scope": "Truthful native named-table omission reports, selected/deferred table ownership and package-scoped worksheet inspection; no named-table reconstruction.",
+    "observedBefore": {
+      "nativeDefinitionsBefore": 1,
+      "nativeDefinitionsAfter": 0,
+      "cellValuesPreserved": true,
+      "exportHasLoss": false,
+      "reportDefect": "Named-table metadata was omitted without loss classification.",
+      "publicLifetime": "Saving reloaded the package; old worksheet.GetTables returned an empty snapshot while document.GetTables retained OrdersTable."
+    },
+    "implemented": "Existing snapshot owner materializes deferred definitions; exported worksheet scope drives diagnostics; stale/removed worksheet scope is rejected explicitly. Reacquire the current worksheet after a package-reloading save.",
+    "validation": {
+      "standaloneBroadExcelBeforeLateGuard": {
+        "net8Passed": 5287,
+        "net10Passed": 5287,
+        "skippedEach": 5,
+        "source": "c309e3c359eea79661571dca94a0486f12e022ed"
+      },
+      "finalStandaloneLifetimeAndAdapters": {
+        "source": "493c7f37f09366d1b993ff4af4262b4efca9aad3",
+        "runs": [
+          {
+            "run": "lifetime-final-excel-net10",
+            "counters": {
+              "total": "63",
+              "executed": "63",
+              "passed": "63",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          {
+            "run": "lifetime-final-html-net10",
+            "counters": {
+              "total": "131",
+              "executed": "131",
+              "passed": "131",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          {
+            "run": "lifetime-final-excel-net8",
+            "counters": {
+              "total": "63",
+              "executed": "63",
+              "passed": "63",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          },
+          {
+            "run": "lifetime-final-html-net8",
+            "counters": {
+              "total": "131",
+              "executed": "131",
+              "passed": "131",
+              "failed": "0",
+              "error": "0",
+              "timeout": "0",
+              "aborted": "0",
+              "inconclusive": "0",
+              "passedButRunAborted": "0",
+              "notRunnable": "0",
+              "notExecuted": "0",
+              "disconnected": "0",
+              "warning": "0",
+              "completed": "0",
+              "inProgress": "0",
+              "pending": "0"
+            }
+          }
+        ]
+      },
+      "normalStandalonePackages": {
+        "owners": 6,
+        "targets": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "packedPublicControlsEachFramework": 13,
+        "exactLocalFeedOriginsPackageHashesAndLoadedDllHashes": true,
+        "coreExternalRuntimeDependencies": 0,
+        "nativeWindowsExecutionStillCIRequired": true
+      },
+      "combinedFocusedRuns": [
+        {
+          "run": "main-current-excel-net8.0",
+          "counters": {
+            "total": "63",
+            "executed": "63",
+            "passed": "63",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        {
+          "run": "main-current-html-net8.0",
+          "counters": {
+            "total": "166",
+            "executed": "166",
+            "passed": "166",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        {
+          "run": "main-current-excel-net10.0",
+          "counters": {
+            "total": "63",
+            "executed": "63",
+            "passed": "63",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        },
+        {
+          "run": "main-current-html-net10.0",
+          "counters": {
+            "total": "166",
+            "executed": "166",
+            "passed": "166",
+            "failed": "0",
+            "error": "0",
+            "timeout": "0",
+            "aborted": "0",
+            "inconclusive": "0",
+            "passedButRunAborted": "0",
+            "notRunnable": "0",
+            "notExecuted": "0",
+            "disconnected": "0",
+            "warning": "0",
+            "completed": "0",
+            "inProgress": "0",
+            "pending": "0"
+          }
+        }
+      ],
+      "combinedNormalStandardBuild": "0warnings/0errors",
+      "combinedProjectReferenceConsumersEachFramework": 13,
+      "combinedLoadedDLLsMatchCurrentOwnerOutputs": true,
+      "combinedFreshPackageOrHostedQualification": false
+    },
+    "independentArtifacts": {
+      "pngPayloadSha256": "a25b5ef4e1e66694bf0f48656df4a87d0722231b01dfc1b17185069c317479fe",
+      "bothFrameworksExactPngAndSourceOrderNativeCellValues": true,
+      "imageHyperlinkOmissionCorrectlyReported": true,
+      "nativeNamedTableDefinitionStillNotReconstructed": true,
+      "genericHtmlTableIdDoesNotPromiseNamedExcelTable": true,
+      "nativeApplicationAppearanceClaim": false
+    },
+    "reviews": {
+      "initialFullAndTargeted": "TwoP2 reproduced/fixed: deferred definitions and visual worksheet selection. Confirmation clean.",
+      "newNonoverlappingLifetimeFull": "Fresh closure for actual packed consumer stale-handle gap; no findings, targeted confirmation unused.",
+      "newSHAAloneReviewNotRepeated": true
+    },
+    "publication": {
+      "normalReadyPR": true,
+      "currentExactHeadInitialFeedbackUnresolved": 0,
+      "delayedHeadCIAndFeedbackStillRequired": true,
+      "manualHostedReviewRequested": false
+    },
+    "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+    "artifactHashes": {
+      "main-current-framework-validation.json": "97e56382668d9f196da37f298a7d7d5df596f3aa4a2e289b4e09326196a4fa60",
+      "main-current-b3ae1f35b/independent-native-observation.json": "8ef6ce0a256bff496b6d385600f39d405d4dd367cbe3527ba0f4f4a791dca881",
+      "baseline-package-origin-receipt.json": "74530f380ff190771690f6077b21b3be2da209a619d04474279e5663ee4a11b9",
+      "independent-native-observation.json": "873bc23dc3068721c39d10e5a6829c8cd6304d413119b731b90dcf32c543cb82",
+      "late-lifetime-adoption.json": "0526e5fab4569fafe85ef23cf2cac40e92fde47d22a144d87d10ed421d34efb0",
+      "main-owner-version-observer-assumption.json": "c555abb866813bff56b658dfeca4e9c25079625c7d17e3a8ab8d2679fa71166a"
+    },
+    "standaloneEvidenceRoot": "Ignore/MasterConvergenceQualification/merged-named-table-loss-c6a354b8b",
+    "standaloneArtifactHashes": {
+      "lifetime-final-framework-validation.json": "ddc75a21abd0cb4f29137715e7d0140ccda291d9d9043585f0552d930d351eaf",
+      "final-framework-validation.json": "8487b127f6ff13131be24f6b36003f9634f8750434d4a8c340f4c8a9cc19e69e",
+      "packed-consumer-origin-receipt.json": "d1c36ab8e1ecfc54c804d6d9c47ce260f0e3bd2f9304c1b9a8dd19b58d20ff83",
+      "packages-final/package-hash-receipts.json": "cf303affe29d3ac7caa1681354c94ce384619363ef2625a6de998e351340087e",
+      "packed-consumer/independent-native-observation.json": "0779a09a5af7706a761a969812de9df5eabf8f878abe6534a7c69d40f2ae0b04",
+      "final-published-source-identity.json": "9ff9a6359b104dc5257e4a233c49c7d864b0d28d44991463fdb5183a2483bf53",
+      "review-boundary.json": "a0541ac4e45a9a3cb4d61ee7d2b10866c4a11e4b1d48eb41fa74ab13fb6539c8",
+      "lifetime-closure-boundary.json": "57ccc7ef95f65d55722ec67512b85ffbfe355b1c79994e454ae3d0445d91a06e",
+      "final-build-cleanup-results.json": "25379f7e9143bd79086671e2f55346f7720ad93a1b2cd6c2f2e50dd5f963aa25"
+    },
+    "remaining": [
+      "Explicit named-table reconstruction and wider native image/link appearance",
+      "Other named H10 native/resource/profile/corpus acceptance",
+      "Supported-platform unchanged timing and qualified long-lived synchronization"
+    ],
+    "cleanup": {
+      "main": {
+        "targets": 85,
+        "bytes": 1990265794,
+        "allAbsent": true,
+        "receipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/final-native-contract-cleanup-results.json",
+        "sha256": "207a1e4dcc7a31343dae82f79107475ddf2eed7ac7e3838d09e769d0f3986c86"
+      },
+      "standaloneFinal": {
+        "targets": 85,
+        "bytes": 2470959594,
+        "allAbsent": true
+      },
+      "standaloneBeforeFinalPack": {
+        "targets": 68,
+        "bytes": 1400464586,
+        "allAbsent": true
+      },
+      "totalBytesThisSlice": 5861689974,
+      "boundary": "Exact generated targets only; final feeds, source archives, native XLSX/HTML/PNG, framework tests, failed probes and origin/hash receipts retained. Shared caches and unrelated worktrees untouched."
+    },
+    "settlement20261006": {
+      "mergeCommit": "3e297566715341b5205494e0721ce6c64b238aee",
+      "mergedAt": "2026-10-06T07:05:16Z",
+      "currentHeadCi": "92 success, 5 skipped",
+      "delayedFeedback": "Complete paginated threads, reviews, raw/issue comments and reactions; no unresolved or actionable feedback",
+      "proofFiles": 153,
+      "proofBytes": 45251274,
+      "worktreeAndLocalBranchRemoved": true
+    }
+  },
+  "nativeStandaloneSettlement20261006": {
+    "observedUtc": "2026-10-06T04:00:00Z",
+    "merged": [
+      {
+        "pr": 2838,
+        "merge": "320e9ff4ee24b5e106fd3ffdba5c4466facadcf9"
+      },
+      {
+        "pr": 2840,
+        "merge": "bda4b10b90874d88531020fbbab8d1ad27239e9f"
+      },
+      {
+        "pr": 2826,
+        "merge": "800b30c3c29f2df449ff8f24e110ed38c81ae6fb"
+      },
+      {
+        "pr": 2847,
+        "merge": "90a60b64a237ca20cbd279252ff56761aa012997"
+      }
+    ],
+    "boundary": "Exact-head CI, complete paginated feedback/reactions, delayed review and accurate text verified before each authorized merge. Four owned worktrees/local branches removed after SHA-preserving unique proof. No full HTML-to-master merge or release.",
+    "preservationReceipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/merged-preservation-0400.json",
+    "preservationReceiptSha256": "026739d903214930708fc4c3ca85f909074ced4fdfa9f69fa0ed76de07fe1708",
+    "otherLaneCleanup": {
+      "targets": 270,
+      "bytes": 5342851140,
+      "allAbsent": true,
+      "receipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/remaining-pr-output-cleanup-20261006.json"
+    },
+    "currentHeadsPending": {
+      "2841": "e39b35a6f8dcf9d31f47ca617358e596dc6c0dc2",
+      "2849": "c6a354b8b8150d89862090d1afb905e02e57dede",
+      "2850": "6b846359362ec869679768928b1693027e7d91a8"
+    },
+    "held2845": "Its prior drawing/PDF net472 failures are observer scheduling assumptions. The separate test-policy/observer change in PR2850 must pass, merge and be adopted before current-head XLSB CI can be required again. No product failure/root-cause fix claim or CI bypass.",
+    "studioLocalBoundary": "Four viewport controls passed after upper-layer server rebase; twelve light/dark/invalid captures inspected. Prior pointer timeout was not reproduced locally; current hosted lane still required."
+  },
+  "nativePictureHyperlinkOwner20261006": {
+    "standalone": {
+      "pr": 2851,
+      "candidate": "716a1b8e1822ab626e2c5e1e60cac4cfcd7c22ef",
+      "implementation": [
+        "ExcelImage.HyperlinkUri with writable/current native owner checks",
+        "Thin generic and semantic HTML mapping; inert semantic metadata",
+        "Safe SVG policy reuse, omission for rejected interactive targets; raster remains non-interactive",
+        "Native click/hover/media relationships survive template cloning with original scoped IDs"
+      ],
+      "frameworkProof": {
+        "Excel": {
+          "net8.0": {
+            "passed": 5309,
+            "skipped": 5
+          },
+          "net10.0": {
+            "passed": 5309,
+            "skipped": 5
+          }
+        },
+        "ExcelHtmlPriorStableSource": {
+          "net8.0": 148,
+          "net10.0": 148
+        },
+        "normalPackages": 6,
+        "targets": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "freshPublicControlsPerFramework": 10,
+        "coreExternalRuntimeDependencies": 0
+      },
+      "evidenceRoot": "../OfficeIMO-excel-picture-hyperlinks/Ignore/ExcelPictureHyperlinkQualification",
+      "validationReceiptSha256": "17dee3c71dea1eab228658c75066989b8ced5a1c4a81fa123ff7608e67e16de1",
+      "packageOriginReceiptSha256": "27cb7e0cea999d908ccf7483796bd51c573aa25ebd8bd257fa482b127c9c2822",
+      "review": "One full independent read-only pass and one targeted confirmation. Both pre-existing template preservation findings reproduced and fixed; final sequential-ID alias corrected with distinct-media legal-permutation and save/reopen controls. No new full review solely for SHA.",
+      "initialHostedState": "Exact716 head, normal OPEN PR, 88queued2skipped and complete page0threads; CI/native Windowsnet472 and delayed current-head feedback remain required."
+    },
+    "browserEvidence": {
+      "engine": "HtmlTinkerX3.0.3/Chromium153.0.8010.12 test-only",
+      "viewports": [
+        960,
+        360
+      ],
+      "paint": "Linked and unwrapped picture PNG bytes identical at both widths; 160x80 picture bounds retained.",
+      "interaction": "Owned local photo target and fragment reached at both widths; rejected javascript target retains image without anchor.",
+      "runtimeErrors": [],
+      "receiptSha256": "d3ad97b231ac485ba472d3a8d1811c3ff9400950404bdeecec74c717053ed20c"
+    },
+    "nativeControlBoundary": "Independent ZIP/XML/DrawingML/schema control and native save/reopen artifacts, not an independent Excel application producer or whole-page/native accessibility acceptance.",
+    "combined": {
+      "source": "d21525ffa30d153689082003e021ab52a91bbe54",
+      "candidateAdoptionCommits": [
+        "92acbb32b",
+        "c201f6f74",
+        "4aba63d6e"
+      ],
+      "sharedCorePolicy": "Exact existing internal OfficeDrawingLinkPolicy blob from20e4e0337; no other master security/ZIP changes adopted.",
+      "nativeTests": {
+        "net8.0": 173,
+        "net10.0": 173
+      },
+      "affectedHtmlTests": {
+        "net8.0": 170,
+        "net10.0": 170
+      },
+      "freshProjectReferencePublicControlsPerFramework": 13,
+      "normalLoadedOwnerDllHashesVerified": 6,
+      "cellsAndMediaEqualToPrior": true,
+      "pngSha256": "a25b5ef4e1e66694bf0f48656df4a87d0722231b01dfc1b17185069c317479fe",
+      "nativePictureTarget": "https://example.org/linked-photo",
+      "namedTableOmissionRemainsTrue": true,
+      "supersededOmissionAssertionsRemoved": 2,
+      "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+      "receipt": "independent-main-picture-observations.json",
+      "initialFailures": [
+        "initial-picture-adoption-compile-failure.json",
+        "main-picture-public-net8.0.log",
+        "obsolete-picture-omission-assertions-before.trx"
+      ],
+      "boundary": "Combined focused/project-reference proof; no fresh full main packages/hosted/timing or qualified long-lived adoption claimed."
+    },
+    "cleanup": {
+      "standaloneTargets": 87,
+      "standaloneBytes": 2405228811,
+      "standaloneAbsentVerified": true,
+      "mainTargets": 84,
+      "mainBytes": 1620778412,
+      "mainAbsentVerified": true,
+      "mainReceipt": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/picture-main-build-cleanup-results.json",
+      "nativeReaderProfiles": 2,
+      "nativeReaderProfileBytes": 367624,
+      "nativeReaderProfilesAbsent": true
+    },
+    "remaining": [
+      "Exact-head standalone hosted CI and delayed feedback/authorized merge/unique-proof preservation",
+      "Native Excel whole-page image/link appearance and explicit named-table reconstruction",
+      "Wider native targets/corpus/all profiles/manual accessibility",
+      "Actual unchanged supported-platform timing and qualified long-lived synchronization"
+    ],
+    "nativeReaderAppearance": {
+      "reader": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+      "controls": 4,
+      "pagesBeforeAndAfter": 8,
+      "allPagePngBytesEqualAt110Dpi": true,
+      "allRawUtf8LfTextEqual": true,
+      "visualInspection": "Generic and semantic linked-picture before/after crop sheet inspected; native image and labels retained without displacement.",
+      "evidence": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/native-reader-picture-appearance",
+      "observationsSha256": "479b3999e4d9f911413b410030d1ff70fe3ed85d6e94379a3b7f7fd69bd5f530",
+      "pdfLinkObservation": "No picture-link annotations in any LibreOffice-generated PDF, including linked native inputs. This proves paint/text only, not reader click support or an OfficeIMO defect. Native XLSX targets and SVG click controls are independently verified.",
+      "boundary": "One independent reader and four bounded controls; desktop Excel/application click behavior, whole-article/native accessibility remain open."
+    }
+  },
+  "planetaryNativeResourceQualification20261006": {
+    "sourceCommit": "c1345119bb135b14fd0417d130ac043dbf38c4c6",
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "route": "Existing HtmlEditableEvidence --target excel, normal Release SDK 10.0.112 build, --require-clean-source, unchanged untrusted 10000-rule policy. All ten owner versions identify exact clean head.",
+    "runnerBuild": "0 warnings, 0 errors",
+    "reopenMarkers": "All five declared markers pass; operation HasLoss remains true.",
+    "independentSourceInventory": {
+      "mimeParts": 44,
+      "imgElementsBeforeComputedVisibility": 17,
+      "authoredLinkedImages": 16,
+      "allImgResourcesCaptured": true,
+      "rasterImages": 14,
+      "uniqueLogoSvgSha256": "eb65aba14099f216b981af86838549016b27d2324985391a902cfd8f26fa4d09"
+    },
+    "independentNativeObservations": {
+      "storedPictures": 15,
+      "storedRasterPictures": 13,
+      "rawByteAndExactPixelMatchedRasterPictures": 13,
+      "all13MatchedAuthoredTargetsRetained": true,
+      "storedSvgLogoParts": 2,
+      "bothSvgRawBytesMatchCapture": true,
+      "namedTableParts": 0,
+      "regularSourceRows": 21,
+      "rawSourceTableCells": 106,
+      "allSourceOrderedTableCellsPreserved": true
+    },
+    "resourceBoundary": "Unavailable site icons/fonts are distinct archive omissions; no network fallback or missing-capture resource promise. Source image counts precede CSS visibility.",
+    "remaining": [
+      "Additional held-out illustrated chapter resource/link acceptance",
+      "Typed value classification for the declared planetary-table profile; raw generic HTML cells remain text under current contract",
+      "Native Excel whole-page/application click/manual accessibility",
+      "Full corpus/intents/platform timing/qualified integration"
+    ],
+    "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+    "receiptHashes": {
+      "planetary-captured-picture-inventory.json": "234f653f752484c3828de614317a86f554dec4ae5b6a5b9817c5fdfaf7d4477b",
+      "planetary-native-picture-observations.json": "38129b2b1659098a61fd00e3fa8030b20eee95d07bbf1a972bc4b66b670f27e6",
+      "planetary-native-table-source-observations.json": "e481f39638f375d140f9147a39cf6e7af0fcc6ccae01ad3b6f413eab993e1776",
+      "planetary-editable-clean-c1345119b/summary.json": "dc0fd658869480cce81f8a1c01cdb4d152d91638b2397756c26383c9ba4455bb",
+      "planetary-editable-clean-c1345119b/excel/report.json": "1a9867af8598a573275f1ca00496cf04769f3346e08226d87f59b34eb23c6dd9"
+    },
+    "reproducedGapBeforeNormalization": {
+      "source": "Titan photo: captured static WebP 1390 bytes, SHA 4a0689bd056202047a2600100552b3738dafd63019003d584826d951fdcc2b63",
+      "native": "Picture absent with explicit ResourceTypeUnsupported/Omission diagnostic. Core already supports decoding; an independent bounded Excel HTML raster-normalization candidate is being qualified.",
+      "notSilentLoss": true,
+      "closedBy": "Combined1231730d9 replay/PR2852 owner; see excelRasterNormalization20261006"
+    }
+  },
+  "excelRasterNormalization20261006": {
+    "trigger": "Captured Titan static WebP was omitted by Excel HTML import although the managed Core decoder already supported it.",
+    "standalone": {
+      "pr": 2852,
+      "head": "710eea0fe646b28dba17a4759b304c3d30976533",
+      "owner": "Existing managed Core OfficeImagePngConverter; thin Excel.Html image preparation for generic, semantic inventory and editable-layout routes",
+      "runtimeDependenciesAdded": 0,
+      "api": "HtmlImportLimits.MaxDecodedImagePixels bounds normalization; default16000000; clone and positive validation",
+      "limits": "Source and retained PNG byte accounting charge their maximum, preserving per-image/total bytes and image/shape reservations. Animated/malformed WebP/AVIF reject with loss.",
+      "newDistinctRegressions": 12,
+      "focusedLimitTestsNet10": 52,
+      "fullHtmlPerFramework": {
+        "passed": 3229,
+        "failed": 6,
+        "boundary": "Same six previously observed font cases outside this candidate. Original TRX/failures retained; not a full-green standalone claim."
+      },
+      "normalPackages": 6,
+      "targets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "freshPublicControlsPerFramework": 6,
+      "independentSavedNativePixelArtifacts": 8,
+      "coreExternalRuntimeDependencies": 0,
+      "nativeReaderControls": 4,
+      "nativeReader": "LibreOfficeDev26.8alpha0,110dpi contact sheet inspected; not desktop Excel whole-page/click/manual accessibility",
+      "review": "One full read-only pass plus targeted confirmation. Primary-reproduced source-byte undercount fixed, failing regression retained; no remaining actionable findings.",
+      "initialHostedState": "Exact710 head,88queued2skipped,zero complete-page threads. Current-head CI/native Windows and delayed feedback remain required.",
+      "evidenceRoot": "../OfficeIMO-excel-html-raster-normalization/Ignore/ExcelRasterNormalizationQualification",
+      "receiptSha256": "f29d4b5f3350a22fe823fd49fcef035139b60e9bc895799961723fa73f2128ce"
+    },
+    "combined": {
+      "source": "1231730d936a117b6d0c56660197f99beff7604a",
+      "adoption": "Only standalone normalization patch; resolved Generic AddImage to keep current hyperlink assignment and normalized contentType, retained both existing HTML corpus glob and new fixtures. No advancing-master merge or shared rewrite.",
+      "HtmlTests": {
+        "net8.0": 4408,
+        "net10.0": 4408
+      },
+      "normalStandardAndEditableRunnerBuild": "0warnings0errors",
+      "runnerOwnership": "Clean-source route requires all ten loaded owner versions +123; twelve loaded-copy hashes equal normal project outputs",
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "route": "Existing HtmlEditableEvidence --target excel --max-css-rules10000 --require-clean-source; same declared markers and archive.",
+      "nativePictures": 16,
+      "nativePictureLinks": 15,
+      "previousPicturesPreserved": 15,
+      "allPreviousMediaTargetsAndDimensionsPreserved": true,
+      "titan": {
+        "storedPngSha256": "e7f33c6a8daeaf20c6112491118fdc9247f25a3f8672b2483d5328f030d13fac",
+        "size": [
+          290,
+          163
+        ],
+        "maxRgbError": 1,
+        "alphaError": 0,
+        "authoredTargetPreserved": true,
+        "normalizationDiagnosed": true,
+        "visual": "Captured/native image pair inspected"
+      },
+      "nativeRegularRows": 21,
+      "rawSourceCells": 106,
+      "sourceOrderAndCellTextPreserved": "Same predeclared HTML-whitespace comparison; raw native newlines remain in report.",
+      "namedTableParts": 0,
+      "HasLoss": true,
+      "remainingBoundaries": [
+        "Declared planetary numeric typing is not qualified; raw generic HTML stays text.",
+        "All-image inventory precedes computed visibility; site fonts/icons unavailable in archive remain capture gaps.",
+        "Native whole-page/application click/manual accessibility, wider targets and all corpus/profiles remain open.",
+        "Actual supported-platform timing and qualified long-lived synchronization remain open."
+      ],
+      "evidenceRoot": "Ignore/MasterConvergenceQualification/excel-image-link-acceptance",
+      "receiptHashes": {
+        "normalization-adoption-identity.json": "ae1106f40e996916ffa496f48bc4cf768da499890b25ff259808ff7df0e169f9",
+        "normalization-combined-validation-receipt.json": "c197b0f89b5a610401de2353322f37d324ec8795a6e70613096331f8bba8f8a3",
+        "normalization-runner-owner-hashes.json": "132cdef5ea4c99714875dcf3b7c16fbb69a9711946ea3f10d7fbdc32040252ae",
+        "planetary-native-picture-normalized-observations.json": "29f09ddf42c9f56d066a6c2f2fac328eb29bf7daab5bd05a18ae8599245588bc",
+        "planetary-normalized-native-comparison.json": "1b9a665c1cf013747b4d5361edfe8401529c9a4ec74af8c94cf0bc6728c57bb1",
+        "planetary-editable-normalized-clean-1231730d9/summary.json": "96f0abbc0389447c6fac2008e677e692a7b46a497d825405db4e33f4a25190c8",
+        "planetary-editable-normalized-clean-1231730d9/excel/report.json": "fdacfacb4a58ed1b0e0e477a8471f5459b12131499f78c96f68d5bb7e0e1e831"
+      }
+    },
+    "cleanup": {
+      "standaloneTargets": 68,
+      "standaloneBytes": 1665712414,
+      "mainTargets": 66,
+      "mainBytes": 1261197519,
+      "allAbsentVerified": true,
+      "nativeFilesystemErrorsRecoveredWithGuardedDotNet": 69,
+      "scope": "Completed compiler/test/runner output and isolated reader/private package expansions only. Source, final six-package feed, original failures, all independent artifacts and receipts retained.",
+      "turnTotalPreviouslyAndNow": {
+        "targets": 577,
+        "bytes": 12296135920
+      },
+      "results": [
+        "../OfficeIMO-excel-html-raster-normalization/Ignore/ExcelRasterNormalizationQualification/final-build-cleanup-results.json",
+        "Ignore/MasterConvergenceQualification/excel-image-link-acceptance/normalization-main-build-cleanup-results.json"
+      ]
+    }
+  }
+}

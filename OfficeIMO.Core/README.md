@@ -228,12 +228,12 @@ if (profile?.HasOutputTransform == true &&
 ```
 
 The managed contract accepts bounded RGB and Gray matrix/TRC input-device and display-device profiles
-plus RGB or CMYK LUT8 input transforms with a Lab profile connection space and RGB or CMYK LUT16
-input transforms with an XYZ or Lab profile connection space. For LUT and ICC v4 `mAB` profiles,
+plus RGB, CMYK, or three-to-eight-channel (`3CLR`–`8CLR`) LUT8 input transforms with a Lab profile
+connection space and LUT16 input transforms with an XYZ or Lab profile connection space. For LUT and ICC v4 `mAB` profiles,
 conversion selects `A2B1` for relative or absolute colorimetric intent and `A2B2` for saturation intent,
 falling back to `A2B0` when the intent-specific transform is absent. It also accepts bounded ICC v4
-RGB and CMYK A2B `mAB` input transforms and B2A `mBA` output transforms using the
-specification-defined curve, variable-grid CLUT, matrix, and offset combinations. Output conversion is
+RGB, CMYK, and `3CLR`–`8CLR` A2B `mAB` input transforms, plus RGB/CMYK B2A `mBA` output transforms using the
+specification-defined curve, variable-grid CLUT, matrix, and offset combinations. Multichannel profiles support input conversion only. Output conversion is
 available through a valid `B2A0` transform or
 the synthesized inverse of a supported RGB matrix/TRC profile; optional intent-specific tags fall back
 to `B2A0` when that transform is present. `TryCreate` returns `false` for unsupported
@@ -243,13 +243,23 @@ fallback instead of receiving a silent approximation.
 
 ### Image metadata and complete-content validation
 
+`OfficeImageReader` exposes `JpegComponentCount` and
+`TiffPhotometricInterpretation` on `OfficeImageInfo` as nullable header evidence.
+The JPEG value is the frame's declared component count. The TIFF value is the raw
+PhotometricInterpretation tag from the first classic-TIFF or BigTIFF directory;
+missing, malformed or duplicate tags produce null. TIFF value 2 declares RGB and
+5 declares separated samples. Three JPEG components alone do not prove RGB.
+Neither field establishes valid pixel data, an ICC profile or color-managed
+rendering. Manually constructed metadata and other image formats leave these
+fields null. Use the decoder and explicit profile APIs for their separate checks.
+
 `OfficeRasterImageDecoder` preserves encoded color channels and applies supported image orientation.
 It does not automatically normalize embedded ICC profiles, PNG gamma, or chromaticities. Applications
 that require color-managed pixels must perform that conversion explicitly before using the decoded
 image. The profile APIs above provide bounded color conversion; metadata validation alone does not
 mean a raster image has been converted to sRGB.
 
-For already unpacked, tightly packed 8-bit RGB or CMYK device samples, use the explicit raster
+For already unpacked, tightly packed 8-bit RGB, CMYK, or supported multichannel device samples, use the explicit raster
 converter with the corresponding embedded profile bytes:
 
 ```csharp
@@ -550,6 +560,11 @@ if (OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out var page, out v
 
 Set `FrameLossPolicy` to `RejectMultipleFrames` when a static result must not discard animation frames or document pages. Animated WebP pixel composition remains a caller-codec boundary, but its frame inventory is still available for a fail-closed decision.
 
+The managed JPEG decoder supports eight-bit baseline and eight/twelve-bit extended sequential and progressive DCT, plus two-through-sixteen-bit Huffman and arithmetic lossless JPEG. Lossless decoding supports all seven predictors, point transforms and row-aligned restart intervals. A nonzero point transform discards source low bits and restores them as zero. Standalone decoding projects to the public eight-bit raster buffer. Lossless JPEG-compressed TIFF retains native two-through-sixteen-bit samples through alpha and color conversion. YCbCr conversion uses the native sample midpoint before eight-bit projection. TIFF retains fractional RGB through alpha unassociation and ICC conversion instead of rounding it back to the source bit depth. Sequential and progressive arithmetic JPEG support eight/twelve-bit samples, conditioning tables and restart intervals. Progressive decoding accepts spectral bands, successive approximation and DC-only previews, retaining missing coefficients as zero. Lossless arithmetic uses two-dimensional difference conditioning and bounded row history; grayscale/RGB fixtures cover all precisions and predictors. DCT JPEG-compressed TIFF retains native eight/twelve-bit samples; packed twelve-bit TIFF supports byte-aligned rows with Predictor 1.
+
+The managed JPEG XR decoder accepts single-image tagged `.jxr`, `.wdp`, and `.hdp` containers with unsigned eight-bit gray/RGB/BGR/BGRA, unsigned sixteen-bit gray/RGB/RGBA, and finite sixteen/thirty-two-bit fixed-point or floating-point gray/RGB/RGBA pixels. It handles 4:4:4, 4:2:2, and 4:2:0 chroma with defined sampling-grid centering, spatial and frequency packet order, lossless and lossy quantization, all three overlap modes, hard and soft tiles, omitted high-frequency bands, trimmed flexbits, and interleaved or separate alpha. Premultiplied alpha becomes straight RGBA at source precision before samples are rounded to the public eight-bit buffer. Fixed-point and floating-point samples default to linear scRGB and use the shared sRGB conversion; out-of-range colors are clipped to the SDR output gamut. The container orientation is applied. Encoded bytes, padded coefficient/sample buffers, output, retained caller data, and cancellation share the Core resource limits. Embedded ICC data is available to the color-management layer; ordinary unsigned raster decoding returns device channel values. The color-management layer also decodes unsigned eight/sixteen-bit CMYK and CMYKDirect with a supplied four-component ICC profile, preserving source precision and alpha. Unprofiled CMYK does not produce approximate RGB pixels. Three-to-eight-channel unsigned eight/sixteen-bit images also require a matching ICC profile. Interleaved alpha can contain the same or fewer frequency bands than the primary plane. Non-finite samples and multiple image directories are outside this decoder contract.
+
+
 ### Optimize encoded images for a placement
 
 `OfficeImageOptimizer` resizes and re-encodes a static raster image for the pixel bounds where it will be used:
@@ -584,7 +599,7 @@ The request preserves aspect ratio, avoids upscaling, keeps the original when re
 
 `MetadataPolicy` can preserve, strip, or selectively copy EXIF, XMP, ICC, orientation, comments, and resolution categories. A JPEG-to-JPEG rewrite preserves selected EXIF, standard single-packet XMP, and ICC bytes, applies embedded orientation to pixels, and neutralizes the copied orientation value. Adobe extended XMP is not copied during re-encoding; when selected XMP includes extension segments, the result reports XMP in `Lost`. The result reports `PolicyApplied`, `Preserved`, `Normalized`, `Stripped`, and `Lost`; unsupported or undecodable input returns the original bytes with `PolicyApplied = false`, and a required strip or selective-copy rewrite is never replaced by the metadata-bearing original merely because it is smaller. Metadata that has no safe output carrier is reported as loss rather than silently claimed as preserved; OfficeIMO does not currently perform ICC color conversion. Animated and multi-page input is rejected so optimization never silently drops frames or pages.
 
-`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic 8-bit grayscale/palette/RGB/RGBA/device-CMYK TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and lossy VP8 WebP paths (including raw or lossless-compressed separate alpha planes) enforce encoded-payload and decoded-pixel guards. TIFF accepts chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and horizontal prediction; arbitrary page selection and bounded multi-page writing use the same page contract. JPEG-in-TIFF, floating-point TIFF, BigTIFF, animated WebP pixel decoding, and uncommon encoders remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
+`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic unsigned 8/12/16-bit or finite floating 16/24/32/64-bit grayscale/RGB/RGBA/device-CMYK TIFF and 8-bit palette TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and lossy VP8 WebP paths (including raw or lossless-compressed separate alpha planes) enforce encoded-payload and decoded-pixel guards. TIFF accepts both byte orders, chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and integer or floating-point horizontal prediction; sample and associated-alpha precision is retained until eight-bit RGBA output or ICC conversion. Packed twelve-bit samples require Predictor 1. Mixed component widths and reversed bit order outside CCITT are rejected; arbitrary page selection and bounded multi-page writing use the same page contract. Floating TIFF values are normalized device components, with explicit ICC conversion when supplied and clipping to the SDR range at output; they do not implicitly declare linear scRGB or request automatic scientific-data rescaling. Non-finite color or alpha samples are rejected; unspecified extra channels and tile padding are ignored. TIFF also supports packed grayscale/palette samples, CCITT T.4/T.6 including the optional uncompressed mode, and baseline eight-bit, Huffman/arithmetic extended-sequential eight/twelve-bit or Huffman/arithmetic lossless two-through-sixteen-bit JPEG payloads. Bounded legacy compression-6 interchange images and table-pointer scans retain the eight/twelve/sixteen-bit contract; see the [TIFF support and qualification boundaries](../OfficeIMO.Xps/SUPPORT.md). BigTIFF, animated WebP pixel decoding, and unsupported JPEG-in-TIFF processes remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
 
 Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
 
@@ -728,12 +743,17 @@ var drawing = new OfficeDrawing(width: 420, height: 180)
     .AddText("Shared vector intent", 34, 98, 240, 24);
 
 OfficeDrawingQualityReport report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
+// Compare the same scene with a smaller delivery canvas without changing it.
+OfficeDrawingQualityReport target = OfficeDrawingQualityAnalyzer.Analyze(drawing, 200, 200);
 if (report.HasIssues) {
     foreach (var issue in report.Issues) {
         Console.WriteLine($"{issue.Kind}: {issue.Message}");
     }
 }
 ```
+
+Affine effect groups contribute their transformed child bounds, not the dimensions
+of their temporary rendering buffers. Empty groups do not create overflow findings.
 
 ### Render a chart snapshot to drawing primitives
 
@@ -886,6 +906,8 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 - `OfficeInkDocument`, `OfficeInkStroke`, sampled pressure/style metadata, recognition alternatives, and `OfficeInkRenderer` for reusable ink capture and projection.
 - `OfficeMathExpression`, `OfficeMath`, MathML/LaTeX conversion, deterministic measurement, and `OfficeMathRenderer` for reusable structured equations.
 - `OfficeShape`, `OfficeDrawing`, gradients, shadows, transforms, clipping, and vector descriptors that format-specific packages can map into their own coordinate systems.
+- Linear and radial gradients support encoded sRGB and linear-light RGB interpolation. Use `gradient.WithColorInterpolation(OfficeGradientColorInterpolation.LinearRgb)` to create a detached linear-light gradient; `ColorInterpolation` reports its mode. Cloning, coordinate transforms, SVG import/export and raster output retain the mode. SVG `color-interpolation` inherits through CSS ancestors, including inline styles, independently of gradient template references.
+- `OfficeRadialGradient.TransformCoordinates` preserves radial fields under affine rotation, shear and reflection. Its `CoordinateTransform` maps gradient coordinates into normalized shape coordinates; cloning and opacity changes retain that mapping. SVG import expands bounded radial repeat/reflect fields within the shared stop budget and retains other fields with `OfficeRadialGradient.WithSpreadMode(OfficeGradientSpreadMode.Repeat)` or `Reflect`. Cloning, transforms, raster sampling and SVG export preserve the spread mode. PDF export still requires finite expansion. Native boundary/exterior fields export as SVG 2 vector patterns with separate color and alpha composition. The shared SVG importer accepts shrinking-circle Pad, Repeat and Reflect fields, including point ends, and retains transparent regions outside ordinary SVG cones. Ordinary SVG point-focus boundary spreads retain their offset-weighted outside color and alpha; native XPS keeps its distinct endpoint rule. Pattern content retains its tile origin and stroke coverage offsets.
 - `OfficeChartSnapshot` and chart rendering primitives shared by PDF and Office exporters.
 - `OfficeRasterImage`, `OfficeRasterCanvas`, `OfficeRasterRenderTarget`, and `OfficeDrawingRasterRenderer` for shared dependency-free raster rendering.
 - `OfficePngReader`, `OfficePngWriter`, and `OfficeJpegCodec` for PNG/JPEG paths that should not be reimplemented by document packages.

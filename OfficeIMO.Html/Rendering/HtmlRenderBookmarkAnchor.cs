@@ -23,9 +23,9 @@ public sealed class HtmlRenderBookmarkAnchor : HtmlRenderVisual {
     /// <summary>Rendered fallback label used when CSS did not provide <c>bookmark-label</c>.</summary>
     public string Text { get; }
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderBookmarkAnchor(SemanticNodeId, Text, X + offsetX, Y + offsetY, Width, Height, paintOrder, Source, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderBookmarkAnchor(SemanticNodeId, Text, X + offsetX, Y + offsetY, Width, Height, paintOrder, Source, LayoutY);
 }

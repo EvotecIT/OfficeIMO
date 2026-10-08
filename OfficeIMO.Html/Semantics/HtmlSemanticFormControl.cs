@@ -8,6 +8,7 @@ public sealed class HtmlSemanticFormControl {
         string name,
         IReadOnlyList<string> values,
         bool isChecked,
+        bool isIndeterminate,
         bool isDisabled,
         bool isRequired,
         bool isReadOnly,
@@ -30,6 +31,7 @@ public sealed class HtmlSemanticFormControl {
         Name = name;
         Values = values;
         IsChecked = isChecked;
+        IsIndeterminate = isIndeterminate;
         IsDisabled = isDisabled;
         IsRequired = isRequired;
         IsReadOnly = isReadOnly;
@@ -66,6 +68,9 @@ public sealed class HtmlSemanticFormControl {
 
     /// <summary>Whether a checkbox or radio control is checked.</summary>
     public bool IsChecked { get; }
+
+    /// <summary>Whether a captured checkbox displays the indeterminate state, independently of checkedness.</summary>
+    public bool IsIndeterminate { get; }
 
     /// <summary>Whether the control is disabled directly or by an ancestor disabled fieldset.</summary>
     public bool IsDisabled { get; }

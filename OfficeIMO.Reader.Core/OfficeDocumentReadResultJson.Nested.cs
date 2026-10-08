@@ -14,7 +14,7 @@ public static partial class OfficeDocumentReadResultJson {
 
     private static void EnsureNestedDeserializedContracts(OfficeDocumentReadResult result) {
         foreach (var nested in result.NestedDocuments ?? Array.Empty<OfficeDocumentNestedResult>()) {
-            if (nested.Document.SchemaVersion != 9) throw new JsonException("A nested transport document requires schema version 9.");
+            if (nested.Document.SchemaVersion != result.SchemaVersion) throw new JsonException("A nested transport document must use the parent schema version.");
             EnsureKindSupported(nested.Document.SchemaVersion, nested.Document.Kind);
             EnsureChunkKindsSupported(nested.Document.SchemaVersion, nested.Document.Chunks);
             EnsureDiagnosticContracts(nested.Document.Diagnostics);
@@ -60,10 +60,12 @@ public static partial class OfficeDocumentReadResultJson {
             OfficeDocumentReadResultSchema.EnsureSupported(id, childVersion);
             EnsureKindSupported(childVersion, document.Kind);
             EnsureChunkKindsSupported(childVersion, document.Chunks);
+            EnsureKindSupported(version, document.Kind);
+            EnsureChunkKindsSupported(version, document.Chunks);
             EnsureStringCollection(document.CapabilitiesUsed, "capabilitiesUsed");
             EnsureDiagnosticContracts(document.Diagnostics);
             normalized[i] = new OfficeDocumentNestedResult { Path = child.Path,
-                Document = NormalizeForSerialization(document, id, OfficeDocumentReadResultSchema.CurrentVersion) };
+                Document = NormalizeForSerialization(document, id, version) };
         }
         return normalized;
     }

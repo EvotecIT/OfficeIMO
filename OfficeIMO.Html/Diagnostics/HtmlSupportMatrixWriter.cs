@@ -7,10 +7,19 @@ namespace OfficeIMO.Html;
 public static class HtmlSupportMatrixWriter {
     /// <summary>Generates deterministic Markdown describing the current executable compatibility contracts.</summary>
     public static string ToMarkdown() {
+        IReadOnlyList<string> validationErrors = HtmlRenderCapabilityCatalog.Validate();
+        IReadOnlyList<string> renderProfileErrors = HtmlRenderProfileContracts.Validate();
+        if (validationErrors.Count != 0 || renderProfileErrors.Count != 0) {
+            throw new InvalidOperationException("The HTML capability catalog is invalid: "
+                + string.Join(" ", validationErrors.Concat(renderProfileErrors)));
+        }
+
         var builder = new StringBuilder();
         builder.AppendLine("# OfficeIMO HTML support matrix");
         builder.AppendLine();
-        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
+        builder.AppendLine("This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabilityContracts`, `HtmlEditableLayoutCapabilityContracts`, `HtmlRenderProfileContracts`, `HtmlRenderCapabilityCatalog`, and `HtmlDiagnosticCatalog`. Entries describe tested behavior and bounded fallbacks; a parsed CSS property is not treated as rendered support unless the renderer contract says so.");
+        builder.AppendLine();
+        builder.Append("Capability schema version: ").Append(HtmlRenderCapabilityCatalog.SchemaVersion).AppendLine();
         builder.AppendLine();
         builder.AppendLine("## Conversion profiles");
 
@@ -66,18 +75,145 @@ public static class HtmlSupportMatrixWriter {
         }
 
         builder.AppendLine();
-        builder.AppendLine("## Direct renderer compatibility contracts");
+        builder.AppendLine("## Versioned compatibility profile manifests");
         builder.AppendLine();
-        builder.AppendLine("| Area | ID | Kind | Support | Features | Behavior | Diagnostics |");
-        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
+        builder.AppendLine("| Profile | Version | Promotion | Platforms | Outputs |");
+        builder.AppendLine("| --- | --- | --- | --- | --- |");
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            builder.Append("| `").Append(EscapeCode(profile.Id)).Append("` | ")
+                .Append(EscapeCell(profile.Version)).Append(" | ")
+                .Append(profile.Promotion).Append(" | ")
+                .Append(EscapeCell(string.Join(", ", profile.Platforms))).Append(" | ")
+                .Append(EscapeCell(string.Join(", ", profile.Outputs))).AppendLine(" |");
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Render intent profiles");
+        builder.AppendLine();
+        builder.AppendLine("CSS media, layout surface, pagination, page-set behavior, and encoder are explicit independent request axes. Qualification applies to the exact named combination below.");
+        builder.AppendLine();
+        builder.AppendLine("| Render profile | CSS media | Surface | Pagination | Default page set | Encoders | Coverage | Promotion | Capability manifests | Evidence | Behavior | Limitations |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlRenderProfileContract contract in HtmlRenderProfileContracts.All) {
+            builder.Append("| `").Append(EscapeCode(contract.Id)).Append("` | ")
+                .Append(contract.CssMedia).Append(" | ")
+                .Append(contract.Surface).Append(" | ")
+                .Append(contract.Pagination).Append(" | ")
+                .Append(contract.DefaultPageSet.Mode).Append(" | ")
+                .Append(EscapeCell(string.Join(", ", contract.Encoders))).Append(" | ")
+                .Append(contract.Coverage).Append(" | ")
+                .Append(contract.Promotion).Append(" | ")
+                .Append(EscapeCell(FormatIds(contract.CapabilityProfileIds))).Append(" | ")
+                .Append(EscapeCell(FormatIds(contract.EvidenceIds))).Append(" | ")
+                .Append(EscapeCell(contract.Behavior)).Append(" | ")
+                .Append(EscapeCell(contract.Limitations)).AppendLine(" |");
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("### Provider pins");
+        builder.AppendLine();
+        builder.AppendLine("| Profile | Provider | Name | Version | Ownership |");
+        builder.AppendLine("| --- | --- | --- | --- | --- |");
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            foreach (HtmlCapabilityProviderPin provider in profile.Providers) {
+                builder.Append("| `").Append(EscapeCode(profile.Id)).Append("` | `")
+                    .Append(EscapeCode(provider.Id)).Append("` | ")
+                    .Append(EscapeCell(provider.Name)).Append(" | ")
+                    .Append(EscapeCell(provider.Version)).Append(" | ")
+                    .Append(provider.Ownership).AppendLine(" |");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("### Specification pins");
+        builder.AppendLine();
+        builder.AppendLine("| Profile | Specification | Title | Revision | Selected scope | Source |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            foreach (HtmlCapabilitySpecificationPin specification in profile.Specifications) {
+                builder.Append("| `").Append(EscapeCode(profile.Id)).Append("` | `")
+                    .Append(EscapeCode(specification.Id)).Append("` | ")
+                    .Append(EscapeCell(specification.Title)).Append(" | `")
+                    .Append(EscapeCode(specification.Revision)).Append("` | ")
+                    .Append(EscapeCell(specification.Scope)).Append(" | ")
+                    .Append(EscapeCell(specification.Uri)).AppendLine(" |");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("### Evidence pins");
+        builder.AppendLine();
+        builder.AppendLine("| Profile | Evidence | Role | Revision | Required | Passed | Failed | Excluded | Untested | Cases | Selected scope |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            foreach (HtmlCapabilityEvidencePin evidence in profile.Evidence) {
+                builder.Append("| `").Append(EscapeCode(profile.Id)).Append("` | `")
+                    .Append(EscapeCode(evidence.Id)).Append("` | ")
+                    .Append(evidence.Role).Append(" | `")
+                    .Append(EscapeCode(evidence.Revision)).Append("` | ")
+                    .Append(FormatCount(evidence.Required)).Append(" | ")
+                    .Append(FormatCount(evidence.Passed)).Append(" | ")
+                    .Append(FormatCount(evidence.Failed)).Append(" | ")
+                    .Append(FormatCount(evidence.Excluded)).Append(" | ")
+                    .Append(FormatCount(evidence.Untested)).Append(" | ")
+                    .Append(EscapeCell(FormatIds(evidence.CaseIds))).Append(" | ")
+                    .Append(EscapeCell(evidence.Scope)).AppendLine(" |");
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("### Selected evidence by capability");
+        builder.AppendLine();
+        builder.AppendLine("The exact cases and feature forms below describe each selected evidence claim. The evidence role states whether a selection qualifies behavior or records regression/reference observations; excluded cases and out-of-scope forms remain outside the claim.");
+        builder.AppendLine();
+        builder.AppendLine("| Profile | Evidence | Capability | Required | Passed | Failed | Excluded | Untested | Required cases | Excluded cases | Selected scope | Out of scope |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        foreach (HtmlCapabilityProfileManifest profile in HtmlRenderCapabilityCatalog.ProfileManifests) {
+            foreach (HtmlCapabilityEvidencePin evidence in profile.Evidence) {
+                foreach (HtmlCapabilityEvidenceSelection selection in evidence.Selections.OrderBy(item => item.CapabilityId, StringComparer.Ordinal)) {
+                    builder.Append("| `").Append(EscapeCode(profile.Id)).Append("` | `")
+                        .Append(EscapeCode(evidence.Id)).Append("` | `")
+                        .Append(EscapeCode(selection.CapabilityId)).Append("` | ")
+                        .Append(selection.RequiredCaseIds.Count).Append(" | ")
+                        .Append(selection.Passed).Append(" | ")
+                        .Append(selection.Failed).Append(" | ")
+                        .Append(selection.ExcludedCaseIds.Count).Append(" | ")
+                        .Append(selection.Untested).Append(" | ")
+                        .Append(EscapeCell(FormatIds(selection.RequiredCaseIds))).Append(" | ")
+                        .Append(EscapeCell(FormatIds(selection.ExcludedCaseIds))).Append(" | ")
+                        .Append(EscapeCell(selection.Scope)).Append(" | ")
+                        .Append(EscapeCell(string.Join(", ", selection.OutOfScope))).AppendLine(" |");
+                }
+            }
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("## Capability contracts by profile and processing stage");
+        builder.AppendLine();
+        builder.AppendLine("`Coverage` reports qualification of the exact listed subset. `Handling` reports what the engine does. `Maturity` and `Promotion` control release exposure. Provider-backed behavior can therefore remain stable while its managed replacement is still incubating.");
+        builder.AppendLine();
+        builder.AppendLine("| Area | ID | Kind | Stages | Profile | Coverage | Handling | Maturity | Promotion | Required providers | Optional providers | Specifications | Evidence | Features | Behavior | Limitations | Diagnostics |");
+        builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
         foreach (HtmlRenderCapability capability in HtmlRenderCapabilityCatalog.All) {
-            builder.Append("| ").Append(EscapeCell(capability.Area)).Append(" | `")
-                .Append(EscapeCode(capability.Id)).Append("` | ")
-                .Append(capability.Kind).Append(" | ")
-                .Append(capability.SupportLevel).Append(" | ")
-                .Append(EscapeCell(string.Join(", ", capability.Features))).Append(" | ")
-                .Append(EscapeCell(capability.Behavior)).Append(" | ")
-                .Append(EscapeCell(FormatCodes(capability.DiagnosticCodes))).AppendLine(" |");
+            foreach (HtmlCapabilityProfileBinding binding in capability.ProfileBindings.OrderBy(item => item.ProfileId, StringComparer.Ordinal)) {
+                builder.Append("| ").Append(EscapeCell(capability.Area)).Append(" | `")
+                    .Append(EscapeCode(capability.Id)).Append("` | ")
+                    .Append(capability.Kind).Append(" | ")
+                    .Append(EscapeCell(FormatStages(capability.Stages))).Append(" | `")
+                    .Append(EscapeCode(binding.ProfileId)).Append("` | ")
+                    .Append(binding.Coverage).Append(" | ")
+                    .Append(binding.Handling).Append(" | ")
+                    .Append(binding.Maturity).Append(" | ")
+                    .Append(binding.Promotion).Append(" | ")
+                    .Append(EscapeCell(FormatIds(binding.ProviderIds))).Append(" | ")
+                    .Append(EscapeCell(FormatIds(binding.OptionalProviderIds))).Append(" | ")
+                    .Append(EscapeCell(FormatIds(binding.SpecificationIds))).Append(" | ")
+                    .Append(EscapeCell(FormatIds(binding.EvidenceIds))).Append(" | ")
+                    .Append(EscapeCell(string.Join(", ", capability.Features))).Append(" | ")
+                    .Append(EscapeCell(capability.Behavior)).Append(" | ")
+                    .Append(EscapeCell(capability.Limitations.Count == 0 ? "None" : string.Join(", ", capability.Limitations))).Append(" | ")
+                    .Append(EscapeCell(FormatCodes(capability.DiagnosticCodes))).AppendLine(" |");
+            }
         }
 
         builder.AppendLine();
@@ -143,4 +279,21 @@ public static class HtmlSupportMatrixWriter {
 
     private static string FormatCodes(IReadOnlyList<string> codes) =>
         codes.Count == 0 ? "None" : string.Join(", ", codes.Select(code => "`" + code + "`"));
+
+    private static string FormatIds(IReadOnlyList<string> ids) =>
+        ids.Count == 0 ? "None" : string.Join(", ", ids.Select(id => "`" + id + "`"));
+
+    private static string FormatStages(HtmlCapabilityStage stages) =>
+        string.Join(", ", GetCapabilityStages()
+            .Where(stage => stage != HtmlCapabilityStage.None && stages.HasFlag(stage)));
+
+    private static IEnumerable<HtmlCapabilityStage> GetCapabilityStages() {
+#if NET5_0_OR_GREATER
+        return Enum.GetValues<HtmlCapabilityStage>();
+#else
+        return Enum.GetValues(typeof(HtmlCapabilityStage)).Cast<HtmlCapabilityStage>();
+#endif
+    }
+
+    private static string FormatCount(int? value) => value?.ToString() ?? "—";
 }

@@ -199,6 +199,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
+            ApplyNativeUnspacedTableRowMargins(table, layout, style);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
@@ -579,6 +580,8 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
+                !conditionalStyle.TextSpacing.WidthPercentage.HasValue &&
+                !conditionalStyle.TextSpacing.CharacterSpacing.HasValue &&
                 string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
@@ -619,7 +622,9 @@ namespace OfficeIMO.Word.Pdf {
                 RunStyle = runStyle with {
                     FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
                     ComplexScript = runStyle.ComplexScript.Merge(conditionalStyle.ComplexScript),
-                    FontFamily = conditionalStyle.FontFamily ?? runStyle.FontFamily,
+                    TextSpacing = runStyle.TextSpacing.Merge(conditionalStyle.TextSpacing),
+                    FontFamily = conditionalStyle.FontFamilies.Inherit(runStyle.FontFamilies).Primary ?? conditionalStyle.FontFamily ?? runStyle.FontFamily,
+                    FontFamilies = conditionalStyle.FontFamilies.Inherit(runStyle.FontFamilies),
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
                     Italic = conditionalStyle.Italic ?? runStyle.Italic,
                     UnderlineStyle = conditionalStyle.UnderlineStyle ?? runStyle.UnderlineStyle,

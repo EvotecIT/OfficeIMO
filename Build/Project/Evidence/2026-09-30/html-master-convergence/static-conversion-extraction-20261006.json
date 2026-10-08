@@ -1,0 +1,2500 @@
+{
+  "base": "d32b576f495fe962ff497b4af22c408590e14d25",
+  "selectedCheckpoint": "11f736a242e1895a42d2c86aed5e21babc28a60e",
+  "scope": "Static HTML renderer and canonical conversion jobs over released retained providers; no interactive runtime or worker graph. Accepted current master owner behavior is preserved through explicit three-way reconciliation.",
+  "implementation": [
+    "print, screen-media and screen-snapshot profiles through HtmlConversionDocument/HtmlRenderRequest and Tool",
+    "bounded virtual MHTML/ZIP resources, deadline and truthful loss reporting",
+    "static layout, semantic source order, math/font, clipping and overflow contracts",
+    "Core ZIP/SVG/shadow and PDF tracking/ActualText/appearance prerequisites",
+    "native adapter caption/image/run ownership corrections"
+  ],
+  "proof": {
+    "htmlNet8": {
+      "passed": 4514,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "3574cd89effbbcf09e8cd178e1f83bfed46226ed",
+      "htmlOwnerUnchanged": true
+    },
+    "htmlNet10": {
+      "passed": 4514,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "3574cd89effbbcf09e8cd178e1f83bfed46226ed",
+      "htmlOwnerUnchanged": true
+    },
+    "drawingNet10": {
+      "passed": 3443,
+      "failed": 0,
+      "skipped": 4
+    },
+    "toolNet10": {
+      "passed": 287,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pdfFocusedNet10": {
+      "passed": 209,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pdfNet8": {
+      "passed": 9155,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "743e796c7136ccd02e57180b1e117ec187b5002a",
+      "measurementCategoryExcluded": true,
+      "rasterizer": "Poppler26.05.0",
+      "baselineUpdateMode": false
+    },
+    "pdfNet10": {
+      "passed": 9155,
+      "failed": 0,
+      "skipped": 0,
+      "sourceHead": "743e796c7136ccd02e57180b1e117ec187b5002a",
+      "measurementCategoryExcluded": true,
+      "rasterizer": "Poppler26.05.0",
+      "baselineUpdateMode": false
+    },
+    "packages": {
+      "count": 19,
+      "frameworks": [
+        "netstandard2.0",
+        "net472",
+        "net8.0",
+        "net10.0"
+      ],
+      "freshPublicConsumersPerFramework": 2,
+      "executedFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "feedInstalledSourceAndLoadedDllHashesVerified": true,
+      "coreExternalRuntimeDependencies": 0,
+      "nativeWindowsExecution": "Requires current-head hosted CI; Mac cross-target packs are not native proof."
+    },
+    "profiles": {
+      "validator": "veraPDF1.30.2",
+      "machineChecks": [
+        {
+          "label": "a3b",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 2125,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-a3b",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 2139,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-ua1",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 553,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "unlinked-ua1",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 530,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "formula-free-ua1",
+          "returncode": 0,
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 531,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        }
+      ],
+      "linkedMathMlAttachmentsPreserved": true,
+      "standaloneUa1MathMlRejected": "Effective PDF2.0 for structure-associated files conflicts with UA1/PDF1.7. Formula-free UA1 control passes.",
+      "manualAccessibility": false
+    },
+    "frozenApiTool": {
+      "cases": 3,
+      "profiles": 3,
+      "routes": 9,
+      "pages": 97,
+      "apiToolBytesEqual": true,
+      "rawUtf8LfPerPageTextEqual": true,
+      "fullCharactersTokensAndDecodedImagesPerPagePreserved": true,
+      "outputsByteIdenticalToE3": true,
+      "allOperationsRetainHasLoss": true,
+      "annotationChanges": "Unique URI targets and existing occurrences retained; additional painted regions gain annotations. See explicit observations, not an all-geometry-equal claim.",
+      "diagnostics": "Additional SvgContentUnsupported feature1 observations remain classified; exact unsupported declaration not identified for each occurrence.",
+      "pagePaint": {
+        "identical": 91,
+        "changed": 6,
+        "classification": "Small first-page NASA navigation disclosure circles only; six paired renders inspected. No full browser appearance claim."
+      }
+    },
+    "staticCorpus": {
+      "cases": 18,
+      "directArtifacts": 104,
+      "directByteIdenticalToAcceptedB40": 104,
+      "pdfArtifacts": 36,
+      "pagesCountTextFormulasLinksDecodedAttachmentsPreserved": true,
+      "externalRasterPages": 46,
+      "allExternalPixelsEqual": true,
+      "screenNormalizedHashesPreserved": true,
+      "screenObserver": "Exact raw input equality to e3 canonical-normalizer receipts; earlier raw-vs-normalized observer comparison retained."
+    },
+    "taggedStructure": {
+      "pagedColumnNotes": 2,
+      "uniqueIdsAndIdTreeReferencesVerified": true,
+      "freshPackedPublicControls": 3,
+      "logicalMcids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "multiwordLinkAnnotations": 1,
+      "interleavedLinkAnnotations": 2,
+      "separateColumnLinkParents": 2,
+      "review": "One fresh scoped full and targeted confirmation complete; word-owned whitespace refinement directly tested and broad suites passed."
+    },
+    "scaledWidgets": {
+      "publicPackedControls": 16,
+      "equivalentAuthoredAppearanceRasterPairs": 8,
+      "allPixelsEqual": true,
+      "originalNonEquivalentPaddingControlRetained": true
+    }
+  },
+  "originalFailuresRetained": [
+    "initial prerequisite compile failures",
+    "first combined HTML 4492 pass/10 fail",
+    "first focused PDF 208 pass/1 fail (AAB vs AB)",
+    "Matched-rasterizer stale baselines: isolated prior/current controls were pixel-identical; baselines refreshed without tolerance changes",
+    "Packed A3b/combined profile prerequisites omitted during extraction, restored precisely and machine-validated",
+    "Column-note IDTree and linked-child recovery; before13failures, recovered serialization reviewed",
+    "Shared-contents interleaved and cross-parent links before3failures; owned multiword spaces reconciled without unrelated-content coalescing",
+    "Private public consumer initially used an internal convenience API; corrected to supported Content builder/options",
+    "Naive raw-vs-normalized screen observer and paged-note expectation on screen composition corrected; original observations retained"
+  ],
+  "remaining": [
+    "Current-head supported-platform CI and delayed complete feedback",
+    "Normal PR merge and unique-proof-preserving cleanup",
+    "Deliberate optional-runtime source reconciliation and qualified one-branch adoption",
+    "Broader H10/native/resource/all-intent and unchanged platform timing acceptance"
+  ],
+  "historicalEvidence": "321 already-referenced HTML evidence files are preserved to keep owner documentation links resolvable. They are historical evidence, not current extraction qualification.",
+  "broaderLimits": "No browser parity, native-app/manual accessibility parity or timing acceptance is claimed. Prior timing failures remain open; ceilings are unchanged.",
+  "retainedEvidence": "Ignore/StaticConversionExtractionQualification",
+  "testReceipts": [
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/drawing-net10.trx",
+      "sha256": "84cbbe30a04759efef21634358df53d305c9d883fdef4d2ffdf28e1f1ed8fc4a"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/html-final-net10.trx",
+      "sha256": "97555899e7560778b2dd90ee758e94fd8ea1cc8de0ea7ac87880d199bcebdf67"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/html-final-net8.trx",
+      "sha256": "e06352957661c61bcd37fde30b4f628c4addeb5d576b4c459b7978925110b813"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/pdf-focused-final-net10.trx",
+      "sha256": "463174ca80ee79e2fc686e07ba99a04b68d700748e815238cfc212b3ab3e0b67"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/tests/tool-net10.trx",
+      "sha256": "d550fa37b274cfdf79a803a8de86e3d4b730ca904739c61c33e0e84a76e68647"
+    }
+  ],
+  "qualifiedProductSource": "828d615435e9fa3fb4f484bf45f1dcc4052f37e4",
+  "prerequisiteImageNormalizationSource": "9d25575e4c23ddf9b455319e371958b97bd31e30",
+  "qualificationCaveat": "Current local normal source, full two-framework owners, frozen API/Tool/static output and project-reference machine profiles are qualified. Current-head three-platform packages/native consumers, CI and delayed feedback remain required; prior packed graphs are not current proof. Broader timing/H10/manual accessibility/runtime criteria remain open.",
+  "finalEvidenceReceipts": [
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/final-pdf-743e796c7/net10.0.trx",
+      "sha256": "ce4589a4d222b3e8f481267e13a7427406567f3f68e49b9b4470438a08d0b57e"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/final-pdf-743e796c7/net8.0.trx",
+      "sha256": "cc2d37ba669d728dcc0093893141b0334f839c7d64be3fda8c9bd476e3e9fe49"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/packages-clean-743e796c7/origin-hash-verification.json",
+      "sha256": "4a346474ae77309494f7634da3c271a84d37569dff8ddaf6e85e3a5fec32500c"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/packed-profiles-743e796c7/machine-summary.json",
+      "sha256": "e12447b8583f757988b07584fe27a08e499865bd364150114a4d4927faee334b"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/packed-profiles-743e796c7/origin-verification.json",
+      "sha256": "eaf1fe9436d19e2410e9ae73b0f5755f1872fe564af7b976e993f92c720e404f"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/corpus-clean-743e796c7/independent-comparison.json",
+      "sha256": "cf7c9a9627b52f731e2f835c7418280a88384a799c5afc0699921e922db8350a"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/independent-static-comparison.json",
+      "sha256": "8f9669f95e71496890bc6fa4102c4d942223eeffe42bc2c06080610320ef6518"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/external-page-paint-comparison.json",
+      "sha256": "5dd82a9d82a3170fcd4bff2e1e7a3833f232368aea4a621226c66ae28b38738e"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/screen-text-observer-final.json",
+      "sha256": "9035196ae53c0e39661604ec5b9516a01ac32e666860f63f96b841470f825034"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/static-clean-743e796c7/independent-note-idtree-observations.json",
+      "sha256": "0700a15e3c22a4cf17d5d3ffa14585b2d839a5617cf63c5a63d41d568126b9ee"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/public-link-structure-743e796c7/independent-structure-observations.json",
+      "sha256": "8a3aba0911dce7b65952218596f05b7118a0d330f3878adf3ea5524b41544317"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/review-boundaries.json",
+      "sha256": "a5684f12ddf83a3b1aa2893026503cf3299e0d28b54fea506cf12183dd4b36a6"
+    },
+    {
+      "path": "Ignore/StaticConversionExtractionQualification/corpus-clean-743e796c7/paint/appearance-classification.json",
+      "sha256": "c6a2a53a78ac90759c4ad10492844fd7db8909be41bb56970f4c3217962a0b38"
+    }
+  ],
+  "publicationAssessment": {
+    "usefulOutcome": "One bounded static HTML/MHTML/ZIP conversion contract reaches PDF/SVG/raster and native projections through owning adapters and thin API/Tool surfaces.",
+    "ownership": "OfficeIMO owns renderer/layout/pagination/resources/encoding; approved AngleSharp/Css provide parsing and style, optional Js/Jint are excluded from this shipped graph.",
+    "api": "Explicit conversion document/render request/results with migration notes; superseded paths removed instead of compatibility bridges.",
+    "dependencyImpact": "Existing approved retained providers; Core zero external runtime dependencies; no browser executable or comparison tool enters product artifacts.",
+    "qualification": "Local selected profile proof complete; native platform CI/delayed feedback/merge still required; broader H10/timing/manual accessibility remain open."
+  },
+  "settlement20261007": {
+    "prerequisite": {
+      "pr": 2885,
+      "head": "9d25575e4c23ddf9b455319e371958b97bd31e30",
+      "merge": "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+      "checks": {
+        "success": 91,
+        "skipped": 3
+      },
+      "completeDelayedFeedback": true,
+      "ownedWorktreeRemoved": true
+    },
+    "combinedProductSource": "329f60ede91a2e5ab370a7990b266c886660cd51",
+    "acceptedMaster": "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+    "combinedPdfCorrectness": [
+      {
+        "framework": "net8.0",
+        "passed": 9237,
+        "failed": 0,
+        "skipped": 0,
+        "trx": "Ignore/StaticConversionExtractionQualification/master-overlap-tests/pdf-master-full-net8.0.trx",
+        "sha256": "5b70a9de45dc19004d12bce30e75a1b4bb96f65b404c4ba2004ac44b9ddd461b"
+      },
+      {
+        "framework": "net10.0",
+        "passed": 9237,
+        "failed": 0,
+        "skipped": 0,
+        "trx": "Ignore/StaticConversionExtractionQualification/master-overlap-tests/pdf-master-full-net10.0.trx",
+        "sha256": "732f6948115541d461f6225e2fcee0a8d6cd603f2e284b6a08759beed87830c5"
+      }
+    ],
+    "scopedIntegrationReview": {
+      "candidate": "329f60ede91a2e5ab370a7990b266c886660cd51",
+      "scope": "New PDF/Core accepted-master reader, logical glyph, source-font editing, encryption and generated-output interactions against static Note/Link/ActualText",
+      "agent": "static_pdf_master_overlap_review",
+      "strictReadOnly": true,
+      "findings": [],
+      "productRecommendation": "accept as shaped",
+      "fullPassUsed": true,
+      "targetedConfirmationUsed": false,
+      "doesNotEstablishMergeReadiness": true
+    },
+    "comparisonFixture": {
+      "regularSha256": "f5f41dd4cd8281cf151091cef9e9add0cda9b6ccd1db2010f72c3f056f0775fb",
+      "boldSha256": "27da758f4dcac9a65abe914c13b463b42982b9909bc65713424099f4810bd1e6",
+      "registeredBoldWeight": 700,
+      "sourceCommit": "bd7e37632246368c60fdcbd374dbf9bad11969b6",
+      "license": "OFL-1.1; existing complete notice",
+      "runtimeDependencyAdded": false,
+      "sameUnchangedGeometryAndVisualLimits": true,
+      "finalCases": 2,
+      "finalPages": 3,
+      "passed": true,
+      "fontDiagnostics": {
+        "text-geometry": [],
+        "delivery-register": []
+      },
+      "visualComparison": "consistency-bold-comparison.png; inspected header/table/footer; authored bold actual face"
+    },
+    "currentCorpus": {
+      "source": "329f60ede91a2e5ab370a7990b266c886660cd51",
+      "nineApiToolRoutes": true,
+      "allNinePdfsByteIdenticalToAccepted743": true,
+      "unchangedRasterAndResourceBytesByIdentity": true,
+      "corpusReceipts": "Ignore/StaticConversionExtractionQualification/corpus-clean-329f60ede",
+      "routes": 9,
+      "pages": 97,
+      "bytesRawPopplerPerPageAndReportsEqual": true,
+      "observations": "Ignore/StaticConversionExtractionQualification/corpus-clean-329f60ede/byte-identical-independent-observations.json",
+      "resourceConservation": "Exact full PDF byte identity preserves independently observed decoded images and link geometry. Eight repeated pypdf observations passed before redundant ninth decode was stopped; partial log/exit retained.",
+      "hasLossRetained": true
+    },
+    "hostedPreviousGraph": {
+      "run": 37546894462,
+      "source": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+      "platforms": [
+        {
+          "platform": "linux",
+          "sourceHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+          "consumerFrameworks": [
+            "net10.0",
+            "net8.0"
+          ]
+        },
+        {
+          "platform": "macos",
+          "sourceHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+          "consumerFrameworks": [
+            "net10.0",
+            "net8.0"
+          ]
+        },
+        {
+          "platform": "windows",
+          "sourceHead": "d6d5df9abd92064447c4b4d19b35aa10a150f9a9",
+          "consumerFrameworks": [
+            "net10.0",
+            "net472",
+            "net8.0"
+          ]
+        }
+      ],
+      "nineteenPackagesPerPlatform": true,
+      "feedInstalledSHA512OriginAndConsumerDLLHashesVerified": true,
+      "nativeWindowsNet472ConsumerExecutions": 2,
+      "current329Qualification": false
+    },
+    "currentGraphHostedPackagesAndDelayedFeedback": "Required after consolidated push; previous d6 artifacts do not qualify accepted-master graph.",
+    "normalStandardApiToolBuilds": "All pass, zero warnings/errors",
+    "broaderGoalsComplete": false,
+    "retainedObserverScope": "Exact full PDF byte identity preserves independently observed decoded images and link geometry. Eight repeated pypdf observations passed before redundant ninth decode was stopped; partial log/exit retained.",
+    "ciRemediation": {
+      "sourceBeforeFix": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+      "scope": "Test-framework compatibility and independent SVG comparison policy; no shipping owner changes.",
+      "ciObserved": {
+        "windowsJob": 112588329501,
+        "testCompilationErrors": 17,
+        "ubuntuBuildCanceled": "Same matrix fail-fast after Windows compilation failure; no independent failure waiver. New source CI required.",
+        "comparisonRun": 37555710295,
+        "comparisonInputCommit": "57c1314f757188d9fe119b0ead16d9fdf74feffd",
+        "comparisonMergeParents": [
+          "b7372b6d895a288bb89b1c3dc1566ae2f548e134",
+          "880b245036d23069a8c4c5f5b95bf88dcc2b9092"
+        ],
+        "comparisonFailure": "delivery-register page1 SVG-vs-PNG 26843/887040 (3.02613%) vs unchanged 3%; required text/geometry/color and other routes pass."
+      },
+      "compatibilityFix": "Ordinal two-argument Replace, string-array Split and Count-1 indexing retain the assertions and literal fixture semantics on net472.",
+      "crossCompile": {
+        "framework": "net472",
+        "errors": 0,
+        "warnings": 3,
+        "warningKind": "Existing xUnit2031 analyzer warnings",
+        "nativeWindowsExecution": false
+      },
+      "localAffectedTests": [
+        {
+          "framework": "net8",
+          "passed": 1920,
+          "failed": 0,
+          "skipped": 0,
+          "trxSha256": "bdc5deed2668e6e7287c2514f2f35926ee27a5a3a5d21f24602018dad613450e"
+        },
+        {
+          "framework": "net10",
+          "passed": 1920,
+          "failed": 0,
+          "skipped": 0,
+          "trxSha256": "3bcd9d276402a084d452ab9451af827506ce96f976127ee55bcbdf356686cbbf"
+        }
+      ],
+      "comparisonDiagnosis": {
+        "managedPngSvgPdfBytesEqualToAcceptedLocal": true,
+        "actualRegularAndBoldFontHashesEqual": true,
+        "sameSvgPdfRasterizedByPoppler24And26ByteIdentical": true,
+        "differentPlatformBrowserCaptures": true,
+        "platformHintingCausationNotYetProvedOnLinux": true,
+        "browserConfiguration": "--font-render-hinting=none",
+        "chromiumOwnerDocumentation": "https://chromium.googlesource.com/chromium/src/+/HEAD/headless/public/switches.h",
+        "noToleranceOrSourceFixtureChange": true,
+        "reportMetadataRetainsPolicy": true,
+        "localReportCases": 2,
+        "localReportPages": 3,
+        "localReportPass": true,
+        "archivedNativeInputCases": 13,
+        "archivedNativeInputPages": 29,
+        "nativeVerifierPass": true,
+        "linuxCurrentCandidateAcceptancePending": true
+      },
+      "currentAcceptedMasterPackageProbe": {
+        "run": 37555784425,
+        "head": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+        "platforms": [
+          {
+            "platform": "linux",
+            "sourceHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ],
+            "publicConsumerPassLogLines": [
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:05.1761621Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:06.7036826Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12.",
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:12.4719071Z OfficeIMO HTML packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / ubuntu-latest\tUNKNOWN STEP\t2026-10-07T01:47:15.5887853Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+            ]
+          },
+          {
+            "platform": "macos",
+            "sourceHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ],
+            "publicConsumerPassLogLines": [
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:30.6380710Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.30.",
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:34.0324230Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12.",
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:42.1740230Z OfficeIMO HTML packed API smoke passed on .NET 8.0.30.",
+              "Static HTML qualification / macos-latest\tUNKNOWN STEP\t2026-10-07T01:49:45.8714510Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+            ]
+          },
+          {
+            "platform": "windows",
+            "sourceHead": "880b245036d23069a8c4c5f5b95bf88dcc2b9092",
+            "packages": 19,
+            "loadedDlls": 63,
+            "consumerFrameworks": [
+              "net10.0",
+              "net472",
+              "net8.0"
+            ],
+            "publicConsumerPassLogLines": [
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:35.9038061Z OfficeIMO HTML document-only packed API smoke passed on .NET Framework 4.8.9345.0.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:39.9050967Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:41.9015917Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:51.1575245Z OfficeIMO HTML packed API smoke passed on .NET Framework 4.8.9345.0.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:55.0749449Z OfficeIMO HTML packed API smoke passed on .NET 8.0.31.",
+              "Static HTML qualification / windows-latest\tUNKNOWN STEP\t2026-10-07T01:53:58.9390687Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+            ]
+          }
+        ],
+        "allArtifactZipSizesSha256CrcAndInstalledOriginsVerified": true,
+        "coreExternalRuntimeDependencies": 0,
+        "windowsNet472ConsumerExecutions": 2,
+        "windowsInstalledFramework": "4.8",
+        "excludesCorrectnessProfilesTimingAndReleases": true
+      },
+      "localReviewDisposition": "No new full review for mechanical test API compatibility and bounded comparison launch setting; shipping owner reviews remain current. Changed comparison must settle in hosted Linux CI.",
+      "remaining": [
+        "Current-head hosted CI and delayed complete feedback after consolidated push.",
+        "Current-source platform package artifacts and proof receipts.",
+        "Authorized merge then qualified engine synchronization and two temporary worktree removals."
+      ]
+    },
+    "platformCiClosure": {
+      "observedHead": "759eeac35e7556c626bdc25a276024641ffcc940",
+      "correctiveSourceCommit": "03a5016f02553b46f313bb9f78ce06ee923364de",
+      "scope": "Only two generic enum invocations in CLI; no Html/Core/Pdf renderer behavior or new API/dependency",
+      "failedRun": 37564364890,
+      "underlyingCauses": [
+        {
+          "owner": "OfficeIMO.Tool",
+          "trigger": "Capabilities JSON used reflection-only Enum.GetValues(Type)",
+          "consequence": "IL3050 blocks Tool NativeAOT on Windows/Linux",
+          "fix": "Existing generic Enum.GetValues<TEnum>; JSON contract preserved; no other reflection GetValues(Type) siblings in Tool"
+        },
+        {
+          "owner": ".gitattributes",
+          "trigger": "Windows core.autocrlf=true checkout",
+          "consequence": "54 of 139 frozen inputs/manifests changed bytes; integrity checks correctly reject",
+          "fix": "Preserve authored exact bytes for Qualification tree; all 139 verified after checkout; no fixture/hash normalization"
+        },
+        {
+          "owner": "Ubuntu word-rtf-html CI setup",
+          "trigger": "Typography fixture contains U+7E26 and no installed CJK fallback",
+          "consequence": "PDF font coverage rejects missing glyph",
+          "fix": "Reuse existing comparison-workflow fonts-noto-cjk/fonts-noto-core/fonts-ipafont-gothic setup; actual Linux next-head execution required"
+        },
+        {
+          "owner": "PowerPoint shadow test fixture",
+          "trigger": "Opaque-black assertion samples blurred corner with old 8pt offset",
+          "consequence": "Public PNG is #202020 at (83,53); no runtime shadow defect established",
+          "fix": "16pt distance separates covered opaque sample from foreground/blur edge; retain separate halo check; public before/final PNG/SVG inspected"
+        },
+        {
+          "owner": "HTML content-safety tests",
+          "trigger": "CSS all:initial resets display:none",
+          "consequence": "Old test expects concealment after text becomes visible",
+          "fix": "Visible reset text has no concealment finding; reset-then-hidden text remains report-only and cannot be destructively removed; production safety policy unchanged"
+        }
+      ],
+      "current759Comparison": {
+        "run": 37564364802,
+        "passed": true,
+        "originalTolerancesPreserved": true
+      },
+      "current759Packages": {
+        "run": 37564394597,
+        "platforms": [
+          {
+            "platform": "linux",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ]
+          },
+          {
+            "platform": "macos",
+            "packages": 19,
+            "loadedDlls": 42,
+            "consumerFrameworks": [
+              "net10.0",
+              "net8.0"
+            ]
+          },
+          {
+            "platform": "windows",
+            "packages": 19,
+            "loadedDlls": 63,
+            "consumerFrameworks": [
+              "net10.0",
+              "net472",
+              "net8.0"
+            ]
+          }
+        ],
+        "allArtifactZipSizesSha256CrcAndInstalledOriginsVerified": true,
+        "CoreExternalRuntimeDependencies": 0,
+        "windowsNet472ConsumersExecuteOnFramework": "4.8",
+        "excludesFullCorrectnessProfilesTimings": true
+      },
+      "frozenCheckout": {
+        "before": {
+          "files": 139,
+          "changed": 54
+        },
+        "after": {
+          "files": 139,
+          "allByteIdentical": true
+        },
+        "sourceAndIntegrityPinsUnchanged": true
+      },
+      "localFrameworkProof": {
+        "net8": {
+          "shadow": 174,
+          "safety": 224,
+          "h4": 9,
+          "frozenBaselineAndCatalog": 5,
+          "tool": 287
+        },
+        "net10": {
+          "shadow": 174,
+          "safety": 224,
+          "h4": 9,
+          "frozenBaselineAndCatalog": 5,
+          "tool": 287
+        }
+      },
+      "macosArm64NativeAot": {
+        "publishExitCode": 0,
+        "runExitCode": 0,
+        "diagnostics": [],
+        "executableSha256": "F385561783D4206A7AB26FFC7E0788B46C143DFD6698FF0D5F1AF478AD1BB56D"
+      },
+      "net472CrossCompile": {
+        "SharedTestsNet472": {
+          "errors": 0,
+          "warnings": 0
+        },
+        "PowerPointTestsNet472": {
+          "errors": 0,
+          "warnings": 0
+        },
+        "nativeWindowsExecution": false
+      },
+      "stableValidationBytesEqualCommittedSource": true,
+      "localReviewDisposition": "Directly proven narrow CLI and test/setup corrections; current shipping owner independent review coverage retained; no fresh full review solely for SHA",
+      "originalFailuresRetained": true,
+      "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007",
+      "remaining": [
+        "Consolidated publication and immediate/delayed current-head hosted gates",
+        "Actual next-head Linux font/native Windows execution",
+        "Actual merge/base overlap inspection then qualified engine sync and two temporary worktree removals"
+      ]
+    },
+    "requiredAcceptedMasterIntegration": {
+      "productSource": "5984d9738a2e4b8bf4f02de08dfcc1210ad305c4",
+      "acceptedMaster": "c32f3ed00b32ead9f32f38176fdc145681435114",
+      "trigger": "PR became conflicting after accepted shared PDF/Core/Word owner changes; deliberate required convergence replaces reliance on older shipping source329.",
+      "resolvedContracts": [
+        "Both migration contracts retained",
+        "Tracking-aware text bypasses ASCII CID shortcuts",
+        "Lazy logical commands retain glyph bytes and default metric scale",
+        "Isolated scalar fast path preserves tracking advance and cluster/redaction boundaries",
+        "Even-odd and nonzero fill rules remain explicit",
+        "Thin image adapter uses canonical inspector inspection/PNG-validation outputs"
+      ],
+      "regressionProof": {
+        "asciiTrackingUnsafe": "4 of6 independently measured glyph-advance cases fail; stable candidate passes all6 through broad suite",
+        "isolatedTrackingUnsafe": "2 of3 continuation-coordinate cases fail; stable focused PDF137 pass",
+        "htmlTrackingAndApng": "8pass before clean-head broad replay",
+        "originalObserverFailuresRetained": true
+      },
+      "localReview": {
+        "reviewer": "/root/static_master_pdf_raster_closure",
+        "head": "5984d9738a2e4b8bf4f02de08dfcc1210ad305c4",
+        "parents": [
+          "62c78107ae45ede0f5a6d9b42bbfe65455e05763",
+          "c32f3ed00b32ead9f32f38176fdc145681435114"
+        ],
+        "reason": "Materially new interactions between accepted PDF/Core optimizations and static tracking/metric-scale/logical-text/clip/resource contracts",
+        "boundary": "current",
+        "freshReadOnlyFullPass": true,
+        "technicalFindings": [],
+        "confirmationUsed": false,
+        "productApiDisposition": "accept as shaped",
+        "dependencyStatus": "No new public API or production dependency; retained approved AngleSharp/Css boundary; optional runtime remains separate",
+        "validationLimits": [
+          "reviewer ran no tests/builds/mutations",
+          "combined suites/corpus/package/platform evidence remain primary-owned",
+          "not merge or publication readiness"
+        ]
+      },
+      "fullFrameworkProof": {
+        "frameworks": [
+          "net8.0",
+          "net10.0"
+        ],
+        "html": {
+          "passedEach": 4517,
+          "skippedEach": 0
+        },
+        "pdf": {
+          "passedEach": 9336,
+          "skippedEach": 0
+        },
+        "drawing": {
+          "passedEach": 3668,
+          "existingSkippedEach": 4
+        },
+        "tool": {
+          "passedEach": 287,
+          "skippedEach": 0
+        },
+        "performanceMeasurementsExcluded": true,
+        "normalStandardOwners": [
+          "OfficeIMO.Core",
+          "OfficeIMO.Html",
+          "OfficeIMO.Html.Pdf",
+          "OfficeIMO.Pdf"
+        ],
+        "normalApiAndToolBuilds": true
+      },
+      "frozenCorpus": {
+        "sourceHead": "5984d9738a2e4b8bf4f02de08dfcc1210ad305c4",
+        "nineRoutes": 9,
+        "pages": 97,
+        "samePageCountsAndRawTextAndLinkTargetsAndReports": true,
+        "threeChesapeakePdfsByteIdentical": true,
+        "allFifteenDifferentlyEncodedImageOccurrencesHaveExactDecodedRgbaPixelsAndDimensions": true,
+        "originalEncodedImageObserverFailureRetained": true,
+        "observerCorrection": "Prior comparison hashes pypdf-extracted PNG bytes despite naming that field decodedImagesPerPageEqual. This separate observation compares actual RGBA pixel bytes; it does not alter old reports or tolerance limits.",
+        "paintAcceptancePending": false,
+        "pixelIdenticalPages72Dpi": 95,
+        "changedPages72Dpi": 2,
+        "changedPageRegions": [
+          {
+            "case": "reference-print-paged",
+            "page": 8,
+            "bbox": [
+              54,
+              269,
+              292,
+              692
+            ],
+            "changedPixels": 8450,
+            "maxChannelDelta": 1,
+            "size": [
+              596,
+              842
+            ]
+          },
+          {
+            "case": "reference-screen-media-paged",
+            "page": 10,
+            "bbox": [
+              54,
+              149,
+              292,
+              572
+            ],
+            "changedPixels": 8450,
+            "maxChannelDelta": 1,
+            "size": [
+              596,
+              842
+            ]
+          }
+        ],
+        "classification": "Accepted opaque PNG preparation omits redundant fully opaque soft masks. RGB decoded image streams remain identical; nonopaque image soft mask remains identical. Poppler changes one channel level inside the same Sun photo rectangle only. Both changed page pairs were visually inspected; text/layout/link/resource contracts remain unchanged.",
+        "opaqueMaskProof": [
+          {
+            "image": "/Im1",
+            "opaqueMaskLength": 784800,
+            "pixelCount": 784800,
+            "allAlpha255": true
+          },
+          {
+            "image": "/Im3",
+            "opaqueMaskLength": 90000,
+            "pixelCount": 90000,
+            "allAlpha255": true
+          }
+        ],
+        "notClaims": [
+          "All97 pages pixel-identical",
+          "browser parity",
+          "manual accessibility",
+          "timing pass"
+        ]
+      },
+      "machineProfiles": {
+        "fiveChecksPass": true,
+        "failedChecksEach": 0,
+        "publicProducerUnchanged": true,
+        "loadedNormalOwners": 6,
+        "sourceAndDllHashesVerified": true,
+        "standaloneUaWithAttachmentRejected": true,
+        "notFreshPackedConsumerProof": true
+      },
+      "hygieneToolRestoration": {
+        "validatorCliSha256": "889075253fb9df4db5482efb8f8208fb3b4f2e00f5f7e1b1e31edf6fb4b69bb6",
+        "exactArchivedBytesRestored": true,
+        "cleanupMustOnlyTargetRegenerableCsprojOwnerOutputs": true
+      },
+      "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007",
+      "remaining": [
+        "Exact published-head CI and complete delayed feedback",
+        "Fresh current-source all-three-platform nineteen-package artifact gate",
+        "Inspect actual merge/base overlap before prepared-engine adoption",
+        "Preserve new proof and remove temporary static/convergence worktrees"
+      ],
+      "notClaims": [
+        "Hosted current-source packages passed",
+        "PR merge-ready",
+        "Browser or native application/manual accessibility parity",
+        "Historical timing budgets passed",
+        "Broader H10/math/runtime completion"
+      ]
+    }
+  },
+  "acceptedReportOwnerConvergence20261007": {
+    "acceptedMaster": "ae4ae4e445ed094dbd1a91d7d6768de79e2bc3f7",
+    "qualifiedSource": "209c7e7edf5e5de29626c9842d6ed685380027df",
+    "behaviorSource": "7d9182c5c0f15bb0f09d75812f05a2fe9fcaac97",
+    "resolvedOwners": [
+      "table minimum intrinsic floor plus insets",
+      "per-family installed font fallback",
+      "shared selected-face short-line baseline, descent paint extent, actual image and following-flow ownership",
+      "range/progress bounded radii",
+      "SVG display cascade"
+    ],
+    "fullFrameworkProof": {
+      "combined-full-html-net10.0": {
+        "total": "4827",
+        "executed": "4827",
+        "passed": "4827",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-html-net8.0": {
+        "total": "4827",
+        "executed": "4827",
+        "passed": "4827",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-pdf-net10.0": {
+        "total": "9345",
+        "executed": "9345",
+        "passed": "9345",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-pdf-net8.0": {
+        "total": "9345",
+        "executed": "9345",
+        "passed": "9345",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-drawing-net10.0": {
+        "total": "3697",
+        "executed": "3693",
+        "passed": "3693",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-drawing-net8.0": {
+        "total": "3697",
+        "executed": "3693",
+        "passed": "3693",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-tool-net10.0": {
+        "total": "287",
+        "executed": "287",
+        "passed": "287",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "combined-full-tool-net8.0": {
+        "total": "287",
+        "executed": "287",
+        "passed": "287",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "normalStandardAndApiToolBuilds": true,
+    "net472CrossCompile": "Normal Mac cross-compile passes with three existing analyzer warnings; hosted native Windows remains required",
+    "riskReview": {
+      "reportIntegration": "one full and targeted pass used; findings reproduced and fixed",
+      "shortLineOwner": "coverage-incomplete boundary prompted one bounded nonoverlapping closure pass plus targeted confirmation; valid low-ascent/strut/image and following-flow findings fixed; final focused53 each framework pass",
+      "newApiRuntimeDependency": false,
+      "knownUnresolvedP0P2": []
+    },
+    "rendered": {
+      "validatedSource": "209c7e7edf5e5de29626c9842d6ed685380027df",
+      "productBehaviorSource": "7d9182c5c0f15bb0f09d75812f05a2fe9fcaac97",
+      "frozenRoutes": {
+        "routes": 9,
+        "pages": 97,
+        "apiToolBytesEqual": true,
+        "apiToolIndependentRawTextEqual": true,
+        "wholeDocumentCharacterMultisetsPreserved": true,
+        "uniqueDecodedRgbaImagesRetained": true,
+        "uniqueUriTargetsRetained": true,
+        "allNineHasLossRetained": true,
+        "pixelIdenticalPages": 3,
+        "changedPages": 94,
+        "visualSheetsInspected": 24,
+        "observedChanges": [
+          "native font rendering/baseline and heading placement",
+          "table min-width wrapping",
+          "footer wrapping and duplicate clipped annotation/image fragments",
+          "Reference first article paragraph carries wholly to page2; no source content loss"
+        ],
+        "priorStrictEqualityFailureRetained": true,
+        "reportChanges": "Static embeddable fonts use native PDF shaper; unsupported GSUB substitutions remain reported. Old outline warnings are not expected on that route. No identical-report/full-font-shaping claim."
+      },
+      "static": {
+        "cases": 18,
+        "pdfs": 36,
+        "pageCountsTokensFormulaRolesAttachmentsUriTargetsPreserved": true,
+        "changedPaintPairs": 38,
+        "visualSheetsInspected": 10,
+        "screenMarkers": [
+          {
+            "case": "webp-raw-filters",
+            "markers": [
+              {
+                "marker": "webp-raw-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-0",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-1",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-2",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-3",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-webp-raw-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "webp-compressed-filters",
+            "markers": [
+              {
+                "marker": "webp-compressed-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-0",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-1",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-2",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FILTER-3",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-webp-compressed-filters",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "avif-opaque",
+            "markers": [
+              {
+                "marker": "avif-opaque",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-avif-opaque",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "avif-alpha",
+            "markers": [
+              {
+                "marker": "avif-alpha",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-avif-alpha",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "page-float-top",
+            "markers": [
+              {
+                "marker": "page-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FLOAT-TOP",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-15",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-16",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-17",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-18",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-19",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-20",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-21",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-22",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-23",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-24",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-25",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-26",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-28",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-29",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-30",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-31",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-32",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-33",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-page-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "page-float-bottom",
+            "markers": [
+              {
+                "marker": "page-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FLOAT-BOTTOM",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-15",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-16",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-17",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-18",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-19",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-20",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-21",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-22",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-23",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-24",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-25",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-26",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-28",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-29",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-30",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-31",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-32",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-33",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-page-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "page-float-snap",
+            "markers": [
+              {
+                "marker": "page-float-snap",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "BEFORE-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FLOAT-SNAP",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-01",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-02",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-03",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-04",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-05",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-06",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-07",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-08",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-09",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-10",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-11",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-12",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-13",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-14",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-15",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-16",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-17",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-18",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-19",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-20",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-21",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-22",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-23",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-24",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-25",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-26",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-28",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-29",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-30",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-31",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-32",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-33",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "AFTER-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-page-float-snap",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-float-left",
+            "markers": [
+              {
+                "marker": "column-float-left",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LEFT",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLBEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLAFTER-37",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-float-left",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-float-top",
+            "markers": [
+              {
+                "marker": "column-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-TOP",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLBEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLAFTER-37",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-float-top",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-float-bottom",
+            "markers": [
+              {
+                "marker": "column-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-BOTTOM",
+                "phrasePresent": false,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLBEFORE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLAFTER-37",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "COLUMN-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-float-bottom",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "column-notes",
+            "markers": [
+              {
+                "marker": "column-notes",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "CALL-A",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "NOTE-A",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "CALL-B",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "LONG-NOTE-00",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "LONG-NOTE-34",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "NOTE-TAIL-27",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-column-notes",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "language-hyphenation",
+            "markers": [
+              {
+                "marker": "language-hyphenation",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-language-hyphenation",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-patterns",
+            "markers": [
+              {
+                "marker": "svg-patterns",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-patterns",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-filter-graph",
+            "markers": [
+              {
+                "marker": "svg-filter-graph",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-filter-graph",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-resources",
+            "markers": [
+              {
+                "marker": "svg-resources",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-resources",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "svg-resource-denied",
+            "markers": [
+              {
+                "marker": "svg-resource-denied",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "DENIED-RESOURCE-SAFE-TEXT",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-svg-resource-denied",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "mathml-semantics",
+            "markers": [
+              {
+                "marker": "mathml-semantics",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-PREFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-SUFFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "MATH-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-mathml-semantics",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          },
+          {
+            "case": "pdf-conformance",
+            "markers": [
+              {
+                "marker": "pdf-conformance",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-PREFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "FORMULA-SUFFIX",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "MATH-LINK",
+                "phrasePresent": true,
+                "charactersPresent": true
+              },
+              {
+                "marker": "END-pdf-conformance",
+                "phrasePresent": true,
+                "charactersPresent": true
+              }
+            ]
+          }
+        ],
+        "priorScreenHashEquality": false,
+        "notClaim": "No pixel/byte/global screen-text hash equivalence. Rendered font metrics and line breaks change, including COLUMN-/BOTTOM wrapping; marker characters remain."
+      },
+      "publicNamedFace": {
+        "controls": 11,
+        "independentRasterPagesInspected": 15,
+        "normalFollowingBlockBelowInlineImage": true,
+        "lowAscentLowerPageFragmentPaintPreserved": true,
+        "rawExtractorLimit": "Poppler includes decorative Artifact shadow text and omits some synthetic-font continuation text. Managed logical text remains once; raw extraction and manual accessibility are not universal claims. Original strict raw observer failure retained."
+      },
+      "machineProfiles": {
+        "checks": 5,
+        "allPass": true,
+        "standaloneUa1FormulaProfileRejected": true,
+        "scope": "normal project-reference current graph; current packed/native hosted graph pending"
+      },
+      "net472": "Normal Mac cross-compile passes with three existing analyzer warnings; hosted native Windows remains required",
+      "noNewApiRuntimeDependency": true,
+      "remaining": [
+        "current-head CI and complete delayed feedback",
+        "current-head 3OS nineteen-package installed-origin/hash/native Windows artifacts",
+        "merge, qualified engine synchronization and proof-preserving temporary worktree removal"
+      ]
+    },
+    "priorFailuresRetained": true,
+    "evidenceRoot": "Ignore/StaticConversionExtractionQualification/ci-wave-759-20261007/second-master-overlap",
+    "canonicalReceiptSha256": "a40d21c41253c3e7e3b6403bd678efb78d49958083569081d2a3b71818e74daa",
+    "freshHostedGate": "Pending final-head CI/packages and delayed complete feedback; older hosted graphs are not current proof.",
+    "finalComparisonGeometry": {
+      "staticComparisonContractCommit": "8fb80fc1c2c15c4cc75e306bc1f806c282fc0175",
+      "combinedComparisonSource": "fde317bb9",
+      "cases": 2,
+      "pages": 3,
+      "passed": true,
+      "schema": 2,
+      "output": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-geometry-settled",
+      "originalFailureRetained": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-net8",
+      "reconciliation": "convergence/Ignore/MasterConvergenceQualification/wrap-up-audit-20261006/final-comparison-geometry-reconciliation.json",
+      "scope": "Managed PDF/SVG/raster route geometry and independent source-browser reference; only expected coordinates/region position changed after verified selected-font inline SVG descent. Original pixel minima, baseline tolerances, visual limits, supplied fonts and source fixture unchanged. Shipping owner code unchanged."
+    }
+  },
+  "acceptedMasterControlsConvergence20261007": {
+    "acceptedMaster": "22dd0d7e8a5d14e16519e4039283eef764ee4128",
+    "qualifiedProductSource": "828d615435e9fa3fb4f484bf45f1dcc4052f37e4",
+    "finalTestSource": "11f736a242e1895a42d2c86aed5e21babc28a60e",
+    "combinedSource": "205e47a500fa4d947fdbd94798dc30ef390cd755",
+    "selectedOwnerTrees": {
+      "OfficeIMO.Core": "f3518b991519aaeaa4c6188f829300ff7b7079bc",
+      "OfficeIMO.Tool.Tests": "5a0774a6a0cb9423b2e4327adba061928bef78d2",
+      "OfficeIMO.Html.Core": "2797c2dd624332e175463f53a786fe14c76b4baa",
+      "OfficeIMO.Html.Rtf": "07c7dde93d963cade84c69450b9407bd2f660d11",
+      "OfficeIMO.Html.AngleSharp": "87e7bdc9dbf6d14c1f52fd1edc40ad585c965e65",
+      "OfficeIMO.Html": "3cc43065f96a814dfe5b222015022efec07a510d",
+      "OfficeIMO.Html.Pdf": "b341ea71213d6250fa013685b078d696f04f6ad1",
+      "OfficeIMO.Pdf": "dac799c56db11a48b4e48a9550954be25cd903bc",
+      "OfficeIMO.Mhtml": "50a4a1d06360614bfad22cd705418a397675dbfc",
+      "OfficeIMO.Tool": "1e2f22c7abb332786d7108cfc7f12f1074df82fb",
+      "OfficeIMO.Html.Tests": "08fcae7cc9b1f8a19c2a88f3506e52ccb2b06a31",
+      "OfficeIMO.Drawing.Tests": "31241653e6e34b143d03f0c97c308c4213cf102f",
+      "OfficeIMO.Pdf.Tests": "2a061b01c56f857fc0023420749b03ab835a2af8"
+    },
+    "resolvedOwners": [
+      "styled native button descendants and intrinsic auto width",
+      "physical and logical authored zero-padding retained by shared logical-to-physical cascade",
+      "glyph-frame clipping separated from page and authored clips",
+      "accepted reverse PDF semantic projection retained"
+    ],
+    "riskReview": {
+      "freshFullReadOnly": "accepted_master_button_clip_review",
+      "targetedConfirmationUsed": true,
+      "physicalP2": "Reproduced and fixed at de14f557098e6297c536dce3a3a1703799ce6d34",
+      "logicalSiblingP2": "Reproduced and fixed at 828d615435e9fa3fb4f484bf45f1dcc4052f37e4 using the existing shared cascade",
+      "knownUnresolvedP0P2": [],
+      "newPublicApiOrRuntimeDependency": false,
+      "noExtraShaReview": true
+    },
+    "logicalPadding": {
+      "beforeOfficeSize": [
+        94,
+        34
+      ],
+      "independentBrowserSize": [
+        82,
+        26
+      ],
+      "finalOfficeSize": [
+        82,
+        26
+      ],
+      "receipt": "accepted-master-22dd0d7e8/logical-padding-primary-closure.json"
+    },
+    "frameworkProof": [
+      {
+        "suite": "combined-full-html-net10.0",
+        "passed": 4856,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-html-net8.0",
+        "passed": 4856,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-pdf-net10.0",
+        "passed": 9392,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-pdf-net8.0",
+        "passed": 9392,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-drawing-net10.0",
+        "passed": 3693,
+        "failed": 0,
+        "skipped": 4,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-drawing-net8.0",
+        "passed": 3693,
+        "failed": 0,
+        "skipped": 4,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-tool-net10.0",
+        "passed": 287,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      },
+      {
+        "suite": "combined-full-tool-net8.0",
+        "passed": 287,
+        "failed": 0,
+        "skipped": 0,
+        "skipObservation": "TRX total minus executed and original logged skip identities"
+      }
+    ],
+    "normalStandardAndApiToolBuilds": [
+      "combined-standard-html",
+      "combined-standard-html.pdf",
+      "combined-standard-pdf",
+      "combined-standard-core",
+      "combined-api-build",
+      "combined-tool-build"
+    ],
+    "h4": "accepted-master-22dd0d7e8/current-h4-framework-proof.json",
+    "observerCorrection": "The Drawing SVG font test observes public exported font-family values through accepted viewport groups. Shipping sources are unchanged after 828; only that test changes at 11f. Original failure is retained.",
+    "frozenRoutes": {
+      "routes": 9,
+      "pages": 97,
+      "apiToolBytesAndIndependentRawTextEqual": true,
+      "baselinePerPageRawTextDecodedImagesLinkTargetsReportsPreserved": true,
+      "allHasLossRetained": true,
+      "pixelIdenticalPages": 76,
+      "changedPages": 21,
+      "changedPageSheetsInspected": 6,
+      "maxChangedPixelFraction": 0.0005380286629788455,
+      "classification": "Small glyph/card-label clipping paint differences and Chesapeake native search-control icon placement. All changed page pairs inspected; no content loss or layout displacement observed. No browser parity claim.",
+      "receipt": "corpus-clean-11f736a24/independent-comparison.json"
+    },
+    "staticCorpus": {
+      "cases": 18,
+      "pdfs": 36,
+      "pageCountsTokensFormulaRolesAttachmentsUriTargetsPreserved": true,
+      "allScreenTextHashesEqual": true,
+      "scenePngPairsPixelEqual": true,
+      "pdfPagePaintPairs": 46,
+      "pdfPagePaintPairsPixelEqual": 42,
+      "changedPdfPaint": "Four pairs, 15 pixels each around math glyph edges. Paired enlarged crops inspected; no layout movement observed.",
+      "receipt": "static-clean-11f736a24/independent-static-comparison.json"
+    },
+    "machineProfiles": {
+      "checks": 5,
+      "allPass": true,
+      "actualChecks": [
+        {
+          "label": "a3b",
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 1999,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-a3b",
+          "compliant": true,
+          "details": {
+            "passedRules": 146,
+            "failedRules": 0,
+            "passedChecks": 2013,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "combined-ua1",
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 553,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "unlinked-ua1",
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 530,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        },
+        {
+          "label": "formula-free-ua1",
+          "compliant": true,
+          "details": {
+            "passedRules": 106,
+            "failedRules": 0,
+            "passedChecks": 531,
+            "failedChecks": 0,
+            "ruleSummaries": []
+          }
+        }
+      ],
+      "scope": "Normal current project-reference graph; new hosted package/native proof remains pending. Standalone UA1 with formula attachment remains rejected."
+    },
+    "combinedComparison": {
+      "source": "205e47a500fa4d947fdbd94798dc30ef390cd755",
+      "schema": 2,
+      "cases": 2,
+      "pages": 3,
+      "normalBuildAndRunExitZero": true,
+      "receipt": "convergence/wrap-up-audit-20261006/accepted-master-final-comparison"
+    },
+    "freshHostedGate": "Pending consolidated final-head CI, all3OS nineteen-package/private-feed/loaded-owner receipts, native Windows consumers and delayed complete feedback. Older successful hosted graphs do not qualify this graph.",
+    "originalFailuresRetained": true,
+    "evidenceRoot": "Ignore/StaticConversionExtractionQualification/accepted-master-22dd0d7e8",
+    "remaining": [
+      "current-head CI/packages and complete delayed feedback",
+      "authorized merge, concrete merge-owner reconciliation, qualified feature/html-engine synchronization",
+      "proof-preserving temporary worktree and local branch removal"
+    ],
+    "broaderLimits": "Historical candidate/control timing failures, wider H10/native/manual accessibility/all-intent and runtime acceptance remain open. No performance or universal extraction claim.",
+    "canonicalReceiptSha256": "ef6e5061aee0b524449867e9ba8f9b3253f8645864936f2a7b99f1e5a02619c9"
+  }
+}

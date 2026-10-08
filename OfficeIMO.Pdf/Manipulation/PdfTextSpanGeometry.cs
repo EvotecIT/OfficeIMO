@@ -25,7 +25,16 @@ internal static class PdfTextSpanGeometry {
         return result;
     }
 
-    internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span, double advanceOffset, double advance) {
+    internal static PdfTextSpanBounds GetAxisAlignedBounds(PdfTextSpan span, double advanceOffset, double advance) =>
+        GetAxisAlignedBoundsCore(span, advanceOffset, advance, -1D, 0.5D);
+
+    // PDF glyphs ascend along the positive baseline normal in page user space.
+    // Keep the legacy selection envelope above separate from precise redaction marks.
+    internal static PdfTextSpanBounds GetRedactionGlyphBounds(PdfTextSpan span, double advanceOffset, double advance) =>
+        GetAxisAlignedBoundsCore(span, advanceOffset, advance, 1D, -0.25D);
+
+    private static PdfTextSpanBounds GetAxisAlignedBoundsCore(PdfTextSpan span, double advanceOffset, double advance,
+        double firstNormalFactor, double secondNormalFactor) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(span);
 #else
@@ -39,18 +48,16 @@ internal static class PdfTextSpanGeometry {
         double alongY = Math.Sin(radians);
         double normalX = -alongY;
         double normalY = alongX;
-        const double DescentFactor = 0.5D;
-        double descent = fontSize * DescentFactor;
         double startX = span.X + alongX * advanceOffset;
         double startY = span.Y + alongY * advanceOffset;
-        double x0 = startX - normalX * fontSize;
-        double y0 = startY - normalY * fontSize;
-        double x1 = startX + alongX * advance - normalX * fontSize;
-        double y1 = startY + alongY * advance - normalY * fontSize;
-        double x2 = startX + normalX * descent;
-        double y2 = startY + normalY * descent;
-        double x3 = startX + alongX * advance + normalX * descent;
-        double y3 = startY + alongY * advance + normalY * descent;
+        double x0 = startX + normalX * fontSize * firstNormalFactor;
+        double y0 = startY + normalY * fontSize * firstNormalFactor;
+        double x1 = startX + alongX * advance + normalX * fontSize * firstNormalFactor;
+        double y1 = startY + alongY * advance + normalY * fontSize * firstNormalFactor;
+        double x2 = startX + normalX * fontSize * secondNormalFactor;
+        double y2 = startY + normalY * fontSize * secondNormalFactor;
+        double x3 = startX + alongX * advance + normalX * fontSize * secondNormalFactor;
+        double y3 = startY + alongY * advance + normalY * fontSize * secondNormalFactor;
         double left = Math.Min(Math.Min(x0, x1), Math.Min(x2, x3));
         double right = Math.Max(Math.Max(x0, x1), Math.Max(x2, x3));
         double bottom = Math.Min(Math.Min(y0, y1), Math.Min(y2, y3));
@@ -88,7 +95,8 @@ internal static class PdfTextSpanGeometry {
 
     internal static bool IntersectsAreaAtCharacterLevel(PdfTextSpan span, PdfRedactionArea area) {
         if (!PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
-            PdfTextSpanBounds bounds = GetAxisAlignedBounds(span);
+            PdfTextSpanBounds bounds = area.RequiresGlyphRewrite
+                ? GetRedactionGlyphBounds(span, 0D, span.Advance) : GetAxisAlignedBounds(span);
             return area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
         }
 
@@ -105,7 +113,8 @@ internal static class PdfTextSpanGeometry {
             double endBoundary = boundaries[characterOffset + characterLength];
             double start = hasPaintedGlyphGeometry ? startBoundary : Math.Min(startBoundary, endBoundary);
             double advance = hasPaintedGlyphGeometry ? glyphPaintedAdvances[index] : Math.Abs(endBoundary - startBoundary);
-            PdfTextSpanBounds bounds = GetAxisAlignedBounds(span, start, advance);
+            PdfTextSpanBounds bounds = area.RequiresGlyphRewrite
+                ? GetRedactionGlyphBounds(span, start, advance) : GetAxisAlignedBounds(span, start, advance);
             if (area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) return true;
             characterOffset += characterLength;
         }

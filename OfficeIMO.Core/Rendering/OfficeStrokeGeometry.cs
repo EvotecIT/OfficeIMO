@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Shared stroke-outline geometry for raster and native document painting.</summary>
-internal static class OfficeStrokeGeometry {
+internal static partial class OfficeStrokeGeometry {
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit) {
         if (shape.Kind == OfficeShapeKind.Path) return OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
         IReadOnlyList<OfficePoint> points;
@@ -56,8 +56,8 @@ internal static class OfficeStrokeGeometry {
         if (!Clip(-dx, start.X-left+padding, ref first, ref last) || !Clip(dx, right-start.X+padding, ref first, ref last)
             || !Clip(-dy, start.Y-top+padding, ref first, ref last) || !Clip(dy, bottom-start.Y+padding, ref first, ref last)) return false;
         OfficePoint original = start;
-        start = new OfficePoint(original.X+dx*first,original.Y+dy*first);
-        end = new OfficePoint(original.X+dx*last,original.Y+dy*last);
+        if (first != 0D) start = new OfficePoint(original.X+dx*first,original.Y+dy*first);
+        if (last != 1D) end = new OfficePoint(original.X+dx*last,original.Y+dy*last);
         leading = length * first; trailing = length * (1-last);
         return true;
     }
@@ -70,32 +70,39 @@ internal static class OfficeStrokeGeometry {
         return true;
     }
     private static List<List<OfficePoint>> CollectStrokeRuns(IReadOnlyList<OfficePoint> points, double width,
-        double miterLimit, IReadOnlyList<double> pattern, double cycle, double offset, bool reset, double left, double top, double right, double bottom, System.Threading.CancellationToken cancellationToken) {
+        double miterLimit, IReadOnlyList<double> pattern, double cycle, double offset, bool reset, double left, double top, double right, double bottom, System.Threading.CancellationToken cancellationToken,
+        Dictionary<List<OfficePoint>, OfficePoint>? dotDirections = null, bool preserveVertices = false, bool? closed = null, HashSet<List<OfficePoint>>? closedRuns = null) {
         var runs = new List<List<OfficePoint>>();
         List<OfficePoint>? run = null;
         if (points.Count == 1) { runs.Add(new List<OfficePoint>(points)); return runs; }
         double phase = AdvancePatternPosition(0D, offset, cycle);
+        bool complete = true;
+        OfficePoint? pendingDegenerate = null;
         int pieces = 0;
         for (int i = 1; i < points.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (reset) { phase = AdvancePatternPosition(0D, offset, cycle); run = null; }
             OfficePoint start = points[i - 1], end = points[i];
             double length = Distance(start.X, start.Y, end.X, end.Y);
-            if (!IsFinite(length)) { run = null; continue; }
-            if (length <= 1E-9D) {
-                if (cycle <= 0D) AppendStrokeRun(runs, ref run, start, end);
+            if (!IsFinite(length)) { run = null; complete = false; continue; }
+            if (preserveVertices ? length == 0D : length <= 1E-9D) {
+                if (cycle <= 0D) AppendStrokeRun(runs, ref run, start, end, preserveVertices);
+                else if (preserveVertices && TouchesPaintedDash(phase, pattern, cycle)) {
+                    if (run != null) AppendStrokeRun(runs, ref run, start, end, true);
+                    else pendingDegenerate = start;
+                }
                 continue;
             }
             // Clip before subdividing dashes, preserving the phase of the invisible length.
             double paddingWidth = width * Math.Max(1D, miterLimit);
             if (!TryClipStrokeLine(ref start, ref end, paddingWidth, length, left, top, right, bottom, out double leading, out double trailing)) {
-                phase = AdvancePatternPosition(phase, length, cycle); run = null; continue;
+                phase = AdvancePatternPosition(phase, length, cycle); run = null; pendingDegenerate = null; complete = false; continue;
             }
-            if (leading > 0D) run = null;
+            if (leading > 0D) { run = null; pendingDegenerate = null; complete = false; }
             phase = AdvancePatternPosition(phase, leading, cycle);
             double visibleLength = Distance(start.X, start.Y, end.X, end.Y);
             if (cycle <= 0D) {
-                AppendStrokeRun(runs, ref run, start, end);
+                AppendStrokeRun(runs, ref run, start, end, preserveVertices);
             } else {
                 double position = 0D, patternOffset = phase;
                 int index = 0;
@@ -107,7 +114,8 @@ internal static class OfficeStrokeGeometry {
                     if (remaining <= 0D) {
                         if (pattern[index] == 0D && (index & 1) == 0) {
                             var dot = new OfficePoint(start.X + (end.X - start.X) * (position / visibleLength), start.Y + (end.Y - start.Y) * (position / visibleLength));
-                            runs.Add(new List<OfficePoint> { dot });
+                            var dotRun = new List<OfficePoint> { dot }; runs.Add(dotRun);
+                            if (dotDirections != null) dotDirections[dotRun] = new OfficePoint((end.X - start.X) / visibleLength, (end.Y - start.Y) / visibleLength);
                         }
                         index = (index + 1) % pattern.Count; patternOffset = 0D;
                         continue;
@@ -119,10 +127,15 @@ internal static class OfficeStrokeGeometry {
                         continue;
                     }
                     if ((index & 1) == 0) {
-                        var a = new OfficePoint(start.X + (end.X - start.X) * (position / visibleLength), start.Y + (end.Y - start.Y) * (position / visibleLength));
-                        var b = new OfficePoint(start.X + (end.X - start.X) * (next / visibleLength), start.Y + (end.Y - start.Y) * (next / visibleLength));
-                        AppendStrokeRun(runs, ref run, a, b);
-                    } else run = null;
+                        var a = position == 0D ? start : new OfficePoint(start.X + (end.X - start.X) * (position / visibleLength), start.Y + (end.Y - start.Y) * (position / visibleLength));
+                        var b = next == visibleLength ? end : new OfficePoint(start.X + (end.X - start.X) * (next / visibleLength), start.Y + (end.Y - start.Y) * (next / visibleLength));
+                        bool startsRun = run == null;
+                        AppendStrokeRun(runs, ref run, a, b, preserveVertices);
+                        // Carry join metadata into a painted segment, without creating
+                        // a zero-only run that would independently paint horizontal caps.
+                        if (startsRun && pendingDegenerate.HasValue && pendingDegenerate.Value.Equals(a)) run!.Insert(1, a);
+                        pendingDegenerate = null;
+                    } else { run = null; pendingDegenerate = null; complete = false; }
                     phase = AdvancePatternPosition(phase, next - position, cycle);
                     if (next - position >= remaining) { index = (index + 1) % pattern.Count; patternOffset = 0D; }
                     else patternOffset += next - position;
@@ -130,18 +143,21 @@ internal static class OfficeStrokeGeometry {
                 }
             }
             phase = AdvancePatternPosition(phase, trailing, cycle);
-            if (trailing > 0D) run = null;
+            if (trailing > 0D) { run = null; pendingDegenerate = null; complete = false; }
         }
         // A painted seam on a closed path is a join, not two caps.
-        if (!reset && runs.Count > 1 && points.Count > 2 && SameStrokePoint(points[0], points[points.Count - 1])) {
+        if (!reset && runs.Count > 1 && points.Count > 2 && (closed ?? SameStrokePoint(points[0], points[points.Count - 1]))) {
             List<OfficePoint> last = runs[runs.Count - 1], first = runs[0];
-            if (SameStrokePoint(last[last.Count - 1], first[0])) { last.AddRange(first.GetRange(1, first.Count - 1)); runs.RemoveAt(0); }
+            if (preserveVertices ? last[last.Count - 1].Equals(first[0]) : SameStrokePoint(last[last.Count - 1], first[0])) {
+                last.AddRange(first.GetRange(1, first.Count - 1)); runs.RemoveAt(0);
+            }
         }
+        if (closed == true && complete && runs.Count == 1) closedRuns?.Add(runs[0]);
         return runs;
     }
 
-    private static void AppendStrokeRun(List<List<OfficePoint>> runs, ref List<OfficePoint>? run, OfficePoint start, OfficePoint end) {
-        if (run == null || !SameStrokePoint(run[run.Count - 1], start)) { run = new List<OfficePoint> { start }; runs.Add(run); }
+    private static void AppendStrokeRun(List<List<OfficePoint>> runs, ref List<OfficePoint>? run, OfficePoint start, OfficePoint end, bool exact = false) {
+        if (run == null || !(exact ? run[run.Count - 1].Equals(start) : SameStrokePoint(run[run.Count - 1], start))) { run = new List<OfficePoint> { start }; runs.Add(run); }
         run.Add(end);
     }
 

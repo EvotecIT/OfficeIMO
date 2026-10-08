@@ -18,6 +18,8 @@ public sealed partial class OfficeWorkflowRunner {
             [".docx"] = "docx-pdf",
             [".xlsx"] = "xlsx-pdf",
             [".pptx"] = "pptx-pdf",
+            [".xps"] = "xps-pdf",
+            [".oxps"] = "xps-pdf",
             [".html"] = "html-pdf",
             [".htm"] = "html-pdf"
         };
@@ -56,10 +58,12 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics,
                 out inputBytes,
                 cancellationToken);
-            if (validated.OutputProfile != OfficeWorkflowOutputProfile.Faithful &&
-                sources.Any(static source => source.Route?.Id == "html-pdf")) {
+            OfficeWorkflowRoute? unsupportedProfile = sources.Select(static source => source.Route)
+                .FirstOrDefault(route => route != null && !route.SupportedOutputProfiles.Contains(validated.OutputProfile));
+            if (unsupportedProfile != null) {
                 throw new ArgumentException(
-                    "HTML assembly sources currently support only the Faithful output profile.",
+                    "Assembly route '" + unsupportedProfile.Id + "' supports only these output profiles: " +
+                    string.Join(", ", unsupportedProfile.SupportedOutputProfiles) + ".",
                     nameof(request));
             }
             sourceCount = sources.Count;

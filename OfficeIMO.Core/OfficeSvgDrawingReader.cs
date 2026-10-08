@@ -53,6 +53,9 @@ public static partial class OfficeSvgDrawingReader {
         drawing = null;
         unsupportedFeatureCount = 0;
         options?.CancellationToken.ThrowIfCancellationRequested();
+        int maximumGeometryCommands = options?.MaximumGeometryCommands ?? MaximumSvgPathCommands;
+        if (maximumGeometryCommands < 1 || maximumGeometryCommands > 1000000) return false;
+        if (!TryResolveDefaultFontFamily(options, out string defaultFontFamily)) return false;
         if (!TryReadBoundedDocument(
                 bytes,
                 options,
@@ -70,7 +73,7 @@ public static partial class OfficeSvgDrawingReader {
                 out double viewportHeight)) return false;
         // Malformed shapes remain a tolerant-import concern, but complete geometry in definitions
         // still belongs to the document-wide hard budget even when it is not painted directly.
-        if (ExceedsSvgElementNestingLimit(root) || ExceedsValidSvgDocumentPathCommandLimit(root)) return false;
+        if (ExceedsSvgElementNestingLimit(root) || ExceedsValidSvgDocumentPathCommandLimit(root, maximumGeometryCommands)) return false;
 
         try {
             ApplySvgStylesheets(root, ref unsupportedFeatureCount);
@@ -80,18 +83,23 @@ public static partial class OfficeSvgDrawingReader {
             int pathCommands = 0;
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
-            var paintServers = new SvgPaintServerRegistry(definitions);
-            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer,
-                options?.CancellationToken ?? default);
+            var paintServers = new SvgPaintServerRegistry(definitions, defaultFontFamily, options?.UseFirstRadialIntersection == true);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer, options?.FontTextUsageObserver,
+                options?.CancellationToken ?? default) {
+                MaximumGeometryCommands = maximumGeometryCommands,
+                RetainSourceElementIds = options?.RetainSourceElementIds == true
+            };
             bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
                 Math.Abs(viewportHeight - viewHeight) < 0.000001D;
             // Fitting a viewBox retains its full scene as an effect surface alongside
             // every child surface, even when the displayed viewport is tiny.
             if (!fitsRootViewport && !references.TryChargeIntermediateSurface(viewWidth, viewHeight)) return false;
-            SvgPaintContext rootDefaults = SvgPaintContext.Default;
+            SvgPaintContext rootDefaults = SvgPaintContext.CreateDefault(defaultFontFamily);
             rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
             var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
+            double rootOpacity = context.Opacity;
+            context.Opacity = 1D;
             bool rootHasEffects = TryResolveSvgEffects(
                 root,
                 scene.Width,
@@ -114,6 +122,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode rootBlendMode,
                 out OfficeDrawingSoftMask? rootSoftMask,
                 out SvgFilterEffect? rootFilterEffect);
+            rootHasEffects |= rootOpacity < 1D;
             if (rootHasEffects && !references.TryChargeEffectSurfaces(viewWidth, viewHeight, rootSoftMask != null)) {
                 return false;
             }
@@ -124,7 +133,7 @@ public static partial class OfficeSvgDrawingReader {
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (rootHasEffects) {
                 TryApplySvgFilter(rootContent, rootFilterEffect, references, rootTransform, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
-                scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask);
+                scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask, rootOpacity);
             }
             string? rootClip = ReadPresentationProperty(root, "clip-path");
             if (!string.IsNullOrWhiteSpace(rootClip) && !rootClip!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
@@ -133,7 +142,7 @@ public static partial class OfficeSvgDrawingReader {
                         ref unsupportedFeatureCount, out OfficeDrawing? clippedRoot)) scene = clippedRoot!;
                 else unsupportedFeatureCount++;
             }
-            if (visited > maximumElements) return false;
+            if (visited > maximumElements || pathCommandLimitExceeded) return false;
             if (fitsRootViewport) {
                 if (HasNewlyRetainedSvgGeometry(scene) ||
                     HasOverflowingLocalGeometry(scene, OfficeTransform.Identity, scene.Width, scene.Height, includeShapes: false)) {
@@ -158,6 +167,9 @@ public static partial class OfficeSvgDrawingReader {
                 clipped.Fonts.AddRange(viewport.Fonts);
                 drawing = clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
             }
+            if (references.RetainSourceElementIds && root.Attribute("id")?.Value is string rootId && rootId.Length != 0) {
+                foreach (var element in drawing.Elements) element.RetainSourceElementId(rootId);
+            }
             return IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         } catch (XmlException) {
             return false;
@@ -166,6 +178,11 @@ public static partial class OfficeSvgDrawingReader {
         } catch (ArgumentException) {
             return false;
         }
+    }
+
+    private static bool TryResolveDefaultFontFamily(OfficeSvgDrawingReaderOptions? options, out string fontFamily) {
+        fontFamily = options?.DefaultFontFamily ?? "Arial";
+        return !string.IsNullOrWhiteSpace(fontFamily) && fontFamily.Length <= 1024;
     }
 
     /// <summary>
@@ -222,7 +239,9 @@ public static partial class OfficeSvgDrawingReader {
 
         try {
             var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
+                // Legacy SVG exports commonly declare the SVG 1.1 DTD. Ignore the
+                // declaration without resolving it or expanding custom entities.
+                DtdProcessing = DtdProcessing.Ignore,
                 XmlResolver = null,
                 MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
             };
@@ -237,6 +256,7 @@ public static partial class OfficeSvgDrawingReader {
             root = documentRoot;
             if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
             return TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels, allowUnresolvedViewport,
+                options?.ViewportWidth, options?.ViewportHeight,
                 out viewX, out viewY, out viewWidth, out viewHeight,
                 out viewportWidth, out viewportHeight);
         } catch (XmlException) {
@@ -254,6 +274,8 @@ public static partial class OfficeSvgDrawingReader {
         double maximumViewportDimension,
         double maximumViewportPixels,
         bool allowUnresolvedViewport,
+        double? hostViewportWidth,
+        double? hostViewportHeight,
         out double viewX,
         out double viewY,
         out double viewWidth,
@@ -262,6 +284,10 @@ public static partial class OfficeSvgDrawingReader {
         out double viewportHeight) {
         viewX = viewY = 0D;
         viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
+        if (hostViewportWidth.HasValue != hostViewportHeight.HasValue) return false;
+        bool hasHostViewport = hostViewportWidth.HasValue;
+        if (hasHostViewport && !IsSupportedSvgViewport(hostViewportWidth!.Value, hostViewportHeight!.Value,
+                maximumViewportDimension, maximumViewportPixels)) return false;
         // ChartForgeX selects the first XML attribute by case-insensitive local name for
         // raster output dimensions; inline CSS does not override this allocation sink.
         string? widthText = ReadRasterViewportAttribute(root, "width");
@@ -270,6 +296,8 @@ public static partial class OfficeSvgDrawingReader {
         bool hasDeclaredHeight = OfficeImageReader.TryParseSvgLength(heightText, out double declaredHeight);
         if ((!string.IsNullOrWhiteSpace(widthText) && !hasDeclaredWidth)
             || (!string.IsNullOrWhiteSpace(heightText) && !hasDeclaredHeight)) return false;
+        if ((hasDeclaredWidth && (declaredWidth <= 0D || declaredWidth > maximumViewportDimension))
+            || (hasDeclaredHeight && (declaredHeight <= 0D || declaredHeight > maximumViewportDimension))) return false;
         if (TryParseNumberList(ReadRasterProjectedAttribute(root, "viewBox"), out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
@@ -284,18 +312,25 @@ public static partial class OfficeSvgDrawingReader {
             if (hasDeclaredHeight) viewportHeight = declaredHeight;
             if (hasDeclaredWidth && !hasDeclaredHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
             if (!hasDeclaredWidth && hasDeclaredHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
+            if (!IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels)) return false;
+            if (hasHostViewport) {
+                viewportWidth = hostViewportWidth!.Value;
+                viewportHeight = hostViewportHeight!.Value;
+            }
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
+        }
+
+        if (hasHostViewport) {
+            viewWidth = viewportWidth = hostViewportWidth!.Value;
+            viewHeight = viewportHeight = hostViewportHeight!.Value;
+            return true;
         }
 
         bool hasIntrinsicWidth = hasDeclaredWidth;
         bool hasIntrinsicHeight = hasDeclaredHeight;
         double intrinsicWidth = declaredWidth;
         double intrinsicHeight = declaredHeight;
-        if ((hasIntrinsicWidth && intrinsicWidth > maximumViewportDimension) ||
-            (hasIntrinsicHeight && intrinsicHeight > maximumViewportDimension)) {
-            return false;
-        }
         if (hasIntrinsicWidth && hasIntrinsicHeight) {
             viewWidth = viewportWidth = intrinsicWidth;
             viewHeight = viewportHeight = intrinsicHeight;
@@ -346,15 +381,15 @@ public static partial class OfficeSvgDrawingReader {
         return false;
     }
 
-    private static bool ExceedsValidSvgDocumentPathCommandLimit(XElement root) {
+    private static bool ExceedsValidSvgDocumentPathCommandLimit(XElement root, int maximumGeometryCommands) {
         int commandCount = 0;
         foreach (XElement element in root.DescendantsAndSelf()) {
             string name = element.Name.LocalName;
-            int remaining = MaximumSvgPathCommands - commandCount;
+            int remaining = maximumGeometryCommands - commandCount;
             if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
                 bool parsed = OfficeSvgPathDataParser.TryParse(
                     ReadRasterProjectedAttribute(element, "d"),
-                    MaximumSvgPathCommands + 1,
+                    maximumGeometryCommands + 1,
                     out IReadOnlyList<OfficePathCommand> commands,
                     out bool commandLimitExceeded);
                 if (commandLimitExceeded) return true;
@@ -368,10 +403,10 @@ public static partial class OfficeSvgDrawingReader {
             if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) continue;
             bool pointsParsed = TryParseNumberList(
                 ReadRasterProjectedAttribute(element, "points"),
-                (MaximumSvgPathCommands + 1) * 2,
+                (maximumGeometryCommands + 1) * 2,
                 out IReadOnlyList<double> values,
                 out bool valueLimitExceeded);
-            if (valueLimitExceeded && values.Count >= MaximumSvgPathCommands * 2) return true;
+            if (valueLimitExceeded && values.Count >= maximumGeometryCommands * 2) return true;
             if (!pointsParsed) continue;
             int elementCommands = values.Count / 2;
             if (close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
@@ -1013,8 +1048,8 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static OfficeDrawingShape? CreatePolygon(XElement element, SvgPaintContext style, double viewX,
-        double viewY, bool close, ref int pathCommands, ref bool pathCommandLimitExceeded) {
-        int remainingCommands = MaximumSvgPathCommands - pathCommands;
+        double viewY, bool close, ref int pathCommands, ref bool pathCommandLimitExceeded, int maximumGeometryCommands = MaximumSvgPathCommands) {
+        int remainingCommands = maximumGeometryCommands - pathCommands;
         if (remainingCommands <= 0) {
             int minimumValues = close ? 6 : 4;
             _ = TryParseNumberList(element.Attribute("points")?.Value, minimumValues,
@@ -1026,7 +1061,7 @@ public static partial class OfficeSvgDrawingReader {
             out IReadOnlyList<double> values, out bool limitExceeded);
         if (!parsed || values.Count < 4 || values.Count % 2 != 0) {
             if (limitExceeded) {
-                pathCommands = MaximumSvgPathCommands;
+                pathCommands = maximumGeometryCommands;
                 pathCommandLimitExceeded = true;
             } else if (values.Count > 0) {
                 int parsedCommands = Math.Max(1, (values.Count + 1) / 2);
@@ -1040,7 +1075,7 @@ public static partial class OfficeSvgDrawingReader {
             return null;
         }
         if (commandCount > remainingCommands) {
-            pathCommands = MaximumSvgPathCommands;
+            pathCommands = maximumGeometryCommands;
             pathCommandLimitExceeded = true;
             return null;
         }
@@ -1067,8 +1102,8 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static OfficeDrawingShape? CreatePath(XElement element, SvgPaintContext style, double viewX,
-        double viewY, ref int pathCommands, ref bool pathCommandLimitExceeded) {
-        int remaining = MaximumSvgPathCommands - pathCommands;
+        double viewY, ref int pathCommands, ref bool pathCommandLimitExceeded, int maximumGeometryCommands = MaximumSvgPathCommands) {
+        int remaining = maximumGeometryCommands - pathCommands;
         if (remaining <= 0) {
             _ = OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, 1,
                 out IReadOnlyList<OfficePathCommand> probeCommands, out _);
@@ -1079,7 +1114,7 @@ public static partial class OfficeSvgDrawingReader {
                 out IReadOnlyList<OfficePathCommand> parsed, out bool commandLimitExceeded)) {
             pathCommands += Math.Min(remaining, parsed.Count);
             if (commandLimitExceeded) {
-                pathCommands = MaximumSvgPathCommands;
+                pathCommands = maximumGeometryCommands;
                 pathCommandLimitExceeded = true;
             }
             return null;
@@ -1108,7 +1143,7 @@ public static partial class OfficeSvgDrawingReader {
         return new OfficeDrawingShape(shape, minX, minY);
     }
 
-    private static void IncludeCommandBounds(
+    internal static void IncludeCommandBounds(
         OfficePathCommand command,
         ref double minX,
         ref double minY,
@@ -1785,7 +1820,9 @@ public static partial class OfficeSvgDrawingReader {
             StrokePattern = paint.Pattern;
         }
 
-        internal static SvgPaintContext Default => new SvgPaintContext {
+        internal static SvgPaintContext Default => CreateDefault("Arial");
+
+        internal static SvgPaintContext CreateDefault(string fontFamily) => new SvgPaintContext {
             Color = OfficeColor.Black,
             Fill = OfficeColor.Black,
             Stroke = null,
@@ -1799,7 +1836,7 @@ public static partial class OfficeSvgDrawingReader {
             LineJoin = OfficeStrokeLineJoin.Miter,
             MiterLimit = 4D,
             FillRule = OfficeFillRule.NonZero,
-            FontFamily = "Arial",
+            FontFamily = fontFamily,
             FontSize = 16D,
             LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,

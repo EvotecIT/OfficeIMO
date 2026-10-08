@@ -8,6 +8,86 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPagedMedia_SplitsScrollCardAtLegalBreakWhenFootnoteShrinksPageBody() {
+        const string html = """
+            <style>
+              @page { size:240px 120px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:18px; }
+              .card { overflow:auto; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+            </style>
+            <section><div class="card"><p>First<span class="note">Note body</span><br>Second<br>Third<br>Fourth<br>Fifth</p></div></section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.True(rendered.Pages.Count >= 2);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("First", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages.Skip(1).SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Fifth", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_SplitsScrollCardAtLegalBreakOnShorterLeftPage() {
+        const string html = """
+            <style>
+              @page { size:240px 120px; margin:10px; }
+              @page :left { margin-top:20px; margin-bottom:20px; }
+              body, p { margin:0; font-size:12px; line-height:18px; }
+              .card { overflow:auto; }
+            </style>
+            <section><div style="height:60px;break-after:page">Prelude</div><div class="card"><p>First<br>Second<br>Third<br>Fourth<br>Fifth</p></div></section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("First", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages.Skip(2).SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Fifth", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_EarlierFootnoteDoesNotSplitLaterPageSizedScrollCard() {
+        const string html = """
+            <style>
+              @page { size:240px 120px; margin:10px; }
+              body, p { margin:0; font-size:12px; line-height:18px; }
+              .card { overflow:auto; }
+              .note { float:footnote; font-size:10px; line-height:12px; }
+            </style>
+            <section>
+              <p style="break-after:page">Opening<span class="note">Note body</span></p>
+              <div style="height:40px">Prelude</div>
+              <div class="card"><p>First<br>Second<br>Third<br>Fourth<br>Fifth</p></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true
+        });
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("First", StringComparison.Ordinal));
+        HtmlRenderText[] finalCardText = EnumerateRenderVisuals(rendered.Pages[2].Scene).OfType<HtmlRenderText>().ToArray();
+        Assert.Contains(finalCardText, text => text.Text.Contains("First", StringComparison.Ordinal));
+        Assert.Contains(finalCardText, text => text.Text.Contains("Fifth", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlPagedMedia_PlacesCssFootnotesInReservedPageArea() {
         const string html = """
             <style>

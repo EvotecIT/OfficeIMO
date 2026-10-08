@@ -10,7 +10,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         double? containingHeight,
         IElement element) {
-        HtmlRenderFlowBlock effected = ApplyElementPaintEffects(block, style, containingWidth, element, out bool effectStackingContext);
+        HtmlRenderFlowBlock linked = AttachAnchorBoxFragment(block, style, containingWidth, element);
+        HtmlRenderFlowBlock effected = ApplyElementPaintEffects(linked, style, containingWidth, element, out bool effectStackingContext);
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         HtmlRenderFlowBlock positioned = ApplyPositioning(effected, style, containingWidth, containingHeight, source);
         if (style.Position == "relative" || style.Position == "sticky") {
@@ -19,6 +20,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return effectStackingContext
             ? positioned.WithStacking(0, GetPositionedSourceOrder(element))
             : positioned;
+    }
+
+    private HtmlRenderFlowBlock AttachAnchorBoxFragment(
+        HtmlRenderFlowBlock block,
+        HtmlRenderBoxStyle style,
+        double containingWidth,
+        IElement element) {
+        if (!string.Equals(element.LocalName, "a", StringComparison.OrdinalIgnoreCase)
+            || !style.PaintVisible) return block;
+        string? link = ResolveSafeLink(element.GetAttribute("href"), element);
+        if (link == null) return block;
+        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
+        double width = ResolveBoxWidth(availableWidth, style);
+        double height = block.Height - style.MarginTop - style.MarginBottom;
+        if (width <= 0D || height <= 0D) return block;
+        var visuals = new List<HtmlRenderVisual>(block.Visuals) {
+            new HtmlRenderAnchorFragment(GetSemanticNodeId(element), link,
+                ResolveAnchorLinkContents(element),
+                style.MarginLeft, style.MarginTop, width, height,
+                block.Visuals.Count, HtmlRenderStyleResolver.DescribeSource(element))
+        };
+        return block.WithVisuals(visuals);
+    }
+
+    private static string? ResolveAnchorLinkContents(IElement anchor) {
+        string? text = anchor.TextContent?.Trim();
+        return string.IsNullOrEmpty(text) ? null : text;
     }
 
     private HtmlRenderFlowBlock ApplyPositioning(
@@ -30,7 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ResolvePositionPaintOffset(style, containingWidth, containingHeight, source, out double offsetX, out double offsetY);
         return Math.Abs(offsetX) <= 0.0001D && Math.Abs(offsetY) <= 0.0001D
             ? block
-            : block.TranslatePaint(offsetX, offsetY);
+            : block.TranslateRelativePaint(offsetX, offsetY);
     }
 
     private void ResolvePositionPaintOffset(
@@ -68,6 +96,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         offsetX = ResolvePositionAxis(style.Left, style.Right, containingWidth, style, source, "left", "right");
         offsetY = ResolvePositionAxis(style.Top, style.Bottom, containingHeight, style, source, "top", "bottom");
+        if (Math.Abs(offsetY) > 0.0001D) _hasRelativePagedPaint = true;
     }
 
     private int ResolvePositionedZIndex(IElement element, HtmlRenderBoxStyle style) {
@@ -128,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double lengthReference = reference ?? 0D;
-        if (TryResolveLength(value, lengthReference, style.Font.Size, out resolved)) {
+        if (TryResolveLength(value, lengthReference, style, out resolved)) {
             return true;
         }
 

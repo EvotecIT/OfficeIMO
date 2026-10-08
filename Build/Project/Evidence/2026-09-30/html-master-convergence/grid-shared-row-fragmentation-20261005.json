@@ -1,0 +1,166 @@
+{
+  "recordedUtc": "2026-10-05T06:26:08.081853+00:00",
+  "sourceCommit": "b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+  "baselineCommit": "afad7ccb0d2d34eefe63904753b093930a70039a",
+  "scope": "Bounded shared-row grid fragmentation and synthetic stretch ownership. Static checkpoint only; no full HTML product, browser or platform qualification claim.",
+  "owner": "OfficeIMO.Html shared parallel-item cut safety and paged grid layout",
+  "publicApiChanges": false,
+  "newProductionDependencies": false,
+  "contract": [
+    "Union legal child cuts only when every item crossing the cut permits it; preserve atomic visuals and authored fitting keeps.",
+    "Propagate item paragraph/avoid metadata to the grid flow block.",
+    "Synthetic auto-height grid stretch retains authored auto-height background eligibility; authored fixed height remains excluded.",
+    "Sweep intersecting item intervals rather than comparing every cut with unrelated rows; continuous layout skips paged safety validation."
+  ],
+  "independentProducer": "Published test-only HtmlTinkerX3.0.3/Chromium153.0.8010.12; Poppler26.09 rawUTF8/LF and visible page rasters. No shipped browser dependency.",
+  "fixtures": [
+    {
+      "case": "footer-grid-stretch-tall",
+      "fixtureSha256": "e5c496fc079858ccf6e59cbd34cb5e0780209a04c6638ff97ee336060c9514e2",
+      "engines": {
+        "before": {
+          "pages": 3,
+          "pdfSha256": "875af21fd5c58377d56f3e7eaa2aab3d7fec728ac1b9678e0f1ac1a9de0ea078",
+          "missing": [
+            "Footer row 16"
+          ],
+          "duplicate": []
+        },
+        "final": {
+          "pages": 3,
+          "pdfSha256": "bb4209f29a71f4191852d5104e9a3c4904746fd6765139999092da8f900fd7a4",
+          "missing": [],
+          "duplicate": []
+        },
+        "independent": {
+          "pages": 3,
+          "pdfSha256": "50cb0e7db8bc10179d0d7c369655ef20f933ee12f52a43f981e93a37f1f8d53b",
+          "missing": [],
+          "duplicate": []
+        }
+      }
+    },
+    {
+      "case": "footer-grid-stretch",
+      "fixtureSha256": "1972b0d17b85aeb5c089bfce306df1de1766f3bab6dedce5b697d37c0ca9d613",
+      "engines": {
+        "before": {
+          "pages": 3,
+          "pdfSha256": "705e61b8a5e18a04e00486ba9d7d403c406d7c9e3e2516e669ad6e1fcd534c16",
+          "missing": [],
+          "duplicate": []
+        },
+        "final": {
+          "pages": 2,
+          "pdfSha256": "d73efe7ccf3d1eca4acb84cead36bedfb8c6c44d0168847af2541348a99cf585",
+          "missing": [],
+          "duplicate": []
+        },
+        "independent": {
+          "pages": 2,
+          "pdfSha256": "5cb7e3e3151cd3d47846425d43c22855f987ddd97663750c01f8c53eb73c6ceb",
+          "missing": [],
+          "duplicate": []
+        }
+      }
+    }
+  ],
+  "focused": {
+    "passed": 197,
+    "failed": 0,
+    "reproducedMissingRowBefore": 2,
+    "reproducedDefaultBudgetBefore": 2,
+    "defaultBudgetFixture": "256rows x16columns/4096labels; no limits raised; both Paged and Continuous.",
+    "closureTrxSha256": "9b20500b0f7b74591cb54cf0e2a74a742dbff1c3835dfc87ba5a4aef541b2983"
+  },
+  "review": {
+    "fullTask": "grid_shared_row_fragment_review",
+    "initialFingerprint": "bda98bea1cff77f949efb9351b6c3946a3a9f7b8",
+    "closureFingerprint": "5c513f4ff2d22d0e05a6ea9f4fe96cf319971d60",
+    "fullPasses": 1,
+    "targetedConfirmations": 1,
+    "initialFindings": [
+      {
+        "priority": "P2",
+        "classification": "candidate-introduced",
+        "invariant": "nonparticipating grid rows caused quadratic safety comparisons",
+        "reproduction": "Default256tracks/16columns4096items fail both Paged/Continuous before; retained grid-resource-before.trx"
+      }
+    ],
+    "remainingFindings": []
+  },
+  "fullHtml": [
+    {
+      "framework": "net10.0",
+      "passed": 4334,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "07be983d19bc6577c07a64a4042664e72b4269d33e7b96058130636fbbfbb830",
+      "boundary": "Stable final remediation bytes; subsequent commit adds identity only."
+    },
+    {
+      "framework": "net8.0",
+      "passed": 4334,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "b5b477a9b0103f40122f1c68396abf7f1e4e0c455d3e4303962b796487553be1",
+      "boundary": "Stable final remediation bytes; subsequent commit adds identity only."
+    }
+  ],
+  "normalBuilds": "Html netstandard2.0 plus comparison/API/Tool/fixture builds: 0warnings/0errors, normal pinned SDK10.0.112; no deterministic-source override.",
+  "h4": {
+    "sourceCommit": "b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+    "cases": 8,
+    "acceptancePassed": true,
+    "executionFailures": 0,
+    "reportSha256": "99ff366a5b2bcbbd279be7e673a1ca979cab95ac27cd34b3eb7fd1c405ff8da9"
+  },
+  "actualRouteReplay": {
+    "sourceCommit": "b3f50b9c7eb3c5c03401e3abd7203d9a5287cacf",
+    "routes": 10,
+    "pages": 106,
+    "apiToolBytesEqual": true,
+    "rawPerPageTextUnchanged": true,
+    "decodedImagesPreserved": true,
+    "uriTargetsAndGeometryPreserved": true,
+    "operationReportsPreserved": true,
+    "sourceBlocks": 36,
+    "allPages72dpiPixelIdenticalTo83e": true,
+    "reportSha256": "5bef98326c487a81698fd70d4782d3899ecd6aa62136a1032d15b23ca21f2924"
+  },
+  "validationSetupFailure": "System Python lacks pypdf. Original extraction failure preserved; only unfinished extraction/routes resumed with existing bundled Python. No product change or rerender-until-green loop.",
+  "performance": "Not remeasured under active unrelated host workloads. Prior current/control cold-time/peak failures remain retained; combined platform/package and unchanged-budget acceptance is still open.",
+  "delivery": "Committed on feature/html-master-convergence; no HTML/runtime PR or long-lived adoption. Grid relies on H10 fragmentation/background contracts beyond selected standalone master baseline.",
+  "retainedEvidence": "Ignore/MasterConvergenceQualification/grid-fragment-qualification-afad7ccb0",
+  "remaining": [
+    "Relative positive/negative offset cross-page paint and linked-row loss",
+    "Named H10/native/appearance/all-intent criteria",
+    "Combined-source hosted packages and unchanged comparable budgets",
+    "Qualified long-lived adoption"
+  ],
+  "cleanup": {
+    "checkedUtc": "2026-10-05T06:42:03.621135+00:00",
+    "completedGeneratedOutputs": [
+      {
+        "rootName": "OfficeIMO-html-master-convergence",
+        "targets": 202,
+        "removedBytes": 2597697361,
+        "allAbsent": true,
+        "nativeExecutedFailuresRecovered": 103,
+        "resultsSha256": "cfe95e1b4911ac7bcd2c2bb71d3e7696d24d7dc48ee1635213cc2963a33ec504",
+        "recoverySha256": "851fbf34f2fbca94196705c916d193bfaf9715d4e41e371bf8918b34cdaa468c"
+      },
+      {
+        "rootName": "OfficeIMO-raster-contour-workspace",
+        "targets": 96,
+        "removedBytes": 2046780057,
+        "allAbsent": true,
+        "nativeExecutedFailuresRecovered": 49,
+        "resultsSha256": "b7cb9fff583efd6de6390c9d6b61ccbe2cc743a379360149d2a9c8c885ede483",
+        "recoverySha256": "be955aa8712b89e59a3aee6fa9e75c908ea6385fa95286640b16b79a7291360d"
+      }
+    ],
+    "preserved": "Source/fixtures/TRX/original failures/final public artifacts, active relative probes and package/hosted evidence remain. No shared cache or unrelated worktree removed.",
+    "retainedMainEvidenceApproximateBytes": 2576980378
+  }
+}

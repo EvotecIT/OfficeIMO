@@ -1,5 +1,44 @@
 # Upgrading OfficeIMO
 
+## PDF mutation assessment cancellation
+
+Replace `pdf.AssessMutations(default)` with
+`pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
+the positional `default` literal ambiguous. Parameterless calls and calls with
+an explicit operation collection retain their existing behavior.
+
+## EPUB XHTML image export
+
+Image export parses retained `application/xhtml+xml` chapters as XML. Repair malformed
+XHTML and replace DTD-defined entities with numeric references or Unicode characters
+before exporting. Use lowercase XHTML names and remove unsupported processing
+instructions. XML errors are no longer silently recovered using HTML parsing.
+
+## HTML widths larger than their container
+
+The shared HTML renderer honors explicit `width` and `min-width` values that exceed
+the containing block. It no longer silently reduces these boxes to the available
+width. If a document relied on that reduction, use `max-width:100%` and remove any
+conflicting `min-width`, or choose an explicit overflow policy. Check fixed-layout
+EPUB canvas and clipping diagnostics after changing the layout.
+
+## EPUB chapter selector reconciliation
+
+Replace `EpubChapterMergeOptions.RewriteSecondChapterIdSelectors` with
+`RewriteChapterSelectors`. The option repairs reference-attribute selectors in both
+source chapters; the identifier map still applies only to the second chapter.
+Linked stylesheets receive separate private copies for each chapter, so merges may
+use more entries and retained bytes. Keep `AppendSecondStyles` explicit, and handle
+atomic rejection when first-chapter selectors are ambiguous or unsupported.
+
+## Book project revision storage
+
+`BookProject.ToProjectBytes()` writes version-2 `.oibook` files, including named
+publication revisions. Update applications that read these projects before sharing
+newly saved files with them; older readers reject version 2. Existing version-1
+projects remain readable. `MaximumProjectBytes` is now 260 MiB to accommodate the
+current publication and bounded revision storage. Session undo/redo remains transient.
+
 This guide contains version-to-version changes that require application code, package references, or configuration to change. It is not a release history or a second API manual.
 
 - Use [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) for release notes and downloadable artifacts.
@@ -8,6 +47,82 @@ This guide contains version-to-version changes that require application code, pa
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
+
+## XPS radial focal points
+
+For radial gradients with a focal point on or outside the end ellipse,
+`XpsPage.ToDrawing()`, raster `ExportImage()`, `XpsDocument.ToPdf()` and `ToSvg()`
+retain native Pad fields, including stop alpha and endpoint paint outside the
+cone. Boundary/exterior Repeat and Reflect fields use bounded vector expansion
+or explicit periodic fields; PDF retains vector shading when expansion is not
+finite or exceeds its stop budget. Check the [XPS support matrix](OfficeIMO.Xps/SUPPORT.md)
+for the native-consumer and sampling limits.
+
+## XPS gradient mapping
+
+Native `LinearGradientBrush` and `RadialGradientBrush` markup must contain
+`MappingMode="Absolute"`, as required by the XPS/OpenXPS format. Add that attribute
+to custom page or resource-dictionary markup before converting it. Strict SVG,
+Drawing and PDF conversion reject missing or relative mapping modes;
+`ToSvg(allowPartial: true)` reports the missing paint explicitly. Native package
+load/save still preserves the original markup.
+
+## XPS integer image defaults
+
+JPEG/TIFF gray and RGB resources without a usable ICC profile use native sRGB
+sample defaults, including resources with non-ICC calibration metadata. TIFF
+display orientation is ignored by XPS conversion; document geometry controls
+placement. An unspecified TIFF extra sample is ignored rather than used as alpha.
+The shared managed TIFF decoder rejects signed and undefined sample encodings
+instead of interpreting them as unsigned eight-bit components. Qualified floating-point
+TIFF images retain their declared sample encoding.
+
+## XPS/OpenXPS Reader identity and native order
+
+Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
+`.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
+schema version 10. Exhaustive kind switches and transport bindings must accept
+this value and version. Versions 5 through 9 remain readable; they cannot carry
+XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
+artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
+page citations remain separate. Null order values retain existing container order.
+
+`XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
+`XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
+for bounded chunks, tables, page citations and diagnostics.
+
+## XPS PDF reading order
+
+`XpsDocument.ToPdf()` maps authored native logical structure by default. Its search
+layer and structure tree follow story-reference order while the physical pages and
+paint keep their original order. Unsupported structure extensions, unresolved names
+and overlapping semantic references reject export. Use
+`ToPdf(preserveLogicalStructure: false)` to retain the previous fixed-canvas and
+markup-order search-text contract. Unstructured input retains that behavior by
+default. PDF/UA conformance and figure descriptions are not inferred.
+
+## XPS image color profiles
+
+Unusable associated image profiles fall back to usable embedded profiles. If no
+usable profile remains, strict conversion reports an error. Unprofiled CMYK
+JPEG/TIFF images now require an associated or embedded ICC profile; conversion
+rejects the previous unqualified device-color approximation. Add the intended
+profile to the source rather than treating a partial render as color preservation.
+
+## XPS structural metadata edits
+
+Use `XpsPage.ReplaceStoryFragmentsMarkup()` and
+`XpsFixedDocument.ReplaceDocumentStructureMarkup()` for the native structure parts.
+`ReplaceResource()` rejects these structural content types. When renaming page
+content referenced by StoryFragments, update both detached trees and call
+`page.ReplaceMarkup(pageMarkup, storyFragmentsMarkup)` so the names and references
+commit together. Page-only edits that leave dangling native names are rejected.
+
+## Static HTML rendering and capability profiles
+
+Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
+
+`HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
 
 ## Native HTML disclosure rendering
 
@@ -280,6 +395,11 @@ The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `
 ODT-to-Word conversion enforces aggregate table expansion limits before allocation. Adjust `WordOpenDocumentConversionOptions` for trusted larger workloads. Reader OpenDocument format settings belong to `ReaderOpenDocumentOptions`, passed to `AddOpenDocumentHandler`; generic size and password settings remain in `ReaderOptions`.
 
 ## EPUB reading positions, text, and completeness
+
+Authoring and rewriting reject unresolved document-local ARIA, table-header,
+form-control and microdata ID references, and missing local image-map names. Repair
+the source relationship or keep both ends in the same chapter before splitting.
+For an image map, retain the matching `map name` alongside its `usemap` reference.
 
 EPUB extraction preserves repeated and empty spine positions. Applications that
 deduplicate or count chapters by resource path should use `SpineIndex` or `Order`
@@ -865,6 +985,20 @@ CLI single and batch reports use `officeimo.provenance.result.v2` and `officeimo
 The browser provenance download uses this shared result contract instead of the former anonymous `schemaVersion: 1` envelope. Read `inspection` for an inspection and `before`, `after`, and `changes` for carrier removal. Enum values are strings with camelCase property names. Cryptographic and provider checks remain distinct from structural inspection.
 
 A null `assessment.textIntegrity` means no text report was produced. Use `assessment.textIntegrityStatus` or `checks.textIntegrity` to distinguish disabled, unsupported and unrequested checks. Use the verification/provider check states to distinguish an absent provider from a check that completed or failed. Do not interpret null as a completed zero-finding report.
+
+### ONIX translation languages
+
+When a translation list contains more than one entry, give every entry a distinct
+explicit ONIX list 74 `LanguageCode`. This applies to subject and audience headings,
+edition statements, audience descriptions, collateral `Texts` (plain text or XHTML),
+and collateral `SourceTitles`. Export rejects a mixture of named and unspecified
+languages within each list. A single value may still omit its language; separate
+composites do not inherit or share a language requirement.
+
+`BookOnixAudienceCode.Value` is nullable so a declaration can carry headings without
+a code. Consumers reading this property must handle null; use `Headings` for the
+supplied labels. Existing code-only declarations retain their output. An explicitly
+empty code remains invalid.
 
 ### Provenance format ownership
 

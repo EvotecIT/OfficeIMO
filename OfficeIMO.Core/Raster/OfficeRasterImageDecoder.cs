@@ -16,7 +16,7 @@ public static partial class OfficeRasterImageDecoder {
     /// <summary>
     /// Human-readable summary of raster formats currently decoded by the managed renderer.
     /// </summary>
-    public const string SupportedFormatDescription = "PNG and APNG frames, JPEG, bounded classic TIFF pages, uncompressed BMP, explicitly selected GIF frames, lossless VP8L WebP, lossy VP8 WebP image bytes with optional raw or compressed alpha, and bounded 8/10-bit YUV420 or monochrome AVIF still items with optional straight alpha";
+    public const string SupportedFormatDescription = "PNG and APNG frames, JPEG, bounded classic TIFF pages, unsigned eight/sixteen-bit and finite fixed/floating-point gray/RGB JPEG XR, uncompressed BMP, explicitly selected GIF frames, lossless VP8L WebP, lossy VP8 WebP image bytes with optional raw or compressed alpha, and bounded 8/10-bit YUV420 or monochrome AVIF still items with optional straight alpha";
 
     /// <summary>
     /// Attempts to decode image bytes into an RGBA raster buffer supported by dependency-free export.
@@ -184,6 +184,7 @@ public static partial class OfficeRasterImageDecoder {
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
                 OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+                OfficeImageFormat.JpegXr => OfficeJpegXrDecoder.TryDecode(bytes, effective, out image),
                 OfficeImageFormat.Avif => OfficeAvifCodec.TryDecode(bytes, effective, out image, out avifCallerCodecEligible),
                 _ => false
             };
@@ -194,7 +195,7 @@ public static partial class OfficeRasterImageDecoder {
         // Animated WebP has its explicit inspected caller-codec path above.
         // AVIF reaches a caller only after both selected item payloads validate.
         bool usedCallerCodec = false;
-        if (!success && format != OfficeImageFormat.Webp &&
+        if (!success && format != OfficeImageFormat.Webp && format != OfficeImageFormat.JpegXr &&
             (format != OfficeImageFormat.Avif || avifCallerCodecEligible))
             success = usedCallerCodec = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
         if (!success) image = null;

@@ -2,9 +2,11 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private void BuildRootStackingPaintOrders(IEnumerable<HtmlRenderFlowBlock> blocks) {
-        var contexts = blocks
-            .Where(block => block.StackingZIndex.HasValue)
-            .Select(block => new RootStackingContext(block.StackingZIndex!.Value, block.StackingSourceOrder))
+        var contexts = blocks.SelectMany(block => block.StackingZIndex.HasValue
+            ? new[] { new RootStackingContext(block.StackingZIndex.Value, block.StackingSourceOrder) }
+            : block.Visuals.SelectMany(EnumerateRootStackingLayers)
+                .Where(visual => visual.StackingContext != null)
+                .Select(visual => new RootStackingContext(visual.StackingContext!.ZIndex, visual.StackingContext.SourceOrder)))
             .Concat(_rootPositionedElements.Select(request => new RootStackingContext(request.ZIndex, request.SourceOrder)))
             .Concat(_fixedPositionedElements.Select(request => new RootStackingContext(request.ZIndex, request.SourceOrder)))
             .GroupBy(context => context.SourceOrder)
@@ -31,11 +33,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _rootStackingPaintOrders.TryGetValue(sourceOrder, out int paintOrder) ? paintOrder : fallback;
 
     private static void AppendFlowPaintLayers(ICollection<HtmlRenderVisual> visuals, IEnumerable<FlowPaintLayer> layers) {
+        var normal = new List<HtmlRenderVisual>();
+        void FlushNormal() {
+            foreach (HtmlRenderVisual visual in OrderFloatPaint(normal)) visuals.Add(visual.Translate(0D, 0D, visuals.Count));
+            normal.Clear();
+        }
         foreach (FlowPaintLayer layer in OrderFlowPaintLayers(layers)) {
+            if (layer.Block.StackingZIndex.HasValue) FlushNormal();
             foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-                visuals.Add(visual.Translate(layer.X, layer.Y, visuals.Count));
+                if (layer.Block.StackingZIndex.HasValue) visuals.Add(visual.Translate(layer.X, layer.Y, visuals.Count));
+                else normal.Add(visual.Translate(layer.X, layer.Y, normal.Count));
             }
         }
+        FlushNormal();
     }
 
     private static IEnumerable<FlowPaintLayer> OrderFlowPaintLayers(IEnumerable<FlowPaintLayer> layers) {

@@ -74,6 +74,9 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private sealed class SvgElementReferenceRegistry {
+        internal bool RetainSourceElementIds { get; set; }
+        internal int MaximumGeometryCommands { get; set; } = MaximumSvgPathCommands;
+
         private readonly SvgDefinitionRegistry _definitions;
         private readonly ISet<string> _activeIds = new HashSet<string>(StringComparer.Ordinal);
         private const int MaximumExpandedTextCharacters = 131_072;
@@ -103,14 +106,17 @@ public static partial class OfficeSvgDrawingReader {
         internal SvgElementReferenceRegistry(
             SvgDefinitionRegistry definitions,
             OfficeSvgForeignObjectRenderer? foreignObjectRenderer = null,
+            Action<string, string?, OfficeFontFaceDescriptor>? fontTextUsageObserver = null,
             System.Threading.CancellationToken cancellationToken = default) {
             _definitions = definitions;
             ForeignObjectRenderer = foreignObjectRenderer;
+            FontTextUsageObserver = fontTextUsageObserver;
             CancellationToken = cancellationToken;
         }
 
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
         internal System.Threading.CancellationToken CancellationToken { get; }
+        internal Action<string, string?, OfficeFontFaceDescriptor>? FontTextUsageObserver { get; }
 
         internal XNamespace NativeNamespace => _definitions.NativeNamespace;
 

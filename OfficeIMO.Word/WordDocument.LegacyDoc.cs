@@ -118,6 +118,7 @@ namespace OfficeIMO.Word {
 
             WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit);
             ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
+            AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
             AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
             WordSection section = document.Sections.Count > 0
                 ? document.Sections[0]
@@ -931,6 +932,7 @@ namespace OfficeIMO.Word {
                 styleRelative: source.StyleRelative,
                 styleInverted: source.StyleInverted,
                 characterSpacingTwips: source.CharacterSpacingTwips,
+                characterScalePercentage: source.CharacterScalePercentage,
                 kerningMinimumFontSizeHalfPoints: source.KerningMinimumFontSizeHalfPoints,
                 language: source.Language,
                 eastAsiaLanguage: source.EastAsiaLanguage,
@@ -1085,6 +1087,8 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            if (target.Tooltip != null) hyperlink.Tooltip = target.Tooltip;
+            if (target.TargetFrame != null) hyperlink.TargetFrame = target.TargetFrame;
             for (int index = startIndex; index < startIndex + count; index++) {
                 AppendLegacyDocHyperlinkRunContent(hyperlink, paragraph, legacyRuns[index], bookmarks);
             }
@@ -1946,6 +1950,11 @@ namespace OfficeIMO.Word {
                 string fontSize = characterFormat.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 properties.AddChild(new FontSize { Val = fontSize }, true);
                 properties.AddChild(new FontSizeComplexScript { Val = fontSize }, true);
+                hasProperties = true;
+            }
+
+            if (characterFormat.CharacterScalePercentage.HasValue) {
+                properties.AddChild(new CharacterScale { Val = characterFormat.CharacterScalePercentage.Value }, true);
                 hasProperties = true;
             }
 

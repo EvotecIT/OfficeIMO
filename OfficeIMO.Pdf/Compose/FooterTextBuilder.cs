@@ -31,4 +31,12 @@ public sealed class FooterTextBuilder {
     /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
     /// <returns>The same builder for chaining.</returns>
     public FooterTextBuilder TotalPages(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(FooterSegment.TotalPages(style)); return this; }
+    /// <summary>Adds the page count of the complete document, including all sections.</summary>
+    /// <returns>The same builder for chaining.</returns>
+    public FooterTextBuilder DocumentPages() { _segments.Add(new FooterSegment(FooterSegmentKind.DocumentPages)); return this; }
+
+    /// <summary>Adds a document-wide page-count token with the supplied visual text style.</summary>
+    /// <param name="style">Text run whose visual styling is applied; its text is ignored.</param>
+    /// <returns>The same builder for chaining.</returns>
+    public FooterTextBuilder DocumentPages(PdfTextRun style) { Guard.NotNull(style, nameof(style)); _segments.Add(FooterSegment.DocumentPages(style)); return this; }
 }

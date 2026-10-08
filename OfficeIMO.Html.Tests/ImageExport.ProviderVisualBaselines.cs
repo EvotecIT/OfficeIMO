@@ -254,16 +254,8 @@ public sealed class ImageExportProviderVisualBaselineTests {
             fileName + " changed: " + comparison.DifferentPixels + " pixels differ; max channel delta " + comparison.MaxChannelDelta + ".");
     }
 
-    private static string GetProjectRoot() {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Html.Tests.csproj"))) {
-                return directory.FullName;
-            }
-            directory = directory.Parent;
-        }
-        throw new DirectoryNotFoundException("Could not locate the OfficeIMO.Html.Tests project root.");
-    }
+    private static string GetProjectRoot() =>
+        Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Html.Tests");
 
     private static byte[] LoadPortableFont(string fileName) {
         DirectoryInfo repositoryRoot = Directory.GetParent(GetProjectRoot())

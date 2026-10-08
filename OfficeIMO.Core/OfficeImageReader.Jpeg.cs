@@ -85,7 +85,9 @@ public static partial class OfficeImageReader {
                     out int height)) {
                     return false;
                 }
-                info = new OfficeImageInfo(OfficeImageFormat.Jpeg, width, height, dpiX, dpiY);
+                info = new OfficeImageInfo(OfficeImageFormat.Jpeg, width, height, dpiX, dpiY) {
+                    JpegComponentCount = data[segmentStart + 5]
+                };
                 return true;
             }
 
@@ -114,7 +116,7 @@ public static partial class OfficeImageReader {
         return width > 0 && height > 0;
     }
 
-    private static bool IsStartOfFrame(byte marker) =>
+    internal static bool IsStartOfFrame(byte marker) =>
         marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF;
 
     internal static bool HasCompleteJpegPayload(
@@ -170,10 +172,10 @@ public static partial class OfficeImageReader {
             int segmentStart = offset + 2;
             int segmentDataLength = segmentLength - 2;
             if (IsStartOfFrame(marker)) {
-                if (hasFrame || requireManagedFrame && marker is not (0xC0 or 0xC2) ||
+                if (hasFrame || requireManagedFrame && marker is not (0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC9 or 0xCA or 0xCB) ||
                     !TryReadJpegFrameHeader(data, segmentStart, segmentDataLength, out _, out _) ||
                     requireManagedFrame && !OfficeJpegReader.IsSupportedRgbaFrameHeader(
-                        data, segmentStart, segmentDataLength)) return false;
+                        data, segmentStart, segmentDataLength, marker)) return false;
                 hasFrame = true;
             } else if (marker == 0xE0 && HasJpegSegmentPrefix(
                 data,

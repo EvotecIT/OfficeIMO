@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "8593e6acb696e1bbf6b93a9f473209194bcd6295",
+  "sourceCleanH4": true,
+  "provider": {
+    "AngleSharp": "1.7.1",
+    "AngleSharp.Css": "1.0.1"
+  },
+  "change": "Operation-scoped provider declaration dependency metadata avoids queries that cannot produce a value; CSS text is serialized once per rule. Existing CSS limit charging is retained.",
+  "tests": {
+    "htmlNet8": {
+      "passed": 3553,
+      "failed": 0
+    },
+    "htmlNet10": {
+      "passed": 3553,
+      "failed": 0
+    },
+    "htmlNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "independentReview": {
+    "actionableFindings": 0,
+    "patchSha1": "5b456d54347dde7fd922e9cbc30807fd08d1a62a"
+  },
+  "h4": {
+    "passed": true,
+    "caseCount": 8,
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "configurationSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+    "environment": {
+      "osDescription": "macOS 27.0.0",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "officeImoVersion": "3.4.3+8593e6acb696e1bbf6b93a9f473209194bcd6295",
+      "peachPdfVersion": "0.9.19",
+      "htmlTinkerXVersion": "3.0.1",
+      "chromiumVersion": "151.0.7922.34",
+      "externalPdfRasterizer": "pdftoppm version 26.09.0"
+    },
+    "printRastersByteIdenticalToInspectedBaseline": 13,
+    "baselineSourceCommit": "b30a8edf75d9d4f8815bc0f935727c529868552f"
+  },
+  "archiveReplay": {
+    "sourceSha256": "644CCACFE10DDE7484549E46642BE88727C34F9BA98FB36407CB6FCA9F1F2FD4",
+    "cssRuleLimit": 40000,
+    "measurementBoundary": "Candidate measured before its code checkpoint commit, with the same functional patch. Archive loading and validation excluded from conversion allocations. Wall-clock results under build load are not acceptance timings.",
+    "residentMemory": "Unavailable: PeakWorkingSet64 returned zero on this host.",
+    "intents": [
+      {
+        "intent": "PrintPaged",
+        "pages": 5,
+        "pdfBytes": 7713737,
+        "pdfSha256": "c23e9c537caf757b1deecf807b86e273dacecf0dbd53deadc604c84820da86ed",
+        "byteIdenticalToCanonical": true,
+        "imageOmissions": 0,
+        "previousConversionAllocatedBytes": 4576477744,
+        "conversionAllocatedBytes": 3261235688,
+        "reductionPercent": 28.74
+      },
+      {
+        "intent": "ScreenMediaPaged",
+        "pages": 6,
+        "pdfBytes": 7990939,
+        "pdfSha256": "d86f39d0b5b0104d254fdfe555e2cebc295b3aa5b230ba469cd94029ae6b5d76",
+        "byteIdenticalToCanonical": true,
+        "imageOmissions": 0,
+        "previousConversionAllocatedBytes": 4823793496,
+        "conversionAllocatedBytes": 3506488288,
+        "reductionPercent": 27.31
+      },
+      {
+        "intent": "ScreenSnapshotPaged",
+        "pages": 6,
+        "pdfBytes": 8066245,
+        "pdfSha256": "8e45a831c6b2e822ccd8da215c77ae45b522c9678a3fdfa239bf7c7d0eb63e70",
+        "byteIdenticalToCanonical": true,
+        "imageOmissions": 0,
+        "previousConversionAllocatedBytes": 4493697784,
+        "conversionAllocatedBytes": 3175549880,
+        "reductionPercent": 29.33
+      }
+    ]
+  },
+  "resourceAcceptance": false,
+  "unfamiliarPageFidelityAcceptance": false
+}

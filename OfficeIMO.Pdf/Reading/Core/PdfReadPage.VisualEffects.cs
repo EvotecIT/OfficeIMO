@@ -893,6 +893,10 @@ public sealed partial class PdfReadPage {
                      operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
+            if (pageContentBudget.HasProjectedTransparencyGroup(formOrderPrefix)) {
+                activeForms.Remove(formStream);
+                continue;
+            }
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
             try {
                 PdfDictionary dictionary = formStream.Dictionary;
@@ -1038,6 +1042,7 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget patternTextClippingBudget,
         string? decodedContent = null,
         CancellationToken cancellationToken = default) {
+        using IDisposable projectionScope = pageContentBudget.BeginTransparencyGroupProjectionScope();
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ??

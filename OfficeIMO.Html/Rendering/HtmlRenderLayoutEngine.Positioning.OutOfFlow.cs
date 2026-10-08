@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
@@ -50,7 +51,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             staticAnchor,
             artifactBoundaries,
             flattenedSemanticBoundaries);
-        if (IsRootLayoutContainer(containingBlock)) {
+        if (IsRootLayoutContainer(containingBlock)
+            && (!_layoutStyles.TryGetValue(containingBlock, out HtmlRenderBoxStyle? rootStyle) || rootStyle.Position == "static")) {
             _rootPositionedElements.Add(request);
             return;
         }
@@ -131,18 +133,73 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
         foreach (PositionedElementRequest request in OrderPositionedRequests(requests, band)) {
-            bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
-            double requestWidth = hasRect ? rect!.Width : containingWidth;
-            double requestHeight = hasRect ? rect!.Height : containingHeight;
-            double requestOriginX = hasRect ? rect!.X : 0D;
-            double requestOriginY = hasRect ? rect!.Y : 0D;
-            PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
-            foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-                visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count));
+            AppendLocalPositionedRequest(request, containingWidth, containingHeight, originX, originY, visuals, runningStringAssignments);
+        }
+    }
+
+    private void AppendBlockPositionedVisuals(
+        IElement container,
+        double containingWidth,
+        double containingHeight,
+        double originX,
+        double originY,
+        PositionedPaintBand band,
+        HtmlRenderBoxStyle parentStyle,
+        IReadOnlyList<FlowPaintLayer>? flowLayers,
+        double flowOriginX,
+        double flowOriginY,
+        ICollection<HtmlRenderVisual> visuals,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
+        var layers = new List<(int ZIndex, int SourceOrder, PositionedElementRequest? Request, HtmlPseudoElementKind? Pseudo, FlowPaintLayer? Flow)>();
+        if (_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) {
+            layers.AddRange(requests.Select(request => (request.ZIndex, request.SourceOrder, (PositionedElementRequest?)request, (HtmlPseudoElementKind?)null, (FlowPaintLayer?)null)));
+        }
+        if (flowLayers != null) {
+            layers.AddRange(flowLayers
+                .Where(layer => layer.Block.StackingZIndex.HasValue)
+                .Select(layer => (layer.Block.StackingZIndex!.Value, layer.Block.StackingSourceOrder,
+                    (PositionedElementRequest?)null, (HtmlPseudoElementKind?)null, (FlowPaintLayer?)layer)));
+        }
+        foreach (HtmlPseudoElementKind kind in new[] { HtmlPseudoElementKind.Before, HtmlPseudoElementKind.After }) {
+            if (TryGetLocallyPositionedGeneratedContentZIndex(container, kind, containingWidth, parentStyle, out int zIndex)) {
+                layers.Add((zIndex, kind == HtmlPseudoElementKind.Before ? int.MinValue : int.MaxValue, null, kind, null));
             }
-            foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
-                runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
+        }
+        foreach (var layer in layers
+            .Where(item => band == PositionedPaintBand.Negative ? item.ZIndex < 0 : item.ZIndex >= 0)
+            .OrderBy(item => item.ZIndex)
+            .ThenBy(item => item.SourceOrder)) {
+            if (layer.Request != null) {
+                AppendLocalPositionedRequest(layer.Request, containingWidth, containingHeight, originX, originY, visuals, runningStringAssignments);
+            } else if (layer.Pseudo.HasValue) {
+                AppendLocallyPositionedGeneratedContent(container, layer.Pseudo.Value, containingWidth, containingHeight, originX, originY, parentStyle, visuals);
+            } else if (layer.Flow != null) {
+                foreach (HtmlRenderVisual visual in layer.Flow.Block.Visuals) {
+                    visuals.Add(visual.Translate(flowOriginX + layer.Flow.X, flowOriginY + layer.Flow.Y, visuals.Count));
+                }
             }
+        }
+    }
+
+    private void AppendLocalPositionedRequest(
+        PositionedElementRequest request,
+        double containingWidth,
+        double containingHeight,
+        double originX,
+        double originY,
+        ICollection<HtmlRenderVisual> visuals,
+        ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
+        bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
+        double requestWidth = hasRect ? rect!.Width : containingWidth;
+        double requestHeight = hasRect ? rect!.Height : containingHeight;
+        double requestOriginX = hasRect ? rect!.X : 0D;
+        double requestOriginY = hasRect ? rect!.Y : 0D;
+        PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
+        foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
+            visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count).IdentifyOutOfFlowPaint());
+        }
+        foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
+            runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
         }
     }
 
@@ -158,7 +215,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         for (int index = 0; index < _fixedPositionedElements.Count; index++) {
-            _fixedPositionedElements[index].Resolve(this, surfaceWidth, surfaceHeight);
+            PositionedRequestPlacement placement = CreateFixedPositionedPlacement(
+                _fixedPositionedElements[index], surfaceWidth, surfaceHeight);
+            placement.Request.Resolve(this, placement.Width, placement.Height);
         }
     }
 
@@ -199,9 +258,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ActiveMargins.Top)));
         }
         placements.AddRange(_fixedPositionedElements.Select(request =>
-            new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));
+            CreateFixedPositionedPlacement(request, surfaceWidth, surfaceHeight)));
         return placements;
     }
+
+    private PositionedRequestPlacement CreateFixedPositionedPlacement(
+        PositionedElementRequest request, double surfaceWidth, double surfaceHeight) =>
+        _options.Mode == HtmlRenderMode.Paged
+            // Fixed boxes use the entire page area, including reserved footnote/float
+            // space, rather than the reduced normal-flow body or the page margins.
+            ? new PositionedRequestPlacement(request, _activePageGeometry.ContentWidth,
+                _activePageGeometry.ContentHeight, ActiveMargins.Left, ActiveMargins.Top)
+            : new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D);
 
     private void CollectGlobalPositionedRunningStringAssignments(
         ICollection<HtmlCssRunningStringAssignment> target,
@@ -228,11 +296,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PositionedRequestPlacement placement,
         PositionedPaintBand band) {
         PositionedLayer layer = placement.Request.Resolve(this, placement.Width, placement.Height);
+        if (_options.Mode == HtmlRenderMode.Paged && !placement.Request.IsFixed
+            && IsWhollyBeforePagedArea(layer)) return;
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
             int fallback = band == PositionedPaintBand.Negative ? -1000000000 : _paintOrder++;
             int paintOrder = ResolveRootStackingPaintOrder(placement.Request.SourceOrder, fallback);
-            visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder));
+            visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder).IdentifyOutOfFlowPaint());
         }
+    }
+
+    private static bool IsWhollyBeforePagedArea(PositionedLayer layer) {
+        // Root absolute boxes entirely before the initial containing block do not paint in
+        // browser print. Keep partial overlaps and positive overflow into page margins.
+        // The untransformed bounds cannot safely cull descendants moved into view by paint transforms.
+        if (layer.X >= 0D && layer.Y >= 0D) return false;
+        if (HasTransformedPositionedContent(layer.Block.Visuals)) return false;
+        if (layer.X < 0D && layer.X + Math.Max(layer.Block.Width, MaximumScrollRight(layer.Block.Visuals)) <= 0D) return true;
+        return layer.Y < 0D && layer.Y + Math.Max(layer.Block.Height, MaximumScrollBottom(layer.Block.Visuals)) <= 0D;
+    }
+
+    private static bool HasTransformedPositionedContent(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderEffectGroup translatedEffect && translatedEffect.Transform != OfficeTransform.Identity) return true;
+            IEnumerable<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderEffectGroup effectGroup => effectGroup.Visuals,
+                HtmlRenderClipGroup clip => clip.Visuals,
+                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+                HtmlRenderSemanticGroup semantic => semantic.Visuals,
+                HtmlRenderLogicalTextGroup logical => logical.Visuals,
+                HtmlRenderLayoutRegion region => region.Visuals,
+                HtmlRenderFormField form => form.Visuals,
+                _ => null
+            };
+            if (children != null && HasTransformedPositionedContent(children)) return true;
+        }
+        return false;
     }
 
     private static IEnumerable<PositionedElementRequest> OrderPositionedRequests(IEnumerable<PositionedElementRequest> requests, PositionedPaintBand band) =>
@@ -248,6 +346,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             parentStyle = ResolveFixedPositionedParentStyle(request);
             style = _styleResolver.Resolve(request.Element, containingWidth, parentStyle);
         }
+        double? percentageWidth = _styleResolver.ResolvePositionedPercentageWidth(request.Element, containingWidth, style.Font.Size);
+        if (percentageWidth.HasValue) style.ExplicitWidth = percentageWidth.Value;
+        double? percentageHeight = _styleResolver.ResolvePositionedPercentageHeight(request.Element, containingHeight, style.Font.Size);
+        if (percentageHeight.HasValue) style.ExplicitHeight = percentageHeight.Value;
         string source = HtmlRenderStyleResolver.DescribeSource(request.Element);
         double? left = ResolveOutOfFlowInset(style.Left, containingWidth, style, source, "left");
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
@@ -255,7 +357,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
         double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right, request.Depth);
         if (!style.ExplicitWidth.HasValue) SetPositionedExplicitWidth(style, outerWidth);
-        if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue) {
+        if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue
+            && !IsReplacedImageElement(request.Element)) {
             double targetOuterHeight = Math.Max(0.01D, containingHeight - top.Value - bottom.Value);
             double targetBoxHeight = Math.Max(0.01D, targetOuterHeight - style.MarginTop - style.MarginBottom);
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
@@ -264,6 +367,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.ZIndex = "auto";
         HtmlRenderFlowBlock block = LayoutElementWithoutEditableRegionMarker(
             request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
+        if (!request.IsFixed && CapturePrintLayoutBoxes) {
+            // Absolute boxes retain their own scrollable print geometry even when
+            // an ancestor clips their paint. Paint effects may wrap the border
+            // box, so search those groups without marking descendant boxes.
+            MarkAbsolutePrintOverflow(block.Visuals, source);
+        }
         double translatedX = 0D;
         double translatedY = 0D;
         bool localPagedBox = _options.Mode == HtmlRenderMode.Paged && !request.IsFixed
@@ -295,6 +404,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
         return new PositionedLayer(block, x + translatedX, y + translatedY,
             supportsBoundaryBreaks: localPagedBox && (request.Style.Transform == "none" || tookTranslation));
+    }
+
+    private static bool MarkAbsolutePrintOverflow(IReadOnlyList<HtmlRenderVisual> visuals, string source) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderLayoutBox box && box.Source == source) {
+                box.MarkAbsolutePrintOverflow();
+                return true;
+            }
+            IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+            if (children != null && MarkAbsolutePrintOverflow(children, source)) return true;
+        }
+        return false;
     }
 
     private static HtmlRenderFlowBlock ApplyPositionedArtifactBoundary(
@@ -330,6 +451,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right, int depth) {
+        // Replaced elements resolve auto dimensions from their intrinsic size/ratio;
+        // opposing insets position the box rather than stretching its content.
+        if (IsReplacedImageElement(element)) return ResolveFloatingImageOuterWidth(element, style);
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
@@ -339,13 +463,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
-        if (IsReplacedImageElementTag(tag)) return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
-        // Shrink-to-fit uses the same styled descendants as painting, including
-        // their visibility, line boundaries and atomic inline box decoration.
-        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(
-            new FlexItem(element, style, sourceIndex: 0), containingWidth, depth + 1);
-        double preferredContentWidth = MeasureMaxContentRuns(textRuns);
-        double minimumContentWidth = MeasureMinContentRuns(textRuns);
+        // Shrink-to-fit uses the same styled in-flow content as flex/grid sizing.
+        // TextContent omits generated content and replaced descendants and loses child font styles.
+        IReadOnlyList<IntrinsicTextRun> content = ResolveInFlowIntrinsicTextRuns(
+            new FlexItem(element, style, 0), containingWidth, depth + 1, includeDescendantInsets: true);
+        double preferredContentWidth = content.Count == 0 ? 1D : MeasureMaxContentRuns(content);
+        double minimumContentWidth = content.Count == 0 ? 1D : MeasureMinContentRuns(content);
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
         double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
         double resolvedBoxWidth = contentWidth + style.HorizontalInsets;
@@ -361,7 +484,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double? ResolveOutOfFlowInset(string value, double reference, HtmlRenderBoxStyle style, string source, string property) {
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return null;
-        if (TryResolveLength(value, reference, style.Font.Size, out double resolved)) return resolved;
+        if (TryResolveLength(value, reference, style, out double resolved)) return resolved;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PositionInsetUnsupported, "A positioned inset could not be resolved and used auto.", HtmlDiagnosticSeverity.Warning, source, property + "=" + value);
         return null;
     }
@@ -370,6 +493,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private PositionedLayer? _cached;
         private double _width;
         private double _height;
+        private double _pageViewportWidth;
+        private double _pageViewportHeight;
         internal PositionedElementRequest(
             IElement element,
             IElement directParent,
@@ -407,10 +532,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal IReadOnlyList<FlattenedSemanticBoundary> FlattenedSemanticBoundaries { get; }
         internal bool IsFixed => string.Equals(Style.Position, "fixed", StringComparison.Ordinal);
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
-            if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D) {
+            bool pageViewportChanged = IsFixed && engine._options.Mode == HtmlRenderMode.Paged
+                && (Math.Abs(engine._activePageGeometry.Width - _pageViewportWidth) > 0.0001D
+                    || Math.Abs(engine._activePageGeometry.Height - _pageViewportHeight) > 0.0001D);
+            if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D
+                || pageViewportChanged) {
                 _cached = engine.LayoutPositionedElement(this, width, height);
                 _width = width;
                 _height = height;
+                _pageViewportWidth = engine._activePageGeometry.Width;
+                _pageViewportHeight = engine._activePageGeometry.Height;
             }
             return _cached;
         }

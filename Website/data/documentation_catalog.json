@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 263,
-    "productionComponentCount": 134,
-    "testProjectCount": 52,
+    "projectCount": 275,
+    "productionComponentCount": 137,
+    "testProjectCount": 53,
     "benchmarkProjectCount": 35,
-    "validationProjectCount": 43,
+    "validationProjectCount": 51,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 53903
+    "conceptualWordCount": 54008
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 29,
+      "componentCount": 30,
       "componentIndexes": [
         84,
         85,
@@ -44,7 +44,8 @@
         109,
         110,
         111,
-        112
+        112,
+        113
       ]
     },
     {
@@ -66,8 +67,8 @@
         70,
         71,
         72,
-        121,
-        122
+        122,
+        123
       ]
     },
     {
@@ -86,8 +87,8 @@
         63,
         64,
         83,
-        116,
-        133
+        117,
+        136
       ]
     },
     {
@@ -117,14 +118,14 @@
         79,
         80,
         81,
-        123,
         124,
         125,
         126,
         127,
         128,
         129,
-        130
+        130,
+        131
       ]
     },
     {
@@ -153,9 +154,9 @@
         52,
         74,
         75,
-        113,
         114,
-        115
+        115,
+        116
       ]
     },
     {
@@ -169,7 +170,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 21,
+      "componentCount": 23,
       "componentIndexes": [
         1,
         2,
@@ -186,12 +187,14 @@
         61,
         73,
         82,
-        117,
         118,
         119,
         120,
-        131,
-        132
+        121,
+        132,
+        133,
+        134,
+        135
       ]
     }
   ],
@@ -359,7 +362,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 816,
+      "sourceFileCount": 898,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -489,7 +492,7 @@
       "description": "Bounded EPUB 2/3 reading, authoring, editing and package preservation for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
-      "sourceFileCount": 56,
+      "sourceFileCount": 123,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/epub/",
       "apiUrl": "/api/epub/",
@@ -502,7 +505,7 @@
       "description": "Thin EPUB-to-image adapter over OfficeIMO.Html and OfficeIMO.Drawing.",
       "kind": "package",
       "projectPath": "OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
-      "sourceFileCount": 3,
+      "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/epub/",
       "apiUrl": "/api/epub-image/",
@@ -658,7 +661,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 312,
+      "sourceFileCount": 434,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -684,7 +687,7 @@
       "description": "Owned HTML document, editing, parser provider and lossless CSS syntax contracts for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
-      "sourceFileCount": 30,
+      "sourceFileCount": 31,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-core/",
@@ -694,10 +697,10 @@
       "name": "OfficeIMO.Html.Pdf",
       "packageId": "OfficeIMO.Html.Pdf",
       "category": "Publishing and conversion",
-      "description": "Direct dependency-free HTML/PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
+      "description": "Direct HTML-to-PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 28,
+      "sourceFileCount": 42,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-pdf/",
@@ -983,7 +986,7 @@
       "description": "MHTML archive loading, saving, HTML projection, and embedded MIME resources for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/mhtml/",
@@ -1165,7 +1168,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1310,
+      "sourceFileCount": 1337,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1321,7 +1324,7 @@
       "description": "Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "sourceFileCount": 132,
+      "sourceFileCount": 133,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
@@ -1640,6 +1643,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xml"
     },
     {
+      "name": "OfficeIMO.Reader.Xps",
+      "packageId": "OfficeIMO.Reader.Xps",
+      "category": "Extraction and ingestion",
+      "description": "XPS/OpenXPS adapter for OfficeIMO.Reader using the native OfficeIMO.Xps engine.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Xps/OfficeIMO.Reader.Xps.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xps"
+    },
+    {
       "name": "OfficeIMO.Reader.Yaml",
       "packageId": "OfficeIMO.Reader.Yaml",
       "category": "Extraction and ingestion",
@@ -1802,7 +1818,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 743,
+      "sourceFileCount": 744,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1906,7 +1922,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 129,
+      "sourceFileCount": 198,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",
@@ -1924,6 +1940,32 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows.IWork"
+    },
+    {
+      "name": "OfficeIMO.Xps",
+      "packageId": "OfficeIMO.Xps",
+      "category": "Specialized components",
+      "description": "Portable XPS and OpenXPS package reading, writing, and fixed-page conversion.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Xps/OfficeIMO.Xps.csproj",
+      "sourceFileCount": 34,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps"
+    },
+    {
+      "name": "OfficeIMO.Xps.Pdf",
+      "packageId": "OfficeIMO.Xps.Pdf",
+      "category": "Specialized components",
+      "description": "XPS and OpenXPS PDF conversion through OfficeIMO fixed-page and PDF engines.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Xps.Pdf/OfficeIMO.Xps.Pdf.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Xps.Pdf"
     },
     {
       "name": "OfficeIMO.Zip",

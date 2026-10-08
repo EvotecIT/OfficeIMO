@@ -62,7 +62,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("hello.pdf");
 ```
 
-`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `document.TaggedPdfCatalogMarkers()` to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
+`document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
 ## Paragraph font size and line spacing
 
@@ -97,6 +97,28 @@ including inside columns, table cells and canvas text boxes.
 `PdfParagraphBuilder.LineBreak()` retains the current run style. A larger font
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
+
+## Glyph width and character spacing
+
+Run width and tracking adjust horizontal advances without changing font height:
+
+```csharp
+var condensed = PdfTextRun.Normal("Condensed text", fontSize: 12)
+    .WithHorizontalTextScaling(75)
+    .WithCharacterSpacing(0.5);
+
+PdfDocument.Create()
+    .Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }))
+    .Save("run-spacing.pdf");
+```
+
+`HorizontalTextScaling` is a positive percentage; 100 retains the font's normal
+width. `CharacterSpacing` adds page points after each rendered glyph, independently
+of that percentage. Negative spacing condenses advances. The copy methods retain
+the source run's other formatting. Paragraph builders expose matching
+`HorizontalTextScaling(...)` and `CharacterSpacing(...)` controls; use 100 and zero
+to restore natural text for following runs. Measurement, wrapping and painting use
+these metrics in rich paragraphs, table cells, page text and positioned text.
 
 ## Authoring model
 
@@ -192,11 +214,40 @@ Drawing text preserves numeric font descriptors when the matching faces are regi
 `PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
 font program. Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
+Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
+field without adding sampled color stops. Explicit print-condition conversion
+uses the existing bounded CMYK sampling path with the gradient's interpolation
+mode. Alpha masks remain scalar opacity fields.
+Radial gradients with an explicit Repeat or Reflect mode use vector function-based
+shading, including fields with no finite cycle bound. Color and alpha retain the
+same periodic field, within the existing 1,024-stop PDF gradient bound. Explicit
+print-condition conversion uses the shared bounded ICC gradient sampler, with up
+to 4,096 CMYK samples and independent scalar alpha. Component functions retain
+the periodic geometry without rasterizing the PDF field.
+
+The reader renders directly invoked function-based shadings at the requested
+image-export resolution. `ToDrawing()` samples these fields at one pixel per PDF
+point; use image-export or page-render options for a higher resolution.
+`PdfReadLimits.MaxFunctionShadingPixels` bounds aggregate intermediate pixels,
+and `MaxFunctionShadingEvaluationWork` bounds calculator work per page.
+Function-based shading patterns remain unsupported and produce a render diagnostic.
+
 Gradient fills and strokes preserve color-stop alpha through native transparency masks,
 including header and footer shapes. Gradient direction follows the same local coordinates
 before and after an affine transform.
 Path and polygon fills preserve `OfficeShape.FillRule`, including even-odd holes,
 gradient clipping, affine transforms, and header and footer shapes.
+
+Drawing export retains bounded vector tiling patterns, isolated group opacity and
+blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and
+nontransparent mask backdrops reject export. Embedded drawing images preserve their
+interpolation setting. When reopening PDFs, the managed reader retains ordinary
+isolated Form groups with implicit or DeviceRGB blending space and no knockout.
+Invocation opacity applies once after overlapping paths, images, text, and nested
+forms are composed. Logical text extraction remains separate from that grouped
+paint. Other group blending spaces, non-isolated groups, and knockout semantics
+remain outside this reader contract. The [Cairo group fixtures](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Transparency/SOURCE.md)
+provide independent-producer coverage for overlapping child alpha and nested groups.
 
 HTML and SVG adapters preserve positioned text without turning its line or
 advance measurements into an extra paint clip. Glyphs can extend beyond those
@@ -283,12 +334,12 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 
 ## What it does
 
-- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
+- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding. Eight/sixteen-bit Huffman lossless JPEG inputs normalize to PNG before embedding; supported one/three-component eight-bit DCT JPEGs retain their compressed payload. Lossless JPEGs with embedded ICC profiles are rejected when normalization cannot retain their color contract.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
 - Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven Arabic-script/TrueType subset (core and extended Persian/Urdu letters). The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
-- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple device-color JPEGs without required color management remain lossless pass-through payloads.
+- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple DeviceGray/DeviceRGB JPEGs without required color management remain lossless pass-through payloads. DeviceCMYK JPEGs normalize through the PDF image pipeline so that Adobe markers cannot override authored or implicit identity `/Decode` polarity.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.
@@ -689,6 +740,10 @@ PdfDocument.Create(pdf => pdf.Page(page => page
 ```
 
 Styled header/footer runs support fonts, size, color, highlighting, underline, strike, and baseline changes. Use the existing header/footer image and shape methods for visuals; interactive links and inline elements are intentionally kept out of text runs. Authored header/footer content that enters margins or overlaps another zone is preserved instead of rejected; attach a `PdfConversionReport` with `ReportDiagnosticsTo(...)` when the host needs structured overflow or clipping warnings.
+
+Use `DocumentPages()` or `DocumentPages(style)` for a page count across all document
+sections. `TotalPages()` retains the count for the current numbering section.
+Literal text segments keep braces and page-token-like text unchanged.
 
 ### Rich report layout
 
@@ -1545,9 +1600,44 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
-Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. Search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
+
+Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging
+to literal or regular-expression occurrences. This uses the same native text flows,
+wrapped-line matching, and table boundaries as located text search. `ContentScope`
+controls the generated areas independently; choose `TextOnly` to preserve artwork
+and images beneath the selected text:
+
+```csharp
+var search = new PdfRedactionSearchOptions {
+    TextSelection = PdfRedactionTextSelection.MatchedGlyphs,
+    ContentScope = PdfRedactionContentScope.TextOnly
+}.AddLiteral("Account: 123-45-6789");
+PdfRedactionPlan precise = source.Redactions.Search(search);
+// Present precise.Areas and any blocking precise.Findings before applying it.
+PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(precise);
+result.ThrowIfUnverified();
+```
+
+Matched-glyph selection rejects partial ligatures, ambiguous ActualText mappings,
+unsupported clipping or glyph evidence, and areas that intersect unselected text
+(including hidden layers and tightly spaced lines whose conservative glyph bounds overlap).
+Inspect `IsReviewable` and `Findings`: a blocked selection cannot be applied, even
+when other criteria matched safely. Its reviewed areas never fall back to complete
+text-object removal. Ordinary `Apply(plan)` also verifies preservation for these
+areas before returning output. Regex criteria must select non-empty source text;
+logical-kind criteria require complete-block selection. Glyph geometry remains the
+reader's positioned width model, rather than an exact glyph-outline guarantee.
+Complete logical blocks and `TextAndUnderlay` remain the search defaults.
+Evidence for `TextOnly` includes text and annotation removals; preserved image and
+vector underlays remain visible in the plan without being counted as removals.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
+
+Configured removed and retained markers and external validators check the final
+sanitized artifact. A marker in policy-selected metadata can remain until
+sanitization; it must be absent from the final PDF. The intermediate redaction still
+requires evidence for every reviewed area and the configured stream and rendering checks.
 
 Save `PdfRedactionSharingResult.ToBytes()` and serialize its `Summary` when sharing content-free evidence. For redaction without sanitization, use `redacted.Evidence.CreateShareableSummary()`. These summaries include hexadecimal SHA-256 fingerprints and counts, but omit matched text, search criteria, reasons, paths, and detailed diagnostics. The detailed evidence remains suitable for local review and can contain sensitive document content.
 
@@ -2182,7 +2272,17 @@ PdfMutationPortfolioReport mutations = pdf.AssessMutations();
 PdfRenderCompatibilityReport rendering = pdf.AssessRenderCompatibility();
 Console.WriteLine($"Executable mutation families: {mutations.ExecutablePlans.Count}");
 Console.WriteLine($"Render capability findings: {rendering.DiagnosticCount}");
+
+foreach (PdfMutationPlan blocked in mutations.BlockedPlans) {
+    Console.WriteLine($"{blocked.Operation}: {string.Join(", ", blocked.BlockerCodes)}");
+}
 ```
+
+Pass your job's cancellation token to `pdf.AssessMutations(cancellationToken)`
+when assessing large documents or a document collection. The assessment checks
+cancellation while collecting requests, during parsing and preflight, and between
+individual plans. Each plan retains its own blocker codes; a blocked page edit does
+not mean that metadata updates, form filling, or signing are also blocked.
 
 ### Convert PDFs through adapter packages
 

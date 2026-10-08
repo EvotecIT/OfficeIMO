@@ -39,6 +39,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(Enumerable.Range(20, 24), y => Enumerable.Range(0, 140)
             .Any(x => raster.GetPixel(x, y) != OfficeColor.White));
     }
+
     [Theory]
     [InlineData("j", 80, "italic", 40)]
     [InlineData("ffffffffffffffffffffffffffffffffffffffffffffffffff", -200, "italic", 40)]

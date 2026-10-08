@@ -1,0 +1,55 @@
+namespace OfficeIMO.Epub;
+
+/// <summary>Controls stylesheet reconciliation when merging consecutive reflowable chapters.</summary>
+public enum EpubChapterMergeStylePolicy {
+    /// <summary>Require equivalent chapter heads after URL rebasing, apart from title text.</summary>
+    RequireEquivalent,
+    /// <summary>Retain first-head styles, then append every second-head style and stylesheet link in source order.
+    /// Both chapters share the resulting cascade; no CSS isolation or visual equivalence is implied.</summary>
+    AppendSecondStyles
+}
+
+/// <summary>Explicit reconciliation choices for chapter merges. Other structural conflicts remain errors.</summary>
+public sealed class EpubChapterMergeOptions {
+    /// <summary>
+    /// Explicit replacements for second-chapter body identifiers, excluding shared merge containers.
+    /// Fragment URLs and document-local relationships are repaired. CSS selectors remain unchanged unless
+    /// RewriteChapterSelectors is enabled. Fragment-only URLs in retained
+    /// stylesheets naming changed IDs are rejected as ambiguous. At most 10,000 replacements.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> SecondChapterIdMap { get; set; } = new Dictionary<string, string>();
+    /// <summary>Repair selectors in both source chapters, applying the identifier map only to the second chapter
+    /// and retaining separate private copies of each chapter's linked stylesheets and imports.
+    /// Requires AppendSecondStyles. Supports hash and id attribute selectors
+    /// in ordinary/nested rules and media/supports/layer/container/scope groups. Declaration order and custom-property
+    /// values are preserved. Partial id attribute comparisons use actual source and repaired values; destination-only hash
+    /// identifiers stay nonmatching with their original specificity. Attribute comparisons on document-local relationships and resource-bearing attributes follow actual
+    /// repaired values, using an explicit unprefixed type in the same compound selector when available, including rebased URLs and private stylesheet paths. Partial or multivalued matches can
+    /// expand into at most 256 exact alternatives and 64 KiB of CSS, using :is when needed. Irreducible
+    /// ambiguities and unsupported syntax fail atomically. Reader support for :is, :where and nested CSS remains independent.</summary>
+    public bool RewriteChapterSelectors { get; set; }
+    /// <summary>Allow differing root/body language and direction by wrapping the second chapter's body content
+    /// in a div with its effective language and direction. Other scaffold conflicts still reject the merge.
+    /// Explicit auto direction on either source root/body is unsupported. Wrapper structure can affect CSS;
+    /// this option does not isolate styles or establish equivalent reader layout.</summary>
+    public bool PreserveSecondChapterLanguageAndDirection { get; set; }
+    /// <summary>Preserve each source body's frontmatter, bodymatter or backmatter partition on a section
+    /// around its content before merging. Other body semantic tokens and attributes must remain compatible.
+    /// The second chapter's boundary is placed inside its partition. Added sections can affect CSS selectors;
+    /// this option does not isolate styles or establish equivalent reader layout.</summary>
+    public bool PreserveDocumentMatter { get; set; }
+    /// <summary>Keep each body's id/xml:id, class, style, title, lang/xml:lang, dir and unnamespaced data-* attributes
+    /// on a separate div around its content. Identifiers and local references remain independently addressable;
+    /// collisions require SecondChapterIdMap. Other body attributes must still be compatible, and differing root
+    /// language/direction requires PreserveSecondChapterLanguageAndDirection. Body-specific selectors, box layout
+    /// and inherited styles can change; this option does not isolate CSS or establish equivalent reader layout.</summary>
+    public bool PreserveBodyScopes { get; set; }
+    /// <summary>Retarget EPUB 3 metadata meta/link refinements from the removed manifest item and spine position
+    /// to the retained entries. Metadata nodes, IDs, values and refinements of those nodes remain intact.
+    /// If the retained spine position has no ID, it takes the removed position's ID. The caller explicitly
+    /// applies both chapters' assertions to the merged resource/position; values are not deduplicated or
+    /// semantically reconciled. Structural references and extension refinement attributes remain errors.</summary>
+    public bool RetargetPackageRefinements { get; set; }
+    /// <summary>Style reconciliation policy. Defaults to rejecting different chapter heads.</summary>
+    public EpubChapterMergeStylePolicy StylePolicy { get; set; }
+}

@@ -56,6 +56,11 @@ internal static partial class DocumentReaderEngine {
             }
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
+            if (name == "_rels/.rels") {
+                var xps = ReadXpsRelationshipCandidate(stream, start, localHeaderOffset, compression, compressedSize,
+                    uncompressedSize, nextEntryOffset, asynchronous: false, CancellationToken.None).GetAwaiter().GetResult();
+                if (xps != null) return xps;
+            }
             if (name == "mimetype") {
                 DetectionCandidate? mimeType = TryReadContainerMimeType(
                     stream,
@@ -124,6 +129,11 @@ internal static partial class DocumentReaderEngine {
             }
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
+            if (name == "_rels/.rels") {
+                var xps = await ReadXpsRelationshipCandidate(stream, start, localHeaderOffset, compression, compressedSize,
+                    uncompressedSize, nextEntryOffset, asynchronous: true, cancellationToken).ConfigureAwait(false);
+                if (xps != null) return xps;
+            }
             if (name == "mimetype") {
                 DetectionCandidate? mimeType = await TryReadContainerMimeTypeAsync(
                         stream,

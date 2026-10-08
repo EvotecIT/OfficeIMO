@@ -201,7 +201,7 @@ namespace OfficeIMO.Word {
             pict.Append(shape);
             run.Append(pict);
 
-            return new WordTextBox(this._document, this._paragraph, run);
+            return new WordTextBox(this._document, this._paragraph, run, selectedVmlTextBox: textbox);
         }
     }
 }

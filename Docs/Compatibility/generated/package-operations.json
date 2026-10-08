@@ -19239,6 +19239,20 @@
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
     },
     {
+      "id":"conversion:book-project-epub",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"Book project",
+      "targetFormatId":"EPUB",
+      "capabilityId":"book-project-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"BookProject.LoadProject(bytes).Export(options)",
+      "evidence":"Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".oibook"],
+      "limitation":"Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."
+    },
+    {
       "id":"native:book-project:create",
       "packageId":"OfficeIMO.Workflows",
       "formatId":"Book.Project",
@@ -19349,6 +19363,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".markdown",".md"],
       "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
+    },
+    {
+      "id":"conversion:xps-pdf",
+      "packageId":"OfficeIMO.Xps.Pdf",
+      "formatId":"XPS/OpenXPS",
+      "targetFormatId":"PDF",
+      "capabilityId":"xps-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"XpsDocument.Load(stream).SavePdf(output, options)",
+      "evidence":"Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".oxps",".xps"],
+      "limitation":"Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts."
     }
   ]
 }

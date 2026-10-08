@@ -141,7 +141,9 @@ public static partial class OfficeImageReader {
         byte[]? data,
         string? fileName,
         CancellationToken cancellationToken,
-        out OfficeImageInfo info) =>
+        out OfficeImageInfo info,
+        bool ignoreTiffOrientation = false) =>
+        data != null && ignoreTiffOrientation && TryReadTiff(data, cancellationToken, out info, ignoreOrientation: true) ||
         TryIdentifyCore(data, fileName, allowExtensionFallback: false, cancellationToken, out info);
 
     internal static bool TryIdentifyByContent(
@@ -197,6 +199,8 @@ public static partial class OfficeImageReader {
                        TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage, cancellationToken: cancellationToken);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data, cancellationToken);
+            case OfficeImageFormat.JpegXr:
+                return OfficeJpegXrDecoder.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Avif:
                 return OfficeAvifCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Jpeg2000:
@@ -242,6 +246,7 @@ public static partial class OfficeImageReader {
             TryReadBmp(data, out info) ||
             TryReadWebp(data, out info, cancellationToken: cancellationToken) ||
             TryReadAvif(data, cancellationToken, out info) ||
+            OfficeJpegXrDecoder.TryIdentify(data, cancellationToken, out info) ||
             TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, cancellationToken, out info) ||
             TryReadPcx(data, out info) ||
@@ -293,6 +298,7 @@ public static partial class OfficeImageReader {
             ".pcx" => OfficeImageFormat.Pcx,
             ".webp" => OfficeImageFormat.Webp,
             ".avif" => OfficeImageFormat.Avif,
+            ".jxr" or ".wdp" or ".hdp" => OfficeImageFormat.JpegXr,
             ".jp2" => OfficeImageFormat.Jpeg2000,
             ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,
             _ => OfficeImageFormat.Unknown
@@ -398,10 +404,8 @@ public static partial class OfficeImageReader {
         bool validateCompleteDocument,
         out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        bool likelySvg = validateCompleteDocument || FromExtension(fileName) == OfficeImageFormat.Svg;
-        if (!likelySvg) {
-            likelySvg = HasSvgXmlPrefix(data);
-        }
+        bool hasSvgPrefix = HasSvgXmlPrefix(data, out bool hasDoctype);
+        bool likelySvg = validateCompleteDocument || FromExtension(fileName) == OfficeImageFormat.Svg || hasSvgPrefix;
 
         if (!likelySvg) {
             return false;
@@ -410,7 +414,9 @@ public static partial class OfficeImageReader {
         try {
             using var ms = new MemoryStream(data);
             var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
+                // Match the bounded drawing reader: legacy SVG DTD declarations
+                // are ignored, never resolved or used to expand custom entities.
+                DtdProcessing = DtdProcessing.Ignore,
                 XmlResolver = null
             };
             using var reader = XmlReader.Create(ms, settings);
@@ -451,9 +457,11 @@ public static partial class OfficeImageReader {
                 ? convertedHeight
                 : 0;
 
-            if (validateCompleteDocument) {
+            if (validateCompleteDocument || hasDoctype || !hasSvgPrefix) {
                 while (reader.Read()) {
-                    // Reading through the document validates the complete XML without building a DOM.
+                    // A DTD may declare entities used after the root tag. Validate
+                    // the full SVG when one was seen, while ordinary metadata probes
+                    // retain their documented root-header-only behavior.
                 }
             }
 
@@ -484,35 +492,57 @@ public static partial class OfficeImageReader {
         return true;
     }
 
-    private static bool HasSvgXmlPrefix(byte[] data) {
-        string prefix;
+    private static bool HasSvgXmlPrefix(byte[] data, out bool hasDoctype) {
+        hasDoctype = false;
         try {
             Encoding encoding = ResolveXmlPrefixEncoding(data, out int byteOffset);
-            int maximumPrefixBytes = encoding is UTF32Encoding
-                ? 16384
-                : encoding is UnicodeEncoding ? 8192 : 4096;
-            prefix = encoding.GetString(data, byteOffset, Math.Min(data.Length - byteOffset, maximumPrefixBytes));
+            using var stream = new MemoryStream(data, byteOffset, data.Length - byteOffset, writable: false);
+            using var reader = new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: false);
+            while (true) {
+                int next = reader.Peek();
+                while (next >= 0 && (char.IsWhiteSpace((char)next) || next == '\uFEFF')) {
+                    reader.Read();
+                    next = reader.Peek();
+                }
+
+                if (reader.Read() != '<') return false;
+                int marker = reader.Read();
+                if (marker == '?') {
+                    if (!ReadThrough(reader, "?>")) return false;
+                    continue;
+                }
+                if (marker == '!') {
+                    if (reader.Peek() == '-') {
+                        reader.Read();
+                        if (reader.Read() != '-' || !ReadThrough(reader, "-->")) return false;
+                        continue;
+                    }
+                    hasDoctype = ReadAscii(reader, "DOCTYPE");
+                    return hasDoctype;
+                }
+                return marker >= 0 && char.ToUpperInvariant((char)marker) == 'S' && ReadAscii(reader, "VG");
+            }
         } catch (ArgumentException) {
             return false;
         }
+    }
 
-        int offset = 0;
-        while (true) {
-            while (offset < prefix.Length && (char.IsWhiteSpace(prefix[offset]) || prefix[offset] == '\uFEFF')) offset++;
-            if (StartsWith(prefix, offset, "<?")) {
-                int end = prefix.IndexOf("?>", offset + 2, StringComparison.Ordinal);
-                if (end < 0) return false;
-                offset = end + 2;
-                continue;
-            }
-            if (StartsWith(prefix, offset, "<!--")) {
-                int end = prefix.IndexOf("-->", offset + 4, StringComparison.Ordinal);
-                if (end < 0) return false;
-                offset = end + 3;
-                continue;
-            }
-            return StartsWith(prefix, offset, "<svg", StringComparison.OrdinalIgnoreCase);
+    private static bool ReadAscii(TextReader reader, string expected) {
+        foreach (char character in expected) {
+            int next = reader.Read();
+            if (next < 0 || char.ToUpperInvariant((char)next) != character) return false;
         }
+        return true;
+    }
+
+    private static bool ReadThrough(TextReader reader, string terminator) {
+        int matched = 0;
+        int next;
+        while ((next = reader.Read()) >= 0) {
+            matched = next == terminator[matched] ? matched + 1 : next == terminator[0] ? 1 : 0;
+            if (matched == terminator.Length) return true;
+        }
+        return false;
     }
 
     private static Encoding ResolveXmlPrefixEncoding(byte[] data, out int offset) {
@@ -552,12 +582,6 @@ public static partial class OfficeImageReader {
             return Encoding.BigEndianUnicode;
         }
         return Encoding.UTF8;
-    }
-
-    private static bool StartsWith(string value, int offset, string expected, StringComparison comparison = StringComparison.Ordinal) {
-        return offset >= 0 &&
-            offset <= value.Length - expected.Length &&
-            string.Compare(value, offset, expected, 0, expected.Length, comparison) == 0;
     }
 
     internal static bool TryParseSvgLength(string? value, out double result) {

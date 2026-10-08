@@ -16,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var outside = new List<HtmlRenderVisual>();
         var content = new List<HtmlRenderVisual>();
         foreach (HtmlRenderVisual visual in block.Visuals) {
-            if (visual is HtmlRenderShape
+            if ((visual is HtmlRenderShape || visual is HtmlRenderLayoutBox)
                 && string.Equals(visual.Source, source, StringComparison.Ordinal)
                 && Math.Abs(visual.X - style.MarginLeft) <= 0.0001D
                 && Math.Abs(visual.Y - style.MarginTop) <= 0.0001D
@@ -36,7 +36,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderTopWidth,
             Math.Max(0.01D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
             Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth));
-        return block.WithVisuals(outside);
+        return block.WithVisuals(outside, style.OverflowY == "visible" ? null : block.Height);
     }
 
     private void ReportUnsupportedOverflowValues(IElement element, HtmlRenderBoxStyle style) {
@@ -73,10 +73,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double clipX,
         double clipY,
         double clipWidth,
-        double clipHeight) {
+        double clipHeight,
+        bool propagateViewportOverflow = true) {
         bool clipHorizontal = style.OverflowX != "visible";
         bool clipVertical = style.OverflowY != "visible";
-        if (!clipHorizontal && !clipVertical) {
+        // The propagated root overflow belongs to the viewport, not a second clip
+        // on the body/root box. This also applies to flex, grid and column roots.
+        if ((!clipHorizontal && !clipVertical)
+            || propagateViewportOverflow && ReferenceEquals(element, _viewportOverflowElement)) {
             foreach (HtmlRenderVisual visual in content) target.Add(visual.Translate(0D, 0D, target.Count));
             return;
         }

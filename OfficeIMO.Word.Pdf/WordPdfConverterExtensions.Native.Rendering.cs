@@ -105,24 +105,33 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.Bookmark(paragraph.Bookmark!.Name!);
             }
 
-            WordTextBox? textBox = GetNativeParagraphTextBox(paragraph, out string? textBoxFallbackText);
-            if (textBox != null) {
+            List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
+            if (textBoxes.Count > 0) {
                 if (marker is { Marker.Length: > 0 }) {
                     PdfCore.PdfParagraphStyle markerStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
                     ApplyNativeInlineListIndent(paragraph, markerStyle);
+                    ApplyNativeInlineListMarkerAlignment(paragraph, marker.Value.Marker, markerStyle, nativeDefaults, nativeFontMap);
                     markerStyle.SpacingAfter = 0D;
                     pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker,
                         Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), footnoteNumbersById, options, nativeDefaults, nativeFontMap,
-                        inlineMarkerColumnWidth: Math.Max(0D, -markerStyle.FirstLineIndent)),
+                        inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, marker.Value.Marker, markerStyle, nativeDefaults, nativeFontMap)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
                 }
-                RenderNativeTextBox(pdf, textBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap, textBoxFallbackText);
+                foreach (WordTextBox ownedTextBox in textBoxes) {
+                    RenderNativeTextBox(pdf, ownedTextBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
+                        GetNativeTextBoxPlainText(paragraph, ownedTextBox));
+                }
                 return;
             }
 
             PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
+            bool inlineListMarker = marker is { Marker.Length: > 0 };
+            if (inlineListMarker) {
+                ApplyNativeInlineListIndent(paragraph, style);
+                ApplyNativeInlineListMarkerAlignment(paragraph, marker!.Value.Marker, style, nativeDefaults, nativeFontMap);
+            }
             bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
@@ -228,7 +237,8 @@ namespace OfficeIMO.Word.Pdf {
             if (panelStyle != null) {
                 paragraphStyle = JoinNativeAdjacentParagraphShading(nextParagraph, paragraphStyle, panelStyle, nativeDefaults);
                 pdf.PanelParagraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
+                        inlineMarkerColumnWidth: inlineListMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, paragraphStyle, nativeDefaults, nativeFontMap) : null);
                 }, panelStyle, align, defaultColor, paragraphStyle);
                 RenderNativeFormFields(pdf, formFieldControls, objectAlign);
                 RenderNativeCheckBoxes(pdf, checkboxControls, objectAlign);
@@ -247,7 +257,8 @@ namespace OfficeIMO.Word.Pdf {
 
             if (needsAnchorLine || hasRenderableRuns || !string.IsNullOrEmpty(renderContent) || marker != null || paragraphFootnoteNumbers.Count > 0) {
                 pdf.Paragraph(builder => {
-                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine);
+                    AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
+                        inlineMarkerColumnWidth: inlineListMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, paragraphStyle, nativeDefaults, nativeFontMap) : null);
                 }, align, defaultColor, paragraphStyle);
             }
 
@@ -601,23 +612,36 @@ namespace OfficeIMO.Word.Pdf {
                 bool useAlignedMarkerColumn = false;
                 if (markerInfo.HasValue) {
                     NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-                    if (inlineMarkerColumnWidth.HasValue &&
+                    PdfCore.PdfTextRun measuredMarker = CreateNativeListMarkerTextRun(marker.Value.Marker,
+                        paragraph, textStyle, nativeFontMap, includeSuffix: false);
+                    if (inlineMarkerColumnWidth.HasValue && nativeFontMap.MeasureText(measuredMarker) is { } measuredWidth) {
+                        trailingMarkerOffset = markerInfo.Value.LevelSuffix switch {
+                            WordListLevelSuffix.Nothing => 0D,
+                            WordListLevelSuffix.Space => ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap),
+                            _ => Math.Max(0D, inlineMarkerColumnWidth.Value - measuredWidth)
+                        };
+                        useAlignedMarkerColumn = true;
+                    } else if (inlineMarkerColumnWidth.HasValue &&
                         (markerInfo.Value.LevelJustification == WordListLevelAlignment.Right ||
                          markerInfo.Value.LevelJustification == WordListLevelAlignment.Center)) {
                         double markerFontSize = markerInfo.Value.MarkerFontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
-                        double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize);
+                        NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
+                        double markerWidth = EstimateNativeListMarkerWidth(marker.Value.Marker, markerFontSize, markerSpacing);
                         double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, inlineMarkerColumnWidth.Value));
                         leadingMarkerOffset = markerInfo.Value.LevelJustification == WordListLevelAlignment.Right
                             ? Math.Max(0D, markerColumnWidth - markerWidth)
                             : Math.Max(0D, (markerColumnWidth - markerWidth) / 2D);
                         double suffixWidth = markerInfo.Value.LevelSuffix == WordListLevelSuffix.Space
-                            ? EstimateNativeListMarkerWidth(" ", markerFontSize)
+                            ? ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap)
                             : 0D;
                         trailingMarkerOffset = Math.Max(0D, markerColumnWidth - leadingMarkerOffset - markerWidth) + suffixWidth;
                         useAlignedMarkerColumn = true;
                         AddNativeInlineListMarkerSpacer(builder, leadingMarkerOffset);
                     }
                     ApplyNativeTextStyle(builder, textStyle);
+                    NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
+                    builder.HorizontalTextScaling(resolvedMarkerSpacing.WidthPercentage ?? 100D);
+                    builder.CharacterSpacing(resolvedMarkerSpacing.CharacterSpacing ?? 0D);
                     builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);
                     builder.Italic(markerInfo.Value.MarkerItalic ?? textStyle.Italic);
                     if (markerInfo.Value.MarkerFontSize.HasValue) builder.FontSize(markerInfo.Value.MarkerFontSize.Value);
@@ -827,12 +851,15 @@ namespace OfficeIMO.Word.Pdf {
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);
                     PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
-                    if (getMarker(paragraph) != null) ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+                    if (getMarker(paragraph) is { } paragraphMarker) {
+                        ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+                        ApplyNativeInlineListMarkerAlignment(paragraph, paragraphMarker.Marker, paragraphStyle, nativeDefaults, nativeFontMap);
+                    }
                     paragraphStyle.SpacingBefore = 0D;
                     paragraphStyle.SpacingAfter = 0D;
                     contentBuilder.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
                         runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
-                        inlineMarkerColumnWidth: Math.Max(0D, -paragraphStyle.FirstLineIndent)),
+                        inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, getMarker(paragraph)?.Marker ?? string.Empty, paragraphStyle, nativeDefaults, nativeFontMap)),
                         ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: paragraphStyle);
                 }
             }, style);
@@ -1018,12 +1045,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? true;
-            string? headingFontFamily = ResolveNativeParagraphStyleFontFamily(paragraph._document, paragraph.StyleId);
-            if (nativeFontMap.TryGetNamedFontFamily(headingFontFamily, out string? registeredHeadingFamily)) {
-                style.FontFamily = registeredHeadingFamily;
-            }
-            if (nativeFontMap.TryGetFontSlot(headingFontFamily, out PdfCore.PdfStandardFont headingFont)) {
-                style.Font = headingFont;
+            foreach (string family in ResolveNativeParagraphStyleFontFamilies(paragraph._document, paragraph.StyleId)) {
+                if (nativeFontMap.TryGetNamedFontFamily(family, out string? registeredHeadingFamily)) {
+                    style.FontFamily = registeredHeadingFamily;
+                    break;
+                }
+                if (nativeFontMap.TryGetFontSlot(family, out PdfCore.PdfStandardFont headingFont)) {
+                    style.Font = headingFont;
+                    break;
+                }
             }
 
             return style;
@@ -1122,117 +1152,6 @@ namespace OfficeIMO.Word.Pdf {
                    false;
         }
 
-        private readonly record struct NativeResolvedTextStyle(
-            bool Bold,
-            OfficeTextDecorationStyle UnderlineStyle,
-            bool Italic,
-            OfficeTextDecorationStyle StrikeStyle,
-            bool AllCaps,
-            PdfCore.PdfTextBaseline Baseline,
-            double? FontSize,
-            PdfCore.PdfStandardFont? Font,
-            string? FontFamily,
-            PdfCore.PdfColor? Color,
-            PdfCore.PdfColor? BackgroundColor) {
-            internal bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
-            internal bool Strike => StrikeStyle != OfficeTextDecorationStyle.None;
-        }
-
-        private static void AddNativeText(
-            PdfCore.PdfParagraphBuilder builder,
-            string text,
-            WordParagraph paragraph,
-            IReadOnlyList<WordTabStop> tabStops,
-            ref int tabIndex,
-            NativeDocumentDefaults nativeDefaults,
-            NativeFontMap nativeFontMap) {
-            ApplyNativeTextStyle(builder, paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            AddNativeRunText(builder, ApplyNativeTextTransform(text, paragraph, nativeFontMap: nativeFontMap), tabStops, ref tabIndex);
-            ResetNativeTextStyle(builder);
-        }
-
-        private static string ApplyNativeTextTransform(string text, WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) =>
-            ResolveNativeTextRunStyle(paragraph, fallback, tableRunStyleDefaults, nativeDefaults, nativeFontMap).AllCaps
-                ? text.ToUpperInvariant()
-                : text;
-
-        private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, WordParagraph paragraph, WordParagraph? fallback = null, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) =>
-            ApplyNativeTextStyle(builder, ResolveNativeTextRunStyle(paragraph, fallback, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap));
-
-        private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
-            builder.Bold(style.Bold);
-            builder.Italic(style.Italic);
-            builder.Underline(style.UnderlineStyle);
-            builder.Strike(style.StrikeStyle);
-            builder.Baseline(style.Baseline);
-            if (style.FontSize.HasValue) {
-                builder.FontSize(style.FontSize.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(style.FontFamily)) {
-                builder.FontFamily(style.FontFamily!);
-            } else if (style.Font.HasValue) {
-                builder.Font(style.Font.Value);
-            }
-
-            if (style.Color.HasValue) {
-                builder.Color(style.Color.Value);
-            }
-
-            if (style.BackgroundColor.HasValue) {
-                builder.BackgroundColor(style.BackgroundColor.Value);
-            }
-        }
-
-        private static NativeResolvedTextStyle ResolveNativeTextRunStyle(WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
-            WordParagraph styleSource = fallback ?? paragraph;
-            NativeDocumentDefaults resolvedNativeDefaults = nativeDefaults ?? GetNativeDocumentDefaults(styleSource._document);
-            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
-            W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
-            NativeCharacterStyleDefaults characterStyleDefaults = GetNativeCharacterStyleDefaults(paragraph._document, runProperties);
-
-            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? false;
-            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? false;
-            OfficeTextDecorationStyle? directUnderlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
-            OfficeTextDecorationStyle underlineStyle = directUnderlineStyle ??
-                characterStyleDefaults.UnderlineStyle ??
-                styleDefaults.UnderlineStyle ??
-                tableRunStyleDefaults.UnderlineStyle ??
-                OfficeTextDecorationStyle.None;
-            OfficeTextDecorationStyle strikeStyle = MapNativeStrikeStyle(runProperties) ??
-                characterStyleDefaults.StrikeStyle ??
-                styleDefaults.StrikeStyle ??
-                tableRunStyleDefaults.StrikeStyle ??
-                OfficeTextDecorationStyle.None;
-            bool allCaps =
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ??
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
-                characterStyleDefaults.AllCaps ??
-                styleDefaults.AllCaps ??
-                tableRunStyleDefaults.AllCaps ??
-                false;
-            PdfCore.PdfTextBaseline baseline = MapNativeTextBaseline(
-                runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ??
-                characterStyleDefaults.Baseline ??
-                styleDefaults.Baseline ??
-                tableRunStyleDefaults.Baseline);
-            double? fontSize = paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
-                ? paragraph.FontSizePoints.Value
-                : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
-            fontSize = ResolveNativeComplexScriptFontSize(fontSize, runProperties, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
-            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
-            string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
-
-            PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
-                ? directColor
-                : ParseNativeColor(characterStyleDefaults.ColorHex) ?? ParseNativeColor(styleDefaults.ColorHex) ?? tableRunStyleDefaults.Color ?? ParseNativeColor(tableRunStyleDefaults.ColorHex);
-            PdfCore.PdfColor? background = TryGetNativeRunHighlight(runProperties, out PdfCore.PdfColor? directBackground)
-                ? directBackground
-                : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
-
-            return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background);
-        }
-
         private static OfficeTextDecorationStyle? MapNativeUnderlineStyle(W.Underline? underline) {
             if (underline == null) return null;
             W.UnderlineValues value = underline.Val?.Value ?? W.UnderlineValues.Single;
@@ -1282,24 +1201,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, WordParagraph? fallback, NativeCharacterStyleDefaults characterStyleDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
-            if (TryResolveNativeDirectRunFont(paragraph, nativeFontMap, out PdfCore.PdfStandardFont font) ||
-                (fallback != null && TryResolveNativeDirectRunFont(fallback, nativeFontMap, out font)) ||
-                TryResolveNativeMappedFont(characterStyleDefaults.FontFamily, nativeFontMap, out font) ||
-                TryResolveNativeMappedFont(styleDefaults.FontFamily, nativeFontMap, out font) ||
-                TryResolveNativeMappedFont(tableRunStyleDefaults.FontFamily, nativeFontMap, out font) ||
-                (nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true &&
-                 TryResolveNativeMappedFont(nativeDefaults.FontFamily, nativeFontMap, out font))) {
-                return font;
+            foreach (string family in EnumerateNativeParagraphOwnFontFamilies(paragraph)
+                .Concat(fallback == null ? Array.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
+                .Concat(EnumerateNativeStyleFontFamilies(characterStyleDefaults, styleDefaults, tableRunStyleDefaults,
+                    nativeDefaults, nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true))) {
+                if (TryResolveNativeMappedFont(family, nativeFontMap, out PdfCore.PdfStandardFont font)) return font;
             }
 
             return null;
         }
-
-        private static bool TryResolveNativeDirectRunFont(WordParagraph paragraph, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
-            TryResolveNativeMappedFont(paragraph.FontFamily, nativeFontMap, out font) ||
-            TryResolveNativeMappedFont(paragraph.FontFamilyHighAnsi, nativeFontMap, out font) ||
-            TryResolveNativeMappedFont(paragraph.FontFamilyEastAsia, nativeFontMap, out font) ||
-            TryResolveNativeMappedFont(paragraph.FontFamilyComplexScript, nativeFontMap, out font);
 
         private static bool TryResolveNativeMappedFont(string? familyName, NativeFontMap? nativeFontMap, out PdfCore.PdfStandardFont font) =>
             (nativeFontMap != null && nativeFontMap.TryGetFontSlot(familyName, out font)) ||
@@ -1317,20 +1227,10 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            foreach (string? familyName in new[] {
-                paragraph.FontFamily,
-                paragraph.FontFamilyHighAnsi,
-                paragraph.FontFamilyEastAsia,
-                paragraph.FontFamilyComplexScript,
-                fallback?.FontFamily,
-                fallback?.FontFamilyHighAnsi,
-                fallback?.FontFamilyEastAsia,
-                fallback?.FontFamilyComplexScript,
-                characterStyleDefaults.FontFamily,
-                styleDefaults.FontFamily,
-                tableRunStyleDefaults.FontFamily,
-                nativeFontMap.UsePdfDefaultForDocumentDefaultFont ? null : nativeDefaults.FontFamily
-            }) {
+            foreach (string? familyName in EnumerateNativeParagraphOwnFontFamilies(paragraph)
+                .Concat(fallback == null ? Enumerable.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
+                .Concat(EnumerateNativeStyleFontFamilies(characterStyleDefaults, styleDefaults, tableRunStyleDefaults,
+                    nativeDefaults, !nativeFontMap.UsePdfDefaultForDocumentDefaultFont))) {
                 if (string.IsNullOrWhiteSpace(familyName)) {
                     continue;
                 }
@@ -1369,18 +1269,6 @@ namespace OfficeIMO.Word.Pdf {
 
             color = MapNativeHighlight(value.Val?.Value);
             return true;
-        }
-
-        private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {
-            builder.Bold(false)
-                .Italic(false)
-                .Underline(false)
-                .Strike(false)
-                .Baseline(PdfCore.PdfTextBaseline.Normal)
-                .ResetColor()
-                .ResetFontSize()
-                .ResetFont()
-                .ResetBackgroundColor();
         }
 
         private static void AddNativeRunText(PdfCore.PdfParagraphBuilder builder, string text, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
@@ -1491,7 +1379,7 @@ namespace OfficeIMO.Word.Pdf {
             string? bookmarkName,
             string? contents,
             NativeResolvedTextStyle style) =>
-            new PdfCore.PdfTextRun(
+            style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
                 text,
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || bookmarkName != null,
@@ -1511,7 +1399,7 @@ namespace OfficeIMO.Word.Pdf {
                         ? OfficeTextDecorationStyle.Single
                         : style.UnderlineStyle
                     : OfficeTextDecorationStyle.None,
-                strikeStyle: style.StrikeStyle);
+                strikeStyle: style.StrikeStyle));
 
         private static string? GetNativeHyperLinkContents(WordHyperLink hyperlink) =>
             string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;

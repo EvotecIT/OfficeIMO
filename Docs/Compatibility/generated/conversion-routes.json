@@ -42,6 +42,26 @@
       "agentDiscoverable":true
     },
     {
+      "id":"xps-pdf",
+      "source":"XPS/OpenXPS",
+      "target":"PDF",
+      "inputKind":"File",
+      "sourceExtensions":[ ".xps", ".oxps" ],
+      "targetExtension":".pdf",
+      "packageId":"OfficeIMO.Xps.Pdf",
+      "api":"XpsDocument.Load(stream).SavePdf(output, options)",
+      "description":"Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.",
+      "fidelity":"FixedLayout",
+      "textFormatting":"FixedLayoutAppearance",
+      "textFormattingContract":"Preserves supported font styling as fixed-layout PDF text and graphics; conversion diagnostics identify source semantics the managed renderer approximates or omits.",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
+      "knownLimitations":"Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts.",
+      "resultContract":"PdfSaveResult",
+      "browserAvailable":false,
+      "agentDiscoverable":true
+    },
+    {
       "id":"docx-pdf",
       "source":"DOCX",
       "target":"PDF",
@@ -119,6 +139,26 @@
       "knownLimitations":"The renderer supports bounded HTML and CSS, not a full browser layout engine; scripts, dynamic layout, and advanced CSS are intentionally unsupported.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":true,
+      "agentDiscoverable":true
+    },
+    {
+      "id":"book-project-epub",
+      "source":"Book project",
+      "target":"EPUB",
+      "inputKind":"File",
+      "sourceExtensions":[ ".oibook" ],
+      "targetExtension":".epub",
+      "packageId":"OfficeIMO.Workflows",
+      "api":"BookProject.LoadProject(bytes).Export(options)",
+      "description":"Export a reviewed book project through the EPUB owner, retaining its publication and fidelity evidence.",
+      "fidelity":"Semantic",
+      "textFormatting":"EditableEquivalent",
+      "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
+      "knownLimitations":"Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate.",
+      "resultContract":"EpubWriteResult",
+      "browserAvailable":false,
       "agentDiscoverable":true
     },
     {

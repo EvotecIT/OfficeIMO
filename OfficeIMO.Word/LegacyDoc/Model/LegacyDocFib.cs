@@ -45,6 +45,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const int LcbPlcfendTxtOffset = 0x216;
         private const int FcSttbfRMarkOffset = 0x232;
         private const int LcbSttbfRMarkOffset = 0x236;
+        private const int FcPlfLstOffset = 0x2E2;
+        private const int LcbPlfLstOffset = 0x2E6;
+        private const int FcPlfLfoOffset = 0x2EA;
+        private const int LcbPlfLfoOffset = 0x2EE;
         private const int FcClxOffset = 0x1A2;
         private const int LcbClxOffset = 0x1A6;
         private const ushort FastSavedFlag = 0x0004;
@@ -102,7 +106,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int fcSttbfRMark,
             int lcbSttbfRMark,
             int fcClx,
-            int lcbClx) {
+            int lcbClx,
+            int fcPlfLst,
+            int lcbPlfLst,
+            int fcPlfLfo,
+            int lcbPlfLfo) {
             NFib = nFib;
             IsEncrypted = isEncrypted;
             IsFastSaved = isFastSaved;
@@ -152,6 +160,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LcbSttbfRMark = lcbSttbfRMark;
             FcClx = fcClx;
             LcbClx = lcbClx;
+            FcPlfLst = fcPlfLst;
+            LcbPlfLst = lcbPlfLst;
+            FcPlfLfo = fcPlfLfo;
+            LcbPlfLfo = lcbPlfLfo;
         }
 
         internal ushort NFib { get; }
@@ -235,6 +247,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int FcDop { get; }
 
         internal int LcbDop { get; }
+
+        internal int FcPlfLst { get; }
+        internal int LcbPlfLst { get; }
+        internal int FcPlfLfo { get; }
+        internal int LcbPlfLfo { get; }
 
         internal int FcPlcfendRef { get; }
 
@@ -432,7 +449,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fcSttbfRMark,
                 lcbSttbfRMark,
                 fcClx,
-                lcbClx);
+                lcbClx,
+                pairCount > 73 ? ReadOptionalInt32(wordDocumentStream, FcPlfLstOffset) : 0,
+                pairCount > 73 ? ReadOptionalInt32(wordDocumentStream, LcbPlfLstOffset) : 0,
+                pairCount > 74 ? ReadOptionalInt32(wordDocumentStream, FcPlfLfoOffset) : 0,
+                pairCount > 74 ? ReadOptionalInt32(wordDocumentStream, LcbPlfLfoOffset) : 0);
             return true;
         }
 

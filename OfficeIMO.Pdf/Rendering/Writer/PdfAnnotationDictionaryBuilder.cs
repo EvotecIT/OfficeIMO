@@ -21,13 +21,13 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.UriAction(uri, nameof(uri));
 
-        return "<< /Type /Annot /Subtype /Link /Border [0 0 0]" + BuildContentsEntry(contents) + " /Rect [" +
+        return "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0]" + BuildContentsEntry(contents) + " /Rect [" +
             FormatCoordinate(x1) + " " +
             FormatCoordinate(y1) + " " +
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /A << /S /URI /URI " +
-            PdfSyntaxEscaper.LiteralString(uri) +
+            PdfSyntaxEscaper.UriString(uri) +
             " >>" +
             BuildStructParentEntry(structParentIndex) +
             " >>\n";
@@ -37,7 +37,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
 
-        return "<< /Type /Annot /Subtype /Link /Border [0 0 0]" + BuildContentsEntry(contents) + " /Rect [" +
+        return "<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0]" + BuildContentsEntry(contents) + " /Rect [" +
             FormatCoordinate(x1) + " " +
             FormatCoordinate(y1) + " " +
             FormatCoordinate(x2) + " " +

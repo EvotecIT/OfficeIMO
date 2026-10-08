@@ -12,7 +12,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
-        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _syntheticOblique));
+        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique));
         _sb.Append("q\n");
         return this;
     }
@@ -21,6 +21,7 @@ internal sealed partial class ContentStreamBuilder {
         if (_textStates.Count != 0) {
             var state = _textStates.Pop();
             _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
+            _textCharacterSpacing = state.CharacterSpacing;
             _syntheticOblique = state.SyntheticOblique;
         }
         _sb.Append("Q\n");
@@ -41,6 +42,11 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder FillColor(PdfColor color) {
         _sb.Append(F(color.R)).Append(' ').Append(F(color.G)).Append(' ').Append(F(color.B)).Append(" rg\n");
+        return this;
+    }
+
+    public ContentStreamBuilder FillGray(double gray) {
+        _sb.Append(F(gray)).Append(" g\n");
         return this;
     }
 
@@ -88,7 +94,12 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder Rectangle(double x, double y, double width, double height) {
+    public ContentStreamBuilder Rectangle(double x, double y, double width, double height, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(PdfNumberFormatter.Precise(x)).Append(' ').Append(PdfNumberFormatter.Precise(y)).Append(' ')
+                .Append(PdfNumberFormatter.Precise(width)).Append(' ').Append(PdfNumberFormatter.Precise(height)).Append(" re");
+            return this;
+        }
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(' ').Append(F(width)).Append(' ').Append(F(height)).Append(" re");
         return this;
     }
@@ -151,7 +162,13 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f) {
+    public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(PdfNumberFormatter.Precise(a)).Append(' ').Append(PdfNumberFormatter.Precise(b)).Append(' ')
+                .Append(PdfNumberFormatter.Precise(c)).Append(' ').Append(PdfNumberFormatter.Precise(d)).Append(' ')
+                .Append(PdfNumberFormatter.Precise(e)).Append(' ').Append(PdfNumberFormatter.Precise(f)).Append(" cm\n");
+            return this;
+        }
         _sb.Append(MatrixNumber(a)).Append(' ')
             .Append(MatrixNumber(b)).Append(' ')
             .Append(MatrixNumber(c)).Append(' ')
@@ -270,6 +287,15 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder CharacterSpacing(double spacing) {
+        if (double.IsNaN(spacing) || double.IsInfinity(spacing)) {
+            throw new ArgumentOutOfRangeException(nameof(spacing), "PDF character spacing must be finite.");
+        }
+        _textCharacterSpacing = spacing;
+        _sb.Append(F(spacing)).Append(" Tc\n");
+        return this;
+    }
+
     public ContentStreamBuilder HorizontalTextScaling(double percentage) {
         if (percentage <= 0D || double.IsNaN(percentage) || double.IsInfinity(percentage)) {
             throw new ArgumentOutOfRangeException(nameof(percentage), "PDF horizontal text scaling must be positive and finite.");
@@ -307,7 +333,7 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         if (!suppressActualText && command.LogicalGlyphs is { } logicalGlyphs) {
-            WriteIsolatedLogicalGlyphs(logicalGlyphs, fontSize, currentTextRise);
+            WriteIsolatedLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
             return this;
         }
 
@@ -320,19 +346,26 @@ internal sealed partial class ContentStreamBuilder {
         if (!command.HasPositioning) {
             ShowHexText(command.GlyphHex);
         } else {
-            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise);
+            double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D) * 1000D / command.UnitsPerEm;
+            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise,
+                command.NegativeTracking ? -tracking1000 : tracking1000, command.TrackingBoundaries);
         }
 
         if (!suppressActualText && command.ActualText != null) {
             _sb.Append("EMC\n");
         }
 
-        if (command.AdvanceWidth1000.HasValue)
-            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D + command.WordSpaceCount * _textWordSpacing);
+        if (command.AdvanceWidth1000.HasValue) {
+            double trackingAdvance = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
+                * fontSize / command.UnitsPerEm * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
+            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D
+                + (command.NegativeTracking ? -trackingAdvance : trackingAdvance) + command.WordSpaceCount * _textWordSpacing + command.GlyphCount * _textCharacterSpacing);
+        }
         return this;
     }
 
-    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise) {
+    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise,
+        double tracking1000 = 0D, bool[]? trackingBoundaries = null) {
         int currentOffsetY1000 = 0;
         for (int index = 0; index < glyphs.Count; index++) {
             PdfGlyphInfo glyph = glyphs[index];
@@ -342,7 +375,8 @@ internal sealed partial class ContentStreamBuilder {
             }
 
             int preAdjustment = -glyph.OffsetX1000;
-            int postAdjustment = glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000;
+            double postAdjustment = glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000
+                - (trackingBoundaries?[index] == true ? tracking1000 : 0D);
             _sb.Append('[');
             if (preAdjustment != 0) {
                 _sb.Append(F(preAdjustment)).Append(' ');

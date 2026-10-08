@@ -1,0 +1,706 @@
+{
+  "sourceCommit": "a291c0e2f9739ed1fa620d4a1bf182150359b750",
+  "baseCommit": "cd770fd4ab465ed7c7d0ccf3b24cfff578a7a234",
+  "scope": "Primary Main-8 reduced-still monochrome AVIF with full/limited range and optional auxiliary alpha. Broader AVIF Baseline/profile and platform qualification remain unfinished.",
+  "normativeContracts": [
+    "https://aomediacodec.github.io/av1-avif/v1.2.0.html#auxiliary-image-items-and-sequences",
+    "https://aomediacodec.github.io/av1-avif/v1.2.0.html#av1-item-configuration-property"
+  ],
+  "frozenCaseCount": 18,
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "nativeProducer": {
+    "pillow": "12.3.0",
+    "libavif": "1.4.2",
+    "nativeLibrarySha256": "6e014a729a8127062ae9f88729a22ec38aa47e1033cc9033c77802a21cbe6178",
+    "generatorSha256": "d095f7deffcf8015900bd68203b28c02e68cc3596ac723e89a8465a04a54fa2b",
+    "sourceModes": [
+      "L",
+      "RGBA"
+    ],
+    "width": 49,
+    "height": 33,
+    "sourceSha256": "0b0f54c8ca9e664ebe8fcce4d79c3601e1181ca9565cdbfb4028abe722f5fecf",
+    "alphaSourceSha256": "431344e865b9750bbbd0b0060d2746b3ca3704f93ca984986be85b4f509118d2",
+    "encoderOptions": {
+      "codec": "aom",
+      "quality": 85,
+      "speed": 6,
+      "max_threads": 1,
+      "subsampling": "4:0:0",
+      "autotiling": false,
+      "tile_rows": 0,
+      "tile_cols": 0
+    },
+    "cases": [
+      {
+        "name": "avif-monochrome-full",
+        "encodedBytes": 1238,
+        "encodedSha256": "aa63f63cf87e4e416df6f356038103ea25e374cae27368c38965048006becf8d",
+        "rgbaSha256": "778142893d3cc0a09027e6535482e3acac1d9283aa7612dc02e59610291596df",
+        "av1C": "81001c00",
+        "pixelChannels": 1,
+        "bitDepth": 8,
+        "nclx": "0001000d000680",
+        "range": "full",
+        "hasAlpha": false
+      },
+      {
+        "name": "avif-monochrome-limited",
+        "encodedBytes": 1205,
+        "encodedSha256": "739be26868cc27afa49519b20e68362f79118f81dbd5f7a9494793ae588ff8b5",
+        "rgbaSha256": "43616350dcc57c6ec1b52595131125005af09f4a3c1d9934f6af4a7a9a378117",
+        "av1C": "81001c00",
+        "pixelChannels": 1,
+        "bitDepth": 8,
+        "nclx": "0001000d000600",
+        "range": "limited",
+        "hasAlpha": false
+      },
+      {
+        "name": "avif-monochrome-full-alpha",
+        "encodedBytes": 1852,
+        "encodedSha256": "dbe53df7593eef2ebe973006b34255d6f41e898264a285b97622a08432b49b0e",
+        "rgbaSha256": "864d652ad205ac21fa28c925cc7331c04dafff6797b7400a0ecade47430b51a1",
+        "av1C": "81001c00",
+        "pixelChannels": 1,
+        "bitDepth": 8,
+        "nclx": "0001000d000680",
+        "range": "full",
+        "hasAlpha": true
+      },
+      {
+        "name": "avif-monochrome-limited-alpha",
+        "encodedBytes": 1819,
+        "encodedSha256": "c173c0a3ab58de009af496e47b40961f2216aac610793baedd7fb03b60c68f7e",
+        "rgbaSha256": "aa0d78ea51d28e2448eb41d71c9a20fe74a3695c7fe6fe3d77a18633470dc914",
+        "av1C": "81001c00",
+        "pixelChannels": 1,
+        "bitDepth": 8,
+        "nclx": "0001000d000600",
+        "range": "limited",
+        "hasAlpha": true
+      }
+    ]
+  },
+  "supplementalInputs": [
+    {
+      "case": "avif-monochrome-full-alpha",
+      "htmlSha256": "3ff6247ba76cfd1d8f4b86bb0a9b9e442617eaa0dbdd5836bdab15eb24298a96",
+      "mhtmlSha256": "5f8446fe46eada97beb1d3b927190a2379b9b31ec052c8b138a1e0535e5efc6e",
+      "derivedFrom": "avif-alpha-picture supplemental input; replace only case captions and embedded AVIF payload with independently encoded primary grayscale; preserve CSS, embedded font, geometry, two contrasting backgrounds and fallback PNG"
+    },
+    {
+      "case": "avif-monochrome-full",
+      "htmlSha256": "d4fcce9e3c5422163ead75c2405a41796d215df3cca4d9f5a52f10d248cde30d",
+      "mhtmlSha256": "bedb510d305824b2baa4cb5e1e186f0b4a1fe32d2f0cb8248cb6aa869ca7c77c",
+      "derivedFrom": "avif-alpha-picture supplemental input; replace only case captions and embedded AVIF payload with independently encoded primary grayscale; preserve CSS, embedded font, geometry, two contrasting backgrounds and fallback PNG"
+    },
+    {
+      "case": "avif-monochrome-limited-alpha",
+      "htmlSha256": "e5b4a95b59c9c6fae41be379af51168012a1c96da0cab09821fb8859895c486d",
+      "mhtmlSha256": "9363cdcffafb734c72a754e987419a92156ebc3e507a7e882362a8f84866558c",
+      "derivedFrom": "avif-alpha-picture supplemental input; replace only case captions and embedded AVIF payload with independently encoded primary grayscale; preserve CSS, embedded font, geometry, two contrasting backgrounds and fallback PNG"
+    },
+    {
+      "case": "avif-monochrome-limited",
+      "htmlSha256": "13ed1f1465a47f1833c2bed8d7fd6b8da84c57bd1a9dda5d908960a2125e8471",
+      "mhtmlSha256": "25dcaf03dbd22e06209fbcf3e05ed1a8b14cc74f99998f0919ea95e8b841652a",
+      "derivedFrom": "avif-alpha-picture supplemental input; replace only case captions and embedded AVIF payload with independently encoded primary grayscale; preserve CSS, embedded font, geometry, two contrasting backgrounds and fallback PNG"
+    }
+  ],
+  "tests": {
+    "after-fix-public.trx": {
+      "sha256": "b30e784b399f846cc6470fcb525a5a4ba786372b846eea350aeb56aa2c66338e",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "drawing-full-net10.trx": {
+      "sha256": "2375483c0e12e91a9f37a9228faa78a190b212142ba03d5e4b547d1b8e5e2c16",
+      "total": 3039,
+      "passed": 3039,
+      "failed": 0
+    },
+    "focused-net10.trx": {
+      "sha256": "aa31dbff3dd7c2ff7f61c101e3cdb7fa049d1f4203393bf938bb92b0291d3777",
+      "total": 179,
+      "passed": 179,
+      "failed": 0
+    },
+    "html-full-net8.trx": {
+      "sha256": "6257d62fefaff34e1bf3af1221f96ebed6d36592e8c8337a781350ebed70158d",
+      "total": 4011,
+      "passed": 4011,
+      "failed": 0
+    },
+    "drawing-full-net8.trx": {
+      "sha256": "3ddb6338fadda66d8e9b38761b064a3947c23a05258e1917eeb54e5cb1e3e693",
+      "total": 3039,
+      "passed": 3039,
+      "failed": 0
+    },
+    "html-full-net10.trx": {
+      "sha256": "14b7ce25a34ce2ec95594fbf9f688d5d7a6ceba3ec60b0b43ef1d8a02642d7b9",
+      "total": 4011,
+      "passed": 4011,
+      "failed": 0
+    },
+    "html-focused-net10.trx": {
+      "sha256": "44891e039293cd2255f76fb609dc7adc7fe3a83626ebccaea82aaef91b4df525",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    "before-fix.trx": {
+      "sha256": "9b82d6b4fb321f716f03c9f782547ba2b00e15dd299446e24852f6b99272c5f4",
+      "total": 4,
+      "passed": 2,
+      "failed": 2
+    }
+  },
+  "testSourceBoundary": "Broad tests ran on the unchanged candidate contents committed as sourceCommit; artifact runners and package assemblies were subsequently rebuilt from clean sourceCommit.",
+  "beforeFixFailures": [
+    {
+      "name": "OfficeIMO.Tests.DrawingAvifPublicDecodeTests.DefaultByteAndStreamDecodePreservesIndependentPixelsAndSelection(name: \"avif-monochrome-limited\")",
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    },
+    {
+      "name": "OfficeIMO.Tests.DrawingAvifPublicDecodeTests.DefaultByteAndStreamDecodePreservesIndependentPixelsAndSelection(name: \"avif-monochrome-full\")",
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    }
+  ],
+  "independentReview": {
+    "used": true,
+    "reason": "Codec/parser role and range semantics, pixi/configuration agreement and fail-closed caller boundary",
+    "agent": "avif_monochrome_contract_review",
+    "scopeFingerprint": "3b58b9f9d8b65163cd50b51ebcc45c439f24938b",
+    "findings": [],
+    "targetedConfirmationUsed": false,
+    "boundary": "current",
+    "missingEvidenceAtReview": [
+      "final browser visuals",
+      "remaining package/platform gates"
+    ]
+  },
+  "referencePackage": {
+    "latest": "0.9.20",
+    "pinned": "0.9.20",
+    "nuspecSha256": "199df36c96840eff5f660383cfdf4314f11f5239765ab1f5873d0b86792baad6"
+  },
+  "referenceLicense": "BSD-3-Clause",
+  "runtimeDependencyGraphChanged": false,
+  "nativeDecoderArithmeticChanged": false,
+  "artifacts": {
+    "officeimoOutputs": 44,
+    "browserOutputs": 8,
+    "referenceOutputs": 4,
+    "officeimoMaxRgbError": 1,
+    "browserMaxCompositeRgbError": 1.1372549019607843,
+    "alphaError": 0,
+    "checks": "Each OfficeIMO/browser PDF: one page, two image paint placements within page bounds, one 49x33 decoded image, all caption tokens exactly once, no annotations. Straight RGB tolerance1 for OfficeIMO; alpha exact. Chromium compared after alpha composition with tolerance3.",
+    "visualInspection": "All four clean-source OfficeIMO/Chromium print pairs inspected over white/dark backgrounds. Different border/placement details remain visible; no full-page parity claim.",
+    "referenceImagePaintOccurrences": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "reports": [
+      {
+        "case": "avif-monochrome-full",
+        "reportSha256": "8e3037fa627670d75b1e8e52017144d38413fa958c8dc4d2946f8105d2de1072"
+      },
+      {
+        "case": "avif-monochrome-limited",
+        "reportSha256": "8ff70b24eb50771b45ad9415b70abd4b7d3d2898394e410ac224862d2e219acb"
+      },
+      {
+        "case": "avif-monochrome-full-alpha",
+        "reportSha256": "1f106ec43019369a65ef054a0b106283167f01f4ea2ba41ce5c6b856aef5d63f"
+      },
+      {
+        "case": "avif-monochrome-limited-alpha",
+        "reportSha256": "c3bc73a837d2c20ce05a7a6251ea5298a61ca5ecfa8f5a39ec6d13de7b30f189"
+      }
+    ],
+    "fullInspectionSha256": "09d1e0d0468a7fc9eecee4b23b2f23e12b92bcf97e332cfabd36dd3a84044078",
+    "contactSheetSha256": "27b46e54f1e3e57e3b0f0126bf41c14b8fca31b750e00148d4865732328f739a"
+  },
+  "package": {
+    "sha256": "e5d046b8a76ec92f49ad65c24b52d4608c623e09d6ce586b8f45fe62e1fddd9b",
+    "version": "3.4.4",
+    "license": "MIT",
+    "dependencyCount": 0,
+    "assemblies": [
+      "lib/net10.0/OfficeIMO.Core.dll",
+      "lib/net8.0/OfficeIMO.Core.dll",
+      "lib/netstandard2.0/OfficeIMO.Core.dll"
+    ],
+    "notices": [
+      "Licenses/libvpx-LICENSE.txt",
+      "Licenses/libvpx-PATENTS.txt"
+    ],
+    "consumers": {
+      "net8": {
+        "framework": ".NET 8.0.23",
+        "assembly": "3.4.4+a291c0e2f9739ed1fa620d4a1bf182150359b750",
+        "cases": [
+          {
+            "file": "avif-monochrome-full-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-monochrome-full.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-monochrome-limited-alpha.avif",
+            "maxRgbError": 1,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-monochrome-limited.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          }
+        ]
+      },
+      "net10": {
+        "framework": ".NET 10.0.11",
+        "assembly": "3.4.4+a291c0e2f9739ed1fa620d4a1bf182150359b750",
+        "cases": [
+          {
+            "file": "avif-monochrome-full-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-monochrome-full.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-monochrome-limited-alpha.avif",
+            "maxRgbError": 1,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-monochrome-limited.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          }
+        ]
+      }
+    }
+  },
+  "h4": {
+    "cases": 8,
+    "acceptancePassed": true,
+    "reportSha256": "fe60cb71c5fd7272093cc99aa11841c0264abbbea92020c4c607e8045f80d29f"
+  },
+  "nasa": {
+    "allElevenByteIdentical": true,
+    "acceptedBaseCommit": "b15854ce2966d471a5c7a7796eefbcc61b308f5f",
+    "zeroMarginPages": 16,
+    "imagePaintOccurrences": 18,
+    "imageAndMaskInventoryRows": 24,
+    "softMaskRows": 6,
+    "zeroMarginSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+    "pdfs": [
+      {
+        "file": "officeimo-print-browser-ua.pdf",
+        "byteIdentical": true,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "file": "officeimo-print-fit-1200-local-fonts.pdf",
+        "byteIdentical": true,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376"
+      },
+      {
+        "file": "officeimo-print-fit-1200.pdf",
+        "byteIdentical": true,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376"
+      },
+      {
+        "file": "officeimo-print-fit-browser-viewport.pdf",
+        "byteIdentical": true,
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68"
+      },
+      {
+        "file": "officeimo-print-zero-margin-local-fonts.pdf",
+        "byteIdentical": true,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "file": "officeimo-print-zero-margin.pdf",
+        "byteIdentical": true,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "file": "officeimo-print.pdf",
+        "byteIdentical": true,
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e"
+      },
+      {
+        "file": "officeimo-screen-media-local-fonts.pdf",
+        "byteIdentical": true,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8"
+      },
+      {
+        "file": "officeimo-screen-media.pdf",
+        "byteIdentical": true,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8"
+      },
+      {
+        "file": "officeimo-screen-snapshot-local-fonts.pdf",
+        "byteIdentical": true,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2"
+      },
+      {
+        "file": "officeimo-screen-snapshot.pdf",
+        "byteIdentical": true,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2"
+      }
+    ]
+  },
+  "macosStaticBudget": {
+    "source": {
+      "commit": "a291c0e2f9739ed1fa620d4a1bf182150359b750",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4708.944,
+      "peakWorkingSetBytes": 366673920,
+      "memorySampleCount": 152,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4616.8129,
+          "managedAllocatedBytes": 1083675128,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11262.3333,
+      "peakWorkingSetBytes": 548749312,
+      "memorySampleCount": 361,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2195.607,
+          "managedAllocatedBytes": 893949688,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1858.5404,
+          "managedAllocatedBytes": 895017256,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1852.4553,
+          "managedAllocatedBytes": 894972544,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.7812,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "macosH10Budget": {
+    "sourceCommit": "a291c0e2f9739ed1fa620d4a1bf182150359b750",
+    "sourceClean": true,
+    "ceilingsChanged": false,
+    "failures": [],
+    "operations": [
+      {
+        "name": "pdf-print",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4654.1126,
+        "managedAllocatedBytes": 2109632528,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 488161280,
+          "sampleCount": 134,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4416.5327,
+        "managedAllocatedBytes": 2113789416,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 529629184,
+          "sampleCount": 135,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16
+      },
+      {
+        "name": "pdf-screen-media",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3585.622,
+        "managedAllocatedBytes": 1652565320,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 444219392,
+          "sampleCount": 111,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3739.0716,
+        "managedAllocatedBytes": 1772100736,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 546062336,
+          "sampleCount": 116,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16
+      },
+      {
+        "name": "editable-word",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2649.3628,
+        "managedAllocatedBytes": 962931888,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 322371584,
+          "sampleCount": 82,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "241a192a05dffc2e70927d4b7595f58252dedb72d2373709b04798877060db36",
+        "pageCount": null
+      },
+      {
+        "name": "editable-excel",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2111.8503,
+        "managedAllocatedBytes": 941793792,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 349290496,
+          "sampleCount": 64,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "f9135d31f7ef40aacdeb9d205548d737196e84e34cdd81dae5e88cb1e2a4390d",
+        "pageCount": null
+      },
+      {
+        "name": "editable-powerpoint",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3013.9231,
+        "managedAllocatedBytes": 982001320,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 294944768,
+          "sampleCount": 89,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "8da6485140d276b235aa0dbad1e203daa4e753dc317a28d964fb5388b70cc271",
+        "pageCount": null
+      },
+      {
+        "name": "editable-onenote",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1561.5532,
+        "managedAllocatedBytes": 644836496,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 269139968,
+          "sampleCount": 48,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "13d7f803975e87e4b036097080c050d52ea3b1e2b901b0049ebe9adc61353f52",
+        "pageCount": null
+      },
+      {
+        "name": "editable-rtf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1825.515,
+        "managedAllocatedBytes": 859640824,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 281559040,
+          "sampleCount": 55,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null
+      },
+      {
+        "name": "editable-markdown",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1460.35,
+        "managedAllocatedBytes": 647184352,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 250036224,
+          "sampleCount": 45,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null
+      }
+    ]
+  },
+  "builds": {
+    "netstandard-build.log": {
+      "zeroWarnings": true,
+      "sha256": "ea19e6259573a39b72da6897820607abe8e9e9289f79edc13f1418d02fa89c15"
+    },
+    "comparison-build.log": {
+      "zeroWarnings": true,
+      "sha256": "42f8a12209ae9441962533370bb83fe383f6aec8c9c8dfa92b1c43695da37b22"
+    },
+    "static-budget-build.log": {
+      "zeroWarnings": true,
+      "sha256": "d1757e1f8c552c87e7df2f956f8f453b46b375c9a91ac188e24636761912cc23"
+    },
+    "h10-budget-build.log": {
+      "zeroWarnings": true,
+      "sha256": "aa8d34a356511002b5ebc4989205ce21d714e0915860aa522a790549092d79ce"
+    },
+    "editable-build.log": {
+      "zeroWarnings": true,
+      "sha256": "87e9298d2b462600a9eb598e124d0a3deafc72ba63216f0c98a2c049abf0f70a"
+    }
+  },
+  "remaining": [
+    "Remaining AV1 Main still profiles, including 10-bit and non-reduced headers, require independent qualification; no full formal AVIF Baseline claim.",
+    "Windows/net472 runtime and Windows/Linux operation budgets.",
+    "Frozen language-pattern hyphenation, selected SVG/resources, MathML/PDF semantics/conformance gaps.",
+    "AngleSharp merged document-base adoption remains separate from this static codec checkpoint."
+  ],
+  "retainedArtifacts": [
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-work-cd770fd4a",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-full-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-limited-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-full-alpha-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-limited-alpha-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-h4-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-nasa-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-static-budget-clean-a291c0e2f",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-h10-budget-clean-a291c0e2f"
+  ],
+  "cleanup": {
+    "removedGeneratedTargets": 39,
+    "removedBytes": 292687278,
+    "retainedArtifactsBytes": 168864613,
+    "retainedArtifactSizes": [
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-work-cd770fd4a",
+        "bytes": 6417033
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-full-clean-a291c0e2f",
+        "bytes": 427800
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-limited-clean-a291c0e2f",
+        "bytes": 433041
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-full-alpha-clean-a291c0e2f",
+        "bytes": 497622
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-limited-alpha-clean-a291c0e2f",
+        "bytes": 501781
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-h4-clean-a291c0e2f",
+        "bytes": 7560102
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-nasa-clean-a291c0e2f",
+        "bytes": 89262938
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-static-budget-clean-a291c0e2f",
+        "bytes": 2777
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-monochrome-h10-budget-clean-a291c0e2f",
+        "bytes": 63761519
+      }
+    ],
+    "preserved": "Canonical fixtures, source archives, compact prior replay reports, current complete replays, package proof and pinned native oracle source are retained. Shared caches and unrelated worktrees were untouched."
+  }
+}

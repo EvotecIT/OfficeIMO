@@ -348,8 +348,10 @@ internal static class PdfContentStreamTextRewriter {
                         span.TextToPageTransform.Value.B * span.TextToPageTransform.Value.B)
                     : 1D;
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
-                PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
+                    PdfTextSpanBounds bounds = targets[targetIndex].Area.RequiresGlyphRewrite
+                        ? PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance)
+                        : PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
                     if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
                         remove = true;
                         break;

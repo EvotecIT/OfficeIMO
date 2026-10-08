@@ -7,6 +7,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFaxDecodeTests {
     [Theory]
+    [InlineData(0, "000000001111")]
+    [InlineData(-1, "0000001111")]
+    public void Fax_UncompressedRowConsumesExitBeforeEndOfBlock(int k, string entry) {
+        PdfDictionary dictionary = FaxDictionary(8, 1, k, true);
+        var parameters = (PdfDictionary)dictionary.Items["DecodeParms"];
+        parameters.Items["EndOfBlock"] = new PdfBoolean(true);
+        string markers = string.Concat(Enumerable.Repeat("000000000001", k < 0 ? 2 : 6));
+        byte[] encoded = Pack(entry + "00110011" + "00000010" + markers);
+        Assert.Equal(new byte[] { 0x33 }, StreamDecoder.DecodeRequired(dictionary, encoded));
+        parameters.Items["BlackIs1"] = new PdfBoolean(false);
+        Assert.Equal(new byte[] { 0xCC }, StreamDecoder.DecodeRequired(dictionary, encoded));
+    }
+
+    [Theory]
     [InlineData(0, false, false)]
     [InlineData(0, true, false)]
     [InlineData(2, false, false)]

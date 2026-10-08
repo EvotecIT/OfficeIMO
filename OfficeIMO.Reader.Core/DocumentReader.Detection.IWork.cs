@@ -113,7 +113,7 @@ internal static partial class DocumentReaderEngine {
 
     private static bool HasNestedIWorkDocument(byte[] payload, ushort compression,
         uint expectedLength, int maxEntries, CancellationToken cancellationToken) {
-        byte[]? nestedBytes = InflateNestedIndex(payload, compression, expectedLength,
+        byte[]? nestedBytes = InflateBoundedContainerEntry(payload, compression, expectedLength,
             cancellationToken);
         if (nestedBytes == null) return false;
         using var nested = new MemoryStream(nestedBytes, writable: false);
@@ -141,7 +141,7 @@ internal static partial class DocumentReaderEngine {
         return false;
     }
 
-    private static byte[]? InflateNestedIndex(byte[] payload, ushort compression,
+    private static byte[]? InflateBoundedContainerEntry(byte[] payload, ushort compression,
         uint expectedLength, CancellationToken cancellationToken) {
         if (compression == 0) return payload.Length == expectedLength ? payload : null;
         using var source = new MemoryStream(payload, writable: false);

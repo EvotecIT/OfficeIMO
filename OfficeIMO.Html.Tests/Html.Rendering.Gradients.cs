@@ -152,7 +152,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<radialGradient", svg, StringComparison.Ordinal);
         Assert.Equal(3, CountBackgroundOccurrences(svg, "<stop "));
         Assert.Contains("/ShadingType 3", pdfSource, StringComparison.Ordinal);
-        Assert.Contains("/Coords [0.5 0.5 0 0.5 0.5 0.707]", pdfSource, StringComparison.Ordinal);
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(
+            PdfCore.PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), scale: 4D / 3D);
+        Assert.True(pdfRaster.GetPixel(88, 38).R > pdfRaster.GetPixel(88, 38).B);
+        Assert.True(pdfRaster.GetPixel(9, 66).B > pdfRaster.GetPixel(9, 66).R);
         Assert.Contains("RadialMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -215,7 +218,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0.5D, gradient.EndRadiusY, 4);
         Assert.True(raster.GetPixel(48, 38).R > raster.GetPixel(48, 38).B);
         Assert.True(raster.GetPixel(78, 38).B > raster.GetPixel(78, 38).R);
-        Assert.Contains("gradientTransform=\"matrix(0.188 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        var radial = System.Xml.Linq.XDocument.Parse(svg).Descendants()
+            .Single(element => element.Name.LocalName == "radialGradient");
+        double[] transform = ((string)radial.Attribute("gradientTransform")!).Substring(7).TrimEnd(')')
+            .Split(' ').Select(value => double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        Assert.Equal(new[] { 0.1875D, 0D, 0D, 0.5D, 0.25D, 0.5D }, transform);
         Assert.Contains("/ShadingType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
@@ -460,9 +467,50 @@ public sealed partial class HtmlRenderingTests {
         OfficeLinearGradient gradient = Assert.Single(
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 130D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
         Assert.Equal(new[] { 0D, 0.5D, 0.5D, 1D }, gradient.Stops.Select(stop => stop.Offset));
         Assert.Equal(new[] { OfficeColor.Red, OfficeColor.Red, OfficeColor.Blue, OfficeColor.Blue }, gradient.Stops.Select(stop => stop.Color));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(30, 15));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(85, 15));
+        Assert.Equal(2, CountBackgroundOccurrences(svg, "offset=\"50%\""));
+        Assert.Contains("/Bounds [0.4999999 0.5000001]", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
+    public void OfficeConicGradient_UniformPaintDoesNotLeakBetweenVectorSegments() {
+        var gradient = new OfficeConicGradient(
+            0.5D,
+            0.5D,
+            0D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Red)
+            });
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(gradient.CreateDrawing(100D, 100D, 12), 1D, OfficeColor.White);
+
+        byte maximumLeak = 0;
+        int maximumLeakX = 0;
+        int maximumLeakY = 0;
+        for (int y = 1; y < 99; y++) {
+            for (int x = 1; x < 99; x++) {
+                OfficeColor pixel = raster.GetPixel(x, y);
+                Assert.Equal((byte)255, pixel.R);
+                byte leak = Math.Max(pixel.G, pixel.B);
+                if (leak <= maximumLeak) continue;
+                maximumLeak = leak;
+                maximumLeakX = x;
+                maximumLeakY = y;
+            }
+        }
+        Assert.True(maximumLeak <= 4, $"Uniform conic paint leaked {maximumLeak}/255 background color at ({maximumLeakX},{maximumLeakY}).");
     }
 
     [Fact]
@@ -700,8 +748,15 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(raster.GetPixel(20, 20), raster.GetPixel(70, 50));
-        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor.HasValue && shape.Shape.FillColor.Value.G > shape.Shape.FillColor.Value.R);
-        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor.HasValue && shape.Shape.FillColor.Value.B > shape.Shape.FillColor.Value.G);
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(pdfDrawing, scale: 4D / 3D);
+        Assert.Contains(Enumerable.Range(0, pdfRaster.Width * pdfRaster.Height), index => {
+            OfficeColor pixel = pdfRaster.GetPixel(index % pdfRaster.Width, index / pdfRaster.Width);
+            return pixel.G > pixel.R;
+        });
+        Assert.Contains(Enumerable.Range(0, pdfRaster.Width * pdfRaster.Height), index => {
+            OfficeColor pixel = pdfRaster.GetPixel(index % pdfRaster.Width, index / pdfRaster.Width);
+            return pixel.B > pixel.G;
+        });
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 

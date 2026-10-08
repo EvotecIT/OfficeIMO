@@ -325,8 +325,7 @@ public sealed partial class PdfReadPage {
         int? paintType;
         int? tilingType;
         if (ResolveObject(value) is not PdfStream stream ||
-            requireSupportedType3Content &&
-                ResolveEffectObject(stream.Dictionary.Items.TryGetValue("Type", out PdfObject? patternTypeObject) ? patternTypeObject : null) is not PdfName { Name: "Pattern" } ||
+            !HasSupportedOptionalPatternType(stream.Dictionary) ||
             TryReadInteger(stream.Dictionary.Items.TryGetValue("PatternType", out PdfObject? typeObject) ? typeObject : null) != 1 ||
             ((paintType = TryReadInteger(stream.Dictionary.Items.TryGetValue("PaintType", out PdfObject? paintTypeObject) ? paintTypeObject : null)) != 1 && paintType != 2) ||
             ((tilingType = TryReadInteger(stream.Dictionary.Items.TryGetValue("TilingType", out PdfObject? tilingTypeObject) ? tilingTypeObject : null)) < 1 || tilingType > 3) ||
@@ -444,6 +443,7 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent renderingIntent,
         out bool consumesInheritedLineState,
         out bool hasMalformedStrictInvocation) {
+        using IDisposable projectionScope = pageContentBudget.BeginTransparencyGroupProjectionScope();
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
         patternTextClippingBudget ??= new PdfTextClippingBudget();
         var drawing = new OfficeDrawing(width, height);

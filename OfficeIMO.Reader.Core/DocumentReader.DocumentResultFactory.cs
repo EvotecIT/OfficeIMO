@@ -5,6 +5,18 @@ using System.Linq;
 namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
+    /// <summary>Builds the envelope and summary from final format-owned collections without constructing disposable chunk-derived pages.</summary>
+    internal static OfficeDocumentReadResult CreateRichDocumentResult(IReadOnlyList<ReaderChunk> chunks,
+        ReaderInputKind kind, OfficeDocumentSource source, IEnumerable<string> capabilities,
+        IReadOnlyList<OfficeDocumentBlock> blocks, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentPage> pages,
+        IReadOnlyList<OfficeDocumentAsset> assets, IReadOnlyList<OfficeDocumentLink> links) => new() {
+        Kind = kind, Source = source, Chunks = chunks, Blocks = blocks, Tables = tables, Pages = pages, Assets = assets, Links = links,
+        Markdown = BuildChunkDocumentMarkdown(chunks),
+        CapabilitiesUsed = BuildChunkDocumentCapabilities(kind).Concat(capabilities)
+            .Where(static value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray(),
+        Metadata = BuildChunkDocumentMetadata(kind, chunks, blocks, tables, Array.Empty<ReaderVisual>(), pages, assets)
+    };
+
     /// <summary>
     /// Creates the shared v5 document envelope from adapter-produced chunks and optional source data.
     /// </summary>

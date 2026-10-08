@@ -1,11 +1,40 @@
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlRendering_PlaceholderPseudoStyleAppliesOnlyToEmptyControls() {
+        const string html = """
+            <style>
+              input, textarea { color: red; font-style: normal; }
+              input::-webkit-input-placeholder { color: #e6e6e6; font-style: italic; }
+              textarea::placeholder { color: blue; font-style: italic; }
+            </style>
+            <input id='empty' placeholder='Prompt'>
+            <input id='filled' value='Value' placeholder='Hidden prompt'>
+            <textarea id='notes' placeholder='Notes'></textarea>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 700D });
+        HtmlRenderText[] values = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText prompt = Assert.Single(values, value => value.Text == "Prompt");
+        HtmlRenderText filled = Assert.Single(values, value => value.Text == "Value");
+        HtmlRenderText notes = Assert.Single(values, value => value.Text == "Notes");
+
+        Assert.Equal(OfficeColor.FromRgb(230, 230, 230), prompt.Color);
+        Assert.True((prompt.Font.Style & OfficeFontStyle.Italic) != 0);
+        Assert.Equal(OfficeColor.Red, filled.Color);
+        Assert.True((filled.Font.Style & OfficeFontStyle.Italic) == 0);
+        Assert.Equal(OfficeColor.Blue, notes.Color);
+        Assert.True((notes.Font.Style & OfficeFontStyle.Italic) != 0);
+        Assert.DoesNotContain(values, value => value.Text == "Hidden prompt");
+    }
+
     [Fact]
     public void HtmlRendering_FormControlsProduceVectorPaintAndSearchableStaticValues() {
         const string html = """
@@ -350,6 +379,142 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(36D, image.Width, 3);
         Assert.Equal(24D, image.Height, 3);
         Assert.DoesNotContain("Button", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_EmptyButtonKeepsItsAuthoredBoxWithoutInventingVisibleText() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='icon' aria-label='Search' style='display:block;padding:0 12px;border:1px solid #000;background:#eee;height:24px'><span></span></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#icon" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 25D, 30D);
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "button#icon");
+    }
+
+    [Fact]
+    public void HtmlRendering_CssResetButtonDoesNotRestoreDefaultControlChrome() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>.bare{border:unset;background:unset;padding:unset;width:18px;height:18px}</style>" +
+            "<button id='bare' class='bare' aria-label='Menu'><span style='display:inline-block;width:12px;height:2px;background:#fff'></span></button>" +
+            "<button id='default'>Open</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>().ToArray();
+        Assert.DoesNotContain(shapes, shape => shape.Source == "button#bare");
+        Assert.Contains(shapes, shape => shape.Source == "button#default" && shape.Shape.FillColor.HasValue);
+        Assert.Contains(shapes, shape => shape.Source == "span" && shape.Shape.FillColor.HasValue);
+    }
+
+    [Fact]
+    public void HtmlRendering_FlexButtonKeepsColumnIconsInsideItsControlBox() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>.menu{display:flex;align-items:center;width:18px;height:18px;border:unset;padding:unset;background:unset}" +
+            ".icon{display:flex;flex-direction:column}.bar{display:block;width:12px;height:2px;background:#fff;margin-bottom:3px}</style>" +
+            "<button id='menu' class='menu' aria-label='Menu'><span class='icon'>" +
+            "<i id='top' class='bar'></i><i id='middle' class='bar'></i><i id='bottom' class='bar'></i>" +
+            "</span></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape[] bars = rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source is "i#top" or "i#middle" or "i#bottom")
+            .OrderBy(shape => shape.Y).ToArray();
+        Assert.Equal(3, bars.Length);
+        Assert.True(bars[2].Y + bars[2].Height - bars[0].Y <= 18D);
+        Assert.All(bars, bar => Assert.Equal(12D, bar.Width, 1));
+    }
+
+    [Theory]
+    [InlineData("flex")]
+    [InlineData("inline-flex")]
+    public void HtmlRendering_AutoSizedFlexButtonRetainsControlSizeAndTextRole(string display) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            $"<button id='save' style='display:{display}'>Save</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#save" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 44D, 100D);
+        Assert.True(button.Height >= 20D);
+        HtmlRenderText label = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), text => text.Text == "Save");
+        Assert.Equal("form-control", label.SemanticRole);
+    }
+
+    [Fact]
+    public void HtmlRendering_BorderBoxFlexButtonIncludesControlInsetsInIntrinsicSize() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='save' style='display:flex;box-sizing:border-box;padding:4px 6px;border:1px solid #000'>Save</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#save" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 58D, 100D);
+        Assert.True(button.Height >= 30D);
+    }
+
+    [Fact]
+    public void HtmlRendering_ButtonPaintsGeneratedContentInsideItsChild() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>.icon::before{content:'★';color:#123456}</style>" +
+            "<button id='search' aria-label='Search' style='display:block;padding:0 8px;border:1px solid #000;background:#eee;height:28px'>" +
+            "<span class='icon' aria-hidden='true'></span></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#search" && shape.Shape.FillColor.HasValue);
+        HtmlRenderText icon = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), text => text.Text == "★");
+        Assert.InRange(icon.X, button.X, button.X + button.Width);
+        Assert.InRange(icon.Y, button.Y, button.Y + button.Height);
+        Assert.DoesNotContain("Search", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_AutoHeightButtonContainsWrappedChildText() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='wrapped' style='display:block;width:72px;font-size:16px;line-height:20px;padding:2px;border:1px solid #000'>Alpha Beta Gamma</button>" +
+            "<p>After</p>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#wrapped" && shape.Shape.FillColor.HasValue);
+        HtmlRenderText[] label = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.Text.Contains("Alpha", StringComparison.Ordinal)
+                || text.Text.Contains("Beta", StringComparison.Ordinal)
+                || text.Text.Contains("Gamma", StringComparison.Ordinal)).ToArray();
+        Assert.True(label.Length >= 2);
+        Assert.All(label, text => Assert.True(text.Y + text.Height <= button.Y + button.Height + 0.01D));
+        HtmlRenderText after = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), text => text.Text == "After");
+        Assert.True(after.Y >= button.Y + button.Height);
+    }
+
+    [Fact]
+    public void HtmlRendering_ButtonIntrinsicWidthIncludesIconBesideLabel() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='mixed' style='display:block;padding:0 6px;border:1px solid #000'>" +
+            "<svg width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8'/></svg> Save</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#mixed" && shape.Shape.FillColor.HasValue);
+        Assert.True(button.Width >= 70D);
+    }
+
+    [Fact]
+    public void HtmlRendering_IconButtonIncludesSvgIntrinsicWidth() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='icon' style='display:block;padding:0 6px;border:1px solid #000'><svg width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8'/></svg></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#icon" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 37D, 39D);
     }
 
     private static double RangeThumbX(string html) {

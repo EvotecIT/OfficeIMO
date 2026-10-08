@@ -131,8 +131,10 @@ internal static partial class PdfPageImageRenderer {
                 scene.TextShapingProvider = options.TextShapingProvider;
                 scene.TextShapingLanguage = options.TextShapingLanguage;
             }
-            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing)
-                : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing);
+            var pageSize = document.Pages[pageNumber - 1].GetVisualPageSize();
+            double functionScale = options.GetScale(pageSize.Width, pageSize.Height);
+            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage)
+                : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));
             int height = checked((int)Math.Ceiling(drawing.Height * scale));

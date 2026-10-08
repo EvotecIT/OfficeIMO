@@ -28,6 +28,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Rtf")]
 [assembly: InternalsVisibleTo("OfficeIMO.Rtf.Markdown")]
 [assembly: InternalsVisibleTo("OfficeIMO.Reader")]
+[assembly: InternalsVisibleTo("OfficeIMO.Reader.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Reader.Latex")]
 [assembly: InternalsVisibleTo("OfficeIMO.Shared.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Workflows")]
@@ -40,3 +41,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Zip")]
 [assembly: InternalsVisibleTo("OfficeIMO.Opml")]
 [assembly: InternalsVisibleTo("OfficeIMO.DocBook")]
+[assembly: InternalsVisibleTo("OfficeIMO.Xps")]

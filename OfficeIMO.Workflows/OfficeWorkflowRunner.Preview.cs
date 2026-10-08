@@ -15,7 +15,7 @@ public sealed class OfficeWorkflowDocumentPreview {
 }
 
 public sealed partial class OfficeWorkflowRunner {
-    /// <summary>Creates an in-memory review sample of a PDF, DOCX, XLSX, PPTX, or HTML artifact without publishing files.</summary>
+    /// <summary>Creates an in-memory review sample through the existing native conversion route for a supported artifact.</summary>
     /// <remarks>HTML preview uses embedded content only; external and sibling resources are unavailable.</remarks>
     public static OfficeWorkflowDocumentPreview PreviewDocument(byte[] bytes, string extension, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(bytes);

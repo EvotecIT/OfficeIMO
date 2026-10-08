@@ -33,6 +33,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCDxaSpace = 0x8840;
+        private const ushort SprmCCharScale = 0x4852;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
         private const ushort SprmCRgLid0 = 0x486D;
@@ -196,9 +197,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             var pictures = new LegacyDocWritablePictures(document);
-            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures);
-            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
+            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures, styleSheet.StyleIndexes);
+            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures, styleSheet.StyleIndexes);
             LegacyDocWritableComments comments = ReadSupportedComments(mainPart!, pictures, styleSheet.StyleIndexes);
             IReadOnlyDictionary<string, Style> tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
@@ -252,13 +253,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Settings? settings = mainPart!.DocumentSettingsPart?.Settings;
             bool trackRevisions = settings?.Elements<TrackRevisions>().Any(IsOnOffEnabled) == true;
             bool lockRevisionTracking = IsLockedRevisionTracking(settings);
-            return new LegacyDocWritableBody(
+            var writableBody = new LegacyDocWritableBody(
                 text.ToString(),
                 runs,
                 paragraphFormats,
                 bookmarks.Create(),
                 sections,
                 styleSheet,
+                mainPart.NumberingDefinitionsPart?.Numbering,
                 footnoteStories,
                 endnoteStories,
                 headerFooterStories,
@@ -273,6 +275,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadDocumentEndnotePosition(settings),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
+            ValidateNativeNumberingReferences(mainPart, styleSheet.StyleIndexes);
+            return writableBody;
         }
 
         private static bool HasEvenAndOddHeaders(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {

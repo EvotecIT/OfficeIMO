@@ -14,8 +14,8 @@ internal static class HtmlCssTransformParser {
         double fontSize,
         double rootFontSize,
         out OfficeTransform transform,
-        out string detail) =>
-        TryParse(transformValue, transformOriginValue, boxX, boxY, boxWidth, boxHeight, fontSize, rootFontSize, boxWidth, boxHeight, out transform, out detail);
+        out string detail, double characterAdvance = double.NaN) =>
+        TryParse(transformValue, transformOriginValue, boxX, boxY, boxWidth, boxHeight, fontSize, rootFontSize, boxWidth, boxHeight, out transform, out detail, characterAdvance);
 
     internal static bool TryParse(
         string transformValue,
@@ -29,7 +29,7 @@ internal static class HtmlCssTransformParser {
         double viewportWidth,
         double viewportHeight,
         out OfficeTransform transform,
-        out string detail) =>
+        out string detail, double characterAdvance = double.NaN) =>
         TryParse(
             transformValue,
             transformOriginValue,
@@ -44,7 +44,7 @@ internal static class HtmlCssTransformParser {
             double.NaN,
             double.NaN,
             out transform,
-            out detail);
+            out detail, characterAdvance);
 
     internal static bool TryParse(
         string transformValue,
@@ -60,13 +60,13 @@ internal static class HtmlCssTransformParser {
         double containerWidth,
         double containerHeight,
         out OfficeTransform transform,
-        out string detail) {
+        out string detail, double characterAdvance = double.NaN) {
         transform = OfficeTransform.Identity;
         detail = string.Empty;
         string value = transformValue.Trim().ToLowerInvariant();
         if (value.Length == 0 || value == "none") return true;
-        if (!TryParseFunctionList(value, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out OfficeTransform functions, out detail)) return false;
-        if (!TryResolveOrigin(transformOriginValue, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double originX, out double originY)) {
+        if (!TryParseFunctionList(value, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out OfficeTransform functions, out detail, characterAdvance)) return false;
+        if (!TryResolveOrigin(transformOriginValue, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double originX, out double originY, characterAdvance)) {
             detail = "transform-origin=" + transformOriginValue.Trim();
             return false;
         }
@@ -87,6 +87,23 @@ internal static class HtmlCssTransformParser {
     internal static bool IsSupportedTransformSyntax(string value) =>
         TryParseFunctionList(value.Trim().ToLowerInvariant(), 100D, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out _, out _);
 
+    internal static bool TryParseIndividualScale(string value, out string transformFunction) {
+        transformFunction = string.Empty;
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "none") return true;
+        if (normalized.Contains(',')) return false;
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(normalized);
+        if (parts.Count < 1 || parts.Count > 2
+            || !TryScaleFactor(parts[0], out double x)) return false;
+        double y = x;
+        if (parts.Count == 2 && !TryScaleFactor(parts[1], out y)) return false;
+        transformFunction = "scale(" + x.ToString("R", CultureInfo.InvariantCulture) + "," + y.ToString("R", CultureInfo.InvariantCulture) + ")";
+        return true;
+    }
+
+    internal static bool IsSupportedIndividualScaleSyntax(string value) =>
+        TryParseIndividualScale(value, out _);
+
     internal static bool IsSupportedOriginSyntax(string value) =>
         TryResolveOrigin(value, 100D, 100D, 16D, 16D, 100D, 100D, 100D, 100D, out _, out _);
 
@@ -101,7 +118,7 @@ internal static class HtmlCssTransformParser {
         double containerWidth,
         double containerHeight,
         out OfficeTransform transform,
-        out string detail) {
+        out string detail, double characterAdvance = double.NaN) {
         transform = OfficeTransform.Identity;
         detail = string.Empty;
         if (value == "none") return true;
@@ -129,7 +146,7 @@ internal static class HtmlCssTransformParser {
                 return false;
             }
             string arguments = value.Substring(argumentsStart, index - argumentsStart - 1);
-            if (!TryParseFunction(name, arguments, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out OfficeTransform function)) {
+            if (!TryParseFunction(name, arguments, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out OfficeTransform function, characterAdvance)) {
                 detail = name + "(" + arguments + ")";
                 return false;
             }
@@ -154,7 +171,7 @@ internal static class HtmlCssTransformParser {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out OfficeTransform transform) {
+        out OfficeTransform transform, double characterAdvance = double.NaN) {
         transform = OfficeTransform.Identity;
         IReadOnlyList<string> values = SplitArguments(arguments);
         switch (name) {
@@ -165,16 +182,16 @@ internal static class HtmlCssTransformParser {
             case "translate":
                 double translateY = 0D;
                 if (values.Count < 1 || values.Count > 2
-                    || !TryLength(values[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double translateX)
-                    || values.Count == 2 && !TryLength(values[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out translateY)) return false;
+                    || !TryLength(values[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double translateX, characterAdvance)
+                    || values.Count == 2 && !TryLength(values[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out translateY, characterAdvance)) return false;
                 transform = OfficeTransform.Translate(translateX, values.Count == 2 ? translateY : 0D);
                 return true;
             case "translatex":
-                if (values.Count != 1 || !TryLength(values[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double x)) return false;
+                if (values.Count != 1 || !TryLength(values[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double x, characterAdvance)) return false;
                 transform = OfficeTransform.Translate(x, 0D);
                 return true;
             case "translatey":
-                if (values.Count != 1 || !TryLength(values[0], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double y)) return false;
+                if (values.Count != 1 || !TryLength(values[0], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double y, characterAdvance)) return false;
                 transform = OfficeTransform.Translate(0D, y);
                 return true;
             case "scale":
@@ -261,8 +278,21 @@ internal static class HtmlCssTransformParser {
         && !double.IsNaN(number)
         && !double.IsInfinity(number);
 
-    private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length) =>
-        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length)
+    private static bool TryScaleFactor(string value, out double factor) {
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            if (TryNumber(normalized.Substring(0, normalized.Length - 1), out double percentage)) {
+                factor = percentage / 100D;
+                return IsFinite(factor);
+            }
+            factor = 0D;
+            return false;
+        }
+        return TryNumber(normalized, out factor);
+    }
+
+    private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length, double characterAdvance = double.NaN) =>
+        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length, characterAdvance)
         && !double.IsNaN(length)
         && !double.IsInfinity(length);
 
@@ -309,7 +339,7 @@ internal static class HtmlCssTransformParser {
         double containerWidth,
         double containerHeight,
         out double x,
-        out double y) {
+        out double y, double characterAdvance = double.NaN) {
         x = width / 2D;
         y = height / 2D;
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(string.IsNullOrWhiteSpace(value) ? "50% 50%" : value.Trim().ToLowerInvariant());
@@ -324,11 +354,11 @@ internal static class HtmlCssTransformParser {
             second = first;
             first = "center";
         }
-        return TryOriginAxis(first, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, horizontal: true, out x)
-            && TryOriginAxis(second, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, horizontal: false, out y);
+        return TryOriginAxis(first, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, horizontal: true, out x, characterAdvance)
+            && TryOriginAxis(second, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, horizontal: false, out y, characterAdvance);
     }
 
-    private static bool TryOriginAxis(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, bool horizontal, out double result) {
+    private static bool TryOriginAxis(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, bool horizontal, out double result, double characterAdvance = double.NaN) {
         result = reference / 2D;
         if (value == "center") return true;
         if (horizontal && value == "left" || !horizontal && value == "top") {
@@ -340,7 +370,7 @@ internal static class HtmlCssTransformParser {
             return true;
         }
         if (horizontal && IsVerticalKeyword(value) || !horizontal && IsHorizontalKeyword(value)) return false;
-        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out result);
+        return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out result, characterAdvance);
     }
 
     private static bool IsHorizontalKeyword(string value) => value == "left" || value == "center" || value == "right";

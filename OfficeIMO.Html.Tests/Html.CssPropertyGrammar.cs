@@ -114,6 +114,176 @@ public sealed class HtmlCssPropertyGrammarTests {
             HtmlCssPropertyParser.Parse(declaration, new HtmlCssTokenizationOptions { MaxInputCharacters = 4 }));
     }
 
+    [Fact]
+    public void ManagedCascadeTraceExplainsSelectorLayerImportantAndInlinePrecedence() {
+        const string html = """
+            <style>
+              @layer base, theme;
+              @layer base { #target { color:red !important; display:block; } }
+              @layer theme { .item { color:blue !important; display:grid; } }
+              #target { visibility:hidden; opacity:.25; }
+            </style>
+            <p id="target" class="item" style="color:lime !important; display:flex">Trace</p>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        OfficeIMO.Html.Dom.HtmlElement target = document.Document.QuerySelector("#target")!;
+        Assert.Null(HtmlComputedStyleEngine.Compute(document)[target].GetCascadeTrace("color"));
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document,
+            new HtmlComputedStyleOptions { IncludeCascadeTraces = true })[target];
+
+        HtmlCssCascadeTrace color = Assert.IsType<HtmlCssCascadeTrace>(style.GetCascadeTrace("color"));
+        Assert.Equal("lime", color.ComputedValue);
+        HtmlCssCascadeCandidate selectedColor = Assert.Single(color.Candidates,
+            candidate => candidate.Decision == HtmlCssCascadeDecision.Selected);
+        Assert.Equal(HtmlCssCascadeSourceKind.InlineStyle, selectedColor.Source);
+        Assert.True(selectedColor.IsImportant);
+        Assert.Equal(HtmlCssPropertyParseStatus.Parsed, selectedColor.GrammarStatus);
+        Assert.Contains(color.Candidates, candidate => candidate.Selector == "#target" && candidate.LayerName == "base");
+        Assert.Contains(color.Candidates, candidate => candidate.Selector == ".item" && candidate.LayerName == "theme");
+
+        HtmlCssCascadeTrace display = Assert.IsType<HtmlCssCascadeTrace>(style.GetCascadeTrace("DISPLAY"));
+        Assert.Equal("flex", display.ComputedValue);
+        Assert.Equal(HtmlCssCascadeSourceKind.InlineStyle,
+            Assert.Single(display.Candidates, candidate => candidate.Decision == HtmlCssCascadeDecision.Selected).Source);
+        Assert.Equal("hidden", style.GetCascadeTrace("visibility")!.ComputedValue);
+        Assert.Equal("0.25", style.GetCascadeTrace("opacity")!.ComputedValue);
+        Assert.Null(style.GetCascadeTrace("margin-left"));
+    }
+
+    [Fact]
+    public void TraceDistinguishesInheritanceResetAndInvalidValueRejection() {
+        const string html = """
+            <style>
+              body { color:red; visibility:hidden; }
+              #inherited { color:not-a-color; }
+              #reset { visibility:initial; }
+            </style>
+            <p id="inherited">Inherited</p><p id="reset">Reset</p>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
+            document, new HtmlComputedStyleOptions { IncludeCascadeTraces = true });
+
+        HtmlCssCascadeTrace inherited = styles[document.Document.QuerySelector("#inherited")!].GetCascadeTrace("color")!;
+        Assert.True(inherited.IsInherited);
+        Assert.Equal("rgba(255, 0, 0, 1)", inherited.ComputedValue);
+        Assert.Single(inherited.Candidates);
+        Assert.Equal(HtmlCssCascadeDecision.Inherited, inherited.Candidates[0].Decision);
+        Assert.False(inherited.Candidates[0].IsEffective);
+
+        HtmlCssCascadeTrace reset = styles[document.Document.QuerySelector("#reset")!].GetCascadeTrace("visibility")!;
+        Assert.False(reset.IsInherited);
+        Assert.True(reset.IsReset);
+        Assert.Equal("visible", reset.ComputedValue);
+        Assert.Equal("initial", Assert.Single(reset.Candidates).DeclaredValue);
+        Assert.Equal(HtmlCssCascadeDecision.Reset, reset.Candidates[0].Decision);
+        Assert.True(reset.Candidates[0].IsEffective);
+    }
+
+    [Fact]
+    public void InvalidCustomPropertySubstitutionUsesInheritedOrInitialFallback() {
+        const string html = """
+            <style>
+              body { color:red; }
+              #missing { color:var(--missing); opacity:var(--missing); }
+              #cycle { --a:var(--b); --b:var(--a); color:var(--a); opacity:var(--a); }
+            </style>
+            <body><p id="missing">Missing</p><p id="cycle">Cycle</p></body>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        IReadOnlyDictionary<OfficeIMO.Html.Dom.HtmlElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(
+            document, new HtmlComputedStyleOptions { IncludeCascadeTraces = true });
+
+        foreach (string id in new[] { "#missing", "#cycle" }) {
+            HtmlComputedStyle style = styles[document.Document.QuerySelector(id)!];
+            HtmlCssCascadeTrace color = style.GetCascadeTrace("color")!;
+            Assert.Equal("rgba(255, 0, 0, 1)", style.GetValue("color"));
+            Assert.True(color.IsInherited);
+            Assert.False(color.IsReset);
+            Assert.Equal(HtmlCssCascadeDecision.InvalidAtComputedValue, Assert.Single(color.Candidates).Decision);
+            Assert.True(color.Candidates[0].IsEffective);
+
+            HtmlCssCascadeTrace opacity = style.GetCascadeTrace("opacity")!;
+            Assert.Equal("1", style.GetValue("opacity"));
+            Assert.False(opacity.IsInherited);
+            Assert.True(opacity.IsReset);
+            Assert.Equal(HtmlCssCascadeDecision.InvalidAtComputedValue, Assert.Single(opacity.Candidates).Decision);
+            Assert.True(opacity.Candidates[0].IsEffective);
+        }
+    }
+
+    [Fact]
+    public void TraceMarksOverriddenWideKeywordsWithoutClaimingTheyChangedTheResult() {
+        const string html = """
+            <p id="target" style="color:initial;color:blue;opacity:revert;opacity:.5;display:revert-layer;display:flex">Winner</p>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document,
+            new HtmlComputedStyleOptions { IncludeCascadeTraces = true })[document.Document.QuerySelector("#target")!];
+
+        foreach (string property in new[] { "color", "opacity", "display" }) {
+            HtmlCssCascadeTrace trace = style.GetCascadeTrace(property)!;
+            Assert.Single(trace.Candidates, candidate => candidate.IsEffective);
+            Assert.Equal(HtmlCssCascadeDecision.Selected, Assert.Single(trace.Candidates, candidate => candidate.IsEffective).Decision);
+        }
+        Assert.Equal(HtmlCssCascadeDecision.Overridden,
+            Assert.Single(style.GetCascadeTrace("color")!.Candidates, candidate => candidate.DeclaredValue == "initial").Decision);
+        Assert.Equal(HtmlCssCascadeDecision.Overridden,
+            Assert.Single(style.GetCascadeTrace("opacity")!.Candidates, candidate => candidate.DeclaredValue == "revert").Decision);
+        Assert.Equal(HtmlCssCascadeDecision.Overridden,
+            Assert.Single(style.GetCascadeTrace("display")!.Candidates, candidate => candidate.DeclaredValue == "revert-layer").Decision);
+    }
+
+    [Fact]
+    public void InlineSyntaxUsesTheCallersCssLimitsAndHasNoIndependentEightMegabyteCeiling() {
+        string largeValue = new string('a', 8 * 1024 * 1024 + 64);
+        OfficeIMO.Html.Dom.HtmlDocument unbounded = HtmlDocumentEngine.Default.ParseDocument(
+            "<p id='large' style='--payload:" + largeValue + "'>Large</p>");
+        Assert.NotNull(HtmlComputedStyleEngine.Compute(unbounded)[unbounded.QuerySelector("#large")!]);
+
+        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        limits.MaxCssBytes = 16;
+        limits.MaxTotalCssBytes = 16;
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlConversionDocument.Parse(
+            "<p id='bounded' style='color:red;opacity:.5'>Bounded</p>",
+            new HtmlConversionDocumentOptions { Limits = limits }));
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssSizeLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssBytes), exception.LimitSource);
+    }
+
+    [Fact]
+    public void InlineSyntaxTranslatesTheConfiguredTokenLimitToTheConversionContract() {
+        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        limits.MaxCssTokens = 2;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p id='bounded' style='color:red'>Bounded</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(document));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssTokenLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssTokens), exception.LimitSource);
+        Assert.Equal(3, exception.Actual);
+        Assert.Equal(2, exception.Limit);
+    }
+
+    [Fact]
+    public void InlineSyntaxTranslatesTheConfiguredSyntaxNodeLimitToTheConversionContract() {
+        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        limits.MaxCssTokens = 32;
+        limits.MaxCssSyntaxNodes = 1;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p id='bounded' style='color:red'>Bounded</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(document));
+
+        Assert.Equal(HtmlConversionDiagnosticCodes.CssSyntaxNodeLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlConversionLimits.MaxCssSyntaxNodes), exception.LimitSource);
+        Assert.Equal(2, exception.Actual);
+        Assert.Equal(1, exception.Limit);
+    }
+
     private sealed class CssPropertyCorpusCase {
         public string Name { get; set; } = string.Empty;
         public string Property { get; set; } = string.Empty;

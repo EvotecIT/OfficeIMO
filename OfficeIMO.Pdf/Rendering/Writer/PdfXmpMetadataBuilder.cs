@@ -32,7 +32,11 @@ internal static class PdfXmpMetadataBuilder {
         if (electronicInvoiceMetadata != null) {
             sb.Append(" xmlns:fx=\"")
                 .Append(PdfElectronicInvoiceMetadata.FacturXNamespaceUri)
-                .Append("\" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\" xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\" xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\"");
+                .Append('"');
+        }
+        bool uaExtension = pdfAIdentification != null && pdfAIdentification.Part < 4 && pdfUaIdentification != null;
+        if (electronicInvoiceMetadata != null || uaExtension) {
+            sb.Append(" xmlns:pdfaExtension=\"http://www.aiim.org/pdfa/ns/extension/\" xmlns:pdfaSchema=\"http://www.aiim.org/pdfa/ns/schema#\" xmlns:pdfaProperty=\"http://www.aiim.org/pdfa/ns/property#\"");
         }
 
         sb.Append(">\n");
@@ -48,6 +52,12 @@ internal static class PdfXmpMetadataBuilder {
         AppendPdfXIdentification(sb, pdfXIdentification);
         AppendPdfXProductionMetadata(sb, pdfXProductionMetadata, trappingStatus);
         AppendElectronicInvoiceMetadata(sb, electronicInvoiceMetadata);
+        if (electronicInvoiceMetadata != null || uaExtension) {
+            sb.Append("<pdfaExtension:schemas><rdf:Bag>");
+            if (electronicInvoiceMetadata != null) AppendFacturXExtensionSchema(sb);
+            if (uaExtension) AppendPdfUaExtensionSchema(sb);
+            sb.Append("</rdf:Bag></pdfaExtension:schemas>\n");
+        }
         sb.Append("</rdf:Description>\n");
         sb.Append("</rdf:RDF>\n");
         sb.Append("</x:xmpmeta>\n");
@@ -178,11 +188,20 @@ internal static class PdfXmpMetadataBuilder {
         AppendElement(sb, "fx:DocumentFileName", metadata.DocumentFileName);
         AppendElement(sb, "fx:Version", metadata.Version);
         AppendElement(sb, "fx:ConformanceLevel", metadata.ConformanceLevel);
-        AppendFacturXExtensionSchema(sb);
+    }
+
+    private static void AppendPdfUaExtensionSchema(StringBuilder sb) {
+        sb.Append("<rdf:li rdf:parseType=\"Resource\"><pdfaSchema:schema>PDF/UA identification schema</pdfaSchema:schema>")
+            .Append("<pdfaSchema:namespaceURI>").Append(PdfUaIdentification.NamespaceUri).Append("</pdfaSchema:namespaceURI>")
+            .Append("<pdfaSchema:prefix>pdfuaid</pdfaSchema:prefix><pdfaSchema:property><rdf:Seq>")
+            .Append("<rdf:li rdf:parseType=\"Resource\"><pdfaProperty:name>part</pdfaProperty:name>")
+            .Append("<pdfaProperty:valueType>Integer</pdfaProperty:valueType><pdfaProperty:category>internal</pdfaProperty:category>")
+            .Append("<pdfaProperty:description>Part of ISO 14289</pdfaProperty:description></rdf:li>")
+            .Append("</rdf:Seq></pdfaSchema:property></rdf:li>");
     }
 
     private static void AppendFacturXExtensionSchema(StringBuilder sb) {
-        sb.Append("<pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType=\"Resource\">");
+        sb.Append("<rdf:li rdf:parseType=\"Resource\">");
         sb.Append("<pdfaSchema:schema>Factur-X PDF/A Extension Schema</pdfaSchema:schema>");
         sb.Append("<pdfaSchema:namespaceURI>")
             .Append(PdfElectronicInvoiceMetadata.FacturXNamespaceUri)
@@ -194,7 +213,7 @@ internal static class PdfXmpMetadataBuilder {
         AppendFacturXExtensionProperty(sb, "Version", "Factur-X/ZUGFeRD schema version");
         AppendFacturXExtensionProperty(sb, "ConformanceLevel", "Factur-X/ZUGFeRD conformance level");
         sb.Append("</rdf:Seq></pdfaSchema:property>");
-        sb.Append("</rdf:li></rdf:Bag></pdfaExtension:schemas>\n");
+        sb.Append("</rdf:li>");
     }
 
     private static void AppendFacturXExtensionProperty(StringBuilder sb, string name, string description) {

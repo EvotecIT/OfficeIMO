@@ -1,0 +1,6 @@
+{
+  "littleCmsVersion": 2190,
+  "profileSHA256": "36ca884b8eb2ec24675b49e83d84d8eca23500c72f5060276353daf321b2dca3",
+  "intent": "relative colorimetric",
+  "input": "native YCbCr converted to normalized RGB without intermediate sample rounding"
+}

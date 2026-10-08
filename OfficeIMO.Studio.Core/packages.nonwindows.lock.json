@@ -21,8 +21,8 @@
       },
       "AngleSharp.Css": {
         "type": "Transitive",
-        "resolved": "1.0.1",
-        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "resolved": "1.1.2",
+        "contentHash": "7o5yCTuURjxmjy+O5/2EDQihTwnVlbeg9cIO+Zq8zDLt/7AZWebOfIxij+cejBGUBMad95wl5VlY3XFo3VQuCg==",
         "dependencies": {
           "AngleSharp": "[1.5.0, 2.0.0)"
         }
@@ -124,7 +124,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "AngleSharp.Css": "[1.0.1, )",
+          "AngleSharp.Css": "[1.1.2, )",
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
           "OfficeIMO.Html.Core": "[3.4.4, )"
@@ -340,7 +340,22 @@
           "OfficeIMO.Visio": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )",
           "OfficeIMO.Word.Html": "[3.4.4, )",
-          "OfficeIMO.Word.Pdf": "[3.4.4, )"
+          "OfficeIMO.Word.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps": "[3.4.4, )"
         }
       }
     },

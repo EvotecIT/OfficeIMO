@@ -1,0 +1,1075 @@
+{
+  "sourceCommit": "55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+  "colorSourceCommit": "97d57b80bedc341e881b4b2ad49745d73c413277",
+  "baseCommit": "0b3190d87f4c8125172bfa324389ab2937bcfe9c",
+  "scope": "Bounded reduced-still Main10 YUV420 or primary monochrome AVIF, full/limited color range, same-size/same-depth full-range auxiliary alpha; eight-bit straight RGBA public output. No full formal AVIF Baseline, HDR/color-management or broader coding-profile claim.",
+  "frozenCaseCount": 18,
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "nativeColorOracle": {
+    "nativeVersion": "1.4.2",
+    "nativeSourceCommit": "c5240fc79fe5c2407e10afd35f5505ef6333ea49",
+    "headerSha256": "43ec2563fcc739a4d5ca18e22f74bc15e76a11f8c9a82bd7e1ee572bff7afc04",
+    "librarySha256": "82934683296f4fa7dd60ed2b82b86333e62bfb0eed889e0446831a854f0e5117",
+    "driverSha256": "07dd10b0681dd7ada304410cc74cf15fd8f5bbb20b75749bcb1bf84c643dbd42",
+    "generatorSha256": "5c803b26bdb0a52d5a7d6477a988a7815b7265027a72551e277429a71f54acdf",
+    "fixtureSha256": "9a9c74c71a97ca1d62761fb88561166bd9614a804c536716ff0428586e799905",
+    "canonicalJsonSha256": "f4dad952be3ae4d069f33e1530e56e636469af448a96df4e50fa6ade8ff33a23",
+    "cases": 768,
+    "eightBitCasesUnchanged": 168,
+    "nativeRepeatIdentical": true,
+    "rgbTolerance": 1,
+    "alphaTolerance": 0,
+    "rgbDepth": 8,
+    "avoidLibYUV": true,
+    "chromaUpsampling": "bilinear",
+    "sourceDepth": 10,
+    "lowBitPhases": 4
+  },
+  "nativeSourceReceipt": {
+    "reformat.c": {
+      "url": "https://raw.githubusercontent.com/AOMediaCodec/libavif/c5240fc79fe5c2407e10afd35f5505ef6333ea49/src/reformat.c",
+      "sha256": "31ec0dfb734c391e62bd424627857bce1c957b182ad21c8c9565f5f1c24136fb"
+    },
+    "alpha.c": {
+      "url": "https://raw.githubusercontent.com/AOMediaCodec/libavif/c5240fc79fe5c2407e10afd35f5505ef6333ea49/src/alpha.c",
+      "sha256": "17178aef49f93aebb010cecad255579ed4aa58d886ee6c9bbb96d2b7d90eb41c"
+    }
+  },
+  "publishedReferences": {
+    "referencePackage": "PeachPDF",
+    "latest": "0.9.20",
+    "pinned": "0.9.20",
+    "license": "BSD-3-Clause",
+    "nuspecSha256": "02f19e056c7201a33907154e377c71ba48d94fe85a219aeab22b915e2fc22890",
+    "HtmlTinkerXConsumerVersion": "3.0.1",
+    "HtmlTinkerXPublished": true
+  },
+  "supplementalInputsAndAcceptance": {
+    "sourceHead": "97d57b80b",
+    "frozen18ManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+    "acceptance": {
+      "officeimoIntents": 11,
+      "pageCount": 1,
+      "imagePaintPlacements": 2,
+      "decodedImageSize": [
+        49,
+        33
+      ],
+      "headingAndEndMarkerOnce": true,
+      "annotations": 0,
+      "managedRgbTolerance": 1,
+      "alphaTolerance": 0,
+      "chromiumCompositeRgbTolerance": 3
+    },
+    "cases": [
+      {
+        "id": "avif-main10-420-full",
+        "avifSha256": "b7b55b2abe014bd36488434b09c9655b5e4fe91e2423353de5ed418816009001",
+        "htmlSha256": "f7501817f0786e3423adaade0c70664b03947e454b4e4eba76412b431f535fce",
+        "mhtmlSha256": "7f7f9a424dafeae6774ff325530f2870a7eccdebd4701fa7b2ee5a38ea0736ab"
+      },
+      {
+        "id": "avif-main10-420-limited",
+        "avifSha256": "08c23fa4b880345adf18a4283e7157471ae9a12593effebd0e9e6d646bb034bc",
+        "htmlSha256": "d59a00a99584dfb2a369f89101025d79f3e6fdc2f868bda5da4f6f1332a3b695",
+        "mhtmlSha256": "1146761a8448f3056668da32f1bf750bbe979a947443a5abbd5f821866fc99a5"
+      },
+      {
+        "id": "avif-main10-420-full-alpha",
+        "avifSha256": "5bf04d2fc1a73fce9e9771698410a39222300cbe05ee039c1c917dbafb2e0638",
+        "htmlSha256": "5637cc448557d39dea245e73c74f4494553d41da5f44c5d14620261a22d1823f",
+        "mhtmlSha256": "9a3933d05f63014fa81e242239b33f2bb358ee2b40dc451d1d82d3f08c9f570b"
+      },
+      {
+        "id": "avif-main10-420-limited-alpha",
+        "avifSha256": "2760d2d626c8836618fa7be2f9bb5a6438f3bdeae16df32779bb4b07dbf25cb3",
+        "htmlSha256": "1cd07b840df60e37e4bcaf67b65bf9bafb8a0a407f1c870dfcdccc477db202b0",
+        "mhtmlSha256": "4c484e7ba6a5946df19559207bd7e2210ddf1ccc22a4d7491ff09f47db83b0fb"
+      },
+      {
+        "id": "avif-main10-mono-full",
+        "avifSha256": "b0f7e320a35e656beb7ffce553df3a2e19ad4cf8213e62bf905f273a86324a90",
+        "htmlSha256": "66e584dd946b6a2b213bce276e310bcf61eba1918bb1de83193e908af5e307cc",
+        "mhtmlSha256": "71e673ae39e9a8159b015cc5c4c2eab5f8676a2133d9c21e3b201fd820d9f577"
+      },
+      {
+        "id": "avif-main10-mono-limited",
+        "avifSha256": "3c15e91d90d77429120c6cc31b46d8fa04b213f0da2d1f64b785b8f0dbcfec8d",
+        "htmlSha256": "3b13bb0d36eab451018ce26ec1d4aef651b1704c2a98337fbb1835b8d57d6bc9",
+        "mhtmlSha256": "1af9849c80a9b26ff05ba850f10531f05c27a24df22d9a82ec3d4ba2563c6b52"
+      },
+      {
+        "id": "avif-main10-mono-full-alpha",
+        "avifSha256": "79d8c0266981be6d44b439f477f60558fb5df3a9989d29469b4133e2bec53212",
+        "htmlSha256": "9fab26b308c0c8b507005dea12b081d853fef4889e693b4f69d3c69dbef42bfb",
+        "mhtmlSha256": "2f7c5f4e6dd3757967d94d2da2bd8a4e56b27b2c4135af0ce772eb67880a7e99"
+      },
+      {
+        "id": "avif-main10-mono-limited-alpha",
+        "avifSha256": "e8787330fa9eba4b2e002ad1143b12362b17f7a2725c846d50fee213ecb14c40",
+        "htmlSha256": "baebd46c7fc479390f03defe11673027f6953c1211c8b24be6205431628849a9",
+        "mhtmlSha256": "72b941b5b3dadc8e1618f67d079c9743eb0ef51b53e75f5e2d06deaa3efe22cb"
+      }
+    ],
+    "archiveTransport": "MIME SMTP CRLF; generated LF-only replay was blank in Chromium and is rejected as invalid comparison input"
+  },
+  "renderedResults": [
+    {
+      "id": "avif-main10-420-full",
+      "avifSha256": "b7b55b2abe014bd36488434b09c9655b5e4fe91e2423353de5ed418816009001",
+      "htmlSha256": "f7501817f0786e3423adaade0c70664b03947e454b4e4eba76412b431f535fce",
+      "mhtmlSha256": "7f7f9a424dafeae6774ff325530f2870a7eccdebd4701fa7b2ee5a38ea0736ab",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": true,
+      "browserMaxAlphaError": 0,
+      "browserMaxCompositeRgbError": 1.0,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-420-limited",
+      "avifSha256": "08c23fa4b880345adf18a4283e7157471ae9a12593effebd0e9e6d646bb034bc",
+      "htmlSha256": "d59a00a99584dfb2a369f89101025d79f3e6fdc2f868bda5da4f6f1332a3b695",
+      "mhtmlSha256": "1146761a8448f3056668da32f1bf750bbe979a947443a5abbd5f821866fc99a5",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": true,
+      "browserMaxAlphaError": 0,
+      "browserMaxCompositeRgbError": 1.0,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-420-full-alpha",
+      "avifSha256": "5bf04d2fc1a73fce9e9771698410a39222300cbe05ee039c1c917dbafb2e0638",
+      "htmlSha256": "5637cc448557d39dea245e73c74f4494553d41da5f44c5d14620261a22d1823f",
+      "mhtmlSha256": "9a3933d05f63014fa81e242239b33f2bb358ee2b40dc451d1d82d3f08c9f570b",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": false,
+      "browserMaxAlphaError": 1,
+      "browserMaxCompositeRgbError": 1.4431372549019608,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-420-limited-alpha",
+      "avifSha256": "2760d2d626c8836618fa7be2f9bb5a6438f3bdeae16df32779bb4b07dbf25cb3",
+      "htmlSha256": "1cd07b840df60e37e4bcaf67b65bf9bafb8a0a407f1c870dfcdccc477db202b0",
+      "mhtmlSha256": "4c484e7ba6a5946df19559207bd7e2210ddf1ccc22a4d7491ff09f47db83b0fb",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": false,
+      "browserMaxAlphaError": 1,
+      "browserMaxCompositeRgbError": 1.0745098039215686,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-mono-full",
+      "avifSha256": "b0f7e320a35e656beb7ffce553df3a2e19ad4cf8213e62bf905f273a86324a90",
+      "htmlSha256": "66e584dd946b6a2b213bce276e310bcf61eba1918bb1de83193e908af5e307cc",
+      "mhtmlSha256": "71e673ae39e9a8159b015cc5c4c2eab5f8676a2133d9c21e3b201fd820d9f577",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": true,
+      "browserMaxAlphaError": 0,
+      "browserMaxCompositeRgbError": 1.0,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-mono-limited",
+      "avifSha256": "3c15e91d90d77429120c6cc31b46d8fa04b213f0da2d1f64b785b8f0dbcfec8d",
+      "htmlSha256": "3b13bb0d36eab451018ce26ec1d4aef651b1704c2a98337fbb1835b8d57d6bc9",
+      "mhtmlSha256": "1af9849c80a9b26ff05ba850f10531f05c27a24df22d9a82ec3d4ba2563c6b52",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": true,
+      "browserMaxAlphaError": 0,
+      "browserMaxCompositeRgbError": 1.0,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-mono-full-alpha",
+      "avifSha256": "79d8c0266981be6d44b439f477f60558fb5df3a9989d29469b4133e2bec53212",
+      "htmlSha256": "9fab26b308c0c8b507005dea12b081d853fef4889e693b4f69d3c69dbef42bfb",
+      "mhtmlSha256": "2f7c5f4e6dd3757967d94d2da2bd8a4e56b27b2c4135af0ce772eb67880a7e99",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": false,
+      "browserMaxAlphaError": 1,
+      "browserMaxCompositeRgbError": 1.9215686274509804,
+      "referencePaintedImageOccurrences": 0
+    },
+    {
+      "id": "avif-main10-mono-limited-alpha",
+      "avifSha256": "e8787330fa9eba4b2e002ad1143b12362b17f7a2725c846d50fee213ecb14c40",
+      "htmlSha256": "baebd46c7fc479390f03defe11673027f6953c1211c8b24be6205431628849a9",
+      "mhtmlSha256": "72b941b5b3dadc8e1618f67d079c9743eb0ef51b53e75f5e2d06deaa3efe22cb",
+      "managedIntentsPassed": 11,
+      "managedMaxRgbError": 0,
+      "managedMaxAlphaError": 0,
+      "browserStructurePassed": true,
+      "browserCompositeRgbPassed": true,
+      "browserPredeclaredExactAlphaPassed": false,
+      "browserMaxAlphaError": 1,
+      "browserMaxCompositeRgbError": 1.3764705882352941,
+      "referencePaintedImageOccurrences": 0
+    }
+  ],
+  "renderedSummary": {
+    "outputsInspected": 112,
+    "managedIntentsPassed": 88,
+    "browserStructureAndCompositeRgbPassed": 16,
+    "browserStrictExactAlphaPassed": 8,
+    "browserStrictExactAlphaFailed": 8,
+    "criteriaRelaxed": false,
+    "browserLimit": "Four alpha fixtures differ at 72 of 1617 alpha pixels by exactly one value in both Chromium PDFs. Native and managed alpha match normalized rounded ten-bit values. This failed predeclared exact-alpha comparison is retained; no exact browser pixel-parity claim.",
+    "referenceMissingAvifImages": 8,
+    "visualInspection": "Paired 72dpi OfficeIMO/Chromium white/dark-background print contact sheet inspected for all eight fixtures; headers, complete markers and image bounds retained.",
+    "inspectionSha256": "e680cf340e19c572ef45e6f4c40f873f1612f4f1fe0938e5f8a7cbf26f149a6c",
+    "contactSheetSha256": "bd1f020e2fe6af47c3c6b6f72a6c07998758083468f4ca830ebcaf1bec70e9da"
+  },
+  "browserAlphaObservation": [
+    {
+      "case": "avif-main10-420-full-alpha",
+      "nativeMatchesNormalizedRounded10bit": true,
+      "chromiumMaxErrorAgainstRounded10bit": 1,
+      "chromiumMatchesTruncatedHighBits": false,
+      "pixelCountDiffering": 72
+    },
+    {
+      "case": "avif-main10-420-limited-alpha",
+      "nativeMatchesNormalizedRounded10bit": true,
+      "chromiumMaxErrorAgainstRounded10bit": 1,
+      "chromiumMatchesTruncatedHighBits": false,
+      "pixelCountDiffering": 72
+    },
+    {
+      "case": "avif-main10-mono-full-alpha",
+      "nativeMatchesNormalizedRounded10bit": true,
+      "chromiumMaxErrorAgainstRounded10bit": 1,
+      "chromiumMatchesTruncatedHighBits": false,
+      "pixelCountDiffering": 72
+    },
+    {
+      "case": "avif-main10-mono-limited-alpha",
+      "nativeMatchesNormalizedRounded10bit": true,
+      "chromiumMaxErrorAgainstRounded10bit": 1,
+      "chromiumMatchesTruncatedHighBits": false,
+      "pixelCountDiffering": 72
+    }
+  ],
+  "tests": [
+    {
+      "file": "focused-final/_evomini_2026-10-01_18_07_19.trx",
+      "sha256": "a0d018d52a24b5f468c06184e22d70e815ef381d4a045547293feac747d62642",
+      "total": 75,
+      "passed": 75,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "full-Drawing-net10.0/_evomini_2026-10-01_18_12_44.trx",
+      "sha256": "f0b55905111b7da05365eb505e0f1f275f757bae57a0bfca56d03f12366d2ce8",
+      "total": 3189,
+      "passed": 3189,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "full-Html-net10.0/_evomini_2026-10-01_18_13_33.trx",
+      "sha256": "86716e1277aca0c531e0fb648fa9f2da18506b88df2a9a281fae48bdf5500798",
+      "total": 4019,
+      "passed": 4018,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "OfficeIMO.Tests.HtmlFoundationProviderContractTests.ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity",
+          "message": "Assert.Same() Failure: Values are not the same instance\nExpected: HtmlDivElement { AccessKey = \"\", AccessKeyLabel = \"\", AssignedSlot = null, BaseUri = \"about:blank\", BaseUrl = about:blank, \u00b7\u00b7\u00b7 }\nActual:   HtmlDivElement { AccessKey = \"\", AccessKeyLabel = \"\", AssignedSlot = null, BaseUri = \"about:blank\", BaseUrl = about:blank, \u00b7\u00b7\u00b7 }",
+          "stackTrace": "   at OfficeIMO.Tests.HtmlFoundationProviderContractTests.ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity() in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Html.Tests/Html.FoundationProviderContracts.cs:line 192\n--- End of stack trace from previous location ---"
+        }
+      ]
+    },
+    {
+      "file": "provider-before/_evomini_2026-10-01_18_22_21.trx",
+      "sha256": "bab4cca7e0d19cc7db4d1752debf634695e5b2e4ed3773d1dea5375b3673217f",
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "OfficeIMO.Tests.HtmlFoundationProviderContractTests.RetainedDetachedNodeKeepsItsProjectionIdentityAcrossCollection",
+          "message": "Assert.True() Failure\nExpected: True\nActual:   False",
+          "stackTrace": "   at OfficeIMO.Tests.HtmlFoundationProviderContractTests.RetainedDetachedNodeKeepsItsProjectionIdentityAcrossCollection() in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Html.Tests/Html.FoundationProviderContracts.cs:line 187\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+        }
+      ]
+    },
+    {
+      "file": "provider-before-identity/_evomini_2026-10-01_18_22_54.trx",
+      "sha256": "73040fe4d0e0c1efa76c474b48f61e6c8a52aa89017626ffc66ea8803fd4ad0d",
+      "total": 1,
+      "passed": 0,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "OfficeIMO.Tests.HtmlFoundationProviderContractTests.RetainedDetachedNodeKeepsItsProjectionIdentityAcrossCollection",
+          "message": "Assert.Same() Failure: Values are not the same instance\nExpected: HtmlSpanElement { AccessKey = \"\", AccessKeyLabel = \"\", AssignedSlot = null, BaseUri = \"about:blank\", BaseUrl = about:blank, \u00b7\u00b7\u00b7 }\nActual:   HtmlSpanElement { AccessKey = \"\", AccessKeyLabel = \"\", AssignedSlot = null, BaseUri = \"about:blank\", BaseUrl = about:blank, \u00b7\u00b7\u00b7 }",
+          "stackTrace": "   at OfficeIMO.Tests.HtmlFoundationProviderContractTests.RetainedDetachedNodeKeepsItsProjectionIdentityAcrossCollection() in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Html.Tests/Html.FoundationProviderContracts.cs:line 187\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+        }
+      ]
+    },
+    {
+      "file": "focused/_evomini_2026-10-01_18_04_47.trx",
+      "sha256": "3d529d05d1bb00d358d011c2bd212b54bb94b04471c6a04ec8824ad6758348c8",
+      "total": 74,
+      "passed": 74,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "full-Drawing-net8.0/_evomini_2026-10-01_18_13_11.trx",
+      "sha256": "f83e24fd8b677b2e9cf4beaa196bee7632bfd77d4d335fa1c529491c21056fd2",
+      "total": 3189,
+      "passed": 3189,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "before/_evomini_2026-10-01_18_02_14.trx",
+      "sha256": "f390d30ff70279f1693bcb2e34d3ef831eeac63c1f00ab651d92724cdb808389",
+      "total": 13,
+      "passed": 4,
+      "failed": 9,
+      "failures": [
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-mono-full\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-420-full-alpha\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-420-limited-alpha\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-mono-full-alpha\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-420-full\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-mono-limited-alpha\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.NativeBilinearColorRowsMatchForEveryMatrixRangeAndAlphaControl(depth: 10)",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.NativeBilinearColorRowsMatchForEveryMatrixRangeAndAlphaControl(Int32 depth) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 24\n   at InvokeStub_DrawingAvifColorTests.NativeBilinearColorRowsMatchForEveryMatrixRangeAndAlphaControl(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-420-limited\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(name: \"avif-main10-mono-limited\")",
+          "message": "System.FormatException : AVIF high-bit-depth composition is not qualified.",
+          "stackTrace": "   at OfficeIMO.Drawing.OfficeAvifColorConverter.Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color, OfficeAv1ReconstructedFrame alpha, OfficeRasterDecodeOptions options) in /_/OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs:line 12\n   at OfficeIMO.Tests.DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(String name) in /Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs:line 45\n   at InvokeStub_DrawingAvifColorTests.FrozenFullAvifMatchesIndependentPixelsIncludingExactAlpha(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        }
+      ]
+    },
+    {
+      "file": "provider-after/_evomini_2026-10-01_18_23_30.trx",
+      "sha256": "dcaf22fd0fba27be52a361c4fbacc79160bc46c79f21362454805b4805f2f305",
+      "total": 21,
+      "passed": 21,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "final-Html-net8.0/_evomini_2026-10-01_18_25_19.trx",
+      "sha256": "e5df9d8f97c022b4718ac0a89fce89e4e87878b851ecd028c4924af8c0752d74",
+      "total": 4021,
+      "passed": 4021,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "html-focused/_evomini_2026-10-01_18_07_47.trx",
+      "sha256": "8de6a7d4920814496292b238824b6981bf3a2faa1b1b2b2286470fe3596e1866",
+      "total": 22,
+      "passed": 22,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "final-Html-net10.0/_evomini_2026-10-01_18_24_12.trx",
+      "sha256": "d862ecd9ab65a851e925c712d115b88d255eca3d8be3b3249b1898d45657e952",
+      "total": 4021,
+      "passed": 4021,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "full-Html-net8.0/_evomini_2026-10-01_18_20_52.trx",
+      "sha256": "beb29d5199b52971a4426ca405202287bb9c9f76902ec0ec97454a705c543cb1",
+      "total": 4019,
+      "passed": 4019,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "file": "provider-reproduction/_evomini_2026-10-01_18_19_40.trx",
+      "sha256": "6a90fab5e6a74db95f27ba53a837ff02a914952076763d0e656e74343fa4fa39",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "failures": []
+    }
+  ],
+  "package": {
+    "inspection": {
+      "package": "OfficeIMO.Core.3.4.4.nupkg",
+      "files": [
+        "_rels/.rels",
+        "OfficeIMO.Core.nuspec",
+        "lib/net10.0/OfficeIMO.Core.dll",
+        "lib/net10.0/OfficeIMO.Core.xml",
+        "lib/net8.0/OfficeIMO.Core.dll",
+        "lib/net8.0/OfficeIMO.Core.xml",
+        "lib/netstandard2.0/OfficeIMO.Core.dll",
+        "lib/netstandard2.0/OfficeIMO.Core.xml",
+        "OfficeIMO.png",
+        "README.md",
+        "Licenses/libvpx-LICENSE.txt",
+        "Licenses/libvpx-PATENTS.txt",
+        "THIRD-PARTY-NOTICES.md",
+        "[Content_Types].xml",
+        "package/services/metadata/core-properties/562568d312f44e3ea98dcae635fcc25c.psmdcp"
+      ],
+      "noExternalRuntimeDependencies": true,
+      "noNativeAssets": true
+    },
+    "consumers": [
+      {
+        "framework": ".NET 8.0.23",
+        "assembly": "3.4.4+55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+        "cases": [
+          {
+            "file": "avif-main10-420-full-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-420-full.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-420-limited-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-420-limited.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-full-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-full.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-limited-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-limited.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          }
+        ]
+      },
+      {
+        "framework": ".NET 10.0.12",
+        "assembly": "3.4.4+55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+        "cases": [
+          {
+            "file": "avif-main10-420-full-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-420-full.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-420-limited-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-420-limited.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-full-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-full.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-limited-alpha.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          },
+          {
+            "file": "avif-main10-mono-limited.avif",
+            "maxRgbError": 0,
+            "maxAlphaError": 0,
+            "inputPreserved": true,
+            "streamRestored": true
+          }
+        ]
+      }
+    ]
+  },
+  "localReviews": [
+    {
+      "task": "avif_main10_color_public_review",
+      "scope": "Color conversion, alpha scaling, container depth agreement, public decode and fixtures",
+      "fingerprint": "4650d7f9d0e357c43269b9698c48145983090678",
+      "findings": "One P3 stale public capability constant corrected; no P0-P2",
+      "boundary": "candidate-reviewed",
+      "confirmationRequired": false
+    },
+    {
+      "task": "detached_projection_lifetime_review",
+      "scope": "Independent two-file detached projection lifetime fix and regressions",
+      "fingerprint": "640b348f151a2cfc102e4987d2eb875c41276547",
+      "findings": "No P0-P3",
+      "boundary": "current",
+      "confirmationRequired": false
+    }
+  ],
+  "providerDefect": {
+    "classification": "Pre-existing reachable identity/lifetime defect found by broad HTML validation, independently reproduced by forced collection",
+    "fixCommit": "55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+    "contract": "Retained detached native nodes preserve identity and owner projection; releasing them permits graph collection",
+    "focusedPassed": 21,
+    "fullHtmlPassedPerFramework": 4021
+  },
+  "h4": {
+    "source": {
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "commit": "55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+      "worktreeDirty": false,
+      "caseCount": 8
+    },
+    "caseCount": 8,
+    "passed": true,
+    "failures": [],
+    "reportSha256": "95735b76f00ca845c0502bb35be3099ae84c705b52cf0cfdb92645e43bcb5653"
+  },
+  "nasa": {
+    "allElevenOfficeimoIntentsByteIdentical": true,
+    "comparison": [
+      {
+        "file": "officeimo-print-browser-ua.pdf",
+        "sameBytes": true,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "file": "officeimo-print-fit-1200-local-fonts.pdf",
+        "sameBytes": true,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376"
+      },
+      {
+        "file": "officeimo-print-fit-1200.pdf",
+        "sameBytes": true,
+        "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376"
+      },
+      {
+        "file": "officeimo-print-fit-browser-viewport.pdf",
+        "sameBytes": true,
+        "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68"
+      },
+      {
+        "file": "officeimo-print-zero-margin-local-fonts.pdf",
+        "sameBytes": true,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "file": "officeimo-print-zero-margin.pdf",
+        "sameBytes": true,
+        "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e"
+      },
+      {
+        "file": "officeimo-print.pdf",
+        "sameBytes": true,
+        "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e"
+      },
+      {
+        "file": "officeimo-screen-media-local-fonts.pdf",
+        "sameBytes": true,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8"
+      },
+      {
+        "file": "officeimo-screen-media.pdf",
+        "sameBytes": true,
+        "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8"
+      },
+      {
+        "file": "officeimo-screen-snapshot-local-fonts.pdf",
+        "sameBytes": true,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2"
+      },
+      {
+        "file": "officeimo-screen-snapshot.pdf",
+        "sameBytes": true,
+        "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2"
+      }
+    ],
+    "zeroMarginPages": 16,
+    "zeroMarginImageAndMaskInventoryRows": 24,
+    "referenceObservation": {
+      "version": "0.9.20",
+      "completed": true,
+      "pageCount": 14,
+      "sha256": "924f509b8f8951ac4536ba389b7c364517785875f8a406fa4427f6b4387fd8c6",
+      "note": "This current replay completes with 14 pages. Earlier bookmark-geometry failures remain historical observations at their recorded source boundaries; neither success nor page count establishes visual/content equivalence."
+    }
+  },
+  "macosStaticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-10-01T16:33:39.517635+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4735.6696,
+      "peakWorkingSetBytes": 366854144,
+      "memorySampleCount": 120,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4652.623,
+          "managedAllocatedBytes": 1083714056,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11236.2073,
+      "peakWorkingSetBytes": 548929536,
+      "memorySampleCount": 283,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 1998.9977,
+          "managedAllocatedBytes": 894616224,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1890.6408,
+          "managedAllocatedBytes": 895987160,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1910.886,
+          "managedAllocatedBytes": 895957584,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.9454,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "macosH10Budget": {
+    "sourceCommit": "55bce9e266e0f6a06e21bb5c443c0177ebe03de5",
+    "sourceClean": true,
+    "ceilingsChanged": false,
+    "failures": [],
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4432.9353,
+        "managedAllocatedBytes": 2109707848,
+        "processMilliseconds": 4836.3672,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 486768640,
+          "sampleCount": 151,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/pdf-print/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4413.5068,
+        "managedAllocatedBytes": 2113797336,
+        "processMilliseconds": 4800.2325,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 516456448,
+          "sampleCount": 150,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/pdf-print-zero-margin/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3522.673,
+        "managedAllocatedBytes": 1652557752,
+        "processMilliseconds": 3903.9382,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 442187776,
+          "sampleCount": 122,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/pdf-screen-media/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3639.5182,
+        "managedAllocatedBytes": 1772071152,
+        "processMilliseconds": 4038.1168,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 545013760,
+          "sampleCount": 126,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/pdf-screen-snapshot/html-mhtml-evidence.json"
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2515.4507,
+        "managedAllocatedBytes": 962855168,
+        "processMilliseconds": 2741.9445,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 319471616,
+          "sampleCount": 86,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491339,
+        "outputSha256": "e35a9811face0bb6c03c066574d01db20bc3ded86d30d0a89c360694663753df",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/editable-word/word/report.json"
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2010.4213,
+        "managedAllocatedBytes": 941812856,
+        "processMilliseconds": 2196.5123,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 342278144,
+          "sampleCount": 69,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528698,
+        "outputSha256": "f52d3e4df1abacceb4aa565fd27112da9c248379ae719557d90d719029b2c17b",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/editable-excel/excel/report.json"
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2986.8215,
+        "managedAllocatedBytes": 1027310104,
+        "processMilliseconds": 3163.6787,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 347815936,
+          "sampleCount": 100,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499704,
+        "outputSha256": "37662d279a695f8898ca954fd460a2beb6de28509083ca572a0d27b79afe87b8",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/editable-powerpoint/powerpoint/report.json"
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1563.9097,
+        "managedAllocatedBytes": 644823480,
+        "processMilliseconds": 1745.1925,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 269713408,
+          "sampleCount": 55,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "a0d3227faffc566ba9161edabb9b09b881fb44f6c212b1a62cb8a4c96a1a7d92",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/editable-onenote/onenote/report.json"
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1732.9452,
+        "managedAllocatedBytes": 859356632,
+        "processMilliseconds": 1919.8658,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 231768064,
+          "sampleCount": 60,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/editable-rtf/rtf/report.json"
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1404.355,
+        "managedAllocatedBytes": 646301912,
+        "processMilliseconds": 1582.7238,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 267010048,
+          "sampleCount": 50,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26/editable-markdown/markdown/report.json"
+      }
+    ]
+  },
+  "builds": [
+    {
+      "file": "static-budget-build.log",
+      "sha256": "1de6a6a6119b0243146b5fae7c5587f92538210b5ad23f263d3a1799eed03189",
+      "zeroWarnings": true
+    },
+    {
+      "file": "comparison-build.log",
+      "sha256": "391859e63f8c0bd7b0e9b82133168c826f733ca1e75c6a88de95ef2ae06540d0",
+      "zeroWarnings": true
+    },
+    {
+      "file": "h10-budget-build.log",
+      "sha256": "1c40d59a50cd97910a9a04091495f292685d8061179141c45732f005056ef8bc",
+      "zeroWarnings": true
+    },
+    {
+      "file": "editable-build.log",
+      "sha256": "f528930fa01618d773af4067836102d2ceccd6aa09f1b25ad0c2836db1537dde",
+      "zeroWarnings": true
+    }
+  ],
+  "corePack": {
+    "sha256": "d9e6ab293f17298e871bb23caa5a121e47704a8173de87bba97b8669f84356b3",
+    "zeroWarnings": true,
+    "note": "Pack command succeeds and emits no compiler/package warning lines; all three managed target frameworks are in the inspected package."
+  },
+  "remaining": [
+    "Non-reduced AV1 still headers and broader independently qualified Baseline support.",
+    "Strict Chromium alpha-mask matching remains a failed independent comparison; preserve exact native normalization and the recorded browser limit.",
+    "Windows/net472 runtime and Windows/Linux operation ceilings.",
+    "Frozen language-pattern hyphenation, selected SVG/resource and MathML/PDF semantic/conformance gaps; containing H10 visual/resource/editable acceptance."
+  ],
+  "retainedArtifacts": [
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-420-full-alpha-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-420-full-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-420-limited-alpha-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-420-limited-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h10-budget-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-h4-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-nasa-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-static-budget-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-color-work-0b3190d87",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-mono-full-alpha-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-mono-full-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-mono-limited-alpha-clean-55bce9e26",
+    "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-mono-limited-clean-55bce9e26"
+  ],
+  "cleanup": {
+    "removedTargets": 39,
+    "removedBytes": 556082723,
+    "allAbsent": true,
+    "nativeReplayAfterCleanup": {
+      "main10Cases": 768,
+      "main8Cases": 168,
+      "identical": true
+    }
+  },
+  "retainedArtifactBytes": 168115149
+}

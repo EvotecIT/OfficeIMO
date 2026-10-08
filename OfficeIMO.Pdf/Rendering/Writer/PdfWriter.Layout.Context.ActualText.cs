@@ -8,8 +8,13 @@ internal static partial class PdfWriter {
             double width = 0D, double height = 0D) {
             // One replacement owns both the paint and its invisible anchor. Artifact marking
             // alone does not stop independent readers from extracting the painted glyphs again.
+            bool paintOnly = actualText.Length == 0;
             bool hasBounds = width > 0D && height > 0D;
-            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            int? markedContentId = paintOnly
+                ? null : RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            // Secondary paint has no second structure-tree owner. Classify it as
+            // an artifact while retaining its empty replacement and interactions.
+            if (paintOnly) sb.Append("/Artifact BMC\n");
             sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(actualText));
             // Other readers use the standard invisible glyph geometry. This optional
             // owner hint lets our reader distinguish it from a legacy point carrier
@@ -23,7 +28,8 @@ internal static partial class PdfWriter {
             string fontResource = GetFontResourceName(font, null, font);
             // Readers can derive replacement geometry from the first and last glyph.
             // Matching anchors keep arbitrary painted baselines out of that geometry.
-            WriteLogicalTextAnchor(font, fontResource, anchorX, anchorY, actualText, width, height).RestoreState();
+            if (actualText.Length > 0)
+                WriteLogicalTextAnchor(font, fontResource, anchorX, anchorY, actualText, width, height).RestoreState();
             bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
             bool previousStructure = _suppressCanvasStructureRegistration;
             bool previousActualTextChildren = _suppressCanvasActualTextChildren;
@@ -37,12 +43,15 @@ internal static partial class PdfWriter {
                 _suppressCanvasStructureRegistration = previousStructure;
                 _suppressCanvasActualTextChildren = previousActualTextChildren;
             }
-            var content = WriteLogicalTextAnchor(font, fontResource, anchorX, anchorY, actualText, width, height);
+            var content = actualText.Length > 0
+                ? WriteLogicalTextAnchor(font, fontResource, anchorX, anchorY, actualText, width, height)
+                : null;
             // Close the replacement while its anchor font and text state are active.
             // Restoring the painted text state first changes reader spacing heuristics.
             sb.Append("EMC\n");
-            content.RestoreState();
-            MarkSimpleFont(font);
+            if (paintOnly) sb.Append("EMC\n");
+            content?.RestoreState();
+            if (actualText.Length > 0) MarkSimpleFont(font);
             pageDirty = true;
         }
 
@@ -80,7 +89,8 @@ internal static partial class PdfWriter {
                 ? anchor.AdvanceWidth1000
                 : anchor.PositionedGlyphs.Sum(glyph => (double)glyph.NominalWidth1000);
             return new PdfTextShowCommand(anchor.GlyphHex,
-                advanceWidth1000: nominalAdvance, wordSpaceCount: anchor.WordSpaceCount);
+                advanceWidth1000: nominalAdvance, wordSpaceCount: anchor.WordSpaceCount, glyphCount: anchor.GlyphCount,
+                unitsPerEm: anchor.UnitsPerEm, fontMetricScale: anchor.FontMetricScale);
         }
 
         private static double ResolveLogicalAnchorScaling(PdfTextShowCommand anchor, double width, double height) {

@@ -41,7 +41,11 @@ public enum PdfCanvasStructureRole {
     /// <summary>Footnote or endnote content associated with the document body.</summary>
     Note,
     /// <summary>Mathematical expression; use AlternativeText for its accessible description.</summary>
-    Formula
+    Formula,
+    /// <summary>Figure whose paint and optional text are supplied by the caller. Alternative text is optional; its absence does not establish accessibility conformance.</summary>
+    Figure,
+    /// <summary>Group of table body rows.</summary>
+    TableBody
 }
 
 /// <summary>Scope of a tagged table header cell.</summary>

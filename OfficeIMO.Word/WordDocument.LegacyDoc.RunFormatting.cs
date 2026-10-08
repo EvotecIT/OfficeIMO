@@ -84,6 +84,10 @@ namespace OfficeIMO.Word {
                 run.KerningMinimumFontSizePoints = legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D;
             }
 
+            if (legacyRun.CharacterScalePercentage.HasValue) {
+                run.CharacterScale = legacyRun.CharacterScalePercentage.Value;
+            }
+
             if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
                 run.Spacing = legacyRun.CharacterSpacingTwips ?? 0;
             }

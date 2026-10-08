@@ -9,12 +9,17 @@ namespace OfficeIMO.Markdown.Html;
 /// Converts HTML fragments or documents into OfficeIMO.Markdown documents.
 /// </summary>
 internal sealed partial class HtmlToMarkdownConverter {
+    private readonly List<HtmlDiagnostic> _diagnostics = new();
+
+    internal IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
+
     internal sealed class ConversionContext {
         public ConversionContext(HtmlToMarkdownOptions options) {
             Options = options ?? throw new ArgumentNullException(nameof(options));
         }
 
         public HtmlToMarkdownOptions Options { get; }
+        public List<HtmlDiagnostic> Diagnostics { get; } = new();
         public int SavedBase64ImageCount { get; set; }
         public int DefinitionListEntryExpansionCount { get; set; }
         public Dictionary<string, string> SavedBase64ImagesBySource { get; } = new(StringComparer.Ordinal);
@@ -65,7 +70,12 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
         ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
-        return ConvertFilteredDocument(document, effectiveOptions);
+        // Native table materialization changes the DOM. Clone only when this
+        // read-only projection actually contains an ARIA table candidate.
+        IHtmlDocument conversionDocument = HasRoleTableCandidate(document)
+            ? HtmlDocumentParser.CloneDocument(document)
+            : document;
+        return ConvertFilteredDocument(conversionDocument, effectiveOptions);
     }
 
     /// <summary>
@@ -83,6 +93,20 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private MarkdownDoc ConvertFilteredDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
+        _diagnostics.Clear();
+        if (HasRoleTableCandidate(document)) {
+            HtmlRoleTableNormalizer.Normalize(
+                document,
+                onUnsupported: table => _diagnostics.Add(new HtmlDiagnostic(
+                    "OfficeIMO.Markdown.Html",
+                    HtmlConversionDiagnosticCodes.ContentApproximated,
+                    "An ARIA table with unsupported row or cell structure remained in document flow instead of becoming a Markdown table.",
+                    HtmlDiagnosticSeverity.Warning,
+                    source: !string.IsNullOrEmpty(table.Id) ? "#" + table.Id : table.LocalName + "[role=table]",
+                    detail: "unsupported ARIA table structure",
+                    lossKind: OfficeConversionLossKind.Approximation)),
+                retainOriginalCellElement: false);
+        }
         effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         var context = new ConversionContext(effectiveOptions);
 
@@ -91,6 +115,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         var markdown = MarkdownDoc.Create();
         markdown.AddRange(ConvertNodesToBlocks(root.ChildNodes, context));
+        _diagnostics.AddRange(context.Diagnostics);
 
         return MarkdownDocumentTransformPipeline.Apply(
             markdown,
@@ -98,12 +123,23 @@ internal sealed partial class HtmlToMarkdownConverter {
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
     }
 
+    private static bool HasRoleTableCandidate(IHtmlDocument document) =>
+        document.QuerySelectorAll("[role]").Any(element =>
+            element.LocalName != "table" && HtmlAccessibilitySemantics.HasRole(element, "table"));
+
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {
+        string name = element.TagName;
+        if (context.Options.UseBodyContentsOnly
+            && string.Equals(element.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+            && (name is "HEAD" or "META" or "LINK" or "BASE" or "TITLE")) {
+            // Visible-content projections may carry document metadata into the
+            // body. It is not article content even when raw HTML is preserved.
+            return true;
+        }
         if (!context.Options.RemoveScriptsAndStyles) {
             return ShouldSuppressListingCardMetadataElement(element, context);
         }
 
-        string name = element.TagName;
         return name.Equals("SCRIPT", StringComparison.OrdinalIgnoreCase)
                || name.Equals("STYLE", StringComparison.OrdinalIgnoreCase)
                || name.Equals("NOSCRIPT", StringComparison.OrdinalIgnoreCase)
