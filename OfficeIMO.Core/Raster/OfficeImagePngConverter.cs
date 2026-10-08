@@ -22,7 +22,7 @@ public static class OfficeImagePngConverter {
 
         if (image == null) return false;
         bool orientationSwapsAxes = false;
-        if (decodeInfo.Format == OfficeImageFormat.Webp && imageBytes != null) {
+        if (effective.ApplyExifOrientation && decodeInfo.Format == OfficeImageFormat.Webp && imageBytes != null) {
             OfficeImageOrientation orientation = OfficeRasterOrientation.ReadWebpOrientation(imageBytes, cancellationToken);
             if (orientation != OfficeImageOrientation.Normal) {
                 long retained = imageBytes.LongLength + (long)image.Width * image.Height * 8;

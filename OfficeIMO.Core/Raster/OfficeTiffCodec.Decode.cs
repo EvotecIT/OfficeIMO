@@ -91,7 +91,7 @@ public static partial class OfficeTiffCodec {
                     return false;
                 }
                 int orientation = 1;
-                if (!effective.IgnoreTiffOrientation &&
+                if (effective.ApplyExifOrientation && !effective.IgnoreTiffOrientation &&
                     !TryReadScalarOrDefault(encodedBytes, entries, 274, littleEndian, 1, out orientation)) return false;
                 if (!TryGetBaseSampleCount(photometric, out int baseSamples) ||
                     !TryReadScalarOrDefault(encodedBytes, entries, 277, littleEndian, baseSamples, out int samples)) {

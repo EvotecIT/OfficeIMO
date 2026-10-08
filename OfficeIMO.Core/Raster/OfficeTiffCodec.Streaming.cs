@@ -130,7 +130,8 @@ public static partial class OfficeTiffCodec {
             WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
         }
         WriteShortEntry(output, ref entry, 284, 1);
-        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
+        GetEncodingResolution(options, out double resolutionX, out double resolutionY, out int resolutionUnit);
+        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, resolutionUnit);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)options.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
@@ -140,8 +141,8 @@ public static partial class OfficeTiffCodec {
         WriteUInt16(output, bitsPerSampleOffset + 4, 8);
         WriteUInt16(output, bitsPerSampleOffset + 6, 8);
         if (options.WriteResolution) {
-            WriteRational(output, xResolutionOffset, options.DpiX);
-            WriteRational(output, yResolutionOffset, options.DpiY);
+            WriteRational(output, xResolutionOffset, resolutionX);
+            WriteRational(output, yResolutionOffset, resolutionY);
         }
         return output;
     }

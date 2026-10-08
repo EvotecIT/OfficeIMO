@@ -87,6 +87,23 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 ## Paragraph font size and line spacing
 
+`PdfOptions.TextWhitespaceMode` controls ordinary spaces in flow text.
+`Collapse`, the default, keeps one separator between words and discards leading
+spaces. `Preserve` retains leading and repeated spaces within a line, counts each
+space during justification, and discards excess spacing at an automatic wrap.
+`Preformatted` retains literal spacing even when it creates additional blank
+lines. Tabs and explicit line breaks keep their separate behavior.
+
+```csharp
+var options = new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
+var document = PdfDocument.Create(options);
+document.Content.Paragraph(p => p.Text("  First   second"));
+document.Save("preserved-spacing.pdf");
+```
+
+The existing `PreserveTextWhitespace` property remains available. Setting it to
+`true` selects `Preformatted`; setting it to `false` selects `Collapse`.
+
 Paragraphs can use a fallback font size independently of the document default:
 
 ```csharp
