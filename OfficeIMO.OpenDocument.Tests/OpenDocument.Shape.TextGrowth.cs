@@ -128,7 +128,15 @@ public sealed class OpenDocumentShapeTextGrowthTests {
         box.Paragraphs[0].FontSize = OdfLength.Points(12); box.FillColor = OdfColor.Parse("#e0f0ff");
         return document;
     }
-    private static OfficeDrawingShape Paint(OdfConversionResult<OfficeDrawing> result) => result.Value.Elements.OfType<OfficeDrawingShape>().Single(s => s.Shape.Kind == OfficeShapeKind.Rectangle);
+    private static OfficeDrawingShape Paint(OdfConversionResult<OfficeDrawing> result) => Shapes(result.Value).Single(s => s.Shape.Kind == OfficeShapeKind.Rectangle);
+    private static System.Collections.Generic.IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) {
+        foreach (var element in drawing.Elements) {
+            if (element is OfficeDrawingShape shape) yield return shape;
+            // A growing frame can extend beyond the page and retain its paint in a transformed group.
+            else if (element is OfficeDrawingEffectGroup group)
+                foreach (var child in Shapes(group.Drawing)) yield return child;
+        }
+    }
     private static string[] XmlState(OdfDocument document) => new[] { document.GetXml("content.xml").ToString(), document.GetXml("styles.xml").ToString() };
     private static void AssertClipped(OdfConversionReport report) => Assert.Contains(report.Mappings,
         m => m.Feature.EndsWith(":text-clipped", StringComparison.Ordinal) && m.Status == OdfConversionMappingStatus.Unsupported);

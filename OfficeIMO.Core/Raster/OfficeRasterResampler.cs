@@ -12,7 +12,33 @@ public enum OfficeRasterResamplingMode {
     /// <summary>Area-averages downsampled axes and linearly interpolates enlarged axes in premultiplied-alpha space.</summary>
     Area,
     /// <summary>Uses a radius-three Lanczos filter with antialiasing and premultiplied-alpha sampling.</summary>
-    Lanczos3
+    Lanczos3,
+    /// <summary>Antialiased cubic interpolation with B=0 and C=0.5.</summary>
+    Bicubic,
+    /// <summary>A constant half-pixel-support reconstruction kernel.</summary>
+    Box,
+    /// <summary>A one-pixel triangular reconstruction kernel with antialiasing.</summary>
+    Triangle,
+    /// <summary>A smooth one-pixel Hermite reconstruction kernel.</summary>
+    Hermite,
+    /// <summary>A radius-two windowed sinc reconstruction kernel.</summary>
+    Lanczos2,
+    /// <summary>A radius-five windowed sinc reconstruction kernel.</summary>
+    Lanczos5,
+    /// <summary>A radius-eight windowed sinc reconstruction kernel.</summary>
+    Lanczos8,
+    /// <summary>A balanced cubic kernel with B=C=1/3.</summary>
+    MitchellNetravali,
+    /// <summary>The Catmull-Rom cubic kernel, mathematically equal to Bicubic (B=0, C=0.5).</summary>
+    CatmullRom,
+    /// <summary>The Robidoux cubic kernel with B=0.3782157551 and C=0.3108921225.</summary>
+    Robidoux,
+    /// <summary>The sharper Robidoux cubic kernel with B=0.2620145124 and C=0.3689927438.</summary>
+    RobidouxSharp,
+    /// <summary>A cubic B-spline reconstruction kernel with B=1 and C=0.</summary>
+    Spline,
+    /// <summary>A radius-three sinc kernel with a parabolic Welch window.</summary>
+    Welch
 }
 
 /// <summary>Color space in which raster color channels are filtered.</summary>
@@ -57,10 +83,7 @@ public static partial class OfficeRasterResampler {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
-        if (mode != OfficeRasterResamplingMode.NearestNeighbor &&
-            mode != OfficeRasterResamplingMode.Bilinear &&
-            mode != OfficeRasterResamplingMode.Area &&
-            mode != OfficeRasterResamplingMode.Lanczos3) {
+        if (mode < OfficeRasterResamplingMode.NearestNeighbor || mode > OfficeRasterResamplingMode.Welch) {
             throw new ArgumentOutOfRangeException(nameof(mode));
         }
         if (colorSpace != OfficeRasterResamplingColorSpace.EncodedSrgb &&
@@ -74,7 +97,7 @@ public static partial class OfficeRasterResampler {
             return OfficeRasterImage.FromRgba32(width, height, source.PixelBuffer);
         }
 
-        if (mode == OfficeRasterResamplingMode.Area || mode == OfficeRasterResamplingMode.Lanczos3) {
+        if (mode != OfficeRasterResamplingMode.NearestNeighbor && mode != OfficeRasterResamplingMode.Bilinear) {
             return ResizeSeparable(source, width, height, mode, colorSpace, retainedManagedBytes, cancellationToken, resamplingWorkStarted);
         }
 

@@ -1,0 +1,109 @@
+Version =19
+VersionRequired =19
+Checksum =122868164
+Begin Form
+    DividingLines = NotDefault
+    AllowDesignChanges = NotDefault
+    DefaultView =0
+    PictureAlignment =2
+    DatasheetGridlinesBehavior =3
+    GridY =10
+    Width =4800
+    DatasheetFontHeight =11
+    ItemSuffix =3
+    Right =26170
+    Bottom =11940
+    DatasheetGridlinesColor =15062992
+    RecSrcDt = Begin
+        0x25e56416f39be640
+    End
+    GUID = Begin
+        0x89b2bed59a1b194090364866b7fbe2ba
+    End
+    RecordSource ="Contacts"
+    Caption ="Synthetic form 2"
+    DatasheetFontName ="Calibri"
+    NoSaveCTIWhenDisabled =1
+    Begin
+        Begin Label
+            BackStyle =0
+            TextFontFamily =0
+            FontSize =11
+            BorderColor =16777215
+            ForeColor =13598509
+            FontName ="Aptos"
+        End
+        Begin TextBox
+            FELineBreak = NotDefault
+            TextFontFamily =0
+            BorderLineStyle =0
+            Width =1701
+            LabelX =-1701
+            FontSize =11
+            BorderColor =13750737
+            ForeColor =2102279
+            FontName ="Aptos"
+        End
+        Begin ComboBox
+            TextFontFamily =0
+            BorderLineStyle =0
+            Width =1701
+            LabelX =-1701
+            FontSize =11
+            BorderColor =13750737
+            ForeColor =2102279
+            FontName ="Aptos"
+        End
+        Begin Section
+            Height =3600
+            Name ="Detail"
+            GUID = Begin
+                0x6ca493a37085a44191fd21bbb0ced6a9
+            End
+            Begin
+                Begin Label
+                    OverlapFlags =85
+                    Left =120
+                    Top =120
+                    Width =3000
+                    Height =360
+                    Name ="Title2"
+                    Caption ="Caption 1"
+                    GUID = Begin
+                        0x6912a8f6a7505449a5208415084dcb0a
+                    End
+                End
+                Begin TextBox
+                    OverlapFlags =85
+                    IMESentenceMode =3
+                    Left =120
+                    Top =720
+                    Width =3000
+                    Height =360
+                    Name ="DisplayName2"
+                    ControlSource ="DisplayName"
+                    GUID = Begin
+                        0x13de2ffc29a97e4a93abe5be2b891d85
+                    End
+                End
+                Begin ComboBox
+                    OverlapFlags =85
+                    IMESentenceMode =3
+                    Left =120
+                    Top =1320
+                    Width =3000
+                    Height =360
+                    TabIndex =1
+                    ColumnInfo ="\"\";\"\";\"4\";\"4\""
+                    GUID = Begin
+                        0x4d96f363e3b8924c96b787e6b63d53d2
+                    End
+                    Name ="GroupChoice2"
+                    ControlSource ="GroupId"
+                    RowSourceType ="Table/Query"
+                    RowSource ="SELECT Id, Label FROM Groups; "
+                End
+            End
+        End
+    End
+End

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -11,16 +12,33 @@ public static partial class OfficeWebpCodec {
         int width,
         int height,
         bool hasAlpha,
-        byte[] rgba) {
+        byte[] rgba,
+        int literalFileLength,
+        long metadataBytes,
+        long additionalRetainedManagedBytes,
+        CancellationToken cancellationToken) {
         try {
             // The literal encoder remains available for larger images. Keep the optional
             // compression candidate below a separate allocation ceiling because it owns
             // residual pixels and a dynamic bit stream at the same time.
             if (rgba.Length / 4 > Vp8lCompressionMaximumPixels) return null;
-            var residuals = CreateVp8lResiduals(width, height, rgba);
+            cancellationToken.ThrowIfCancellationRequested();
+            int maximumBitsBytes = checked((int)((rgba.LongLength * 15L + 7L) / 8L) + 4096);
+            int maximumCapacity = Math.Max(128, rgba.Length / 4);
+            while (maximumCapacity < maximumBitsBytes) maximumCapacity = checked(maximumCapacity * 2);
+            // Reserve residuals, dictionary growth, Huffman scratch, the bit writer's growth
+            // peak, its final copy, the prefixed payload, and the eventual RIFF output.
+            // Compression is optional: retain the bounded literal path if this conservative
+            // candidate plan cannot coexist with caller-owned buffers.
+            long compressionBytes = checked(rgba.LongLength + 24L +
+                Math.Min(rgba.Length / 4, Vp8lMatchTableMaximumEntries) * 64L + 128L * 1024L +
+                maximumCapacity * 3L + 2L * (maximumBitsBytes + 24L));
+            if (!IsEncodingWorkingSetWithinLimit(rgba.LongLength, literalFileLength, compressionBytes,
+                    metadataBytes, additionalRetainedManagedBytes)) return null;
+            var residuals = CreateVp8lResiduals(width, height, rgba, cancellationToken);
             var frequencies = new Vp8lEncodingFrequencies();
             var lastPosition = new Dictionary<uint, int>();
-            VisitVp8lEncodingTokens(residuals, lastPosition, (color, length, distance) => {
+            VisitVp8lEncodingTokens(residuals, lastPosition, cancellationToken, (color, length, distance) => {
                 if (distance == 0) {
                     frequencies.Green[(int)(color >> 8) & 255]++;
                     frequencies.Red[(int)(color >> 16) & 255]++;
@@ -33,7 +51,7 @@ public static partial class OfficeWebpCodec {
                     frequencies.Distance[distancePrefix]++;
                 }
             });
-            var writer = new DynamicLsbBitWriter(Math.Max(128, rgba.Length / 4));
+            var writer = new DynamicLsbBitWriter(Math.Max(128, rgba.Length / 4), maximumBitsBytes);
             writer.WriteBits((uint)(width - 1), 14);
             writer.WriteBits((uint)(height - 1), 14);
             writer.WriteBits(hasAlpha ? 1U : 0U, 1);
@@ -65,7 +83,7 @@ public static partial class OfficeWebpCodec {
             var blueCodes = new Vp8lCodebook(blueLengths);
             var alphaCodes = new Vp8lCodebook(alphaLengths);
             var distanceCodes = new Vp8lCodebook(distanceLengths);
-            VisitVp8lEncodingTokens(residuals, lastPosition, (color, length, distance) => {
+            VisitVp8lEncodingTokens(residuals, lastPosition, cancellationToken, (color, length, distance) => {
                 if (distance == 0) {
                     greenCodes.Write(writer, (int)(color >> 8) & 255);
                     redCodes.Write(writer, (int)(color >> 16) & 255);
@@ -80,10 +98,17 @@ public static partial class OfficeWebpCodec {
                     if (distanceExtraBits > 0) writer.WriteBits((uint)distanceExtraValue, distanceExtraBits);
                 }
             });
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] bits = writer.Finish();
+            cancellationToken.ThrowIfCancellationRequested();
             var payload = new byte[bits.Length + 1];
             payload[0] = 0x2F;
-            Buffer.BlockCopy(bits, 0, payload, 1, bits.Length);
+            for (int offset = 0; offset < bits.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(16384, bits.Length - offset);
+                Buffer.BlockCopy(bits, offset, payload, 1 + offset, count);
+                offset += count;
+            }
             return payload;
         } catch (OverflowException) {
             return null;
@@ -93,10 +118,11 @@ public static partial class OfficeWebpCodec {
     // Replaying the deterministic match walk avoids a pixel-sized token buffer.
     // The same bounded dictionary is cleared and reused between frequency and emission passes.
     private static void VisitVp8lEncodingTokens(uint[] residuals, Dictionary<uint, int> lastPosition,
-        Action<uint, int, int> visit) {
+        CancellationToken cancellationToken, Action<uint, int, int> visit) {
         lastPosition.Clear();
         int position = 0;
         while (position < residuals.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int matchLength = 0;
             int matchDistance = 0;
             uint current = residuals[position];
@@ -105,6 +131,7 @@ public static partial class OfficeWebpCodec {
                 int maximum = Math.Min(4096, residuals.Length - position);
                 while (matchLength < maximum &&
                        residuals[position + matchLength] == residuals[position + matchLength - distance]) {
+                    if ((matchLength & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                     matchLength++;
                 }
                 if (matchLength >= 3 && CanEncodeVp8lPrefix(checked(distance + 120), 40)) {
@@ -114,6 +141,7 @@ public static partial class OfficeWebpCodec {
             if (matchDistance > 0) {
                 visit(0, matchLength, matchDistance);
                 for (int index = 0; index < matchLength; index++) {
+                    if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                     RememberVp8lPosition(lastPosition, residuals[position + index], position + index);
                 }
                 position += matchLength;
@@ -141,10 +169,12 @@ public static partial class OfficeWebpCodec {
         lastPosition[color] = position;
     }
 
-    private static uint[] CreateVp8lResiduals(int width, int height, byte[] rgba) {
+    private static uint[] CreateVp8lResiduals(int width, int height, byte[] rgba, CancellationToken cancellationToken) {
         var predicted = new uint[checked(width * height)];
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
+                if ((x & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int position = y * width + x;
                 int offset = position * 4;
                 uint color = (uint)(rgba[offset + 3] << 24 | rgba[offset] << 16 | rgba[offset + 1] << 8 | rgba[offset + 2]);
@@ -300,17 +330,21 @@ public static partial class OfficeWebpCodec {
 
     private sealed class DynamicLsbBitWriter : ILsbBitWriter {
         private readonly List<byte> _bytes;
+        private readonly int _maximumBytes;
         private ulong _buffer;
         private int _bitCount;
 
-        internal DynamicLsbBitWriter(int capacity) => _bytes = new List<byte>(capacity);
+        internal DynamicLsbBitWriter(int capacity, int maximumBytes) {
+            _bytes = new List<byte>(capacity);
+            _maximumBytes = maximumBytes;
+        }
 
         public void WriteBits(uint value, int count) {
             ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
             _buffer |= ((ulong)value & mask) << _bitCount;
             _bitCount += count;
             while (_bitCount >= 8) {
-                _bytes.Add((byte)_buffer);
+                AddByte((byte)_buffer);
                 _buffer >>= 8;
                 _bitCount -= 8;
             }
@@ -318,7 +352,7 @@ public static partial class OfficeWebpCodec {
 
         public void Flush() {
             if (_bitCount == 0) return;
-            _bytes.Add((byte)_buffer);
+            AddByte((byte)_buffer);
             _buffer = 0;
             _bitCount = 0;
         }
@@ -326,6 +360,11 @@ public static partial class OfficeWebpCodec {
         internal byte[] Finish() {
             Flush();
             return _bytes.ToArray();
+        }
+
+        private void AddByte(byte value) {
+            if (_bytes.Count >= _maximumBytes) throw new OverflowException("WebP compression exceeded its buffer plan.");
+            _bytes.Add(value);
         }
     }
 }

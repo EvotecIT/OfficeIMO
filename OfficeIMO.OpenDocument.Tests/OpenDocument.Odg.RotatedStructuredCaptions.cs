@@ -40,8 +40,9 @@ public sealed partial class OpenDocumentOdgLineLabelTests {
                 graphic.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Fo + "padding-" + side.Item1, OdfLength.Points(side.Item2).ToString());
             var metrics = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
             double stop = OdfLength.Centimeters(1.5).ToPoints(), bodyStart = OdfLength.Centimeters(.6).ToPoints();
-            double intrinsic = Math.Max(stop - metrics.MeasureText("123", 10, "Arial") + metrics.MeasureText("123,45", 10, "Arial"),
-                bodyStart + metrics.MeasureText("A", 10, "Arial") + metrics.MeasureText("Next", 10, "Arial"));
+            double current = bodyStart + metrics.MeasureText("A", 10, "Arial");
+            double intrinsic = Math.Max(Math.Max(current, stop - metrics.MeasureText("123", 10, "Arial")) + metrics.MeasureText("123,45", 10, "Arial"),
+                Math.Max(current, stop - metrics.MeasureText("Next", 10, "Arial")) + metrics.MeasureText("Next", 10, "Arial"));
             double routeWidth = line ? 150 : Math.Abs(end.X - start.X);
             double innerWidth = area == "justify" ? routeWidth - 25 : intrinsic;
             double expected = area switch { "left" => 20, "right" => routeWidth - 5 - innerWidth, _ => 20 + (routeWidth - 25 - innerWidth) / 2 };

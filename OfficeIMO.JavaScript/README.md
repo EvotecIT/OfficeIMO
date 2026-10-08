@@ -57,8 +57,21 @@ saveBlob(await writeCsv(rows, { columns }), "sales.csv");
 | Write a table to a destination | `writeXlsxTo(rows, destination, options)` / `writeCsvTo(...)` / `writePdfTo(...)` | `{ rows, columns, bytes }` |
 | Multiple worksheets, registered styles, images or extra parts | `new Workbook(options)`, `addWorksheet`, `addRows` | `toBlob()` or streamed `finish()` |
 | Export an installed DataTables grid | Optional integration below | Same writers and destination ownership |
+| Export a CanopyX record capture | `exportCanopy` / `writeCanopyTo` in the optional CanopyX entry | `Blob` or streamed `{ rows, columns, bytes }` |
 
 The table writers accept synchronous iterables and async iterables. XLSX defaults to the sheet name `Data`, a bold header, filtering when a header is present, and width sampling of up to 100 rows clamped to 6–54 characters. `sheet` supplies the existing worksheet layout options. Workbook-local style indexes belong to the advanced `Workbook` API; portable `ExportCell` presentation and row/cell style patches work with the table helper.
+
+An `ExportCell` can carry an external link alongside its typed value, display text and presentation:
+
+```typescript
+new ExportCell(12.5, {
+  text: "12.50 USD",
+  presentation: { color: "0563C1" },
+  link: { target: "https://example.com/invoices/42", tooltip: "Open invoice 42" }
+});
+```
+
+XLSX keeps the numeric value and writes a cell hyperlink. PDF renders the display text and writes a native link annotation over each cell fragment, including fragments continued onto another page. CSV keeps its selected raw/display value mode. Links accept absolute HTTP, HTTPS and mailto targets; credentials, whitespace and other schemes are rejected. Resolve relative report links against an explicit host base before creating the cell. The target and tooltip are copied when the cell is created, and links do not add automatic font styling. An XLSX cell using the oversized-text preservation link cannot also carry an external link; that conflict fails explicitly.
 
 An async generator is consumed once. Use a source factory for separate exports rather than passing the same generator twice:
 
@@ -140,6 +153,74 @@ Direct sink output avoids retaining the finished file. Blob exports and register
 
 DataTables and its DOM stay on the page. A host-owned worker can consume portable columns and bounded row batches from the source: request/acknowledge batches and output chunks rather than cloning the full matrix. Reconstruct `ExportCell` in the worker because structured cloning loses its brand. The [verification guide](../Build/BrowserExports/README.md#datatables-integration-and-comparisons) covers workers, cancellation, fallback and reproducible comparisons. Measurements describe the tested workload/browser, without a universal speed claim.
 
+## CanopyX record exports
+
+The optional `@evotecit/officeimo/integrations/canopyx` entry consumes CanopyX's immutable `prepareExport` capture. CanopyX owns the accepted query, column order, selection, source paging, revision checks and resolved presentation. OfficeIMO owns file generation. Neither package imports the other at runtime, and importing the main OfficeIMO package does not load the adapter.
+
+```typescript
+import { exportCanopy } from "@evotecit/officeimo/integrations/canopyx";
+
+const capture = grid.prepareExport({ scope: "filtered", values: "raw" });
+const reportOptions = {
+  tones: {
+    neutral: {},
+    success: { background: "E2F0D9" },
+    warning: { background: "FFF2CC", color: "9C6500" },
+    danger: { background: "FFC7CE", color: "9C0006", bold: true }
+  },
+  columnOptions: {
+    amount: { format: "#,##0.00", width: 18 },
+    updated: { format: "yyyy-mm-dd hh:mm:ss.000", width: 42, wrapText: true }
+  },
+  xlsx: { sheet: { title: { text: "Inventory" }, table: {} } },
+  limits: { maxRows: 250_000, maxCells: 5_000_000 }
+};
+const blob = await exportCanopy(capture, "xlsx", reportOptions);
+// Deliver the Blob through the host's download or storage policy.
+```
+
+`exportCanopy(capture, format, options)` accepts `"xlsx"`, `"csv"` or `"pdf"`. `writeCanopyTo(capture, format, destination, options)` writes to a caller-owned sink or `WritableStream`; failed partial output remains caller-owned. Format options live in `xlsx`, `csv` and `pdf`, with common cancellation, limits and progress at the top level. Common limits override matching format limits. For Unicode PDF text, supply embedding-permitted TrueType fonts through `pdf.fonts`.
+
+`columnOptions` is keyed by captured column ID. Settings for unselected columns are ignored, so one host format map can serve different visible/selected captures. `PdfFont` is exported from this entry as well as the PDF layer for constructing caller-supplied fonts.
+
+| Captured contract | Output behavior |
+| --- | --- |
+| Column IDs, titles and order | Preserved without re-reading the viewport or UI settings |
+| `values: "raw"` | Numeric, boolean and null values remain typed; CSV retains original ISO datetime strings |
+| `values: "display"` | Captured display strings become literal exported values; CSV formula protection still applies |
+| Resolved text | PDF uses it; XLSX retains raw values and uses explicit number/date formats |
+| Semantic tones | Host-supplied portable styles; cell tone overrides overlapping row tone properties |
+| Absolute HTTP(S)/mailto links | Native XLSX relationships and PDF annotations; CSV remains ordinary text |
+| Datetime columns | XLSX defaults to typed dates at exact millisecond precision and literal ISO text for finer precision |
+| CSS pixel width | Never treated as an Excel character width; `columnOptions.width` supplies explicit character widths and `pdf.columnWidths` supplies points |
+| `recordCount` | Used for progress when known and checked against the actual enumeration; unknown counts remain unknown |
+
+Excel/PDF reject unsupported presentation diagnostics and unmapped tones by default. The reporting runtime supplies semantic captures. For an ordinary grid, custom renderer or CSS-only presentation, choose `unsupportedPresentation: "text"` to accept the captured text fallback and optionally observe each diagnostic with synchronous `onDiagnostic`. That fallback uses capture data; it does not scrape custom DOM renderer output. CSV defaults to text because the format has no visual styling; choose `"reject"` explicitly when diagnostics should stop it. No unbounded diagnostic list is retained.
+
+`datetime: "typed"` requires exact millisecond precision; `"text"` keeps the original ISO value. The default `"preserve"` retains finer timestamps and dates outside Excel's 1900–9999 range as text rather than rounding or dropping them. An ISO value converted to a typed Excel date must carry an explicit time zone. XLSX defaults to the capture's UTC/local clock choice; `xlsx.dateMode` can override it. PDF displays the captured text, and CSV raw mode retains the original string and its zone.
+
+`createCanopyExport(capture, format, options)` exposes frozen columns, `rowCount` and fresh `rows()` enumerations for applications using the format writers directly. It retains no whole-table body. Each enumeration passes its cancellation signal into CanopyX's page requests, and destination backpressure stops reading ahead. CanopyX's source may retain identity/cursor bookkeeping for revision and duplicate detection; streamed document output does not imply constant memory for that entire source.
+
+Host export callbacks can use the already-captured enumeration:
+
+```typescript
+import { writeCanopyTo } from "@evotecit/officeimo/integrations/canopyx";
+import type { GridHostOptions } from "@evotecit/canopyx/reporting";
+
+const onExport: GridHostOptions["onExport"] = async ({ capture, format, signal, reportProgress }) => {
+  if (format !== "xlsx" && format !== "csv" && format !== "pdf") {
+    throw new Error("Unsupported export format");
+  }
+  const destination = await openDestination(format); // Host-owned delivery.
+  await writeCanopyTo(capture, format, destination, {
+    ...reportOptions, signal,
+    onProgress: progress => reportProgress?.("generating", progress.rows)
+  });
+};
+```
+
+This entry exports grid records. Collapsed visual groups do not remove their records, and group summary rows or tree outlines are not synthesized. Host report composition can add the writers' headings, totals and print layout explicitly. Workers consume a host-owned bounded capture/row bridge; a live CanopyX grid remains on the page. Pass the writer's signal to the same capture enumeration and release the bridge when the host cancels it.
+
 ## PDF tables
 
 `writePdf` and `writePdfTo` use the same `Column<T>` projection and `ExportCell` values as Excel and CSV. The PDF owner lays out and writes one page at a time, repeats grouped headings, splits oversized data rows across pages and appends a table footer. `writePdfTo` awaits the destination and retains page references, font mappings and the current page rather than the complete report body. Blob mode also retains the finished file.
@@ -178,9 +259,9 @@ Lengths are points, with 72 points per inch. Defaults are A4 portrait, 36-point 
 
 Without supplied fonts, PDF uses standard Helvetica with WinAnsi text. For Polish, Greek, Cyrillic, CJK or other supported Unicode scalars, supply an embedding-permitted static TrueType font containing those glyphs. `PdfFont` copies and validates bytes once and can be reused. Optional `bold`, `italic` and `boldItalic` faces preserve their real glyphs; missing faces use synthetic emphasis. Used glyphs and composite dependencies are embedded as a subset, with Unicode extraction maps. Font permissions can require full embedding or prohibit embedding, which fails visibly. Collections, CFF/WOFF and variable fonts require conversion to static TrueType before use. The library neither fetches fonts nor reads installed fonts; font licensing belongs to the host.
 
-This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. It rejects missing glyphs, malformed surrogates, combining sequences, bidirectional text and other scripts requiring a shaping-capable writer. It does not provide general HTML/SVG rendering, images, links, tagged PDF or PDF/A. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
+This writer handles scalar text layout for Latin, Greek, Cyrillic, Han, Hiragana, Katakana, precomposed Hangul and common symbols, including supplementary Unicode where the font provides it. It rejects missing glyphs, malformed surrogates, combining sequences, bidirectional text and other scripts requiring a shaping-capable writer. It does not provide general HTML/SVG rendering, images, tagged PDF or PDF/A. Long text is wrapped and continued across pages without truncation; CRLF/CR become line breaks and tabs expand to four spaces for display.
 
-`PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts) and `maxPageBytes` (8 MiB of drawing commands). PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
+`PdfLimits` includes shared row/cell/text/output ceilings plus `maxPages` (default 10,000), `maxColumns` (1,024), `maxCellCharacters` (1,000,000 UTF-16 units), `maxRowLines` (100,000), `maxFontBytes` (16 MiB across unique supplied fonts), `maxPageBytes` (8 MiB of drawing commands and link dictionaries), and `maxHyperlinks` (100,000 native annotations). A continued linked cell creates one annotation per page fragment; repeated linked headings also consume that limit. PDF cell/text budgets count rendered strings, headings, totals and page decorations; `maxRows` counts source rows. Resource failures never silently remove rows, columns or text. Native deflate compresses streams when available; `compression: false` or a missing native compressor produces valid uncompressed PDFs.
 
 Workers can call the same writers without a DOM. For a portable worker-to-page handoff, use `writePdfTo` and transfer byte chunks with acknowledgements; this also avoids WebKit worker Blob-read restrictions. Keep the row source and destination bridge bounded, and pass an `AbortSignal` to stop pending input or output. The caller owns disposal of partial bytes after failure, and the library releases borrowed stream locks without closing or aborting the destination.
 

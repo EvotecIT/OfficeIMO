@@ -251,6 +251,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 terminalCharacterPadding);
             bookmarks.AddRange(endnoteStories.Bookmarks, commentStoryStart + commentStories.Text.Length);
             Settings? settings = mainPart!.DocumentSettingsPart?.Settings;
+            SplitPageBreakAndParagraphMark? splitMark = settings?.GetFirstChild<Compatibility>()?
+                .GetFirstChild<SplitPageBreakAndParagraphMark>();
+            if (splitMark != null && !IsOnOffEnabled(splitMark)) {
+                throw new NotSupportedException("Native DOC layout always moves a trailing page-break paragraph mark onto the next page. Save as DOCX to retain SplitPageBreakAndParagraphMark=false.");
+            }
             bool trackRevisions = settings?.Elements<TrackRevisions>().Any(IsOnOffEnabled) == true;
             bool lockRevisionTracking = IsLockedRevisionTracking(settings);
             var writableBody = new LegacyDocWritableBody(

@@ -392,6 +392,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadSectionPages(storyCharacters, index,
+                    out string sectionPagesInstruction, out int sectionPagesResultStartIndex,
+                    out int sectionPagesResultEndIndex, out int sectionPagesFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.SectionPages, sectionPagesInstruction, sectionPagesResultStartIndex, sectionPagesResultEndIndex);
+                    index = sectionPagesFieldEndIndex;
+                    atParagraphStart = false;
+                    skipOptionalReferenceSpace = false;
+                    continue;
+                }
+
                 if (LegacyDocField.TryReadDateTimeField(
                     storyCharacters,
                     index,

@@ -473,18 +473,26 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Table_Cells_To_Zones() {
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_HeaderFooter_Table_Cell_Widths() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableHeaderFooter.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableHeaderFooter.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
+            headerTable.LayoutMode = WordTableLayoutMode.Fixed;
+            headerTable.WidthType = WordTableWidthUnit.Dxa; headerTable.Width = 7200;
+            headerTable.GridColumnWidth = new List<int> { 2400, 2400, 2400 };
+            foreach (WordTableCell cell in headerTable.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; }
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "LHdr";
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "CHdr";
             headerTable.Rows[0].Cells[2].Paragraphs[0].Text = "RHdr";
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 2, WordTableStyle.TableNormal);
+            footerTable.LayoutMode = WordTableLayoutMode.Fixed;
+            footerTable.WidthType = WordTableWidthUnit.Dxa; footerTable.Width = 4800;
+            footerTable.GridColumnWidth = new List<int> { 2400, 2400 };
+            foreach (WordTableCell cell in footerTable.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; }
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "LFtr";
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "RFtr";
 
@@ -518,9 +526,9 @@ public partial class Word {
             Assert.InRange(bodyX, 58D, 72D);
             Assert.InRange(leftHeaderX, 58D, 72D);
             Assert.InRange(leftFooterX, 58D, 72D);
-            Assert.True(centerHeaderX > leftHeaderX + 75D, $"Expected center header table cell to render away from the left zone. Center x: {centerHeaderX:0.##}, left x: {leftHeaderX:0.##}.");
-            Assert.True(rightHeaderX > centerHeaderX + 75D, $"Expected right header table cell to render to the right of the center zone. Right x: {rightHeaderX:0.##}, center x: {centerHeaderX:0.##}.");
-            Assert.True(rightFooterX > leftFooterX + 150D, $"Expected two-cell footer table to map the last cell to the right zone. Right x: {rightFooterX:0.##}, left x: {leftFooterX:0.##}.");
+            Assert.InRange(centerHeaderX - leftHeaderX, 119.99D, 120.01D);
+            Assert.InRange(rightHeaderX - centerHeaderX, 119.99D, 120.01D);
+            Assert.InRange(rightFooterX - leftFooterX, 119.99D, 120.01D);
         }
     }
 

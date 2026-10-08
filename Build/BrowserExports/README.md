@@ -1,5 +1,24 @@
 # Browser export verification
 
+## CanopyX captures
+
+The optional CanopyX adapter is qualified against an explicitly selected native source checkout. It introduces no CanopyX package into normal builds or shipped artifacts:
+
+```powershell
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/canopy" "--canopy=$canopySource"
+# Opt-in native paging: 10,000/100,000 rows, four/twenty columns; --full also adds 250,000/1,000,000 rows at four columns.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/canopy-scale" "--canopy=$canopySource" --canopy-scale --full
+# Native paged PDF: 10,000/100,000 rows, four/twenty columns, plain and styled.
+dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . "$evidence/canopy-pdf-scale" "--canopy=$canopySource" --canopy-pdf-scale
+npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:canopy-types -- "$evidence/npm" "$canopySource"
+# Supply the native npm archive as the final argument to qualify both installed packages.
+npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:canopy-types -- "$evidence/npm" "$canopySource" "$canopyNpmArchive"
+```
+
+The normal lane reads actual ordinary and reporting assets, records their hashes, and rejects a candidate that changes during the run. Each browser qualifies raw/display values, column order and visibility, filtered and selected-query captures after UI changes, unknown-count cursors, revision mismatch, in-flight source cancellation, grid disposal, the prepared host callback capture, a clicked export button and explicit diagnostics for custom renderers and relative links. Classic, compression-fallback and bounded worker paths produce independently read CSV/XLSX/PDF artifacts. XLSX validation checks schema, typed values, formats, tone precedence and hyperlinks; PDF validation checks ordered resolved text and link actions. Wide and compact screenshots complement the assertions.
+
+The opt-in scale lanes generate native source pages on demand and await a 64 KiB file bridge. CSV/XLSX qualification checks every cell through 100,000 rows with four/twenty columns; `--full` also covers 250,000 and 1,000,000 rows with four columns. PDF qualification checks every resolved cell and ordered row ID at 10,000 and 100,000 rows with four/twenty columns in plain and styled tables. Ten-thousand-row cases use offset pages, a delayed sink and compression fallback; larger cases exercise unknown-count cursors and offset pages. Large completed files are removed after independent readback, retaining compact reports. Native source ID/cursor bookkeeping still grows with the record count. Diagnostic durations include native capture and acknowledged file delivery; they are not controlled performance comparisons. Rich PDF report preservation also uses the separate format qualification lane.
+
 PDF table qualification uses the same HtmlTinkerX browser owner and a separate managed PDF reader:
 
 ```powershell
@@ -12,6 +31,8 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 The PDF lane checks Chromium, Firefox and WebKit, native/uncompressed/fallback streams, Polish text, Japanese text, supplementary symbols, repeated and spanned headings, multirow footers, totals, oversized text, paged input, slow sinks, cancellation and resource ceilings. Worker output transfers byte chunks to avoid WebKit worker Blob-read restrictions. Every document must open without repair in `OfficeIMO.Pdf`; ordered row IDs, complete long text, headings and expected values are independently checked. DataTables button scenarios run when verified comparison assets are provided. The ordinary workflow runs both installed pairs without host-timing gates. `--scale` records diagnostic durations and validates every cell in plain/styled tables at 10,000 and 100,000 rows with four/twenty columns; large PDFs are deleted immediately after readback. Rendered-page inspection with an independent PDF application remains separate visual proof.
 
 The verification runner uses the repository's pinned .NET SDK, Node 18 or newer and PowerShell 7 for the wrapper commands. Browser installation, sessions and captures use the existing test-only HtmlTinkerX/Playwright package. The runner is outside the normal solution and is not packable; neither distributed OfficeIMO package acquires browser tooling. Excel and LibreOffice spot checks remain optional independent application proof.
+
+The `--links` correctness lane qualifies portable cell links in all three browser engines. It checks numeric/date XLSX values and relationship coordinates through both managed readers and the Open XML SDK, then reads PDF URI actions, Unicode tooltips and page-fragment rectangles independently. Classic and compression-fallback lanes produce Blobs; the worker lane writes to a byte destination and transfers chunks to avoid host-specific worker Blob read limitations. Each lane also checks raw/display CSV semantics. Use `--validate-links <fixture-directory>` to read the captured small link fixtures without launching a browser.
 
 Build and run the TypeScript package before the C# tests:
 
@@ -30,7 +51,7 @@ dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Re
 npm --prefix OfficeIMO.JavaScript --script-shell pwsh run sizes -- "$evidence/sizes.json"
 ```
 
-`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all ten byte/hash contracts on .NET 8 and .NET 10.
+`npm test` runs the strict compilation, committed-bundle check and Node tests. The separate consumer check imports every public subpath with strict compiler options and positive/negative type contracts. The npm consumer installs the real archive into an isolated application, uses the package's pinned test compiler, executes all subpaths and checks that no runtime dependencies were installed. The NuGet consumer restores the actual asset archive into a task-local package directory and verifies all twelve byte/hash contracts on .NET 8 and .NET 10.
 
 The shared XLSX manifest is `OfficeIMO.TestAssets/JavaScript/xlsx-writer.json`; CSV vectors are in `OfficeIMO.TestAssets/CSV/browser-exports.json`. A C# test invokes the Node fixture producer and validates every generated file using the shared `JavaScriptWorkbookContract`. Both OfficeIMO.Excel and OfficeIMO.Reader.Excel open the workbooks, expected cells/styles/parts are checked, and the Open XML SDK validates each document. The CSV contract compares TypeScript bytes with independently generated OfficeIMO.CSV bytes.
 

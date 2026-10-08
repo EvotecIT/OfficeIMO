@@ -1876,7 +1876,7 @@ internal static partial class PdfWriter {
 
     private static List<PageNumberInfo> BuildPageNumberInfos(IReadOnlyList<LayoutResult.Page> pages) {
         var seen = new Dictionary<int, int>();
-        var pending = new List<(int VariantPageNumber, int PageNumber, int SequenceId)>(pages.Count);
+        var pending = new List<(int VariantPageNumber, int PageNumber, int SequenceId, int GroupId)>(pages.Count);
         int nextSequenceId = 0;
         int currentSequenceId = -1;
         int currentVisiblePageNumber = 0;
@@ -1893,7 +1893,7 @@ internal static partial class PdfWriter {
             currentVisiblePageNumber = ResolveNextVisiblePageNumber(pending.Count, firstPageOfGroup,
                 currentVisiblePageNumber, page.Options);
 
-            pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId));
+            pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId, page.PageGroupId));
         }
 
         var totals = new Dictionary<int, int>();
@@ -1903,7 +1903,7 @@ internal static partial class PdfWriter {
 
         var infos = new List<PageNumberInfo>(pages.Count);
         foreach (var item in pending) {
-            infos.Add(new PageNumberInfo(item.VariantPageNumber, item.PageNumber, totals[item.SequenceId]));
+            infos.Add(new PageNumberInfo(item.VariantPageNumber, item.PageNumber, totals[item.SequenceId], seen[item.GroupId]));
         }
 
         return infos;

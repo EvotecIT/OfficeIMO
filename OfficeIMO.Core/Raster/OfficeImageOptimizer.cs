@@ -474,7 +474,7 @@ public static class OfficeImageOptimizer {
             throw new ArgumentOutOfRangeException(nameof(request.Mode));
         }
         if (request.ResamplingMode < OfficeRasterResamplingMode.NearestNeighbor ||
-            request.ResamplingMode > OfficeRasterResamplingMode.Lanczos3) {
+            request.ResamplingMode > OfficeRasterResamplingMode.Welch) {
             throw new ArgumentOutOfRangeException(nameof(request.ResamplingMode));
         }
         if (request.ResamplingColorSpace < OfficeRasterResamplingColorSpace.EncodedSrgb ||

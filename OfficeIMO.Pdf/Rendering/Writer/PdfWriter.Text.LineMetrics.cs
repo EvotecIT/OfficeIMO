@@ -17,6 +17,9 @@ internal static partial class PdfWriter {
         double ascent = 0D;
         double descent = 0D;
         foreach (RichSeg segment in segments) {
+            // Preserved spaces carry their source font for painting and later
+            // remeasurement. They have no visible glyph to move the line baseline.
+            if (segment.Text.Length == 0 && segment.LeadingSpace && segment.InlineElement == null) continue;
             if (segment.InlineElement is { } inline) {
                 ascent = Math.Max(ascent, inline.BaselineOffset + inline.Height);
                 descent = Math.Max(descent, -inline.BaselineOffset);
@@ -29,7 +32,7 @@ internal static partial class PdfWriter {
         }
         if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
             ascent = Math.Max(ascent, spacing.Value - descent);
-        return segments.Count == 0 ? fallbackAscent : ascent;
+        return ascent == 0D ? fallbackAscent : ascent;
     }
 
     private static void GetRichRunLineMetrics(PdfStandardFont font, PdfNamedFontFace? namedFont,
