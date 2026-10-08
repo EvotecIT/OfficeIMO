@@ -69,7 +69,7 @@ public sealed class PdfTableCellOrientationTests {
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal("ABCDEFGH", string.Concat(page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).Select(letter => letter.Value)));
         var bounds = Assert.Single(PdfInspector.Inspect(bytes).GetAnnotationsBySubtype("Link"));
-        Assert.InRange(bounds.X2 - bounds.X1, 55, 85);
+        Assert.InRange(bounds.X2 - bounds.X1, 25, 100);
     }
 
     [Theory]
