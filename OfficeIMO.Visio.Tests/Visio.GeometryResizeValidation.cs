@@ -115,7 +115,9 @@ public sealed class VisioGeometryResizeValidationTests {
 
     private static VisioDocument Load(string type, string cellName, bool missing = false, string? cache = null, string? controlFormula = null) {
         var document = VisioDocument.Create(); var page = document.AddPage("Source"); page.AddRectangle(2, 2, 1, 1);
-        using var bytes = new MemoryStream(); bytes.Write(document.ToBytes());
+        using var bytes = new MemoryStream();
+        byte[] packageBytes = document.ToBytes();
+        bytes.Write(packageBytes, 0, packageBytes.Length);
         using (var zip = new ZipArchive(bytes, ZipArchiveMode.Update, true)) {
             var entry = zip.GetEntry("visio/pages/page1.xml")!; XDocument xml;
             using (var stream = entry.Open()) xml = XDocument.Load(stream);

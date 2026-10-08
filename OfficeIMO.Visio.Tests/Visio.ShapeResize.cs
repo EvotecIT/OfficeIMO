@@ -172,7 +172,9 @@ public class VisioShapeResizeTests {
         const string source = "<VisioDocument xmlns='http://schemas.microsoft.com/visio/2003/core'><Masters><Master ID='1' NameU='Arc'><Shapes><Shape ID='1'><XForm><Width>4</Width><Height>4</Height><LocPinX>0</LocPinX><LocPinY>0</LocPinY></XForm><Geom IX='0'><NoFill>1</NoFill><MoveTo IX='1'><X>0</X><Y>0</Y></MoveTo><EllipticalArcTo IX='2'><X>3</X><Y>0</Y><A>1.5</A><B>-0.8</B><C>0</C><D>1</D></EllipticalArcTo></Geom></Shape></Shapes></Master></Masters><Pages><Page ID='0' Name='Page'><PageSheet><PageProps><PageWidth>12</PageWidth><PageHeight>12</PageHeight></PageProps></PageSheet><Shapes><Shape ID='2' Master='1'><XForm><PinX>4</PinX><PinY>4</PinY><Width>8</Width><Height>2</Height><LocPinX>0</LocPinX><LocPinY>0</LocPinY></XForm></Shape></Shapes></Page></Pages></VisioDocument>";
         var document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(source))).Value;
         if (!relative) return document;
-        using var bytes = new MemoryStream(); bytes.Write(document.ToBytes());
+        using var bytes = new MemoryStream();
+        byte[] packageBytes = document.ToBytes();
+        bytes.Write(packageBytes, 0, packageBytes.Length);
         using (var zip = new ZipArchive(bytes, ZipArchiveMode.Update, true)) {
             var entry = zip.GetEntry("visio/masters/master1.xml")!; XDocument xml; using (var stream = entry.Open()) xml = XDocument.Load(stream);
             foreach (var row in xml.Descendants(Modern + "Row")) {
