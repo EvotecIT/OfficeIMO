@@ -9,6 +9,44 @@ namespace OfficeIMO.Security.Tests;
 
 public sealed class OfficeVbaProjectTests {
     [Fact]
+    public void UnchangedWritesEnforceExpandedBudgetAndRetainBytesWhenWithinIt() {
+        var project = OfficeVbaProject.Create();
+        Assert.Throws<InvalidDataException>(() => project.Write(new OfficeVbaWriteOptions { MaximumExpandedBytes = 1 }));
+        project.AddModule("Helpers", "'" + new string('x', 8000) + "\r\n");
+        byte[] bytes = project.Write().GetBytes();
+        var loaded = OfficeVbaProject.Load(bytes);
+        Assert.False(loaded.HasChanges);
+        Assert.Throws<InvalidDataException>(() => loaded.Write(new OfficeVbaWriteOptions { MaximumExpandedBytes = 1000 }));
+        Assert.Equal(bytes, loaded.Write().GetBytes());
+        using var document = WordDocument.Create();
+        Assert.Throws<InvalidDataException>(() => document.SetVbaProject(loaded, new OfficeVbaWriteOptions { MaximumExpandedBytes = 1000 }));
+        Assert.Null(document.ReadVbaProject());
+    }
+
+    [Fact]
+    public void ExactSourceImportBudgetAllowsEmptyTrailingFilesAndRejectsNonemptyOnesAtomically() {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-vba-budget-" + Guid.NewGuid().ToString("N"));
+        var project = OfficeVbaProject.Create();
+        project.AddModule("Helpers", "'original\r\n");
+        project.AddModule("Empty", "");
+        project = OfficeVbaProject.Load(project.Write().GetBytes());
+        try {
+            project.ExportSources(folder);
+            File.WriteAllText(Path.Combine(folder, "module-0001.bas"), "'changed\r\n", new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(folder, "module-0002.bas"), "");
+            int budget = checked((int)new FileInfo(Path.Combine(folder, "module-0001.bas")).Length);
+            project.ImportSources(folder, budget);
+            Assert.Contains("'changed", project.GetModule("Helpers").Source);
+            project = OfficeVbaProject.Load(project.Write().GetBytes());
+            File.WriteAllText(Path.Combine(folder, "module-0001.bas"), "'another\r\n", new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(folder, "module-0002.bas"), "x");
+            budget = checked((int)new FileInfo(Path.Combine(folder, "module-0001.bas")).Length);
+            Assert.Throws<InvalidDataException>(() => project.ImportSources(folder, budget));
+            Assert.False(project.HasChanges);
+        } finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [Fact]
     public void WordAuthoredDocumentIdentityAndSourceRemainEditable() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Vba", "Word-authored.bin"));

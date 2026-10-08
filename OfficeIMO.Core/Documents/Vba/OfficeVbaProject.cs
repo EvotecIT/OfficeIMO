@@ -16,6 +16,7 @@ public sealed partial class OfficeVbaProject {
     private readonly List<OfficeVbaReference> _references = new();
     private readonly List<string> _deletedModules = new();
     private bool _referencesChanged;
+    private int _originalExpandedBytes;
 
     private OfficeVbaProject(byte[] originalBytes, OfficeCompoundFile compound, DirectoryModel directory, string projectText) {
         _originalBytes = originalBytes; _compound = compound; _directory = directory; _projectText = projectText;
@@ -80,6 +81,7 @@ public sealed partial class OfficeVbaProject {
         foreach (OfficeVbaDirectoryCodec.ReferenceModel reference in directory.References) {
             project._references.Add(OfficeVbaDirectoryWriter.ReadReference(reference.Serialized, directory.CodePage));
         }
+        project._originalExpandedBytes = options.MaximumExpandedBytes - remaining;
         return project;
     }
 

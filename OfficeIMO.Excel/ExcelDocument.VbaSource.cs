@@ -29,7 +29,7 @@ public partial class ExcelDocument {
             WorkbookProperties? properties = workbook.GetFirstChild<WorkbookProperties>();
             string? existingName = properties?.CodeName?.Value;
             if (workbookModules.Length == 1 && !string.IsNullOrEmpty(existingName)
-                && !existingName.Equals(workbookModules[0].Name, StringComparison.OrdinalIgnoreCase)) {
+                && !string.Equals(existingName, workbookModules[0].Name, StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException("The VBA workbook module does not match the document's existing code name.", nameof(project));
             }
             VbaProjectPart part = workbookPart.VbaProjectPart ?? workbookPart.AddNewPart<VbaProjectPart>();

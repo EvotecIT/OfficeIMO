@@ -16,6 +16,7 @@ public sealed partial class OfficeVbaProject {
         ValidateLimits(options.MaximumProjectBytes, options.MaximumExpandedBytes);
         if (!HasChanges) {
             if (_originalBytes.Length > options.MaximumProjectBytes) throw new InvalidDataException("The VBA project exceeds the configured output byte limit.");
+            if (_originalExpandedBytes > options.MaximumExpandedBytes) throw new InvalidDataException("The VBA directory and source exceed the configured aggregate expanded byte limit.");
             return new OfficeVbaWriteResult((byte[])_originalBytes.Clone(), false, Array.Empty<string>());
         }
         EnsureEditable();

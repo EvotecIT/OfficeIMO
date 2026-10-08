@@ -67,7 +67,12 @@ public sealed partial class OfficeVbaProject {
             if (!Enum.TryParse((string?)entry.Attribute("kind"), out OfficeVbaModuleKind kind) || !Enum.IsDefined(typeof(OfficeVbaModuleKind), kind)) throw new InvalidDataException("The source module kind is invalid.");
             byte[] bytes;
             RejectLinkedSource(Path.Combine(root, file));
-            using (var input = File.OpenRead(Path.Combine(root, file))) bytes = OfficeStreamReader.ReadAllBytes(input, remaining);
+            using (var input = File.OpenRead(Path.Combine(root, file))) {
+                if (remaining == 0) {
+                    if (input.ReadByte() >= 0) throw new InvalidDataException("VBA source import exceeds the configured aggregate byte limit.");
+                    bytes = Array.Empty<byte>();
+                } else bytes = OfficeStreamReader.ReadAllBytes(input, remaining);
+            }
             remaining -= bytes.Length;
             int offset = bytes.Length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf ? 3 : 0;
             string source = new UTF8Encoding(false, true).GetString(bytes, offset, bytes.Length - offset);
