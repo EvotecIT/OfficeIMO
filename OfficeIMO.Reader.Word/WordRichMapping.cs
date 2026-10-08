@@ -161,6 +161,7 @@ internal static class WordRichMapping {
             Text = text,
             Level = source.Level,
             Marker = source.Marker,
+            ListIndex = source.ListIndex,
             Location = location,
             Region = region
         };
@@ -342,7 +343,8 @@ internal static class WordRichMapping {
                     Kind = kind,
                     Text = paragraph.Text,
                     Level = headingLevel ?? paragraph.ListLevel,
-                    Marker = paragraph.IsListItem ? (paragraph.IsOrderedList == true ? "1." : "-") : null,
+                    Marker = paragraph.ListMarker,
+                    ListIndex = paragraph.ListIndex,
                     Location = location
                 });
                 AddWordParagraphLinks(paragraph, location, links, ref linkIndex);

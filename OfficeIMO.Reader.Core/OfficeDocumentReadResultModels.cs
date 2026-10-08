@@ -318,6 +318,12 @@ public sealed class OfficeDocumentBlock {
     public string? Marker { get; set; }
 
     /// <summary>
+    /// Resolved numeric index of an ordered list item, independent of its displayed marker.
+    /// Null means an unordered item or an adapter that did not supply an index.
+    /// </summary>
+    public int? ListIndex { get; set; }
+
+    /// <summary>
     /// Source location for this block.
     /// </summary>
     public ReaderLocation Location { get; set; } = new ReaderLocation();
