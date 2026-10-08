@@ -73,6 +73,89 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("flex", "before")]
+    [InlineData("flex", "after")]
+    [InlineData("grid", "before")]
+    [InlineData("grid", "after")]
+    public void HtmlTableGeometry_ContentsPseudoItemsRetainIntrinsicLossWhenBlockified(string parentDisplay, string pseudo) {
+        foreach (bool nested in new[] { false, true }) {
+            string html = TableGeometrySource("<style>#contents{display:contents}#contents::" + pseudo
+                + "{content:'Generated';min-width:max-content}</style><div style='display:" + parentDisplay + "'>"
+                + (nested ? "<span style='display:contents'>" : string.Empty) + "<span id='contents'></span>"
+                + (nested ? "</span>" : string.Empty) + "</div>");
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+
+            HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+            Assert.Contains("min-width=max-content", diagnostic.Detail);
+            Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Generated");
+            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            var strict = TableGeometryOptions();
+            strict.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+            Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, strict));
+        }
+    }
+
+    [Theory]
+    [InlineData("block", "contents")]
+    [InlineData("flex", "block")]
+    public void HtmlTableGeometry_InlinePseudoDimensionsDoNotBorrowOuterFlexApplicability(string parentDisplay, string originatingDisplay) {
+        string html = TableGeometrySource("<style>#contents{display:" + originatingDisplay
+            + "}#contents::before{content:'Generated';min-width:max-content}</style><div style='display:"
+            + parentDisplay + "'><span id='contents'></span></div>");
+        var options = TableGeometryOptions();
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Generated");
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("width")]
+    [InlineData("min-width")]
+    [InlineData("max-width")]
+    [InlineData("height")]
+    [InlineData("min-height")]
+    [InlineData("max-height")]
+    public void HtmlTableGeometry_StylesheetIntrinsicDimensionsRetainApplicableLoss(string property) {
+        string html = TableGeometrySource("<style>#sized{" + property + ":max-content}</style><div id='sized'>Text</div>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        Assert.Contains(property + "=max-content", diagnostic.Detail);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("width:max-content;width:100px", false, 100D)]
+    [InlineData("width:100px;width:max-content", true, 600D)]
+    [InlineData("width:100px!important;width:max-content", false, 100D)]
+    [InlineData("width:max-content!important;width:100px", true, 600D)]
+    [InlineData("width:100px;width:bogus", false, 100D)]
+    [InlineData("width:100px;width:-10px", false, 100D)]
+    [InlineData("width:100px;width:fit-content(auto)", false, 100D)]
+    [InlineData("width:100px;width:fit-content()", false, 100D)]
+    [InlineData("width:100px;width:fit-content(120px)", true, 600D)]
+    [InlineData("width:100px;width:fit-content(calc(50px + 10%))", true, 600D)]
+    [InlineData("width:100px;width:var(--size);--size:max-content", true, 600D)]
+    [InlineData("width:100px;width:initial", false, 600D)]
+    public void HtmlTableGeometry_StylesheetDimensionsPreserveCascadeAndRejectInvalidLaterValues(string declarations, bool loss, double width) {
+        string html = TableGeometrySource("<style>#sized{" + declarations + ";background:white}</style><div id='sized'>Text</div>");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
+
+        Assert.Equal(width, TableGeometryShape(rendered, "div#sized").Width, 3);
+        Assert.Equal(loss, rendered.HasLoss);
+        if (loss) {
+            Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        } else {
+            Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+            rendered.RequireNoLoss();
+        }
+    }
+
+    [Theory]
     [InlineData("<svg style='display:inline;width:max-content' width='10' height='10'><rect width='10' height='10'/></svg>")]
     [InlineData("<input style='display:inline;width:max-content' value='Text'>")]
     public void HtmlTableGeometry_InlineSvgAndControlBoxDimensionsRetainLoss(string body) {

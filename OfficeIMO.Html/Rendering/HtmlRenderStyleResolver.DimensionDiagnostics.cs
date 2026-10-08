@@ -33,7 +33,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         // Floats, positioned boxes and flex/grid items are blockified. Ordinary
         // non-replaced inlines ignore all six dimensions without losing content.
         string parentDisplay = parent?.Display ?? string.Empty;
-        IElement? ancestor = element.ParentElement;
+        // A pseudo's supplied parent style belongs to its originating element.
+        IElement? ancestor = pseudoElement ? element : element.ParentElement;
         while (parentDisplay == "contents" && ancestor?.ParentElement != null) {
             ancestor = ancestor.ParentElement;
             parentDisplay = _computedStyles.Elements.TryGetValue(ancestor, out HtmlComputedStyle? ancestorStyle)

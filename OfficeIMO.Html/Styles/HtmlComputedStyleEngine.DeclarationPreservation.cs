@@ -22,7 +22,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     // Keep authored order and values where parser expansion loses font syntax,
-    // subgrid tracks, row/column gap order, grid placement shorthands, or
+    // intrinsic dimensions, subgrid tracks, row/column gap order, grid placement shorthands, or
     // border and text-decoration components. Preserve the whole family: mixing preserved variables
     // with parser-collapsed ordinary declarations loses their relative order.
     // A colour-only override must not reset the authored width and style.
@@ -48,7 +48,8 @@ public static partial class HtmlComputedStyleEngine {
             if (!HtmlCssIdentifierParser.TryRead(css, ref endName, out string name)) continue;
             name = name.ToLowerInvariant();
             string? prefix = name == "font" || FontShorthandLonghands.Contains(name)
-                ? FontDeclarationSentinelPrefix : LayoutDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix
+                ? FontDeclarationSentinelPrefix
+                : LayoutDeclarationNames.Contains(name) || DimensionDeclarationNames.Contains(name) ? LayoutDeclarationSentinelPrefix
                 : BorderDeclarationNames.Contains(name) ? BorderDeclarationSentinelPrefix : null;
             if (prefix == null) continue;
             int colon = SkipCssWhitespaceAndCommentsForward(css, endName);

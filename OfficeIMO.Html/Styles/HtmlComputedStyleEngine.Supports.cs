@@ -386,6 +386,7 @@ public static partial class HtmlComputedStyleEngine {
         OfficeIMO.Html.Css.HtmlCssPropertyParseResult owned =
             OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(propertyName, value, UnboundedPropertyTokenization);
         if (owned.Definition != null && owned.IsAccepted) return true;
+        if (DimensionDeclarationNames.Contains(propertyName)) return IsIntrinsicDimensionSyntax(value);
         if (owned.Definition != null
             && (string.Equals(owned.Definition.Name, "display", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
