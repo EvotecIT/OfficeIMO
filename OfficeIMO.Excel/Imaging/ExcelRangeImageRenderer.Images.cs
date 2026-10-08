@@ -18,18 +18,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static void RenderRasterImage(OfficeRasterCanvas canvas, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, System.Threading.CancellationToken cancellationToken) {
-            double scale = options.Scale;
-            var decodeOptions = new OfficeRasterDecodeOptions { CancellationToken = cancellationToken };
-            if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, decodeOptions, out OfficeRasterImage? raster, out _) || raster == null) {
-                var fallbackCodec = new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source);
-                cancellationToken.ThrowIfCancellationRequested();
-                fallbackCodec.TryDecode(image.Bytes, image.ContentType, out raster);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            if (raster != null) {
-                canvas.DrawImage(raster, CreateImageProjection(image, scale));
-            }
+            var drawingImage = new OfficeDrawingImage(image.Bytes, image.ContentType, CreateImageProjection(image, options.Scale));
+            OfficeDrawingRasterRenderer.RenderImage(
+                canvas,
+                drawingImage,
+                1D,
+                new OfficeRasterImageFallbackCodec(options.ImageCodec, diagnostics, image.Source),
+                options.MaximumRasterPixels,
+                cancellationToken,
+                diagnosticSource: image.Source);
         }
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
