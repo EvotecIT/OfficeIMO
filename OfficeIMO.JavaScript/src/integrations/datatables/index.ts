@@ -81,7 +81,7 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
             if (member(configuration, "customize") !== undefined) throw new TypeError("Native customize callbacks are unsupported; use OfficeIMO sheet/workbook/pdf options.");
             if (format === "pdf") {
               const info = call(table.buttons, "exportInfo", configuration);
-              const pdf = { ...current.pdf };
+              const pdf = { ...options.pdf, ...current.pdf };
               for (const key of ["title", "messageTop", "messageBottom"] as const) if (member(configuration, key) !== undefined) {
                 if (member(configuration, key) === null) { delete pdf[key]; continue; }
                 const text = member(info, key);
@@ -91,7 +91,8 @@ export function registerDataTablesButtons(host: DataTablesHost, options: DataTab
               }
               for (const key of ["orientation", "pageSize"] as const) if (member(configuration, key) !== undefined)
                 Object.assign(pdf, { [key]: member(configuration, key) });
-              if (member(configuration, "header") === false) pdf.includeHeader = false;
+              if (member(configuration, "header") === false) { pdf.includeHeader = false; delete pdf.headerRows; }
+              if (member(configuration, "footer") === false) delete pdf.footer;
               current = { ...current, pdf };
             } else if (member(configuration, "header") === false || ["title", "messageTop", "messageBottom"].some(key => member(configuration, key) != null))
               throw new TypeError("Use OfficeIMO sheet title/footer options; native Buttons report layout options are unsupported.");

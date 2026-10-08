@@ -29,14 +29,14 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
   await save('symbols',await writePdf([['🂡♟']],{columns:[{header:''}],fonts:{regular:new PdfFont(bytes(symbols))},pageNumbers:false}),['🂡♟']);
   await save('japanese',await writePdf([['東京 大阪 日本語']],{columns:[{header:''}],fonts:{regular:new PdfFont(bytes(japanese))},pageNumbers:false}),['東京 大阪 日本語']);
   for (const compression of [true, false]) {
-    const start = performance.now();
+    const start = scale ? performance.now() : undefined;
     await save('report-' + compression, await writePdf(rows, { columns, fonts, compression, title: 'Raport Łódź',
       footer: {values: ['Totals'], totals: {amount:'sum'}}, alternateRowColor: 'F3F4F6', pageHeader: 'OfficeIMO', pageFooter: 'Confidential' }),
       ['Raport Łódź', 'Łódź — Zażółć gęślą jaźń', 'Totals', '7200'], {rows:120, repeated:['Report','Name','Amount','State']});
-    reports.push({name:'report-' + compression, milliseconds:performance.now()-start});
+    if (start !== undefined) reports.push({name:'report-' + compression, milliseconds:performance.now()-start});
   }
   await save('empty-metadata', await writePdf([['Row000000', 1]], { columns: [{ header: 'Name' }, { header: 'Amount' }],
-    title: '', messageTop: '', messageBottom: '', pageHeader: '', pageFooter: () => '', pageNumbers: false,
+    title: '', messageTop: '', messageBottom: '', pageHeader: '', pageFooter: () => '', pageNumbers: false, margins: 0,
     limits: { maxCells: 4 } }), ['Name', 'Amount', 'Row000000', '1'],
     { rows: 1, repeated: ['Name', 'Amount'] });
   const compressor = globalThis.CompressionStream;
@@ -111,6 +111,31 @@ globalThis.runPdfContracts = async function ({ regular, bold, symbols, japanese,
       await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,{title:'Button report',pageSize:'LETTER',orientation:'landscape',exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
       if(!delivered) throw Error('PDF button failed to deliver its file.');
       await save('datatables-button',delivered,['Button report','Łódź','Metrics','Totals','Approved','Finance'],{rows:120});
+      delivered=undefined;
+      await new Promise(resolve=>DataTable.ext.buttons.officeimoPdf.action(null,table,null,{
+        officeimo:{pdf:{pageNumbers:false}},exportOptions:{modifier:{order:'index',search:'none'}}},resolve));
+      if(!delivered)throw Error('Partial PDF button options lost defaults or failed to deliver.');
+      await save('datatables-partial-options',delivered,['Łódź',...Object.values(metadata)],{rows:120,forbidden:['Page 1 of']});
+      for (const location of ['registration','button']) {
+        const host={Buttons:DataTable.Buttons,ext:{buttons:{}}}, replacement={fonts,pageNumbers:false,
+          headerRows:[[{value:'Replacement heading'},{value:'Amount'},{value:'State'}]],
+          footer:{rows:[[{value:'Replacement footer'},{value:'7200'},{value:'Approved'}]]}};
+        OfficeIMO.registerDataTablesButtons(host,{...(location==='registration'?{pdf:replacement}:{}),
+          save:blob=>{delivered=blob;},onError:error=>{throw error;}});
+        for (const suppressed of ['header','footer','both']) {
+          delivered=undefined;
+          await new Promise(resolve=>host.ext.buttons.officeimoPdf.action(null,table,null,{
+            ...(suppressed!=='footer'?{header:false}:{}),...(suppressed!=='header'?{footer:false}:{}),exportOptions:{modifier:{order:'index',search:'none'}},
+            ...(location==='button'?{officeimo:{pdf:replacement}}:{})},resolve));
+          if(!delivered)throw Error('Replacement-heading/footer suppression did not deliver.');
+          const required=['Łódź'],forbidden=['Metrics','Totals','Finance'];
+          (suppressed==='footer'?required:forbidden).push('Replacement heading');
+          (suppressed==='header'?required:forbidden).push('Replacement footer');
+          await save('datatables-suppression-'+location+'-'+suppressed,delivered,required,{forbidden,rows:120});
+        }
+        if(replacement.headerRows[0][0].value!=='Replacement heading'||replacement.footer.rows[0][0].value!=='Replacement footer')
+          throw Error('Native suppression mutated registration/button options.');
+      }
       for(const key of ['omitted','title','messageTop','messageBottom','all']) {
         delivered=undefined;
         const overrides=key==='omitted'?{}:key==='all'?{title:null,messageTop:null,messageBottom:null}:{[key]:null};

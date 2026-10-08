@@ -1872,7 +1872,7 @@ _modules.set("f3fd69b651432daa45bdf3eda5b52d302573263e0cd16c07cccce9f322411adc",
 return _exports;
 })();
 
-const _m20 = _modules.get("6987c62b36f0e9bdc06a200f62a8348da3ee5f5821636dc75183d4ed28d2c185") ?? (() => {
+const _m20 = _modules.get("11880b36e002352b01765e0a8882d66e528e7a3039418dc4be0631980d6c4bdb") ?? (() => {
 const { OfficeIMOError } = _m4;
 
 const { checkAbort } = _m3;
@@ -1937,11 +1937,13 @@ class PdfPages {
         this.add("q " + this.rgb(foreground) + " rg " + this.rgb(foreground) + " RG\nBT /" + font.name + " " + n(size) + " Tf " +
             (font.syntheticBold ? n(size * .025) + " w 2 Tr " : "0 Tr ") + "1 0 " + n(shear) + " 1 " + n(x) + " " + n(baseline) + " Tm " + font.encode(text) + " Tj ET Q\n");
     }
-    decoration(value, x, y, width) {
+    decorationText(value) {
         if (value === undefined)
-            return;
+            return "";
         checkAbort(this.settings.options.signal);
-        const text = synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+        return synchronousText(typeof value === "function" ? value({ pageNumber: this.references.length }) : value, "Page header/footer");
+    }
+    decoration(text, x, y, width) {
         if (!text)
             return;
         this.settings.budget.cell(text);
@@ -1957,16 +1959,17 @@ class PdfPages {
         this.commands = [];
         this.commandBytes = 0;
         this.y = page.height - margins.top;
-        if (options.pageHeader !== undefined && margins.top < this.layout.lineHeight + 4)
+        const header = this.decorationText(options.pageHeader), footer = this.decorationText(options.pageFooter);
+        if (header && margins.top < this.layout.lineHeight + 4)
             throw new RangeError("Top margin is too small for a page header.");
-        if ((options.pageFooter !== undefined || this.totalPages) && margins.bottom < this.layout.lineHeight + 4)
+        if ((footer || this.totalPages) && margins.bottom < this.layout.lineHeight + 4)
             throw new RangeError("Bottom margin is too small for page decorations.");
         const font = this.layout.fonts.select(), centerOffset = ((font.program?.ascent ?? 800) + (font.program?.descent ?? -200)) * fontSize / 2000;
-        this.decoration(options.pageHeader, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
+        this.decoration(header, margins.left, page.height - margins.top / 2 - centerOffset, page.width - margins.left - margins.right);
         const footerWidth = page.width - margins.left - margins.right - (this.totalPages ? this.pageNumberWidth + this.settings.padding * 2 : 0);
-        if (footerWidth <= 0 && options.pageFooter !== undefined)
+        if (footerWidth <= 0 && footer)
             throw new RangeError("Page is too narrow for both footer text and page numbers.");
-        this.decoration(options.pageFooter, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
+        this.decoration(footer, margins.left, margins.bottom / 2 - centerOffset, footerWidth);
         if (this.totalPages) {
             const x = page.width - margins.right - this.pageNumberWidth + 1, y = margins.bottom / 2 - centerOffset, label = "Page " + this.references.length + " of ";
             const line = wrapText(label, font, fontSize, this.pageNumberWidth, 128, 1, false)[0];
@@ -2078,11 +2081,11 @@ class PdfPages {
     xobjects() { return this.totalPages ? " /XObject << /TotalPages " + this.totalPages + " 0 R >>" : ""; }
 }
 const _exports = Object.freeze({ PdfPages: PdfPages });
-_modules.set("6987c62b36f0e9bdc06a200f62a8348da3ee5f5821636dc75183d4ed28d2c185", _exports);
+_modules.set("11880b36e002352b01765e0a8882d66e528e7a3039418dc4be0631980d6c4bdb", _exports);
 return _exports;
 })();
 
-const _m1 = _modules.get("f9ca5f4c6216b17188d5f53dee95bd9bfd9eb1eae20b583e623489f082c7b247") ?? (() => {
+const _m1 = _modules.get("9dfa9495a12e5c0b340798813c1b89859f0c01335855bba8622ca66b0fff829b") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -2159,7 +2162,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("f9ca5f4c6216b17188d5f53dee95bd9bfd9eb1eae20b583e623489f082c7b247", _exports);
+_modules.set("9dfa9495a12e5c0b340798813c1b89859f0c01335855bba8622ca66b0fff829b", _exports);
 return _exports;
 })();
 
@@ -2210,10 +2213,10 @@ _modules.set("7083fe05f46460330fd2145b0b8e1101879f8e3595fabb3dbd132da6a2436301",
 return _exports;
 })();
 
-const _m0 = _modules.get("0c96acbc6615ba65593ed9ad23aa1f93e1d4ac782de85fe1f3f3b865391fafcd") ?? (() => {
+const _m0 = _modules.get("8425ddd8eba9dbaeb3fe2d138099e1bc15b19da75ce354be47ba4a189caf0883") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, PdfFont: _m12.PdfFont, ExportCell: _m6.ExportCell, saveBlob: _m21.saveBlob });
-_modules.set("0c96acbc6615ba65593ed9ad23aa1f93e1d4ac782de85fe1f3f3b865391fafcd", _exports);
+_modules.set("8425ddd8eba9dbaeb3fe2d138099e1bc15b19da75ce354be47ba4a189caf0883", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m21, pdf: _m0 });
