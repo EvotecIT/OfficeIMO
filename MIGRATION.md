@@ -14,6 +14,32 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
+
+ID and class selectors match ASCII-insensitively in quirks documents, including
+documents without a doctype. This can change query and style results. Add
+`<!doctype html>` when the document requires standards-mode case sensitivity.
+Standards and limited-quirks documents retain case-sensitive ID and class matching.
+
+Table rendering applies authored row/cell height minima, cell vertical alignment,
+RTL column placement and zero padding. Tables default to `border-box` in both
+style modes; authored `box-sizing` overrides that default. A flex table with
+`max-width:180px` is limited to a 180 px outer box. Use `content-box` when that
+maximum must exclude padding and borders. These corrections can change pagination.
+Intrinsic dimension keywords that still use fallback geometry produce loss
+diagnostics and fail `RequireNoLoss()`.
+
+## Optional HTML automation planning
+
+`OfficeIMO.AI.Html` targets .NET 10, matching `OfficeIMO.AI`. Use a .NET 10 host
+for `HtmlAutomationAiPlanner`; deterministic `OfficeIMO.Html.Runtime` automation
+retains its .NET 8 and .NET 10 targets.
+
+`HtmlAutomationAiPlanner.Tools` exposes
+`IReadOnlyList<OfficeIMO.Html.Runtime.HtmlAutomationToolDefinition>`. Update code
+that used the removed generic AI tool declarations to read `Name`, `Description`
+and the `JsonElement` in `InputSchema`. The planner accepts the application's
+`IOfficeAiExecutor` directly and uses the runtime's argument contract.
+
 ## Native HTML disclosure rendering
 
 Native HTML rendering honors the `open` attribute on `<details>`. Closed disclosures show their first `<summary>` and omit the body from layout and PDF bookmarks; earlier native output flattened closed bodies into the document. Report producers that need the complete body in print must add `open` to the intended disclosures in their script-free export HTML. A JavaScript `beforeprint` handler is not executed by the static renderer.

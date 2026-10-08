@@ -1,0 +1,143 @@
+{
+  "sourceCommit": "8fe96995dc67a5ff56b983cbb3bc13dd6875a43b",
+  "sdk": "10.0.303",
+  "sourceHashes": {
+    "OfficeIMO.Html.Core/Css/HtmlCssTokenizer.cs": "0458947c56f9e45df68dd5143a4e4aedb8106ff429d872e333b02f0e826a3507",
+    "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.CssSyntax.cs": "18d15f60ebded72051fefe5773a6027df0012b3a66fa9391d26140efd210faf8",
+    "OfficeIMO.Html/Resources/HtmlResourcePipeline.CssSyntax.cs": "a2e0b788299f39f870be2121bf1b48fdc6f86fcd351dced36b1e22654297bdc6",
+    "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.DeclarationPreservation.cs": "d85f84aa63d992a515f55bfe656bc2c5f202078cf14c28a63dc0e5f05c1b2670",
+    "OfficeIMO.Html/Styles/HtmlComputedStyleEngine.Rules.cs": "dfe7b37d9a8da48a589b4c9f93417c59185427a97ecef6df9a5e3dbf8e7d1869",
+    "OfficeIMO.Html.Tests/Html.DeclarationPreservation.cs": "3e6cc3e1aa38eb7bf0c86077950ff0575c4587fbe86d159161fc10523d890fe0",
+    "OfficeIMO.Html.Tests/Html.EnginePlatform.cs": "94529ff5e9bea4979c7d196d46c6b201a31d5c2fa0f82167435e7693903bd9a2",
+    "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj": "23e57029ce9b58a9f527f737c3650adec9ba09e6481ec095e1ceefa79dec9bd3",
+    "Build/Export-HtmlSupportMatrix.ps1": "be0fc8d7948243022ab44aee80e5e96f07260a0daf3deba3b41780db6f793b59"
+  },
+  "gates": {
+    "net8-static-selected": {
+      "passed": 3189,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "results/integrated-closure-net8.trx"
+    },
+    "net10-static-selected": {
+      "passed": 3189,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "results/integrated-closure-net10.trx"
+    },
+    "net10-cli-html": {
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "results/integrated-cli-net10.trx",
+      "boundary": "CLI code unchanged after later token helper fix; Tool build output safely removed after qualification."
+    },
+    "generated-contract-explicit-write": {
+      "passed": 1,
+      "trx": "results/generated-contract-write-net10.trx",
+      "outputEqualsSource": true
+    },
+    "netstandard2-owner-graph": {
+      "result": "passed",
+      "warnings": 0,
+      "errors": 0,
+      "boundary": "Complete Core/Html.Core/Html.AngleSharp/Html source graph, SDK10.0.303."
+    }
+  },
+  "review": {
+    "URL-sentinel": "independently confirmed closed",
+    "comment-like-URL": "targeted review finding reproduced with2failures/6controls before sharedtokenhelper fix; 65/65 focused and both3189/3189 broad suites after",
+    "furtherFullReview": "not repeated",
+    "documentMode": "Fresh independent owner review accepted doctype; one pre-existing DOM factoryP2 reproduced and fixed; single targeted confirmation accepted6fea. No additional full review loop."
+  },
+  "limits": [
+    "Selected source/in-process gates, not a full repository test or packed-worker/platform claim.",
+    "Historical static/consumer failures and runtime startup timeouts retained separately."
+  ],
+  "schema": 1,
+  "observedUtc": "2026-10-08",
+  "contract": [
+    "Session resource policy is checked before resolver invocation and against rewritten identities.",
+    "CLI input overrides preserve shared parser and archive limits.",
+    "Basic table height/alignment/RTL/padding and allocated box sizing use the owned renderer.",
+    "Unsupported intrinsic dimensions are source-specific loss, including generated boxes.",
+    "Parsed declaration spans and owned CSS tokens preserve URL and custom-property components.",
+    "Owned queries and cascade indices respect quirks ID/class matching and language declarations."
+  ],
+  "reproduction": {
+    "artifacts": "Set an explicit mounted task scratch folder as ArtifactRoot; use the repository SDK and ordinary shared NuGet cache.",
+    "static": "Run OfficeIMO.Html.Tests on net8.0/net10.0 with rendering, CSS, resource, selector, table, editable, MHTML, site-bundle, qualification and generated-contract filters. Counts describe this selected scope.",
+    "cli": "Run HTML Tool cases through the owning OfficeIMO.Tool.Tests project.",
+    "generatedContract": "Build/Export-HtmlSupportMatrix.ps1 owns generation. External-output checks use the copied generated fixture. Explicit writes use OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX=1 and OFFICEIMO_HTML_SUPPORT_MATRIX_OUTPUT."
+  },
+  "evidenceLocation": {
+    "task": "01a11a92-00a5-7873-aa1a-7bffe37b27b9",
+    "scratchRelative": "html-engine-correctness",
+    "retained": "Compact before/after logs, TRX, source/binary manifests and representative PNG/SVG/PDF. Regenerable build outputs are removed after qualification."
+  },
+  "qualificationBoundary": [
+    "This is source qualification for the listed contracts, not a release receipt.",
+    "Full browser parity, broader held-out page acceptance and packaged-worker/platform coverage remain roadmap work.",
+    "Prior failing and startup-timeout records remain separate from current passing gates."
+  ],
+  "staticProviderBoundary": {
+    "provider": "AngleSharp/1.8.3.0",
+    "sourceCommit": "8fe96995dc67a5ff56b983cbb3bc13dd6875a43b",
+    "observed": {
+      "HTML5doctype": "Standards, correct",
+      "HTML4.01TransitionalNonemptySystem": "Standards, expected LimitedQuirks",
+      "HTML4.01TransitionalEmptySystem": "Standards, expected Quirks",
+      "quirksFragment": "Metadata retains Quirks but table is not within paragraph, expected paragraph descendant"
+    },
+    "probeSha256": "048573bebce442b189acf7b29fb1d0ea33cc63909f29387ab2066c8ea49f3bf2",
+    "assemblySha256": {
+      "OfficeIMO.Html.dll": "4ce6eda651eb455b6ecd915a44b8885256df2b06558bead135f0bd8469346a51",
+      "OfficeIMO.Html.Core.dll": "b1e70a7abe9295ec6edafc72d583620528b671fd0c90ec1f64bf23b6226c7491",
+      "OfficeIMO.Html.AngleSharp.dll": "9b29e1fff21c045869c5794439dd83d74257656d348025ff4300185a526881b3",
+      "AngleSharp.dll": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+    },
+    "proof": "Public HtmlDocumentEngine.Default in the exact selected NET10 static test graph. Source/response file/runtimeconfig/observations retained in integration/static-provider-boundary.",
+    "disposition": "Canonical AngleSharp owner corrections submitted separately. Released static-provider adoption and public-consumer requalification remain open; no downstream parser workaround or runtime dependency-role expansion."
+  },
+  "upstream": {
+    "officialBase": "4db3ab097e045e7241ba9d3b1098186452d05db0",
+    "reviewedContributions": [
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1378",
+        "head": "2b2e268fbb0c71aca617abd2ba35cd43a6a337be",
+        "contract": "Quirks ID/class matching"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1379",
+        "head": "4ef44aaff6e48798f1ce3f850bc33204ef0097ef",
+        "contract": "Language inheritance"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1380",
+        "head": "aad0952aca09241d58f1d05120d45a673bbb841b",
+        "contract": "Target capture order"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1381",
+        "head": "e25e0230d8cc15bfbaaf578580f38fd3a95c4676",
+        "contract": "HTML4.01 doctype document mode"
+      },
+      {
+        "url": "https://github.com/AngleSharp/AngleSharp/pull/1382",
+        "head": "6fea9a02d50f0da96f7fc569ebe8600d63a9b281",
+        "contract": "Context mode in public and DOM fragment factories"
+      }
+    ],
+    "priorContributions": "Existing1.8.3 release and1.8.4 devel contributions1364\u20131375 inspected; document-base1362 retained as its distinct contract.",
+    "mergeAuthorized": false,
+    "packagePublicationPerformed": false,
+    "boundary": "Fixes are source contributions. Runtime retained-fork integration is separately qualified; released static-parser adoption stays open.",
+    "currentHeadGate": {
+      "checkedUtc": "2026-10-08 14:30:58 UTC",
+      "linuxWindows": "All five pass on their recorded heads.",
+      "feedback": "No comments, reviews or inline threads in delayed snapshot; all thread pages read.",
+      "cla": "1378\u20131381 successful;1382 status not present in this snapshot. No legal/account action performed.",
+      "merge": "Not performed; upstream maintainer acceptance remains separate."
+    }
+  }
+}

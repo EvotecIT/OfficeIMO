@@ -56,3 +56,11 @@ context element and returns a fragment in an independent owned document. The ada
 reconstructs foreign and ancestor-form context where the retained native fragment API
 does not preserve it. Table insertion modes use the native fragment path. Both paths
 apply the same source, node, depth and cooperative-cancellation options.
+
+The default parser uses AngleSharp 1.8.3. Its HTML 4.01 Transitional/Frameset
+doctype classification has known gaps: a nonempty system identifier selects
+standards instead of limited quirks, and an empty identifier selects standards
+instead of quirks. For a quirks `div` context, a fragment containing a paragraph
+and table retains quirks metadata but constructs them as siblings. These parser
+limitations also affect the default conversion parser; owned selector matching
+does not correct the underlying tree or doctype classification.

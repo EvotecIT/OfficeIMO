@@ -144,6 +144,10 @@ is isolated inside `OfficeIMO.Html.AngleSharp`; consumers retain the same owned 
 the provider changes. Provider-independent CSS execution is being adopted in qualified
 vertical slices while the retained CSS provider covers the remaining grammar.
 
+The default static parser's [document-mode limitations](../OfficeIMO.Html.AngleSharp/README.md)
+cover selected HTML 4.01 doctypes and quirks fragment table construction. These
+parser limitations are distinct from the owned selector and rendering contracts.
+
 The owned property grammar covers CSS-wide keywords and selected `display`, `visibility`,
 `opacity`, `color`, physical width and height constraints, and physical margin and padding
 longhands. It represents constant number/percentage calculations, contextual length-percentage
@@ -167,11 +171,20 @@ while the provider evaluates that pseudo-class against the current element. `:is
 use forgiving lists, while `:not()` stays strict. `:empty` follows deployed browser behavior:
 whitespace text makes an element non-empty and comments do not.
 
+ID and class selectors use ASCII-insensitive matching in quirks documents and
+case-sensitive matching in standards and limited-quirks documents. Attribute
+selectors keep their own case rules. `:lang()` uses element and ancestor language
+declarations, gives `xml:lang` precedence over `lang`, and stops inheritance at an
+explicit empty language. A range matches the same language or a hyphenated subtag.
+
 AngleSharp.Css remains in the default package for wider property grammars, dynamic and
 relational pseudo-classes, filtered `:nth-child(... of S)`, conditional-group evaluation,
 pseudo-elements, unknown at-rules, and other fallback cases. Retained declarations can still use an owned
 selector match, including namespace-qualified selectors. OfficeIMO keeps rule order, cascade
 layers, computed-style projection, and fallback selection stable while the owned subset grows.
+Declaration preservation uses parsed name spans, so declaration-like text inside
+URLs or custom-property components stays intact. Provider fallback retains custom
+property values, case-sensitive names and importance from the original rule.
 
 Cascade explanations are opt-in so normal rendering does not retain candidate graphs for
 every element:
@@ -445,7 +458,7 @@ an isolated render clone.
 
 Paged tables use the same layout and retained scene for PDF, SVG, and raster output. Auto layout considers cell text, replaced images, column spans, and fixed-width visible descendants without feeding percentage widths back into intrinsic track sizing. Rowspans suppress unsafe page boundaries. `break-inside: avoid` on rows and row groups, `break-before` and `break-after` on rows, and aligned line breaks inside oversized multi-cell rows participate in pagination. `thead`/`tfoot` use their CSS table-group defaults; any row group can opt into or out of repetition with `display: table-header-group`, `table-footer-group`, or `table-row-group`. Repeated fragments retain the original table, row, and cell structure identity for tagged PDF. When an avoided or otherwise atomic row is taller than an empty page, the paginator makes bounded progress and reports `HtmlRenderForcedFragment` against the table source.
 
-Authored table widths honor `box-sizing` and horizontal auto margins. Absolute table, row, and cell heights are minimums. Extra table height is distributed evenly among rows and retained when pagination reflows a continuation. Cell `vertical-align: top`, `middle`, and `bottom` uses the final row or rowspan height. Browser style mode supplies border-box table sizing and middle alignment inherited through row groups and rows; authored values and CSS-wide resets override those defaults. RTL tables place the first logical column on the right while preserving source text and tagged-PDF order. Authored zero padding overrides the cell defaults. Percentage row and cell heights remain outside this qualified subset.
+Authored table widths honor `box-sizing` and horizontal auto margins. Tables default to border-box sizing in both style modes; flex and grid allocations apply padding, borders and maximum widths once. Absolute table, row, and cell heights are minimums. Extra table height is distributed evenly among rows and retained when pagination reflows a continuation. Cell `vertical-align: top`, `middle`, and `bottom` uses the final row or rowspan height. Browser style mode supplies middle alignment inherited through row groups and rows; authored values and CSS-wide resets override those defaults. RTL tables place the first logical column on the right while preserving source text and tagged-PDF order. Authored zero padding overrides the cell defaults. Percentage row and cell heights remain outside this qualified subset.
 
 Applicable box dimensions using `min-content`, `max-content`, or `fit-content` report `HtmlRenderIntrinsicSizeUnsupported` when they fall back to auto sizing or omit a minimum or maximum constraint. `RequireNoLoss` rejects that approximation. These declarations do not size ordinary non-replaced inline or `display:contents` boxes and do not report this loss. Intrinsic grid-track sizing has a separate supported contract.
 
