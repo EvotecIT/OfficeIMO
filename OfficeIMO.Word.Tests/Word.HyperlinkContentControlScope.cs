@@ -11,9 +11,9 @@ public sealed class WordHyperlinkContentControlScopeTests {
         var paragraph = document.AddParagraph("Anchor");
         paragraph._run!.Remove();
         var hyperlink = new Hyperlink(
-            new Run(new Text("Before ")),
+            new Run(new Text("Before ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new SdtRun(new SdtProperties(), new SdtContentRun(new Run(new Text("Inner")))),
-            new Run(new Text(" After"))) { Anchor = "target" };
+            new Run(new Text(" After") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve })) { Anchor = "target" };
         paragraph._paragraph.Append(hyperlink);
 
         var runs = paragraph.GetRuns().ToArray();
