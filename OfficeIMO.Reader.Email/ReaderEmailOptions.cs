@@ -5,6 +5,8 @@ namespace OfficeIMO.Reader.Email;
 
 /// <summary>Controls direct email, mailbox, calendar, and vCard ingestion.</summary>
 public sealed class ReaderEmailOptions {
+    /// <summary>Controls concealed HTML in derived Reader content. Selected bodies are inspected under either policy.</summary>
+    public EmailConcealedTextPolicy ConcealedTextPolicy { get; set; }
     /// <summary>Bounded policy for EML, MSG/OFT, and TNEF artifacts. Disabling embedded messages also omits nested mail attachment text projection.</summary>
     public EmailReaderOptions? MessageOptions { get; set; }
 

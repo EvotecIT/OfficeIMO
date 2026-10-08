@@ -12,6 +12,8 @@ public sealed partial class EmailStoreSession {
         CancellationToken cancellationToken = default) {
         if (query == null) throw new ArgumentNullException(nameof(query));
         ThrowIfDisposed();
+        if (query.BodyTextProjector != null && !string.Equals(query.BodyTextProjectionIdentity, query.BodyTextProjector.Identity, StringComparison.Ordinal))
+            throw new ArgumentException("The body projection identity changed after query construction.", nameof(query));
         string sourceFingerprint = GetDurableSourceFingerprint(cancellationToken);
         query.ResumeFrom?.Validate(sourceFingerprint, query.Signature);
 
@@ -145,16 +147,20 @@ public sealed partial class EmailStoreSession {
             }
         }
         if ((query.Fields & EmailStoreContentSearchFields.TextBody) != 0) {
-            AddField(fields, EmailStoreContentSearchFields.TextBody, document.Body.Text, ref remaining);
+            if (query.BodyTextProjector == null) AddField(fields, EmailStoreContentSearchFields.TextBody, document.Body.Text, ref remaining);
+            else AddProjectedBody(EmailStoreContentSearchFields.TextBody);
         }
         if ((query.Fields & EmailStoreContentSearchFields.HtmlBody) != 0 && remaining > 0) {
-            string text = EmailStoreSearchText.HtmlToText(document.Body.Html, remaining);
-            AddNormalizedField(fields, EmailStoreContentSearchFields.HtmlBody, text, ref remaining);
+            if (query.BodyTextProjector == null) {
+                string text = EmailStoreSearchText.HtmlToText(document.Body.Html, remaining);
+                AddNormalizedField(fields, EmailStoreContentSearchFields.HtmlBody, text, ref remaining);
+            } else AddProjectedBody(EmailStoreContentSearchFields.HtmlBody);
         }
         if ((query.Fields & EmailStoreContentSearchFields.RtfBody) != 0) {
-            string text = EmailStoreSearchText.RtfToText(
-                document.Body.Rtf, remaining, cancellationToken);
-            AddNormalizedField(fields, EmailStoreContentSearchFields.RtfBody, text, ref remaining);
+            if (query.BodyTextProjector == null) {
+                string text = EmailStoreSearchText.RtfToText(document.Body.Rtf, remaining, cancellationToken);
+                AddNormalizedField(fields, EmailStoreContentSearchFields.RtfBody, text, ref remaining);
+            } else AddProjectedBody(EmailStoreContentSearchFields.RtfBody);
         }
         if ((query.Fields & EmailStoreContentSearchFields.AttachmentNames) != 0) {
             foreach (EmailAttachment attachment in document.Attachments) {
@@ -167,6 +173,15 @@ public sealed partial class EmailStoreSession {
             }
         }
         return fields;
+
+        void AddProjectedBody(EmailStoreContentSearchFields field) {
+            if (remaining <= 0) return;
+            cancellationToken.ThrowIfCancellationRequested();
+            string text = query.BodyTextProjector!.Project(document, field, remaining, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (text == null || text.Length > remaining) throw new InvalidDataException("Body text projection exceeded the searchable-character bound.");
+            AddNormalizedField(fields, field, text, ref remaining);
+        }
     }
 
     private static bool TryMatch(IReadOnlyList<SearchFieldText> fields,

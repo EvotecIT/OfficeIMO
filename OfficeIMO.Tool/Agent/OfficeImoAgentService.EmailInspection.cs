@@ -15,6 +15,7 @@ internal sealed partial class OfficeImoAgentService {
         _registry.Resolve(source.SourceId, inputPath, cancellationToken);
         var metadata = inspection.Metadata;
         var result = new AgentEmailInspectResult {
+            ContentSafety = AgentContentSafetySummary.FromReport(inspection.BodyContentSafety),
             SourceId = source.SourceId, Path = inputPath, Kind = metadata.Kind.ToString(), Format = metadata.Format,
             ProtectionKind = metadata.ProtectionKind, SignatureStatus = metadata.MessageInspected ? "Unverified" : null,
             BodyCount = metadata.MessageInspected ? metadata.Bodies.Count : null,
@@ -29,6 +30,7 @@ internal sealed partial class OfficeImoAgentService {
             EventHandlerAttributeCount = inspection.HtmlInspectionStatus == "Completed" ? inspection.EventHandlerAttributeCount : null,
             Details = inspection, Truncated = metadata.AttachmentsTruncated || metadata.ContainersTruncated ||
                 metadata.DiagnosticsTruncated || metadata.HeaderScanTruncated || inspection.FindingLimitMayHaveBeenReached ||
+                (inspection.BodyContentSafety != null && inspection.BodyContentSafety.InspectionStatus != "Completed") ||
                 inspection.HtmlInspectionStatus == "BodyLimitExceeded" || inspection.HtmlInspectionStatus == "InspectionUnavailable"
         };
         if (AgentJson.Measure(result) > maxOutputCharacters) { result.Details = null; result.Truncated = true; }

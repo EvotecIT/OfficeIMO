@@ -17,6 +17,15 @@ HTML and RTF bodies use the existing HTML adapter for semantic Markdown even whe
 email handlers. A host's registered HTML handler takes precedence. Projection failures retain the safe HTML
 source and report `EMAIL_BODY_READER_FAILED`.
 
+Selected email bodies also carry bounded instruction and concealment diagnostics. Warnings appear on the message
+and body chunks as well as the document result, including when concealed text is omitted. Direct, asynchronous,
+mailbox and selected-store-item reads use the same projection. The default retains text; configure
+`ReaderEmailOptions.ConcealedTextPolicy` and `ReaderEmailStoreOptions.ConcealedTextPolicy` as
+`OfficeIMO.Email.EmailConcealedTextPolicy.ExcludeRemovable` to omit exact removable HTML concealment findings.
+The original message remains intact. Unsupported removal mechanisms remain visible with a warning, and an
+uninspectable HTML body produces an omission notice under that policy. Inspection completion covers bounded
+heuristics, not a guarantee that content is safe to follow. Attachment and metadata strings remain untrusted.
+
 Store attachments use bounded session streams by default, including OLM and EMLX.
 Reader consumes supported attachment text before closing the session and returns asset metadata without
 `PayloadBytes` for streamed content. To retain available attachment bytes in a result, register the store handler
