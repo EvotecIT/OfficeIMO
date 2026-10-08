@@ -8,6 +8,8 @@ namespace OfficeIMO.Core.Internal {
 
     internal static partial class OfficeVbaProjectInspector {
         /// <summary>Inspects project-relative streams without inventing a compound container or loading compiled code.</summary>
+        /// <remarks>The storage adapter must bound encoded stream sizes and aggregate input before materializing this dictionary.
+        /// <paramref name="maximumExpandedBytes"/> limits decompressed data; it does not limit the supplied encoded input.</remarks>
         internal static OfficeVbaInspection Inspect(IReadOnlyDictionary<string, byte[]> streams, int maximumExpandedBytes,
             CancellationToken cancellationToken = default) {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
