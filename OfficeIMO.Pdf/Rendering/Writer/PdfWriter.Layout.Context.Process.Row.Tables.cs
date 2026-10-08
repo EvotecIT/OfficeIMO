@@ -139,7 +139,7 @@ internal static partial class PdfWriter {
             double rowLeading = table.RowLeadings[rowIndex];
             double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
             double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
-            double segmentHeight = rowLeading + rowPadTop + rowPadBottom;
+            double segmentHeight = GetTableRowInitialTextHeight(tbColumn, rowIndex, table.Columns, rowLeading) + rowPadTop + rowPadBottom;
             var cells = GetTableCellLayouts(tbColumn, rowIndex, table.Columns);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];

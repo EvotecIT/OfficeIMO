@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
                 result.Bold[row] = bold;
                 result.Lines[row] = new TableCellTextLayout[columns];
                 int maxLines = 1;
-                double maxHeight = leading + GetTableRowMaxPaddingTop(table, style, row, columns) + GetTableRowMaxPaddingBottom(table, style, row, columns);
+                double maxHeight = GetTableRowInitialTextHeight(table, row, columns, leading) + GetTableRowMaxPaddingTop(table, style, row, columns) + GetTableRowMaxPaddingBottom(table, style, row, columns);
                 for (int column = 0; column < columns; column++) {
                     result.Lines[row][column] = new TableCellTextLayout(new() { new() }, new() { leading });
                 }

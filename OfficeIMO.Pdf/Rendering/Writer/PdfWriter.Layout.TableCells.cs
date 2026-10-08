@@ -499,7 +499,7 @@ internal static partial class PdfWriter {
                 int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
                 var runs = ProjectTableCellInlineImages(cell.Runs, cell.TextRotation);
                 var paragraphs = ProjectTableCellInlineImageParagraphs(cell.Paragraphs, cell.TextRotation);
-                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, runs, paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport, cell.TextRotation));
+                rowLayouts.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, runs, paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport, cell.TextRotation) { OrientedRowTextHeight = cell.OrientedRowTextHeight });
                 for (int c = column; c < column + columnSpan; c++) {
                     activeRowSpans[c] = System.Math.Max(activeRowSpans[c], rowSpan);
                 }
@@ -610,7 +610,9 @@ internal static partial class PdfWriter {
         MeasureTableCellContentHeight(cell, layout, startLine, lineCount, fallbackLeading, innerWidth, includeObjects: true);
 
     private static double MeasureTableCellContentHeight(TableCellLayout cell, TableCellTextLayout layout, int startLine, int lineCount, double fallbackLeading, double innerWidth, bool includeObjects) {
-        double textHeight = MeasureTableCellTextHeight(layout, startLine, cell.TextRotation == 0 ? lineCount : Math.Min(1, lineCount), fallbackLeading);
+        double textHeight = cell.TextRotation != 0 && cell.OrientedRowTextHeight.HasValue
+            ? cell.OrientedRowTextHeight.Value
+            : MeasureTableCellTextHeight(layout, startLine, cell.TextRotation == 0 ? lineCount : Math.Min(1, lineCount), fallbackLeading);
         if (!includeObjects) {
             return textHeight;
         }

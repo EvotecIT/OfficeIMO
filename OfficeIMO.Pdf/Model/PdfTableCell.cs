@@ -128,6 +128,17 @@ public sealed class PdfTableCell {
     /// <summary>Quarter-turn orientation in PDF coordinates; retained separately from physical cell borders and padding.</summary>
     internal int TextRotation { get; }
 
+    private readonly double? _orientedRowTextHeight;
+    /// <summary>Source-resolved flow height of an oriented cell's paragraph mark, independent of turned visible glyph sizes.</summary>
+    internal double? OrientedRowTextHeight {
+        get => _orientedRowTextHeight;
+        init {
+            if (value.HasValue && (value.Value < 0D || double.IsNaN(value.Value) || double.IsInfinity(value.Value)))
+                throw new ArgumentOutOfRangeException(nameof(value), "Oriented row text height must be non-negative and finite.");
+            _orientedRowTextHeight = value;
+        }
+    }
+
     /// <summary>Creates a single-column text cell.</summary>
     public static PdfTableCell TextCell(string? text, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(text, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
 
@@ -165,18 +176,18 @@ public sealed class PdfTableCell {
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
-    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap, Viewport, TextRotation);
+    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap, Viewport, TextRotation) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     /// <summary>
     /// Returns a copy that keeps each cell paragraph on one visual line. When the containing
     /// table enables text shrinking, the renderer reduces the font before clipping.
     /// </summary>
-    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap, Viewport, TextRotation);
+    public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap, Viewport, TextRotation) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     /// <summary>Returns a copy that renders the given portion of the full cell, including images. Cells containing check boxes or form fields cannot use a viewport.</summary>
-    public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport, TextRotation);
+    public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport, TextRotation) { OrientedRowTextHeight = OrientedRowTextHeight };
 
-    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation);
+    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport, TextRotation) { OrientedRowTextHeight = OrientedRowTextHeight };
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
         if (columnSpan < 1) {

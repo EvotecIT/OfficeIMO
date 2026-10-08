@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
@@ -76,6 +77,37 @@ public partial class Word {
         int text = Math.Max(operators.LastIndexOf(" Tj", StringComparison.Ordinal), operators.LastIndexOf(" TJ", StringComparison.Ordinal));
         Assert.True(picture >= 0 && text >= 0);
         Assert.Equal(pictureAbove, picture > text);
+    }
+
+    [Theory]
+    [InlineData(6)]
+    [InlineData(12)]
+    [InlineData(24)]
+    public void SaveAsPdf_AutomaticTurnedCellRowUsesParagraphMarkInsteadOfVisibleRunSize(int markSize) {
+        Assert.Equal(TurnedCellFollowingBaseline(markSize, 18), TurnedCellFollowingBaseline(markSize, 36), 3);
+    }
+
+    [Fact]
+    public void SaveAsPdf_AutomaticTurnedCellMarkSizeChangesItsPhysicalFlowHeight() {
+        Assert.True(TurnedCellFollowingBaseline(6, 18) > TurnedCellFollowingBaseline(24, 18));
+    }
+
+    private static double TurnedCellFollowingBaseline(int markSize, int runSize) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
+        table.LayoutMode = WordTableLayoutMode.Fixed;
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        table.Rows[0].Cells[0].TextDirection = WordTextDirection.TopToBottomRightToLeft;
+        paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        paragraph.FontSize = runSize;
+        paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
+            new W.ParagraphMarkRunProperties(new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        WordParagraph after = document.AddParagraph("After");
+        after.FontSize = 12;
+        after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        return Assert.Single(Assert.Single(pdf.GetPages()).GetWords(), word => word.Text == "After")
+            .Letters[0].StartBaseLine.Y;
     }
 
     private static (double Width, double Height, double Top) CellDirectionImageBounds(WordTextDirection direction, WordParagraphAlignment alignment) {

@@ -124,6 +124,7 @@ internal static partial class PdfWriter {
         public bool NoWrap { get; }
         public PdfTableCellViewport? Viewport { get; }
         public int TextRotation { get; }
+        public double? OrientedRowTextHeight { get; init; }
     }
 
     private static LayoutResult LayoutBlocks(
