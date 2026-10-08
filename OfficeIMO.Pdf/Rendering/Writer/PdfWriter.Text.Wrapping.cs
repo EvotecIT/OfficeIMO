@@ -41,6 +41,7 @@ internal static partial class PdfWriter {
         var pendingSpaceFragments = new List<PendingSpaceFragment>();
         RichSeg? currentSpaceStyle = null;
         RichSeg? pendingTabSourceStyle = null;
+        int pendingTabSourceLine = -1;
         bool pendingLeadingSeparator = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         PdfColor? pendingLeadingDecorationColor = null;
@@ -187,12 +188,14 @@ internal static partial class PdfWriter {
         void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline) {
             PdfTabAlignment fallbackAlignment = pendingLeadingTabAlignment;
             PdfTabLeaderStyle fallbackLeader = pendingLeadingTabLeader;
-            // The separator already selected its stop. Measuring an inline
-            // object or moving its line must not consume the following stop.
-            PdfTabStop? explicitTabStop = pendingLeadingTabStop ?? ResolveNextExplicitTabStop();
+            // Same-line inline measurement retains the selected stop. A new
+            // line selects again from its own origin and available stops.
+            PdfTabStop? explicitTabStop = pendingTabSourceLine == lines.Count - 1
+                ? pendingLeadingTabStop : ResolveNextExplicitTabStop();
             pendingLeadingTabAlignment = explicitTabStop?.Alignment ?? fallbackAlignment;
             pendingLeadingTabLeader = explicitTabStop?.Leader ?? fallbackLeader;
             pendingLeadingTabStop = explicitTabStop;
+            pendingTabSourceLine = lines.Count - 1;
             pendingLeadingAdvance = CalculateTabAdvance(lineWidth, followingTextWidth, spaceW, pendingLeadingTabAlignment, tabStopWidth, followingText, followingFont, followingFontSize, followingBaseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
         }
 
@@ -201,6 +204,7 @@ internal static partial class PdfWriter {
             pendingLeadingSpaceCount = 0;
             pendingSpaceFragments.Clear();
             pendingTabSourceStyle = null;
+            pendingTabSourceLine = -1;
             pendingLeadingSeparator = false;
             pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingDecorationColor = null;
@@ -259,6 +263,7 @@ internal static partial class PdfWriter {
             pendingLeadingIsExpandable = false;
             pendingLeadingIsTab = true;
             pendingTabSourceStyle = currentSpaceStyle;
+            pendingTabSourceLine = lines.Count - 1;
         }
 
         void ResolveBufferedTab(double followingWidth, double spaceWidth, string followingText,
