@@ -9,6 +9,68 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class RedactionReviewTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task RepeatedSearchWithDifferentRemovalPolicyRequiresExplicitMarkReplacement(bool preserveUnderlay, bool precise) {
+        using var files = new TestFiles();
+        byte[] image = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        PdfDocument document = PdfDocument.Create(compose => {
+            compose.Page(page => page.Size(600, 800).BackgroundImage(image)
+                .Content(content => content.Item(item => item.Paragraph(text => text.Text("Before private account after")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Other private account")))));
+        });
+        byte[] source = document.ToBytes();
+        Assert.Single(PdfDocument.Load(source).Images.Placements());
+        await File.WriteAllBytesAsync(files.Input, source);
+        using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
+            pickSavePdf: _ => Task.FromResult<string?>(files.Output));
+        await model.OpenDocumentAsync(files.Input);
+        model.SetOrganizerSelection([model.OrganizerPages[0]]);
+        model.RedactionSearchSelectedPagesOnly = true;
+        model.RedactionSearchMatchedTextOnly = precise;
+        model.RedactionSearchPreserveUnderlay = preserveUnderlay;
+        model.RedactionSearchText = "private account";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        PdfRedactionMarkViewModel original = Assert.Single(model.RedactionMarks);
+        original.Reason = "Reviewed reason";
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Same(original, Assert.Single(model.RedactionMarks));
+        await model.ReviewRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.CanApplyReviewedRedactions, model.PendingRedactionSummary);
+
+        model.RedactionSearchPreserveUnderlay = !preserveUnderlay;
+        model.RedactionSearchSelectedPagesOnly = false;
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.HasError);
+        Assert.False(model.CanApplyReviewedRedactions);
+        Assert.Same(original, Assert.Single(model.RedactionMarks));
+        Assert.Equal("Reviewed reason", original.Reason);
+        Assert.Equal(preserveUnderlay ? PdfRedactionContentScope.TextOnly : PdfRedactionContentScope.TextAndUnderlay,
+            original.Area.ContentScope);
+
+        model.SelectedRedactionMark = original;
+        model.RemoveRedactionMarkCommand.Execute(null);
+        await model.SearchRedactionsCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        Assert.Equal(2, model.RedactionMarks.Count);
+        await model.ReviewRedactionsCommand.ExecuteAsync(null);
+        Assert.True(model.CanApplyReviewedRedactions, model.PendingRedactionSummary);
+        await model.ApplyPendingRedactionCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
+        Assert.False(model.HasError, model.ErrorMessage);
+        PdfDocument saved = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output));
+        Assert.DoesNotContain("private account", saved.Read().Text, StringComparison.Ordinal);
+        Assert.Equal(preserveUnderlay ? 0 : 1, saved.Images.Placements().Count);
+        Assert.Equal(source, await File.ReadAllBytesAsync(files.Input));
+    }
+
+    [Theory]
     [InlineData(false, 0)]
     [InlineData(true, 0)]
     [InlineData(false, 90)]

@@ -20,7 +20,7 @@ swift Build/PdfViewerVerification/Verify-PdfRedactionPdfKit.swift \
   'private account [0-9]{3}' Before 'after page'
 ```
 
-PDFKit must find the removal criterion in the source and no matches in the output. Every specified retained marker must occur in the source and remain on each page where it occurred, with unchanged selection bounds within 0.05 PDF points. Page count, MediaBox and rotation must remain unchanged. The check writes a JSON report and source/result page PNGs for visual inspection.
+PDFKit must find the removal criterion in the source and no matches in the output. Every specified retained marker must occur in the source. Its occurrence count must match on each page, and each occurrence must keep its selection bounds within 0.05 PDF points. Page count, MediaBox and rotation must remain unchanged. The check writes per-occurrence geometry and counts to a JSON report, plus source/result page PNGs for visual inspection.
 
 Use Poppler's `pdftotext -bbox-layout`, `pdfinfo` and `pdftoppm -png` on the same pair for a second reader and renderer. Inspect the PNGs and compare changes against the reviewed rectangles; successful extraction alone does not establish visual preservation. Keep source hashes, tool versions, reports and representative images with the run, and remove superseded output.
 

@@ -9,11 +9,21 @@ func verify(_ condition: Bool, _ message: String) throws {
     if !condition { throw VerificationError.failed(message) }
 }
 
-func selectionBounds(_ text: String, page: PDFPage) -> CGRect? {
-    guard let content = page.string else { return nil }
-    let range = (content as NSString).range(of: text)
-    guard range.location != NSNotFound else { return nil }
-    return page.selection(for: range)?.bounds(for: page)
+func selectionBounds(_ text: String, page: PDFPage) throws -> [CGRect] {
+    guard let content = page.string else { return [] }
+    let value = content as NSString
+    var location = 0
+    var bounds: [CGRect] = []
+    while location < value.length {
+        let range = value.range(of: text, options: [], range: NSRange(location: location, length: value.length - location))
+        if range.location == NSNotFound { break }
+        guard let selection = page.selection(for: range) else {
+            throw VerificationError.failed("PDFKit could not locate retained text: \(text)")
+        }
+        bounds.append(selection.bounds(for: page))
+        location = NSMaxRange(range)
+    }
+    return bounds
 }
 
 func rectangle(_ value: CGRect) -> [String: Double] {
@@ -33,6 +43,8 @@ func png(_ page: PDFPage, destination: URL) throws {
 do {
     let args = Array(CommandLine.arguments.dropFirst())
     try verify(args.count >= 5, "Usage: swift Verify-PdfRedactionPdfKit.swift source.pdf redacted.pdf output-directory removed-regex retained-text [retained-text ...]")
+    let markers = Array(Set(args.dropFirst(4))).sorted()
+    try verify(markers.allSatisfy { !$0.isEmpty }, "Retained markers must not be empty.")
     guard let source = PDFDocument(url: URL(fileURLWithPath: args[0])),
           let output = PDFDocument(url: URL(fileURLWithPath: args[1])) else {
         throw VerificationError.failed("PDFKit could not open both PDFs.")
@@ -48,7 +60,8 @@ do {
     let directory = URL(fileURLWithPath: args[2], isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     var pages: [[String: Any]] = []
-    var retainedCounts = Dictionary(uniqueKeysWithValues: args.dropFirst(4).map { ($0, 0) })
+    var retainedCounts = Dictionary(uniqueKeysWithValues: markers.map { ($0, 0) })
+    var retainedOccurrenceCounts = retainedCounts
     for index in 0..<source.pageCount {
         guard let before = source.page(at: index), let after = output.page(at: index) else {
             throw VerificationError.failed("A page is missing.")
@@ -56,16 +69,20 @@ do {
         try verify(before.rotation == after.rotation, "Page rotation changed.")
         try verify(before.bounds(for: .mediaBox) == after.bounds(for: .mediaBox), "MediaBox changed.")
         var retained: [[String: Any]] = []
-        for marker in args.dropFirst(4) {
-            guard let original = selectionBounds(marker, page: before) else { continue }
-            guard let saved = selectionBounds(marker, page: after) else {
-                throw VerificationError.failed("Neighboring text was removed: \(marker)")
+        for marker in markers {
+            let originals = try selectionBounds(marker, page: before)
+            let saved = try selectionBounds(marker, page: after)
+            try verify(originals.count == saved.count, "Neighboring text occurrence count changed on page \(index + 1): \(marker)")
+            if originals.isEmpty { continue }
+            for (occurrence, pair) in zip(originals, saved).enumerated() {
+                let differences = [abs(pair.0.minX - pair.1.minX), abs(pair.0.minY - pair.1.minY),
+                                   abs(pair.0.width - pair.1.width), abs(pair.0.height - pair.1.height)]
+                try verify(differences.allSatisfy { $0 < 0.05 }, "Neighboring text moved on page \(index + 1), occurrence \(occurrence + 1): \(marker)")
+                retained.append(["text": marker, "occurrence": occurrence + 1,
+                                 "source": rectangle(pair.0), "output": rectangle(pair.1)])
             }
-            let differences = [abs(original.minX - saved.minX), abs(original.minY - saved.minY),
-                               abs(original.width - saved.width), abs(original.height - saved.height)]
-            try verify(differences.allSatisfy { $0 < 0.05 }, "Neighboring text moved: \(marker)")
             retainedCounts[marker, default: 0] += 1
-            retained.append(["text": marker, "source": rectangle(original), "output": rectangle(saved)])
+            retainedOccurrenceCounts[marker, default: 0] += originals.count
         }
         try png(before, destination: directory.appendingPathComponent("source-\(index + 1).png"))
         try png(after, destination: directory.appendingPathComponent("redacted-\(index + 1).png"))
@@ -75,7 +92,8 @@ do {
     try verify(retainedCounts.values.allSatisfy { $0 > 0 }, "A required retained marker was absent from the source.")
     let report: [String: Any] = ["reader": "Apple PDFKit", "os": ProcessInfo.processInfo.operatingSystemVersionString,
                                "pageCount": output.pageCount, "removedMatches": 0,
-                               "retainedMarkerPageCounts": retainedCounts, "pages": pages]
+                               "retainedMarkerPageCounts": retainedCounts,
+                               "retainedMarkerOccurrenceCounts": retainedOccurrenceCounts, "pages": pages]
     let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
     try data.write(to: directory.appendingPathComponent("pdfkit-evidence.json"))
     print("PDFKit verified \(output.pageCount) pages, removed text and unchanged neighboring selection bounds.")

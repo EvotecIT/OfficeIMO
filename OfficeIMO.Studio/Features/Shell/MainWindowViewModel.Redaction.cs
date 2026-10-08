@@ -97,20 +97,30 @@ public sealed partial class MainWindowViewModel {
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || marks is null || generation != _redactionPlanGeneration ||
             !ReferenceEquals(_workspace, workspace) || revision != workspace.Revision) return;
+        PdfRedactionMarkViewModel[] candidates = marks.Select(mark => new PdfRedactionMarkViewModel(mark.Area,
+            new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height),
+            mark.Description, textSelection)).ToArray();
+        if (candidates.Any(HasRedactionPolicyConflict)) {
+            ReportRedactionPolicyConflict();
+            return;
+        }
         if (RedactionMarks.Count + marks.Count > 2000) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.TooManyMarks", "A review can contain at most 2,000 marks. Narrow the search or remove some marks.");
             return;
         }
         _pendingRedactionWorkspace = workspace;
         _pendingRedactionRevision = revision;
-        foreach (PdfRedactionCandidate mark in marks) AddRedactionMark(new PdfRedactionMarkViewModel(mark.Area,
-            new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height), mark.Description), update: false);
+        foreach (PdfRedactionMarkViewModel mark in candidates) AddRedactionMark(mark, update: false);
         InvalidateReviewedRedactions();
         if (marks.Count > 0) RedactionSearchExpanded = false;
         OperationStatus = _localizer.FormatOrDefault("Redaction.SearchResult", "Found {0:N0} matching area(s). Review the marked areas before applying.", marks.Count);
     }
 
     private void AddRedactionMark(PdfRedactionMarkViewModel mark, bool update = true) {
+        if (HasRedactionPolicyConflict(mark)) {
+            ReportRedactionPolicyConflict();
+            return;
+        }
         if (RedactionMarks.Count >= 2000) {
             ErrorMessage = _localizer.GetOrDefault("Redaction.TooManyMarks", "A review can contain at most 2,000 marks. Narrow the search or remove some marks.");
             return;
@@ -120,6 +130,18 @@ public sealed partial class MainWindowViewModel {
         RedactionMarks.Add(mark);
         SelectedRedactionMark ??= mark;
         if (update) InvalidateReviewedRedactions();
+    }
+
+    private bool HasRedactionPolicyConflict(PdfRedactionMarkViewModel mark) =>
+        RedactionMarks.Any(existing => existing.PageNumber == mark.PageNumber && existing.Bounds == mark.Bounds &&
+            (existing.Area.ContentScope != mark.Area.ContentScope || existing.Area.AppearanceMode != mark.Area.AppearanceMode ||
+             existing.TextSelection != mark.TextSelection));
+
+    private void ReportRedactionPolicyConflict() {
+        InvalidateReviewedRedactions();
+        RedactionSearchExpanded = true;
+        ErrorMessage = _localizer.GetOrDefault("Redaction.SearchPolicyConflict",
+            "A matching area already uses different redaction options. Remove that mark and search again to use the selected options, then review.");
     }
 
     private void OnRedactionMarkChanged(object? sender, PropertyChangedEventArgs args) {

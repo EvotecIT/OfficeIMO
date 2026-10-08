@@ -13,6 +13,67 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class RedactionReviewVisualTests {
     [Theory]
+    [InlineData(960, 620, false)]
+    [InlineData(1280, 900, true)]
+    public async Task ChangedSearchPolicyShowsConflictAndDisablesPreviouslyReviewedApply(int width, int height, bool dark) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-redaction-policy-visual-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string source = Path.Combine(root, "source.pdf");
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+                item.Paragraph(text => text.Text("Before private account after")))))).Save(source);
+            using var app = TestAppBuilder.StartSession();
+            await app.Dispatch(async () => {
+                var services = ((App)Application.Current!).Services;
+                services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
+                var window = new MainWindow(services) { Width = width, Height = height };
+                try {
+                    window.Show();
+                    await window.TabHost.OpenDocumentAsync(source);
+                    var model = window.ViewModel;
+                    model.ShowProtectModeCommand.Execute(null);
+                    model.RedactionSearchText = "private account";
+                    model.RedactionSearchMatchedTextOnly = true;
+                    model.RedactionSearchPreserveUnderlay = true;
+                    await model.SearchRedactionsCommand.ExecuteAsync(null);
+                    await model.ReviewRedactionsCommand.ExecuteAsync(null);
+                    Assert.True(model.CanApplyReviewedRedactions);
+                    model.RedactionSearchExpanded = true;
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
+                    var inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
+                    var underlay = inspector.GetVisualDescendants().OfType<CheckBox>()
+                        .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionPreserveUnderlay");
+                    Assert.True(underlay.IsChecked);
+                    underlay.BringIntoView();
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
+                    Click(window, underlay);
+                    Assert.False(model.RedactionSearchPreserveUnderlay);
+                    var search = inspector.GetVisualDescendants().OfType<Button>()
+                        .Single(button => ReferenceEquals(button.Command, model.SearchRedactionsCommand));
+                    Click(window, search);
+                    if (model.SearchRedactionsCommand.ExecutionTask is { } searchTask) await searchTask;
+                    window.UpdateLayout();
+                    Assert.True(model.HasError);
+                    Assert.Single(model.RedactionMarks);
+                    var apply = inspector.GetVisualDescendants().OfType<Button>()
+                        .Single(button => ReferenceEquals(button.Command, model.ApplyPendingRedactionCommand));
+                    Assert.False(apply.IsEnabled);
+                    TextBlock error = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == model.ErrorMessage);
+                    Assert.True(error.IsEffectivelyVisible);
+                    Capture(window, $"redaction-policy-conflict-{width}-{dark}.png");
+                } finally {
+                    foreach (var tab in window.TabHost.Tabs.ToArray()) tab.Document.CompletePreparedClose();
+                    window.Close();
+                    window.TabHost.Dispose();
+                }
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Theory]
     [InlineData(960, 620, false, false, 0)]
     [InlineData(1280, 900, true, false, 0)]
     [InlineData(840, 600, false, true, 90)]
