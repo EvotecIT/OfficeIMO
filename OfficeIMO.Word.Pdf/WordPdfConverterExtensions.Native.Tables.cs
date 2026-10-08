@@ -205,7 +205,10 @@ namespace OfficeIMO.Word.Pdf {
 
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
             ApplyNativeUnspacedTableRowMargins(table, layout, style);
-            ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
+            // An explicit PDF table style retains its presentation placement.
+            // Source compatibility geometry applies to the Word-owned style path.
+            if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
+                ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
