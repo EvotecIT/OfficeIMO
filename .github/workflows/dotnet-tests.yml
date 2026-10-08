@@ -29,7 +29,7 @@ concurrency:
 env:
   DOTNET_VERSION: |
     8.0.418
-    10.0.112
+    10.0.303
   BUILD_CONFIGURATION: 'Release'
   TEST_VERBOSITY: minimal # set to 'detailed' to restore full test output
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests

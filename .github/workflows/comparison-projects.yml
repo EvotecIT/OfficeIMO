@@ -27,7 +27,7 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.418
-    10.0.112
+    10.0.303
   BUILD_CONFIGURATION: Release
 
 jobs:

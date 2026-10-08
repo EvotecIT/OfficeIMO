@@ -45,7 +45,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.418
-            10.0.112
+            10.0.303
 
       - name: Restore NuGet packages
         if: matrix.build-mode == 'manual'
