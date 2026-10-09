@@ -475,10 +475,14 @@ public partial class PdfDocumentVisualQualityTests {
                                 }))))))
             .ToBytes();
 
-        string pdf = Encoding.ASCII.GetString(bytes);
-
-        Assert.Contains("/BaseFont /Times-Roman", pdf, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /Courier", pdf, StringComparison.Ordinal);
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var words = pdf.GetPages().SelectMany(page => page.GetWords()).ToArray();
+        var times = Assert.Single(words, word => word.Text == "Times");
+        var courier = Assert.Single(words, word => word.Text == "Courier");
+        // These first rows use the default bold header style. Verify the faces
+        // actually used by the marker glyphs, rather than unused font objects.
+        Assert.All(times.Letters, letter => Assert.Equal("Times-Bold", letter.FontName));
+        Assert.All(courier.Letters, letter => Assert.Equal("Courier-Bold", letter.FontName));
     }
 
     [Fact]
