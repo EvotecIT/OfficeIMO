@@ -4,7 +4,23 @@ public static partial class HtmlCssMathResolver {
     /// <summary>Classifies computed math components before a layout-dependent percentage is resolved.</summary>
     internal static bool MixesPercentageAndNonZeroLength(HtmlCssMathExpression expression, HtmlCssLengthResolutionContext context) {
         ComputedComponents components = ResolveComputedComponents(expression, context);
-        return expression.IsCalculated && components.HasPercentage && components.HasNonZeroLength;
+        return expression.IsCalculated && (components.HasPercentage && components.HasNonZeroLength
+            || ContainsMixedNumericRatio(expression, context));
+    }
+
+    private static bool ContainsMixedNumericRatio(HtmlCssMathExpression expression, HtmlCssLengthResolutionContext context) {
+        // A dimension quotient can reduce to Number and hide its percentage/length
+        // mixture from the containing expression's computed numeric type.
+        if (expression.Kind == HtmlCssMathExpressionKind.Divide && expression.Type == HtmlCssNumericType.Number) {
+            foreach (HtmlCssMathExpression child in expression.Children) {
+                ComputedComponents components = ResolveComputedComponents(child, context);
+                if (components.HasPercentage && components.HasNonZeroLength) return true;
+            }
+        }
+        foreach (HtmlCssMathExpression child in expression.Children) {
+            if (ContainsMixedNumericRatio(child, context)) return true;
+        }
+        return false;
     }
 
     private static ComputedComponents ResolveComputedComponents(HtmlCssMathExpression expression, HtmlCssLengthResolutionContext context) {
