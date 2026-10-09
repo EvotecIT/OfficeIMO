@@ -44,11 +44,16 @@ internal static class MarkPflug65KFixture {
             throw new ArgumentException($"Unknown benchmark fixture '{fixtureName}'.", nameof(fixtureName));
         }
 
+        EnsureAuthentic(fixtureName, expectedHash, new Uri(SourceRoot + fixtureName));
+    }
+
+    internal static void EnsureAuthentic(string fixtureName, string expectedHash, Uri source) {
+        if (fixtureName != Path.GetFileName(fixtureName)) throw new ArgumentException("A fixture name cannot contain a path.", nameof(fixtureName));
         Directory.CreateDirectory(Root);
         using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         string path = Path.Combine(Root, fixtureName);
         if (!File.Exists(path) || !HashMatches(path, expectedHash)) {
-            Download(client, fixtureName, path);
+            Download(client, source, path);
         }
 
         string actual = ComputeHash(path);
@@ -60,11 +65,11 @@ internal static class MarkPflug65KFixture {
 
     internal static IReadOnlyDictionary<string, string> GetHashes() => Hashes;
 
-    private static void Download(HttpClient client, string name, string path) {
+    private static void Download(HttpClient client, Uri source, string path) {
         string temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".download";
         try {
             using HttpResponseMessage response = client.GetAsync(
-                SourceRoot + name,
+                source,
                 HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
             response.EnsureSuccessStatusCode();
             using Stream input = response.Content.ReadAsStream();

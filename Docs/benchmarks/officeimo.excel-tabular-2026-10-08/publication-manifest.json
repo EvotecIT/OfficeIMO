@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-10-08T22:07:41.7515802Z",
+  "status": "Copy-ready qualified dated benchmark evidence; no source/publication mutation",
+  "captureDate": "2026-10-08",
+  "measuredSource": "83095146282a96143b23a79a7ecca058a24a709b",
+  "unchangedBenchmarkSource": "e676775a59458d1095606386c39506ceb8a9bc33",
+  "laterAppliedSourceIdentity": "Coordinator-owned separate lineage; not relabelled into measured cases",
+  "installReport": "Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md",
+  "installPacket": "Docs/benchmarks/officeimo.excel-tabular-2026-10-08",
+  "coverage": {
+    "primary": 652,
+    "currentSource": 612,
+    "sourceStart": 16,
+    "published344": 16,
+    "causalCoreOnly": 8,
+    "supplementary": 78,
+    "timingPending": 0,
+    "historicalExploratoryOutsideCounts": 106,
+    "historicalSupportingOutsideCounts": 24,
+    "eligibilityOutsideCounts": 136,
+    "originalFailedSuccessfulMeasurements": 0
+  },
+  "archive": {
+    "file": "officeimo.excel-tabular-2026-10-08/raw-packets.zip",
+    "bytes": 8820315,
+    "sha256": "BCD04D17158AD86C2C19F4276AD70C6FC0C1ACC3594B92E5EB56F09D0B1BA675",
+    "members": 1230,
+    "uncompressedMemberBytes": 101336660,
+    "extractionProof": "officeimo.excel-tabular-2026-10-08/manifests/archive-verification.json",
+    "allExtractedMemberHashesMatched": true,
+    "duplicateExtractionRemovedBytes": 101336660
+  },
+  "reliability": "All final warm Actual durations>=100ms; expected cold short/distribution warnings retained. Domain1 cold significant persistent testhost CPU observation prevents idle/isolated-host ranking. Native interval/outlier/host evidence retained, no universal win or causal attribution.",
+  "files": [
+    {
+      "path": "officeimo.excel-tabular-2026-10-08.md",
+      "bytes": 33366,
+      "sha256": "142AF324EB7345EE1BA8AD4146C39B038C3154F0EFF2A37AD130507A4840EA2D"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/archive-members.json",
+      "bytes": 502112,
+      "sha256": "689A0B75B30A7472B9D9E7E0775E4109355FD0479755A75D56B6A2D22E0E6C94"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/archive-source-inventory.json",
+      "bytes": 934225,
+      "sha256": "1DCC88C5C3BCDED75E8C3C3240E1AAE3FF4D4B1D1E483A37850CAEDF96F31AF4"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/archive-verification.json",
+      "bytes": 1208,
+      "sha256": "8D0297FBD35FB83010ECD77DB37187959BAD3DA0F38757944579A25EE504503C"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/capture-ledger.json",
+      "bytes": 187349,
+      "sha256": "1C3C455C1652DD3D6BFB062937BD957032F9631DA7C3FA9BE273366AD3D7766B"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/publication-readability-audit.json",
+      "bytes": 2766,
+      "sha256": "D7D2E413D58BC57B6C757602F9F88CF2144EDD1E04E8CE0C17873D3156A21B58"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/publication-storage.json",
+      "bytes": 1299,
+      "sha256": "E1E84783DCA8E96108D91B41857D25BC35D98FF721638A1C258437F0B772108F"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/runtime-harness-input-identities.json",
+      "bytes": 2918832,
+      "sha256": "B55AE5DF07D9C82C6D5940F1A0DE53A6DFF5896ECA72F92AE950B9DCD70F30AA"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/manifests/warnings-and-duration-index.json",
+      "bytes": 24323,
+      "sha256": "AD100D99664197EC80C1CF00A321F1C931CE0E608D280C510671CF38BC18D2F8"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/raw-packets.zip",
+      "bytes": 8820315,
+      "sha256": "BCD04D17158AD86C2C19F4276AD70C6FC0C1ACC3594B92E5EB56F09D0B1BA675"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/README.md",
+      "bytes": 2979,
+      "sha256": "D7F3D9F6E2BE1CD3A22D9FD62E0AFAF9538E7BC44E7995DDB2E0E188831DFAC2"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-historical-exploratory.csv",
+      "bytes": 86862,
+      "sha256": "62F258F2F1B521F4BB1065CFA9D669A5E856969E5815856391B338ACE4653E83"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-historical-exploratory.json",
+      "bytes": 616754,
+      "sha256": "418E040458B3D4E3649AD41F36B27AA2A6C643C3D26C26F3D63CF120BE44D884"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-historical-support.csv",
+      "bytes": 20703,
+      "sha256": "056518A3EAABC11FC4707F85519F96CF18BD7CA8F159F953EE6053076EFA6027"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-historical-support.json",
+      "bytes": 161058,
+      "sha256": "87935A51C78D08E10D54B2A17E67D25A2C426EA46596937AC76FD15882935FA9"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-primary.csv",
+      "bytes": 598246,
+      "sha256": "C3CAD5C74DF521B80A4BA9F06447B2472E91F3E969EF450B2D7C5A98028697F3"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-primary.json",
+      "bytes": 4518262,
+      "sha256": "546BEB6708E870A2DEE6E1ED6CF8244B213CE5A45BB507B384CBC882A44DA209"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-supplementary.csv",
+      "bytes": 66135,
+      "sha256": "244892700597FD5C35D3974CDEFD30411A00AA30191C6A2608CA743AE21EB1A5"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/results-supplementary.json",
+      "bytes": 571785,
+      "sha256": "A0CE346857C4015563AF558D2E048D722CA9E65BAAFBD9AA79E8CCCFD044C2B3"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/tables-historical-exploratory.md",
+      "bytes": 35767,
+      "sha256": "C51A782C3A24556B5BD00281FD22440C52D3A864B0C2F13230F63BB7C90D3CD0"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/tables-historical-support.md",
+      "bytes": 14558,
+      "sha256": "E33D2205332C90BDE5B06980EC1DBA6B06D756EA85162075F167B0774B4062AB"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/tables-primary.md",
+      "bytes": 265101,
+      "sha256": "84DEB0E43E9B04562ECEE512793DBD5273F710E3AD8D49D7C6A18938CB04D84A"
+    },
+    {
+      "path": "officeimo.excel-tabular-2026-10-08/tables-supplementary.md",
+      "bytes": 46051,
+      "sha256": "7E76F00F9E9C4AA1762305BD5859E597E11D9AD53BCB1D30DF464338630CBCE9"
+    }
+  ],
+  "fileCountExcludingThisManifestAndChecksums": 23,
+  "logicalBytesExcludingThisManifestAndChecksums": 20430056.0,
+  "originalPreparationManifest": {
+    "path": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-preparation\\final-preparation-manifest.json",
+    "bytes": 330468,
+    "sha256": "F2BBFA6DC8A2B42FE191E1F87DBC66B67A55CABADBF550CC78A29296383D2363"
+  },
+  "originalFiveDraftsUnchanged": true,
+  "readabilityAudit": "officeimo.excel-tabular-2026-10-08/manifests/publication-readability-audit.json",
+  "sourceEdits": 0,
+  "builds": 0,
+  "tests": 0,
+  "timings": 0,
+  "externalActions": 0,
+  "editorialRevisions": [
+    {
+      "atUtc": "2026-10-08T22:30:04.1618222Z",
+      "path": "officeimo.excel-tabular-2026-10-08.md",
+      "reason": "Restore exact native CPU model caption AMD Ryzen9 9950X3D2, confirmed against live Win32_Processor and retained BDN records",
+      "previousArchivedReportSha256": "440B8C4C312854CF35C5D7D1020C817172A7B1D98C2514F97CB088E8F1E916DF",
+      "currentReportSha256": "142AF324EB7345EE1BA8AD4146C39B038C3154F0EFF2A37AD130507A4840EA2D",
+      "archivedDerivedSnapshotRetained": true,
+      "rawArchiveAndAll1230MemberHashesUnchanged": true,
+      "timingsStatisticsInputsUnchanged": true,
+      "readabilityAuditScope": "Archived pre-caption report; current one-character hardware caption and README revision disclosure inspected by coordinator"
+    }
+  ]
+}

@@ -9,8 +9,9 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private void ApplyPreparedCells(
             (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
-            IReadOnlyList<(int Row, int Column, object Value)> source) {
-            if (TryApplyPreparedCellsByAppendingRows(prepared, source)) {
+            IReadOnlyList<(int Row, int Column, object Value)> source,
+            bool preserveMissingValues = false) {
+            if (!preserveMissingValues && TryApplyPreparedCellsByAppendingRows(prepared, source)) {
                 return;
             }
 
@@ -20,9 +21,12 @@ namespace OfficeIMO.Excel {
                 var p = prepared[i];
                 var originalValue = source[i].Value;
                 var cell = writer.GetOrCreateCell(p.Row, p.Col);
-                cell.CellValue = p.Val;
-                cell.DataType = p.Type;
-                ApplyAutomaticCellFormatting(cell, originalValue, p.Type);
+                if (preserveMissingValues && (originalValue == null || originalValue == DBNull.Value)) {
+                    SetMissingTabularCellValue(cell);
+                } else {
+                    SetPreparedTabularCellValue(cell, p.Val, p.Type);
+                    ApplyAutomaticCellFormatting(cell, originalValue, p.Type);
+                }
             }
 
             _excelDocument.MarkFormulaInputMutation();

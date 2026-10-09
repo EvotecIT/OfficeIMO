@@ -76,6 +76,7 @@ namespace OfficeIMO.Excel {
                         for (int c = 0; c < columnCount; c++) {
                             object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             if (IsBlankCellValue(value)) {
+                                WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
                                 continue;
                             }
 
@@ -89,9 +90,7 @@ namespace OfficeIMO.Excel {
                             WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
-                        if (rowStarted) {
-                            writer.Write("</row>");
-                        }
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
 
                         rowIndex++;
                     }
@@ -176,6 +175,7 @@ namespace OfficeIMO.Excel {
                         for (int c = 0; c < columnCount; c++) {
                             object? value = values[rowOffset + c];
                             if (IsBlankCellValue(value)) {
+                                WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
                                 continue;
                             }
 
@@ -189,9 +189,7 @@ namespace OfficeIMO.Excel {
                             WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
-                        if (rowStarted) {
-                            writer.Write("</row>");
-                        }
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
 
                         rowIndex++;
                     }
@@ -415,6 +413,7 @@ namespace OfficeIMO.Excel {
                         for (int c = 0; c < columnCount; c++) {
                             object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             if (IsBlankCellValue(value)) {
+                                WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
                                 continue;
                             }
 
@@ -439,9 +438,7 @@ namespace OfficeIMO.Excel {
                             rowStarted = true;
                         }
 
-                        if (rowStarted) {
-                            writer.Write("</row>");
-                        }
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
 
                         rowIndex++;
                     }
@@ -506,6 +503,7 @@ namespace OfficeIMO.Excel {
                                 ? dictionaryValue
                                 : null;
                             if (IsBlankCellValue(value)) {
+                                WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
                                 continue;
                             }
 
@@ -519,9 +517,7 @@ namespace OfficeIMO.Excel {
                             WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
-                        if (rowStarted) {
-                            writer.Write("</row>");
-                        }
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
 
                         rowIndex++;
                     }
@@ -662,6 +658,7 @@ namespace OfficeIMO.Excel {
                                 ? dictionaryValue
                                 : null;
                             if (IsBlankCellValue(value)) {
+                                WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
                                 continue;
                             }
 
@@ -675,9 +672,7 @@ namespace OfficeIMO.Excel {
                             WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
-                        if (rowStarted) {
-                            writer.Write("</row>");
-                        }
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
 
                         rowIndex++;
                     }
@@ -813,6 +808,7 @@ namespace OfficeIMO.Excel {
                         for (int c = 0; c < columnCount; c++) {
                             object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             if (IsBlankCellValue(value)) {
+                                WriteSparseMissingTabularCell(writer, rowReference, cellReferencePrefixes[c], styleAttributes?[c], c == 0 || c == columnCount - 1, ref rowStarted);
                                 continue;
                             }
 
@@ -826,9 +822,7 @@ namespace OfficeIMO.Excel {
                             WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
-                        if (rowStarted) {
-                            writer.Write("</row>");
-                        }
+                        CompleteSparseTabularRow(writer, rowReference, cellReferencePrefixes, styleAttributes, rowStarted);
 
                         rowIndex++;
                     }

@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Reader_UsedRangeHonorsBufferedCellBudgetBeforeIndexedAllocation() {
+        public void Reader_UsedRangeHonorsOneRowBufferedCellBudgetBeforeIndexedAllocation() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(
                        memory,
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = ExcelDocumentReader.Open(
                 memory.ToArray(),
-                new ExcelReadOptions { MaxDataReaderBufferedCells = 10_000 });
+                new ExcelReadOptions { MaxDataReaderBufferedCells = 999 });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                 reader.GetSheet("Data").ReadUsedRangeAsDataReader());

@@ -73,6 +73,10 @@ formula-injection protection, progress, cancellation, and diagnostics.
 
 Runtime, CPU, input shape, quoting, encoding, storage, warm-up, and consumer behavior all matter. Use the [benchmark website](https://officeimo.com/benchmarks/) for the current hash-pinned CSV/XLSX/XLSB comparison matrix. Missing operating-system or run-mode evidence remains visible rather than being inferred. The [benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md) documents the exact commands, semantic output validation, allocation evidence, and publication path.
 
+The [opt-in tabular comparison suite](../Benchmarks/ExcelReaderTyped/README.md)
+also measures borrowed and materialized fields, typed and parallel parsing,
+UTF-8 row writing, and Arrow batches using validated, pinned workloads.
+
 ## Schema example
 
 ```csharp

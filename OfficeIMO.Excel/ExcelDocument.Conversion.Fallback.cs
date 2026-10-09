@@ -192,7 +192,10 @@ public partial class ExcelDocument {
             : ExcelFileFormat.Xlsb;
         byte[] bytes = fallback.ToBytes(
             target,
-            new ExcelSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            new ExcelSaveOptions {
+                LossPolicy = OfficeConversionLossPolicy.Allow,
+                XlsbUseSharedStrings = options.SaveOptions?.XlsbUseSharedStrings
+            });
         if (!plan.EmbedSource) return bytes;
         if (sourceBytes == null) throw new InvalidOperationException("Embedded-source fallback requires source bytes.");
         return AttachExcelSourceCarrier(
