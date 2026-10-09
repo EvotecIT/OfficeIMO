@@ -45,9 +45,9 @@ public sealed partial class PdfDocument {
         _blockScopes.Push(_blocks.Add);
     }
 
-    private PdfDocument(PdfDocumentSource source) {
+    private PdfDocument(PdfDocumentSource source, CancellationToken cancellationToken = default) {
         _source = source;
-        _pipeline = PdfPipelineReport.Opened(source);
+        _pipeline = PdfPipelineReport.Opened(source, cancellationToken);
     }
 
     private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) {
@@ -103,8 +103,9 @@ public sealed partial class PdfDocument {
     /// Opens a byte buffer owned by a trusted OfficeIMO adapter without making another snapshot.
     /// The adapter must never mutate the buffer after this call.
     /// </summary>
-    internal static PdfDocument LoadOwned(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, loadOptions));
+    internal static PdfDocument LoadOwned(byte[] pdf, PdfLoadOptions? loadOptions = null,
+        CancellationToken cancellationToken = default) =>
+        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, loadOptions), cancellationToken);
 
     /// <summary>Opens an internally owned artifact together with its already validated canonical parse.</summary>
     internal static PdfDocument LoadOwned(
@@ -133,7 +134,7 @@ public sealed partial class PdfDocument {
         PdfDocumentSource source = await PdfDocumentSource
             .FromPathAsync(path, loadOptions, cancellationToken)
             .ConfigureAwait(false);
-        return new PdfDocument(source);
+        return new PdfDocument(source, cancellationToken);
     }
 
     /// <summary>Asynchronously loads a complete PDF from a readable caller-owned stream.</summary>
@@ -144,7 +145,7 @@ public sealed partial class PdfDocument {
         PdfDocumentSource source = await PdfDocumentSource
             .FromStreamAsync(stream, loadOptions, cancellationToken)
             .ConfigureAwait(false);
-        return new PdfDocument(source);
+        return new PdfDocument(source, cancellationToken);
     }
 
     /// <summary>
@@ -338,9 +339,11 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Reuses opened bytes under the requested read contract; explicit overrides keep their own parse.</summary>
-    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(PdfLoadOptions? options) {
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) {
         PdfDocumentSource? source = _source;
-        return source is null ? null : () => source.Read(options);
+        return source is null ? null : () => source.Read(options, cancellationToken);
     }
 
     /// <summary>
@@ -393,11 +396,14 @@ public sealed partial class PdfDocument {
     internal PdfDocument ApplyMutation(
         Func<byte[], byte[]> mutation,
         PdfLoadOptions? readOptions = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(mutation, nameof(mutation));
-        byte[] inputBytes = GetBytesForOperation();
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] inputBytes = GetBytesForOperation(cancellationToken);
         byte[] outputBytes = mutation(inputBytes);
-        return WithBytes(inputBytes, outputBytes, readOptions, operationName);
+        cancellationToken.ThrowIfCancellationRequested();
+        return WithBytes(inputBytes, outputBytes, readOptions, operationName, cancellationToken: cancellationToken);
     }
 
     internal PdfDocument WithBytes(
@@ -405,10 +411,12 @@ public sealed partial class PdfDocument {
         byte[] pdf,
         PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
-        PdfReadDocument? validatedReadDocument = null) {
+        PdfReadDocument? validatedReadDocument = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
-        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
-        return WithBytes(inputBytes, input, pdf, readOptions, operationName, validatedReadDocument);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions, cancellationToken);
+        return WithBytes(inputBytes, input, pdf, readOptions, operationName, validatedReadDocument, cancellationToken);
     }
 
     /// <summary>Adopts an optional readback already validated against the output bytes and read settings.</summary>
@@ -418,16 +426,19 @@ public sealed partial class PdfDocument {
         byte[] pdf,
         PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "",
-        PdfReadDocument? validatedReadDocument = null) {
+        PdfReadDocument? validatedReadDocument = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
             readOptions ?? ReadOptions, inputBytes, pdf);
         PdfReadDocument? readDocument = validatedReadDocument;
         PdfArtifactSnapshot output = readDocument is null
-            ? PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out readDocument)
-            : PdfArtifactSnapshot.CaptureKnownPageCount(pdf, readDocument.Pages.Count);
+            ? PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions, out readDocument, cancellationToken)
+            : PdfArtifactSnapshot.CaptureKnownPageCount(pdf, readDocument.Pages.Count, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readDocument);
     }
 

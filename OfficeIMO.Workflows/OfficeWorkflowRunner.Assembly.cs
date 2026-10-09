@@ -43,6 +43,7 @@ public sealed partial class OfficeWorkflowRunner {
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedAssemblyRequest? validated = null;
         var inputs = new WorkflowInputSnapshots();
+        var stagingGuard = request.PublicationGuard as IOfficeWorkflowStagingGuard;
 
         try {
             validated = ValidateAssemblyRequest(request);
@@ -100,7 +101,11 @@ public sealed partial class OfficeWorkflowRunner {
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath)!
                 : providerStagingDirectory = OfficeTemporaryDirectory.Create("officeimo-provider-output-");
             failureStage = WorkflowFailureStage.Output;
+            if (validated.OutputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
+            if (validated.OutputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
                 "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");

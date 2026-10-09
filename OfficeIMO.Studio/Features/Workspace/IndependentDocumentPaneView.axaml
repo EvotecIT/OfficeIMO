@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             x:Class="OfficeIMO.Studio.Features.Workspace.IndependentDocumentPaneView" x:DataType="shell:StudioDocumentPaneViewModel"
+             Focusable="True">
+  <UserControl.Styles>
+    <Style Selector="Border.paneFrame"><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
+    <Style Selector="Border.paneFrame.active"><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="ListBox.readerContinuous"><Setter Property="ItemsPanel"><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></Setter></Style>
+    <Style Selector="ListBox.readerTwoPage"><Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center" /></ItemsPanelTemplate></Setter></Style>
+  </UserControl.Styles>
+  <Border Classes="paneFrame" Classes.active="{Binding IsActive}" BorderThickness="2" Background="{DynamicResource StudioCanvasBrush}">
+    <Grid RowDefinitions="Auto,*">
+      <Border Background="{DynamicResource StudioPanelBrush}" Padding="8,6" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource StudioSubtleBorderBrush}">
+        <StackPanel Spacing="5">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+            <ComboBox ItemsSource="{Binding OpenDocuments}" SelectedItem="{Binding SelectedTab}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="{Binding DocumentLabel}" ToolTip.Tip="{Binding Title}">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="1" Classes="icon" Command="{Binding ActivatePaneCommand}" AutomationProperties.Name="{Binding ActivateLabel}" ToolTip.Tip="{Binding ActivateLabel}"><PathIcon Data="{StaticResource IconFocus}" Width="13" Height="13" /></Button>
+            <Button Grid.Column="2" Classes="icon" Command="{Binding CloseCommand}" AutomationProperties.Name="{Binding CloseLabel}" ToolTip.Tip="{Binding CloseLabel}"><PathIcon Data="{StaticResource IconClose}" Width="13" Height="13" /></Button>
+          </Grid>
+          <WrapPanel ItemSpacing="4" LineSpacing="4">
+            <Button Classes="icon" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Previous}"><PathIcon Data="{StaticResource IconChevronLeft}" Width="13" Height="13" /></Button>
+            <TextBox x:Name="PanePageNumber" Width="42" MinHeight="28" Text="{Binding SelectedPage.PageNumber, Mode=OneWay}" KeyDown="OnPageNumberKeyDown" AutomationProperties.Name="{loc:Loc Shell.PageNumber}" ToolTip.Tip="{Binding PagePosition}" />
+            <Button Classes="icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Next}"><PathIcon Data="{StaticResource IconChevronRight}" Width="13" Height="13" /></Button>
+            <ComboBox ItemsSource="{Binding LayoutChoices}" SelectedItem="{Binding SelectedLayout}" Width="124" MinHeight="28" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Layout}" />
+            <Button Classes="icon" Command="{Binding ZoomOutCommand}" AutomationProperties.Name="{loc:Loc Commands.ZoomOut.Title}"><PathIcon Data="{StaticResource IconMinus}" Width="13" Height="13" /></Button>
+            <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" FontSize="12" Width="38" />
+            <Button Classes="icon" Command="{Binding ZoomInCommand}" AutomationProperties.Name="{loc:Loc Commands.ZoomIn.Title}"><PathIcon Data="{StaticResource IconPlus}" Width="13" Height="13" /></Button>
+            <Button Classes="tool" Padding="6,2" Command="{Binding FitWidthCommand}" Content="{loc:Loc DocumentWorkspace.FitWidth}" />
+            <Button Classes="tool" Padding="6,2" Command="{Binding FitPageCommand}" Content="{loc:Loc DocumentWorkspace.FitPage}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+      <Grid x:Name="PaneViewport" Grid.Row="1" SizeChanged="OnViewportSizeChanged">
+        <ListBox ItemContainerTheme="{StaticResource ReaderPageContainerTheme}" x:Name="PanePages" Focusable="True" ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}" IsVisible="{Binding !IsGrid}"
+                 Classes.readerContinuous="{Binding IsContinuous}" Classes.readerTwoPage="{Binding IsTwoPage}"
+                 SelectionChanged="OnPageSelectionChanged" ScrollViewer.BringIntoViewOnFocusChange="False"
+                 Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0" Padding="0,0,0,24"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Center" /></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <ListBox SelectionChanged="OnPageSelectionChanged" ItemContainerTheme="{StaticResource ReaderPageContainerTheme}" x:Name="PaneGridPages" Focusable="True" ItemsSource="{Binding GridRows}" SelectedItem="{Binding SelectedGridRow, Mode=OneWay}" IsVisible="{Binding IsGrid}"
+                 ScrollViewer.BringIntoViewOnFocusChange="False" Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel CacheLength="1" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.ItemTemplate><DataTemplate x:DataType="reader:ReaderGridRowViewModel">
+            <ItemsControl ItemsSource="{Binding Pages}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Left" /></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>
