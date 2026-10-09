@@ -35,7 +35,9 @@ internal sealed partial class OfficeImoAgentService {
         };
         OfficeWorkflowResult workflow = await runner.RunAsync(request, cancellationToken: token).ConfigureAwait(false);
         if (directoryPackage && workflow.ConversionEvidence?.Facts.GetValueOrDefault("packageContentSha256") is string contentHash)
-            source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, token);
+            // Result construction binds already captured evidence, including cancellation.
+            // It performs no filesystem read and must not discard the workflow's result.
+            source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, CancellationToken.None);
         string hash = string.Empty;
         if (workflow.Succeeded) {
             await using var output = new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read,

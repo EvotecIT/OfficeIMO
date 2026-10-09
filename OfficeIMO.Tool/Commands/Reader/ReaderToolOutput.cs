@@ -351,10 +351,13 @@ internal static class ReaderToolOutput {
         string path,
         string content,
         bool overwrite,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Func<CancellationToken, ValueTask>? beforePublication = null) {
         string? temporaryPath = null;
         try {
             string fullPath = Path.GetFullPath(path);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (beforePublication != null) await beforePublication(cancellationToken).ConfigureAwait(false);
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory)) {
                 Directory.CreateDirectory(directory);
@@ -364,6 +367,8 @@ internal static class ReaderToolOutput {
                 outputDirectory,
                 "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
             await File.WriteAllTextAsync(temporaryPath, content, Utf8WithoutBom, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (beforePublication != null) await beforePublication(cancellationToken).ConfigureAwait(false);
             File.Move(temporaryPath, fullPath, overwrite);
             temporaryPath = null;
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {

@@ -1,0 +1,88 @@
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.IWork;
+using OfficeIMO.Tool.Agent;
+using OfficeIMO.Tool.Commands.Reader;
+using Xunit;
+
+namespace OfficeIMO.Tool.Tests;
+
+public sealed partial class AgentIWorkConversionTests {
+    [Theory]
+    [InlineData("pages", "markdown", true)]
+    [InlineData("numbers", "md", false)]
+    [InlineData("key", "json", true)]
+    public async Task Semantic_conversion_cannot_replace_or_add_source_package_members(string kind, string format, bool existingMember) {
+        using var files = new Files(true, kind);
+        string output = existingMember ? Path.Combine(files.Input, "Index", "Document.iwa")
+            : Path.Combine(files.Input, "new-output.md");
+        byte[]? original = existingMember ? File.ReadAllBytes(output) : null;
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
+        await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            service.ConvertAsync(files.Input, output, format, overwrite: true));
+        if (existingMember) Assert.Equal(original, File.ReadAllBytes(output));
+        else Assert.False(File.Exists(output));
+        Assert.Empty(Directory.GetFiles(files.Input, "*.tmp", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task Semantic_conversion_rejects_an_output_parent_alias_into_the_source_package() {
+        if (OperatingSystem.IsWindows()) return;
+        using var files = new Files(true);
+        string alias = Path.Combine(files.Root, "output-alias");
+        Directory.CreateSymbolicLink(alias, Path.Combine(files.Input, "Index"));
+        string member = Path.Combine(files.Input, "Index", "Document.iwa");
+        byte[] original = File.ReadAllBytes(member);
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
+        await Assert.ThrowsAsync<ReaderToolOutputException>(() =>
+            service.ConvertAsync(files.Input, Path.Combine(alias, "Document.iwa"), "json", overwrite: true));
+        Assert.Equal(original, File.ReadAllBytes(member));
+    }
+
+    [Fact]
+    public async Task Completed_directory_conversion_retains_its_source_id_when_output_publication_conflicts() {
+        using var files = new Files(true);
+        string output = files.Output("docx"); File.WriteAllText(output, "keep existing");
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
+        var result = await service.ConvertAsync(files.Input, output, "docx");
+        Assert.False(result.Workflow!.Succeeded);
+        Assert.NotNull(result.Workflow.ConversionEvidence);
+        Assert.Contains(result.Workflow.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Equal("keep existing", File.ReadAllText(output));
+        Assert.Equal((await service.InspectAsync(files.Input)).SourceId, result.SourceId);
+    }
+
+    [Fact]
+    public async Task Directory_identity_binds_returned_reader_capture_even_when_members_change_before_registration() {
+        using var files = new Files(true);
+        string member = Path.Combine(files.Input, "extra.bin"); File.WriteAllText(member, "baseline");
+        var reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        var options = new ReaderOptions { ComputeHashes = true };
+        var captured = await reader.ReadDocumentAsync(files.Input, options);
+        string hash = Assert.IsType<string>(captured.Source.SourceHash);
+        DateTime timestamp = Directory.GetLastWriteTimeUtc(files.Input);
+        var registry = new AgentSourceRegistry();
+        string expectedId = registry.Register(files.Input).SourceId;
+        File.WriteAllText(member, "mutation");
+        var registration = registry.RegisterIWorkDirectorySnapshot(files.Input, hash, timestamp, CancellationToken.None);
+        Assert.Equal(expectedId, registration.SourceId);
+        Assert.Contains("hello pages", captured.Markdown);
+        var changed = await reader.ReadDocumentAsync(files.Input, options);
+        Assert.NotEqual(hash, changed.Source.SourceHash);
+        Assert.Throws<AgentUsageException>(() => registry.ResolveIWorkDirectorySnapshot(expectedId, files.Input,
+            changed.Source.SourceHash!, timestamp, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Semantic_json_output_and_source_id_share_the_captured_reader_hash() {
+        using var files = new Files(true);
+        var registry = new AgentSourceRegistry();
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
+        var result = await service.ConvertAsync(files.Input, files.Output("json"), "json");
+        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(result.OutputPath));
+        string hash = document.RootElement.GetProperty("source").GetProperty("sourceHash").GetString()!;
+        var captured = registry.RegisterIWorkDirectorySnapshot(files.Input, hash,
+            Directory.GetLastWriteTimeUtc(files.Input), CancellationToken.None);
+        Assert.Equal(result.SourceId, captured.SourceId);
+        Assert.Equal((await service.InspectAsync(files.Input)).SourceId, result.SourceId);
+    }
+}

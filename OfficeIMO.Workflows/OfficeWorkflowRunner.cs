@@ -40,6 +40,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedRequest? validated = prepared.Validated;
         var inputs = new WorkflowInputSnapshots();
+        OperationArtifact? completedArtifact = null;
 
         try {
             if (prepared.ValidationException != null) throw prepared.ValidationException;
@@ -63,6 +64,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             OperationArtifact artifact = await Task.Run(
                 () => Execute(validated, diagnostics, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
+            completedArtifact = artifact;
             cancellationToken.ThrowIfCancellationRequested();
 
             if (artifact.Bytes is null) {
@@ -172,12 +174,16 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 outputBytes: 0,
                 stopwatch.Elapsed,
                 "Cancelled",
-                diagnostics);
+                diagnostics,
+                healthReport: completedArtifact?.HealthReport,
+                signatureReport: completedArtifact?.SignatureReport,
+                conversionEvidence: completedArtifact?.ConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
-            OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence;
+            OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence
+                ?? completedArtifact?.ConversionEvidence;
             if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
                 AddConversionDiagnostics(failedConversionEvidence, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -199,6 +205,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 "Workflow failed: " + ex.Message,
                 diagnostics,
+                healthReport: completedArtifact?.HealthReport,
+                signatureReport: completedArtifact?.SignatureReport,
                 conversionEvidence: failedConversionEvidence);
         } finally {
             if (stagingPath is not null) TryDelete(stagingPath);

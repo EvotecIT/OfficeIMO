@@ -178,6 +178,9 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Equal(existing, File.ReadAllBytes(files.Output));
+        // Input capture or bounded serialization fails before the registered
+        // operation returns completed conversion evidence.
+        Assert.Null(result.ConversionEvidence);
         Assert.Equal(2, Directory.GetFiles(files.Root).Length);
     }
 
@@ -188,6 +191,7 @@ public sealed partial class IWorkWorkflowTests {
         request.PublicationGuard = new MutatingGuard(files.Input);
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
+        Assert.NotNull(result.ConversionEvidence);
         Assert.False(File.Exists(files.Output));
         Assert.Single(Directory.GetFiles(files.Root));
     }
@@ -294,6 +298,8 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.False(File.Exists(files.Output));
         Assert.Single(Directory.GetFiles(files.Root));
+        if (duringValidation) Assert.NotNull(result.ConversionEvidence);
+        else Assert.Null(result.ConversionEvidence);
     }
 
     [Fact]

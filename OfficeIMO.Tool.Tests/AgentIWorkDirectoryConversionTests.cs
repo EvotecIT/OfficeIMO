@@ -56,6 +56,8 @@ public sealed partial class AgentIWorkConversionTests {
         File.SetLastWriteTimeUtc(member, memberTime);
         Directory.SetLastWriteTimeUtc(files.Input, rootTime);
         Assert.Throws<AgentUsageException>(() => registry.Resolve(conversion.SourceId));
+        await Assert.ThrowsAsync<AgentUsageException>(() => consumer.FetchAsync(search.SourceId, hit.Id,
+            sourcePath: freshService ? files.Input : null));
     }
 
     [Fact]
