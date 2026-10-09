@@ -2,22 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 280,
-    "productionComponentCount": 139,
-    "testProjectCount": 54,
+    "projectCount": 285,
+    "productionComponentCount": 142,
+    "testProjectCount": 55,
     "benchmarkProjectCount": 36,
-    "validationProjectCount": 52,
+    "validationProjectCount": 53,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54105
+    "conceptualWordCount": 54197
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 30,
+      "componentCount": 31,
       "componentIndexes": [
-        86,
-        87,
         88,
         89,
         90,
@@ -45,7 +43,10 @@
         112,
         113,
         114,
-        115
+        115,
+        116,
+        117,
+        118
       ]
     },
     {
@@ -53,14 +54,12 @@
       "componentCount": 18,
       "componentIndexes": [
         14,
-        20,
-        21,
         22,
         23,
         24,
-        47,
-        66,
-        67,
+        25,
+        26,
+        49,
         68,
         69,
         70,
@@ -68,8 +67,10 @@
         72,
         73,
         74,
-        124,
-        125
+        75,
+        76,
+        127,
+        128
       ]
     },
     {
@@ -78,55 +79,55 @@
       "componentIndexes": [
         1,
         12,
-        18,
-        19,
-        57,
-        58,
+        20,
+        21,
         59,
         60,
-        63,
-        64,
+        61,
+        62,
         65,
-        85,
-        119,
-        138
+        66,
+        67,
+        87,
+        122,
+        141
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        32,
-        33,
         34,
-        35
+        35,
+        36,
+        37
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
-        25,
-        26,
         27,
         28,
         29,
         30,
         31,
-        78,
-        79,
+        32,
+        33,
         80,
         81,
         82,
         83,
-        126,
-        127,
-        128,
+        84,
+        85,
         129,
         130,
         131,
         132,
-        133
+        133,
+        134,
+        135,
+        136
       ]
     },
     {
@@ -136,8 +137,6 @@
         5,
         6,
         7,
-        36,
-        37,
         38,
         39,
         40,
@@ -147,31 +146,33 @@
         44,
         45,
         46,
+        47,
         48,
-        49,
         50,
         51,
         52,
         53,
-        76,
-        77,
-        116,
-        117,
-        118
+        54,
+        55,
+        78,
+        79,
+        119,
+        120,
+        121
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        54,
-        55,
-        56
+        56,
+        57,
+        58
       ]
     },
     {
       "name": "Specialized components",
-      "componentCount": 24,
+      "componentCount": 26,
       "componentIndexes": [
         0,
         2,
@@ -185,18 +186,20 @@
         15,
         16,
         17,
-        61,
-        62,
-        75,
-        84,
-        120,
-        121,
-        122,
+        18,
+        19,
+        63,
+        64,
+        77,
+        86,
         123,
-        134,
-        135,
-        136,
-        137
+        124,
+        125,
+        126,
+        137,
+        138,
+        139,
+        140
       ]
     }
   ],
@@ -421,6 +424,32 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/data-generators/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Generators"
+    },
+    {
+      "name": "OfficeIMO.DjVu",
+      "packageId": "OfficeIMO.DjVu",
+      "category": "Specialized components",
+      "description": "Managed DjVu document reading, stored text and scanned-page rendering for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.DjVu/OfficeIMO.DjVu.csproj",
+      "sourceFileCount": 28,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DjVu"
+    },
+    {
+      "name": "OfficeIMO.DjVu.Pdf",
+      "packageId": "OfficeIMO.DjVu.Pdf",
+      "category": "Specialized components",
+      "description": "Managed DjVu scanned-page PDFs with stored text and optional engine-neutral OCR.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.DjVu.Pdf/OfficeIMO.DjVu.Pdf.csproj",
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DjVu.Pdf"
     },
     {
       "name": "OfficeIMO.DocBook",
@@ -1196,7 +1225,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1374,
+      "sourceFileCount": 1379,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1370,6 +1399,19 @@
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv"
+    },
+    {
+      "name": "OfficeIMO.Reader.DjVu",
+      "packageId": "OfficeIMO.Reader.DjVu",
+      "category": "Extraction and ingestion",
+      "description": "DjVu adapter for OfficeIMO.Reader using the managed OfficeIMO.DjVu engine.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.DjVu/OfficeIMO.Reader.DjVu.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DjVu"
     },
     {
       "name": "OfficeIMO.Reader.DocBook",
@@ -1846,7 +1888,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 763,
+      "sourceFileCount": 768,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1950,7 +1992,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 201,
+      "sourceFileCount": 202,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",

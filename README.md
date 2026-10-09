@@ -339,6 +339,14 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
+#### [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md)
+
+Managed DjVu scanned-book reading, stored UTF-8 text and word geometry, bounded
+page rendering, and source navigation. [OfficeIMO.DjVu.Pdf](OfficeIMO.DjVu.Pdf/README.md)
+adds searchable scanned-page PDFs and explicit OCR for missing text;
+[OfficeIMO.Reader.DjVu](OfficeIMO.Reader.DjVu/README.md) projects the native document
+into Reader. See the [codec and independent qualification contract](OfficeIMO.DjVu/SUPPORT.md).
+
 #### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
 
 Portable XPS/OpenXPS package reading, native page editing, and writing, with

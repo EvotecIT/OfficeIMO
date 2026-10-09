@@ -97,7 +97,7 @@ to 16 MiB. For the pinned authority downloads and runtime requirements, see the
 
 DOC conversion blocks known legacy import loss by default; `--allow-legacy-loss` explicitly accepts the reported reductions. TXT conversion treats HTML and Markdown as literal text, detects Unicode BOMs and otherwise uses strict UTF-8. Use `--text-encoding` and `--tab-size` for explicit text settings. The adapter's diagnostics remain on standard error.
 
-Batch conversion uses the existing executable workflow catalog. PDF export selects DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF; unsupported files are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
+Batch conversion uses the existing executable workflow catalog. PDF export selects DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw and DjVu; unsupported files are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
 
 ```powershell
 officeimo workflow batch --input-directory ./Documents --output ./PDF
@@ -131,6 +131,10 @@ officeimo convert deck.pptx deck.pdf
 officeimo convert diagram.odg diagram.pdf
 officeimo convert diagram.fodg diagram.pdf --diagram-layers screen
 officeimo convert diagram.odg diagram.pdf --require-no-loss
+
+# DjVu scans to searchable PDF, using existing text layers
+officeimo convert book.djvu book.pdf
+officeimo convert scan.djv scan.pdf --require-no-loss
 
 # Convert Apple ZIP files or local directory packages through shared workflows
 officeimo convert document.pages document.docx

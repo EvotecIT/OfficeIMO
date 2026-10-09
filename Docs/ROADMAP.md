@@ -681,6 +681,7 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
 
 ### Source-read and conversion products
 
+- [ ] Broaden the [managed DjVu profile](../OfficeIMO.DjVu/SUPPORT.md): qualify exact IW44 short-edge reconstruction beyond the reported small-image approximation, additional codec versions and JPEG 2000 layers, and complete adapter NativeAOT/browser execution. Keep independent source identities and decoder evidence separate from self-round trips.
 - [ ] Complete the legacy-word read-and-convert product beyond the bounded profiles documented in the [OfficeIMO.Word support matrix](../OfficeIMO.Word/README.md#profile-coverage). Keep the shared safety, quality, diagnostics, inert-content, conversion, and no-save-back contracts while closing the adopted family gaps below. A foundation or one structured profile narrows this item; it does not complete it.
   - [ ] WordPerfect 5.x/6.x: replace document-area text salvage with versioned prefix-index, packet, and character/paragraph code parsing; recover styles, lists, tables, footnotes/endnotes, headers/footers, graphics, fields, page layout, and available metadata with separate evidence for the 5.x and 6.x grammars.
   - [ ] WordStar 3-7: decode the remaining printer, font, color, style-library, control-sequence, and dot-command families; distinguish native structure from inferred text-marker lists; recover safe linked graphics and version/code-page metadata; and validate each claimed version with independently produced fixtures.

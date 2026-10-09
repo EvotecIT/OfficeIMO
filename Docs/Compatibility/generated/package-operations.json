@@ -913,6 +913,20 @@
       "limitation":"Only standards-defined structured or wrapped text carriers are changed."
     },
     {
+      "id":"conversion:djvu-pdf",
+      "packageId":"OfficeIMO.DjVu.Pdf",
+      "formatId":"DjVu",
+      "targetFormatId":"PDF",
+      "capabilityId":"djvu-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DjVuDocument.Load(stream).SaveAsPdf(output, options)",
+      "evidence":"Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".djv",".djvu"],
+      "limitation":"JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."
+    },
+    {
       "id":"native:docbook-native:create",
       "packageId":"OfficeIMO.DocBook",
       "formatId":"DocBook.Native",

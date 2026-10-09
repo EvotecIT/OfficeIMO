@@ -95,6 +95,11 @@ public sealed partial class OfficeWorkflowRunner {
                 hasLoss = evidence.HasLoss;
                 break;
             }
+            case "djvu-pdf": {
+                (bytes, evidence) = ConvertDjVu(request, input, settings, diagnostics, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
             case "xps-pdf": {
                 var limits = new XpsReadOptions();
                 limits.MaximumInputBytes = (int)Math.Min(limits.MaximumInputBytes, request.Limits.MaximumInputBytes);

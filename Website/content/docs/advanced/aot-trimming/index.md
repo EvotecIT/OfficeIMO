@@ -4,7 +4,7 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-The project inventory distinguishes NativeAOT evidence from managed deployment. **117 of 139 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and Avalonia-based OfficeIMO Studio use managed cross-platform deployment. `OfficeIMO.Browser` distributes JavaScript assets through a managed .NET API; native-publish qualification is separate. `OfficeIMO.Studio.Core` passes trim and AOT analyzers; native-publish qualification is separate. The Project and Access libraries, invoice engine, optional PDF adapter, standards validator, KSeF client, XPS engine, its PDF bridge and Reader adapter use managed cross-platform deployment. The document-AI engine, IntelligenceX adapter and headless example target managed .NET 10; NativeAOT support for those projects is not claimed. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+The project inventory distinguishes NativeAOT evidence from managed deployment. **117 of 142 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and Avalonia-based OfficeIMO Studio use managed cross-platform deployment. `OfficeIMO.Browser` distributes JavaScript assets through a managed .NET API; native-publish qualification is separate. `OfficeIMO.Studio.Core` passes trim and AOT analyzers; native-publish qualification is separate. The Project and Access libraries, invoice engine, optional PDF adapter, standards validator, KSeF client, XPS and DjVu engines, their PDF bridges and Reader adapters use managed cross-platform deployment. The document-AI engine, IntelligenceX adapter and headless example target managed .NET 10; NativeAOT support for those projects is not claimed. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 `OfficeIMO.ChartForgeX.Markdown` has managed .NET 8 and 10 integration evidence for static Mermaid diagrams in document and HTML workflows. Complete adapter NativeAOT qualification is separate.
 
@@ -19,7 +19,7 @@ The 117 native-validated projects are not all proved in the same way:
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 - **1 build-time source generator** emits an explicit row mapper that compiles into and executes from the main native host. The analyzer itself is not deployed as a runtime assembly.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 139 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names all 142 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
 
 `OfficeIMO.Project` has additional bounded Linux NativeAOT lifecycle smoke evidence described in its [Project runtime and scale support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Project/SUPPORT.md#runtime-and-scale). It is not counted in the coordinated native hosts above; full-library rooting remains unqualified.
 
