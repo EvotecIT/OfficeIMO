@@ -202,7 +202,8 @@ public sealed partial class StudioMobileWorkspaceTests {
                     await controller.Document.SelectedPage!.EnsureRenderedAsync();
                     Layout(window, width, height);
                     var navigation = view.FindControl<SplitView>("ApplicationNavigation")!;
-                    var pane = navigation.GetVisualDescendants().OfType<Control>().Single(control => control.Name == "PART_PaneRoot");
+                    var pane = navigation.GetVisualDescendants().OfType<Control>().Single(control =>
+                        control.Name == "PART_PaneRoot" && ReferenceEquals(control.TemplatedParent, navigation));
                     var scroll = view.FindControl<ScrollViewer>("PageScroll")!;
                     await StudioHeadlessInput.WaitForTargetAsync(window, scroll, () => Layout(window, width, height),
                         () => navigation.DisplayMode != SplitViewDisplayMode.Inline || !navigation.IsPaneOpen ||
