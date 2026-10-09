@@ -276,6 +276,117 @@ public sealed class StudioIndependentDocumentPanesTests {
         }, default);
     }
 
+    [Fact]
+    public async Task SplittingComparisonRestoresReaderLayoutBeforeCreatingIndependentPanes() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "Split source.pdf");
+            string comparison = Path.Combine(services.Paths.Root, "Split comparison.pdf");
+            Create(source, "Split source", 3); Create(comparison, "Split comparison", 3);
+            var window = new MainWindow(services) { Width = 1600, Height = 900 };
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(source);
+                window.ViewModel.SelectedReaderLayoutChoice = window.ViewModel.ReaderLayoutChoices.Single(choice => choice.Mode == ReaderLayoutMode.TwoPage);
+                await window.ViewModel.OpenComparisonDocumentAsync(comparison);
+                Assert.True(window.ViewModel.IsComparisonOpen, window.ViewModel.ErrorMessage);
+                window.TabHost.Panes.OpenSecondPane(window.TabHost.SelectedTab);
+                var panes = window.TabHost.Panes;
+                await Render(window, panes.Left!, panes.Right!);
+                Capture(window, "panes-split-comparison-restored-layout");
+                Assert.False(window.ViewModel.IsComparisonOpen);
+                Assert.Empty(window.ViewModel.ComparisonPages);
+                Assert.True(panes.IsSplit);
+                Assert.Equal(ReaderLayoutMode.TwoPage, panes.Left!.SelectedLayout.Mode);
+                Assert.Equal(ReaderLayoutMode.TwoPage, panes.Right!.SelectedLayout.Mode);
+                Assert.Equal(ReaderLayoutMode.TwoPage, window.ViewModel.SelectedReaderLayoutChoice.Mode);
+                Assert.True(window.GetVisualDescendants().OfType<IndependentDocumentPanesView>().Single().IsEffectivelyVisible);
+            } finally { window.Close(); }
+            return true;
+        }, default);
+    }
+
+    [Theory]
+    [InlineData(1600, false)]
+    [InlineData(1600, true)]
+    [InlineData(390, false)]
+    [InlineData(390, true)]
+    public async Task AssigningComparisonTabRestoresIndependentPanesAndItsReaderLayout(int width, bool selectGlobalTab) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string first = Path.Combine(services.Paths.Root, "First pane.pdf");
+            string replacement = Path.Combine(services.Paths.Root, "Replacement pane.pdf");
+            string comparison = Path.Combine(services.Paths.Root, "Comparison partner.pdf");
+            Create(first, "First pane", 3); Create(replacement, "Replacement pane", 3); Create(comparison, "Comparison partner", 3);
+            byte[] originalFirst = File.ReadAllBytes(first), originalReplacement = File.ReadAllBytes(replacement);
+            var window = new MainWindow(services) { Width = width, Height = 900 };
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(first);
+                var firstTab = window.TabHost.SelectedTab!;
+                await window.TabHost.OpenDocumentAsync(replacement);
+                var replacementTab = window.TabHost.SelectedTab!;
+                replacementTab.Document.SelectedReaderLayoutChoice = replacementTab.Document.ReaderLayoutChoices.Single(choice => choice.Mode == ReaderLayoutMode.TwoPage);
+                replacementTab.Document.SelectedPage = replacementTab.Document.Pages[1];
+                await replacementTab.Document.OpenComparisonDocumentAsync(comparison);
+                Assert.True(replacementTab.Document.IsComparisonOpen, replacementTab.Document.ErrorMessage);
+                Assert.Equal(ReaderLayoutMode.SinglePage, replacementTab.Document.SelectedReaderLayoutChoice.Mode);
+                window.TabHost.SelectedTab = firstTab;
+                window.TabHost.Panes.OpenSecondPane(firstTab);
+                var panes = window.TabHost.Panes;
+                var left = panes.Left!;
+                var previousRight = panes.Right!;
+                left.ActivatePage(3); left.Zoom = .6;
+                previousRight.Activate();
+
+                if (selectGlobalTab) window.TabHost.SelectedTab = replacementTab;
+                else previousRight.SelectedTab = replacementTab;
+
+                var right = panes.Right!;
+                await Render(window, left, right);
+                var splitView = window.GetVisualDescendants().OfType<IndependentDocumentPanesView>().Single();
+                Capture(window, $"panes-assigned-comparison-{width}-{(selectGlobalTab ? "tab" : "pane")}");
+                Assert.False(replacementTab.Document.IsComparisonOpen);
+                Assert.Empty(replacementTab.Document.ComparisonPages);
+                Assert.True(panes.IsSplit);
+                Assert.Same(left, panes.Left);
+                Assert.NotSame(previousRight, right);
+                Assert.Same(replacementTab.Document, right.Document);
+                Assert.Same(right, panes.ActivePane);
+                Assert.Equal(ReaderLayoutMode.TwoPage, right.SelectedLayout.Mode);
+                Assert.Equal(2, right.SelectedPage!.PageNumber);
+                Assert.Equal(3, left.SelectedPage!.PageNumber);
+                Assert.Equal(.6, left.Zoom);
+                Assert.True(splitView.IsEffectivelyVisible);
+                Assert.Equal(width >= 780, splitView.FindControl<IndependentDocumentPaneView>("LeftPane")!.IsVisible);
+                Assert.True(splitView.FindControl<IndependentDocumentPaneView>("RightPane")!.IsVisible);
+                var workspace = window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!;
+                workspace.FocusActiveIndependentPane();
+                window.KeyPress(Key.F6, RawInputModifiers.None, PhysicalKey.None, null);
+                Assert.Same(left, panes.ActivePane);
+                Assert.Same(firstTab.Document, window.ViewModel);
+                await Render(window, left, right);
+                Capture(window, $"panes-assigned-comparison-f6-left-{width}-{(selectGlobalTab ? "tab" : "pane")}");
+                Assert.Equal(3, left.SelectedPage!.PageNumber);
+                Assert.Equal(3, window.ViewModel.SelectedPage!.PageNumber);
+                window.KeyPress(Key.F6, RawInputModifiers.None, PhysicalKey.None, null);
+                Assert.Same(right, panes.ActivePane);
+                Assert.Same(replacementTab.Document, window.ViewModel);
+                await Render(window, left, right);
+                Capture(window, $"panes-assigned-comparison-f6-right-{width}-{(selectGlobalTab ? "tab" : "pane")}");
+                Assert.Equal(2, right.SelectedPage!.PageNumber);
+                Assert.Equal(2, window.ViewModel.SelectedPage!.PageNumber);
+                Assert.Equal(originalFirst, File.ReadAllBytes(first));
+                Assert.Equal(originalReplacement, File.ReadAllBytes(replacement));
+            } finally { window.Close(); }
+            return true;
+        }, default);
+    }
+
     private static async Task Render(Window window, params StudioDocumentPaneViewModel[] panes) {
         window.Measure(new Size(window.Width, window.Height)); window.Arrange(new Rect(0, 0, window.Width, window.Height)); window.UpdateLayout();
         for (int pass = 0; pass < 2; pass++) {

@@ -11,8 +11,9 @@ internal static class PdfMutationPlanner {
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
-        PdfSignatureProfile? signatureProfile = null) {
-        PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference, signatureProfile);
+        PdfSignatureProfile? signatureProfile = null,
+        CancellationToken cancellationToken = default) {
+        PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference, signatureProfile, cancellationToken);
         if (!plan.CanExecute) {
             // Signature preparation retains its resource admission error before a signer can be invoked.
             plan.Preflight.RethrowTypedReadFailure(includeResourceLimits: operation == PdfMutationOperation.PrepareExternalSignature);
@@ -27,8 +28,10 @@ internal static class PdfMutationPlanner {
         byte[] pdf,
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
-        IEnumerable<string>? fieldNames = null) =>
-        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
+        IEnumerable<string>? fieldNames = null,
+        CancellationToken cancellationToken = default) =>
+        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite,
+            cancellationToken: cancellationToken);
 
     /// <summary>Allows the canonical catalog-rooted page-content rewriter to preserve an existing AcroForm graph.</summary>
     internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfLoadOptions? options = null) {
@@ -157,8 +160,9 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
-        PdfSignatureProfile? signatureProfile = null) =>
-        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireAppendOnly, signatureProfile);
+        PdfSignatureProfile? signatureProfile = null,
+        CancellationToken cancellationToken = default) =>
+        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireAppendOnly, signatureProfile, cancellationToken);
 
     /// <summary>Plans a mutation for a PDF byte array.</summary>
     public static PdfMutationPlan Plan(
@@ -167,10 +171,15 @@ internal static class PdfMutationPlanner {
         PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
-        PdfSignatureProfile? signatureProfile = null) {
+        PdfSignatureProfile? signatureProfile = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
-        return Plan(preflight, pdf, operation, fieldNames, executionPreference, options, signatureProfile);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfMutationPlan plan = Plan(preflight, pdf, operation, fieldNames, executionPreference, options, signatureProfile);
+        cancellationToken.ThrowIfCancellationRequested();
+        return plan;
     }
 
     /// <summary>Plans a mutation for a readable PDF stream.</summary>

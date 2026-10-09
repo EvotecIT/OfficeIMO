@@ -5,12 +5,13 @@ using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Studio.Infrastructure;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel {
     public string FormOcrTitleLabel => _localizer.GetOrDefault("FormOcr.Title", "Recognize existing form values");
-    public string FormOcrStartHintLabel => _localizer.GetOrDefault("FormOcr.StartHint", "Recognize visible text inside existing fields. Apply current drafts first. OCR languages follow the OCR workbench; recognition does not create fields or save the document.");
+    public string FormOcrStartHintLabel => StudioOcrProvider.UnavailableReason ?? _localizer.GetOrDefault("FormOcr.StartHint", "Recognize visible text inside existing fields. Apply current drafts first. OCR languages follow the OCR workbench; recognition does not create fields or save the document.");
     public string FormOcrRecognizeLabel => _localizer.GetOrDefault("FormOcr.Recognize", "Recognize form values");
     public string FormOcrApplyLabel => _localizer.GetOrDefault("FormOcr.Apply", "Apply accepted values");
     public string FormOcrCancelLabel => _localizer.GetOrDefault("FormOcr.Cancel", "Cancel recognition / close review");
@@ -23,7 +24,7 @@ public sealed partial class MainWindowViewModel {
     private bool _isFormOcrBusy;
     [ObservableProperty] private string? _formOcrError;
     public bool HasFormOcrReview => FormOcrReview is not null;
-    public bool CanRecognizeFormValues => !_disposed && !IsFormOcrBusy && !IsWorkspaceBusy && !IsOpening &&
+    public bool CanRecognizeFormValues => StudioOcrProvider.UnavailableReason is null && !_disposed && !IsFormOcrBusy && !IsWorkspaceBusy && !IsOpening &&
         _workspace?.CanFillForms == true && HasFormFields && !HasFormDrafts;
     public bool CanApplyFormOcr => !IsWorkspaceBusy && !IsFormOcrBusy && !HasFormDrafts && FormOcrReview?.CanApply == true &&
         _formOcrPreparation is { } preparation && ReferenceEquals(preparation.Owner, _workspace) && preparation.Revision == _workspace.Revision;

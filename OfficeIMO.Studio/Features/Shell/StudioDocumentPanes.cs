@@ -29,22 +29,25 @@ public sealed partial class StudioDocumentPanes : ObservableObject, IDisposable 
     [RelayCommand] private void Split() => OpenSecondPane(_tabs.SelectedTab);
     internal void OpenSecondPane(StudioDocumentTabViewModel? tab) {
         if (_disposed || tab is null || !Tabs.Contains(tab) || !tab.Document.HasDocument) return;
-        if (Left is null) Left = new(this, _tabs.SelectedTab ?? tab);
+        var leftTab = Left?.Tab ?? _tabs.SelectedTab ?? tab;
+        // Comparison temporarily changes the reader layout; restore it before a new pane captures view state.
+        leftTab.Document.CloseComparisonCommand.Execute(null);
+        tab.Document.CloseComparisonCommand.Execute(null);
+        if (Left is null) Left = new(this, leftTab);
         Right?.Dispose();
         Right = new(this, tab);
-        Left.Document.CloseComparisonCommand.Execute(null);
-        Right.Document.CloseComparisonCommand.Execute(null);
         UpdatePresentedDocuments();
         Activate(Right);
     }
     internal void AssignDocument(StudioDocumentPaneViewModel pane, StudioDocumentTabViewModel tab) {
-        if (!Tabs.Contains(tab)) return;
+        if (_disposed || (pane != Left && pane != Right) || !Tabs.Contains(tab)) return;
         if (!tab.Document.HasDocument) {
             Activate(pane);
             _tabs.SelectedTab = tab;
             ObserveOpeningTab(tab);
             return;
         }
+        tab.Document.CloseComparisonCommand.Execute(null);
         var replacement = new StudioDocumentPaneViewModel(this, tab);
         if (pane == Left) Left = replacement;
         else if (pane == Right) Right = replacement;
@@ -58,11 +61,12 @@ public sealed partial class StudioDocumentPanes : ObservableObject, IDisposable 
         if (ReferenceEquals(ActivePane, pane)) return;
         if (ActivePane is { } previous) previous.IsActive = false;
         ActivePane = pane;
-        pane.IsActive = true;
         _selecting = true;
         try {
             _tabs.SelectedTab = pane.Tab;
             pane.Document.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
+            // Rebinding the canonical reader can publish its former page; keep the pane's view state until rebinding finishes.
+            pane.IsActive = true;
             pane.PublishNavigation();
         } finally { _selecting = false; }
         UpdatePresentedDocuments();

@@ -85,13 +85,16 @@ public sealed class PdfFormOcrReview {
             }
             values.Add(pair.Key.Field.Name!, PdfFormFieldValue.FromValues(pair.Value.Values));
         }
-        if (values.Count == 0) return PdfDocument.Load(_sourceBytes, _source.ReadOptions);
-        var plan = _source.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (values.Count == 0) return PdfDocument.LoadOwned(_sourceBytes, _source.ReadOptions, cancellationToken);
+        var plan = _source.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys,
+            options: null, PdfMutationExecutionPreference.Automatic, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var result = plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
-            ? _source.Forms.AppendRevision(values, new PdfIncrementalFormFieldUpdateOptions {
+            ? _source.Forms.AppendRevisionWithReadOptions(values, new PdfIncrementalFormFieldUpdateOptions {
                 GenerateAppearanceStreams = true, KeepNeedAppearances = false
-            }) : _source.Forms.Fill(values);
+            }, _source.ReadOptions, cancellationToken)
+            : _source.Forms.FillWithReadOptions(values, formOptions: null, _source.ReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
