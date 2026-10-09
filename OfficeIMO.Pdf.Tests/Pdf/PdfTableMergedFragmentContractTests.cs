@@ -23,7 +23,7 @@ public partial class PdfDocumentVisualQualityTests {
         Dictionary<string, string> objects = Regex.Matches(raw, @"(\d+) 0 obj\s*(.*?)\s*endobj", RegexOptions.Singleline)
             .Cast<Match>()
             .ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value);
-        string firstRow = objects.Values.First(value => value.Contains("/S /TR", StringComparison.Ordinal));
+        string firstRow = objects.Values.First(value => value.IndexOf("/S /TR", StringComparison.Ordinal) >= 0);
         string firstCell = Regex.Match(firstRow, @"/K\s*\[\s*(\d+) 0 R").Groups[1].Value;
         Assert.Contains("/RowSpan 2", objects[firstCell], StringComparison.Ordinal);
     }

@@ -8,6 +8,26 @@ internal static partial class PdfWriter {
             double tableX, int? tableStructureElementIndex, ref StringBuilder? pairedBorders,
             int completedRow = -1, double cornerRadius = 0D, double fullFrameHeight = double.PositiveInfinity,
             bool logicalTopBoundary = true, bool logicalBottomBoundary = true, double closingPadding = 0D) {
+            // Paint every deferred fill before any adjacent span's content or borders.
+            foreach (TableSpanCellFlow span in flow.ActiveCells) {
+                if (span.Height <= .001D || completedRow >= 0 && span.EndRow != completedRow + 1 ||
+                    style.CellFills?.TryGetValue((span.Row, span.Cell.Column), out PdfColor fill) != true) continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                TableCellLayout cell = span.Cell;
+                double x = tableX;
+                for (int column = 0; column < cell.Column; column++) x += columnWidths[column] + columnGap;
+                double width = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
+                int admitted = GetTableSpanAdmittedLineCount(span, style, rows, fullFrameHeight,
+                    span.EndRow == table.Rows.Count ? closingPadding : 0D);
+                bool continues = completedRow < 0 || span.ConsumedLines + admitted < rows.Lines[span.Row][cell.Column].LineCount;
+                var corners = GetTableSpanFragmentCorners(table, span, columnWidths.Length, cornerRadius,
+                    logicalTopBoundary, logicalBottomBoundary, continues);
+                bool rounded = corners.TopLeft || corners.TopRight || corners.BottomRight || corners.BottomLeft;
+                if (rounded) BeginRoundedClip(sb, x, span.Top - span.Height, width, span.Height, cornerRadius,
+                    corners.TopLeft, corners.TopRight, corners.BottomRight, corners.BottomLeft);
+                DrawRowFill(sb, fill, x, span.Top - span.Height, width, span.Height, emitGeneratedStructure);
+                if (rounded) EndRoundedClip(sb);
+            }
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.Height <= .001D || completedRow >= 0 && span.EndRow != completedRow + 1) continue;
                 cancellationToken.ThrowIfCancellationRequested();
@@ -20,26 +40,31 @@ internal static partial class PdfWriter {
                 double bottom = span.Top - span.Height;
                 int? rowStructure = span.RowStructure == null ? RegisterStructureContainer("TR", tableStructureElementIndex) : null;
                 TableCellTextLayout lines = rows.Lines[row][cell.Column];
-                double available = Math.Max(0D, span.Height - GetTableCellPaddingTop(style, row, cell.Column) -
-                    GetTableCellPaddingBottom(style, row, cell.Column));
-                int admittedLines = LimitTableCellLineCountToHeight(lines, span.ConsumedLines,
-                    Math.Max(0, lines.LineCount - span.ConsumedLines), rows.Leadings[row], available);
-                double fullTextHeight = Math.Max(0D, fullFrameHeight - (span.EndRow == table.Rows.Count ? closingPadding : 0D) - GetTableCellPaddingTop(style, row, cell.Column) -
-                    GetTableCellPaddingBottom(style, row, cell.Column));
-                admittedLines = LimitTableRowFragmentToParagraphBoundaries(rows.Lines[row], new[] { cell },
-                    span.ConsumedLines, admittedLines, fullTextHeight, available + .001D < fullTextHeight);
+                int admittedLines = GetTableSpanAdmittedLineCount(span, style, rows, fullFrameHeight,
+                    span.EndRow == table.Rows.Count ? closingPadding : 0D);
                 bool continues = completedRow < 0 || span.ConsumedLines + admittedLines < lines.LineCount;
-                bool touchesTop = cornerRadius > 0D && logicalTopBoundary && row == 0 && !continuation;
-                bool touchesBottom = cornerRadius > 0D && logicalBottomBoundary && span.EndRow == table.Rows.Count && !continues;
-                bool topLeft = touchesTop && cell.Column == 0;
-                bool topRight = touchesTop && cell.Column + cell.ColumnSpan == columnWidths.Length;
-                bool bottomLeft = touchesBottom && cell.Column == 0;
-                bool bottomRight = touchesBottom && cell.Column + cell.ColumnSpan == columnWidths.Length;
+                var corners = GetTableSpanFragmentCorners(table, span, columnWidths.Length, cornerRadius,
+                    logicalTopBoundary, logicalBottomBoundary, continues);
+                bool topLeft = corners.TopLeft, topRight = corners.TopRight;
+                bool bottomLeft = corners.BottomLeft, bottomRight = corners.BottomRight;
                 bool rounded = topLeft || topRight || bottomLeft || bottomRight;
-                if (style.CellFills?.TryGetValue((row, cell.Column), out PdfColor fill) == true) {
-                    if (rounded) BeginRoundedClip(sb, x, bottom, width, span.Height, cornerRadius, topLeft, topRight, bottomRight, bottomLeft);
-                    DrawRowFill(sb, fill, x, bottom, width, span.Height, emitGeneratedStructure);
-                    if (rounded) EndRoundedClip(sb);
+                if (style.CellFills?.ContainsKey((row, cell.Column)) == true) {
+                    // The opaque fill covered the earlier row grid. Restore its perimeter
+                    // after all fills, before text and any explicit cell-border overrides.
+                    if (style.BorderColor.HasValue && style.BorderWidth > 0D) {
+                        var grid = new PdfCellBorder { Color = style.BorderColor, Width = style.BorderWidth };
+                        if (rounded) DrawRoundedCellBorder(sb, grid, x, bottom, width, span.Height, cornerRadius,
+                            style.BorderWidth, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
+                        else DrawCellBorder(sb, grid, x, bottom, width, span.Height, emitGeneratedStructure);
+                    }
+                    if (span.FirstFragmentRow == row && row > 0) {
+                        bool headerBefore = row - 1 < style.HeaderRowCount;
+                        PdfColor? separator = headerBefore ? style.HeaderSeparatorColor ?? style.RowSeparatorColor : style.RowSeparatorColor;
+                        double separatorWidth = headerBefore && style.HeaderSeparatorWidth > 0D ? style.HeaderSeparatorWidth : style.RowSeparatorWidth;
+                        if (separator.HasValue && separatorWidth > 0D) DrawHLine(sb, separator.Value, separatorWidth, x, x + width, span.Top, emitGeneratedStructure);
+                    }
+                    if (!continues && style.RowSeparatorColor.HasValue && style.RowSeparatorWidth > 0D)
+                        DrawHLine(sb, style.RowSeparatorColor.Value, style.RowSeparatorWidth, x, x + width, bottom, emitGeneratedStructure);
                 }
                 int take = RenderFlowTableCellContent(table, style, cell, lines, row, span.ConsumedLines,
                     admittedLines, x, span.Top, width, span.Height,
@@ -74,6 +99,29 @@ internal static partial class PdfWriter {
                 }
                 span.Height = 0D;
             }
+        }
+
+        private static int GetTableSpanAdmittedLineCount(TableSpanCellFlow span, PdfTableStyle style,
+            PreparedFlowTableRows rows, double fullFrameHeight, double closingPadding) {
+            int row = span.Row;
+            TableCellLayout cell = span.Cell;
+            TableCellTextLayout lines = rows.Lines[row][cell.Column];
+            double padding = GetTableCellPaddingTop(style, row, cell.Column) + GetTableCellPaddingBottom(style, row, cell.Column);
+            double available = Math.Max(0D, span.Height - padding);
+            int count = LimitTableCellLineCountToHeight(lines, span.ConsumedLines,
+                Math.Max(0, lines.LineCount - span.ConsumedLines), rows.Leadings[row], available);
+            double fullTextHeight = Math.Max(0D, fullFrameHeight - closingPadding - padding);
+            return LimitTableRowFragmentToParagraphBoundaries(rows.Lines[row], new[] { cell },
+                span.ConsumedLines, count, fullTextHeight, available + .001D < fullTextHeight);
+        }
+
+        private static (bool TopLeft, bool TopRight, bool BottomRight, bool BottomLeft) GetTableSpanFragmentCorners(
+            TableBlock table, TableSpanCellFlow span, int columns, double radius,
+            bool logicalTop, bool logicalBottom, bool continues) {
+            bool top = radius > 0D && logicalTop && span.Row == 0 && !span.DestinationEmitted;
+            bool bottom = radius > 0D && logicalBottom && span.EndRow == table.Rows.Count && !continues;
+            bool left = span.Cell.Column == 0, right = span.Cell.Column + span.Cell.ColumnSpan == columns;
+            return (top && left, top && right, bottom && right, bottom && left);
         }
 
         /// <summary>Reserves any text carried from earlier frames in a flexible span's final physical row.</summary>

@@ -447,15 +447,18 @@ internal static partial class PdfWriter {
                 if (HasRepeatableHeader() && AtContinuationPageTop() && repeatHeaderHeight + minimum <= state.Remaining + .001D)
                     for (int header = 0; header < table.RepeatHeaderRowCount; header++)
                         DrawColumnTableRow(header, true, suppressCellObjects: true);
-                double available = state.Remaining - (rowIndex == tbColumn.Rows.Count - 1 ? closingPadding : 0D);
+                double available = state.Remaining;
+                double required = MeasureTableSpanRemainderHeight(table.SpanFlow, tableStyle,
+                    table.PreparedRows, table.ColumnWidths, columnGap, rowIndex);
+                if (rowIndex == tbColumn.Rows.Count - 1 && required + closingPadding <= available + .001D)
+                    available -= closingPadding;
                 if (available < minimum - .001D) {
                     if (state.Consumed <= .001D)
                         throw new ArgumentException("Merged table cell content cannot fit within the available continuation frame.");
                     break;
                 }
                 int before = GetTableSpanRemainingLineCount(table.SpanFlow, table.PreparedRows, rowIndex);
-                double height = Math.Min(available, MeasureTableSpanRemainderHeight(table.SpanFlow, tableStyle,
-                    table.PreparedRows, table.ColumnWidths, columnGap, rowIndex));
+                double height = Math.Min(available, required);
                 DrawColumnTableRowSegment(rowIndex, false, table.RowLineCounts[rowIndex], 0, continuedSpanHeight: height);
                 int after = GetTableSpanRemainingLineCount(table.SpanFlow, table.PreparedRows, rowIndex);
                 if (after >= before)

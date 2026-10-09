@@ -16,7 +16,8 @@ internal static partial class PdfWriter {
                         cell.Images.Count == 0 && cell.CheckBoxes.Count == 0 && cell.FormFields.Count == 0 &&
                         style.CellDataBars?.ContainsKey((row, cell.Column)) != true &&
                         style.CellIcons?.ContainsKey((row, cell.Column)) != true &&
-                        !Enumerable.Range(row, cell.RowSpan).Any(spanRow => GetTableRowFixedHeight(style, spanRow).HasValue)) {
+                        !Enumerable.Range(row, cell.RowSpan).Any(spanRow => GetTableRowFixedHeight(style, spanRow).HasValue ||
+                            !GetTableRowAllowBreakAcrossPages(style, spanRow))) {
                         var flow = new TableSpanCellFlow(row, cell);
                         Cells.Add(flow);
                         anchors.Add((row, cell.Column), flow);

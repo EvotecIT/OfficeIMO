@@ -430,8 +430,9 @@ internal static partial class PdfWriter {
                 pairedBorders.Clear();
             }
 
-            void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
-                FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, EnsureTableStructureElement(), ref pairedBorders,
+            void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false, bool continuingSpanTail = false) {
+                int? fragmentTable = spanFlow.ActiveCells.Any(span => span.Height > .001D) ? EnsureTableStructureElement() : tableStructureElementIndex;
+                FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, fragmentTable, ref pairedBorders,
                     cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
                     closingPadding: GetClosingTextPadding(style.SpacingAfter));
                 FlushPairedBorders();
@@ -462,8 +463,13 @@ internal static partial class PdfWriter {
                     if (hasRepeatableHeader && rowIndex >= headerRowCount) continuationHeight += repeatHeaderHeight;
                     y = PositionTableY(continuationPosition, Math.Min(maxContentHeight, continuationHeight));
                 }
-                ApplyTablePageContinuationSpacing(GetTableContinuationRequiredHeight(rowIndex, startLine, requireWholeRow));
-                if (CanRepeatHeaderWithSegment(rowIndex, startLine, requireWholeRow)) {
+                double requiredHeight = continuingSpanTail
+                    ? MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex, firstLineOnly: true) +
+                        (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)
+                    : GetTableContinuationRequiredHeight(rowIndex, startLine, requireWholeRow);
+                ApplyTablePageContinuationSpacing(requiredHeight);
+                if (continuingSpanTail ? hasRepeatableHeader && rowIndex >= headerRowCount && requiredHeight <= y - TableBottom() + .001D
+                    : CanRepeatHeaderWithSegment(rowIndex, startLine, requireWholeRow)) {
                     DrawRepeatHeaders();
                 }
             }
@@ -807,14 +813,16 @@ internal static partial class PdfWriter {
                 int remaining = GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex);
                 bool continued = remaining > 0;
                 while (remaining > 0) {
-                    NewTablePage(rowIndex, rowLineCounts[rowIndex]);
+                    NewTablePage(rowIndex, rowLineCounts[rowIndex], continuingSpanTail: true);
                     // Reflow can increase the remaining wrapped-line count in a narrower column.
                     // Compare progress within the new frame's layout.
                     remaining = GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex);
                     if (remaining == 0) break;
+                    double available = Math.Max(0D, y - TableBottom());
+                    double required = MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex);
                     double closing = rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D;
-                    double available = Math.Max(0D, y - TableBottom() - closing);
-                    double height = Math.Min(MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex), available);
+                    if (required + closing <= available + .001D) available = Math.Max(0D, available - closing);
+                    double height = Math.Min(required, available);
                     DrawTableRowSegment(rowIndex, false, rowLineCounts[rowIndex], 0, continuedSpanHeight: height);
                     int next = GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex);
                     if (next >= remaining)

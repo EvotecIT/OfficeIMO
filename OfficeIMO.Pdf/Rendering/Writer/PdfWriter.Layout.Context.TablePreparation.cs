@@ -33,9 +33,10 @@ internal static partial class PdfWriter {
                     double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
                     double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) -
                         GetTableCellPaddingLeft(style, row, cell.Column) - GetTableCellPaddingRight(style, row, cell.Column));
-                    int spanConsumed = spanFlow?.GetConsumedLines(row, cell.Column) ?? 0;
-                    bool continueCell = previous != null && (continued || spanConsumed > 0);
-                    int cellConsumed = spanConsumed > 0 ? spanConsumed : consumedLines;
+                    bool mergedCursor = spanFlow?.Contains(row, cell.Column) == true;
+                    int spanConsumed = mergedCursor ? spanFlow!.GetConsumedLines(row, cell.Column) : 0;
+                    bool continueCell = previous != null && (mergedCursor ? spanConsumed > 0 : continued);
+                    int cellConsumed = mergedCursor ? spanConsumed : consumedLines;
                     TableCellTextLayout lines = continueCell
                         ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], cellConsumed, innerWidth, font, size, leading,
                             currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum)
