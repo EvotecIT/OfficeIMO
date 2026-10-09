@@ -16,6 +16,8 @@ public static partial class WordIWorkConverter {
             _document = document;
         }
 
+        internal IWorkNativeListCatalog CreateTextScope() => new(_document);
+
         internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName,
             IWorkListMarkerKind markerKind, bool startsNewList, int? qualifiedNumber,
             int? qualifiedTextOffset) {

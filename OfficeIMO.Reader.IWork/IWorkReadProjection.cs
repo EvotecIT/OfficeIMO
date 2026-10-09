@@ -217,22 +217,26 @@ internal sealed partial class IWorkReadProjection {
         string sourceKind, OfficeDocumentRegion? region = null) {
         string text = ParagraphText(paragraph, _cancellationToken);
         ReportParagraphDetails(page, paragraph);
+        // Blank lines alone leave ordered items in one CommonMark list, whose
+        // later markers are ignored. A comment ends it before an explicit restart.
+        string listBoundary = paragraph.ListStartNumber.HasValue && _blocks.Count > 0
+            && _blocks[_blocks.Count - 1].Kind == "list-item" ? "<!-- -->\n\n" : string.Empty;
         if (text.Length == 0) {
             AddBlock(page, paragraph.ListLevel >= 0 ? "list-item" : "paragraph",
-                string.Empty, paragraph.ListLevel >= 0 ? RichTextMarkdown(paragraph, _cancellationToken) : "\n",
+                string.Empty, paragraph.ListLevel >= 0 ? listBoundary + RichTextMarkdown(paragraph, _cancellationToken) : "\n",
                 paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
                 ReaderListLabel(paragraph), sourceKind: sourceKind, region: region);
             return;
         }
         bool heading = paragraph.ListLevel < 0 && sourceKind == "title";
-        string markdown = (heading ? "# " : string.Empty) + RichTextMarkdown(paragraph, _cancellationToken);
+        string markdown = listBoundary + (heading ? "# " : string.Empty) + RichTextMarkdown(paragraph, _cancellationToken);
         string kind = paragraph.ListLevel >= 0 ? "list-item" :
             sourceKind == "title" ? "heading" : "paragraph";
         ReaderLocation blockLocation = AddBlock(page, kind, text, markdown,
             paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
             ReaderListLabel(paragraph),
             markdownPart: (offset, length) =>
-                (heading && offset == 0 ? "# " : string.Empty)
+                (offset == 0 ? listBoundary : string.Empty) + (heading && offset == 0 ? "# " : string.Empty)
                 + RichTextMarkdown(paragraph, offset, length, _cancellationToken),
             sourceKind: sourceKind, region: region);
         AddRunLinks(page, paragraph.Runs, blockLocation);

@@ -67,11 +67,13 @@ public sealed partial class IWorkEverydayNativeExportTests {
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(actual));
     }
 
-    [Fact]
-    public void Reader_blocks_and_markdown_preserve_native_decimal_counters() {
+    [Theory]
+    [InlineData(8192)]
+    [InlineData(8)]
+    public void Reader_blocks_and_markdown_preserve_native_decimal_counters(int maximumChunkCharacters) {
         var source = IWorkSourceDocument.Open(Corpus("native-exports/pages-paragraph-list-v15.4.pages"));
         var output = new OfficeDocumentReadResult { Kind = ReaderInputKind.IWork };
-        var reader = new IWorkReadProjection(output, "paragraph-list.pages", new ReaderOptions(),
+        var reader = new IWorkReadProjection(output, "paragraph-list.pages", new ReaderOptions { MaxChars = maximumChunkCharacters },
             new ReaderIWorkOptions(), System.Threading.CancellationToken.None);
         reader.AddPages(source.ReadPages()); reader.Complete(source);
         Assert.Contains("7. List first", output.Markdown);
@@ -80,6 +82,12 @@ public sealed partial class IWorkEverydayNativeExportTests {
         Assert.Contains("4. List continuation", output.Markdown);
         var blocks = output.Pages.SelectMany(page => page.Blocks).Where(block => block.Kind == "list-item").ToArray();
         Assert.Equal(new[] { "7.", "8.", "3.", "4." }, blocks.Select(block => block.Marker));
+        var lists = OfficeIMO.Markdown.MarkdownReader.Parse(output.Markdown!).Blocks
+            .OfType<OfficeIMO.Markdown.OrderedListBlock>().ToArray();
+        Assert.Equal(new[] { 7, 3 }, lists.Select(list => list.Start));
+        Assert.All(lists, list => Assert.Equal(2, list.Items.Count));
+        Assert.Equal(new[] { 7, 8, 3, 4 }, lists.SelectMany(list =>
+            Enumerable.Range(list.Start, list.Items.Count)));
     }
 
     private static string? EffectiveLine(WordprocessingDocument document, W.Paragraph paragraph) =>

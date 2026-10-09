@@ -349,6 +349,9 @@ public static partial class WordIWorkConverter {
         Action<IWorkParagraphBreakKind>? addSectionBreak = null,
         bool forceBold = false, CancellationToken cancellationToken = default,
         Action<WordParagraph, IWorkTextRun>? addInlineObject = null, IWorkParagraphStyle? defaultStyle = null) {
+        // Inline tables can recursively project another text storage. Its lists
+        // must not replace the current list in the surrounding storage.
+        nativeLists = nativeLists.CreateTextScope();
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {

@@ -38,11 +38,9 @@ internal static partial class IWorkTextReader {
             ulong? raw = boundary?.HasObject == true ? boundary.Identifier : null;
             bool explicitStart = boundary?.Index == offset && raw > 0;
             if (kind != IWorkListMarkerKind.Number) {
-                if (explicitStart) {
-                    complete = false;
-                    references.Declarations.Record(owner, CounterPath(boundary!) + "/2", 1,
-                        IWorkSourceDeclarationIssueKind.UnsupportedField);
-                }
+                // Apple also writes a default start for bullets and non-list text.
+                // It has no numbering meaning in those profiles; the table shape
+                // and paragraph boundaries have already been validated separately.
                 Reset();
                 return (null, null);
             }
