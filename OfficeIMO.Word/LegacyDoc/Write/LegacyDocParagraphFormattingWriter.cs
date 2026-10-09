@@ -300,19 +300,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             propertyByteCount = grpprl.Count;
-            if (grpprl.Count % 2 != 0) {
-                grpprl.Add(0);
-            }
-
-            int cb = grpprl.Count / 2;
+            bool oddLength = grpprl.Count % 2 != 0;
+            int cb = oddLength ? (grpprl.Count + 1) / 2 : grpprl.Count / 2;
             if (cb > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving cannot write paragraph formatting because the PAPX record is too large.");
             }
 
-            var papx = new byte[grpprl.Count + 2];
-            papx[0] = 0;
-            papx[1] = (byte)cb;
-            grpprl.CopyTo(papx, 2);
+            int headerLength = oddLength ? 1 : 2;
+            var papx = new byte[grpprl.Count + headerLength];
+            if (oddLength) papx[0] = (byte)cb;
+            else papx[1] = (byte)cb;
+            grpprl.CopyTo(papx, headerLength);
             return papx;
         }
 
@@ -322,10 +320,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             byte[] papx = CreatePapx(formatting, out int propertyByteCount);
-            // Style UPX and list LVL lengths exclude the padding required by a page PAPX.
-            // The enclosing style record writes its own external alignment byte.
+            // The enclosing style record owns alignment; UPX contains only properties.
             var upx = new byte[propertyByteCount];
-            Buffer.BlockCopy(papx, 2, upx, 0, upx.Length);
+            Buffer.BlockCopy(papx, papx[0] == 0 ? 2 : 1, upx, 0, upx.Length);
             return upx;
         }
 
