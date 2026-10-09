@@ -12,6 +12,7 @@ internal static class OfficeVbaProjectText {
         foreach (string line in Lines(text)) {
             if (line.Equals("BaseClass=" + name, StringComparison.OrdinalIgnoreCase)) return OfficeVbaModuleKind.Designer;
             if (line.StartsWith("Document=" + name + "/", StringComparison.OrdinalIgnoreCase)
+                || line.StartsWith("DocClass=" + name + "/", StringComparison.OrdinalIgnoreCase)
                 || line.Equals("DocModule=" + name, StringComparison.OrdinalIgnoreCase)) return OfficeVbaModuleKind.Document;
         }
         return type == 0x0021 ? OfficeVbaModuleKind.Standard : OfficeVbaModuleKind.Class;
@@ -51,7 +52,7 @@ internal static class OfficeVbaProjectText {
         return string.Join("\r\n", result);
     }
 
-    private static bool IsDeclaration(string key) => new[] { "Module", "Class", "Document", "BaseClass", "DocModule" }
+    private static bool IsDeclaration(string key) => new[] { "Module", "Class", "Document", "BaseClass", "DocModule", "DocClass" }
         .Contains(key, StringComparer.OrdinalIgnoreCase);
 
     private static void AddDeclarations(ICollection<string> output, IReadOnlyList<OfficeVbaModule> modules, IReadOnlyDictionary<string, string> original) {

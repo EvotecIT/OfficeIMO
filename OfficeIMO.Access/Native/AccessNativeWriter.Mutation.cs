@@ -10,7 +10,7 @@ namespace OfficeIMO.Access {
         internal static AccessNativeWriter BuildBinaryReplacements(AccessNativeDatabase database, AccessNativeTable table,
             AccessNativeColumn column, IReadOnlyDictionary<uint, byte[]> replacements, long maximumBytes, CancellationToken cancellation) {
             if (!database.CanDecode(out _) || database.Document.Profile != AccessFormatProfile.Jet4 && database.Document.Profile != AccessFormatProfile.Ace12 && database.Document.Profile != AccessFormatProfile.Ace14)
-                throw new NotSupportedException("Native application-storage mutation is limited to unprotected Jet4, ACE12 and ACE14.");
+                throw new NotSupportedException("Native application-storage mutation is limited to unprotected Jet4 and ACE12/14.");
             if (column.Type != 9 && column.Type != 11 && column.Type != 17 || column.Type == 11 && !column.Variable || column.Calculated || table.Indexes.Any(x => x.Columns.Contains(column)))
                 throw new NotSupportedException("Native payload replacement requires a nonindexed binary column.");
             if (column.Type == 11 && column.OwnedLongPages == 0) throw new NotSupportedException("The native binary column has no qualified long-value usage map.");

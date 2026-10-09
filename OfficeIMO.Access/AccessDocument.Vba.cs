@@ -10,6 +10,7 @@ namespace OfficeIMO.Access {
             internal byte[] ProjectBytes = null!;
             internal string Sha256 = null!;
             internal AccessNativeDatabase ReadProjection = null!;
+            internal IReadOnlyDictionary<OfficeVbaModule, string> AppliedNames = null!;
         }
         /// <summary>Loads a detached editable VBA project from the decoded native application storage.</summary>
         /// <remarks>Editing the returned project does not change this database. Missing or opaque source is rejected by the shared project editor; inspection remains available through <see cref="VbaProject"/>.</remarks>
@@ -30,6 +31,7 @@ namespace OfficeIMO.Access {
             if (NativeDatabase == null || CatalogStatus != AccessCatalogStatus.Decoded || VbaProject.CatalogStatus != AccessCatalogStatus.Decoded)
                 throw new NotSupportedException("VBA application requires a decoded native database and project.");
             ValidateSourceIdentity(cancellationToken);
+            AccessNativeDatabase source = _vbaMutation?.ReadProjection ?? NativeDatabase;
             options ??= new OfficeVbaWriteOptions();
             byte[] bytes = project.Write(options).GetBytes();
             var limits = new OfficeCompoundReadOptions(maxStreamBytes: options.MaximumProjectBytes, maxTotalStreamBytes: options.MaximumProjectBytes);
@@ -41,10 +43,16 @@ namespace OfficeIMO.Access {
             OfficeVbaProject current = original.Length == 0 ? OfficeVbaProject.Create(project.Name, project.CodePage)
                 : GetVbaProject(new OfficeVbaReadOptions { MaximumProjectBytes = options.MaximumProjectBytes, MaximumExpandedBytes = options.MaximumExpandedBytes }, cancellationToken);
             if (current.IsProtected || project.IsProtected) throw new InvalidOperationException("Access VBA editing does not bypass project protection.");
-            ValidateAccessVbaHostModules(current, project);
+            HashSet<string> hosts = source.GetVbaHostNames(current);
+            ValidateAccessVbaHostModules(current, project, hosts, _vbaMutation?.AppliedNames);
+            foreach (AccessApplicationObject host in Forms.Concat(Reports)) {
+                string name = (host.CatalogEntry.NativeType == -32768 ? "Form_" : "Report_") + host.Name;
+                if (!hosts.Contains(name) && project.Modules.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                    throw new NotSupportedException("Adding new form/report code-behind requires qualified host metadata authoring.");
+            }
             if (options.MaximumRecoveryBytes < 1) throw new ArgumentOutOfRangeException(nameof(options));
             long recovery = NativeDatabase.Snapshot().Length;
-            foreach (VbaMutationState state in _vbaUndoStates.Concat(HasActiveUpdate && _vbaMutation != null ? new[] { _vbaMutation } : Array.Empty<VbaMutationState>()))
+            foreach (VbaMutationState state in _vbaUndoStates.Concat(_vbaMutation != null ? new[] { _vbaMutation } : Array.Empty<VbaMutationState>()))
                 recovery = checked(recovery + state.Plan.Length * 2 + state.ProjectBytes.Length);
             if (recovery > options.MaximumRecoveryBytes) throw new InvalidDataException("Native Access recovery snapshots exceed MaximumRecoveryBytes.");
             // Access uses a direct native signature carrier rather than OPC relationships.
@@ -53,8 +61,8 @@ namespace OfficeIMO.Access {
                 && !x.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !x.Path.Equals("VBA/AcessVBAData", StringComparison.OrdinalIgnoreCase)
                 || x.Path.IndexOf("DigitalSignature", StringComparison.OrdinalIgnoreCase) >= 0))
                 throw new NotSupportedException("An unqualified VBA or signature carrier prevents native Access editing.");
-            long maximumBytes = Math.Min(int.MaxValue, checked(_inputLimit + options.MaximumProjectBytes));
-            AccessNativeWriter plan = NativeDatabase.BuildVbaMutation(project, compound, maximumBytes, cancellationToken);
+            long maximumBytes = Math.Min(int.MaxValue, checked(Math.Max(_inputLimit, source.Snapshot().Length) + options.MaximumProjectBytes));
+            AccessNativeWriter plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, _vbaMutation?.AppliedNames);
             using OfficeBoundedMemoryStream output = new OfficeBoundedMemoryStream(maximumBytes);
             plan.Write(output, cancellationToken); byte[] candidateBytes = output.ToArray();
             using AccessDocument candidate = FromBytes(candidateBytes, new AccessLoadOptions {
@@ -65,6 +73,9 @@ namespace OfficeIMO.Access {
             }, cancellationToken);
             if (candidate.VbaProject.CatalogStatus != AccessCatalogStatus.Decoded || candidate.VbaProject.Modules.Count != project.Modules.Count)
                 throw new InvalidDataException("The native candidate did not retain its complete VBA inventory.");
+            string[] ordinary = project.Modules.Where(x => !hosts.Contains(x.Name)).Select(x => x.Name).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
+            if (!ordinary.SequenceEqual(candidate.Catalog.Where(x => x.NativeType == -32761).Select(x => x.Name).OrderBy(x => x, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase))
+                throw new InvalidDataException("The native ordinary-module catalog and VBA inventory disagree.");
             VbaMutationState? previous = _vbaMutation; AccessVbaProjectInfo previousInfo = VbaProject;
             IReadOnlyList<AccessStorageStream> previousStreams = ApplicationStreams;
             AccessCatalogEntry[] previousCatalog = Catalog.Items.ToArray();
@@ -78,7 +89,8 @@ namespace OfficeIMO.Access {
             }).ToArray();
             cancellationToken.ThrowIfCancellationRequested();
             AccessNativeDatabase readProjection = candidate.NativeDatabase!; readProjection.BindReadProjection(this); candidate.NativeDatabase = null;
-            var next = new VbaMutationState { Plan = plan, ProjectBytes = bytes, Sha256 = candidate.Inspection!.Sha256, ReadProjection = readProjection };
+            var next = new VbaMutationState { Plan = plan, ProjectBytes = bytes, Sha256 = candidate.Inspection!.Sha256, ReadProjection = readProjection,
+                AppliedNames = project.Modules.ToDictionary(x => x, x => x.Name) };
             if (HasActiveUpdate && previous != null) _vbaUndoStates.Add(previous);
             _vbaMutation = next; VbaProject = candidate.VbaProject; ApplicationStreams = candidate.ApplicationStreams;
             Catalog.Items.RemoveAll(x => x.NativeType == -32761); Catalog.Items.AddRange(nextModules);
@@ -96,17 +108,20 @@ namespace OfficeIMO.Access {
             return _vbaMutation.ReadProjection.Definition(original.DefinitionPage, original.Name, cancellation);
         }
 
-        private static void ValidateAccessVbaHostModules(OfficeVbaProject original, OfficeVbaProject replacement) {
+        private static void ValidateAccessVbaHostModules(OfficeVbaProject original, OfficeVbaProject replacement, ISet<string> boundHosts,
+            IReadOnlyDictionary<OfficeVbaModule, string>? appliedNames) {
             foreach (OfficeVbaModule module in replacement.Modules) {
-                string identity = module.IsNew ? module.Name : module.OriginalName;
+                string identity = appliedNames != null && appliedNames.TryGetValue(module, out string? applied) ? applied : module.IsNew ? module.Name : module.OriginalName;
                 OfficeVbaModule? previous = original.Modules.FirstOrDefault(x => x.Name.Equals(identity, StringComparison.OrdinalIgnoreCase));
                 if (previous != null && previous.Kind != module.Kind) throw new ArgumentException("Replacing an Access module cannot change its native persistence kind.", nameof(replacement));
             }
-            OfficeVbaModule[] hosts = original.Modules.Where(x => x.Kind == OfficeVbaModuleKind.Document || x.Kind == OfficeVbaModuleKind.Designer).ToArray();
-            OfficeVbaModule[] updated = replacement.Modules.Where(x => x.Kind == OfficeVbaModuleKind.Document || x.Kind == OfficeVbaModuleKind.Designer).ToArray();
+            OfficeVbaModule[] hosts = original.Modules.Where(x => boundHosts.Contains(x.Name)).ToArray();
+            OfficeVbaModule[] updated = replacement.Modules.Where(x => boundHosts.Contains(x.Name)).ToArray();
             if (hosts.Length != updated.Length || hosts.Any(host => !updated.Any(x => x.Kind == host.Kind && x.Name.Equals(host.Name, StringComparison.OrdinalIgnoreCase)
-                && OfficeVbaText.GetBaseIdentity(x.Source) == OfficeVbaText.GetBaseIdentity(host.Source))))
+                && string.Equals(OfficeVbaText.GetBaseIdentity(x.Source), OfficeVbaText.GetBaseIdentity(host.Source), StringComparison.OrdinalIgnoreCase))))
                 throw new ArgumentException("Access form/report module identities must remain bound to their existing host.", nameof(replacement));
+            if (replacement.Modules.Any(x => x.Kind != OfficeVbaModuleKind.Standard && x.Kind != OfficeVbaModuleKind.Class && !boundHosts.Contains(x.Name)))
+                throw new NotSupportedException("Access VBA persistence supports ordinary and qualified form/report class modules.");
         }
     }
 }

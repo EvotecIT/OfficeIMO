@@ -102,6 +102,9 @@ namespace OfficeIMO.Access {
                     if (operation.Operation == "native.preserve") enabled &= Inspection != null;
                     if (operation.Operation == "application.objects.read") enabled &= Forms.CatalogStatus == AccessCatalogStatus.Decoded;
                     if (operation.Operation == "vba.inspect") enabled &= VbaProject.CatalogStatus == AccessCatalogStatus.Decoded;
+                    if (operation.Operation == "vba.edit") enabled &= Inspection != null && AccessMode == DocumentAccessMode.ReadWrite
+                        && CatalogStatus == AccessCatalogStatus.Decoded && VbaProject.CatalogStatus == AccessCatalogStatus.Decoded
+                        && (Profile == AccessFormatProfile.Jet4 || Profile == AccessFormatProfile.Ace12 || Profile == AccessFormatProfile.Ace14);
                     return new AccessOperationCapability(operation.Operation, enabled, operation.Boundary);
                 }).ToArray());
             }

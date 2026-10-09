@@ -5,17 +5,22 @@ namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeDatabase {
         /// <summary>Adapts a shared project artifact to native Access storage and its module catalog.</summary>
         internal AccessNativeWriter BuildVbaMutation(OfficeVbaProject project, OfficeCompoundFile compound,
-            long maximumBytes, CancellationToken cancellation) {
+            long maximumBytes, CancellationToken cancellation, ISet<string> hosts, IReadOnlyDictionary<OfficeVbaModule, string>? appliedNames = null) {
             const string prefix = "VBA/VBAProject/";
             var replacements = compound.Streams.ToDictionary(x => prefix + x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
             var removals = new HashSet<string>(_applicationStreams.Keys.Where(x => x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !replacements.ContainsKey(x)), StringComparer.OrdinalIgnoreCase);
             AccessNativeTable catalog = _tables["MSysObjects"];
             var original = _catalog.Where(x => x.Type == -32761).ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
-            OfficeVbaModule[] ordinary = project.Modules.Where(x => x.Kind == OfficeVbaModuleKind.Standard || x.Kind == OfficeVbaModuleKind.Class).ToArray();
-            var renamed = ordinary.Where(x => !x.IsNew && original.ContainsKey(x.OriginalName) && x.Name != x.OriginalName)
-                .ToDictionary(x => x.OriginalName, x => x.Name, StringComparer.OrdinalIgnoreCase);
+            OfficeVbaModule[] ordinary = project.Modules.Where(x => !hosts.Contains(x.Name) && (x.Kind == OfficeVbaModuleKind.Standard || x.Kind == OfficeVbaModuleKind.Class)).ToArray();
+            // Core retains the detached model's load identity. A reused model must instead
+            // address the native names accepted by its immediately preceding application.
+            var sourceNames = ordinary.ToDictionary(x => x, x => appliedNames != null && appliedNames.TryGetValue(x, out string? applied)
+                ? applied : x.IsNew ? null : x.OriginalName);
+            var renamed = ordinary.Where(x => sourceNames[x] != null && original.ContainsKey(sourceNames[x]!) && x.Name != sourceNames[x])
+                .ToDictionary(x => sourceNames[x]!, x => x.Name, StringComparer.OrdinalIgnoreCase);
             string[] deletedNames = original.Keys.Where(name => !renamed.ContainsKey(name) && !ordinary.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))).ToArray();
-            OfficeVbaModule[] added = ordinary.Where(x => !original.ContainsKey(x.Name) && !renamed.ContainsKey(x.OriginalName)).ToArray();
+            OfficeVbaModule[] added = ordinary.Where(x => (!original.ContainsKey(x.Name) || renamed.ContainsKey(x.Name))
+                && (sourceNames[x] == null || !renamed.ContainsKey(sourceNames[x]!))).ToArray();
             var deletedIds = new HashSet<int>(deletedNames.Select(name => original[name].Id));
             var additions = new List<object?[]>(); var catalogRemovals = new HashSet<uint>(); var catalogRenames = new Dictionary<uint, string>();
             int namespaceId = 0; byte[]? owner = null;

@@ -180,7 +180,18 @@ namespace OfficeIMO.Access {
                 // The unchanged source needs no replacement; identity was checked above.
                 if (_vbaMutation == null) return;
             }
-            OfficeFileCommit.WriteAtomically(path, stream => WriteNative(stream, cancellationToken), cancellationToken, conflict);
+            if (Inspection != null && _path != null && SameSourcePath(path, _path) && conflict == OfficeFileCommit.ConflictPolicy.Replace) {
+                string expected = _savedSourceIdentity ?? Inspection.Sha256;
+                OfficeFileCommit.WriteIfUnchangedAsync(path, (stream, token) => {
+                    WriteNative(stream, token); return Task.CompletedTask;
+                }, displaced => {
+                    try {
+                        using FileStream input = new FileStream(displaced, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                        return Inspect(input, new AccessLoadOptions { MaxInputBytes = _inputLimit, MaxPages = _pageLimit }, cancellationToken).Sha256 == expected;
+                    } catch (IOException) { return false; }
+                    catch (NotSupportedException) { return false; }
+                }, cancellationToken).GetAwaiter().GetResult();
+            } else OfficeFileCommit.WriteAtomically(path, stream => WriteNative(stream, cancellationToken), cancellationToken, conflict);
             if (Inspection != null && _path != null && SameSourcePath(path, _path)) {
                 _savedSourceIdentity = _vbaMutation?.Sha256 ?? Inspection.Sha256;
                 _inputLimit = Math.Max(_inputLimit, _vbaMutation?.Plan.Length ?? Inspection.Length);
