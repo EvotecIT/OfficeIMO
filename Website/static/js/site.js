@@ -799,8 +799,55 @@
     });
   }
 
+  // FAQ: filter questions by their text; matching answers open so the reader sees them.
+  function initFaqFilter() {
+    var input = document.querySelector("[data-faq-filter]");
+    if (!input) return;
+    var cards = Array.prototype.slice.call(document.querySelectorAll(".imo-faq-card"));
+    var groups = Array.prototype.slice.call(document.querySelectorAll(".imo-faq-group"));
+    var empty = document.querySelector(".imo-faq-empty");
+    input.addEventListener("input", function () {
+      var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      cards.forEach(function (card) {
+        var text = card.textContent.toLowerCase();
+        var match = words.every(function (w) { return text.indexOf(w) >= 0; });
+        card.hidden = !match;
+        if (words.length) card.open = match;
+        if (match) shown++;
+      });
+      groups.forEach(function (group) {
+        group.hidden = !group.querySelector(".imo-faq-card:not([hidden])");
+      });
+      if (empty) empty.hidden = shown > 0;
+    });
+  }
+
+  // <input data-table-filter="#table-id">: hide body rows that don't contain every typed word.
+  function initTableFilters() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-table-filter]"), function (input) {
+      var table = document.querySelector(input.getAttribute("data-table-filter"));
+      if (!table || !table.tBodies.length) return;
+      var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+      var empty = table.parentNode.querySelector(".imo-cap-empty");
+      input.addEventListener("input", function () {
+        var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+        var shown = 0;
+        rows.forEach(function (row) {
+          var text = row.cells[0] ? row.cells[0].textContent.toLowerCase() : row.textContent.toLowerCase();
+          var match = words.every(function (w) { return text.indexOf(w) >= 0; });
+          row.hidden = !match;
+          if (match) shown++;
+        });
+        if (empty) empty.hidden = shown > 0;
+      });
+    });
+  }
+
   function init() {
     initFeatureLists();
+    initFaqFilter();
+    initTableFilters();
     initCommandCards();
     initTheme();
     initHeaderMenus();

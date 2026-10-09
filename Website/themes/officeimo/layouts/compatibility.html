@@ -44,33 +44,42 @@
       <div class="imo-container">
         <p class="imo-section__eyebrow">Package-neutral discovery</p>
         <h2 id="package-operation-contracts">Create, read, edit, preserve, inspect, convert, and export</h2>
-        <p>Every summary below is projected from the same machine-readable operation catalog used by package documentation and MCP discovery. Detailed format catalogs remain the evidence owners.</p>
-        <div class="imo-capability-grid">
-          {{ for package in data.office_capabilities.packages }}
-          <article id="package-{{ package.slug }}" class="imo-capability-card">
-            <div class="imo-capability-card__header">
-              <div>
-                <p class="imo-capability-card__package">Package owner</p>
-                <h3>{{ package.id }}</h3>
-              </div>
-              <div class="imo-capability-card__meta">
-                <span class="imo-capability-card__count">{{ package.capabilityCount }} outcomes</span>
-              </div>
-            </div>
-            <div class="imo-capability-operations">
-              {{ for operation in package.operations }}
-              <div class="imo-capability-operation">
-                <strong>{{ operation.id }}</strong>
-                <div>
-                  {{ for state in operation.states }}
-                  <span class="imo-capability-state" data-state="{{ state.label }}" title="{{ state.description }}"><span>{{ state.label }}</span><b>{{ state.count }}</b></span>
-                  {{ end }}
-                </div>
-              </div>
-              {{ end }}
-            </div>
-          </article>
-          {{ end }}
+        <p>Every row is projected from the same machine-readable operation catalog used by package documentation and MCP discovery. Each cell counts the tracked outcomes for that operation; hover a count for what it means. Detailed format catalogs remain the evidence owners.</p>
+        {{~ matrix_columns = ["Create", "Read", "Edit", "Inspect", "Validate", "Preserve", "Convert", "Export", "Remove"] ~}}
+        <div class="imo-cap-toolbar">
+          <label class="imo-cap-filter">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span class="imo-visually-hidden">Filter packages</span>
+            <input type="search" placeholder="Filter packages or formats" autocomplete="off" data-table-filter="#package-matrix" />
+          </label>
+          <ul class="imo-cap-key" aria-label="Outcome states">
+            {{~ for state in data.office_capabilities.operationStates ~}}
+            <li><span class="imo-cap-pill" data-state="{{ state.label }}" title="{{ state.description }}">{{ state.label }}</span></li>
+            {{~ end ~}}
+          </ul>
+        </div>
+        <div class="imo-cap-matrix" role="region" aria-labelledby="package-operation-contracts" tabindex="0">
+          <table id="package-matrix">
+            <thead>
+              <tr><th scope="col">Package</th>{{ for column in matrix_columns }}<th scope="col">{{ column }}</th>{{ end }}</tr>
+            </thead>
+            <tbody>
+              {{~ # Scriban caps the iterations nested under one loop at 1000, so the 69 rows render in two halves. ~}}
+              {{~ func cap_row(package) ~}}
+              {{~ package_ops = {} ~}}{{~ for operation in package.operations ~}}{{~ package_ops[operation.id] = operation ~}}{{~ end ~}}
+              <tr id="package-{{ package.slug }}">
+                <th scope="row"><b>{{ package.id }}</b>{{ if package.formats && package.formats.size > 0 }}<small title="{{ package.formats | array.join ", " }}">{{ package.formats | array.limit 6 | array.join " · " }}{{ if package.formats.size > 6 }} · +{{ package.formats.size - 6 }} more{{ end }}</small>{{ end }}</th>
+                {{~ for column in matrix_columns ~}}
+                {{~ cell = package_ops[column] ~}}
+                <td data-label="{{ column }}">{{~ if cell ~}}{{~ for state in cell.states ~}}<span class="imo-cap-pill" data-state="{{ state.label }}" title="{{ column }}: {{ state.count }} {{ state.label | string.downcase }}. {{ state.description }}">{{ state.count }}</span>{{~ end ~}}{{~ else ~}}<span class="imo-cap-none" aria-label="Not tracked">·</span>{{~ end ~}}</td>
+                {{~ end ~}}
+              </tr>
+              {{~ end ~}}
+              {{~ for package in data.office_capabilities.packages limit:35 ~}}{{ cap_row package }}{{~ end ~}}
+              {{~ for package in data.office_capabilities.packages offset:35 ~}}{{ cap_row package }}{{~ end ~}}
+            </tbody>
+          </table>
+          <p class="imo-cap-empty" hidden>No package matches that filter.</p>
         </div>
       </div>
     </section>
