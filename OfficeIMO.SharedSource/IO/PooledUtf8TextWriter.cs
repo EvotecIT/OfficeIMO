@@ -20,6 +20,7 @@ namespace OfficeIMO.SharedSource.IO {
         private int _byteCount;
 #if NET8_0_OR_GREATER
         private bool _encoderMayHavePendingSurrogate;
+        private readonly bool _canWriteAsciiBeforeUtf8;
 #endif
 
         internal PooledUtf8TextWriter(Stream stream, Encoding encoding, int bufferSize, bool leaveOpen = false) {
@@ -30,6 +31,12 @@ namespace OfficeIMO.SharedSource.IO {
             }
 
             _encoder = encoding.GetEncoder();
+#if NET8_0_OR_GREATER
+            // Custom encoders and fallbacks can observe flush boundaries. Preserve
+            // their existing encoder calls even when the buffered text is ASCII.
+            _canWriteAsciiBeforeUtf8 = encoding.GetType() == typeof(UTF8Encoding)
+                && (_encoder.Fallback is EncoderReplacementFallback || _encoder.Fallback is EncoderExceptionFallback);
+#endif
             _leaveOpen = leaveOpen;
             _minimumByteSpace = encoding.GetMaxByteCount(1);
             _characters = ArrayPool<char>.Shared.Rent(Math.Min(bufferSize, 16384));
@@ -199,20 +206,7 @@ namespace OfficeIMO.SharedSource.IO {
             if (_characterCount == 0 && !flushEncoder) return;
             byte[] bytes = _bytes!;
 #if NET8_0_OR_GREATER
-            // ASCII text fragments can be narrowed directly. Keep the encoder
-            // path whenever it may hold the first half of a split surrogate pair.
-            if (!flushEncoder && !_encoderMayHavePendingSurrogate
-                && _encoding is UTF8Encoding
-                && _characterCount <= bytes.Length - _byteCount) {
-                if (System.Text.Ascii.FromUtf16(characters.AsSpan(0, _characterCount),
-                    bytes.AsSpan(_byteCount), out int bytesWritten) == OperationStatus.Done) {
-                    _byteCount += bytesWritten;
-                    _characterCount = 0;
-                    return;
-                }
-                // A non-ASCII character may leave a tentative prefix. Counts stay
-                // unchanged so the encoder overwrites it from the original input.
-            }
+            if (!flushEncoder && TryEncodeBufferedAscii(characters, bytes)) return;
 #endif
             int offset = 0;
             bool completed;
@@ -232,6 +226,24 @@ namespace OfficeIMO.SharedSource.IO {
 #endif
             _characterCount = 0;
         }
+
+#if NET8_0_OR_GREATER
+        private bool TryEncodeBufferedAscii(char[] characters, byte[] bytes) {
+            // ASCII never changes encoder state. A pending surrogate requires the
+            // encoder even when the following buffered characters are all ASCII.
+            if (!_encoderMayHavePendingSurrogate && _encoding is UTF8Encoding
+                && _characterCount <= bytes.Length - _byteCount
+                && System.Text.Ascii.FromUtf16(characters.AsSpan(0, _characterCount),
+                    bytes.AsSpan(_byteCount), out int bytesWritten) == OperationStatus.Done) {
+                _byteCount += bytesWritten;
+                _characterCount = 0;
+                return true;
+            }
+            // A non-ASCII character may leave a tentative prefix. Counts stay
+            // unchanged so the encoder overwrites it from the original input.
+            return false;
+        }
+#endif
 
 #if NET6_0_OR_GREATER
         // Long cell values go directly through the stateful encoder. Small XML
