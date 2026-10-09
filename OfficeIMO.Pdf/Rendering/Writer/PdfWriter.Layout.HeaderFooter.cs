@@ -638,6 +638,7 @@ internal static partial class PdfWriter {
             DrawHeaderFooterShapeGeometryAt(sb, page, fill, xShape, bottomY);
             OfficeShape? stroke = CreateGradientStrokeShape(shape);
             if (stroke != null) DrawHeaderFooterShapeGeometryAt(sb, page, stroke, xShape, bottomY);
+            DrawHeaderFooterShapeMarkersAt(sb, page, shape, xShape, bottomY);
             return;
         }
 
@@ -693,6 +694,7 @@ internal static partial class PdfWriter {
             new ContentStreamBuilder(sb)
                 .RestoreState();
         }
+        DrawHeaderFooterShapeMarkersAt(sb, page, shape, xShape, bottomY);
     }
 
 }

@@ -61,6 +61,37 @@ public sealed class PdfDrawingLineMarkerTests {
         Assert.Equal(.5, shape.StrokeOpacity);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void HeaderAndFooterPaintBothMarkerKindsWithTheSourceStrokeBrush(bool footer, bool gradient) {
+        var shape = OfficeShape.Path(80, 40, OfficePathCommand.MoveTo(10, 20), OfficePathCommand.LineTo(70, 20));
+        shape.StrokeWidth = 4;
+        shape.StrokeOpacity = .5;
+        if (gradient) shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+        else shape.StrokeColor = OfficeColor.Red;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 20, 20);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 20, 20);
+        shape.Transform = OfficeTransform.RotateDegrees(30, 40, 20);
+        shape.ClipPath = OfficeClipPath.Rectangle(80, 40);
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+            PageWidth = 200, PageHeight = 400, MarginTop = 100, MarginBottom = 100,
+            MarginLeft = 20, MarginRight = 20
+        }).Compose(compose => compose.Page(page => {
+            if (footer) page.Footer(content => content.Shape(shape));
+            else page.Header(content => content.Shape(shape));
+            page.Content(content => content.Spacer(20));
+        })).ToBytes();
+        Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(bytes));
+        OfficeShape[] paint = Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Select(item => item.Shape)
+            .Where(item => item.StrokeColor == OfficeColor.Red || item.FillColor == OfficeColor.Red || item.FillGradient != null).ToArray();
+        Assert.Equal(3, paint.Length);
+        Assert.All(paint, item => Assert.Equal(.5, (item.StrokeColor.HasValue ? item.StrokeOpacity : item.FillOpacity).GetValueOrDefault(1), 5));
+        if (gradient) Assert.All(paint, item => Assert.NotNull(item.FillGradient));
+    }
+
     private static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             if (element is OfficeDrawingShape shape) yield return shape;
