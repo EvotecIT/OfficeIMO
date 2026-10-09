@@ -130,7 +130,7 @@ public sealed class RowMapper<T> where T : new() {
 }
 
 /// <summary>Typed row projections for any forward-only <see cref="DbDataReader"/>.</summary>
-public static class DataReaderMappingExtensions {
+public static partial class DataReaderMappingExtensions {
     /// <summary>
     /// Projects the remaining unread rows by matching column names to writable public properties.
     /// The caller retains ownership of the reader.
@@ -340,7 +340,7 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
         DataMappingErrorValuePolicy errorValuePolicy) {
         if (typeConverter is null && _options?.TypeConverter is null &&
             _options?.Culture is null && _options?.DateTimeFormats is null &&
-            reader is IDataReaderFastMappingValues &&
+            DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, typeof(TValue)) &&
             !reader.IsDBNull(ordinal) &&
             DataReaderTypedValueAccessor<TValue>.TryRead(reader, ordinal, out TValue? value)) {
             return _assign(instance, value!);

@@ -107,7 +107,7 @@ internal sealed partial class CsvDataReader
         source = null;
         dataStart = 0;
         cancellationToken.ThrowIfCancellationRequested();
-        if (_closed || _checkedForRows || _currentRawRow is not null ||
+        if (!_useRawStringValues || _closed || _checkedForRows || _currentRawRow is not null ||
             _currentStringRow is not null || _hasCurrentTextRow ||
             _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows ||
             !textRows.CanTakeParallelBatch)
@@ -127,7 +127,7 @@ internal sealed partial class CsvDataReader
     {
         cancellationToken.ThrowIfCancellationRequested();
         batch = null;
-        if (_closed || _checkedForRows || _currentRawRow is not null ||
+        if (!_useRawStringValues || _closed || _checkedForRows || _currentRawRow is not null ||
             _currentStringRow is not null || _hasCurrentTextRow ||
             _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows)
         {
@@ -150,7 +150,7 @@ internal sealed partial class CsvDataReader
     internal bool IsCurrentFieldMissing(int ordinal)
     {
         EnsureOpenRow();
-        if ((uint)ordinal >= (uint)_sourceColumnCount)
+        if ((uint)ordinal >= (uint)_columns.Length)
         {
             throw new IndexOutOfRangeException();
         }
@@ -161,7 +161,7 @@ internal sealed partial class CsvDataReader
         }
         if (_currentStringRow is not null)
         {
-            return ordinal >= _currentStringRow.Count;
+            return ordinal < _sourceColumnCount && ordinal >= _currentStringRow.Count;
         }
         return ordinal >= _currentRawRow!.Length;
     }
@@ -169,7 +169,7 @@ internal sealed partial class CsvDataReader
     internal string GetCurrentSourceString(int ordinal)
     {
         EnsureOpenRow();
-        if ((uint)ordinal >= (uint)_sourceColumnCount)
+        if ((uint)ordinal >= (uint)_columns.Length)
         {
             throw new IndexOutOfRangeException();
         }
@@ -180,6 +180,10 @@ internal sealed partial class CsvDataReader
         }
         if (_currentStringRow is not null)
         {
+            if (ordinal >= _sourceColumnCount)
+            {
+                return Convert.ToString(GetRawValue(ordinal), _culture) ?? string.Empty;
+            }
             return ordinal < _currentStringRow.Count ? _currentStringRow[ordinal] : string.Empty;
         }
 

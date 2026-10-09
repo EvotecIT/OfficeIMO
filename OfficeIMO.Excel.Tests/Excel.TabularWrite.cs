@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
+using OfficeIMO.SharedSource.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests {
