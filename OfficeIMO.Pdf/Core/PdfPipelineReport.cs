@@ -86,9 +86,9 @@ public sealed class PdfPipelineReport {
         });
     }
 
-    internal static PdfPipelineReport Opened(PdfDocumentSource source) {
+    internal static PdfPipelineReport Opened(PdfDocumentSource source, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(source, nameof(source));
-        PdfArtifactSnapshot artifact = source.CaptureArtifact();
+        PdfArtifactSnapshot artifact = source.CaptureArtifact(cancellationToken);
         return new PdfPipelineReport(new[] {
             new PdfPipelineStep(
                 PdfPipelineStepKind.Open,

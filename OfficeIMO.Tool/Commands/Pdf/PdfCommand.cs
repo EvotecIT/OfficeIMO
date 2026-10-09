@@ -38,6 +38,8 @@ for non-secret scalar configuration; provider secrets should be referenced throu
 """;
 
     internal static async Task<int> RunAsync(string[] args, TextWriter output, TextWriter error, CancellationToken cancellationToken = default, IPdfRedactionWorkflowRunner? runner = null, OcrEngineCatalog? ocrCatalog = null) {
+        if (args.FirstOrDefault()?.Equals("redact", StringComparison.OrdinalIgnoreCase) != true)
+            return await PdfWorkflowCommand.RunAsync(args, output, error, cancellationToken, ocrCatalog).ConfigureAwait(false);
         try {
             PdfArguments parsed = PdfArguments.Parse(args);
             if (parsed.Help) { await output.WriteLineAsync(Usage).ConfigureAwait(false); return (int)OfficeImoToolExitCode.Success; }

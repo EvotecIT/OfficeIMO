@@ -191,11 +191,22 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Ordered one-based pages for ExtractPages, including intentional repeats. Limited to 100,000 entries.</summary>
     public int[]? PageNumbers { get; set; }
 
+    /// <summary>Document-relative ordered selection for ExtractPages, resolved against the captured input. Cannot be combined with PageNumbers.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? PageSelector { get; set; }
+
+    /// <summary>Maximum selected pages for ExtractPages, including repeats. Must be 1 through 100,000.</summary>
+    public int MaximumExtractedPages { get; set; } = 100_000;
+
     /// <summary>Comparison input used by <see cref="OfficeWorkflowOperation.Compare"/>.</summary>
     public string? ComparisonPath { get; set; }
 
     /// <summary>Optional provider access for <see cref="ComparisonPath"/>.</summary>
     public OfficeWorkflowStreamInput? ComparisonStream { get; set; }
+
+    /// <summary>Ordered expected-page scope for Compare; null selects the whole primary document.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? ComparisonExpectedPages { get; set; }
+    /// <summary>Ordered actual-page scope for Compare; null selects the whole comparison document. Pages are paired by selection position.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? ComparisonActualPages { get; set; }
 
     /// <summary>Conversion route identifier from <see cref="OfficeWorkflowCatalog"/>.</summary>
     public string? ConversionRouteId { get; set; }

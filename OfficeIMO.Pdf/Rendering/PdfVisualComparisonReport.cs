@@ -5,11 +5,20 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Rendered visual and structural comparison report for two PDFs.</summary>
 public sealed class PdfVisualComparisonReport {
-    internal PdfVisualComparisonReport(IReadOnlyList<PdfVisualPageComparison> pages, IReadOnlyList<string> structuralDifferences, int expectedPageCount, int actualPageCount) {
+    internal PdfVisualComparisonReport(IReadOnlyList<PdfVisualPageComparison> pages, IReadOnlyList<string> structuralDifferences, int expectedPageCount, int actualPageCount,
+        IReadOnlyList<int> expectedPages, IReadOnlyList<int> actualPages, IReadOnlyList<int> unmatchedExpectedPages,
+        IReadOnlyList<int> unmatchedActualPages, string expectedSha256, string actualSha256, bool selectedScope) {
         Pages = pages.ToArray();
         StructuralDifferences = structuralDifferences.ToArray();
         ExpectedPageCount = expectedPageCount;
         ActualPageCount = actualPageCount;
+        ExpectedPageNumbers = Array.AsReadOnly(expectedPages.ToArray());
+        ActualPageNumbers = Array.AsReadOnly(actualPages.ToArray());
+        UnmatchedExpectedPageNumbers = Array.AsReadOnly(unmatchedExpectedPages.ToArray());
+        UnmatchedActualPageNumbers = Array.AsReadOnly(unmatchedActualPages.ToArray());
+        ExpectedSha256 = expectedSha256;
+        ActualSha256 = actualSha256;
+        IsSelectedScope = selectedScope;
     }
 
     /// <summary>Total pages in the expected document, including pages outside a selected comparison.</summary>
@@ -17,16 +26,31 @@ public sealed class PdfVisualComparisonReport {
     /// <summary>Total pages in the actual document, including pages outside a selected comparison.</summary>
     public int ActualPageCount { get; }
 
-    /// <summary>Per-page comparisons.</summary>
+    /// <summary>Ordered expected source pages in the comparison scope, including unmatched pages and repeats.</summary>
+    public IReadOnlyList<int> ExpectedPageNumbers { get; }
+    /// <summary>Ordered actual source pages in the comparison scope, including unmatched pages and repeats.</summary>
+    public IReadOnlyList<int> ActualPageNumbers { get; }
+    /// <summary>Selected expected pages with no selected actual partner.</summary>
+    public IReadOnlyList<int> UnmatchedExpectedPageNumbers { get; }
+    /// <summary>Selected actual pages with no selected expected partner.</summary>
+    public IReadOnlyList<int> UnmatchedActualPageNumbers { get; }
+    /// <summary>SHA-256 of the exact expected PDF snapshot compared.</summary>
+    public string ExpectedSha256 { get; }
+    /// <summary>SHA-256 of the exact actual PDF snapshot compared.</summary>
+    public string ActualSha256 { get; }
+    /// <summary>True when the caller explicitly selected a comparison scope.</summary>
+    public bool IsSelectedScope { get; }
+
+    /// <summary>Per-page comparisons in selected sequence order, retaining original source page numbers.</summary>
     public IReadOnlyList<PdfVisualPageComparison> Pages { get; }
     /// <summary>Document/page structural differences.</summary>
     public IReadOnlyList<string> StructuralDifferences { get; }
     /// <summary>True when all compared pages have complete managed renderings that satisfy thresholds and no structural differences remain.</summary>
     public bool IsMatch => StructuralDifferences.Count == 0 && Pages.All(static page => page.IsMatch);
 
-    /// <summary>Pages with complete managed renderings that fail the configured visual thresholds.</summary>
+    /// <summary>Compared page pairs with complete managed renderings that fail the configured visual thresholds.</summary>
     public int DifferentPageCount => Pages.Count(static page => !page.IsMatch && !page.HasIncompleteRendering);
-    /// <summary>Pages whose managed rendering is incomplete, so their pixels cannot establish a visual match or difference.</summary>
+    /// <summary>Compared page pairs whose managed rendering is incomplete, so their pixels cannot establish a visual match or difference.</summary>
     public int IncompletePageCount => Pages.Count(static page => page.HasIncompleteRendering);
     internal bool HasDifferences => StructuralDifferences.Count > 0 || DifferentPageCount > 0;
 
@@ -66,16 +90,35 @@ public sealed class PdfVisualComparisonReport {
         if (differing > 0) {
             html.Append("<p class=\"jump\">Go to ");
             int listed = 0;
-            foreach (PdfVisualPageComparison page in Pages) {
+            for (int index = 0; index < Pages.Count; index++) {
+                PdfVisualPageComparison page = Pages[index];
                 if (page.IsMatch || page.HasIncompleteRendering) continue;
                 if (listed == 20) { html.Append(" …"); break; }
                 cancellationToken.ThrowIfCancellationRequested();
                 string number = page.PageNumber.ToString(CultureInfo.InvariantCulture);
-                html.Append(listed++ == 0 ? string.Empty : " ").Append("<a href=\"#page-").Append(number).Append("\">page ").Append(number).Append("</a>");
+                html.Append(listed++ == 0 ? string.Empty : " ").Append("<a href=\"#pair-").Append(index.ToString(CultureInfo.InvariantCulture)).Append("\">page ").Append(number).Append("</a>");
             }
             html.Append("</p>");
         }
         html.Append("</header>");
+        html.Append("<p>Ordinal rendered comparison: the page pairs below retain original source numbers. This report does not detect semantic changes or moved pages. Images use the managed renderer.</p>");
+        html.Append("<p>Expected document: ").Append(ExpectedPageCount.ToString(CultureInfo.InvariantCulture))
+            .Append(" total pages; selected: ").AppendHtmlEncoded(string.Join(",", ExpectedPageNumbers))
+            .Append(". Actual document: ").Append(ActualPageCount.ToString(CultureInfo.InvariantCulture))
+            .Append(" total pages; selected: ").AppendHtmlEncoded(string.Join(",", ActualPageNumbers)).Append(".</p>");
+        html.Append("<details><summary>Compared snapshot identities (SHA-256)</summary><p>Expected: ")
+            .Append(ExpectedSha256).Append("</p><p>Actual: ").Append(ActualSha256).Append("</p></details>");
+        html.Append("<details><summary>Page pairs</summary><nav aria-label=\"Page pairs\">");
+        for (int index = 0; index < Pages.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfVisualPageComparison page = Pages[index];
+            html.Append("<a href=\"#pair-").Append(index.ToString(CultureInfo.InvariantCulture)).Append("\">Expected ")
+                .Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append(" / actual ")
+                .Append(page.ActualPageNumber.ToString(CultureInfo.InvariantCulture)).Append("</a> · ");
+        }
+        foreach (int page in UnmatchedExpectedPageNumbers) html.Append("<p>Unmatched expected page ").Append(page.ToString(CultureInfo.InvariantCulture)).Append(".</p>");
+        foreach (int page in UnmatchedActualPageNumbers) html.Append("<p>Unmatched actual page ").Append(page.ToString(CultureInfo.InvariantCulture)).Append(".</p>");
+        html.Append("</nav></details>");
         if (StructuralDifferences.Count > 0) {
             html.Append("<section class=\"alert\"><h2>Structural differences</h2><ul>");
             foreach (string difference in StructuralDifferences) {
@@ -86,9 +129,10 @@ public sealed class PdfVisualComparisonReport {
             }
             html.Append("</ul></section>");
         }
-        foreach (PdfVisualPageComparison page in Pages) {
+        for (int index = 0; index < Pages.Count; index++) {
+            PdfVisualPageComparison page = Pages[index];
             cancellationToken.ThrowIfCancellationRequested();
-            html.Append("<section id=\"page-").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("\" class=\"page").Append(page.IsMatch ? "\">" : page.HasIncompleteRendering ? " incomplete\">" : " differs\">").Append("<div class=\"page-head\"><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
+            html.Append("<section id=\"pair-").Append(index.ToString(CultureInfo.InvariantCulture)).Append("\" class=\"page").Append(page.IsMatch ? "\">" : page.HasIncompleteRendering ? " incomplete\">" : " differs\">").Append("<div class=\"page-head\"><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
             if (page.ActualPageNumber != page.PageNumber) html.Append(" vs. ").Append(page.ActualPageNumber.ToString(CultureInfo.InvariantCulture));
             html.Append("</h2><span class=\"badge ").Append(page.IsMatch ? "ok\">Match" : page.HasIncompleteRendering ? "warn\">Incomplete" : "bad\">Differs").Append("</span><p>")
                 .Append(page.DifferentPixels.ToString("N0", CultureInfo.InvariantCulture)).Append(" changed pixels · ")
@@ -110,7 +154,7 @@ public sealed class PdfVisualComparisonReport {
     private const string GalleryStyles =
         ":root{color-scheme:light dark;--bg:#f5f7fb;--card:#fff;--line:#dde3ec;--text:#0d1526;--muted:#5b6880;--ok:#047857;--bad:#be123c;--warn:#92400e}" +
         "@media (prefers-color-scheme:dark){:root{--bg:#0b1020;--card:#131a2e;--line:#26304a;--text:#e7edf6;--muted:#97a3ba;--ok:#34d399;--bad:#fb7185;--warn:#fbbf24}}" +
-        "*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
+        "*{box-sizing:border-box}body{margin:0;overflow-wrap:anywhere;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
         "main{max-width:1180px;margin:0 auto;padding:28px 20px 48px}header{margin-bottom:20px}" +
         ".eyebrow{margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}" +
         "h1{margin:0 0 10px;font-size:clamp(22px,4vw,32px);line-height:1.2}h2{margin:0;font-size:17px}" +

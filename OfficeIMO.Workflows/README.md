@@ -1914,9 +1914,33 @@ is a review aid; inspect the full saved document for whole-document fidelity.
 
 `RunAsync` also exposes PDF inspection, comparison, optimization, repair planning, repair, and sanitization through typed operations. `ExportPdfPagesAsync` exports selected PDF pages as images, `AssemblePdfAsync` combines supported PDFs, images, documents, folders, and ZIP archives, and `PdfPrintPlanner.Create` produces deterministic print-sheet placement plans.
 
+Compare selected rendered sequences and save the standalone report:
+
+```csharp
+OfficeWorkflowResult review = await OfficeWorkflow.Compare("current.pdf", "revised.pdf")
+    .ComparePages(PdfPageSelector.Parse("120-124,last"),
+        PdfPageSelector.Parse("121-125,last"))
+    .To("review.html")
+    .RunAsync(cancellationToken: cancellationToken);
+```
+
+The request properties are `ComparisonExpectedPages` and
+`ComparisonActualPages`. Null selects all pages on that side. At most 100 selected
+pages per side are admitted, including repeats, with existing pixel and output
+budgets. Pages are paired by selection position; extra selected pages are
+unmatched. The health metrics distinguish total pages, selected source page
+numbers, paired pages and unmatched source pages. The report identifies both
+compared snapshots by SHA-256. It reports ordinal rendered appearance rather than
+semantic or moved-page changes. Neither input is rewritten; the output must be a
+separate HTML destination.
+
 Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
 `PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
+
+`PdfPrintPlanRequest.PagesPerSheet` accepts 1, 2, 4, 6, or 9 pages in row-major order. Six-up uses two columns on portrait paper and three on landscape paper; nine-up uses three columns and rows. `PageSubset` filters odd or even original source-page numbers after `Pages` is resolved, retaining that selection's order. `Margin` sets the default edge margin in points; nullable `MarginLeft`, `MarginTop`, `MarginRight`, and `MarginBottom` override individual edges. Margins must leave a positive sheet area.
+
+`ScaleMode = PdfPrintScaleMode.Custom` uses `CustomScalePercent` (1–1000, default 100) of each source page's physical size. `Alignment` anchors the page in its slot; custom-size and fill overflow is clipped at that slot. `ColorMode = PdfPrintColorMode.Grayscale` converts prepared sheet pixels, so review and delivery use the same grayscale image without changing the source PDF or requiring a color-capable driver. Color mode retains source colors; actual device output depends on the printer.
 
 `GetPaperSourcesAsync(printerName)` lists the queue's reported paper sources. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of those identifiers, or leave it null to retain the printer default. Identifiers belong to the queried queue; delivery rechecks an explicit selection before submitting. Windows reads driver bins and checks that the driver accepts the selected bin. CUPS discovers `InputSlot` or `media-source` choices exposed by `lpoptions -l`. Queues that expose no choices retain their default source.
 
@@ -1958,7 +1982,21 @@ OfficeWorkflowResult result = await OfficeWorkflow.ExtractPages("report.pdf", 5,
 
 The equivalent typed request uses `Operation = OfficeWorkflowOperation.ExtractPages` and `PageNumbers = [5, 1, 2, 5]`. Page numbers are one-based; order and intentional repeats are preserved, up to 100,000 selected pages. Extraction uses the PDF engine's page-preservation policy and supports only the `Faithful` profile. It creates a separate PDF and does not permit replacing the source.
 
+For document-relative pages, set `PageSelector = PdfPageSelector.Parse("last,1-2")`
+instead of `PageNumbers`. `MaximumExtractedPages` limits the resolved selection,
+including repeated pages, before extraction. The selector is resolved against
+the captured source, so the host does not need a separate pre-read.
+`PdfSearchableWorkflowRequest.PageSelector` and `OfficeScanCleanupOptions.PageSelector`
+provide the same captured-source selection for OCR and raster copies; they cannot
+be combined with an absolute `ReadOptions.PageSelection`.
+
 The runner snapshots local and provider inputs, checks for source changes before publication, bounds output serialization, and reopens the generated PDF before publishing. `InputStream`, `OutputStream`, `PublicationGuard`, and the result's publication and recovery states follow the same contracts as other single-output workflows. Cancellation is observed before and after synchronous page extraction and during serialization; it cannot interrupt the PDF engine while that synchronous step is running.
+
+Hosts that restrict writable roots can implement `IOfficeWorkflowStagingGuard`
+alongside `IOfficeWorkflowPublicationGuard`. The runner checks local destination
+directories before and after creation, then checks the final publication path.
+These are point-in-time checks; they do not lock filesystem identities against
+concurrent changes.
 
 ## Save a certificate-signed PDF copy
 
@@ -2038,6 +2076,30 @@ Set `OutputStream` on an `OfficeWorkflowRequest` or `PdfAssemblyRequest` to publ
 The runner validates the complete artifact and retains a verified local copy before preparing a new provider child or opening the write stream. It closes the write stream and reads the destination back to verify its SHA-256. A verified write returns `Completed` with the provider reference in `OutputPath`. A failure after the write starts returns `Unconfirmed`, leaves `OutputPath` unset, and exposes the retained copy through `Recovery`. Cancellation after the write starts also returns `Unconfirmed`; it does not prove that the destination is unchanged. Do not automatically retry these results.
 
 The store defaults to a 1 GiB aggregate admission limit and at most 100 records. `GetRecoveries()` restores available records after restart, `VerifyAsync()` checks a copy before use, and `Discard()` removes a copy after explicit user action. Active publications are excluded from discovery. Successful or safely rejected writes remove their copies; cleanup failures are reported and can leave a recovery record. Before admitting another output, the store removes recognized incomplete records left before metadata publication, while preserving active leases and unfamiliar contents. Retained recovery copies do not expire automatically. Keep them outside normal output locations and require Save As when opening them for editing. Provider writes cannot guarantee atomic replacement, rollback, or exclusion of concurrent writers.
+
+## Review values in existing PDF form fields
+
+`PreparePdfFormOcrAsync` captures an in-memory document and returns the shared
+`PdfFormOcrReview`. It applies workflow input limits and the canonical OCR page,
+provider, rendering and evidence budgets. Preparation does not accept values or
+save a file:
+
+```csharp
+PdfDocument source = PdfDocument.Load("scanned-form.pdf");
+var review = await new OfficeWorkflowRunner().PreparePdfFormOcrAsync(source, engine,
+    new OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions { Language = "eng", MaxPages = 20 },
+    cancellationToken: cancellationToken);
+// Present review.Proposals and RenderPage to the reviewer, then capture decisions.
+var accepted = new Dictionary<OfficeIMO.Pdf.Ocr.PdfFormOcrProposal, PdfFormFieldValue>();
+// Add only explicitly accepted, corrected values from this review.
+PdfDocument filled = review.Apply(source, accepted, cancellationToken);
+```
+
+The host owns undo and publication. A changed source, invalid value, unsupported
+script constraint or cancellation prevents application. Existing fields and
+choice export/display mappings use the PDF owner's validation and appearances;
+this workflow does not create fields. See [the form review contract](../OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+for supported constraints and qualification limits.
 
 ## Review and apply PDF redactions
 

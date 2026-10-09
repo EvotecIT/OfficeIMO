@@ -20,13 +20,13 @@ public class PdfVisualComparerTests {
 
         Assert.False(report.IsMatch);
         Assert.True(Assert.Single(report.Pages).IsMatch);
-        Assert.Single(report.StructuralDifferences);
+        Assert.Equal(2, report.StructuralDifferences.Count);
         Assert.Equal(0, report.DifferentPageCount);
         Assert.Equal(0, report.IncompletePageCount);
         string gallery = report.ToHtmlGallery();
         Assert.Contains("1 visual match", gallery, StringComparison.Ordinal);
         Assert.Contains("0 visual differences", gallery, StringComparison.Ordinal);
-        Assert.Contains("1 structural difference", gallery, StringComparison.Ordinal);
+        Assert.Contains("2 structural differences", gallery, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -8,6 +8,7 @@ namespace OfficeIMO.Access {
         internal long RowCount;
         internal int MaxColumns, MaxVariableColumns;
         internal uint OwnedPages;
+        internal uint FreePages;
         internal readonly List<AccessNativeColumn> Columns = new List<AccessNativeColumn>();
         internal readonly List<AccessNativeIndex> Indexes = new List<AccessNativeIndex>();
         internal AccessTable? Model;
@@ -19,6 +20,11 @@ namespace OfficeIMO.Access {
         internal string Name = string.Empty;
         internal byte Type, Flags, ExtraFlags, Precision, Scale;
         internal int Number, VariableIndex, FixedOffset, Size, ComplexId;
+        internal ushort SortOrder;
+        internal byte SortVersion;
+        internal bool AmbiguousLongMaps;
+        internal int LongMapDefinitionOffset;
+        internal uint OwnedLongPages, FreeLongPages;
         internal bool Variable => (Flags & 1) == 0;
         internal bool Calculated => (ExtraFlags & 0xc0) != 0;
         internal AccessColumn? Model;
@@ -28,6 +34,8 @@ namespace OfficeIMO.Access {
         internal string Name = string.Empty;
         internal byte Type, Flags;
         internal int RootPage, Number, RelatedTable, RelatedIndex;
+        internal int PhysicalDefinitionOffset, UniqueCountOffset;
+        internal uint OwnedPages;
         internal bool CascadeUpdates, CascadeDeletes;
         internal AccessNativeColumn[] Columns = Array.Empty<AccessNativeColumn>();
         internal bool[] Descending = Array.Empty<bool>();

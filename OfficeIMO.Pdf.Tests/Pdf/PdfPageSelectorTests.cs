@@ -4,6 +4,12 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageSelectorTests {
+    [Fact]
+    public void BoundedResolutionRejectsRepeatsAndLargeRangesBeforeRetainingUnboundedPages() {
+        Assert.Throws<InvalidOperationException>(() => PdfPageSelector.Parse("all").Resolve(int.MaxValue, 2));
+        Assert.Throws<InvalidOperationException>(() => PdfPageSelector.Parse("last,last,last").Resolve(5, 2));
+        Assert.Equal([5, 1], PdfPageSelector.Parse("last,1").Resolve(5, 2));
+    }
     [Theory]
     [InlineData("last", new[] { 6 })]
     [InlineData("end-2", new[] { 4 })]
