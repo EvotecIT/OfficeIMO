@@ -6,6 +6,7 @@ namespace OfficeIMO.DjVu;
 public sealed class DjVuDocument {
     internal readonly DjVuReadOptions ReadOptions;
     internal readonly Dictionary<string, DjVuComponent> Components;
+    private readonly Dictionary<string, IReadOnlyList<DjVuChunk>> _textChunks = new Dictionary<string, IReadOnlyList<DjVuChunk>>(StringComparer.Ordinal);
     private DjVuDocument(byte[] source, DjVuReadOptions options, CancellationToken cancellation) {
         ReadOptions = options;
         SourceLengthBytes = source.LongLength;
@@ -95,21 +96,50 @@ public sealed class DjVuDocument {
 
     private void ValidateIncludes(DjVuReadBudget budget) {
         var state = new Dictionary<string, int>(StringComparer.Ordinal);
+        var heights = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var component in Components.Values) Visit(component, 1);
-        void Visit(DjVuComponent component, int depth) {
+        int Visit(DjVuComponent component, int depth) {
             budget.Cancellation.ThrowIfCancellationRequested();
             if (depth > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxDepth));
             if (state.TryGetValue(component.Id, out int current)) {
                 if (current == 1) throw new InvalidDataException("Cyclic DjVu component inclusion.");
-                return;
+                return heights[component.Id];
             }
             state[component.Id] = 1;
+            int height = 1;
             foreach (var chunk in component.Form.Children.Where(c => c.Id == "INCL")) {
+                budget.Cancellation.ThrowIfCancellationRequested();
                 string id = DjVuBinary.Utf8.GetString(chunk.Source, chunk.Offset, chunk.Length);
                 if (!Components.TryGetValue(id, out var included) || included.Kind != 0) throw new InvalidDataException("DjVu INCL does not identify a shared component.");
-                Visit(included, depth + 1);
+                height = Math.Max(height, Visit(included, depth + 1) + 1);
+                if (height > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxDepth));
             }
             state[component.Id] = 2;
+            return heights[component.Id] = height;
+        }
+    }
+
+    // Inspect shared components once during construction. Two distinct layers
+    // suffice to diagnose ambiguous text without retaining flattened chunk lists.
+    internal IReadOnlyList<DjVuChunk> TextChunks(DjVuComponent component, DjVuReadBudget budget) {
+        budget.Cancellation.ThrowIfCancellationRequested();
+        if (_textChunks.TryGetValue(component.Id, out var cached)) return cached;
+        var result = new List<DjVuChunk>(2);
+        foreach (var chunk in component.Form.Children) {
+            budget.Cancellation.ThrowIfCancellationRequested();
+            if (chunk.Id == "TXTa" || chunk.Id == "TXTz") Add(chunk);
+            else if (chunk.Id == "INCL") {
+                string id = DjVuBinary.Utf8.GetString(chunk.Source, chunk.Offset, chunk.Length);
+                foreach (var text in TextChunks(Components[id], budget)) Add(text);
+            }
+            if (result.Count == 2) break;
+        }
+        var value = result.AsReadOnly();
+        _textChunks.Add(component.Id, value);
+        return value;
+
+        void Add(DjVuChunk chunk) {
+            if (result.Count < 2 && !result.Contains(chunk)) result.Add(chunk);
         }
     }
 }

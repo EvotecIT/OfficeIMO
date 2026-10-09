@@ -35,7 +35,7 @@ public sealed partial class DjVuPage {
         Gamma = length >= 9 ? Math.Max(3, Math.Min(50, (int)data[offset + 8])) / 10.0 : 2.2;
         int orientation = length >= 10 ? data[offset + 9] & 7 : 1;
         Rotation = orientation == 6 ? 270 : orientation == 2 ? 180 : orientation == 5 ? 90 : 0;
-        var texts = document.PageChunks(component, budget.Cancellation).Where(c => c.Id == "TXTa" || c.Id == "TXTz").Take(2).ToList();
+        var texts = document.TextChunks(component, budget);
         _text = texts.Count > 1 ? new DjVuTextResult(DjVuTextStatus.Corrupt, string.Empty, diagnostic: "Page contains multiple text layers.")
             : DjVuTextReader.Read(texts.FirstOrDefault(), budget);
     }

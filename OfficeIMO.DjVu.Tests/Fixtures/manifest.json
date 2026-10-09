@@ -160,6 +160,16 @@
       "sha256": "b9ccd09818086b78a5d7168a15e85dcad96b290d88f0d0d8be3d5bc73296c20d"
     },
     {
+      "path": "Authored/iw44-foreground-reference.ppm",
+      "bytes": 36878,
+      "sha256": "71a8341b2965d36b3a2f33ac50a73b8cbb4bd9a450b18356f098d5304e864da6"
+    },
+    {
+      "path": "Authored/iw44-foreground.djvu",
+      "bytes": 4746,
+      "sha256": "1ef7de5a73dabf5c868e0f5082523a0c3837b894d393f3d90ee04b7ec8f67e50"
+    },
+    {
       "path": "Authored/jpeg-background-reference.ppm",
       "bytes": 37553,
       "sha256": "37d103f34fd8735854ac653e47f0ab1eb9696fd3e18c511a619b2761130cd4b2"

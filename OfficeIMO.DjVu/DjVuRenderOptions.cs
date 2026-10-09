@@ -20,6 +20,8 @@ public sealed class DjVuRenderOptions {
     public long MaxPixels { get; set; } = 32L * 1024 * 1024;
     /// <summary>Maximum retained codec and raster working bytes in this operation, also capped by read options.</summary>
     public long MaxBytes { get; set; } = 256L * 1024 * 1024;
+    /// <summary>Maximum aggregate bitmap samples inspected while painting clipped mask placements, including overlap.</summary>
+    public long MaxMaskPaintSamples { get; set; } = 128L * 1024 * 1024;
 
     /// <summary>Creates an independent, validated settings snapshot.</summary>
     public DjVuRenderOptions Clone() => Snapshot();
@@ -30,6 +32,7 @@ public sealed class DjVuRenderOptions {
         if (copy.Gamma < 0.3 || copy.Gamma > 5 || double.IsNaN(copy.Gamma)) throw new ArgumentOutOfRangeException(nameof(Gamma));
         if (copy.MaxPixels <= 0 || copy.MaxPixels > 50_000_000) throw new ArgumentOutOfRangeException(nameof(MaxPixels));
         if (copy.MaxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBytes));
+        if (copy.MaxMaskPaintSamples <= 0) throw new ArgumentOutOfRangeException(nameof(MaxMaskPaintSamples));
         if (!Enum.IsDefined(typeof(OfficeRasterResamplingMode), copy.Resampling)) throw new ArgumentOutOfRangeException(nameof(Resampling));
         if (copy.Background.A != 255) throw new ArgumentException("DjVu page rendering requires an opaque background.", nameof(Background));
         return copy;

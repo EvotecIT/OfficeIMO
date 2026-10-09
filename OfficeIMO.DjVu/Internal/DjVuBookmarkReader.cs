@@ -8,6 +8,12 @@ internal static class DjVuBookmarkReader {
         var result = new List<DjVuBookmark>();
         var chunks = root.Children.Where(c => c.Id == "NAVM").ToArray();
         if (chunks.Length == 0) return result.AsReadOnly();
+        var targets = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var page in document.Pages) {
+            budget.Cancellation.ThrowIfCancellationRequested();
+            if (!targets.ContainsKey(page.Id)) targets.Add(page.Id, page.Number);
+            if (!targets.ContainsKey(page.Component.Name)) targets.Add(page.Component.Name, page.Number);
+        }
         try {
             if (root.FormType != "DJVM" || chunks.Length != 1 || root.Children.Count < 2 || root.Children[1].Id != "NAVM")
                 throw new InvalidDataException("DjVu outline must immediately follow the document directory.");
@@ -29,7 +35,7 @@ internal static class DjVuBookmarkReader {
                 if (childCount > remaining) throw new InvalidDataException("DjVu outline children exceed the declared record count.");
                 var children = new List<DjVuBookmark>();
                 for (int i = 0; i < childCount; i++) children.Add(Entry(depth + 1));
-                return new DjVuBookmark(title, target, Resolve(target, document), children);
+                return new DjVuBookmark(title, target, Resolve(target, document.Pages.Count, targets), children);
             }
             string String() {
                 if (data.Length - position < 3) throw new InvalidDataException("Truncated DjVu outline string.");
@@ -46,11 +52,10 @@ internal static class DjVuBookmarkReader {
         catch (DecoderFallbackException error) { diagnostic = error.Message; return Array.Empty<DjVuBookmark>(); }
     }
 
-    private static int? Resolve(string target, DjVuDocument document) {
+    private static int? Resolve(string target, int pageCount, Dictionary<string, int> targets) {
         string id = target.StartsWith("#", StringComparison.Ordinal) ? target.Substring(1) : target;
-        var page = document.Pages.FirstOrDefault(p => p.Id == id || p.Component.Name == id);
-        if (page != null) return page.Number;
-        if (target.StartsWith("#", StringComparison.Ordinal) && int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out int number) && number > 0 && number <= document.Pages.Count)
+        if (targets.TryGetValue(id, out int page)) return page;
+        if (target.StartsWith("#", StringComparison.Ordinal) && int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out int number) && number > 0 && number <= pageCount)
             return number;
         return null;
     }

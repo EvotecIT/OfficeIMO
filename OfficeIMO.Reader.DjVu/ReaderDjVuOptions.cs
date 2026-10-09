@@ -22,7 +22,7 @@ public sealed class ReaderDjVuOptions {
     public IReadOnlyList<int>? PageNumbers { get; set; }
     /// <summary>Complete-page image settings. The default is 150 DPI; regions and disabled rotation are not allowed for Reader assets.</summary>
     public DjVuRenderOptions RenderOptions { get; set; } = new DjVuRenderOptions { Dpi = 150 };
-    /// <summary>Maximum emitted page images.</summary>
+    /// <summary>Maximum emitted page images. Zero rejects any requested image; use ImageMode.None for text-only ingestion.</summary>
     public int MaxPageImages { get; set; } = 512;
     /// <summary>Maximum encoded PNG bytes per page image.</summary>
     public long MaxPageImageBytes { get; set; } = 32L * 1024 * 1024;

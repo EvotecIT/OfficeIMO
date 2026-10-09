@@ -8,6 +8,8 @@ internal sealed class DjVuReadBudget {
     private int _textCharacters;
     private int _textZones;
     private long _retainedBytes;
+    private long _iw44CoefficientSamples;
+    private long _jb2DecodedSamples;
 
     internal DjVuReadBudget(DjVuReadOptions options, CancellationToken cancellation) {
         Options = options;
@@ -46,4 +48,16 @@ internal sealed class DjVuReadBudget {
         _retainedBytes -= bytes;
     }
     internal long RetainedBytes => _retainedBytes;
+
+    internal void Iw44CoefficientSamples(long count) {
+        if (count < 0 || count > Options.MaxIw44CoefficientSamples - _iw44CoefficientSamples)
+            throw new DjVuResourceLimitException(nameof(Options.MaxIw44CoefficientSamples));
+        _iw44CoefficientSamples += count;
+    }
+
+    internal void Jb2DecodedSamples(long count) {
+        if (count < 0 || count > Options.MaxJb2DecodedSamples - _jb2DecodedSamples)
+            throw new DjVuResourceLimitException(nameof(Options.MaxJb2DecodedSamples));
+        _jb2DecodedSamples += count;
+    }
 }

@@ -94,6 +94,25 @@ public sealed class SharedComponentTests {
         return result;
     }
 
+    [Fact]
+    public void SharedTextIsVisibleOncePerPageAndConflictingPageTextStaysCorrupt() {
+        byte[] index = File.ReadAllBytes(Path.Combine(Folder, "Indirect", "index.djvu"));
+        var components = Components();
+        string dictionary = components.Keys.Single(k => k.EndsWith(".iff", StringComparison.Ordinal));
+        byte[] nativeText = Payload(File.ReadAllBytes(ReaderAdapterTests.Fixture("unicode.djvu")), "TXTz");
+        components[dictionary] = AppendChunk(components[dictionary], "TXTz", nativeText);
+        components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], "INCL", Encoding.UTF8.GetBytes(dictionary));
+        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        Assert.All(document.Pages, page => {
+            Assert.Equal(DjVuTextStatus.Present, page.GetText().Status);
+            Assert.Contains("Zażółć 😀", page.GetText().Text);
+        });
+        components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], "TXTz", nativeText);
+        var conflict = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        Assert.Equal(DjVuTextStatus.Corrupt, conflict.Pages[0].GetText().Status);
+        Assert.Equal(DjVuTextStatus.Present, conflict.Pages[1].GetText().Status);
+    }
+
     private static void WriteSize(byte[] bytes, int offset, int value) {
         for (int i = 0; i < 4; i++) bytes[offset + i] = (byte)(value >> (24 - i * 8));
     }

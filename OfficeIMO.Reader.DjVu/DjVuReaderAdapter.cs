@@ -82,11 +82,22 @@ internal static class DjVuReaderAdapter {
             if (options.ImageMode == ReaderDjVuImageMode.AllPages || options.ImageMode == ReaderDjVuImageMode.MissingTextPages && missing) {
                 Check(assets.Count + 1L, options.MaxPageImages, nameof(ReaderDjVuOptions.MaxPageImages));
                 Check(assets.Count + 1L, limits?.MaxAssets, nameof(ReaderResourceLimits.MaxAssets));
-                long remaining = Math.Min(options.MaxTotalPageImageBytes - assetBytes, (limits?.MaxAssetBytes ?? long.MaxValue) - assetBytes);
-                if (remaining <= 0) throw new ReaderResourceLimitException(nameof(ReaderResourceLimits.MaxAssetBytes), limits?.MaxAssetBytes ?? options.MaxTotalPageImageBytes);
+                long remaining = options.MaxTotalPageImageBytes - assetBytes;
+                string byteLimitName = nameof(ReaderDjVuOptions.MaxTotalPageImageBytes);
+                long byteLimit = options.MaxTotalPageImageBytes;
+                if (limits?.MaxAssetBytes is long readerBytes && readerBytes - assetBytes < remaining) {
+                    remaining = readerBytes - assetBytes;
+                    byteLimitName = nameof(ReaderResourceLimits.MaxAssetBytes); byteLimit = readerBytes;
+                }
+                if (remaining <= 0) throw new ReaderResourceLimitException(byteLimitName, byteLimit);
+                if (options.MaxPageImageBytes < remaining) {
+                    remaining = options.MaxPageImageBytes;
+                    byteLimitName = nameof(ReaderDjVuOptions.MaxPageImageBytes); byteLimit = options.MaxPageImageBytes;
+                }
                 var rendered = page.Render(options.RenderOptions, token);
-                byte[] payload = OfficeRasterImageEncoder.Encode(rendered.Image, OfficeImageExportFormat.Png, null,
-                    Math.Min(options.MaxPageImageBytes, remaining), token);
+                byte[] payload;
+                try { payload = OfficeRasterImageEncoder.Encode(rendered.Image, OfficeImageExportFormat.Png, null, remaining, token); }
+                catch (OfficeImageExportBatchLimitException) { throw new ReaderResourceLimitException(byteLimitName, byteLimit); }
                 assetBytes += payload.LongLength;
                 asset = new OfficeDocumentAsset { Id = "djvu-page-" + page.Number + "-image", Kind = "image", MediaType = "image/png", Extension = ".png",
                     FileName = "page-" + page.Number.ToString(CultureInfo.InvariantCulture) + ".png", SourceObjectId = page.Id,

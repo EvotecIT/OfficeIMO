@@ -82,7 +82,7 @@ public sealed partial class DjVuPage {
                 else { output[offset] = settings.Background.R; output[offset + 1] = settings.Background.G; output[offset + 2] = settings.Background.B; output[offset + 3] = 255; }
             }
         }
-        if (mask != null) PaintMask(mask, foreground, palette, region, output, budget.Cancellation);
+        if (mask != null) PaintMask(mask, foreground, palette, region, output, settings.MaxMaskPaintSamples, budget.Cancellation);
         if (settings.Gamma != Gamma) {
             var correction = new byte[256];
             for (int i = 0; i < correction.Length; i++) correction[i] = (byte)Math.Round(255 * Math.Pow(i / 255.0, Gamma / settings.Gamma));
@@ -96,7 +96,8 @@ public sealed partial class DjVuPage {
         return OfficeRasterImage.FromOwnedRgba32(region.Width, region.Height, output);
     }
 
-    private static void PaintMask(Jb2Image mask, DjVuColorLayer? foreground, DjVuPalette? palette, DjVuRectangle region, byte[] output, CancellationToken cancellation) {
+    private static void PaintMask(Jb2Image mask, DjVuColorLayer? foreground, DjVuPalette? palette, DjVuRectangle region, byte[] output, long maxSamples, CancellationToken cancellation) {
+        long samples = 0;
         for (int i = 0; i < mask.Placements.Count; i++) {
             cancellation.ThrowIfCancellationRequested();
             var placement = mask.Placements[i];
@@ -104,6 +105,9 @@ public sealed partial class DjVuPage {
             int right = (int)Math.Max(0L, Math.Min(placement.Bitmap.Width, (long)region.X + region.Width - placement.X));
             int bottom = (int)Math.Max(0L, Math.Min(placement.Bitmap.Height, (long)region.Y - placement.Y));
             int top = (int)Math.Max(0L, Math.Min(placement.Bitmap.Height, (long)region.Y + region.Height - placement.Y));
+            long count = (long)(right - left) * (top - bottom);
+            if (count > maxSamples - samples) throw new DjVuResourceLimitException(nameof(DjVuRenderOptions.MaxMaskPaintSamples));
+            samples += count;
             for (int y = bottom; y < top; y++) {
                 cancellation.ThrowIfCancellationRequested();
                 for (int x = left; x < right; x++) {

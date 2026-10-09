@@ -16,6 +16,12 @@ internal sealed class Iw44Plane {
     private int _band;
     internal Iw44Plane(int blocks, DjVuReadBudget budget) { Coefficients = new int[checked(blocks * 1024)]; _budget = budget; }
 
+    internal long CoefficientSamples(int slices) {
+        long perBlock = 0;
+        for (int i = 0; i < slices; i++) perBlock += BucketCount[(_band + i) % 10] * 16L;
+        return perBlock * (Coefficients.LongLength / 1024);
+    }
+
     internal int ReconstructionCoefficient(int index) {
         int value = Coefficients[index];
         int step = _steps[StepByCoefficient[index % 1024]];

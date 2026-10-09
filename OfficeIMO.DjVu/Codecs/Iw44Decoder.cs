@@ -3,7 +3,7 @@ namespace OfficeIMO.DjVu;
 internal sealed partial class Iw44Decoder {
     private readonly DjVuReadBudget _budget;
     private Iw44Plane[]? _planes;
-    private int _serial, _delay;
+    private int _serial, _delay, _slices;
     private bool _halfChroma;
     internal int Width { get; private set; }
     internal int Height { get; private set; }
@@ -16,6 +16,9 @@ internal sealed partial class Iw44Decoder {
         int position = chunk.Offset, end = position + chunk.Length;
         if (end - position < 2 || data[position++] != _serial++) throw new InvalidDataException("Invalid IW44 progressive chunk sequence.");
         int slices = data[position++];
+        if (slices > _budget.Options.MaxIw44Slices - _slices)
+            throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxIw44Slices));
+        _slices += slices;
         if (_planes == null) {
             if (end - position < 7) throw new InvalidDataException("Truncated IW44 header.");
             int major = data[position++], minor = data[position++];
@@ -32,6 +35,12 @@ internal sealed partial class Iw44Decoder {
             _planes = new Iw44Plane[components];
             for (int i = 0; i < components; i++) _planes[i] = new Iw44Plane(blocks, _budget);
         }
+        long work = _planes[0].CoefficientSamples(slices);
+        if (_planes.Length == 3) {
+            int chromaSlices = Math.Max(0, slices - _delay);
+            work += _planes[1].CoefficientSamples(chromaSlices) + _planes[2].CoefficientSamples(chromaSlices);
+        }
+        _budget.Iw44CoefficientSamples(work);
         // An all-MPS early slice can have no entropy bytes. ZP defines implicit trailing one bits.
         var arithmetic = new ZpDecoder(data, position, end - position, _budget.Cancellation);
         for (int i = 0; i < slices; i++) {

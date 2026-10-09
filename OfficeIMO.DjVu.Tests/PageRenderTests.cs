@@ -12,6 +12,7 @@ public sealed class PageRenderTests {
     [InlineData("noise-normal")]
     [InlineData("gray")]
     [InlineData("sampling")]
+    [InlineData("iw44-foreground")]
     public void CompletePageMatchesIndependentNativeColorRaster(string name) {
         var page = Assert.Single(DjVuDocument.Load(Fixture(name + ".djvu")).Pages);
         var result = page.Render();
@@ -103,6 +104,15 @@ public sealed class PageRenderTests {
         Assert.True(sof >= 0);
         jpeg[sof + 5] = jpeg[sof + 6] = jpeg[sof + 7] = jpeg[sof + 8] = 255;
         Assert.Equal(nameof(DjVuReadOptions.MaxPagePixels), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(jpeg).Pages[0].Render()).LimitName);
+    }
+
+    [Fact]
+    public void MultipleForegroundWaveletChunksAreRejectedByTheDjVuV3Contract() {
+        byte[] source = File.ReadAllBytes(Fixture("iw44-foreground.djvu"));
+        byte[] payload = SharedComponentTests.Payload(source, "FG44");
+        payload[0] = 1;
+        var page = DjVuDocument.Load(SharedComponentTests.AppendChunk(source, "FG44", payload)).Pages[0];
+        Assert.Throws<InvalidDataException>(() => page.Render());
     }
 
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Authored", name);

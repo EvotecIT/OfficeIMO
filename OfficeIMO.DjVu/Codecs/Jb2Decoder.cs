@@ -110,6 +110,7 @@ internal sealed class Jb2Decoder {
         if (++_symbols > _budget.Options.MaxSymbols) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSymbols));
         long count = (long)width * height;
         if (count > int.MaxValue) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxCodecBytes));
+        _budget.Jb2DecodedSamples(count);
         CheckBuffers(count);
         var bitmap = new Jb2Bitmap(width, height, new byte[(int)count]);
         _bitmapBytes += count;

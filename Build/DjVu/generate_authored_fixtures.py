@@ -13,6 +13,14 @@ def chunk(name, data):
     return name + struct.pack(">I", len(data)) + data + (b"\0" if len(data) % 2 else b"")
 
 
+def page_chunks(data):
+    at = 16
+    while at < len(data):
+        size = int.from_bytes(data[at + 4:at + 8], "big")
+        yield data[at:at + 4], data[at + 8:at + 8 + size]
+        at += 8 + size + (size % 2)
+
+
 def append(source, destination, tag, payload):
     data = source.read_bytes()
     body = data[12:12 + int.from_bytes(data[8:12], "big")]
@@ -71,6 +79,13 @@ def main():
     ppm.write_bytes(f"P6\n{width} {height}\n255\n".encode() + pixels)
     run("cpaldjvu", "-colors", "5", "-bgwhite", "-dpi", "300", ppm, output / "palette.djvu")
     reference("palette")
+    # DjVu v3 permits a single FG44 chunk. Encode the complete foreground in
+    # that chunk and retain the native JB2 stencil; ddjvu qualifies composition.
+    run("c44", "-slice", "100", ppm, output / "foreground-color.djvu")
+    body = b"DJVU" + b"".join(chunk(tag, payload) for tag, payload in page_chunks((output / "palette.djvu").read_bytes()) if tag != b"FGbz")
+    body += b"".join(chunk(b"FG44", payload) for tag, payload in page_chunks((output / "foreground-color.djvu").read_bytes()) if tag == b"BG44")
+    (output / "iw44-foreground.djvu").write_bytes(b"AT&T" + chunk(b"FORM", body))
+    reference("iw44-foreground")
     data = bytearray((output / "palette.djvu").read_bytes())
     data[data.index(b"INFO") + 17] = 5
     (output / "palette-rotated.djvu").write_bytes(data)

@@ -129,4 +129,25 @@ public sealed class ReaderAdapterTests {
         Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(Fixture("reader-book.djvu"), new DjVuReadOptions { MaxBookmarks = 4 }));
         Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(Fixture("reader-book.djvu"), new DjVuReadOptions { MaxBookmarkDepth = 1 }));
     }
+
+    [Theory]
+    [InlineData("count", nameof(ReaderDjVuOptions.MaxPageImages))]
+    [InlineData("page", nameof(ReaderDjVuOptions.MaxPageImageBytes))]
+    [InlineData("total", nameof(ReaderDjVuOptions.MaxTotalPageImageBytes))]
+    [InlineData("reader", nameof(ReaderResourceLimits.MaxAssetBytes))]
+    public void ImageBudgetFailuresIdentifyTheActualLimit(string budget, string expected) {
+        var document = DjVuDocument.Load(Fixture("reader-book.djvu"));
+        var images = new ReaderDjVuOptions { ImageMode = ReaderDjVuImageMode.AllPages };
+        var reader = new ReaderOptions();
+        switch (budget) {
+            case "count": images.MaxPageImages = 0; break;
+            case "page": images.MaxPageImageBytes = 8; break;
+            case "total": images.MaxTotalPageImageBytes = 8; break;
+            case "reader": reader.ResourceLimits = new ReaderResourceLimits { MaxAssetBytes = 0 }; break;
+        }
+        var error = Assert.Throws<ReaderResourceLimitException>(() => document.ToReadResult(images, readerOptions: reader));
+        Assert.Equal(expected, error.LimitName);
+        Assert.Equal(budget == "count" || budget == "reader" ? 0 : 8, error.Maximum);
+        Assert.Empty(document.ToReadResult(new ReaderDjVuOptions { MaxPageImages = 0 }).Assets);
+    }
 }
