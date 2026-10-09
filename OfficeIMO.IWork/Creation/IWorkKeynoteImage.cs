@@ -18,7 +18,8 @@ public sealed class IWorkKeynoteImage : IWorkKeynoteCreationDrawable {
         cancellationToken.ThrowIfCancellationRequested();
         // Core rejects incomplete image bodies and imposes its encoded/pixel/decode bounds.
         // Check metadata before copying an unbounded caller buffer.
-        if (!OfficeImageReader.TryIdentifyByContent(data, null, out OfficeImageInfo info)
+        if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length)
+            || !OfficeImageReader.TryIdentifyByContent(data, null, cancellationToken, out OfficeImageInfo info)
             || info.Format is not OfficeImageFormat.Png and not OfficeImageFormat.Jpeg)
             throw new ArgumentException("A bounded PNG or JPEG payload is required.", nameof(data));
         _bytes = (byte[])data.Clone();
@@ -26,6 +27,9 @@ public sealed class IWorkKeynoteImage : IWorkKeynoteCreationDrawable {
             || info.Format is not OfficeImageFormat.Png and not OfficeImageFormat.Jpeg)
             throw new ArgumentException("A complete PNG or JPEG payload is required.", nameof(data));
         if (accessibilityDescription != null) {
+            // CRLF normalization can at most halve the raw UTF-16 length.
+            if (accessibilityDescription.Length > 8192)
+                throw new ArgumentException("An image description supports at most 4096 UTF-16 code units.", nameof(accessibilityDescription));
             accessibilityDescription = IWorkKeynoteTextBox.NormalizeText(accessibilityDescription);
             if (accessibilityDescription.Length > 4096)
                 throw new ArgumentException("An image description supports at most 4096 UTF-16 code units.", nameof(accessibilityDescription));

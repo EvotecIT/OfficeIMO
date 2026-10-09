@@ -6,7 +6,7 @@
     "application": "Keynote Creator Studio",
     "version": "15.4",
     "build": "7051.0.79",
-    "operatingSystem": "macOS27.0.1 (26A434)",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
     "architecture": "arm64"
   },
   "creation": {
@@ -102,6 +102,24 @@
       "sha256": "9cedada3ec80c51db94b36606b96b117dbd873eb9f87ac9c46034686b348eb33",
       "bytes": 15477,
       "role": "Inspected native PDF page3 rendered by Poppler at1200px"
+    },
+    {
+      "path": "native-exports/keynote-created-images-opaque.png",
+      "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+      "bytes": 225,
+      "role": "Fixed encoded image input for same-model runtime qualification"
+    },
+    {
+      "path": "native-exports/keynote-created-images-alpha.png",
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "bytes": 220,
+      "role": "Fixed encoded image input for same-model runtime qualification"
+    },
+    {
+      "path": "native-exports/keynote-created-images-jpeg.jpg",
+      "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+      "bytes": 862,
+      "role": "Fixed encoded image input for same-model runtime qualification"
     }
   ],
   "independentDecode": {
@@ -132,10 +150,11 @@
     "editedSourceAndStrictSavedPPTXRetainEdit": true,
     "ownedApplicationClosed": true
   },
-  "reproduction": "Generate ImageExample in IWorkKeynoteImageWritingTests. Decode with verify-keynote-creation.py and the pinned descriptor. Open in Keynote15.4, export PDF at best quality with all slides and optional content/password off, and PPTX without a password. Save As a separate native package, move the third-slide JPEG X60 to80, save, close and reopen. Compare PPTX picture payloads, descriptions, complete object order and geometry independently.",
+  "reproduction": "Generate ImageExample in IWorkKeynoteImageWritingTests. Decode with verify-keynote-creation.py and the pinned descriptor. Open in Keynote 15.4, export PDF at best quality with all slides and optional content/password off, and PPTX without a password. Save As a separate native package, move the third-slide JPEG X 60 to 80, save, close and reopen. Compare PPTX picture payloads, descriptions, complete object order and geometry independently.",
   "boundaries": [
     "Fixed unmasked image frames fill the full image, stretching when aspect ratios differ. Crops, masks, rotations and adjustments are not authored.",
     "The direct OfficeIMO PDF retains the image pixels and frame/stacking in this fixture; font substitutions and four text-overflow diagnostics are separately recorded and not qualified as native text-layout equivalence.",
-    "Other application versions, image codecs, fonts, scripts, layout combinations, tables and loaded-source save-back remain unqualified."
+    "Other application versions, image codecs, fonts, scripts, layout combinations, tables and loaded-source save-back remain unqualified.",
+    "PNG encoders can produce different valid compressed bytes across runtimes; deterministic native qualification uses identical encoded inputs, not separately re-encoded pixels."
   ]
 }

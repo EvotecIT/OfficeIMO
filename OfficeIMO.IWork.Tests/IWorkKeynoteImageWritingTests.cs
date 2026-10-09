@@ -132,6 +132,18 @@ public sealed class IWorkKeynoteImageWritingTests {
             .ReadKeynote().Slides[0].Images).GetBytes());
     }
 
+    [Fact]
+    public void Image_descriptions_enforce_normalized_limits_without_mutating_on_rejection() {
+        var slide = IWorkKeynoteDocument.Create().AddSlide();
+        byte[] bytes = ImageBytes(false);
+        Assert.Throws<ArgumentException>(() => slide.AddImage(bytes, 0, 0, 100, 100, new string('x', 4097)));
+        Assert.Throws<ArgumentException>(() => slide.AddImage(bytes, 0, 0, 100, 100, new string('x', 8193)));
+        Assert.Throws<System.Text.EncoderFallbackException>(() => slide.AddImage(bytes, 0, 0, 100, 100, "invalid\uD800"));
+        Assert.Empty(slide.Images);
+        string maximumCrLf = string.Concat(Enumerable.Repeat("\r\n", 4096));
+        Assert.Equal(new string('\n', 4096), slide.AddImage(bytes, 0, 0, 100, 100, maximumCrLf).AccessibilityDescription);
+    }
+
     [Theory]
     [InlineData("count")]
     [InlineData("encoded")]
@@ -201,29 +213,25 @@ public sealed class IWorkKeynoteImageWritingTests {
         "Documents", "IWorkCorpus", "native-exports", name);
 
     private static IWorkKeynoteDocument ImageExample() {
-        var raster = new OfficeRasterImage(96, 64);
-        var alpha = new OfficeRasterImage(96, 64);
-        for (int y = 0; y < 64; y++) for (int x = 0; x < 96; x++) {
-            raster.SetPixel(x, y, (x < 48, y < 32) switch {
-                (true, true) => new OfficeColor(220, 40, 50), (false, true) => new OfficeColor(20, 150, 80),
-                (true, false) => new OfficeColor(20, 90, 210), _ => new OfficeColor(245, 180, 20)
-            });
-            alpha.SetPixel(x, y, new OfficeColor(160, 30, 210, (byte)(x < 32 ? 0 : x < 64 ? 128 : 255)));
-        }
+        // The writer's model includes encoded bytes. Core's valid PNG encodings can
+        // differ across runtimes, so this oracle uses the same accepted inputs.
+        byte[] png = File.ReadAllBytes(Fixture("keynote-created-images-opaque.png"));
+        byte[] alpha = File.ReadAllBytes(Fixture("keynote-created-images-alpha.png"));
+        byte[] jpeg = File.ReadAllBytes(Fixture("keynote-created-images-jpeg.jpg"));
         var document = IWorkKeynoteDocument.Create();
         var first = document.AddSlide("F3F7FC");
         first.AddText("Native PNG — image behind text", 60, 30, 840, 60, "Helvetica Neue", 32, "003366");
         first.AddText("Covered source label", 100, 200, 500, 60, "Arial", 28);
-        first.AddImage(OfficePngWriter.Encode(raster), 60, 110, 480, 320, "Opaque four-color PNG 😀");
+        first.AddImage(png, 60, 110, 480, 320, "Opaque four-color PNG 😀");
         first.AddText("TEXT IN FRONT", 100, 220, 400, 60, "Arial", 32, "FFFFFF");
         var second = document.AddSlide("003366");
         second.AddText("Native alpha PNG", 60, 30, 840, 60, "Helvetica Neue", 32, "FFFFFF");
-        second.AddImage(OfficePngWriter.Encode(alpha), 60, 120, 480, 320, "Transparent, half-alpha, opaque purple");
+        second.AddImage(alpha, 60, 120, 480, 320, "Transparent, half-alpha, opaque purple");
         second.AddRichText(new[] { new IWorkKeynoteTextRun("0% / 50% / ", "Arial", 28, "FFFFFF"),
             new IWorkKeynoteTextRun("100% alpha", "Arial", 28, "FFD700", bold: true) }, 60, 450, 840, 60);
         var third = document.AddSlide();
         third.AddText("Native JPEG", 60, 30, 840, 60, "Helvetica Neue", 32, "003366");
-        third.AddImage(OfficeJpegCodec.Encode(raster), 60, 120, 600, 240, "Four-color JPEG, intentionally stretched frame");
+        third.AddImage(jpeg, 60, 120, 600, 240, "Four-color JPEG, intentionally stretched frame");
         third.AddText("JPEG / stretched frame", 60, 400, 840, 60, "Times New Roman", 28);
         return document;
     }
