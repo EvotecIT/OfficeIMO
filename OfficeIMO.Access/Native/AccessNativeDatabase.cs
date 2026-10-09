@@ -9,6 +9,15 @@ namespace OfficeIMO.Access {
         private AccessDocument _document;
         private readonly Dictionary<int, AccessNativeTable> _definitions = new Dictionary<int, AccessNativeTable>();
         private long _metadataBytes;
+        internal long RemainingMetadataBytes => MaxMetadataBytes - _metadataBytes;
+        /// <summary>Keeps temporary mutation decodes bounded without consuming later source-read allowance.</summary>
+        internal IDisposable PreserveMutationMetadataAllowance() => new MutationMetadataScope(this);
+        private sealed class MutationMetadataScope : IDisposable {
+            private readonly AccessNativeDatabase _database;
+            private readonly long _initial;
+            internal MutationMetadataScope(AccessNativeDatabase database) { _database = database; _initial = database._metadataBytes; }
+            public void Dispose() { _database._metadataBytes = _initial; }
+        }
         internal void AccountMetadata(int bytes) {
             if (bytes < 0 || _metadataBytes > MaxMetadataBytes - (long)bytes) throw new InvalidDataException("Native Access decoded metadata exceeds MaxMetadataBytes.");
             _metadataBytes += bytes;

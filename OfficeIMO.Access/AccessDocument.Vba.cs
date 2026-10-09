@@ -49,7 +49,7 @@ namespace OfficeIMO.Access {
             ValidateAccessVbaHostModules(current, project, hosts, appliedNames);
             foreach (AccessApplicationObject host in Forms.Concat(Reports)) {
                 string name = (host.CatalogEntry.NativeType == -32768 ? "Form_" : "Report_") + host.Name;
-                if (!hosts.Contains(name) && project.Modules.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                if (!hosts.Contains(name) && project.Modules.Any(x => x.Kind == OfficeVbaModuleKind.Document && x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
                     throw new NotSupportedException("Adding new form/report code-behind requires qualified host metadata authoring.");
             }
             if (options.MaximumRecoveryBytes < 1) throw new ArgumentOutOfRangeException(nameof(options));
@@ -59,12 +59,15 @@ namespace OfficeIMO.Access {
             if (recovery > options.MaximumRecoveryBytes) throw new InvalidDataException("Native Access recovery snapshots exceed MaximumRecoveryBytes.");
             // Access uses a direct native signature carrier rather than OPC relationships.
             // Unknown VBA-side siblings must remain preserve-only until their carrier is qualified.
+            var modulePaths = new HashSet<string>(VbaProject.Modules.Select(x => x.StoragePath), StringComparer.OrdinalIgnoreCase);
             if (ApplicationStreams.Any(x => x.Path.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase)
                 && !x.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !x.Path.Equals("VBA/AcessVBAData", StringComparison.OrdinalIgnoreCase)
-                || x.Path.IndexOf("DigitalSignature", StringComparison.OrdinalIgnoreCase) >= 0))
+                || x.Path.IndexOf("DigitalSignature", StringComparison.OrdinalIgnoreCase) >= 0 && !modulePaths.Contains(x.Path)))
                 throw new NotSupportedException("An unqualified VBA or signature carrier prevents native Access editing.");
             long maximumBytes = Math.Min(int.MaxValue, checked(Math.Max(_inputLimit, source.Snapshot().Length) + options.MaximumProjectBytes));
-            AccessNativeWriter plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, appliedNames);
+            AccessNativeWriter plan;
+            using (source.PreserveMutationMetadataAllowance())
+                plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, appliedNames);
             using OfficeBoundedMemoryStream output = new OfficeBoundedMemoryStream(maximumBytes);
             plan.Write(output, cancellationToken); byte[] candidateBytes = output.ToArray();
             using AccessDocument candidate = FromBytes(candidateBytes, new AccessLoadOptions {

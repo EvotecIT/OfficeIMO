@@ -5,10 +5,10 @@ namespace OfficeIMO.Access {
         /// <summary>Rebuilds only the affected index trees, retaining encoded keys for all original rows.</summary>
         private void UpdateMutationIndexes(AccessNativeDatabase database, AccessNativeTable table,
             IReadOnlyList<object?[]> additions, IReadOnlyList<uint> rowIds, ISet<uint> removals, Column[] columns,
-            IReadOnlyDictionary<uint, object?[]>? updates = null) {
+            IReadOnlyDictionary<uint, object?[]>? updates = null, long? rowLimit = null) {
             Table shape = new Table(table.DefinitionPage, table.Name, columns, additions.ToArray());
             var live = new HashSet<uint>(); var physical = new HashSet<uint>();
-            using (var rows = new AccessNativeRowCursor(table, _cancellation, rowLimit: database.MaxCatalogObjects)) while (rows.Read(_cancellation)) {
+            using (var rows = new AccessNativeRowCursor(table, _cancellation, rowLimit: rowLimit ?? database.MaxCatalogObjects)) while (rows.Read(_cancellation)) {
                 live.Add(rows.CurrentPointer);
                 database.Row(checked((int)(rows.CurrentPointer >> 8)), (int)(rows.CurrentPointer & 255), true, _cancellation, out uint body);
                 if (!physical.Add(body) || I32(database.Page(checked((int)(body >> 8)), 1), 4) != table.DefinitionPage)
@@ -54,7 +54,7 @@ namespace OfficeIMO.Access {
 
         private List<byte[]> ReadIndexEntries(AccessNativeDatabase database, AccessNativeTable table, AccessNativeIndex index) {
             var entries = new List<byte[]>(); var seen = new HashSet<int>(); var pending = new Stack<int>();
-            pending.Push(index.RootPage); long total = 0;
+            pending.Push(index.RootPage);
             var owned = new HashSet<int>(database.OwnedPages(index.OwnedPages, _cancellation));
             while (pending.Count != 0) {
                 _cancellation.ThrowIfCancellationRequested(); int number = pending.Pop();
@@ -72,12 +72,12 @@ namespace OfficeIMO.Access {
                     if (length <= 0 || 480 + boundary > end || prefix == null && prefixLength > length)
                         throw new InvalidDataException("A native index entry overlaps its page boundary.");
                     int expanded = checked(length + (prefix?.Length ?? 0));
-                    if (expanded < (page[0] == 4 ? 4 : 8) || expanded > 518 || expanded > database.MaxMetadataBytes - total)
+                    if (expanded < (page[0] == 4 ? 4 : 8) || expanded > 518)
                         throw new InvalidDataException("A native index entry exceeds the qualified metadata limit.");
-                    total += expanded; byte[] entry = new byte[expanded];
+                    ReserveMutationMetadata(database, expanded); byte[] entry = new byte[expanded];
                     if (prefix != null) Buffer.BlockCopy(prefix, 0, entry, 0, prefix.Length);
                     for (int i = 0; i < length; i++) entry[(prefix?.Length ?? 0) + i] = page[480 + previous + i];
-                    if (prefix == null && prefixLength != 0) { prefix = new byte[prefixLength]; Buffer.BlockCopy(entry, 0, prefix, 0, prefix.Length); }
+                    if (prefix == null && prefixLength != 0) { ReserveMutationMetadata(database, prefixLength); prefix = new byte[prefixLength]; Buffer.BlockCopy(entry, 0, prefix, 0, prefix.Length); }
                     if (page[0] == 4) entries.Add(entry); else pending.Push(checked((int)ReadBigEndian(entry, entry.Length - 4)));
                     previous = boundary;
                 }

@@ -30,8 +30,7 @@ namespace OfficeIMO.Access {
                 namespaceId = moduleNamespace.Id;
                 if (original.Values.Any(x => x.ParentId != namespaceId || x.Flags != 0))
                     throw new NotSupportedException("The native module catalog has unqualified namespace or flag metadata.");
-                bool firstProject = !_applicationStreams.Keys.Any(x => x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-                if (!_applicationStreams.TryGetValue("Modules/\u0003DirData", out AccessStorageStream? directory) && (!firstProject || original.Count != 0))
+                if (!_applicationStreams.TryGetValue("Modules/\u0003DirData", out AccessStorageStream? directory) && original.Count != 0)
                     throw new NotSupportedException("The native module directory is unavailable.");
                 Dictionary<string, int> slots = directory == null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) : ReadObjectDirectory(directory.Payload.GetBytes())
                     ?? throw new NotSupportedException("The native module directory is outside the qualified layout.");

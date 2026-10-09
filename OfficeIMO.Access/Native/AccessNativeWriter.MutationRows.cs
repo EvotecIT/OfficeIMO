@@ -4,14 +4,15 @@ namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeWriter {
         /// <summary>Appends native rows and marks removed root rows without moving any surviving row identity.</summary>
         internal void MutateApplicationRows(AccessNativeDatabase database, AccessNativeTable table,
-            IReadOnlyList<object?[]> additions, ISet<uint> removals, IReadOnlyDictionary<uint, string>? renamedRows = null) {
+            IReadOnlyList<object?[]> additions, ISet<uint> removals, IReadOnlyDictionary<uint, string>? renamedRows = null, long? rowLimit = null) {
             if (additions.Count == 0 && removals.Count == 0 && (renamedRows == null || renamedRows.Count == 0)) return;
-            if (table.RowCount + additions.Count - removals.Count > database.MaxCatalogObjects)
-                throw new InvalidDataException("Native application rows exceed MaxCatalogObjects.");
+            long limit = rowLimit ?? database.MaxCatalogObjects;
+            if (limit < 1 || table.RowCount + additions.Count - removals.Count > limit)
+                throw new InvalidDataException("Native application rows exceed their qualified row limit.");
             Column[] columns = MutationColumns(table);
             var live = new HashSet<uint>();
             var updated = new Dictionary<uint, object?[]>();
-            using (var cursor = new AccessNativeRowCursor(table, _cancellation, rowLimit: database.MaxCatalogObjects))
+            using (var cursor = new AccessNativeRowCursor(table, _cancellation, rowLimit: limit))
                 while (cursor.Read(_cancellation)) {
                     live.Add(cursor.CurrentPointer);
                     if (renamedRows == null || !renamedRows.TryGetValue(cursor.CurrentPointer, out string? name)) continue;
@@ -47,7 +48,7 @@ namespace OfficeIMO.Access {
                 rowIds.Add(checked(((uint)current << 8) | (uint)rows.Count)); rows.Add(row); occupied += row.Length + 2;
             }
             if (current >= 0) _pages[current] = DataPage(table.DefinitionPage, rows);
-            UpdateMutationIndexes(database, table, additions, rowIds, removals, columns, updated);
+            UpdateMutationIndexes(database, table, additions, rowIds, removals, columns, updated, limit);
             if (!_mutationRowPages.TryGetValue(table, out List<int>? addedPages)) _mutationRowPages.Add(table, addedPages = new List<int>());
             addedPages.AddRange(pages); UpdateMutationTableMaps(database, table);
             ReplaceDefinitionPointer(database, table.DefinitionPage, 16, checked((uint)(table.RowCount + additions.Count - removals.Count)));
