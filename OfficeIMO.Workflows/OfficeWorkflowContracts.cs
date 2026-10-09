@@ -102,7 +102,7 @@ public sealed class OfficeWorkflowLimits {
     /// <summary>Maximum generated artifact size.</summary>
     public long MaximumOutputBytes { get; set; } = 512L * 1024L * 1024L;
 
-    /// <summary>Maximum characters in each XML part read by built-in Open XML and Draw conversions. Default: 10 MiB.</summary>
+    /// <summary>Maximum characters in each XML part read by built-in Open XML, Draw and Visio conversions, or in a complete legacy Visio XML source. Default: 10 MiB.</summary>
     public long MaximumXmlCharactersInPart { get; set; } = 10L * 1024L * 1024L;
 
     internal OfficeWorkflowLimits CloneAndValidate() {
@@ -360,7 +360,7 @@ public sealed class OfficeWorkflowRoute {
 public static class OfficeWorkflowCatalog {
     private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
         "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf",
-        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf"
+        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf"
     };
 
     private static readonly IReadOnlyList<OfficeWorkflowRoute> AllRoutesValue = Array.AsReadOnly(

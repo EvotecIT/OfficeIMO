@@ -36,7 +36,7 @@ public sealed record OfficeConversionBatchRequest {
     public long MaximumInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum output bytes per document.</summary>
     public long MaximumOutputBytes { get; set; } = 256L * 1024 * 1024;
-    /// <summary>Maximum XML characters per part for built-in Open XML and Draw conversions.</summary>
+    /// <summary>Maximum XML characters per part for built-in Open XML, Draw and Visio conversions, or in a complete legacy Visio XML source.</summary>
     public long MaximumXmlCharactersInPart { get; set; } = 10L * 1024 * 1024;
     /// <summary>Retry recorded failures. Completed files still require source and output hash verification.</summary>
     public bool RetryFailed { get; set; }

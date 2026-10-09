@@ -134,8 +134,8 @@ internal static class OfficeConversionSupportAssessments {
             "Draw scene fixtures verify page dimensions, order, layer selection, searchable text, and page-qualified source and PDF diagnostics.",
             "Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete."),
         "visio-pdf" => Targeted(
-            "Typed drawing fixtures verify searchable semantic text and topology, optional raster page previews, and explicit fallback diagnostics.",
-            "The output is a semantic report with optional raster previews; native Visio page layout and editable diagram rendering are not reproduced."),
+            "Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
+            "Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."),
         "docx-google-docs" or "google-docs-docx" => Established(
             "Native request/import fixtures verify run typography, paragraphs, tables, tabs, remote operation policies, and Drive fallback behavior without requiring live credentials.",
             "Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback."),

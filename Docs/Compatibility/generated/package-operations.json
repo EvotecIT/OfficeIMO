@@ -15677,10 +15677,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"VisioDocument.Load(stream).ToPdfDocumentResult(options)",
-      "evidence":"Typed drawing fixtures verify searchable semantic text and topology, optional raster page previews, and explicit fallback diagnostics.",
+      "evidence":"Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".vsdx"],
-      "limitation":"The output is a semantic report with optional raster previews; native Visio page layout and editable diagram rendering are not reproduced."
+      "extensions":[".vdx",".vsdx",".vtx"],
+      "limitation":"Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."
     },
     {
       "id":"protection:doc-password:word:create",
