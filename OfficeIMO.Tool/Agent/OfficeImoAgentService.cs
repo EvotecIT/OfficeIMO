@@ -112,12 +112,9 @@ internal sealed partial class OfficeImoAgentService {
         CancellationToken cancellationToken = default) {
         if (cursor < 0) throw new AgentUsageException("Fetch cursor must not be negative.");
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
-        AgentSourceRegistration source = string.IsNullOrWhiteSpace(sourcePath)
-            ? _registry.Resolve(sourceId, cancellationToken)
-            : _registry.Resolve(
-                sourceId,
-                _pathPolicy.ResolveInput(sourcePath),
-                cancellationToken);
+        string authorizedPath = _pathPolicy.ResolveInput(string.IsNullOrWhiteSpace(sourcePath)
+            ? _registry.GetRegisteredPath(sourceId) : sourcePath);
+        AgentSourceRegistration source = _registry.Resolve(sourceId, authorizedPath, cancellationToken);
         (string kind, string value) = AgentOpaqueId.Decode(id);
         AgentFetchResult result;
         if (kind == "mail") {
@@ -381,7 +378,7 @@ internal sealed partial class OfficeImoAgentService {
     }
 
     private static bool IsEmailStoreSource(AgentSourceRegistration source) {
-        if (source.IsDirectory) return true;
+        if (source.IsDirectory) return !AgentSourceRegistry.IsIWorkPackagePath(source.Path);
         string extension = Path.GetExtension(source.Path);
         return extension.Equals(".pst", StringComparison.OrdinalIgnoreCase) ||
                extension.Equals(".ost", StringComparison.OrdinalIgnoreCase) ||

@@ -148,7 +148,7 @@ internal sealed class OfficeImoMcpTools {
         OpenWorld = false,
         UseStructuredContent = true,
         OutputSchemaType = typeof(AgentConvertResult))]
-    [Description("Write one ordinary document as Markdown or Reader JSON, or convert an iWork ZIP file to its matching DOCX/XLSX/PPTX destination or PDF through shared workflows. Retains source hashes and fidelity evidence. PDF requires complete editable reconstruction. Whole-mailbox conversion is intentionally rejected.")]
+    [Description("Write one ordinary document as Markdown or Reader JSON, or convert an iWork ZIP file or authorized directory package to its matching DOCX/XLSX/PPTX destination or PDF through shared workflows. Directory packages reject linked members and require output outside the source. Retains source hashes and fidelity evidence. PDF requires complete editable reconstruction. Whole-mailbox conversion is intentionally rejected.")]
     public async Task<CallToolResult> ConvertAsync(
         [Description("Path to one supported local document.")] string path,
         [Description("Destination file path. Existing files are protected unless overwrite is true.")] string outputPath,

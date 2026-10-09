@@ -23,17 +23,17 @@ public static partial class IWorkWorkflow {
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
                 using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return Evidence(result.Report, result.Source);
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
                 using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return Evidence(result.Report, result.Source);
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
                 using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
-                return Evidence(result.Report);
+                return Evidence(result.Report, result.Source);
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
         };
         AddPdfRegistrations(registrations, reading, conversion);
@@ -56,8 +56,9 @@ public static partial class IWorkWorkflow {
         return copy;
     }
 
-    private static OfficeWorkflowConversionEvidence Evidence(IWorkConversionReport report) => new(report,
+    private static OfficeWorkflowConversionEvidence Evidence(IWorkConversionReport report, IWorkSourceDocument source) => new(report,
         new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["packageContentSha256"] = source.ComputePackageContentHash(),
             ["sourceKind"] = report.SourceKind.ToString(),
             ["projectionKind"] = report.ProjectionKind.ToString(),
             ["producerBuildVersions"] = string.Join(", ", report.BuildVersions),

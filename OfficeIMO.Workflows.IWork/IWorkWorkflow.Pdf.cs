@@ -17,7 +17,7 @@ public static partial class IWorkWorkflow {
             using PagesToWordResult editable = WordIWorkConverter.ConvertPagesToWordResult(input,
                 Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
             editable.Report.RequireCompleteEditableReconstruction();
-            return SavePdf(() => editable.Value.ToPdfDocumentResult(settings?.PagesPdfOptions, token), editable.Report, output, token);
+            return SavePdf(() => editable.Value.ToPdfDocumentResult(settings?.PagesPdfOptions, token), editable.Report, editable.Source, output, token);
         });
         Add("numbers-pdf", (input, output, limits, settings, token) => {
             ExcelToPdfOptions options = settings?.NumbersPdfOptions ?? new IWorkWorkflowSettings().NumbersPdfOptions;
@@ -32,7 +32,7 @@ public static partial class IWorkWorkflow {
             using NumbersToExcelResult editable = ExcelIWorkConverter.ConvertNumbersToExcelResult(input,
                 Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
             editable.Report.RequireCompleteEditableReconstruction();
-            return SavePdf(() => editable.Value.ToPdfDocumentResult(options, token), editable.Report, output, token);
+            return SavePdf(() => editable.Value.ToPdfDocumentResult(options, token), editable.Report, editable.Source, output, token);
         });
         Add("keynote-pdf", (input, output, limits, settings, token) => {
             PowerPointToPdfOptions options = settings?.KeynotePdfOptions ?? new IWorkWorkflowSettings().KeynotePdfOptions;
@@ -44,7 +44,7 @@ public static partial class IWorkWorkflow {
             using KeynoteToPowerPointResult editable = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input,
                 Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
             editable.Report.RequireCompleteEditableReconstruction();
-            return SavePdf(() => editable.Value.ToPdfDocumentResult(options, token), editable.Report, output, token);
+            return SavePdf(() => editable.Value.ToPdfDocumentResult(options, token), editable.Report, editable.Source, output, token);
         });
 
         void Add(string route, OfficeWorkflowConfiguredConverter<IWorkWorkflowSettings> converter) => registrations.Add(
@@ -61,8 +61,8 @@ public static partial class IWorkWorkflow {
     }
 
     private static OfficeWorkflowConversionEvidence SavePdf(Func<PdfDocumentConversionResult> createPdf,
-        IWorkConversionReport source, Stream output, CancellationToken token) {
-        var facts = new Dictionary<string, string>(Evidence(source).Facts, StringComparer.Ordinal) {
+        IWorkConversionReport source, IWorkSourceDocument captured, Stream output, CancellationToken token) {
+        var facts = new Dictionary<string, string>(Evidence(source, captured).Facts, StringComparer.Ordinal) {
             ["conversionStages"] = "iwork-editable,pdf"
         };
         IReadOnlyList<IOfficeConversionReport> reports = new IOfficeConversionReport[] { source };

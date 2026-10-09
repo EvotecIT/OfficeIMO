@@ -6,7 +6,7 @@ using System.Text;
 
 namespace OfficeIMO.Tool.Agent;
 
-internal sealed class AgentSourceRegistry {
+internal sealed partial class AgentSourceRegistry {
     private const string EmailDataPrefix = "officeimo-email-data:";
     private const string EmailStorePrefix = "officeimo-email-store:";
     private static readonly byte[] FingerprintSeparator = new byte[] { 0 };
@@ -54,6 +54,12 @@ internal sealed class AgentSourceRegistry {
         return current;
     }
 
+    internal string GetRegisteredPath(string sourceId) {
+        if (string.IsNullOrWhiteSpace(sourceId) || !_sources.TryGetValue(sourceId, out var source))
+            throw new AgentUsageException("Unknown source id. Inspect or search the source again before fetching content.");
+        return source.Path;
+    }
+
     internal AgentSourceRegistration Resolve(
         string sourceId,
         string path,
@@ -86,7 +92,7 @@ internal sealed class AgentSourceRegistry {
             isDirectory,
             length,
             lastWriteUtc,
-            cancellationToken, dataOptions);
+            cancellationToken, dataOptions, null);
         return new AgentSourceRegistration(
             (emailContentSearch ? EmailStorePrefix : dataOptions == null ? "officeimo:" : EmailDataPrefix) + hash.Substring(0, 24),
             fullPath,
@@ -100,12 +106,15 @@ internal sealed class AgentSourceRegistry {
         bool isDirectory,
         long? length,
         DateTime lastWriteUtc,
-        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions) {
+        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions, string? capturedIWorkContentHash) {
         using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Append(fingerprint, fullPath);
         Append(fingerprint, isDirectory ? "directory" : "file");
         Append(fingerprint, length?.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        Append(fingerprint, lastWriteUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        bool iworkDirectory = isDirectory && dataOptions is null && IsIWorkPackagePath(fullPath);
+        // Native directory identities bind captured content. Root timestamps do not
+        // identify member edits and can change without changing document content.
+        if (!iworkDirectory) Append(fingerprint, lastWriteUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (dataOptions != null) {
             // Identity discovery uses the same bounded artifact owners as the inspector.
             using var opened = EmailDataArtifact.Open(fullPath, dataOptions, cancellationToken);
@@ -122,6 +131,8 @@ internal sealed class AgentSourceRegistry {
                     fingerprint.AppendData(buffer, 0, read);
                 }
             }
+        } else if (iworkDirectory) {
+            Append(fingerprint, capturedIWorkContentHash ?? ComputeIWorkContentHash(fullPath, cancellationToken));
         } else if (isDirectory) {
             using EmailStoreSession session = EmailStoreSession.Open(
                 fullPath,

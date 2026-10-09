@@ -10,7 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tool.Tests;
 
-public sealed class AgentIWorkConversionTests {
+public sealed partial class AgentIWorkConversionTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -29,9 +29,11 @@ public sealed class AgentIWorkConversionTests {
         if (!overwrite) Assert.Equal("keep existing", File.ReadAllText(output));
     }
 
-    [Fact]
-    public async Task Stdio_iwork_conversion_accepts_typed_policy_and_returns_structured_stage_evidence() {
-        using var files = new Files();
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Stdio_iwork_conversion_accepts_typed_policy_and_returns_structured_stage_evidence(bool directoryPackage) {
+        using var files = new Files(directoryPackage);
         var transport = new StdioClientTransport(new StdioClientTransportOptions {
             Name = "officeimo-iwork-source-test",
             Command = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
@@ -50,7 +52,12 @@ public sealed class AgentIWorkConversionTests {
         CallToolResult result = await client.CallToolAsync("officeimo_convert", arguments, cancellationToken: timeout.Token);
         Assert.False(result.IsError, string.Join("; ", result.Content.OfType<TextContentBlock>().Select(item => item.Text)));
         var data = result.StructuredContent!.Value;
-        Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), data.GetProperty("sourceSha256").GetString(), ignoreCase: true);
+        if (!directoryPackage)
+            Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), data.GetProperty("sourceSha256").GetString(), ignoreCase: true);
+        else {
+            Assert.Equal(64, data.GetProperty("sourceSha256").GetString()!.Length);
+            Assert.Contains("DirectoryPackage", data.GetRawText());
+        }
         Assert.Equal("iwork-editable,pdf", data.GetProperty("workflow").GetProperty("conversionEvidence").GetProperty("facts").GetProperty("conversionStages").GetString());
         arguments["overwrite"] = true;
         arguments["iworkOptions"] = new Dictionary<string, object?> { ["allowPartialEditableReconstruction"] = true };
@@ -108,11 +115,14 @@ public sealed class AgentIWorkConversionTests {
 
     private sealed class Files : IDisposable {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "officeimo-agent-iwork-" + Guid.NewGuid().ToString("N"));
-        public string Input => Path.Combine(Root, "source.pages");
+        public string Input { get; }
         public string Output(string format) => Path.Combine(Root, "output." + format);
-        public Files() {
+        public Files(bool directoryPackage = false, string kind = "pages") {
             Directory.CreateDirectory(Root);
-            File.Copy(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "nim-iwork", "simple.pages"), Input);
+            Input = Path.Combine(Root, "source." + kind);
+            string fixture = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "nim-iwork", "simple." + kind);
+            if (directoryPackage) System.IO.Compression.ZipFile.ExtractToDirectory(fixture, Input);
+            else File.Copy(fixture, Input);
         }
         public void Dispose() => Directory.Delete(Root, true);
     }

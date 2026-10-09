@@ -11,10 +11,11 @@ internal sealed partial class OfficeImoAgentService {
         bool overwrite, IWorkConversionOptions? options, long maximumInputBytes, long maximumOutputBytes,
         CancellationToken token) {
         string input = _pathPolicy.ResolveInput(path);
-        if (Directory.Exists(input))
-            throw new AgentUsageException("MCP iWork conversion requires a ZIP document file. Directory packages use the shared workflow provider API.");
+        bool directoryPackage = Directory.Exists(input);
+        DateTime directoryWriteTime = directoryPackage ? Directory.GetLastWriteTimeUtc(input) : default;
         string destination = _pathPolicy.ResolveOutput(outputPath);
         ReaderToolPathSafety.EnsureDistinctFile(input, destination);
+        if (directoryPackage) ReaderToolPathSafety.EnsureOutsideInput(input, destination);
         string target = "." + format.ToLowerInvariant();
         if (!Path.GetExtension(destination).Equals(target, StringComparison.OrdinalIgnoreCase))
             throw new AgentUsageException("The output path extension must match the requested conversion format.");
@@ -23,7 +24,7 @@ internal sealed partial class OfficeImoAgentService {
         string route = runner.ConversionRoutes.SingleOrDefault(item => item.SourceExtensions.Contains(extension)
             && item.TargetExtension == target && item.Engine.Contains("IWork", StringComparison.Ordinal))?.Id
             ?? throw new AgentUsageException("Choose a Pages-to-DOCX, Numbers-to-XLSX, Keynote-to-PPTX, or iWork-to-PDF conversion.");
-        AgentSourceRegistration source = _registry.Register(input, token);
+        AgentSourceRegistration? source = directoryPackage ? null : _registry.Register(input, token);
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route,
@@ -33,6 +34,8 @@ internal sealed partial class OfficeImoAgentService {
             PublicationGuard = new AgentConversionPublicationGuard(_pathPolicy, input)
         };
         OfficeWorkflowResult workflow = await runner.RunAsync(request, cancellationToken: token).ConfigureAwait(false);
+        if (directoryPackage && workflow.ConversionEvidence?.Facts.GetValueOrDefault("packageContentSha256") is string contentHash)
+            source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, token);
         string hash = string.Empty;
         if (workflow.Succeeded) {
             await using var output = new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read,
@@ -40,7 +43,7 @@ internal sealed partial class OfficeImoAgentService {
             hash = Convert.ToHexString(await SHA256.HashDataAsync(output, token).ConfigureAwait(false)).ToLowerInvariant();
         }
         return new AgentConvertResult {
-            SourceId = source.SourceId, SourcePath = source.Path, OutputPath = workflow.OutputPath ?? destination,
+            SourceId = source?.SourceId ?? string.Empty, SourcePath = input, OutputPath = workflow.OutputPath ?? destination,
             Format = format.ToLowerInvariant(), LengthBytes = workflow.OutputBytes, Sha256 = hash,
             DiagnosticCount = workflow.Diagnostics.Count, Workflow = workflow,
             SourceSha256 = workflow.Diagnostics.FirstOrDefault(diagnostic => diagnostic.Code == "SourceSnapshot")?.Details.GetValueOrDefault("sha256")
@@ -48,11 +51,14 @@ internal sealed partial class OfficeImoAgentService {
     }
 
     private sealed class AgentConversionPublicationGuard(AgentPathPolicy paths, string source) : IOfficeWorkflowPublicationGuard {
+        private readonly string _sourceIdentity = OfficeImoToolPathSafety.GetPhysicalIdentityKey(source);
         public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             if (isDirectory || !string.Equals(paths.ResolveInput(source), source, StringComparison.Ordinal)
+                || OfficeImoToolPathSafety.GetPhysicalIdentityKey(source) != _sourceIdentity
                 || !string.Equals(paths.ResolveOutput(path), path, StringComparison.Ordinal)) return ValueTask.FromResult(false);
             ReaderToolPathSafety.EnsureDistinctFile(source, path);
+            if (Directory.Exists(source)) ReaderToolPathSafety.EnsureOutsideInput(source, path);
             return ValueTask.FromResult(true);
         }
     }
