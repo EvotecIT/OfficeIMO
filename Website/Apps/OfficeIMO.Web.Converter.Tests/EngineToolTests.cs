@@ -11,6 +11,24 @@ public sealed class EngineToolTests {
     private static ToolOptions Options(params (string Key, string Value)[] values) =>
         new(values.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal));
 
+    [Theory]
+    [InlineData(300_000)]
+    [InlineData(1_048_573)]
+    public void TextFileReviewScansTheEntireAdvertisedByteAllowance(int prefixCharacters) {
+        var session = new ToolSession();
+        byte[] input = System.Text.Encoding.UTF8.GetBytes(new string('a', prefixCharacters) + "\u200b");
+        session.Stage(0, input, "large-text.txt");
+
+        ToolResultDocument result = TextTool.Run(session, "inspect", Options(("source", "file")));
+
+        Assert.True(result.Ok);
+        Assert.Single(result.Items);
+        Assert.Equal(prefixCharacters + 1, result.Preview!.Text!.Length);
+        Assert.EndsWith("\u200b", result.Preview.Text, StringComparison.Ordinal);
+        Assert.Contains(result.Facts, fact => fact.Label == "Characters" && fact.Value ==
+            (prefixCharacters + 1).ToString("N0", System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     [Fact]
     public void TextFileReviewAndCleanCopyPreserveNameEncodingAndPreamble() {
         var session = new ToolSession();

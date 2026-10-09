@@ -22,8 +22,9 @@
     typed.placeholder = mode === 'order' ? '3,1,2' : 'e.g. 1-3, 5, last';
     var thumbs = {};
     var observer = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+      if (disposed) return;
       entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
+        if (!entry.isIntersecting || !grid.contains(entry.target)) return;
         observer.unobserve(entry.target);
         drawThumb(parseInt(entry.target.getAttribute('data-page'), 10));
       });
@@ -67,6 +68,7 @@
     }
 
     function render() {
+      if (observer) observer.disconnect();
       grid.innerHTML = '';
       order.forEach(function (page, position) {
         var item = el('button', 'bt-thumb');

@@ -527,8 +527,7 @@
       window.clearInterval(busyTimer);
       if (!result || generation !== state.generation) {
         if (webMcpWaiter) { webMcpWaiter(null, new Error('The input or settings changed. Run the tool again.')); webMcpWaiter = null; }
-        updateRunButton();
-        if ((cfg.live || cfg.auto) && inputComplete()) liveRun();
+        discardRun();
         return;
       }
       result.clientMs = Date.now() - started;
@@ -538,8 +537,17 @@
       state.busy = false;
       window.clearInterval(busyTimer);
       if (generation === state.generation) showResult({ ok: false, verdict: { tone: 'bad', title: 'The tool couldn’t finish', detail: error.message }, facts: [], items: [], artifacts: [] }, action);
+      else discardRun();
       if (webMcpWaiter) { webMcpWaiter(null, error); webMcpWaiter = null; }
     });
+  }
+
+  function discardRun() {
+    ui.output.classList.remove('is-updating', 'is-stale');
+    clearResult();
+    updateRunButton();
+    if (inputComplete()) setHint('The input or settings changed. Run the tool again.', 'warn');
+    if ((cfg.live || cfg.auto) && inputComplete()) liveRun();
   }
 
   function renderBusy(action) {

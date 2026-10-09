@@ -10,7 +10,10 @@ namespace OfficeIMO.Web.Converter.Engine;
 internal static class TextTool {
     private sealed record Review(OfficeTextIntegrityReview Result, string Text, string SourceName);
 
-    private static OfficeTextIntegrityOptions Limits() => new() { MaxEncodedBytes = 1024 * 1024, MaxCharacters = 262_144, MaxFindings = 512 };
+    private const int MaximumTextBytes = 1024 * 1024;
+
+    // Supported UTF-8/16/32 encodings have no more UTF-16 code units than encoded bytes.
+    private static OfficeTextIntegrityOptions Limits() => new() { MaxEncodedBytes = MaximumTextBytes, MaxCharacters = MaximumTextBytes, MaxFindings = 512 };
 
     internal static ToolResultDocument Run(ToolSession session, string action, ToolOptions options) => action switch {
         "inspect" => Inspect(session, options),

@@ -96,7 +96,7 @@
                   <button type="button" class="bt-link" data-bt-reset-text>Use the example</button>
                 </span>
               </div>
-              <textarea id="bt-text" class="bt-textarea" spellcheck="false" maxlength="500000" data-bt-text data-sample="{{ input.sampleText | html.escape }}">{{ input.sampleText | html.escape }}</textarea>
+              <textarea id="bt-text" class="bt-textarea" spellcheck="false" maxlength="{{ if input.maxCharacters }}{{ input.maxCharacters }}{{ else }}500000{{ end }}" data-bt-text data-sample="{{ input.sampleText | html.escape }}">{{ input.sampleText | html.escape }}</textarea>
               <p class="bt-hint">{{ if input.live }}The result updates as you type.{{ else }}Example text is filled in. Replace it with your own.{{ end }}</p>
             </div>
 {{~ else ~}}
