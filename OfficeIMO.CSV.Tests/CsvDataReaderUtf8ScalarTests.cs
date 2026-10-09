@@ -11,6 +11,113 @@ namespace OfficeIMO.CSV.Tests;
 
 public sealed class CsvDataReaderUtf8ScalarTests {
     [Theory]
+    [InlineData("", "2.55e2", "3.2767e4", "2.147483647e9", 255, 32767, int.MaxValue)]
+    [InlineData("", "0", "-32768", "-2147483648", 0, short.MinValue, int.MinValue)]
+    [InlineData("fr-FR", "255,0", "32\u202f767,0", "2\u202f147\u202f483\u202f647,0", 255, 32767, int.MaxValue)]
+    public void NarrowIntegerGettersMatchTextParsingAndPreserveWidth(
+        string cultureName, string byteText, string int16Text, string int32Text,
+        int expectedByte, int expectedInt16, int expectedInt32) {
+        var options = new CsvLoadOptions { Delimiter = ';', Culture = CultureInfo.GetCultureInfo(cultureName) };
+        string csv = "Byte;Int16;Int32\n" + byteText + ";" + int16Text + ";" + int32Text + "\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        using var reader = CsvDocument.OpenDataReader(stream, options);
+        using var textReader = CsvDocument.OpenTextDataReader(csv, options);
+
+        Assert.True(reader.Read());
+        Assert.True(textReader.Read());
+        for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
+            Assert.True(reader.TryGetUtf8Text(ordinal, out _));
+            Assert.False(textReader.TryGetUtf8Text(ordinal, out _));
+        }
+
+        Assert.Equal((byte)expectedByte, textReader.GetByte(0));
+        Assert.Equal(textReader.GetByte(0), reader.GetByte(0));
+        Assert.Equal((short)expectedInt16, textReader.GetInt16(1));
+        Assert.Equal(textReader.GetInt16(1), reader.GetInt16(1));
+        Assert.Equal(expectedInt32, textReader.GetInt32(2));
+        Assert.Equal(textReader.GetInt32(2), reader.GetInt32(2));
+        for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
+            Assert.Equal(textReader.GetString(ordinal), reader.GetString(ordinal));
+            Assert.Equal(typeof(string), reader.GetFieldType(ordinal));
+        }
+    }
+
+    [Theory]
+    [InlineData("256", "32768", "2147483648")]
+    [InlineData("-1", "-32769", "-2147483649")]
+    [InlineData("1.5", "1.5", "1.5")]
+    [InlineData("NaN", "Infinity", "-Infinity")]
+    public void FailedNarrowIntegerParsingMatchesTextGetterErrors(
+        string byteText, string int16Text, string int32Text) {
+        string csv = "Byte,Int16,Int32\n" + byteText + "," + int16Text + "," + int32Text + "\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        using var reader = CsvDocument.OpenDataReader(stream);
+        using var textReader = CsvDocument.OpenTextDataReader(csv);
+
+        Assert.True(reader.Read());
+        Assert.True(textReader.Read());
+        for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
+            Assert.True(reader.TryGetUtf8Text(ordinal, out _));
+            Assert.False(textReader.TryGetUtf8Text(ordinal, out _));
+        }
+
+        Assert.Throws<InvalidCastException>(() => textReader.GetByte(0));
+        Assert.Throws<InvalidCastException>(() => reader.GetByte(0));
+        Assert.Throws<InvalidCastException>(() => textReader.GetInt16(1));
+        Assert.Throws<InvalidCastException>(() => reader.GetInt16(1));
+        Assert.Throws<InvalidCastException>(() => textReader.GetInt32(2));
+        Assert.Throws<InvalidCastException>(() => reader.GetInt32(2));
+        Assert.Equal(byteText, reader.GetString(0));
+        Assert.Equal(int16Text, reader.GetString(1));
+        Assert.Equal(int32Text, reader.GetString(2));
+    }
+
+    [Theory]
+    [InlineData("NaN", float.NaN)]
+    [InlineData("Infinity", float.PositiveInfinity)]
+    [InlineData("-Infinity", float.NegativeInfinity)]
+    [InlineData("1e3", 1000f)]
+    public void FloatSpecialValuesAndExponentMatchTextParsing(string text, float expected) {
+        string csv = "Value\n" + text + "\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        using var reader = CsvDocument.OpenDataReader(stream);
+        using var textReader = CsvDocument.OpenTextDataReader(csv);
+
+        Assert.True(reader.Read());
+        Assert.True(textReader.Read());
+        Assert.True(reader.TryGetUtf8Text(0, out _));
+        Assert.False(textReader.TryGetUtf8Text(0, out _));
+        Assert.Equal(expected, textReader.GetFloat(0));
+        Assert.Equal(textReader.GetFloat(0), reader.GetFloat(0));
+        Assert.Equal(text, reader.GetString(0));
+    }
+
+    [Fact]
+    public void FloatConfiguredSymbolsMatchTextParsing() {
+        var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+        culture.NumberFormat.NaNSymbol = "NA";
+        culture.NumberFormat.PositiveInfinitySymbol = "\u221e";
+        culture.NumberFormat.NegativeInfinitySymbol = "-\u221e";
+        var options = new CsvLoadOptions { Culture = culture };
+        const string csv = "Value\nNA\n\u221e\n-\u221e\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        using var reader = CsvDocument.OpenDataReader(stream, options);
+        using var textReader = CsvDocument.OpenTextDataReader(csv, options);
+
+        foreach (float expected in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity }) {
+            Assert.True(reader.Read());
+            Assert.True(textReader.Read());
+            Assert.True(reader.TryGetUtf8Text(0, out _));
+            Assert.False(textReader.TryGetUtf8Text(0, out _));
+            Assert.Equal(expected, textReader.GetFloat(0));
+            Assert.Equal(textReader.GetFloat(0), reader.GetFloat(0));
+            Assert.Equal(textReader.GetString(0), reader.GetString(0));
+        }
+        Assert.False(reader.Read());
+        Assert.False(textReader.Read());
+    }
+
+    [Theory]
     [InlineData("", "9223372036854775807", long.MaxValue)]
     [InlineData("", "-9223372036854775808", long.MinValue)]
     [InlineData("", "9007199254740993", 9007199254740993L)]
