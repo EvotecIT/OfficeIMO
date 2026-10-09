@@ -605,18 +605,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         Path.GetDirectoryName(path)!,
         Path.GetFileNameWithoutExtension(path) + " (" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")" + Path.GetExtension(path));
 
-    private static void AddPdfWarnings(IEnumerable<PdfConversionWarning> warnings, List<OfficeWorkflowDiagnostic> diagnostics) {
-        foreach (PdfConversionWarning warning in warnings) {
-            diagnostics.Add(new OfficeWorkflowDiagnostic(
-                warning.Code,
-                warning.Message,
-                warning.Severity == PdfConversionWarningSeverity.Information
-                    ? OfficeWorkflowDiagnosticSeverity.Information
-                    : warning.Severity == PdfConversionWarningSeverity.Error ? OfficeWorkflowDiagnosticSeverity.Error : OfficeWorkflowDiagnosticSeverity.Warning,
-                "convert", new Dictionary<string, string> { ["source"] = warning.Source, ["lossKind"] = warning.LossKind.ToString(), ["converter"] = warning.Converter }));
-        }
-    }
-
     private static void AddMessages(IEnumerable<string> warnings, bool hasLoss, List<OfficeWorkflowDiagnostic> diagnostics) {
         foreach (string warning in warnings) {
             diagnostics.Add(new OfficeWorkflowDiagnostic(

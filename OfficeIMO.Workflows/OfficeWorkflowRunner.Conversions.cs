@@ -84,19 +84,20 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] bytes;
         bool hasLoss = false;
         OfficeWorkflowConversionEvidence? evidence = null;
+        HashSet<string>? importDiagnosticSources = null;
         switch (route.Id) {
             case "publisher-pdf": {
-                (bytes, evidence) = ConvertPublisher(request, input, settings, diagnostics, cancellationToken);
+                (bytes, evidence) = ConvertPublisher(request, input, settings, cancellationToken);
                 hasLoss = evidence.HasLoss;
                 break;
             }
             case "visio-pdf": {
-                (bytes, evidence) = ConvertVisio(request, input, settings, diagnostics, cancellationToken);
+                (bytes, evidence) = ConvertVisio(request, input, settings, cancellationToken);
                 hasLoss = evidence.HasLoss;
                 break;
             }
             case "odg-pdf": {
-                (bytes, evidence) = ConvertDraw(request, input, settings, diagnostics, cancellationToken);
+                (bytes, evidence) = ConvertDraw(request, input, settings, cancellationToken);
                 hasLoss = evidence.HasLoss;
                 break;
             }
@@ -122,19 +123,14 @@ public sealed partial class OfficeWorkflowRunner {
                     }, lossPolicy: settings.LegacyDocLossPolicy, cancellationToken: cancellationToken);
                 (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
-                foreach (IOfficeConversionReport report in conversion.SourceConversionReports)
-                    foreach (OfficeConversionFidelityDiagnostic finding in report.FidelityDiagnostics)
-                        diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
-                            finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
-                            "import", new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() }));
+                importDiagnosticSources = new HashSet<string>(conversion.SourceConversionReports
+                    .SelectMany(report => report.FidelityDiagnostics).Select(finding => finding.Source), StringComparer.Ordinal);
                 break;
             }
             case "txt-pdf": {
                 PdfDocumentConversionResult conversion = PdfPlainTextConverter.ToPdfDocumentResult(input, settings.PlainText, cancellationToken);
                 (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "docx-pdf":
@@ -147,7 +143,6 @@ public sealed partial class OfficeWorkflowRunner {
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
-                    AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
                 break;
             case "xlsx-pdf":
@@ -160,7 +155,6 @@ public sealed partial class OfficeWorkflowRunner {
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
-                    AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
                 break;
             case "pptx-pdf":
@@ -172,7 +166,6 @@ public sealed partial class OfficeWorkflowRunner {
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options, cancellationToken);
                     (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
-                    AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
                 break;
             case "html-pdf": {
@@ -190,7 +183,6 @@ public sealed partial class OfficeWorkflowRunner {
                     .GetResult();
                 (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "markdown-pdf": {
@@ -201,7 +193,6 @@ public sealed partial class OfficeWorkflowRunner {
                     .ToPdfDocumentResult(options, cancellationToken);
                 (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "rtf-pdf": {
@@ -215,7 +206,6 @@ public sealed partial class OfficeWorkflowRunner {
                 PdfDocumentConversionResult conversion = imported.Document.ToPdfDocumentResult(settings.Rtf, cancellationToken);
                 (bytes, evidence) = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss || imported.Diagnostics.Any(finding => finding.Severity != OfficeIMO.Rtf.Diagnostics.RtfDiagnosticSeverity.Info);
-                AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
             }
             case "pdf-docx": {
@@ -290,6 +280,10 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         try {
+            if (evidence != null) {
+                AddConversionDiagnostics(evidence, diagnostics, importDiagnosticSources);
+                hasLoss |= evidence.HasLoss;
+            }
             if (settings.CompressPdfOutput) {
                 PdfOptimizationOptions compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
                 compression.KeepOriginalWhenNotSmaller = true;
@@ -333,6 +327,18 @@ public sealed partial class OfficeWorkflowRunner {
             throw new WorkflowConversionFailureException(exception, evidence, diagnosticsAdded: true);
         }
 
+    }
+
+    private static void AddConversionDiagnostics(OfficeWorkflowConversionEvidence evidence, List<OfficeWorkflowDiagnostic> diagnostics,
+        ISet<string>? importDiagnosticSources = null) {
+        foreach (OfficeConversionFidelityDiagnostic finding in evidence.FidelityDiagnostics) {
+            var details = new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() };
+            if (finding.Location != null) details["location"] = finding.Location;
+            diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
+                finding.LossKind == OfficeConversionLossKind.Failure ? OfficeWorkflowDiagnosticSeverity.Error
+                    : finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
+                importDiagnosticSources?.Contains(finding.Source) == true ? "import" : "convert", details));
+        }
     }
 
     private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializePdfConversion(PdfDocumentConversionResult conversion, long maximumOutputBytes,
