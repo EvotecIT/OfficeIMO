@@ -225,6 +225,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
         ICollection<HtmlInlineRun> runs) {
+        CheckCancellation();
+        ChargeLayoutOperation("inline node traversal");
         if (IsClosedDisclosureChild(node)) return;
         if (depth > _options.MaxLayoutDepth) {
             if (node is IElement limitedElement) EnsureDepth(depth, limitedElement);
@@ -408,6 +410,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? new List<HtmlInlineRun>()
             : null;
         ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        HtmlInlineEdgeScope? inlineEdgeScope = !IsReplacedImageElementTag(tag) && tag != "math"
+            ? ResolveInlineEdgeScope(element, style, inheritedStyle, paintOffsetX) : null;
+        if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, true, link, paintOffsetX, paintOffsetY));
         AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
@@ -433,6 +438,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
         AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
+        if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, false, link, paintOffsetX, paintOffsetY));
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
 
@@ -631,6 +637,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PagedFloatBoundary? pageBoundary = null,
         IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null) {
         AssignLogicalTextOrders(runs);
+        PrepareInlineEdgeScopes(runs);
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
         if (runs.Any(run => run.FloatingBlock != null) || inheritedFloats?.Count > 0) {
             return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer, pageBoundary, inheritedFloats);
@@ -653,6 +660,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool noWrapRangeStartedAfterContent = false;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
+            if (ProcessInlineEdgeBoundary(run, line)) continue;
             bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;
             if (!runPreventsWrapping && noWrapRangeStart >= 0) {
                 previousWasCollapsibleSpace = FinalizeNoWrapRange(
@@ -690,7 +698,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!paragraphStyle.PreventTextWrapping
                     && !runPreventsWrapping
                     && line.HasFlowContent
-                    && line.Width + atomicWidth > width + 0.0001D) {
+                    && line.PreviewAdvance(run, atomicWidth) > width + 0.0001D) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -705,6 +713,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     if (noWrapRangeStart >= 0) {
@@ -753,16 +762,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (skipLogicalCharacters > tokenStart) {
                     int skipWithinToken = skipLogicalCharacters - tokenStart;
                     if (skipWithinToken >= normalizedLogicalToken.Length) {
+                        MarkSkippedInlineEdges(run);
                         continue;
                     }
                     normalizedToken = normalizedToken.Substring(skipWithinToken);
+                    MarkSkippedInlineEdges(run);
                     normalizedLogicalToken = normalizedLogicalToken.Substring(skipWithinToken);
                     visibleTokenStart += skipWithinToken;
                     whitespace = IsWhitespaceToken(normalizedToken);
                 }
 
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
-                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
+                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.PreviewContentStart(run)) : 0D;
                 string paintToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
                 HyphenationToken hyphenation = run.PreparedHyphenation.HasValue
                     ? run.PreparedHyphenation.Value.SliceSource(
@@ -784,7 +795,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping
                     && !whitespace
                     && run.Style.WordBreak != "break-all"
-                    && measured > Math.Max(0D, width - line.Width) + 0.0001D
+                    && measured > Math.Max(0D, width - line.PreviewAdvance(run, 0D)) + 0.0001D
                     && TryAddHyphenatedToken(
                         lines,
                         ref line,
@@ -798,7 +809,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (!preventTokenWrapping
                     && !whitespace
-                    && measured > Math.Max(0D, width - line.Width) + 0.0001D
+                    && measured > Math.Max(0D, width - line.PreviewAdvance(run, 0D)) + 0.0001D
                     && TryAddPreferredBreakToken(
                         lines,
                         ref line,
@@ -812,11 +823,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
-                    && measured > Math.Max(0D, width - line.Width) + 0.0001D;
+                    && measured > Math.Max(0D, width - line.PreviewAdvance(run, 0D)) + 0.0001D;
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
-                    && (measured > width + 0.0001D || breakAllIntoRemainingSpace)) {
+                    && (InlineLine.PreviewEmptyLineAdvance(run, measured) > width + 0.0001D || breakAllIntoRemainingSpace)) {
                     if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                         TrimTrailingWhitespace(line);
                         lines.Add(line);
@@ -826,7 +837,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > width + 0.0001D) {
+                if (!preventTokenWrapping && line.HasFlowContent && line.PreviewAdvance(run, measured) > width + 0.0001D) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -1019,7 +1030,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (run.Style.HyphenateLimitLast == "always"
             && isFinalContentToken
             && line.HasFlowContent
-            && MeasureInlineText(token.PaintText, run.Style) <= width + 0.0001D) {
+            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style)) <= width + 0.0001D) {
             TrimTrailingWhitespace(line);
             lines.Add(line);
             line = new InlineLine();
@@ -1040,12 +1051,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int start = 0;
         while (start < token.PaintText.Length) {
-            double available = Math.Max(0D, width - line.Width);
+            double available = Math.Max(0D, width - line.PreviewAdvance(run, 0D, false));
             bool hyphenationAllowed = !run.Style.HyphenateLimitLines.HasValue
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
             bool selectedIsBreak = false;
-            if (MeasureInlineText(token.PaintText.Substring(start), run.Style) <= available + 0.0001D) {
+            if (line.PreviewAdvance(run, MeasureInlineText(token.PaintText.Substring(start), run.Style)) <= width + 0.0001D) {
                 selectedEnd = token.PaintText.Length;
             } else if (hyphenationAllowed) {
                 selectedEnd = SelectHyphenationBreak(token.PrimaryBreaks, token.PaintText, start, available, run.Style);
@@ -1142,17 +1153,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
-            if (chunkWidth > width + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
+            bool completesToken = end == paintToken.Length;
+            if (InlineLine.PreviewEmptyLineAdvance(run, chunkWidth, completesToken) > width + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
                 if (start == 0 && followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
                 }
-                AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start);
+                AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start, completesToken);
                 start = end;
                 continue;
             }
-            if (line.HasFlowContent && line.Width + chunkWidth > width + 0.0001D) {
+            if (line.HasFlowContent && line.PreviewAdvance(run, chunkWidth, end == paintToken.Length) > width + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1180,7 +1192,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (value.IndexOf('\t') < 0) return MeasureInlineText(value, style);
         double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", style));
         double stopWidth = style.TabSizeIsLength ? style.TabSize : style.TabSize * spaceWidth;
-        double cursor = Math.Max(0D, currentWidth);
+        double cursor = currentWidth;
         foreach (char character in value) {
             if (character != '\t') {
                 cursor += MeasureInlineText(character.ToString(), style);
@@ -1190,7 +1202,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double nextStop = (Math.Floor(cursor / stopWidth) + 1D) * stopWidth;
             cursor = nextStop;
         }
-        return Math.Max(0D, cursor - Math.Max(0D, currentWidth));
+        return Math.Max(0D, cursor - currentWidth);
     }
 
     private void AddTabExpandedSegments(
@@ -1219,8 +1231,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             double tabWidth = 0D;
             if (stopWidth > 0D) {
-                double nextStop = (Math.Floor(line.Width / stopWidth) + 1D) * stopWidth;
-                tabWidth = Math.Max(0D, nextStop - line.Width);
+                double textStart = line.PreviewContentStart(run);
+                double nextStop = (Math.Floor(textStart / stopWidth) + 1D) * stopWidth;
+                tabWidth = Math.Max(0D, nextStop - textStart);
             }
             string logicalTab = logicalText.Substring(index, 1);
             logicalProgress += logicalTab.Length;
@@ -1329,7 +1342,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     previous.Width + segment.Width,
                     previous.Run,
                     previous.LogicalText + segment.LogicalText,
-                    logicalEndProgress: segment.LogicalEndProgress);
+                    logicalEndProgress: segment.LogicalEndProgress) {
+                    LeadingAdvance = previous.LeadingAdvance + segment.LeadingAdvance,
+                    TrailingAdvance = previous.TrailingAdvance + segment.TrailingAdvance
+                };
             } else {
                 merged.Add(segment);
             }
@@ -1345,19 +1361,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string token,
         string logicalToken,
         double width,
-        int logicalStartProgress) {
+        int logicalStartProgress,
+        bool completesToken = true) {
         var part = new StringBuilder();
         var logicalPart = new StringBuilder();
         double partWidth = 0D;
         int partLogicalLength = 0;
         IReadOnlyList<string> paintElements = OfficeTextElements.Split(token);
         IReadOnlyList<string> logicalElements = OfficeTextElements.Split(logicalToken);
-        double partLimit = line.HasFlowContent ? Math.Max(0D, width - line.Width) : width;
         for (int index = 0; index < paintElements.Count; index++) {
             string value = paintElements[index];
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
             double charWidth = MeasureInlineText(value, run.Style);
-            if (part.Length > 0 && partWidth + charWidth > partLimit) {
+            bool completesPiece = completesToken && index == paintElements.Count - 1;
+            if (part.Length > 0 && line.PreviewAdvance(run, partWidth + charWidth, completesPiece) > width + 0.0001D) {
                 line.Add(new InlineSegment(
                     part.ToString(),
                     partWidth,
@@ -1369,12 +1386,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 part.Clear();
                 logicalPart.Clear();
                 partWidth = 0D;
-                partLimit = width;
-            } else if (part.Length == 0 && line.HasFlowContent && charWidth > partLimit) {
+            } else if (part.Length == 0 && line.HasFlowContent && line.PreviewAdvance(run, charWidth, completesPiece) > width + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
-                partLimit = width;
             }
 
             part.Append(value);
@@ -1384,7 +1399,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (part.Length > 0) {
-            if (line.HasFlowContent && line.Width + partWidth > width + 0.0001D) {
+            if (line.HasFlowContent && line.PreviewAdvance(run, partWidth, completesToken) > width + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1603,7 +1618,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width) {
         if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > width + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
-            while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart);
+            while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
             TrimTrailingWhitespace(line);
             if (line.Segments.Count > 0) lines.Add(line);
             line = new InlineLine();
@@ -1690,6 +1705,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string Text { get; }
         internal string LogicalText { get; }
         internal double Width { get; private set; }
+        internal double LeadingAdvance { get; set; }
+        internal double TrailingAdvance { get; set; }
+        internal double Advance => LeadingAdvance + Width + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal int LogicalEndProgress { get; }

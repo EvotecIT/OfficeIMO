@@ -115,14 +115,15 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (computed == null) return false;
         HtmlComputedStyle physical = PhysicalizeLogicalProperties(computed, "horizontal-tb",
             computed.GetValue("direction") == "rtl" ? "rtl" : "ltr");
-        // Inline decoration paint expands around text, but line layout does not
-        // reserve these edges yet. Measuring them alone can cause false wrapping.
         foreach (string property in new[] { "margin-left", "margin-right", "padding-left", "padding-right" }) {
             string value = physical.GetValue(property).Trim();
             if (value.IndexOf('%') >= 0 && value != "0%") return true;
         }
-        var edges = new HtmlRenderBoxStyle();
-        ApplyBoxValues(physical, 1D, _rootFontSize, edges);
-        return edges.HorizontalInsets > 0D || edges.MarginLeft != 0D || edges.MarginRight != 0D;
+        if (physical.GetValue("direction") == "rtl") {
+            var edges = new HtmlRenderBoxStyle();
+            ApplyBoxValues(physical, 1D, _rootFontSize, edges);
+            return edges.HorizontalInsets > 0D || edges.MarginLeft != 0D || edges.MarginRight != 0D;
+        }
+        return false;
     }
 }

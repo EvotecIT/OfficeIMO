@@ -7,26 +7,47 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureMinContentRuns(IReadOnlyList<IntrinsicTextRun> runs) {
         double maximum = 1D;
         double current = 0D;
+        bool pendingAtomicBreak = false;
+        var cloned = new List<(HtmlRenderBoxStyle Style, double Start, double End)>();
+        var ends = new Dictionary<HtmlRenderBoxStyle, double>();
+        foreach (IntrinsicTextRun edge in runs.Where(run => run.IsInlineInset && run.IsInlineInsetEnd)) {
+            ends[edge.Style] = edge.ReplacedWidth;
+        }
+        void FinishSegment() {
+            maximum = Math.Max(maximum, current + cloned.Sum(edge => edge.End));
+            current = cloned.Sum(edge => edge.Start);
+            pendingAtomicBreak = false;
+        }
         foreach (IntrinsicTextRun run in runs) {
-            if (run.IsForcedBreak) {
-                maximum = Math.Max(maximum, current);
-                current = 0D;
+            if (run.IsInlineInset) {
+                if (!run.IsInlineInsetEnd && pendingAtomicBreak) FinishSegment();
+                current += run.ReplacedMinWidth;
+                if (run.Style.BoxDecorationBreak == "clone") {
+                    if (run.IsInlineInsetEnd) {
+                        cloned.RemoveAll(edge => ReferenceEquals(edge.Style, run.Style));
+                    } else {
+                        ends.TryGetValue(run.Style, out double trailing);
+                        cloned.Add((run.Style, run.ReplacedWidth, trailing));
+                    }
+                }
                 continue;
             }
+            if (run.IsForcedBreak) {
+                FinishSegment();
+                continue;
+            }
+            if (pendingAtomicBreak) FinishSegment();
             if (run.IsReplaced) {
                 current += run.ReplacedMinWidth;
-                maximum = Math.Max(maximum, current);
-                if (!run.Style.PreventTextWrapping && !run.IsInlineInset) current = 0D;
+                pendingAtomicBreak = !run.Style.PreventTextWrapping;
                 continue;
             }
             if (run.Style.PreventTextWrapping) {
                 current += run.Text.IndexOf('\t') >= 0
                     ? MeasureTabExpandedText(run.Text, run.Style, current)
                     : MeasureInlineText(run.Text, run.Style);
-                maximum = Math.Max(maximum, current);
                 continue;
             }
-
             int start = 0;
             for (int index = 0; index <= run.Text.Length; index++) {
                 bool atEnd = index == run.Text.Length;
@@ -35,38 +56,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     string token = run.Text.Substring(start, index - start);
                     bool breakEverywhere = run.Style.WordBreak == "break-all" || run.Style.OverflowWrap == "anywhere";
                     if (breakEverywhere) {
-                        foreach (string element in OfficeTextElements.Split(token)) {
-                            current += MeasureInlineText(element, run.Style);
-                            maximum = Math.Max(maximum, current);
-                            current = 0D;
+                        IReadOnlyList<string> elements = OfficeTextElements.Split(token);
+                        for (int part = 0; part < elements.Count; part++) {
+                            current += MeasureInlineText(elements[part], run.Style);
+                            if (part < elements.Count - 1) FinishSegment();
                         }
                     } else {
                         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
                         string paintToken = hyphenation.PaintText;
                         var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
-                        IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(
-                            paintToken,
-                            run.Style.WordBreak != "keep-all");
+                        IReadOnlyList<int> preferredBreaks = GetHtmlPreferredBreakPositions(paintToken, run.Style.WordBreak != "keep-all");
                         int segmentStart = 0;
                         foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
                             if (end <= segmentStart || end > paintToken.Length) continue;
                             string segment = paintToken.Substring(segmentStart, end - segmentStart);
                             if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
                             current += MeasureInlineText(segment, run.Style);
-                            maximum = Math.Max(maximum, current);
-                            current = 0D;
+                            FinishSegment();
                             segmentStart = end;
                         }
                         if (segmentStart < paintToken.Length) current += MeasureInlineText(paintToken.Substring(segmentStart), run.Style);
-                        maximum = Math.Max(maximum, current);
                     }
                 }
                 if (!atEnd) {
-                    if (run.Style.BreakSpaces) {
-                        current += MeasureInlineText(run.Text[index].ToString(), run.Style);
-                    }
-                    maximum = Math.Max(maximum, current);
-                    current = 0D;
+                    if (run.Style.BreakSpaces) current += MeasureInlineText(run.Text[index].ToString(), run.Style);
+                    FinishSegment();
                     start = index + 1;
                 }
             }
@@ -313,14 +327,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 result.Add(IntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));
             } else {
                 double leadingInset = includeDescendantInsets && childStyle.Display != "contents"
-                    ? Math.Max(0D, childStyle.BorderLeftWidth + childStyle.PaddingLeft + childStyle.MarginLeft)
+                    ? childStyle.BorderLeftWidth + childStyle.PaddingLeft + childStyle.MarginLeft
                     : 0D;
                 double trailingInset = includeDescendantInsets && childStyle.Display != "contents"
-                    ? Math.Max(0D, childStyle.BorderRightWidth + childStyle.PaddingRight + childStyle.MarginRight)
+                    ? childStyle.BorderRightWidth + childStyle.PaddingRight + childStyle.MarginRight
                     : 0D;
-                if (leadingInset > 0D) result.Add(IntrinsicTextRun.InlineInset(leadingInset, childStyle));
+                if (leadingInset != 0D || trailingInset != 0D) result.Add(IntrinsicTextRun.InlineInset(leadingInset, childStyle));
                 AppendInFlowIntrinsicTextRuns(child, childStyle, availableSize, depth + 1, result, skipSizedNestedTables, includeDescendantInsets);
-                if (trailingInset > 0D) result.Add(IntrinsicTextRun.InlineInset(trailingInset, childStyle));
+                if (leadingInset != 0D || trailingInset != 0D) result.Add(IntrinsicTextRun.InlineInset(trailingInset, childStyle, closing: true));
             }
             if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
         }
@@ -353,12 +367,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class IntrinsicTextRun {
-        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false) {
+        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false, bool isInlineInsetEnd = false) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
             IsReplaced = isReplaced;
             IsInlineInset = isInlineInset;
+            IsInlineInsetEnd = isInlineInsetEnd;
             ReplacedWidth = replacedWidth;
             ReplacedMinWidth = replacedMinWidth ?? replacedWidth;
         }
@@ -367,14 +382,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal static IntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
         internal static IntrinsicTextRun Replaced(double minimum, double maximum, HtmlRenderBoxStyle style) =>
             new(string.Empty, style, isReplaced: true, replacedWidth: maximum, replacedMinWidth: minimum);
-        internal static IntrinsicTextRun InlineInset(double width, HtmlRenderBoxStyle style) =>
-            new(string.Empty, style, isReplaced: true, replacedWidth: width, isInlineInset: true);
+        internal static IntrinsicTextRun InlineInset(double width, HtmlRenderBoxStyle style, bool closing = false) =>
+            new(string.Empty, style, isReplaced: true, replacedWidth: width, isInlineInset: true, isInlineInsetEnd: closing);
 
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsReplaced { get; }
         internal bool IsInlineInset { get; }
+        internal bool IsInlineInsetEnd { get; }
         internal double ReplacedWidth { get; }
         internal double ReplacedMinWidth { get; }
     }
