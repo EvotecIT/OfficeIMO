@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -41,7 +41,11 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
     .RunAsync(runner, cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `Draw`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+
+Draw conversion uses original page sizes and print-visible layers, including blank pages. `ConversionOptions.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `ConversionOptions.RequireNoLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
+
+`OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX and Draw conversions, including Office inputs normalized during PDF assembly. Its default is 10 MiB. `OfficeConversionBatchRequest` exposes the same setting per document; both APIs capture it before asynchronous source access.
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share
@@ -1514,7 +1518,7 @@ HTML and enabled local Markdown resources are conservatively fingerprinted withi
 
 Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1–32. `MaximumFiles` bounds discovered files, including skipped files, and defaults to one million. Discovery beyond this bound stops the run while preserving completed output. These are configurable resource bounds, not throughput guarantees. TXT defaults to strict BOM-aware decoding, literal markup, tab expansion and bounded wrapping; `PlainText` carries its encoding and layout limits. Legacy DOC import loss blocks output unless `LegacyDocLossPolicy = OfficeConversionLossPolicy.Allow` accepts reported reductions.
 
-`IProgress<OfficeConversionBatchItemResult>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics and report truncation. A host can supply `publicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
+`IProgress<OfficeConversionBatchItemResult>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics, including source, loss kind and location, and report truncation. Changing the XML-part budget invalidates reuse for routes governed by that budget; existing artifacts remain protected. A host can supply `publicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
 
 Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...` or selected file pipelines on PowerShell 7.4 or newer.
 

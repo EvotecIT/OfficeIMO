@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 278,
-    "productionComponentCount": 138,
+    "projectCount": 279,
+    "productionComponentCount": 139,
     "testProjectCount": 54,
     "benchmarkProjectCount": 35,
     "validationProjectCount": 52,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54048
+    "conceptualWordCount": 54105
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 30,
       "componentIndexes": [
-        85,
         86,
         87,
         88,
@@ -45,12 +44,13 @@
         111,
         112,
         113,
-        114
+        114,
+        115
       ]
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 17,
+      "componentCount": 18,
       "componentIndexes": [
         14,
         20,
@@ -67,8 +67,9 @@
         71,
         72,
         73,
-        123,
-        124
+        74,
+        124,
+        125
       ]
     },
     {
@@ -86,9 +87,9 @@
         63,
         64,
         65,
-        84,
-        118,
-        137
+        85,
+        119,
+        138
       ]
     },
     {
@@ -112,20 +113,20 @@
         29,
         30,
         31,
-        77,
         78,
         79,
         80,
         81,
         82,
-        125,
+        83,
         126,
         127,
         128,
         129,
         130,
         131,
-        132
+        132,
+        133
       ]
     },
     {
@@ -152,11 +153,11 @@
         51,
         52,
         53,
-        75,
         76,
-        115,
+        77,
         116,
-        117
+        117,
+        118
       ]
     },
     {
@@ -186,16 +187,16 @@
         17,
         61,
         62,
-        74,
-        83,
-        119,
+        75,
+        84,
         120,
         121,
         122,
-        133,
+        123,
         134,
         135,
-        136
+        136,
+        137
       ]
     }
   ],
@@ -376,7 +377,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 909,
+      "sourceFileCount": 1007,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -1114,14 +1115,27 @@
       "name": "OfficeIMO.OpenDocument",
       "packageId": "OfficeIMO.OpenDocument",
       "category": "Formats and interoperability",
-      "description": "Native OpenDocument ODT, ODS, and ODP reader, writer, and preservation-aware document model for .NET.",
+      "description": "Native OpenDocument ODT, ODS, ODP, and ODG reader, writer, and preservation-aware document model for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj",
-      "sourceFileCount": 129,
+      "sourceFileCount": 242,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/open-document/",
       "apiUrl": "/api/open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument"
+    },
+    {
+      "name": "OfficeIMO.OpenDocument.Odg.Pdf",
+      "packageId": "OfficeIMO.OpenDocument.Odg.Pdf",
+      "category": "Formats and interoperability",
+      "description": "First-party loss-aware OpenDocument drawing to PDF conversion for OfficeIMO.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.OpenDocument.Odg.Pdf/OfficeIMO.OpenDocument.Odg.Pdf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/open-document/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odg.Pdf"
     },
     {
       "name": "OfficeIMO.OpenDocument.Odp.Pdf",
@@ -1182,7 +1196,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1354,
+      "sourceFileCount": 1367,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1260,7 +1274,7 @@
       "description": "Explicit ODP and PowerPoint conversion adapter with feature-mapping reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint.OpenDocument/OfficeIMO.PowerPoint.OpenDocument.csproj",
-      "sourceFileCount": 10,
+      "sourceFileCount": 11,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/power-point-open-document/",
@@ -1533,7 +1547,7 @@
       "description": "Native ODT, ODS, and ODP adapter for OfficeIMO.Reader modular ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.OpenDocument/OfficeIMO.Reader.OpenDocument.csproj",
-      "sourceFileCount": 6,
+      "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-open-document/",
@@ -1611,7 +1625,7 @@
       "description": "Visio adapter for OfficeIMO.Reader using OfficeIMO.Visio inspection snapshots.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-visio/",
@@ -1793,7 +1807,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 52,
+      "sourceFileCount": 53,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1806,7 +1820,7 @@
       "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft Visio documents.",
       "kind": "package",
       "projectPath": "OfficeIMO.Visio/OfficeIMO.Visio.csproj",
-      "sourceFileCount": 356,
+      "sourceFileCount": 440,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio/",
@@ -1819,7 +1833,7 @@
       "description": "First-party loss-aware Visio to PDF conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
-      "sourceFileCount": 3,
+      "sourceFileCount": 4,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/visio/",
       "apiUrl": "/api/visio-pdf/",
@@ -1832,7 +1846,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 757,
+      "sourceFileCount": 761,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1910,7 +1924,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 85,
+      "sourceFileCount": 86,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",
@@ -1936,7 +1950,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 198,
+      "sourceFileCount": 200,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",

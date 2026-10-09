@@ -205,7 +205,8 @@ public sealed class OfficeWorkflowBuilder {
             ComparisonPdfPassword = _request.ComparisonPdfPassword,
             Limits = new OfficeWorkflowLimits {
                 MaximumInputBytes = limits.MaximumInputBytes,
-                MaximumOutputBytes = limits.MaximumOutputBytes
+                MaximumOutputBytes = limits.MaximumOutputBytes,
+                MaximumXmlCharactersInPart = limits.MaximumXmlCharactersInPart
             }
         };
     }

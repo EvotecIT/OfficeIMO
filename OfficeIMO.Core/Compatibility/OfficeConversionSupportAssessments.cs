@@ -130,9 +130,12 @@ internal static class OfficeConversionSupportAssessments {
         "mhtml-pdf" => Targeted(
             "Bounded archive fixtures verify MIME resource resolution, safe HTML projection, PDF output, and deterministic diagnostics.",
             "Scripts, remote execution, browser-only layout, malformed multipart edge cases, and advanced CSS are not a full browser/MHTML engine."),
+        "odg-pdf" => Targeted(
+            "Draw scene fixtures verify page dimensions, order, layer selection, searchable text, and page-qualified source and PDF diagnostics.",
+            "Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete."),
         "visio-pdf" => Targeted(
-            "Typed drawing fixtures verify supported pages, shapes, connectors, text, geometry, and fixed-layout diagnostics.",
-            "Advanced masters, data graphics, themes, layers, embedded objects, and exact Visio rendering remain incomplete."),
+            "Typed drawing fixtures verify searchable semantic text and topology, optional raster page previews, and explicit fallback diagnostics.",
+            "The output is a semantic report with optional raster previews; native Visio page layout and editable diagram rendering are not reproduced."),
         "docx-google-docs" or "google-docs-docx" => Established(
             "Native request/import fixtures verify run typography, paragraphs, tables, tabs, remote operation policies, and Drive fallback behavior without requiring live credentials.",
             "Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback."),

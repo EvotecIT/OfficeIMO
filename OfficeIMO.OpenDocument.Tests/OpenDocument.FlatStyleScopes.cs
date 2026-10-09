@@ -7,6 +7,110 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentFlatStyleScopeTests {
     [Fact]
+    public void CommonHeaderStyleRemainsDistinctFromBodyAutomaticStyleWithoutMutatingSource() {
+        var source = OdtDocument.Create(); var body = source.AddParagraph("Body"); body.Bold = true;
+        var header = source.PageLayout.Header.AddParagraph("Header"); header.Italic = true;
+        var automatic = source.GetXml("content.xml").Root!.Element(OdfNamespaces.Office + "automatic-styles")!
+            .Elements(OdfNamespaces.Style + "style").Single();
+        automatic.SetAttributeValue(OdfNamespaces.Style + "name", "Shared"); body.StyleName = "Shared";
+        var common = source.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "automatic-styles")!
+            .Elements(OdfNamespaces.Style + "style").Single();
+        common.Remove(); common.SetAttributeValue(OdfNamespaces.Style + "name", "Shared");
+        source.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!.Add(common,
+            new XElement(OdfNamespaces.Style + "style", new XAttribute(OdfNamespaces.Style + "name", "Shared_flatCommon1"),
+                new XAttribute(OdfNamespaces.Style + "family", "paragraph")));
+        header.StyleName = "Shared";
+        string[] before = new[] { "content.xml", "styles.xml" }.Select(part => source.GetXml(part).ToString()).ToArray();
+        XDocument flat = source.ToFlatXml();
+        Assert.Equal(before, new[] { "content.xml", "styles.xml" }.Select(part => source.GetXml(part).ToString()));
+        string? bodyName = (string?)flat.Root!.Element(OdfNamespaces.Office + "body")!.Descendants(OdfNamespaces.Text + "p").Single().Attribute(OdfNamespaces.Text + "style-name");
+        Assert.NotEqual("Shared", bodyName); Assert.NotEqual("Shared_flatCommon1", bodyName);
+        Assert.Equal("Shared", (string?)flat.Descendants(OdfNamespaces.Style + "header").Single().Element(OdfNamespaces.Text + "p")!.Attribute(OdfNamespaces.Text + "style-name"));
+        using var stream = new MemoryStream(); flat.Save(stream); stream.Position = 0;
+        var read = OdtDocument.LoadFlatXml(stream);
+        Assert.True(read.Paragraphs[0].Bold); Assert.NotEqual(true, read.Paragraphs[0].Italic);
+        Assert.True(read.PageLayout.Header.Paragraphs[0].Italic); Assert.NotEqual(true, read.PageLayout.Header.Paragraphs[0].Bold);
+    }
+
+    [Fact]
+    public void FlatMasterShapeNamesDoNotImportUnrelatedBodyDataStyles() {
+        var source = OdgDocument.Create(); var page = source.AddPage();
+        page.MasterShapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "Header", "BodyDate");
+        source.GetXml("content.xml").Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(
+            new XElement(OdfNamespaces.Number + "date-style", new XAttribute(OdfNamespaces.Style + "name", "BodyDate"), new XElement(OdfNamespaces.Number + "year")));
+        using var flat = new MemoryStream(); source.SaveFlatXml(flat); flat.Position = 0; var read = OdgDocument.LoadFlatXml(flat);
+        Assert.Null(read.Styles.FindDataStyle("BodyDate", "styles.xml")); Assert.NotNull(read.Styles.FindDataStyle("BodyDate"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FlatConditionalDataStyleTargetsStayCommonWhenAutomaticNamesCollide(bool automaticCondition) {
+        var source = ConditionalDataStyles(automaticCondition);
+        string[] before = new[] { "content.xml", "styles.xml" }.Select(part => source.GetXml(part).ToString()).ToArray();
+        XDocument flat = source.ToFlatXml();
+        XElement conditional = flat.Descendants(OdfNamespaces.Number + "date-style").Single(element =>
+            (string?)element.Attribute(OdfNamespaces.Style + "name") == "ConditionalDate");
+        Assert.Equal("TargetDate", (string?)conditional.Element(OdfNamespaces.Style + "map")!.Attribute(OdfNamespaces.Style + "apply-style-name"));
+        Assert.DoesNotContain(flat.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Elements(), element =>
+            (string?)element.Attribute(OdfNamespaces.Style + "name") == "TargetDate");
+        using var stream = new MemoryStream(); flat.Save(stream); stream.Position = 0;
+        var read = OdgDocument.LoadFlatXml(stream);
+        AssertConditionalTarget(read, read.Pages[0]);
+        Assert.Equal(before, new[] { "content.xml", "styles.xml" }.Select(part => source.GetXml(part).ToString()));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImportedConditionalDataStyleTargetsStayCommonWhenAutomaticNamesCollide(bool automaticCondition) {
+        var source = ConditionalDataStyles(automaticCondition);
+        string[] before = new[] { "content.xml", "styles.xml" }.Select(part => source.GetXml(part).ToString()).ToArray();
+        var destination = OdgDocument.Create();
+        AssertConditionalTarget(destination, destination.ImportPage(source, 0));
+        Assert.Equal(before, new[] { "content.xml", "styles.xml" }.Select(part => source.GetXml(part).ToString()));
+    }
+
+    [Fact]
+    public void ImportRejectsAnAutomaticOnlyConditionalTargetWithoutChangingDestination() {
+        var source = ConditionalDataStyles(false);
+        source.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!.Elements(OdfNamespaces.Number + "date-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == "TargetDate").Remove();
+        var destination = OdgDocument.Create(); destination.AddPage("Existing");
+        string[] before = new[] { "content.xml", "styles.xml" }.Select(part => destination.GetXml(part).ToString()).ToArray();
+        Assert.Throws<InvalidDataException>(() => destination.ImportPage(source, 0));
+        Assert.Equal(before, new[] { "content.xml", "styles.xml" }.Select(part => destination.GetXml(part).ToString()));
+        Assert.Single(destination.Pages);
+    }
+
+    private static OdgDocument ConditionalDataStyles(bool automaticCondition) {
+        var source = OdgDocument.Create(); var page = source.AddPage();
+        var paragraph = page.Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "").Paragraphs[0];
+        paragraph.AddField(OdfTextFieldKind.Date, "conditional-cache").DataStyleName = "ConditionalDate";
+        paragraph.AddField(OdfTextFieldKind.Date, "automatic-cache").DataStyleName = "TargetDate";
+        XElement common = source.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!;
+        common.Add(new XElement(OdfNamespaces.Number + "date-style", new XAttribute(OdfNamespaces.Style + "name", "TargetDate"), new XElement(OdfNamespaces.Number + "year")));
+        foreach (string part in new[] { "content.xml", "styles.xml" })
+            source.GetXml(part).Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(
+                new XElement(OdfNamespaces.Number + "date-style", new XAttribute(OdfNamespaces.Style + "name", "TargetDate"), new XElement(OdfNamespaces.Number + "day")));
+        (automaticCondition ? source.GetXml("content.xml").Root!.Element(OdfNamespaces.Office + "automatic-styles")! : common).Add(
+            new XElement(OdfNamespaces.Number + "date-style", new XAttribute(OdfNamespaces.Style + "name", "ConditionalDate"), new XElement(OdfNamespaces.Number + "month"),
+                new XElement(OdfNamespaces.Style + "map", new XAttribute(OdfNamespaces.Style + "condition", "value()>0"), new XAttribute(OdfNamespaces.Style + "apply-style-name", "TargetDate"))));
+        return source;
+    }
+
+    private static void AssertConditionalTarget(OdgDocument document, OdgPage page) {
+        var fields = page.Shapes[0].Paragraphs[0].Fields.ToArray();
+        OdfDataStyle conditional = document.Styles.FindDataStyle(fields[0].DataStyleName!)!;
+        string targetName = (string)conditional.Element.Element(OdfNamespaces.Style + "map")!.Attribute(OdfNamespaces.Style + "apply-style-name")!;
+        XElement target = document.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!.Elements(OdfNamespaces.Number + "date-style")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == targetName);
+        Assert.NotNull(target.Element(OdfNamespaces.Number + "year"));
+        Assert.NotNull(document.Styles.FindDataStyle(fields[1].DataStyleName!)!.Element.Element(OdfNamespaces.Number + "day"));
+        Assert.Equal(new[] { "conditional-cache", "automatic-cache" }, fields.Select(field => field.DisplayText));
+    }
+
+    [Fact]
     public void SharedFlatAutomaticStyleIsAvailableToBothBodyAndHeader() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph body = source.AddParagraph("Body");

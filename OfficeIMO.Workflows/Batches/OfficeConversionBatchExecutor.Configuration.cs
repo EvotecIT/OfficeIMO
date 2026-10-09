@@ -26,7 +26,8 @@ internal static partial class OfficeConversionBatchExecutor {
         using var hash = SHA256.Create();
         using (var stream = new CryptoStream(Stream.Null, hash, CryptoStreamMode.Write)) {
             JsonSerializer.Serialize(stream, new OfficeConversionRenderingConfiguration(routeId, settings.OutputProfile, options,
-                Environment.MachineName), ConfigurationContext.OfficeConversionRenderingConfiguration);
+                Environment.MachineName, routeId is "odg-pdf" or "docx-pdf" or "xlsx-pdf" or "pptx-pdf"
+                    ? settings.MaximumXmlCharactersInPart : 0), ConfigurationContext.OfficeConversionRenderingConfiguration);
             stream.FlushFinalBlock();
         }
         return Convert.ToHexString(hash.Hash!);

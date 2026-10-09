@@ -8935,6 +8935,20 @@
       "limitation":""
     },
     {
+      "id":"conversion:odg-pdf",
+      "packageId":"OfficeIMO.OpenDocument.Odg.Pdf",
+      "formatId":"ODG/FODG",
+      "targetFormatId":"PDF",
+      "capabilityId":"odg-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OdgDocument.Load(stream) or LoadFlatXml(stream), then ToPdfDocumentResult(options)",
+      "evidence":"Draw scene fixtures verify page dimensions, order, layer selection, searchable text, and page-qualified source and PDF diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".fodg",".odg"],
+      "limitation":"Uses the supported Draw-to-Drawing profile. Master artwork, page backgrounds, advanced graphic styles, embedded objects, metadata and exact native typography remain incomplete."
+    },
+    {
       "id":"conversion:odp-pdf",
       "packageId":"OfficeIMO.OpenDocument.Odp.Pdf",
       "formatId":"ODP",
@@ -15663,10 +15677,10 @@
       "operation":"Convert",
       "state":"Partial",
       "publicApi":"VisioDocument.Load(stream).ToPdfDocumentResult(options)",
-      "evidence":"Typed drawing fixtures verify supported pages, shapes, connectors, text, geometry, and fixed-layout diagnostics.",
+      "evidence":"Typed drawing fixtures verify searchable semantic text and topology, optional raster page previews, and explicit fallback diagnostics.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".vsdx"],
-      "limitation":"Advanced masters, data graphics, themes, layers, embedded objects, and exact Visio rendering remain incomplete."
+      "limitation":"The output is a semantic report with optional raster previews; native Visio page layout and editable diagram rendering are not reproduced."
     },
     {
       "id":"protection:doc-password:word:create",

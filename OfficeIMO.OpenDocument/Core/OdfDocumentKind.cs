@@ -7,5 +7,7 @@ public enum OdfDocumentKind {
     /// <summary>OpenDocument Spreadsheet (`.ods`).</summary>
     Spreadsheet,
     /// <summary>OpenDocument Presentation (`.odp`).</summary>
-    Presentation
+    Presentation,
+    /// <summary>OpenDocument Graphics (`.odg`).</summary>
+    Graphics
 }
