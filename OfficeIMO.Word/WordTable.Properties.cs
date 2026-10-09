@@ -260,18 +260,9 @@ namespace OfficeIMO.Word {
             try {
                 var row = cell.Parent as DocumentFormat.OpenXml.Wordprocessing.TableRow;
                 var parentTable = row?.Parent as DocumentFormat.OpenXml.Wordprocessing.Table;
-                if (row != null && parentTable != null) {
-                    int gridIndex = 0;
-                    foreach (var candidate in row.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCell>()) {
-                        if (ReferenceEquals(candidate, cell)) break;
-                        int span = (int)(candidate.TableCellProperties?
-                            .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
-                        gridIndex += Math.Max(1, span);
-                    }
-
-                    int spanThis = (int)(cell.TableCellProperties?
-                        .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.GridSpan>()?.Val?.Value ?? 1);
-                    spanThis = Math.Max(1, spanThis);
+                if (row != null && parentTable != null &&
+                    WordTableCellSpanResolver.TryGetLogicalColumn(cell, out int gridIndex)) {
+                    int spanThis = WordTableCellSpanResolver.GetColumnSpan(cell);
                     return CreateCellContentWidthEstimatorInDxa(document, parentTable)(
                         cell,
                         gridIndex,
@@ -308,7 +299,7 @@ namespace OfficeIMO.Word {
             return (cell, gridIndex, gridSpan) => {
                 try {
                     int sum = 0;
-                    int normalizedSpan = Math.Max(1, gridSpan);
+                    int normalizedSpan = Math.Max(Math.Max(1, gridSpan), WordTableCellSpanResolver.GetColumnSpan(cell));
                     for (int index = 0;
                          index < normalizedSpan && gridIndex + index < gridWidths.Length;
                          index++) {

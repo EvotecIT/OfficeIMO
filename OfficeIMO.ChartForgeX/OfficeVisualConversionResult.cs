@@ -88,4 +88,24 @@ public sealed class OfficeVisualConversionResult {
 
     /// <summary>Returns an independent copy of the payload selected for Word, Excel, and PowerPoint placement.</summary>
     public byte[] GetPlacementBytes() => (byte[])_placementBytes.Clone();
+
+    /// <summary>Returns a resized representation without rendering or importing the source again.</summary>
+    /// <param name="widthPoints">Target width, or the containing box width when height is supplied.</param>
+    /// <param name="heightPoints">Optional containing box height. When omitted, proportions are preserved.</param>
+    /// <param name="fit">Contain preserves proportions; Stretch explicitly permits distortion.</param>
+    /// <remarks>Payload bytes, accessibility and fidelity diagnostics are retained. Resizing scales existing text; prepare again for a different chart layout or typography.</remarks>
+    public OfficeVisualConversionResult WithSize(double widthPoints, double? heightPoints = null,
+        OfficeImageFit fit = OfficeImageFit.Contain) {
+        var options = new OfficeVisualConversionOptions { WidthPoints = widthPoints, HeightPoints = heightPoints, Fit = fit };
+        var size = options.ResolveSize(WidthPoints, HeightPoints);
+        var drawing = new OfficeDrawing(size.Width, size.Height);
+        double scaleX = size.Width / WidthPoints, scaleY = size.Height / HeightPoints;
+        drawing.AddEffectDrawing(Drawing, OfficeTransform.Scale(scaleX, scaleY));
+        var regions = new List<OfficeVisualRegion>(Regions.Count);
+        foreach (var region in Regions) regions.Add(new OfficeVisualRegion(
+            region.Id, region.Kind, region.Label, region.AlternativeText, region.Href,
+            region.Left * scaleX, region.Top * scaleY, region.Width * scaleX, region.Height * scaleY, region.Metadata));
+        return new OfficeVisualConversionResult(Artifact, Id, Title, _svgBytes, _placementBytes, PlacementFormat,
+            drawing, size.Width, size.Height, AlternativeText, IsDecorative, SvgPolicy, regions.AsReadOnly(), Report);
+    }
 }

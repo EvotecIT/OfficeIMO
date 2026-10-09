@@ -32,20 +32,20 @@ internal static class VisualSpecimens {
             const string loadDescription = "Observed events per minute across six intervals: 42, 58, 73, 91, 67 and 82. Capacity is 100 in every interval.";
             chart.WithAccessibility(value => value.WithTextAlternative("Service capacity", loadDescription, "en"));
             var chartArtifact = chart.Prepare(Context(mode, "Service capacity", "Events per minute · six observation intervals", true))
-                .ToArtifact("service-capacity", VisualArtifactKind.Chart);
+                .ToArtifact("service-capacity");
             result.Add(new VisualSpecimen("capacity-" + mode.ToString().ToLowerInvariant(), mode, chartArtifact, false));
 
             var topology = TopologyChart.Create().WithViewport(LogicalWidth, LogicalHeight);
             topology.LayoutMode = TopologyLayoutMode.Manual;
             topology.Nodes.Add(new TopologyNode { Id = "gateway", Label = "Gateway", X = 32, Y = 150, Width = 148, Height = 72 });
-            topology.Nodes.Add(new TopologyNode { Id = "worker", Label = "Processing worker", X = 226, Y = 150, Width = 148, Height = 72 });
+            topology.Nodes.Add(new TopologyNode { Id = "worker", Label = "Processing worker", X = 202, Y = 150, Width = 176, Height = 72 });
             topology.Nodes.Add(new TopologyNode { Id = "ledger", Label = "Ledger store", X = 420, Y = 150, Width = 148, Height = 72 });
             topology.Edges.Add(new TopologyEdge { Id = "accept", SourceNodeId = "gateway", TargetNodeId = "worker", Label = "Accept",
                 Routing = TopologyEdgeRouting.ObstacleAvoidingOrthogonal });
             topology.Edges.Add(new TopologyEdge { Id = "persist", SourceNodeId = "worker", TargetNodeId = "ledger", Label = "Persist",
                 Routing = TopologyEdgeRouting.ObstacleAvoidingOrthogonal });
             var topologyArtifact = topology.Prepare(Context(mode, "Service delivery", "Three editable services · prepared routes", false))
-                .ToArtifact("service-delivery", VisualArtifactKind.Topology);
+                .ToArtifact("service-delivery");
             topologyArtifact.Accessibility.WithTextAlternative("Service delivery",
                 "Gateway accepts requests into the Processing worker. The worker persists them in the Ledger store.", "en");
             result.Add(new VisualSpecimen("delivery-" + mode.ToString().ToLowerInvariant(), mode, topologyArtifact, true));
@@ -55,11 +55,8 @@ internal static class VisualSpecimens {
         return result;
     }
 
-    private static VisualRenderContext Context(VisualThemeMode mode, string title, string subtitle, bool legend) => new(
-        layout: new VisualLayoutOptions(new VisualSize(LogicalWidth, LogicalHeight), padding: 24),
-        theme: VisualTheme.Graphite().WithTypography(new VisualTypography(
-            titleSize: 24, subtitleSize: 16, axisSize: 15, legendSize: 15, dataLabelSize: 15)),
-        themeMode: mode,
-        frame: new VisualFrame(title, subtitle, showLegend: legend, legendPosition: ChartLegendPosition.BottomLeft,
-            showSurface: true));
+    private static VisualRenderContext Context(VisualThemeMode mode, string title, string subtitle, bool legend) =>
+        OfficeVisualDocumentStyle.Default.CreateContext(themeMode: mode,
+            frame: new VisualFrame(title, subtitle, showLegend: legend, legendPosition: ChartLegendPosition.BottomLeft,
+                showSurface: true));
 }

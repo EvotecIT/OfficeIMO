@@ -3,29 +3,26 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     /// <summary>Resolves logical table-cell spans from physical Open XML rows and cells.</summary>
     internal static class WordTableCellSpanResolver {
-        internal static int GetColumnSpan(WordTableCell cell) {
+        internal static int GetColumnSpan(WordTableCell cell) => GetColumnSpan(cell._tableCell);
+
+        internal static int GetColumnSpan(TableCell cell) {
             int gridSpan = GetGridWidth(cell);
             if (gridSpan > 1) {
                 return gridSpan;
             }
 
-            if (cell.HorizontalMerge != WordCellMerge.Restart) {
+            if (cell.TableCellProperties?.HorizontalMerge?.Val?.Value != MergedCellValues.Restart) {
                 return 1;
             }
-
-            List<WordTableCell> cells = cell.Parent.Cells;
-            int columnIndex = FindCellIndex(cells, cell);
-            if (columnIndex < 0) {
-                return 1;
-            }
-
             int span = 1;
-            for (int index = columnIndex + 1; index < cells.Count; index++) {
-                if (cells[index].HorizontalMerge != WordCellMerge.Continue) {
+            TableCell? continuation = cell.NextSibling<TableCell>();
+            while (continuation != null) {
+                HorizontalMerge? merge = continuation.TableCellProperties?.HorizontalMerge;
+                if (merge == null || merge.Val?.Value == MergedCellValues.Restart) {
                     break;
                 }
-
-                span += GetGridWidth(cells[index]);
+                span += GetGridWidth(continuation);
+                continuation = continuation.NextSibling<TableCell>();
             }
 
             return span;
@@ -38,7 +35,7 @@ namespace OfficeIMO.Word {
 
             List<WordTableRow> rows = cell.ParentTable.Rows;
             int rowIndex = rows.FindIndex(row => ReferenceEquals(row._tableRow, cell.Parent._tableRow));
-            if (rowIndex < 0 || !TryGetLogicalColumn(cell.Parent, cell, out int logicalColumn)) {
+            if (rowIndex < 0 || !TryGetLogicalColumn(cell._tableCell, out int logicalColumn)) {
                 return 1;
             }
 
@@ -57,10 +54,12 @@ namespace OfficeIMO.Word {
             return span;
         }
 
-        private static bool TryGetLogicalColumn(WordTableRow row, WordTableCell target, out int logicalColumn) {
-            logicalColumn = GetGridBefore(row);
-            foreach (WordTableCell cell in row.Cells) {
-                if (ReferenceEquals(cell._tableCell, target._tableCell)) {
+        internal static bool TryGetLogicalColumn(TableCell target, out int logicalColumn) {
+            TableRow? row = target.Parent as TableRow;
+            logicalColumn = Math.Max(0, row?.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value ?? 0);
+            if (row == null) return false;
+            foreach (TableCell cell in row.Elements<TableCell>()) {
+                if (ReferenceEquals(cell, target)) {
                     return true;
                 }
 
@@ -92,19 +91,11 @@ namespace OfficeIMO.Word {
             return gridBefore > 0 ? gridBefore : 0;
         }
 
-        private static int GetGridWidth(WordTableCell cell) {
-            int gridSpan = cell._tableCell.TableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value ?? 1;
+        private static int GetGridWidth(WordTableCell cell) => GetGridWidth(cell._tableCell);
+
+        private static int GetGridWidth(TableCell cell) {
+            int gridSpan = cell.TableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value ?? 1;
             return gridSpan > 0 ? gridSpan : 1;
-        }
-
-        private static int FindCellIndex(IReadOnlyList<WordTableCell> cells, WordTableCell target) {
-            for (int index = 0; index < cells.Count; index++) {
-                if (ReferenceEquals(cells[index]._tableCell, target._tableCell)) {
-                    return index;
-                }
-            }
-
-            return -1;
         }
     }
 }

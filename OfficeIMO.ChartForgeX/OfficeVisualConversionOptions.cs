@@ -12,17 +12,29 @@ public sealed class OfficeVisualConversionOptions {
     private int _maximumSvgElements = OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
     private double _maximumSvgViewportDimension = OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
     private double _maximumSvgViewportPixels = OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
-    private OfficeVisualSvgPolicy _svgPolicy = OfficeVisualSvgPolicy.PreserveVector;
+    private OfficeVisualSvgPolicy _svgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded;
+    private OfficeImageFit _fit = OfficeImageFit.Contain;
 
     /// <summary>Gets or sets core ChartForgeX topology rendering and raster encoding options.</summary>
     public VisualArtifactRenderOptions? RenderOptions { get; set; }
 
-    /// <summary>Gets or sets SVG import behavior. The default preserves vector output and reports limitations.</summary>
+    /// <summary>Gets or sets SVG import behavior. The default preserves appearance, using PNG when vector import is incomplete.</summary>
     public OfficeVisualSvgPolicy SvgPolicy {
         get => _svgPolicy;
         set {
             if (!Enum.IsDefined(typeof(OfficeVisualSvgPolicy), value)) throw new ArgumentOutOfRangeException(nameof(SvgPolicy), value, "Unknown SVG fidelity policy.");
             _svgPolicy = value;
+        }
+    }
+
+    /// <summary>Gets or sets how a visual fits explicit width and height bounds. The default preserves proportions.</summary>
+    /// <remarks>Contain keeps the whole visual visible. Stretch explicitly permits distortion. Cover is unsupported because document placement does not clip the source.</remarks>
+    public OfficeImageFit Fit {
+        get => _fit;
+        set {
+            if (value != OfficeImageFit.Contain && value != OfficeImageFit.Stretch)
+                throw new ArgumentOutOfRangeException(nameof(Fit), value, "Visuals support Contain or Stretch; cropping is not supported.");
+            _fit = value;
         }
     }
 
@@ -35,7 +47,7 @@ public sealed class OfficeVisualConversionOptions {
         }
     }
 
-    /// <summary>Gets or sets an optional output width in points. Aspect ratio is preserved when height is omitted.</summary>
+    /// <summary>Gets or sets an optional output width in points. Together with height this defines the fit bounds; alone it preserves proportions.</summary>
     public double? WidthPoints {
         get => _widthPoints;
         set {
@@ -44,7 +56,7 @@ public sealed class OfficeVisualConversionOptions {
         }
     }
 
-    /// <summary>Gets or sets an optional output height in points. Aspect ratio is preserved when width is omitted.</summary>
+    /// <summary>Gets or sets an optional output height in points. Together with width this defines the fit bounds; alone it preserves proportions.</summary>
     public double? HeightPoints {
         get => _heightPoints;
         set {
@@ -91,7 +103,11 @@ public sealed class OfficeVisualConversionOptions {
     internal (double Width, double Height) ResolveSize(double sourceWidth, double sourceHeight) {
         ValidatePositiveFinite(sourceWidth, nameof(sourceWidth));
         ValidatePositiveFinite(sourceHeight, nameof(sourceHeight));
-        if (WidthPoints.HasValue && HeightPoints.HasValue) return (WidthPoints.Value, HeightPoints.Value);
+        if (WidthPoints.HasValue && HeightPoints.HasValue) {
+            var placement = OfficeImagePlacement.Fit(sourceWidth, sourceHeight, 0D, 0D,
+                WidthPoints.Value, HeightPoints.Value, Fit);
+            return (placement.Width, placement.Height);
+        }
         if (WidthPoints.HasValue) return (WidthPoints.Value, WidthPoints.Value * sourceHeight / sourceWidth);
         if (HeightPoints.HasValue) return (HeightPoints.Value * sourceWidth / sourceHeight, HeightPoints.Value);
         return (sourceWidth * PointsPerPixel, sourceHeight * PointsPerPixel);

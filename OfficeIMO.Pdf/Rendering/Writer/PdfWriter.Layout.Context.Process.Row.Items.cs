@@ -358,7 +358,8 @@ internal static partial class PdfWriter {
 
             if (item is ColDrawing drawing) {
                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
-                return ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumedBefore) + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
+                var box = ResolveDrawingFlowBox(drawing.Block, drawingStyle, drawing.ColumnWidth);
+                return ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumedBefore) + box.Height + drawingStyle.SpacingAfter;
             }
 
             if (item is ColForm form) {
@@ -417,7 +418,8 @@ internal static partial class PdfWriter {
 
             if (item is ColDrawing drawing) {
                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
-                return drawingStyle.SpacingBefore + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
+                var box = ResolveDrawingFlowBox(drawing.Block, drawingStyle, drawing.ColumnWidth);
+                return drawingStyle.SpacingBefore + box.Height + drawingStyle.SpacingAfter;
             }
 
             if (item is ColForm form) {

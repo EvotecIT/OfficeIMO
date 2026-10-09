@@ -496,6 +496,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.NotEqual("api-lifeline", worker.Id);
         Assert.NotEqual("api-lifeline-end", message.Id);
         Assert.NotEqual("message-api-lifeline-end-from", nativeFragment.Id);
+        Assert.NotNull(message.From);
+        Assert.NotNull(message.To);
         Assert.Equal(message.Id + "-from", message.From.Id);
         Assert.Equal(message.Id + "-to", message.To.Id);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>

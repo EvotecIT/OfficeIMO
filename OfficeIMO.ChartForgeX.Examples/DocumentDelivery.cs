@@ -8,6 +8,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.ChartForgeX.Examples;
 
 internal static class DocumentDelivery {
+    private static readonly OfficeVisualDocumentStyle Style = OfficeVisualDocumentStyle.Default;
     public static void Write(string output, IReadOnlyList<VisualSpecimen> specimens) {
         foreach (var specimen in specimens) {
             File.WriteAllText(Path.Combine(output, "source-" + specimen.Name + ".svg"), specimen.Artifact.ToSvg());
@@ -29,16 +30,14 @@ internal static class DocumentDelivery {
         using var document = WordDocument.Create(path);
         document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
         document.Margins.Type = WordMargin.Normal;
-        double usableWidth = ((document.Sections[0].PageSettings.Width ?? throw new InvalidOperationException("Missing page width."))
-            - document.Margins.Left - document.Margins.Right) / 20D;
         for (int index = 0; index < specimens.Count; index++) {
             if (index > 0) document.AddPageBreak();
             var specimen = specimens[index];
             var heading = document.AddParagraph().AddText(Heading(specimen));
-            heading.FontFamily = "Arial"; heading.FontSizePoints = 18D;
-            document.AddParagraph().AddVisualArtifact(specimen.Convert(usableWidth));
+            heading.FontFamily = Style.FontFamily; heading.FontSizePoints = Style.HeadingSizePoints;
+            document.AddParagraph().AddVisualArtifact(specimen.Artifact);
             var caption = document.AddParagraph().AddText(specimen.Caption);
-            caption.FontFamily = "Arial"; caption.FontSizePoints = 11D;
+            caption.FontFamily = Style.FontFamily; caption.FontSizePoints = Style.CaptionSizePoints;
         }
         document.Save();
     }
@@ -51,14 +50,14 @@ internal static class DocumentDelivery {
             for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, 18D);
             sheet.MergeRange("B1:I2");
             sheet.CellValue(1, 2, Heading(specimen));
-            sheet.CellFontName(1, 2, "Arial"); sheet.CellFontSize(1, 2, 18D);
+            sheet.CellFontName(1, 2, Style.FontFamily); sheet.CellFontSize(1, 2, Style.HeadingSizePoints);
             // The picture remains within the authored Letter print width after the half-inch margins.
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
-            sheet.AddVisualArtifact(4, 2, specimen.Convert(612D - 72D));
+            sheet.AddVisualArtifact("B4:I18", specimen.Artifact);
             sheet.MergeRange("B21:I23");
             sheet.CellValue(21, 2, specimen.Caption);
-            sheet.CellFontName(21, 2, "Arial"); sheet.CellFontSize(21, 2, 11D);
+            sheet.CellFontName(21, 2, Style.FontFamily); sheet.CellFontSize(21, 2, Style.CaptionSizePoints);
             sheet.CellWrapText(21, 2);
         }
         document.Save();
@@ -72,25 +71,24 @@ internal static class DocumentDelivery {
             var slide = presentation.AddSlide();
             var colors = VisualTheme.Graphite().Resolve(specimen.Mode);
             slide.BackgroundColor = colors.Background.ToHex().TrimStart('#');
-            Text(slide, Heading(specimen), 36D, 16D, slideWidth - 72D, 30D, 18, colors.Foreground.ToHex());
-            var conversion = specimen.Convert(slideWidth - 72D);
-            slide.AddVisualArtifact(conversion, (slideWidth - conversion.WidthPoints) / 2D, 60D);
-            Text(slide, specimen.Caption, 36D, Math.Min(slideHeight - 52D, 60D + conversion.HeightPoints + 18D),
-                slideWidth - 72D, 36D, 11, colors.Foreground.ToHex());
+            Text(slide, Heading(specimen), 36D, 16D, slideWidth - 72D, 30D, Style.HeadingSizePoints, colors.Foreground.ToHex());
+            slide.AddVisualArtifact(specimen.Artifact,
+                PowerPointLayoutBox.FromPoints(36D, 60D, slideWidth - 72D, slideHeight - 130D));
+            Text(slide, specimen.Caption, 36D, slideHeight - 52D,
+                slideWidth - 72D, 36D, Style.CaptionSizePoints, colors.Foreground.ToHex());
         }
         presentation.Save();
     }
 
     private static void WritePdf(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        var options = new PdfOptions { PageSize = PageSizes.A4, DefaultFontSize = 11D };
+        var options = new PdfOptions { PageSize = PageSizes.A4, DefaultFontSize = Style.CaptionSizePoints };
         options.EnableTaggedPdfCatalogMarkers();
-        double usableWidth = options.PageWidth - options.MarginLeft - options.MarginRight;
         PdfDocument.Create(document => document.Content(content => {
             for (int index = 0; index < specimens.Count; index++) {
                 if (index > 0) content.PageBreak();
                 var specimen = specimens[index];
                 content.H1(Heading(specimen));
-                content.AddVisualArtifact(specimen.Convert(usableWidth), spacingBefore: 12D, spacingAfter: 18D);
+                content.AddVisualArtifact(specimen.Artifact, spacingBefore: 12D, spacingAfter: 18D);
                 content.Text(specimen.Caption);
             }
         }), options).Save(path);
@@ -109,10 +107,10 @@ internal static class DocumentDelivery {
     }
 
     private static void Text(PowerPointSlide slide, string text, double left, double top, double width, double height,
-        int size, string color) {
+        double size, string color) {
         var box = slide.AddTextBox(text, PowerPointUnits.FromPoints(left), PowerPointUnits.FromPoints(top),
             PowerPointUnits.FromPoints(width), PowerPointUnits.FromPoints(height));
-        box.FontName = "Arial"; box.FontSize = size; box.Color = color.TrimStart('#');
+        box.FontName = Style.FontFamily; box.FontSize = (int)Math.Round(size); box.Color = color.TrimStart('#');
     }
 
     private static string Heading(VisualSpecimen specimen) => specimen.Artifact.Title + " · " + specimen.ModeName;

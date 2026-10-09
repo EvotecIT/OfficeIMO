@@ -45,6 +45,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
                 Assert.Equal(source.Height.Value / ppi, shape.Height, 6);
             }
             var connector = Assert.Single(page.Connectors);
+            Assert.NotNull(connector.From);
+            Assert.NotNull(connector.To);
             Assert.Equal(VisioConnectorRerouteBehavior.Never, connector.RerouteBehavior);
             Assert.Equal(edge.ResolvedRoute.Count - 2, connector.Waypoints.Count);
             var first = edge.ResolvedRoute[0];

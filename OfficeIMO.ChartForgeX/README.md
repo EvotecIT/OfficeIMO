@@ -6,6 +6,83 @@ The bridge uses ChartForgeX 2.0. Add `ChartForgeX.Visuals` when producing factua
 
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
+## Put a chart in Word
+
+Prepare the chart at its intended document size, then insert its artifact. `OfficeVisualDocumentStyle` uses point-based typography and the shared light/dark palette. Word constrains an oversized visual to the paragraph's available content width when no explicit size is supplied.
+
+```csharp
+using ChartForgeX.Core;
+using ChartForgeX.Primitives;
+using ChartForgeX.Rendering;
+using ChartForgeX.VisualArtifacts;
+using OfficeIMO.ChartForgeX;
+using OfficeIMO.Word;
+
+var chart = Chart.Create().AddLine("Revenue", new[] {
+    new ChartPoint(1, 42), new ChartPoint(2, 58), new ChartPoint(3, 73)
+});
+var context = OfficeVisualDocumentStyle.Default.CreateContext(
+    frame: new VisualFrame("Quarterly sales", showLegend: false));
+var artifact = chart.Prepare(context).ToArtifact("sales-quarter");
+artifact.Accessibility.WithTextAlternative("Quarterly sales", "Revenue: 42, 58 and 73.");
+
+using var document = WordDocument.Create("sales.docx");
+document.AddParagraph().AddVisualArtifact(artifact);
+document.Save();
+```
+
+## Choose the destination
+
+Use the same artifact in each format. Worksheet ranges and slide layout boxes preserve proportions and center the visual within the authored bounds.
+
+```csharp
+paragraph.AddVisualArtifact(artifact);
+sheet.AddVisualArtifact("B4:I18", artifact);
+slide.AddVisualArtifact(artifact, presentation.SlideSize.GetContentBoxPoints(36));
+content.AddVisualArtifact(artifact, spacingAfter: 12);
+```
+
+Word uses the containing cell or owning section, authored columns, margins and direct paragraph indents. `paragraph.GetContentWidthPoints()` exposes that estimate for preparation. Unequal flowing columns use their smallest authored width. Shared headers with differing section widths and unsupported text boxes require explicit dimensions. This is authored geometry, not Microsoft Word's measured pagination or automatic table layout.
+
+PDF constrains oversized drawings to their actual flow width, including padded containers and columns, without enlarging smaller visuals. Supply a `PdfDrawingStyle` to explicitly choose placement behavior; set `ConstrainToContentWidth = true` to retain automatic fitting with custom styling.
+
+Set `WidthPoints` or `HeightPoints` for an explicit size. With both supplied, the default `Fit = OfficeImageFit.Contain` keeps the whole visual within the box without distortion. Choose `Stretch` explicitly for exact dimensions. Cropped `Cover` fitting is not supported by this bridge. Slide boxes and worksheet ranges supply their own final placement bounds.
+
+## Reuse a conversion and inspect fidelity
+
+The bridge returns an `OfficeVisualConversionResult` containing:
+
+- SVG or PNG placement bytes for Word, Excel, and PowerPoint, according to the selected SVG policy;
+- an `OfficeDrawing` scene for PDF and drawing pipelines;
+- dimensions normalized to points;
+- accessible text, metadata-ready regions, and a typed fidelity report.
+
+```csharp
+OfficeVisualConversionResult visual = artifact.ToOfficeVisual(
+    new OfficeVisualConversionOptions { WidthPoints = 420 });
+
+paragraph.AddVisualArtifact(visual);
+sheet.AddVisualArtifact(2, 2, visual);
+slide.AddVisualArtifact(visual, leftPoints: 36, topPoints: 72);
+
+content.AddVisualArtifact(visual);
+
+// Change placement size without rendering or importing the source again.
+slide.AddVisualArtifact(visual.WithSize(300), leftPoints: 36, topPoints: 72);
+foreach (var diagnostic in visual.Report.FidelityDiagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+```
+
+Insertion overloads with `out OfficeVisualConversionResult` expose the conversion when inserting an artifact directly. Use that result to inspect diagnostics. `Report.RequireNoLoss()` rejects reported approximations and omissions.
+
+The default `RasterizeWhenNeeded` policy preserves appearance with vector output when supported and PNG fallback when SVG import is incomplete. Fallback remains a reported approximation, with loss of vector editability. Choose `PreserveVector` to keep the imported vector scene and report unsupported features, or `RequireVector` to reject incomplete vector conversion. Word, Excel, and PowerPoint use the selected placement payload; PDF uses the converted `OfficeDrawing` scene.
+
+Prepared artifacts retain their resolved viewport and accessible text. The default scale is 0.75 points per pixel; `PointsPerPixel` changes that scale, while `WidthPoints` or `HeightPoints` can set the document size explicitly. Raster DPI metadata does not change the chosen placement size.
+
+Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. `OfficeVisualDocumentStyle.Default.CreateContext(widthPoints, heightPoints)` supplies readable document typography at that size; its font and point sizes are also available for surrounding headings and captions. A custom style can change that scale, while a supplied `VisualTheme` retains the shared palette and geometry. The [document delivery example](../OfficeIMO.ChartForgeX.Examples/README.md) demonstrates light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
+
+## SVG-producing surfaces
+
 Every CFX surface that emits SVG can use the flat Office placement path, even when it does not expose a typed artifact envelope. Wrap the generated markup in `OfficeVisualSource`:
 
 ```csharp
@@ -15,46 +92,6 @@ OfficeVisualConversionResult visual = new OfficeVisualSource(canvas.ToSvg()) {
     AlternativeText = "Release readiness summary with six status tiles."
 }.ToOfficeVisual();
 ```
-
-The bridge renders once and returns an `OfficeVisualConversionResult` containing:
-
-- SVG or PNG placement bytes for Word, Excel, and PowerPoint, according to the selected SVG policy;
-- an `OfficeDrawing` scene for PDF and drawing pipelines;
-- dimensions normalized to points;
-- accessible text, metadata-ready regions, and a typed fidelity report.
-
-```csharp
-using ChartForgeX.Rendering;
-using ChartForgeX.VisualArtifacts;
-using OfficeIMO.ChartForgeX;
-
-var context = new VisualRenderContext(
-    layout: new VisualLayoutOptions(new VisualSize(640, 400), padding: 16),
-    frame: new VisualFrame(title: "Quarterly sales", showLegend: false));
-VisualArtifact artifact = chart.Prepare(context).ToArtifact("sales-quarter", VisualArtifactKind.Chart);
-artifact.Accessibility.WithTextAlternative(
-    "Quarterly sales",
-    "Revenue increased in each of the four reported quarters.");
-
-OfficeVisualConversionResult visual = artifact.ToOfficeVisual(
-    new OfficeVisualConversionOptions {
-        WidthPoints = 420,
-        SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded
-    });
-
-paragraph.AddVisualArtifact(visual);
-sheet.AddVisualArtifact(2, 2, visual);
-slide.AddVisualArtifact(visual, leftPoints: 36, topPoints: 72);
-
-PdfDocument.Create(pdf => pdf.Content(content =>
-    content.AddVisualArtifact(visual)), pdfOptions);
-```
-
-The default `PreserveVector` policy keeps the imported vector scene and reports SVG features that OfficeIMO.Drawing cannot represent. Choose `RasterizeWhenNeeded` for visual fidelity when unsupported SVG features should use the PNG placement payload, or `RequireVector` when incomplete vector conversion must fail closed. Word, Excel, and PowerPoint use the selected placement payload; PDF uses the converted `OfficeDrawing` scene.
-
-Prepared artifacts retain their resolved viewport and accessible text. The default scale is 0.75 points per pixel; `PointsPerPixel` changes that scale, while `WidthPoints` or `HeightPoints` can set the document size explicitly. Raster DPI metadata does not change the chosen placement size.
-
-Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. Keep the placement within the page's usable width or the slide's authored content region. The [document delivery example](../OfficeIMO.ChartForgeX.Examples/README.md) demonstrates readable light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
 
 Apply static watermarks before conversion with the Visuals decorator:
 
@@ -73,7 +110,7 @@ Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Vi
 using ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 
-VisualArtifact artifact = topology.Prepare().ToArtifact("service-topology", VisualArtifactKind.Topology);
+VisualArtifact artifact = topology.Prepare().ToArtifact("service-topology");
 OfficeVisioVisualConversionResult visio = artifact.ToOfficeVisio(
     new OfficeVisioVisualOptions { PageName = "Service topology" });
 

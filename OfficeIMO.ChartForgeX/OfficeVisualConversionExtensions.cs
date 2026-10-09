@@ -11,7 +11,7 @@ namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Converts ChartForgeX visual artifacts into reusable Office drawing and SVG payloads.</summary>
 public static class OfficeVisualConversionExtensions {
-    /// <summary>Renders and converts a visual artifact using vector-preserving defaults.</summary>
+    /// <summary>Renders and converts a visual artifact, preserving appearance with vector output or PNG fallback.</summary>
     public static OfficeVisualConversionResult ToOfficeVisual(
         this VisualArtifact artifact,
         OfficeVisualConversionOptions? options = null) {

@@ -996,6 +996,26 @@ these methods.
 
 ## ChartForgeX 2.0 adapter integration
 
+`OfficeVisualConversionOptions.SvgPolicy` defaults to `RasterizeWhenNeeded` to
+preserve appearance when vector import is incomplete. Set `PreserveVector`
+explicitly to retain the previous imported-vector behavior, or `RequireVector`
+to reject unsupported content. Inspect the existing conversion report for
+fallback, approximation and omission diagnostics.
+
+When both `WidthPoints` and `HeightPoints` are supplied, `Fit` defaults to
+`OfficeImageFit.Contain`. Set `Fit = OfficeImageFit.Stretch` for the previous exact
+width-and-height sizing. A single dimension still preserves proportions.
+
+`AddVisualArtifact(artifact)` inserts directly. Word constrains an oversized
+visual to its paragraph's authored content-width estimate when no explicit size
+is supplied. PDF constrains oversized visuals to the current flow width by
+default; a custom `PdfDrawingStyle` controls `ConstrainToContentWidth` explicitly.
+The existing conversion-result overloads retain explicit Word placement.
+Use worksheet ranges and `PowerPointLayoutBox` for bounded placement.
+`OfficeVisualConversionResult.WithSize` resizes retained content without another
+render/import; prepare again to change label layout or typography. Use
+`OfficeVisualDocumentStyle.CreateContext` to prepare at the intended point size.
+
 Rebuild callers of `OfficeIMO.ChartForgeX` against ChartForgeX 2.0. The bridge keeps
 its core-only ChartForgeX dependency. Add `ChartForgeX.Visuals` to the application
 when rendering factual tables, canvases, or watermarks; optional story and motion

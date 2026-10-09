@@ -1,8 +1,8 @@
 # ChartForgeX document delivery example
 
-This executable places the same prepared service chart and topology in Word, Excel, PowerPoint and PDF. It uses the shared paired Graphite palette with document-sized typography, full accessible descriptions and explicit placement dimensions. A repeated light chart follows the dark variant, exercising reuse without treating an artifact identifier as an image-content identifier.
+This executable places the same prepared service chart and topology in Word, Excel, PowerPoint and PDF. It uses the shared paired Graphite palette, the adapter's document typography style, full accessible descriptions and destination-aware insertion. A repeated light chart follows the dark variant, exercising reuse without treating an artifact identifier as an image-content identifier.
 
-The visual viewport is 600 × 360 logical pixels. Placements use at most 450 points of width and also respect the actual page or slide content width. Axis and legend text is 15 logical pixels, or 11.25 points at the full placement size. The workbook uses an authored Letter print layout; its picture, heading and full caption occupy separate rows. Dark visuals retain their own filled canvas on white document pages; PowerPoint slide backgrounds use the selected palette.
+The visual viewport is 600 × 360 logical pixels, prepared for a 450 × 270 point placement with `OfficeVisualDocumentStyle.Default`. Axis and legend text is 11.25 points at that size. Word and PDF constrain natural-size visuals to the available content width. Excel fits an authored cell range and PowerPoint fits a layout box, keeping chart proportions and reserving separate heading and caption space. The workbook uses an authored Letter print layout. Dark visuals retain their own filled canvas on white document pages; PowerPoint slide backgrounds use the selected palette.
 
 Run from the repository root with the adapter's ChartForgeX source-project configuration or a local qualified 2.0.0 package feed:
 
