@@ -83,6 +83,24 @@
       "sha256": "79f4dab130ca32eed8856a7ff9778bfe23db0016a4c93155eb42f652b6089c96",
       "bytes": 50546,
       "role": "Independent pinned-schema object graph, UTF-16 offsets and character properties"
+    },
+    {
+      "path": "native-exports/pages-created-landscape-v15.4.pages",
+      "sha256": "7aa23866d9e69a960024fd370d3528f6cae4d1829b13882066fae07c3f1f181d",
+      "bytes": 5258,
+      "role": "OfficeIMO custom landscape creation, opened in Pages without repair"
+    },
+    {
+      "path": "native-exports/pages-created-landscape-v15.4.pdf",
+      "sha256": "b4baf2477e7958683b33df4671dd9e161f37c674bb7a743ae11f8ab462366444",
+      "bytes": 13599,
+      "role": "Pages best-quality one-page PDF with custom page geometry and margins"
+    },
+    {
+      "path": "native-exports/pages-created-landscape-graph-v15.4.json",
+      "sha256": "7e0fb83c5da5758f4a70b6560a01b2a32bb130940ef9e823c7eaff31e986a8d9",
+      "bytes": 3461,
+      "role": "Independent pinned-schema decoding of the 23-object landscape creation"
     }
   ],
   "independentDecode": {
@@ -107,7 +125,27 @@
     "allPDFPagesVisuallyInspected": true,
     "DOCXParagraphs": 83,
     "DOCXTextAndPageSettingsAgree": true,
-    "ownedApplicationQuitAndVerified": true
+    "ownedApplicationQuitAndVerified": true,
+    "landscape": {
+      "openedWithoutRepair": true,
+      "PDFPages": 1,
+      "pagePoints": [
+        792,
+        612
+      ],
+      "bodyMarginsPoints": [
+        36,
+        54,
+        45,
+        63
+      ],
+      "PDFTextBoundsPoints": {
+        "left": 36,
+        "firstGlyphTop": 45.4089
+      },
+      "independentRecords": 23
+    },
+    "appleDOCXReimportInspected": true
   },
   "fontProvenance": "Installed macOS and Microsoft fonts. Native PDF embeds subsets of ArialMT, Arial-BoldItalicMT, TimesNewRomanPS-ItalicMT and AppleColorEmoji. This recorded font environment is qualified.",
   "reproduction": "Generate IWorkPagesWritingTests.Example(), independently decode with Build/IWork/verify-pages-creation.py using the pinned descriptor, then open a working copy in Pages 15.4. Change reset to edited, save, close and reopen. Export best-quality PDF and Word with password/comment options off. Inspect both PDF pages and compare complete DOCX body text and page settings.",

@@ -68,6 +68,13 @@ public sealed class IWorkPagesWritingTests {
         Assert.Equal(nativeMargin.Left!.Value, actualMargin.Left!.Value); Assert.Equal(nativeMargin.Right!.Value, actualMargin.Right!.Value);
     }
 
+    [Fact]
+    public void Landscape_creation_matches_the_package_opened_and_exported_by_Pages() {
+        var document = IWorkPagesDocument.Create(792, 612, 36, 54, 45, 63);
+        document.AddParagraph("Landscape page settings", fontSizePoints: 24);
+        Assert.Equal(File.ReadAllBytes(Fixture("pages-created-landscape-v15.4.pages")), document.SaveBytes());
+    }
+
     [Theory]
     [InlineData(612f, 792f, false)]
     [InlineData(792f, 612f, true)]

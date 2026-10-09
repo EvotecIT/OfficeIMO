@@ -1,0 +1,245 @@
+{
+  "source": "native-exports/pages-created-landscape-v15.4.pages",
+  "sha256": "7aa23866d9e69a960024fd370d3528f6cae4d1829b13882066fae07c3f1f181d",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "recordCount": 23,
+  "page": {
+    "width": 792.0,
+    "height": 612.0,
+    "margins": [
+      36.0,
+      54.0,
+      45.0,
+      63.0
+    ]
+  },
+  "paragraphCount": 1,
+  "text": "Landscape page settings\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 24,
+      "text": "Landscape page settings\n",
+      "font": "Arial",
+      "size": 24.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        32,
+        33
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        32,
+        33
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        32
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        5,
+        32
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        5,
+        10
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "scope": "Owned body paragraphs and graph declarations; native application acceptance is separate."
+}

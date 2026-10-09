@@ -60,6 +60,8 @@ The writer creates the document, section, required empty header/footer storages,
 
 The [Pages creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.json) records independent pinned-schema decoding of all 189 objects, required fields, references, UTF-16 run offsets and hidden header/footer storages. Pages 15.4 opens the 83-paragraph document without repair. An edit from `reset` to `edited` survives native save, close and reopen; both exported PDF pages retain the requested formatting and complete flow. Strict saved/reopened OfficeIMO DOCX retains the source text, character styles and page settings. Apple's DOCX export agrees on all 83 authored paragraphs and page geometry but changes selected font runs and bold/italic overrides; equivalent native DOCX typography is unqualified. The terminating LF also projects an empty trailing paragraph, retained by OfficeIMO.
 
+The same reference includes a custom landscape document opened by Pages and exported to a one-page 792-by-612-point PDF. Its left and top text bounds agree with the requested 36- and 45-point body margins.
+
 The receiving application selects fonts and paginates. This creation profile does not measure text, embed fonts, author lists/tables/images/custom headers or footers, author additional section layouts, or edit loaded packages. Other application versions, fonts, scripts, pagination contexts and runtime architectures need their own qualification.
 
 ## Bounded NativeAOT qualification
@@ -117,6 +119,12 @@ adds the native Keynote 15.4 border fixture under both runtimes. Saved/reopened 
 retains inherited strokes, hidden region edges and ordered shared-cell overrides.
 Merged-cell perimeter and varied-edge policy checks have separate managed
 saved-output evidence; this native executable does not qualify their rendering.
+
+The [macOS Pages NativeAOT evidence](Compatibility/iwork-pages-creation-native-aot-macos-arm64-2026-10-10.json)
+adds the 47,534-byte body document under .NET 8.0.31 and .NET 10.0.12. Both native
+executables emit the Apple-qualified bytes and check rich Unicode paragraph order,
+plain resets, page settings, caller-owned streams, strict saved/reopened DOCX and
+paragraph bounds. This extension is qualified on macOS arm64 only.
 
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
