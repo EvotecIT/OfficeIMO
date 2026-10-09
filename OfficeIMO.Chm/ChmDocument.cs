@@ -127,13 +127,14 @@ public sealed partial class ChmDocument {
         while ((read = reader.Read(buffer, 0, buffer.Length)) > 0) { token.ThrowIfCancellationRequested(); text.Append(buffer, 0, read); }
         return text.ToString();
     }
-    internal HtmlConversionDocumentOptions CreateHtmlOptions(string path) {
-        var options = new HtmlConversionDocumentOptions {
-            ParserProvider = _options.ParserProvider, InputEncodingProvider = _options.EncodingProvider, BaseUri = GetTopicUri(path)
+    internal HtmlConversionDocumentOptions CreateHtmlOptions(string path, HtmlConversionDocumentOptions? requested = null) {
+        var options = requested?.Clone() ?? new HtmlConversionDocumentOptions {
+            ParserProvider = _options.ParserProvider, InputEncodingProvider = _options.EncodingProvider
         };
-        options.Limits.MaxInputCharacters = _options.MaxEntryBytes;
-        options.Limits.MaxHtmlNodes = _options.MaxHtmlNodes;
-        options.Limits.MaxHtmlDepth = _options.MaxHtmlDepth;
+        options.BaseUri = GetTopicUri(path);
+        options.Limits.MaxInputCharacters = Math.Min(requested?.Limits.MaxInputCharacters ?? int.MaxValue, _options.MaxEntryBytes);
+        options.Limits.MaxHtmlNodes = Math.Min(requested?.Limits.MaxHtmlNodes ?? int.MaxValue, _options.MaxHtmlNodes);
+        options.Limits.MaxHtmlDepth = Math.Min(requested?.Limits.MaxHtmlDepth ?? int.MaxValue, _options.MaxHtmlDepth);
         options.UrlPolicy.AllowedUrlSchemes.Add("chm");
         options.ResourceUrlPolicy.AllowedUrlSchemes.Add("chm");
         return options;

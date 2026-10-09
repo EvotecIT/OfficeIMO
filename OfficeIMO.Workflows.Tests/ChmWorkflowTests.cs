@@ -7,6 +7,30 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ChmWorkflowTests {
     [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task AssemblyCombinesSingleAndMultiTopicHelpWithOtherDocuments(int topicCount) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-chm-assembly-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string input = Path.Combine(root, "source.chm"), text = Path.Combine(root, "other.pdf"), output = Path.Combine(root, "assembled.pdf");
+            var topics = Enumerable.Range(1, topicCount).ToDictionary(index => "/topic" + index + ".html",
+                index => ChmFixture.Html("<p>Help topic " + index + "</p>"));
+            File.WriteAllBytes(input, ChmFixture.Archive(topics));
+            File.WriteAllBytes(text, PdfDocument.Create(compose => compose.Page(page => page.Content(content =>
+                content.Item(item => item.Paragraph(paragraph => paragraph.Text("Other document")))))).ToBytes());
+            var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest { Sources = [input, text], OutputPath = output });
+            Assert.True(result.Succeeded, result.Summary);
+            var pdf = PdfReadDocument.Open(File.ReadAllBytes(output));
+            Assert.Equal(topicCount + 1, pdf.Pages.Count);
+            string content = pdf.ExtractText();
+            for (int index = 1; index <= topicCount; index++) Assert.Contains("Help topic " + index, content);
+            Assert.Contains("Other document", content);
+            Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
     [InlineData(".md", "chm-markdown")]
     [InlineData(".epub", "chm-epub")]
     [InlineData(".pdf", "chm-pdf")]

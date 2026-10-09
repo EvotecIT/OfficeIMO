@@ -140,8 +140,11 @@ public sealed partial class HtmlConversionDocument {
     /// Creates an independent clone of the canonical source DOM for adapters that must apply
     /// their own element filters before URL resolution. Parsing remains owned by OfficeIMO.Html.
     /// </summary>
-    internal IHtmlDocument CreateSourceDocumentForConversion() {
-        return AnalyzeSource(source => HtmlDocumentParser.CloneDocument(source));
+    internal IHtmlDocument CreateSourceDocumentForConversion() => CreateSourceDocumentForConversion(default);
+
+    internal IHtmlDocument CreateSourceDocumentForConversion(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return AnalyzeSource(source => HtmlDocumentParser.CloneDocument(source, cancellationToken));
     }
 
     /// <summary>

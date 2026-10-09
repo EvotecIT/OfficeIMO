@@ -9,10 +9,10 @@
 | Contents | Compiled #TOCIDX with topic/string/URL tables; HHC fallback | Empty compiled streams use the HTML fallback. Cycles, invalid references, depth, item/reference counts and aggregate text limits reject malformed navigation. |
 | Keyword index | Compiled keyword BTree; HHK fallback | Hierarchy, multiple targets and See Also labels are exposed. The compiled full-text search database is retained as bytes, not executed. |
 | Text decoding | Explicit override, BOM/meta declaration, then locale code page | Undeclared text uses the registered charset provider; unknown/unavailable locale encodings report a fallback. |
-| Linked HTML / Markdown | Selected topic order, unique anchors, internal links, embedded images | HTML retains per-topic language/direction and inert container attributes. Reflow is semantic. Combined CSS shares one cascade; CSS ID selectors are not rewritten when anchors are prefixed. Markdown has its own presentation limits. |
+| Linked HTML / Markdown | Selected topic order, unique anchors, internal links, embedded responsive/lazy images and local SVG references | HTML retains per-topic language/direction and inert container attributes. Reflow is semantic. Combined CSS shares one cascade; CSS ID selectors are not rewritten when anchors are prefixed. Markdown has its own presentation limits. |
 | EPUB | Reflowable manuscript, contents hierarchy/fragments and embedded resources | Existing EPUB importer/writer checks apply. Keyword index, See Also and help-viewer behavior are not reconstructed. |
 | PDF | Per-topic HTML rendering, page-boundary preservation, searchable text, archive resources | Renderer support governs CSS, fonts and images. Multi-topic output is untagged; cross-topic destinations and keyword index are omitted and reported. Single-topic output uses the renderer's tag policy. |
-| Reader | Rich HTML projection, topic citations, archive-byte source hashes, tables, links and assets | Topic citations identify `archive.chm!/topic.html`; they are not physical page numbers. |
+| Reader | Rich HTML projection, topic citations, archive-byte source hashes, tables, links and assets | Caller HTML policies are retained and parsing limits intersect archive limits. Topic citations identify `archive.chm!/topic.html`; they are not physical page numbers. |
 | Help application features | Raw preservation only | ActiveX, script execution, compiled search, external/merged books and Windows viewer window behavior are outside the document-conversion contract. |
 
 ## Evidence

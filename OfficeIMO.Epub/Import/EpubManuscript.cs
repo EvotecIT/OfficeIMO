@@ -38,7 +38,15 @@ public static partial class EpubManuscript {
             if (!string.IsNullOrWhiteSpace(value)) publication.AddDublinCoreMetadata(name, value!);
         }
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
-        XElement body = ConvertElement(source.Body!, diagnostics, manuscript, cancellationToken)!;
+        // Reserve authored destinations across the document before visiting
+        // legacy anchors, including IDs declared after a named anchor.
+        var anchorIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (IElement element in source.QuerySelectorAll("[id]")) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string? id = element.GetAttribute("id");
+            if (!string.IsNullOrEmpty(id)) anchorIds.Add(id!);
+        }
+        XElement body = ConvertElement(source.Body!, diagnostics, manuscript, anchorIds, cancellationToken)!;
         var chapters = SplitChapters(body, options.ChapterHeadingLevel, title, diagnostics, cancellationToken);
         AssignAnchors(chapters, diagnostics);
         RewriteChapterLinks(chapters, manuscript, diagnostics);

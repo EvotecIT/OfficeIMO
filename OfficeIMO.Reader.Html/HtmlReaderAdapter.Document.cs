@@ -84,15 +84,15 @@ internal static partial class HtmlReaderAdapter {
             projectionOptions.BaseUri);
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
             conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen),
-            projectionOptions);
+            projectionOptions, cancellationToken);
         projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
         HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
         if (hasProjectionFilters) {
             projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
         }
         string markdown = hasProjectionFilters
-            ? HtmlMarkdownConverterExtensions.ToMarkdownPreparedDocument(conversionDocument, filtered, projectionOptions)
-            : conversionDocument.ToMarkdown(projectionOptions);
+            ? HtmlMarkdownConverterExtensions.ToMarkdownPreparedDocument(conversionDocument, filtered, projectionOptions, cancellationToken)
+            : conversionDocument.ToMarkdown(projectionOptions, cancellationToken);
         ReaderChunk[] chunks = ChunkMarkdown(markdown, source, readerOptions, effectiveHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
         var documentSource = new OfficeDocumentSource {

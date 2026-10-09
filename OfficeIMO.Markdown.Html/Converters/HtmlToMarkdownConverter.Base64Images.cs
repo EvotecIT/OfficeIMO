@@ -4,6 +4,7 @@ namespace OfficeIMO.Markdown.Html;
 
 internal sealed partial class HtmlToMarkdownConverter {
     private static bool TryApplyBase64ImageHandling(ref string source, ConversionContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         string originalSource = source;
         if (!HtmlImageDataUri.TryParse(source, out var dataUri) || !dataUri.IsBase64) {
             return true;
@@ -42,34 +43,43 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string SaveBase64Image(byte[] bytes, string mimeType, ConversionContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         string? outputDirectory = context.Options.Base64ImageOutputDirectory;
         if (string.IsNullOrWhiteSpace(outputDirectory)) {
             throw new InvalidOperationException("Base64ImageOutputDirectory is required when Base64Images is SaveToFile.");
         }
 
         string directory = Path.GetFullPath(outputDirectory!);
-        Directory.CreateDirectory(directory);
-
         int index = context.SavedBase64ImageCount++;
         string requestedFileName = context.Options.Base64ImageFileNameGenerator?.Invoke(index, mimeType) ?? "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        context.CancellationToken.ThrowIfCancellationRequested();
         string fileName = SanitizeBase64ImageFileName(requestedFileName, GetImageExtension(mimeType), index);
         string path = Path.Combine(directory, fileName);
-        return WriteBase64ImageFile(path, bytes);
+        Directory.CreateDirectory(directory);
+        return WriteBase64ImageFile(path, bytes, context.CancellationToken);
     }
 
-    private static string WriteBase64ImageFile(string path, byte[] bytes) {
+    private static string WriteBase64ImageFile(string path, byte[] bytes, System.Threading.CancellationToken cancellationToken) {
         string directory = Path.GetDirectoryName(path) ?? string.Empty;
         string name = Path.GetFileNameWithoutExtension(path);
         string extension = Path.GetExtension(path);
         for (int attempt = 0; attempt < int.MaxValue; attempt++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string candidate = attempt == 0
                 ? path
                 : Path.Combine(directory, name + "-" + attempt.ToString(System.Globalization.CultureInfo.InvariantCulture) + extension);
+            bool created = false;
             try {
                 using var stream = new FileStream(candidate, FileMode.CreateNew, FileAccess.Write);
+                created = true;
+                cancellationToken.ThrowIfCancellationRequested();
                 stream.Write(bytes, 0, bytes.Length);
+                cancellationToken.ThrowIfCancellationRequested();
                 return candidate;
-            } catch (IOException) when (File.Exists(candidate)) {
+            } catch (OperationCanceledException) {
+                if (created) File.Delete(candidate);
+                throw;
+            } catch (IOException) when (!created && File.Exists(candidate)) {
                 continue;
             }
         }

@@ -23,7 +23,7 @@ internal static class ChmReaderAdapter {
             string html = topic.ReadHtml(token); ChmDocument.ReserveCharacters(ref characters, html.Length, options.ConversionOptions);
             string virtualPath = input.Source.Path + "!" + topic.Path;
             ReaderHtmlOptions htmlOptions = options.HtmlOptions.Clone();
-            htmlOptions.ConversionOptions = book.CreateHtmlOptions(topic.Path);
+            htmlOptions.ConversionOptions = book.CreateHtmlOptions(topic.Path, htmlOptions.ConversionOptions);
             OfficeDocumentReadResult projected = HtmlReaderAdapter.ReadContentDocument(html, virtualPath, reader, htmlOptions, token);
             string prefix = "chm-topic-" + (++topicIndex).ToString("D5", CultureInfo.InvariantCulture) + "-";
             HtmlReaderAdapter.PrefixProjection(prefix, projected, ref tableIndex);

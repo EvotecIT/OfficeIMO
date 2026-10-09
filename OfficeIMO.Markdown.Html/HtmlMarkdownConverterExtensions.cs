@@ -16,9 +16,13 @@ public static class HtmlMarkdownConverterExtensions {
     /// <param name="document">Shared HTML conversion document.</param>
     /// <param name="options">Optional conversion options. Default options are used when omitted.</param>
     /// <returns>The rendered Markdown text.</returns>
-    public static string ToMarkdown(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
+    public static string ToMarkdown(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) =>
+        document.ToMarkdown(options, CancellationToken.None);
+
+    /// <summary>Converts shared HTML to Markdown with cooperative cancellation during projection and serialization.</summary>
+    public static string ToMarkdown(this HtmlConversionDocument document, HtmlToMarkdownOptions? options, CancellationToken cancellationToken) {
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ToMarkdownDocumentResultCore(document, operation).Value.ToMarkdown(operation.MarkdownWriteOptions);
+        return ToMarkdownDocumentResultCore(document, operation, cancellationToken).Value.ToMarkdown(operation.MarkdownWriteOptions, cancellationToken);
     }
 
     /// <summary>
@@ -31,21 +35,30 @@ public static class HtmlMarkdownConverterExtensions {
         return document.ToMarkdownDocumentResult(options).Value;
     }
 
+    /// <summary>Converts shared HTML to a Markdown model with cooperative cancellation during projection.</summary>
+    public static MarkdownDoc ToMarkdownDocument(this HtmlConversionDocument document, HtmlToMarkdownOptions? options, CancellationToken cancellationToken) =>
+        document.ToMarkdownDocumentResult(options, cancellationToken).Value;
+
     /// <summary>Converts a shared HTML conversion document into Markdown with operation-scoped evidence.</summary>
     public static HtmlToMarkdownResult ToMarkdownDocumentResult(
         this HtmlConversionDocument document,
-        HtmlToMarkdownOptions? options = null) {
+        HtmlToMarkdownOptions? options = null) => document.ToMarkdownDocumentResult(options, CancellationToken.None);
+
+    /// <summary>Converts shared HTML into Markdown with operation-scoped evidence and cooperative cancellation.</summary>
+    public static HtmlToMarkdownResult ToMarkdownDocumentResult(this HtmlConversionDocument document,
+        HtmlToMarkdownOptions? options, CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ToMarkdownDocumentResultCore(document, operation);
+        return ToMarkdownDocumentResultCore(document, operation, cancellationToken);
     }
 
     private static HtmlToMarkdownResult ToMarkdownDocumentResultCore(
         HtmlConversionDocument document,
-        HtmlToMarkdownOptions operation) {
+        HtmlToMarkdownOptions operation, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         ApplyDocumentPolicies(document, operation);
-        var converter = new HtmlToMarkdownConverter();
+        var converter = new HtmlToMarkdownConverter(cancellationToken);
         MarkdownDoc value;
         if (CanProjectSourceReadOnly(document, operation)) {
             value = document.ProjectSourceDocument(sourceDocument =>
@@ -54,7 +67,7 @@ public static class HtmlMarkdownConverterExtensions {
                     operation,
                     document.SourceHtml.Length));
         } else {
-            AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion();
+            AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion(cancellationToken);
             if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
                 HtmlActiveMediaFilter.Filter(sourceDocument, HtmlCssMediaContext.Print);
             } else {
@@ -65,12 +78,14 @@ public static class HtmlMarkdownConverterExtensions {
                 operation,
                 document.SourceHtml.Length);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new HtmlToMarkdownResult(value, document.Diagnostics.Concat(converter.Diagnostics));
     }
 
     /// <summary>Projects an independently owned, already filtered DOM using the source document's URL policies.</summary>
     internal static string ToMarkdownPreparedDocument(HtmlConversionDocument document,
-        AngleSharp.Html.Dom.IHtmlDocument prepared, HtmlToMarkdownOptions options) {
+        AngleSharp.Html.Dom.IHtmlDocument prepared, HtmlToMarkdownOptions options, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlToMarkdownOptions operation = options.Clone();
         ApplyDocumentPolicies(document, operation);
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
@@ -78,8 +93,8 @@ public static class HtmlMarkdownConverterExtensions {
         } else {
             HtmlActiveMediaFilter.FilterUnsupportedPictureSources(prepared);
         }
-        return new HtmlToMarkdownConverter().ConvertReadOnlyDocumentToDocument(
-            prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions);
+        return new HtmlToMarkdownConverter(cancellationToken).ConvertReadOnlyDocumentToDocument(
+            prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions, cancellationToken);
     }
 
     private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlToMarkdownOptions operation) {
@@ -128,7 +143,7 @@ public static class HtmlMarkdownConverterExtensions {
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ToMarkdownDocumentResultCore(document, operation).Value
+        return ToMarkdownDocumentResultCore(document, operation, cancellationToken).Value
             .SaveAsync(path, operation.MarkdownWriteOptions, encoding, cancellationToken);
     }
 
@@ -140,7 +155,7 @@ public static class HtmlMarkdownConverterExtensions {
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
         HtmlToMarkdownOptions operation = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ToMarkdownDocumentResultCore(document, operation).Value
+        return ToMarkdownDocumentResultCore(document, operation, cancellationToken).Value
             .SaveAsync(stream, operation.MarkdownWriteOptions, encoding, cancellationToken);
     }
 }

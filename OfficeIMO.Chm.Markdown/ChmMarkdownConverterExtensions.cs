@@ -22,10 +22,11 @@ public static class ChmMarkdownConverterExtensions {
         ChmConversionResult<HtmlConversionDocument> projected = document.ToHtmlDocumentResult(configured, cancellationToken);
         HtmlToMarkdownOptions conversion = markdownOptions?.Clone() ?? HtmlToMarkdownOptions.CreatePortableProfile();
         conversion.MaxInputCharacters = Math.Min(conversion.MaxInputCharacters ?? int.MaxValue, (int)configured.MaxOutputBytes);
-        var converted = projected.Value.ToMarkdownDocumentResult(conversion);
+        var converted = projected.Value.ToMarkdownDocumentResult(conversion, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        string markdown = converted.Value.ToMarkdown(conversion.MarkdownWriteOptions);
+        string markdown = converted.Value.ToMarkdown(conversion.MarkdownWriteOptions, cancellationToken);
         ChmDocument.EnforceOutput(Encoding.UTF8.GetByteCount(markdown), configured);
+        cancellationToken.ThrowIfCancellationRequested();
         var report = new ChmConversionReport(projected.Report.TopicPaths,
             projected.Report.FidelityDiagnostics.Concat(converted.Report.FidelityDiagnostics));
         return new ChmConversionResult<T>(select(converted.Value, markdown), report);

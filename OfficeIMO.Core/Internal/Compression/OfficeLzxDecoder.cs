@@ -161,7 +161,7 @@ internal sealed class OfficeLzxDecoder {
 
         if (_blockType == UncompressedBlock) {
             _uncompressedBlockNeedsPadding = (_blockBytesRemaining & 1) != 0;
-            reader.AlignToWord();
+            reader.AlignUncompressedHeader();
             _recentOffset0 = reader.ReadRawUInt32();
             _recentOffset1 = reader.ReadRawUInt32();
             _recentOffset2 = reader.ReadRawUInt32();

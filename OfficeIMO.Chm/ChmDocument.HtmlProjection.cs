@@ -24,8 +24,10 @@ public sealed partial class ChmDocument {
             string html = topic.ReadHtml(cancellationToken);
             ReserveCharacters(ref characters, html.Length, configured);
             HtmlConversionDocument source = HtmlConversionDocument.Parse(html, CreateHtmlOptions(topic.Path), cancellationToken);
-            if (source.Document.QuerySelectorAll("script,object,embed,iframe,frame,frameset").Count != 0)
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_ACTIVE_CONTENT_OMITTED", "Scripts, embedded controls and help-viewer frames are not reproduced in the document projection.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topic.Path));
+            if (source.Document.QuerySelectorAll("script,object,embed,iframe,frame,frameset").Count != 0 ||
+                source.Document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
+                    attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase) || attribute.LocalName.Equals("srcdoc", StringComparison.OrdinalIgnoreCase))))
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_ACTIVE_CONTENT_OMITTED", "Scripts, executable attributes, embedded controls and help-viewer frames are not reproduced in the document projection.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topic.Path));
             HtmlDocument normalized = source.CreateDocumentForConversion();
             string prefix = anchors[topic.Path];
             foreach (HtmlElement element in normalized.QuerySelectorAll("*")) {
@@ -43,6 +45,7 @@ public sealed partial class ChmDocument {
                 }
                 string? imageMap = element.GetAttribute("usemap");
                 if (imageMap != null && imageMap.StartsWith("#", StringComparison.Ordinal)) element.SetAttribute("usemap", "#" + prefix + "-" + imageMap.Substring(1));
+                RewriteSvgReferences(element, prefix, topic.Path, anchors);
                 string? href = element.GetAttribute("href");
                 if (href != null && (element.LocalName == "a" || element.LocalName == "area")) {
                     string? rewritten = RewriteBookLink(href, topic.Path, anchors);
@@ -52,7 +55,8 @@ public sealed partial class ChmDocument {
                         diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_LINK_OMITTED", "The link targets a missing or unselected help topic.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topic.Path));
                     }
                 }
-                if (configured.EmbedImages && element.LocalName == "img") EmbedImage(element, configured, topic.Path, ref embeddedBytes, diagnostics);
+                if (configured.EmbedImages && (element.LocalName == "img" || element.LocalName == "source"))
+                    EmbedImages(element, configured, topic.Path, ref embeddedBytes, diagnostics, cancellationToken);
             }
             foreach (HtmlElement element in normalized.Head?.Children ?? Array.Empty<HtmlElement>()) {
                 if (element.LocalName != "style" && !(element.LocalName == "link" && element.GetAttribute("rel")?.IndexOf("stylesheet", StringComparison.OrdinalIgnoreCase) >= 0)) continue;
@@ -119,18 +123,4 @@ public sealed partial class ChmDocument {
         return "#" + Uri.EscapeDataString(anchor);
     }
 
-    private void EmbedImage(HtmlElement element, ChmConversionOptions options, string sourcePath, ref long bytes, List<OfficeConversionFidelityDiagnostic> diagnostics) {
-        string? source = element.GetAttribute("src");
-        if (source == null || !Uri.TryCreate(source, UriKind.Absolute, out Uri? uri) || uri.Scheme != "chm" || uri.Host != "archive") return;
-        ChmEntry? entry = FindUriEntry(uri);
-        if (entry == null || entry.IsSystem || entry.IsDirectory) {
-            element.RemoveAttribute("src");
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_IMAGE_MISSING", "An image reference has no embedded resource.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", sourcePath));
-            return;
-        }
-        if (entry.Length > options.MaxEmbeddedImageBytes || entry.Length > options.MaxTotalEmbeddedImageBytes - bytes)
-            throw ChmBinary.Error("CONVERSION_LIMIT", "Embedded images exceed the configured projection budget.");
-        bytes += entry.Length;
-        element.SetAttribute("src", "data:" + GetMediaType(entry.Path) + ";base64," + Convert.ToBase64String(entry.GetBytes()));
-    }
 }

@@ -47,6 +47,13 @@ internal sealed class OfficeLzxBitReader {
         _bitsRemaining = 0;
     }
 
+    internal void AlignUncompressedHeader() {
+        // Uncompressed headers require 1-16 padding bits, whereas frame
+        // alignment permits 0-15. An already aligned header consumes a word.
+        if (_bitsRemaining == 0) LoadWord();
+        _bitsRemaining = 0;
+    }
+
     internal byte ReadRawByte() {
         EnsureByteAligned();
         EnsureRawBytes(1);

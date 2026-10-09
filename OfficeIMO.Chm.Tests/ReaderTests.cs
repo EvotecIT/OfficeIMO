@@ -1,10 +1,46 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Chm;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Html;
 using System.Security.Cryptography;
 
 namespace OfficeIMO.Chm.Tests;
 
 public sealed class ReaderTests {
+    [Theory]
+    [InlineData("characters")]
+    [InlineData("nodes")]
+    [InlineData("depth")]
+    public void ReaderPreservesStricterCallerHtmlLimits(string boundary) {
+        var html = new HtmlConversionDocumentOptions();
+        if (boundary == "characters") html.Limits.MaxInputCharacters = 20;
+        if (boundary == "nodes") html.Limits.MaxHtmlNodes = 3;
+        if (boundary == "depth") html.Limits.MaxHtmlDepth = 2;
+        var options = new ReaderChmOptions { HtmlOptions = new ReaderHtmlOptions { ConversionOptions = html } };
+        var reader = new OfficeDocumentReaderBuilder().AddChmHandler(options).Build();
+        using var stream = new MemoryStream(ChmFixture.Book());
+        Assert.Throws<HtmlDomLimitException>(() => reader.ReadDocument(stream, "manual.chm"));
+        if (boundary == "characters") Assert.Equal(20, html.Limits.MaxInputCharacters);
+        if (boundary == "nodes") Assert.Equal(3, html.Limits.MaxHtmlNodes);
+        if (boundary == "depth") Assert.Equal(2, html.Limits.MaxHtmlDepth);
+        Assert.DoesNotContain("chm", html.UrlPolicy.AllowedUrlSchemes);
+    }
+
+    [Fact]
+    public void ReaderRetainsCallerUrlPolicyAndArchiveRelativeLinks() {
+        var html = new HtmlConversionDocumentOptions();
+        html.UrlPolicy.AllowedUrlSchemes.Clear();
+        var options = new ReaderChmOptions { HtmlOptions = new ReaderHtmlOptions { ConversionOptions = html } };
+        var reader = new OfficeDocumentReaderBuilder().AddChmHandler(options).Build();
+        using var stream = new MemoryStream(ChmFixture.Archive(new Dictionary<string, byte[]> {
+            ["/topic.html"] = ChmFixture.Html("<a href='https://example.invalid/'>External</a><a href='other.html'>Internal</a>"),
+            ["/other.html"] = ChmFixture.Html("<p>Other</p>")
+        }));
+        var result = reader.ReadDocument(stream, "manual.chm");
+        Assert.DoesNotContain("https://example.invalid", result.Markdown!);
+        Assert.Contains("chm://archive/other.html", result.Markdown!);
+        Assert.Empty(html.UrlPolicy.AllowedUrlSchemes);
+    }
     [Fact]
     public void ReaderRetainsTopicCitationsRichTablesAndArchiveHash() {
         byte[] bytes = ChmFixture.Book(); using var stream = new MemoryStream(bytes); stream.Position = 11;

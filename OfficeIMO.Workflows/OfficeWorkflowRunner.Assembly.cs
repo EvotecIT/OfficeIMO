@@ -787,7 +787,7 @@ public sealed partial class OfficeWorkflowRunner {
                     input,
                     diagnostics,
                     cancellationToken,
-                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf",
+                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf" && source.Route?.Id != "chm-pdf",
                     htmlResourceSnapshots: source.HtmlDependencySnapshots);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);

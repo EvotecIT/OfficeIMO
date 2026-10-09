@@ -10,7 +10,7 @@ public static partial class EpubManuscript {
     }, StringComparer.OrdinalIgnoreCase);
 
     private static XElement? ConvertElement(IElement source, List<OfficeConversionFidelityDiagnostic> diagnostics,
-        HtmlConversionDocument manuscript, CancellationToken token) {
+        HtmlConversionDocument manuscript, HashSet<string> anchorIds, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         string name = source.LocalName;
         if (name == "input" && string.Equals(source.GetAttribute("type"), "checkbox", StringComparison.OrdinalIgnoreCase) && source.HasAttribute("disabled"))
@@ -53,7 +53,7 @@ public static partial class EpubManuscript {
         foreach (INode node in source.ChildNodes) {
             token.ThrowIfCancellationRequested();
             if (node is IElement child) {
-                XElement? converted = ConvertElement(child, diagnostics, manuscript, token);
+                XElement? converted = ConvertElement(child, diagnostics, manuscript, anchorIds, token);
                 if (converted != null) element.Add(converted);
             } else if (node is IText text) {
                 XmlConvert.VerifyXmlChars(text.Data);
@@ -66,9 +66,12 @@ public static partial class EpubManuscript {
         if (name == "a" && element.Attribute("name") is XAttribute namedAnchor) {
             string anchor = namedAnchor.Value;
             namedAnchor.Remove();
-            if (anchor.Length != 0) {
-                if (element.Attribute("id") == null) element.SetAttributeValue("id", anchor);
-                else if ((string?)element.Attribute("id") != anchor)
+            if (anchor.Length != 0 && (string?)element.Attribute("id") != anchor) {
+                if (!anchorIds.Add(anchor)) {
+                    AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", "A legacy named anchor collides with an existing destination; its alias was omitted.", anchor, OfficeConversionLossKind.Failure);
+                }
+                else if (element.Attribute("id") == null) element.SetAttributeValue("id", anchor);
+                else
                     element.AddFirst(new XElement(Xhtml + "span", new XAttribute("id", anchor)));
             }
         }

@@ -174,7 +174,8 @@ public static partial class HtmlNormalizer {
         var attributes = new List<KeyValuePair<string, string>>();
         bool preserveAttributeCasing = IsForeignContent(element);
         foreach (IAttr attribute in element.Attributes) {
-            string name = attribute.Name.ToLowerInvariant();
+            string qualifiedName = HtmlDocumentParser.GetQualifiedAttributeName(attribute);
+            string name = qualifiedName.ToLowerInvariant();
             if (options.RemoveEventHandlerAttributes && name.StartsWith("on", StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
@@ -186,7 +187,7 @@ public static partial class HtmlNormalizer {
                 }
             }
 
-            string emittedName = preserveAttributeCasing ? attribute.Name : name;
+            string emittedName = preserveAttributeCasing ? qualifiedName : name;
             attributes.Add(new KeyValuePair<string, string>(emittedName, value));
         }
 
