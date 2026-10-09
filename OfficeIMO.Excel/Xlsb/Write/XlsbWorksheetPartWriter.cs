@@ -54,7 +54,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet sheet,
             IReadOnlyList<XlsbWriteCell> cells,
             int cellFormatCount,
-            IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords) {
+            IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
+            XlsbSharedStringTable? sharedStrings = null) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
@@ -86,7 +87,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     rowProperties));
                 if (rowCells == null) continue;
                 foreach (XlsbWriteCell cell in rowCells) {
-                    WriteCell(output, cell);
+                    WriteCell(output, cell, sharedStrings);
                 }
             }
             XlsbRecordWriter.Write(output, BrtEndSheetData);
@@ -112,7 +113,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static bool TryCreateDirectTabular(
             ExcelDirectTabularSource source,
             CancellationToken cancellationToken,
-            out ArraySegment<byte> worksheetPart) {
+            out ArraySegment<byte> worksheetPart,
+            XlsbSharedStringTable? sharedStrings = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
             IExcelSheetTabularRowSource rows = source.Rows;
@@ -137,7 +139,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (source.IncludeHeaders && rows.ColumnCount != 0) {
                 WriteDirectRowHeader(writer, 0, rows.ColumnCount);
                 for (int column = 0; column < rows.ColumnCount; column++) {
-                    WriteDirectTextCell(writer, column, rows.GetColumnName(column));
+                    WriteDirectTextCell(writer, column, rows.GetColumnName(column), sharedStrings);
                 }
             }
 
@@ -153,17 +155,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && candidateRow?.Length == rows.ColumnCount
                         ? candidateRow
                         : null;
+                bool wroteCell = false;
                 for (int column = 0; column < rows.ColumnCount; column++) {
                     ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(flatValues != null
                         ? flatValues[checked((row * rows.ColumnCount) + column)]
                         : bufferedRow != null
                             ? bufferedRow[column]
-                            : rows.GetValue(row, column));
+                            : rows.GetValue(row, column), source.PreserveMissingValues);
+                    if (value.Kind == ExcelDirectTabularValueKind.Empty) continue;
+                    wroteCell = true;
                     switch (value.Kind) {
-                        case ExcelDirectTabularValueKind.Empty:
-                            break;
                         case ExcelDirectTabularValueKind.Text:
-                            WriteDirectTextCell(writer, column, value.Text ?? string.Empty);
+                            WriteDirectTextCell(writer, column, value.Text ?? string.Empty, sharedStrings);
                             break;
                         case ExcelDirectTabularValueKind.Number:
                             WriteDirectNumberCell(writer, column, value.Number);
@@ -175,6 +178,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                             worksheetPart = default;
                             return false;
                     }
+                }
+                if (!wroteCell && rows.ColumnCount != 0) {
+                    // Retain an explicitly imported empty row without storing text
+                    // or expanding every missing field into a cell record.
+                    writer.WriteHeader(BrtCellBlank, 8);
+                    writer.WriteUInt32(checked((uint)(rows.ColumnCount - 1)));
+                    writer.WriteUInt32(0U);
                 }
             }
 
@@ -204,9 +214,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void WriteDirectTextCell(
             XlsbDirectRecordWriter writer,
             int zeroBasedColumn,
-            string value) {
+            string value,
+            XlsbSharedStringTable? sharedStrings) {
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
-            writer.WriteTextCell(BrtCellSt, zeroBasedColumn, value);
+            if (sharedStrings == null) {
+                writer.WriteTextCell(BrtCellSt, zeroBasedColumn, value);
+            } else {
+                writer.WriteSharedStringCell(BrtCellIsst, zeroBasedColumn, sharedStrings.GetOrAdd(value));
+            }
         }
 
         private static void WriteDirectNumberCell(XlsbDirectRecordWriter writer, int zeroBasedColumn, double value) {
@@ -569,7 +584,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return checked((int)zeroBasedColumn + 1);
         }
 
-        private static void WriteCell(Stream output, XlsbWriteCell cell) {
+        private static void WriteCell(Stream output, XlsbWriteCell cell, XlsbSharedStringTable? sharedStrings = null) {
             if (cell.SourceRecordType.HasValue && cell.SourceRecordData != null) {
                 XlsbRecordWriter.Write(output, cell.SourceRecordType.Value, cell.SourceRecordData);
                 return;
@@ -585,6 +600,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     return;
                 case XlsbWriteCellKind.Text:
                     string text = (string?)cell.Value ?? string.Empty;
+                    if (sharedStrings != null) {
+                        WriteSimpleCellHeader(output, BrtCellIsst, payloadLength: 12, cell);
+                        WriteUInt32(output, checked((uint)sharedStrings.GetOrAdd(text)));
+                        return;
+                    }
                     int textPayloadLength = checked(12 + (text.Length * 2));
                     WriteSimpleCellHeader(output, BrtCellSt, textPayloadLength, cell);
                     WriteWideString(output, text);

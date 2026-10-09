@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override DateTime GetDateTime(int ordinal) {
-                EnsureOpenRow();
+                if (TryGetUnloadedDateTime(ordinal, out DateTime indexedDate)) return indexedDate;
                 EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.DateTime);
                 if (IsCurrentStreamingRow && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.DateTime) {
                     return _currentDateTimeValues[ordinal];
@@ -110,6 +110,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override int GetInt32(int ordinal) {
+                if (TryGetUnloadedInt32(ordinal, out int integer)) return integer;
                 return TryGetPrimitiveDouble(ordinal, out double value)
                     ? ConvertDataReaderInt32(value)
                     : TryGetCachedDecimal(ordinal, out decimal decimalValue) ? Convert.ToInt32(decimalValue)
@@ -137,6 +138,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override string GetString(int ordinal) {
+                if (TryGetUnloadedString(ordinal, out string indexedText)) return indexedText;
                 object value = GetNonDbNullValue(ordinal);
                 return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
             }
@@ -194,7 +196,7 @@ namespace OfficeIMO.Excel {
             }
 
             private bool TryGetPrimitiveDouble(int ordinal, out double value) {
-                EnsureOpenRow();
+                if (TryGetUnloadedNumber(ordinal, out value)) return true;
                 EnsureCurrentValue(ordinal, XmlDataReaderTargetKind.Numeric);
                 if (IsCurrentStreamingRow
                     && (_currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double || IsCurrentDateSerial(ordinal))) {

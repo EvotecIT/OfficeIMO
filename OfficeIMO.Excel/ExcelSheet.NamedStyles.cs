@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
             return result!;
         }
 
-        private static string ValidateNamedStyleName(string name) {
+        internal static string ValidateNamedStyleName(string name) {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
             string normalizedName = name.Trim();
             if (normalizedName.Length > 255) throw new ArgumentOutOfRangeException(nameof(name));
@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel {
             return index;
         }
 
-        private uint ReplaceOrAppendNamedStyleFormat(
+        private static uint ReplaceOrAppendNamedStyleFormat(
             Stylesheet stylesheet,
             CellStyle? style,
             CellFormat replacement) {

@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int row = firstRow; row <= lastRow; row++) {
-                    if (!source!.SelectRow(row)) {
+                    if (!source!.SelectRow(row, ct, ct)) {
                         continue;
                     }
 

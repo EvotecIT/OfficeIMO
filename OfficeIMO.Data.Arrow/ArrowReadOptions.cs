@@ -69,6 +69,18 @@ public sealed class ArrowReadOptions {
     /// </summary>
     public IReadOnlyList<Type>? ColumnTypes { get; set; }
 
+    /// <summary>
+    /// Gets or sets whether every source column permits nulls, in ordinal order.
+    /// When omitted, all Arrow fields are nullable. A false entry declares a required
+    /// field and rejects a batch containing null values in that column.
+    /// </summary>
+    /// <remarks>
+    /// The adapter validates the width and copies these settings before reading.
+    /// Required columns are checked before a batch is returned, including conversion
+    /// paths that represent an unconvertible source value as null.
+    /// </remarks>
+    public IReadOnlyList<bool>? ColumnNullability { get; set; }
+
     internal Type[]? ValidateAndSnapshotColumnTypes(int fieldCount) {
         if (_decimalScale > _decimalPrecision) {
             throw new ArgumentOutOfRangeException(
@@ -91,6 +103,22 @@ public sealed class ArrowReadOptions {
                 ?? throw new ArgumentException(
                     $"Explicit Arrow column type {ordinal} is null.",
                     nameof(ColumnTypes));
+        }
+        return snapshot;
+    }
+
+    internal bool[]? ValidateAndSnapshotColumnNullability(int fieldCount) {
+        IReadOnlyList<bool>? nullability = ColumnNullability;
+        if (nullability == null) return null;
+        if (nullability.Count != fieldCount) {
+            throw new ArgumentException(
+                $"Explicit Arrow column nullability contains {nullability.Count} entries for a {fieldCount}-column reader.",
+                nameof(ColumnNullability));
+        }
+
+        var snapshot = new bool[fieldCount];
+        for (int ordinal = 0; ordinal < snapshot.Length; ordinal++) {
+            snapshot[ordinal] = nullability[ordinal];
         }
         return snapshot;
     }

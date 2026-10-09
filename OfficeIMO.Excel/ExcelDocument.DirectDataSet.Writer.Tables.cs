@@ -95,12 +95,15 @@ namespace OfficeIMO.Excel {
                 private const string TimeFormatCode = "[h]:mm:ss";
                 private readonly Dictionary<string, string> _styleAttributeByFormat;
 
-                private DirectStylePlan(List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat) {
+                private DirectStylePlan(List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat, ExcelTabularStylePlan? tabularStyles) {
                     CustomNumberFormats = customNumberFormats;
                     _styleAttributeByFormat = styleAttributeByFormat;
+                    TabularStyles = tabularStyles;
                 }
 
                 internal IReadOnlyList<string> CustomNumberFormats { get; }
+
+                internal ExcelTabularStylePlan? TabularStyles { get; }
 
                 internal static DirectStylePlan Create(DirectDataSetWorkbookModel model) {
                     var customNumberFormats = new List<string>();
@@ -127,7 +130,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    return new DirectStylePlan(customNumberFormats, styleAttributeByFormat);
+                    return new DirectStylePlan(customNumberFormats, styleAttributeByFormat, model.TabularStyles);
                 }
 
                 private static void AddCustomNumberFormat(string? format, List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat) {
@@ -183,7 +186,7 @@ namespace OfficeIMO.Excel {
                 internal bool[]? ValueStyleColumns { get; }
             }
 
-            internal sealed class DirectSharedStringTable {
+            internal sealed partial class DirectSharedStringTable {
                 private const int MinimumStringReferences = 512;
                 private const int MinimumDuplicateReferences = 128;
                 private const int MinimumDuplicateCharacters = 4096;
@@ -227,11 +230,14 @@ namespace OfficeIMO.Excel {
                     TotalStringReferences = totalStringReferences;
                 }
 
-                internal string[] Values { get; }
+                internal IReadOnlyList<string> Values { get; }
 
-                internal int TotalStringReferences { get; }
+                internal int TotalStringReferences { get; private set; }
 
-                internal bool TryGetIndex(string value, out int index) => _indexes.TryGetValue(value, out index);
+                internal bool TryGetIndex(string value, out int index) {
+                    if (_streamingValues != null) return TryCollectIndex(value, out index);
+                    return _indexes.TryGetValue(value, out index);
+                }
 
                 internal static DirectSharedStringTable? Create(DirectDataSetWorkbookModel model, IReadOnlyList<DirectColumnWritePlan> columnWritePlans, CancellationToken ct) {
                     if (!CanReachMinimumStringReferences(model, columnWritePlans)) {

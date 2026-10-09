@@ -34,6 +34,8 @@ namespace OfficeIMO.Excel {
             }
 
             ValidateTabularHeaders(headers);
+            ct.ThrowIfCancellationRequested();
+            options.StylePlan = ExcelTabularStylePlan.Create(options, headers.Count, ct);
 
             DirectDataSetTableModel tableModel;
             if (CanWriteRowsSinglePass(options)) {
@@ -83,6 +85,7 @@ namespace OfficeIMO.Excel {
 
             ValidateTabularHeaders(headers);
             ct.ThrowIfCancellationRequested();
+            options.StylePlan = ExcelTabularStylePlan.Create(options, headers.Count, ct);
 
             var columnTypes = new Type[headers.Count];
             for (int columnIndex = 0; columnIndex < columnTypes.Length; columnIndex++) {
@@ -107,7 +110,8 @@ namespace OfficeIMO.Excel {
                 ct,
                 options.UseCellValueNumberFormats,
                 options.DateSystem,
-                options.IncludeCellReferences);
+                options.IncludeCellReferences,
+                tabularStyles: options.StylePlan);
 
             if (stream.CanSeek) {
                 PrepareDestinationStreamForWrite(stream);
@@ -119,7 +123,8 @@ namespace OfficeIMO.Excel {
                 items,
                 writeRow,
                 GetMaximumDataRows(options),
-                ct).ConfigureAwait(false);
+                ct,
+                options.UseSharedStrings).ConfigureAwait(false);
             if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
             }
@@ -147,15 +152,17 @@ namespace OfficeIMO.Excel {
                 AutoFit = options.AutoFit,
                 UseCellValueNumberFormats = options.UseCellValueNumberFormats,
                 IncludeCellReferences = options.IncludeCellReferences,
-                UseSharedStrings = false,
+                UseSharedStrings = options.UseSharedStrings,
                 RequireStreaming = options.RequireStreaming,
-                DateSystem = options.DateSystem
+                DateSystem = options.DateSystem,
+                Styles = options.Styles,
+                DefaultRowStyle = options.DefaultRowStyle,
+                ColumnStyles = options.ColumnStyles
             };
         }
 
         private static bool CanWriteRowsSinglePass(ExcelTabularWriteOptions options) =>
-            !options.UseSharedStrings
-            && !options.CreateTable
+            !options.CreateTable
             && !options.AutoFit;
 
         private static void ValidateTabularHeaders(IReadOnlyList<string> headers) {
@@ -218,7 +225,7 @@ namespace OfficeIMO.Excel {
             if (reader == null) throw new ArgumentNullException(nameof(reader));
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
 
-            options ??= new ExcelTabularWriteOptions();
+            options = CreateRowWriteOptions(options ?? new ExcelTabularWriteOptions());
             ct.ThrowIfCancellationRequested();
             if (options.RequireStreaming && (options.UseSharedStrings || options.AutoFit || (options.CreateTable && !options.IncludeHeaders))) {
                 throw new ArgumentException("Streaming data reader exports require UseSharedStrings=false, AutoFit=false, and headers when creating a table.", nameof(options));
@@ -227,6 +234,7 @@ namespace OfficeIMO.Excel {
             Type[] fieldTypes = ExcelSheet.BuildReaderFieldTypes(reader);
             string[] columnNames = ExcelSheet.BuildDirectReaderColumnNames(headers, options.IncludeHeaders);
             Type[] columnTypes = ExcelSheet.BuildDirectReaderColumnTypes(fieldTypes);
+            options.StylePlan = ExcelTabularStylePlan.Create(options, columnNames.Length, ct);
             if (!options.UseSharedStrings
                 && !options.AutoFit
                 && (!options.CreateTable || options.IncludeHeaders)) {
@@ -280,7 +288,8 @@ namespace OfficeIMO.Excel {
                 ct,
                 options.UseCellValueNumberFormats,
                 options.DateSystem,
-                options.IncludeCellReferences);
+                options.IncludeCellReferences,
+                tabularStyles: options.StylePlan);
 
             if (stream.CanSeek) {
                 PrepareDestinationStreamForWrite(stream);
@@ -321,13 +330,16 @@ namespace OfficeIMO.Excel {
                 ct,
                 options.UseCellValueNumberFormats,
                 options.DateSystem,
-                options.IncludeCellReferences);
+                options.IncludeCellReferences,
+                tabularStyles: options.StylePlan);
 
             if (stream.CanSeek) {
                 PrepareDestinationStreamForWrite(stream);
             }
 
-            DirectDataSetWorkbookWriter.Write(stream, model, ct, disableSharedStrings: !options.UseSharedStrings);
+            DirectDataSetWorkbookWriter.Write(stream, model, ct,
+                disableSharedStrings: !options.UseSharedStrings,
+                collectSharedStrings: options.UseSharedStrings && tableModel.TryGetObjectRows(out _));
             if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
             }
