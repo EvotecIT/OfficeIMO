@@ -405,9 +405,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
-        if (pagedPaintExtent > outerHeight + 0.0001D) {
+        bool hasPagedFloats = _options.Mode == HtmlRenderMode.Paged && contentFloats.HasFloats;
+        if (pagedPaintExtent > outerHeight + 0.0001D || hasPagedFloats) {
             IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicParallelVisualRanges(visuals);
-            breakOffsets = breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
+            breakOffsets = hasPagedFloats
+                ? CollectSafeFloatBreaks(breakOffsets, contentFloats.GetFragmentPlacements(contentYForBreaks), atomicRanges,
+                    pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight)
+                : breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
         }
         if (children.Count == 0 && contentVisuals.Count == 0) {
             breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(

@@ -1,0 +1,104 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+using Xunit;
+using PdfCore = OfficeIMO.Pdf;
+
+namespace OfficeIMO.Tests;
+
+public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "text")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "text")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "float")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "float")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "image")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "image")]
+    public void HtmlFloatPagination_KeepsEveryTableRowAndNeighborVisible(
+        HtmlRenderIntentProfile profile, string neighbor) {
+        string side = neighbor switch {
+            "text" => "<p style='margin:0;font-size:12px;line-height:20px'>"
+                + string.Join("<br>", Enumerable.Range(0, 7).Select(index => "TEXT_" + (char)('A' + index))) + "</p>",
+            "float" => "<div style='float:right;width:100px'><p style='margin:0'>SIDE_A<br>SIDE_B</p></div>",
+            "image" => "<div style='float:right'><svg width='80' height='100'>"
+                + "<rect width='80' height='100' fill='orange'/></svg></div>",
+            _ => ""
+        };
+        string html = FloatTablePaginationHtml(FloatTableRows(1, 7), side);
+        HtmlRenderDocument rendered = RenderFloatTablePagination(html, profile);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        var markers = Enumerable.Range(1, 7).Select(index => $"ROW_{index:00}").ToList();
+        if (neighbor == "text") markers.AddRange(Enumerable.Range(0, 7).Select(index => "TEXT_" + (char)('A' + index)));
+        if (neighbor == "float") markers.AddRange(new[] { "SIDE_A", "SIDE_B" });
+        AssertFloatPaginationMarkers(rendered, markers);
+
+        if (neighbor == "image") {
+            HtmlRenderDrawing image = Assert.Single(rendered.Pages
+                .SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderDrawing>());
+            Assert.Equal(100D, image.Height, 6);
+        }
+        byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, FloatTablePaginationOptions())).ToBytes();
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        foreach (string marker in markers) {
+            int first = pdfText.IndexOf(marker, StringComparison.Ordinal);
+            Assert.True(first >= 0, "The PDF lost " + marker + ".");
+            Assert.Equal(-1, pdfText.IndexOf(marker, first + marker.Length, StringComparison.Ordinal));
+        }
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged)]
+    public void HtmlFloatPagination_KeepsAFittingRowGroupTogetherAfterPrelude(HtmlRenderIntentProfile profile) {
+        string rows = "<tbody style='break-inside:avoid'>" + FloatTableRows(1, 3) + "</tbody>"
+            + "<tbody>" + FloatTableRows(4, 4) + "</tbody>";
+        string html = FloatTablePaginationHtml(rows, "", "<div style='height:70px'>LEAD</div>");
+        HtmlRenderDocument rendered = RenderFloatTablePagination(html, profile);
+
+        AssertFloatPaginationMarkers(rendered, Enumerable.Range(1, 7).Select(index => $"ROW_{index:00}").Append("LEAD"));
+        int[] rowPages = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)
+            .OfType<HtmlRenderText>().Where(text => text.Text is "ROW_01" or "ROW_02" or "ROW_03")
+            .Select(_ => page.PageNumber)).ToArray();
+        Assert.Equal(3, rowPages.Length);
+        Assert.Single(rowPages.Distinct());
+        Assert.True(rowPages[0] > 1);
+    }
+
+    private static string FloatTableRows(int first, int count) => string.Concat(
+        Enumerable.Range(first, count).Select(index => $"<tr><td>ROW_{index:00}</td></tr>"));
+
+    private static string FloatTablePaginationHtml(string rows, string neighbor, string prelude = "") =>
+        "<style>body{margin:0;font:16px Pinned}table{border-collapse:collapse}td{padding:5px}"
+        + ".float{float:left;width:100px}</style><div style='overflow:hidden'>" + prelude
+        + "<div class='float'><table>" + rows + "</table></div>" + neighbor + "</div>";
+
+    private static HtmlRenderOptions FloatTablePaginationOptions() {
+        HtmlRenderOptions options = TableIntrinsicOptions();
+        options.AllowSystemFontFallback = false;
+        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 230D / HtmlRenderOptions.CssPixelsPerInch);
+        options.ViewportWidth = 320D;
+        options.ViewportHeight = 230D;
+        options.Margins = HtmlRenderMargins.All(48D);
+        options.HonorCssPageRules = false;
+        return options;
+    }
+
+    private static HtmlRenderDocument RenderFloatTablePagination(string html, HtmlRenderIntentProfile profile) =>
+        HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, FloatTablePaginationOptions())).Document;
+
+    private static void AssertFloatPaginationMarkers(HtmlRenderDocument rendered, IEnumerable<string> markers) {
+        foreach (string marker in markers) {
+            HtmlRenderPage page = Assert.Single(rendered.Pages, item =>
+                EnumerateRenderVisuals(item.Scene).OfType<HtmlRenderText>().Any(text => text.Text == marker));
+            HtmlRenderText text = Assert.Single(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(), item => item.Text == marker);
+            OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
+            Assert.True(FloatPaintContainsGlyphInk(raster, text), "Retained text must also paint " + marker + ".");
+        }
+        rendered.RequireNoLoss();
+    }
+}
