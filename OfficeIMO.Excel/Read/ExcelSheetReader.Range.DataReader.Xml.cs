@@ -543,7 +543,8 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_currentValueLoaded[ordinal]) {
+                if (_currentValueLoaded[ordinal]
+                    && (_utf8Source != null || !_currentRowActive || _currentRowFinished)) {
                     return;
                 }
 
@@ -573,6 +574,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 int targetColumn = _firstColumn + ordinal;
+                // A later cell can repeat this column or appear before an earlier
+                // one. Finish the bounded row cache before publishing a scalar so
+                // every getter observes the same last-wins value as GetValues.
+                ThrowIfReadCancellationRequested();
                 while (_reader.Read()) {
                     ThrowIfReadCancellationRequested();
 
@@ -627,10 +632,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     _currentValueLoaded[columnOffset] = true;
-
-                    if (columnIndex == targetColumn) {
-                        return;
-                    }
                 }
 
                 if (!_currentValueLoaded[ordinal]) {
@@ -651,6 +652,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_currentRowActive && !_currentRowFinished) {
+                    ThrowIfReadCancellationRequested();
                     while (_reader.Read()) {
                         ThrowIfReadCancellationRequested();
 
