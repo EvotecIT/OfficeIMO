@@ -39,6 +39,7 @@ namespace OfficeIMO.Visio {
             VisioFontWireCodec? fontWire = documentXml.Root == null ? null : VisioFontWireCodec.ReadDocument(documentXml.Root);
             if (documentXml.Root != null) fontWire!.DecodeCells(documentXml.Root, VisioNativeCellMetadata.Read(documentXml.Root.Elements()));
             var textBackgroundColors = ReadTextBackgroundPalette(documentXml.Root?.Element(XName.Get("Colors", VisioNamespace))?.Elements() ?? Enumerable.Empty<XElement>());
+            var paintStyles = new VisioNativePaintStyleResolver(documentXml.Root);
             if (documentXml.Root != null) {
                 foreach (XAttribute attribute in documentXml.Root.Attributes().Where(ShouldPreserveDocumentAttribute)) {
                     document.PreservedDocumentAttributes.Add(new XAttribute(attribute));
@@ -195,7 +196,7 @@ namespace OfficeIMO.Visio {
                     document.CaptureForeignResources(masterPart, masterDoc, foreignResources);
                     XElement? masterShapesElement = masterDoc.Root?.Element(ns + "Shapes");
                     XElement? masterShapeElement = masterShapesElement?.Elements(ns + "Shape").FirstOrDefault();
-                    VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById, textBackgroundColors: textBackgroundColors) : new VisioShape("1");
+                    VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById, textBackgroundColors: textBackgroundColors, paintStyles: paintStyles) : new VisioShape("1");
                     if (masterShapeElement != null) VisioNativeCellMetadata.BindTree(masterShape, masterShapeElement, VisioNativeCellMetadata.MasterScope(masterNameU), nativeCells);
                     BindForeignResources(masterShape, foreignResources);
                     VisioMaster master = new(masterId, masterNameU, masterShape);
@@ -628,7 +629,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    VisioShape shape = ParseShapeCore(shapeElement, vNs, faceNamesById, textBackgroundColors: textBackgroundColors);
+                    VisioShape shape = ParseShapeCore(shapeElement, vNs, faceNamesById, textBackgroundColors: textBackgroundColors, paintStyles: paintStyles);
                     VisioNativeCellMetadata.BindTree(shape, shapeElement, VisioNativeCellMetadata.PageScope(pageId), nativeCells);
                     BindForeignResources(shape, page.ForeignResources);
                     ApplyMasterReferences(shape, shapeElement, vNs, masters);
@@ -697,7 +698,7 @@ namespace OfficeIMO.Visio {
                     // preserved native XML instead of silently discarding its target.
                     if (ids.fromId != null && !shapeMap.TryGetValue(ids.fromId, out fromShape) ||
                         ids.toId != null && !shapeMap.TryGetValue(ids.toId, out toShape)) continue;
-                    VisioConnector? connector = LoadConnector(connectorElement, vNs, masters, faceNamesById, page, fromShape, toShape, ids.fromCell, ids.toCell, textBackgroundColors);
+                    VisioConnector? connector = LoadConnector(connectorElement, vNs, masters, faceNamesById, page, fromShape, toShape, ids.fromCell, ids.toCell, textBackgroundColors, paintStyles);
                     if (connector == null) continue;
                     connector.NativeCellMetadata = VisioNativeCellMetadata.Bind(connectorElement, VisioNativeCellMetadata.PageScope(pageId), nativeCells);
                     if (hasConnections) {

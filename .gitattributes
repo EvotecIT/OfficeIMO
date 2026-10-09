@@ -156,6 +156,13 @@ OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vsx -text -diff
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vtx -text -diff
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*LICENSE.txt -text -whitespace
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.xml -text -whitespace
+# Binary Visio qualification pairs preserve the producer's exact original bytes.
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vsd -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vss -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vst -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vdx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vsx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vtx -text -diff
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodg -text
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodp -text
 

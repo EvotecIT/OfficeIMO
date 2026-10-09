@@ -14,7 +14,7 @@ namespace OfficeIMO.Visio {
             return ParseShapeCore(shapeElement, ns, null, parent, depth);
         }
 
-        private static VisioShape ParseShapeCore(XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById = null, VisioShape? parent = null, int depth = 0, IReadOnlyDictionary<int, string>? textBackgroundColors = null) {
+        private static VisioShape ParseShapeCore(XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById = null, VisioShape? parent = null, int depth = 0, IReadOnlyDictionary<int, string>? textBackgroundColors = null, VisioNativePaintStyleResolver? paintStyles = null) {
             if (depth > MaxShapeNestingDepth) {
                 throw new InvalidOperationException("Maximum nesting depth exceeded");
             }
@@ -23,8 +23,9 @@ namespace OfficeIMO.Visio {
             shape.Parent = parent;
 
             ParseShapeTransform(shape, shapeElement, ns, textBackgroundColors);
+            paintStyles?.Apply(shape, shapeElement);
             ParseShapeProperties(shape, shapeElement, ns, faceNamesById);
-            ParseChildShapes(shape, shapeElement, ns, faceNamesById, depth, textBackgroundColors);
+            ParseChildShapes(shape, shapeElement, ns, faceNamesById, depth, textBackgroundColors, paintStyles);
             CaptureShapeChildOrder(shape, shapeElement);
 
             return shape;
@@ -388,7 +389,7 @@ namespace OfficeIMO.Visio {
                 ?.Attribute("V")?.Value;
         }
 
-        private static void ParseChildShapes(VisioShape shape, XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById, int depth, IReadOnlyDictionary<int, string>? textBackgroundColors) {
+        private static void ParseChildShapes(VisioShape shape, XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById, int depth, IReadOnlyDictionary<int, string>? textBackgroundColors, VisioNativePaintStyleResolver? paintStyles) {
             XElement? childShapes = shapeElement.Element(ns + "Shapes");
             if (childShapes == null) {
                 return;
@@ -396,7 +397,7 @@ namespace OfficeIMO.Visio {
 
             List<XElement> childElements = childShapes.Elements(ns + "Shape").ToList();
             foreach (XElement childElement in childElements) {
-                VisioShape childShape = ParseShapeCore(childElement, ns, faceNamesById, shape, depth + 1, textBackgroundColors);
+                VisioShape childShape = ParseShapeCore(childElement, ns, faceNamesById, shape, depth + 1, textBackgroundColors, paintStyles);
                 shape.Children.Add(childShape);
             }
         }

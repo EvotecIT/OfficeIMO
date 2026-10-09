@@ -1,0 +1,8 @@
+The Visio 2003 binary and paired XML drawing, stencil and template, and the older binary rejection fixture come from PRONOM Research Week.
+License: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/).
+
+The upstream README states: "All samples shared here are available under Creative Commons CC0 unless otherwise stated."
+Source of that declaration:
+https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/README.md#licensing
+
+The producer manifest pins the unmodified sample files and their SHA-256 hashes.

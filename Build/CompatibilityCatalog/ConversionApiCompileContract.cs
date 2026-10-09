@@ -148,6 +148,13 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(pdf);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
+        var binaryVisio = VisioDocument.LoadLegacyBinary(stream);
+        binaryVisio.Value.Save(stream);
+        _ = binaryVisio.Value.Pages[0].ToSvg();
+        _ = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil);
+        _ = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template);
+        _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(binaryVisio.Value,
+            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages });
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");

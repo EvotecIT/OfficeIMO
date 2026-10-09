@@ -57,6 +57,8 @@ internal static partial class DocumentReaderEngine {
             OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation =>
                 DetectionCandidate.High(ReaderInputKind.PowerPoint, "application/vnd.ms-powerpoint",
                     "container:ole-powerpoint-presentation"),
+            OfficeCompoundDocumentDetector.DocumentKind.VisioDrawing =>
+                DetectionCandidate.High(ReaderInputKind.Visio, "application/vnd.visio", "container:ole-visio-document"),
             OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage =>
                 DetectionCandidate.Unknown(EncryptedOpenXmlEvidence),
             _ => DetectionCandidate.Unknown("container:ole-compound-unrecognized")
