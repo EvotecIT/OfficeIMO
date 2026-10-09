@@ -542,7 +542,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
             var collectionOccurrences = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (OfficeDocumentModelTable item in items) {
                 if (item == null) continue;
-                string identity = page == null ? OfficeDocumentModelIdentity.BuildTableIdentity(item)
+                string identity = page == null ? OfficeDocumentModelIdentity.BuildTableOccurrenceIdentity(item)
                     : OfficeDocumentModelIdentity.BuildTableCollectionIdentity(item, page);
                 string content = OfficeDocumentModelIdentity.BuildTableContentIdentity(item);
                 if (page != null) {

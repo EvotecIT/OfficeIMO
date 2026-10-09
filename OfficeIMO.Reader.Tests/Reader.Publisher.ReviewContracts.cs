@@ -147,6 +147,35 @@ public sealed class ReaderPublisherReviewTests {
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED");
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    public void TableOccurrenceMatchingRespectsKnownTextSpans(int coordinate, bool transport) {
+        ReaderTable Table(int value) => new() {
+            Columns = new[] { "SpanTable" }, Rows = new[] { new[] { "cell" } },
+            Location = new() {
+                Page = 1, StartLine = 0,
+                EndLine = coordinate is 0 or 3 ? value : null,
+                NormalizedStartLine = coordinate is 1 or 3 ? value : null,
+                NormalizedEndLine = coordinate is 2 or 3 ? value + 2 : null
+            }
+        };
+        bool equalSpan = coordinate == 3;
+        var source = new OfficeDocumentReadResult { Tables = new[] { Table(equalSpan ? 10 : 20) },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { Table(10) } } } };
+        if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false });
+        string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
+        Assert.Equal(equalSpan ? 1 : 2, Regex.Matches(text, "SpanTable").Count);
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED");
+    }
+
     [Fact]
     public void AuthoredNeutralLogicalPositionsRetainRepeatedParagraphsAroundTables() {
         var source = new OfficeDocumentModel { Blocks = new[] {

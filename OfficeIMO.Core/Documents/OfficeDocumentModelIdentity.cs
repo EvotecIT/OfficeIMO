@@ -32,7 +32,28 @@ public static class OfficeDocumentModelIdentity {
             Path = page.Location.Path, Sheet = page.Location.Sheet, Slide = page.Location.Slide,
             Page = page.Location.Page ?? page.Number
         };
-        return BuildTableIdentity(table, scope, null);
+        return WithTableSpanCoordinates(BuildTableIdentity(table, scope, null), table.Location);
+    }
+
+    internal static string BuildTableOccurrenceIdentity(OfficeDocumentModelTable table) =>
+        WithTableSpanCoordinates(BuildTableIdentity(table), table.Location);
+
+    // Public identity strings retain their established layout. Projection occurrence
+    // matching also distinguishes text spans omitted by those legacy identities.
+    private static string WithTableSpanCoordinates(string identity, OfficeDocumentModelLocation? location) {
+        if (location?.EndLine == null && location?.NormalizedStartLine == null && location?.NormalizedEndLine == null)
+            return identity;
+        var builder = new StringBuilder(identity);
+        AppendCoordinate(builder, "end-line", location?.EndLine);
+        AppendCoordinate(builder, "normalized-start-line", location?.NormalizedStartLine);
+        AppendCoordinate(builder, "normalized-end-line", location?.NormalizedEndLine);
+        return builder.ToString();
+    }
+
+    private static void AppendCoordinate(StringBuilder builder, string name, int? value) {
+        if (!value.HasValue) return;
+        Append(builder, name);
+        Append(builder, value.Value.ToString(CultureInfo.InvariantCulture));
     }
 
     internal static string BuildTableContentIdentity(OfficeDocumentModelTable table) =>
