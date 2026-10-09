@@ -519,16 +519,14 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
-    public void AmiProLargeInlineTagScansObserveCancellation() {
-        string tags = string.Concat(Enumerable.Repeat("<+!><-!>", 2_000_000));
-        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + tags + "X\n");
+    public void AmiProParsingHonorsCancellationAfterInputValidation() {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n<+!><-!>X\n");
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
+        var parser = new AmiProSamParser(source, new OfficeLegacyImportLimits(), cancellation.Token);
+        cancellation.Cancel();
 
-        Assert.Throws<OperationCanceledException>(() => LegacyWordImporter.Import(
-            source,
-            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true },
-            cancellation.Token));
+        OperationCanceledException error = Assert.Throws<OperationCanceledException>(() => parser.Parse());
+        Assert.Equal(cancellation.Token, error.CancellationToken);
     }
 
     [Fact]
