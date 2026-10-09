@@ -93,6 +93,12 @@ Fixtures remain in memory and cleanup releases them.
 The default is 25,000 data rows and 24 cases. `OFFICEIMO_TYPED_BENCHMARK_ROWS`
 accepts one size for this lane to keep the matrix bounded.
 
+Set `OFFICEIMO_WORKSHEET_BENCHMARK_MARKUP` to `MixedPrefixValues` for valid
+mixed-prefix value markup; `Canonical` is the default. Setup checks every field
+and confirms XML fallback against an indexed canonical control before measurement.
+For the four correct-dimension fallback cases with prefetch disabled, filter with
+`*ExcelWorksheetPreparationBenchmarks*Dimension: Correct*EnableWorksheetPrefetch: False*`.
+
 ```powershell
 $env:OFFICEIMO_TYPED_BENCHMARK_ROWS = '25000'
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelWorksheetPreparationBenchmarks*' --priority Normal --warmupCount 8 --iterationCount 8 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/worksheet-preparation
