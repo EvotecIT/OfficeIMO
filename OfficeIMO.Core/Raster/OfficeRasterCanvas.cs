@@ -532,7 +532,7 @@ public sealed partial class OfficeRasterCanvas {
     public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) =>
         DrawAffineImage(image, transform, opacity, interpolate: true);
 
-    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
+    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate, bool antialiasBoundary = true) {
         transform = ScaleCoordinates(transform);
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
@@ -541,10 +541,11 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
-        if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), interpolate)) return;
+        bool useAreaCoverage = interpolate && antialiasBoundary;
+        if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), useAreaCoverage)) return;
         image = PrepareImageSource(image);
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
-        ImageBoundaryCoverage? boundary = interpolate ? new ImageBoundaryCoverage(inverse, image.Width, image.Height) : null;
+        ImageBoundaryCoverage? boundary = useAreaCoverage ? new ImageBoundaryCoverage(inverse, image.Width, image.Height) : null;
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -554,7 +555,7 @@ public sealed partial class OfficeRasterCanvas {
             for (int px = left; px <= right; px++) {
                 OfficePoint source = inverse.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
                 double coverage = boundary?.GetCoverage(source, out source) ?? 1D;
-                if (coverage <= 0D || (!interpolate &&
+                if (coverage <= 0D || (boundary == null &&
                     (source.X < 0D || source.X >= image.Width || source.Y < 0D || source.Y >= image.Height))) continue;
                 OfficeColor color = interpolate
                     ? SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D)

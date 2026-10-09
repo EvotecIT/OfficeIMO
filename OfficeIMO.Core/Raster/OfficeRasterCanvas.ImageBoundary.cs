@@ -3,10 +3,19 @@ using System;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
-    private bool IntersectsVisibleImageBounds((double Left, double Top, double Right, double Bottom) bounds, bool interpolate) =>
-        IntersectsVisibleBounds(interpolate
-            ? (bounds.Left - .5D, bounds.Top - .5D, bounds.Right + .5D, bounds.Bottom + .5D)
-            : bounds);
+    private bool IntersectsVisibleImageBounds((double Left, double Top, double Right, double Bottom) bounds, bool antialiasBoundary) {
+        if (!antialiasBoundary) return IntersectsVisibleBounds(bounds);
+        if (double.IsNaN(bounds.Left) || double.IsNaN(bounds.Top) ||
+            double.IsNaN(bounds.Right) || double.IsNaN(bounds.Bottom)) return true;
+
+        double left = .5D, top = .5D, right = Width - .5D, bottom = Height - .5D;
+        if (_clipRegion != null) _clipRegion.IntersectBounds(ref left, ref top, ref right, ref bottom, _cancellationToken);
+        // One visible pixel has equal minimum and maximum centre coordinates.
+        // Its cell still has area; a surface touching only its outer edge does not.
+        return right >= left && bottom >= top &&
+            bounds.Right > left - .5D && bounds.Left < right + .5D &&
+            bounds.Bottom > top - .5D && bounds.Top < bottom + .5D;
+    }
 
     /// <summary>
     /// Measures the intersection of a destination pixel and the transformed source rectangle.

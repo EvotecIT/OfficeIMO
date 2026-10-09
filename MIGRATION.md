@@ -12,7 +12,7 @@ Raster text effects move from the long positional `OfficeRasterText.Draw` overlo
 
 Common raster decoding interpolates subsampled JPEG chroma by default. Set `OfficeRasterDecodeOptions.JpegHighQualityChroma = false` to select nearest-sample chroma reconstruction, including when reproducing pixels decoded with the earlier common default. This setting does not change EXIF orientation or acceptance of truncated input.
 
-Rotated and affine canvas images use fractional coverage at their outer boundaries. Edge pixels can therefore have partial alpha where the earlier renderer selected fully opaque pixels by their centers. Identity placement keeps the source pixels unchanged.
+Rotated and affine canvas images use fractional coverage at their outer boundaries. Edge pixels can therefore have partial alpha where the earlier renderer selected fully opaque pixels by their centers. Identity placement keeps the source pixels unchanged. Periodic image and vector fills assign shared tile boundaries by pixel center while retaining interpolation within each tile, avoiding seams between opaque tiles.
 
 The raster constructor now enforces the existing 50-million-pixel limit before allocation. `GetPixels` applies the same source-plus-copy managed-storage limit as `Clone`; applications retaining a large decoded image may need a smaller result before making another complete copy. Pixel setters retain clipping behavior. Canvas drawing onto its own image samples a guarded snapshot of the original pixels.
 

@@ -87,10 +87,10 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>
     /// Conservatively tests a complete affine surface against the physical canvas and current clip.
-    /// Interpolated surfaces retain pixels with partial area coverage; nearest sampling uses pixel centres.
+    /// Antialiased image boundaries retain pixels with partial area coverage; periodic tiles use pixel centres.
     /// </summary>
-    internal bool IntersectsVisibleSurface(OfficeTransform transform, double width, double height, bool interpolate = true) =>
-        IntersectsVisibleImageBounds(ScaleCoordinates(transform).TransformRectangleBounds(0D, 0D, width, height), interpolate);
+    internal bool IntersectsVisibleSurface(OfficeTransform transform, double width, double height, bool includePartialCoverage = true) =>
+        IntersectsVisibleImageBounds(ScaleCoordinates(transform).TransformRectangleBounds(0D, 0D, width, height), includePartialCoverage);
 
     /// <summary>Tests current clip bounds against the canvas pixel centres; overlapping bounds remain inconclusive.</summary>
     internal bool HasVisibleClipBounds => IntersectsVisibleBounds((0D, 0D, Width, Height));

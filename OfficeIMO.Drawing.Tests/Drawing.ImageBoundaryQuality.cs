@@ -140,6 +140,27 @@ public sealed class DrawingImageBoundaryQualityTests {
         Assert.Equal(OfficeColor.Transparent, image.GetPixel(1, 0));
     }
 
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 2)]
+    public void ImageTouchingThePageWithoutCoveredAreaDoesNotAllocateAFilter(bool rightEdge, int route) {
+        var destination = new OfficeRasterImage(2, 1);
+        var canvas = new OfficeRasterCanvas(destination);
+        canvas.ChargeIntermediateSurfacePixels(2L, 2L);
+        var source = new OfficeRasterImage(16, 16, EdgeColor);
+        double x = rightEdge ? 2D : -1D;
+        if (route == 0) canvas.DrawImage(source, x, 0D, 1D, 1D);
+        else canvas.DrawAffineImage(source, OfficeTransform.Scale(1D / 16D, 1D / 16D).Then(OfficeTransform.Translate(x, 0D)),
+            1D, route == 1 ? OfficeBlendMode.Normal : OfficeBlendMode.Multiply);
+        Assert.Equal(2L, canvas.TransformedTextBudget.IntermediatePixels);
+        Assert.Equal(OfficeColor.Transparent, destination.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.Transparent, destination.GetPixel(1, 0));
+    }
+
     [Fact]
     public void ShearedBoundaryRetainsTheTransformedArea() {
         var image = new OfficeRasterImage(80, 80);
