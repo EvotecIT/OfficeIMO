@@ -71,9 +71,11 @@ public sealed class ArrowUtf8ProjectionTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CsvStringBatchesPreserveEveryFieldAcrossBufferRefills(bool asynchronous) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task CsvStringBatchesPreserveEveryFieldAcrossBufferRefills(bool asynchronous, bool explicitHeader) {
         const int rowCount = 513;
         string repeated = new string('x', 700);
         string[][] rows = Enumerable.Range(0, rowCount).Select(row => new[] {
@@ -82,9 +84,14 @@ public sealed class ArrowUtf8ProjectionTests {
             string.Empty,
             repeated + row.ToString(CultureInfo.InvariantCulture),
         }).ToArray();
-        string csv = "Id,Name,Empty,Long\n" + string.Concat(rows.Select(row => string.Join(",", row) + "\n"));
+        string[] header = { "Id", "Name", "Empty", "Long" };
+        string csv = (explicitHeader ? string.Empty : "Id,Name,Empty,Long\n")
+            + string.Concat(rows.Select(row => string.Join(",", row) + "\n"));
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions {
+            Header = explicitHeader ? header : null, HasHeaderRow = !explicitHeader,
+        });
+        Assert.Equal(header, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray());
         List<RecordBatch> batches = await ReadBatches(reader, new ArrowReadOptions { BatchSize = 17 }, asynchronous);
         try {
             Assert.False(reader.IsClosed);
