@@ -55,11 +55,11 @@ namespace OfficeIMO.PowerPoint {
             defaultFontFamily ?? PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide) ?? "Calibri";
 
         private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                    .Any(run => run.CharacterSpacingPoints.GetValueOrDefault() != 0)) return;
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run is { } run
+                && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox).GetValueOrDefault() != 0))) return;
             diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
                 "POWERPOINT_CHARACTER_SPACING_APPROXIMATED",
-                "Shared text rendering uses default character spacing; explicit spacing is retained in the presentation.",
+                "Shared text rendering uses default character spacing; authored spacing is retained in the presentation.",
                 DescribeShape(textBox), OfficeConversionLossKind.Approximation));
         }
 

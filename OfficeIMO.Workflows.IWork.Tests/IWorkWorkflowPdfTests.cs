@@ -7,6 +7,75 @@ using Xunit;
 namespace OfficeIMO.Workflows.IWork.Tests;
 
 public sealed partial class IWorkWorkflowTests {
+    [Theory]
+    [InlineData("pages", "pages-pdf", "hello pages", 1)]
+    [InlineData("numbers", "numbers-pdf", "Z", 1)]
+    [InlineData("key", "keynote-pdf", "hello keynote", 2)]
+    public async Task Registered_pdf_routes_honor_verified_shared_compression(string source, string route, string text, int pages) {
+        using var files = new Files(source, "pdf");
+        if (source == "key") File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "simple.key"), files.Input, true);
+        OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner();
+        Assert.True(runner.ConversionRoutes.Single(item => item.Id == route).SupportsPdfCompression);
+        OfficeWorkflowRequest request = files.Request(route);
+        request.RegisteredConversionSettings = new IWorkWorkflowSettings();
+        request.ConversionOptions = new() { CompressPdfOutput = true };
+        OfficeWorkflowResult result = await runner.RunAsync(request);
+        Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
+        Assert.Contains(result.Diagnostics, item => item.Code == "PdfOutputCompression");
+        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        Assert.Equal(pages, pdf.Pages.Count);
+        Assert.Contains(text, pdf.ExtractText());
+        Assert.Equal("iwork-editable,pdf", result.ConversionEvidence!.Facts["conversionStages"]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Complete_pdf_rejects_known_text_clipping_and_preserves_the_destination(bool nativeReference) {
+        using var files = new Files("key", "pdf");
+        if (nativeReference) File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "colors.key"), files.Input, true);
+        else {
+            IWorkKeynoteDocument source = IWorkKeynoteDocument.Create();
+            source.AddSlide().AddText("VISIBLE alpha beta gamma delta epsilon zeta eta theta TAIL", 10, 10, 150, 30);
+            source.Save(files.Input, overwrite: true);
+        }
+        File.WriteAllText(files.Output, "keep existing");
+        OfficeWorkflowRequest request = files.Request("keynote-pdf");
+        request.RegisteredConversionSettings = new IWorkWorkflowSettings();
+        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.False(result.Succeeded);
+        Assert.Contains("clipped", result.Summary);
+        Assert.Contains(result.ConversionEvidence!.FidelityDiagnostics, diagnostic => diagnostic.Code == "text-box-overflow");
+        Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
+        Assert.Equal("keep existing", File.ReadAllText(files.Output));
+        Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task Complete_pdf_rejects_dropped_internal_slide_links_with_omission_evidence() {
+        using var files = new Files("key", "pdf");
+        byte[] link = System.Text.Encoding.UTF8.GetBytes("#slide-2");
+        byte[] tree = Join(R(2, 3), R(2, 4));
+        byte[] canvas = Join([13], BitConverter.GetBytes(960f), [21], BitConverter.GetBytes(540f));
+        byte[] storage = Join(B(3, System.Text.Encoding.UTF8.GetBytes("Linked title")), B(11, B(1, Join(V(1, 0), R(2, 9)))));
+        WritePackage(files.Input, Join(A(1, 1, R(2, 2)), A(2, 2, Join(B(3, tree), B(4, canvas))),
+            A(3, 4, R(2, 5)), A(4, 4, R(2, 6)), A(5, 5, R(5, 7)), A(6, 5, []),
+            A(7, 2011, Join(B(1, B(1, B(4, link))), R(2, 8))), A(8, 2001, storage), A(9, 2032, B(2, link))));
+        File.WriteAllText(files.Output, "keep existing");
+        OfficeWorkflowRequest request = files.Request("keynote-pdf");
+        request.RegisteredConversionSettings = new IWorkWorkflowSettings();
+        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.False(result.Succeeded);
+        Assert.Equal("0", result.ConversionEvidence!.Facts["omittedSourceUnitCount"]);
+        Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.Code == "relative-hyperlink"
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Equal("keep existing", File.ReadAllText(files.Output));
+        Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
+    }
+
     [Fact]
     public async Task Pdf_construction_failure_retains_the_completed_source_stage() {
         using var files = new Files("pages", "pdf");
@@ -30,7 +99,7 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("key", "keynote-pdf")]
     public async Task Cancellation_after_pdf_reopen_preserves_the_destination_and_removes_staging(string source, string route) {
         using var files = new Files(source, "pdf");
-        if (source == "key") File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "colors.key"), files.Input, true);
+        if (source == "key") File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "simple.key"), files.Input, true);
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request(route);
         request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
@@ -56,11 +125,11 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("key", "keynote-pdf", "hello keynote", 2)]
     public async Task Complete_iwork_pdf_routes_reopen_every_page_and_retain_both_stages(string source, string route, string text, int pages) {
         using var files = new Files(source, "pdf");
-        if (source == "key") File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "colors.key"), files.Input, true);
+        if (source == "key") File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "simple.key"), files.Input, true);
         OfficeWorkflowRequest request = files.Request(route);
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
-        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
         PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
         Assert.Equal(pages, pdf.Pages.Count);
         Assert.Contains(text, pdf.ExtractText());
@@ -121,7 +190,7 @@ public sealed partial class IWorkWorkflowTests {
     [Fact]
     public async Task Keynote_pdf_rejects_content_exclusion_and_preserves_existing_destination() {
         using var files = new Files("key", "pdf");
-        File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "colors.key"), files.Input, true);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "simple.key"), files.Input, true);
         File.WriteAllText(files.Output, "keep existing");
         var settings = new IWorkWorkflowSettings();
         settings.KeynotePdfOptions.IncludeTextBoxes = false;

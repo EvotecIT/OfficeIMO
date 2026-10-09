@@ -7,18 +7,25 @@ namespace OfficeIMO.PowerPoint.Pdf;
 /// </summary>
 public sealed class PowerPointPdfExportWarning {
     /// <summary>Creates a PowerPoint-to-PDF export warning.</summary>
-    public PowerPointPdfExportWarning(int slideNumber, string code, string message) {
-        SlideNumber = slideNumber;
-        Code = code ?? throw new ArgumentNullException(nameof(code));
-        Message = message ?? throw new ArgumentNullException(nameof(message));
-    }
+    public PowerPointPdfExportWarning(int slideNumber, string code, string message)
+        : this(slideNumber, code, message, null) { }
 
     /// <summary>Creates a PowerPoint-to-PDF export warning with a reusable layout diagnostic.</summary>
-    public PowerPointPdfExportWarning(int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic? layoutDiagnostic) {
+    public PowerPointPdfExportWarning(int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic? layoutDiagnostic)
+        : this(slideNumber, code, message, layoutDiagnostic,
+            layoutDiagnostic?.Kind == PdfCore.PdfLayoutDiagnosticKind.SkippedContent
+                ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.Approximation) { }
+
+    /// <summary>Creates a warning that preserves the renderer's typed fidelity impact.</summary>
+    public PowerPointPdfExportWarning(int slideNumber, string code, string message,
+        PdfCore.PdfLayoutDiagnostic? layoutDiagnostic, OfficeConversionLossKind lossKind) {
+        if (!Enum.IsDefined(typeof(OfficeConversionLossKind), lossKind))
+            throw new ArgumentOutOfRangeException(nameof(lossKind));
         SlideNumber = slideNumber;
         Code = code ?? throw new ArgumentNullException(nameof(code));
         Message = message ?? throw new ArgumentNullException(nameof(message));
         LayoutDiagnostic = layoutDiagnostic;
+        LossKind = lossKind;
     }
 
     /// <summary>One-based slide number where the warning originated.</summary>
@@ -33,6 +40,9 @@ public sealed class PowerPointPdfExportWarning {
     /// <summary>Reusable layout or visual fidelity diagnostic, when the warning maps to one.</summary>
     public PdfCore.PdfLayoutDiagnostic? LayoutDiagnostic { get; }
 
+    /// <summary>Typed fidelity impact, including content skipped by the PDF adapter.</summary>
+    public OfficeConversionLossKind LossKind { get; }
+
     /// <summary>
     /// Converts this PowerPoint-specific warning to the shared PDF conversion warning contract.
     /// </summary>
@@ -46,6 +56,8 @@ public sealed class PowerPointPdfExportWarning {
             Code,
             "Slide " + SlideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             Message,
+            severity: PdfCore.PdfConversionWarningSeverity.Warning,
+            lossKind: LossKind,
             layoutDiagnostic: LayoutDiagnostic,
             details: details);
     }

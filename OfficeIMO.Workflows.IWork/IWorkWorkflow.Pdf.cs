@@ -69,8 +69,7 @@ public static partial class IWorkWorkflow {
         try {
             PdfDocumentConversionResult pdf = createPdf().WithSourceConversionReport(source);
             reports = pdf.ConversionReports;
-            if (pdf.Report.FidelityDiagnostics.Any(diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure))
-                throw new InvalidOperationException("The PDF stage reported omitted or failed content; complete-document publication was rejected.");
+            RequireCompletePdfContent(pdf.Report);
             PdfSaveResult saved = pdf.SaveResultAsync(output, token).GetAwaiter().GetResult();
             reports = saved.ConversionReports;
             token.ThrowIfCancellationRequested();
@@ -78,13 +77,18 @@ public static partial class IWorkWorkflow {
             facts["pdfOutputBytes"] = saved.BytesWritten.ToString(CultureInfo.InvariantCulture);
             token.ThrowIfCancellationRequested();
             // Saving can add font/encoding/layout evidence. Copy it after serialization.
-            if (saved.Report.FidelityDiagnostics.Any(diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure))
-                throw new InvalidOperationException("The PDF output reported omitted or failed content; complete-document publication was rejected.");
+            RequireCompletePdfContent(saved.Report);
             return new OfficeWorkflowConversionEvidence(reports, facts);
         } catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {
             facts["conversionFailureStage"] = "pdf";
             facts["pdfReportAvailable"] = (reports.Count > 1).ToString();
             throw new WorkflowConversionFailureException(exception, new OfficeWorkflowConversionEvidence(reports, facts));
         }
+    }
+
+    private static void RequireCompletePdfContent(PdfConversionReport report) {
+        if (report.Warnings.Any(warning => warning.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure
+            || warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.ClippedContent or PdfLayoutDiagnosticKind.SkippedContent))
+            throw new InvalidOperationException("The PDF stage reported omitted, clipped or failed content; complete-document publication was rejected.");
     }
 }

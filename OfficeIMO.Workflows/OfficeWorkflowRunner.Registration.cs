@@ -44,7 +44,16 @@ public sealed partial class OfficeWorkflowRunner {
         diagnostics.Add(new OfficeWorkflowDiagnostic("RouteContract", request.Route!.Description, stage: "convert",
             details: new Dictionary<string, string> { ["route"] = request.Route.Id, ["engine"] = request.Route.Engine,
                 ["knownLimitations"] = request.Route.KnownLimitations }));
-        return new OperationArtifact(output.ToArray(), request.Route.Label + (evidence.HasLoss
+        byte[] bytes = output.ToArray();
+        try {
+            if (request.ConversionOptions?.CompressPdfOutput == true)
+                bytes = CompressConvertedPdfOutput(bytes, request, diagnostics, token);
+        } catch (Exception exception) when (exception is not WorkflowConversionFailureException and not OperationCanceledException
+            and not OutOfMemoryException and not StackOverflowException) {
+            throw new WorkflowConversionFailureException(exception, evidence, diagnosticsAdded: true);
+        }
+        token.ThrowIfCancellationRequested();
+        return new OperationArtifact(bytes, request.Route.Label + (evidence.HasLoss
             ? " completed with fidelity warnings; review the structured diagnostics."
             : " completed and the output reopened successfully."), null, ConversionEvidence: evidence);
     }

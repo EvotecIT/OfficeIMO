@@ -6,6 +6,15 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
+    private static void AddWarning(PowerPointToPdfOptions options, int slideNumber, string code, string message,
+        PdfCore.PdfLayoutDiagnostic? layoutDiagnostic = null, OfficeConversionLossKind? lossKind = null) {
+        var warning = lossKind.HasValue
+            ? new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic, lossKind.Value)
+            : new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic);
+        options.Warnings.Add(warning);
+        options.Report.Add(warning.ToConversionWarning());
+    }
+
     private static void AddLayoutWarning(
         PowerPointToPdfOptions options,
         int slideNumber,

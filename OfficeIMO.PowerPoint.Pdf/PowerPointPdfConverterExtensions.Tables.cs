@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderTable(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTable table, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
         if (table.Rows == 0 || table.Columns == 0) {
-            AddWarning(options, slideNumber, "empty-table", "Skipped an empty PowerPoint table.");
+            AddWarning(options, slideNumber, "empty-table", "Skipped an empty PowerPoint table.", lossKind: OfficeConversionLossKind.Omission);
             return;
         }
 
