@@ -52,6 +52,7 @@ internal sealed class PublisherParseContext {
                 if (_projectedCharacters > Options.Limits.MaxTextCharacters) throw new InvalidDataException("Publisher projected text character limit exceeded.");
             }
             if (element is OfficeIMO.Drawing.OfficeDrawingGroup group) AccountProjection(group.InnerDrawing);
+            if (element is OfficeIMO.Drawing.OfficeDrawingEffectGroup transformed) AccountProjection(transformed.InnerDrawing);
         }
     }
     internal void Add(string code, string message, OfficeConversionLossKind kind, string? location = null) {
