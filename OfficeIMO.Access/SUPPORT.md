@@ -93,6 +93,8 @@ VBA inspection shares one expansion allowance across the directory and module so
 
 Independent Access proof covers four application/designer files, ordinary class/standard module source and growth, first projects in existing native applications, and existing form/report code-behind. Access reopens output, reads exact edited source and retained host events, verifies ordinary versus host module inventories, and compiles in VBE with macros disabled. No code is executed. Native signed-project fixtures have not been qualified; unknown VBA/signature carriers are preserve-only.
 
+Portable source tests retain code-page-1250 Polish text exactly. The native oracle's Windows ANSI code page is 1252: the unchanged native fixture itself displays the Polish comment through that code page. Native exact-text qualification uses characters representable with identical bytes in both code pages. Native Polish-text qualification requires a compatible locale; the library does not change machine language settings.
+
 ## Unchanged preservation
 
 Same-family/profile save retains the entire loaded snapshot without byte changes, including unknown pages, application payloads, linked metadata, compiled content and protection/signature carriers. Header-only and protected loads can preserve their snapshots without decoding the catalog. A loaded path is checked against its accepted SHA-256 before saving; a changed source fails before destination output. This is byte preservation, not signature validity, decryption or security-policy qualification. Signature validation remains unqualified.

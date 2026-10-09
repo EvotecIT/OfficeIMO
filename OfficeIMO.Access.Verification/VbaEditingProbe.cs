@@ -17,6 +17,9 @@ namespace OfficeIMO.Access.Verification {
                 string name = project.Modules.Single().Name;
                 string source = project.GetModule(name).Source.Replace("Value = 42", "Value = 43");
                 if (source == project.GetModule(name).Source) throw new InvalidDataException("The native fixture source marker is absent.");
+                // The native oracle runs on Windows ANSI 1252. These characters have
+                // identical bytes in both 1250 and 1252; portable tests retain Polish text.
+                source = source.Replace("'Zażółć gęślą jaźń", "'Native source: éóö€");
                 project.SetModuleSource(name, source);
                 string growth = string.Join("\r\n", Enumerable.Range(0, 1800).Select(i => "' " + Convert.ToHexString(SHA256.HashData(BitConverter.GetBytes(i)))));
                 project.AddModule("AddedModule", "Option Explicit\r\nPublic Function AddedValue() As Long\r\n AddedValue = 44\r\nEnd Function\r\n" + growth);
