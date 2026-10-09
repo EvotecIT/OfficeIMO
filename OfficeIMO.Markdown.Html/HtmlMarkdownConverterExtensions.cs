@@ -87,7 +87,7 @@ public static class HtmlMarkdownConverterExtensions {
         AngleSharp.Html.Dom.IHtmlDocument prepared, HtmlToMarkdownOptions options, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToMarkdownOptions operation = options.Clone();
-        ApplyDocumentPolicies(document, operation);
+        ApplyDocumentPolicies(document, operation, documentTransformsApplied: true);
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
             HtmlActiveMediaFilter.Filter(prepared, HtmlCssMediaContext.Print, diagnostics: null, cancellationToken);
         } else {
@@ -97,12 +97,23 @@ public static class HtmlMarkdownConverterExtensions {
             prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions, cancellationToken);
     }
 
-    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlToMarkdownOptions operation) {
+    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlToMarkdownOptions operation,
+        bool documentTransformsApplied = false) {
         operation.BaseUri ??= document.FallbackBaseUri;
         HtmlUrlPolicy requestedHyperlinkPolicy = operation.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy requestedResourcePolicy = operation.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
-        operation.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
-        operation.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, requestedResourcePolicy);
+        HtmlUrlPolicy documentHyperlinkPolicy = document.HyperlinkUrlPolicy;
+        HtmlUrlPolicy documentResourcePolicy = document.ResourceUrlPolicy;
+        if (documentTransformsApplied) {
+            // Prepared DOM URLs have already passed the document transforms. Retain
+            // their restrictions while applying only the requested projection transforms.
+            documentHyperlinkPolicy = documentHyperlinkPolicy.Clone();
+            documentResourcePolicy = documentResourcePolicy.Clone();
+            documentHyperlinkPolicy.ResolvedUrlTransform = null;
+            documentResourcePolicy.ResolvedUrlTransform = null;
+        }
+        operation.UrlPolicy = HtmlUrlPolicy.Intersect(documentHyperlinkPolicy, requestedHyperlinkPolicy);
+        operation.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(documentResourcePolicy, requestedResourcePolicy);
     }
 
     private static bool CanProjectSourceReadOnly(

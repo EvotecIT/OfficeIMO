@@ -67,4 +67,75 @@ public sealed class ProjectionPolicyTests {
         Assert.Equal(cancelled.Token, error.CancellationToken);
         Assert.Equal(1, calls);
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ReaderAuthoredRelativeBaseResolvesOnceAcrossMarkdownAndRichReferences(bool chm, bool filtered) {
+        var options = ReaderHtmlOptions.CreateOfficeIMOProfile();
+        var sourceBase = new Uri("https://example.invalid/guide/topic.html");
+        options.HtmlToMarkdownOptions!.BaseUri = sourceBase;
+        if (filtered) options.HtmlToMarkdownOptions.ExcludeSelectors.Add(".remove");
+        string html = "<html><head><base href='assets/'></head><body><p class='remove'>Omit</p><a href='next.html'>Next</a><img src='image.png' alt='Image'></body></html>";
+        var result = ReadTopic(html, options, chm);
+        string root = chm ? "chm://archive/guide/assets/" : "https://example.invalid/guide/assets/";
+        Assert.Contains(result.Links, link => link.Uri == root + "next.html");
+        Assert.Contains(result.Visuals, visual => visual.SourceName == root + "image.png");
+        Assert.Contains("[Next](" + root + "next.html)", result.Markdown!);
+        Assert.Contains("![Image](" + root + "image.png)", result.Markdown!);
+        Assert.DoesNotContain("assets/assets/", result.Markdown!);
+        Assert.Equal(sourceBase, options.HtmlToMarkdownOptions.BaseUri);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ReaderAppliesDocumentAndProjectionTransformsOnceToLinksAndImages(bool chm, bool filtered) {
+        var options = ReaderHtmlOptions.CreateOfficeIMOProfile();
+        options.HtmlToMarkdownOptions!.BaseUri = new Uri("https://example.invalid/guide/topic.html");
+        options.ConversionOptions = new HtmlConversionDocumentOptions();
+        options.ConversionOptions.UrlPolicy.ResolvedUrlTransform = uri => uri + "?document=1";
+        options.ConversionOptions.ResourceUrlPolicy.ResolvedUrlTransform = uri => uri + "?document=1";
+        options.HtmlToMarkdownOptions.UrlPolicy.ResolvedUrlTransform = uri => uri + "&projection=1";
+        options.HtmlToMarkdownOptions.ResourceUrlPolicy = new HtmlUrlPolicy { ResolvedUrlTransform = uri => uri + "&projection=1" };
+        if (filtered) options.HtmlToMarkdownOptions.ElementFilters.Add(element => false);
+        var result = ReadTopic("<a href='next.html'>Next</a><img src='image.png' alt='Image'>", options, chm);
+        string root = chm ? "chm://archive/guide/" : "https://example.invalid/guide/";
+        string link = root + "next.html?document=1&projection=1";
+        string image = root + "image.png?document=1&projection=1";
+        Assert.Contains(result.Links, item => item.Uri == link);
+        Assert.Contains(result.Visuals, item => item.SourceName == image);
+        Assert.Contains("[Next](" + link + ")", result.Markdown!);
+        Assert.Contains("![Image](" + image + ")", result.Markdown!);
+        Assert.DoesNotContain("?document=1?document=1", result.Markdown!);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReaderPreparedProjectionKeepsDocumentRestrictionsOnProjectionTransforms(bool chm) {
+        var options = ReaderHtmlOptions.CreateOfficeIMOProfile();
+        options.ConversionOptions = new HtmlConversionDocumentOptions();
+        options.ConversionOptions.UrlPolicy.DisallowFileUrls = true;
+        options.ConversionOptions.ResourceUrlPolicy.DisallowFileUrls = true;
+        options.HtmlToMarkdownOptions!.UrlPolicy.ResolvedUrlTransform = uri => "file:///private/link";
+        options.HtmlToMarkdownOptions.ResourceUrlPolicy = new HtmlUrlPolicy { ResolvedUrlTransform = uri => "file:///private/image" };
+        options.HtmlToMarkdownOptions.ElementFilters.Add(element => false);
+        var result = ReadTopic("<a href='https://example.invalid/next'>Next</a><img src='https://example.invalid/image.png' alt='Image'>", options, chm);
+        Assert.DoesNotContain("file:", result.Markdown!);
+        Assert.DoesNotContain("![Image]", result.Markdown!);
+    }
+
+    private static OfficeDocumentReadResult ReadTopic(string html, ReaderHtmlOptions options, bool chm) {
+        var builder = new OfficeDocumentReaderBuilder();
+        if (chm) builder.AddChmHandler(new ReaderChmOptions { HtmlOptions = options });
+        else builder.AddHtmlHandler(options);
+        byte[] bytes = chm ? ChmFixture.Archive(new Dictionary<string, byte[]> { ["/guide/topic.html"] = ChmFixture.Html(html) }) : ChmFixture.Html(html);
+        using var stream = new MemoryStream(bytes);
+        return builder.Build().ReadDocument(stream, chm ? "manual.chm" : "topic.html");
+    }
 }

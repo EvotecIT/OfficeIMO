@@ -98,7 +98,6 @@ internal static partial class HtmlReaderAdapter {
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
             conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen, cancellationToken),
             projectionOptions, cancellationToken);
-        projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
         HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false, cancellationToken);
         if (hasProjectionFilters) {
             projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
@@ -106,6 +105,9 @@ internal static partial class HtmlReaderAdapter {
         string markdown = hasProjectionFilters
             ? HtmlMarkdownConverterExtensions.ToMarkdownPreparedDocument(conversionDocument, filtered, projectionOptions, cancellationToken)
             : conversionDocument.ToMarkdown(projectionOptions, cancellationToken);
+        // Raw-source Markdown resolves its authored base against the source fallback.
+        // Rich references instead use the base already normalized in the projected DOM.
+        projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
         ReaderChunk[] chunks = ChunkMarkdown(markdown, source, readerOptions, effectiveHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
         var documentSource = new OfficeDocumentSource {
