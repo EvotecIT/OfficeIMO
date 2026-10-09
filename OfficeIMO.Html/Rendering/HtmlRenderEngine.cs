@@ -198,8 +198,9 @@ public static class HtmlRenderEngine {
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
+        var operationBudget = new HtmlRenderOperationBudget();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
-        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved)) {
+        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved, cancellationToken, operationBudget)) {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
@@ -214,6 +215,7 @@ public static class HtmlRenderEngine {
             pageRules,
             fonts,
             limits: limits,
+            operationBudget: operationBudget,
             cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
         return CompleteRender(rendered, resolved);
     }
@@ -350,15 +352,16 @@ public static class HtmlRenderEngine {
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
         resolved.Validate();
+        var operationBudget = new HtmlRenderOperationBudget();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
-        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved)) {
+        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved, cancellationToken, operationBudget)) {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
-            limits: limits, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+            limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
         return CompleteRender(rendered, resolved);
     }
 

@@ -8,14 +8,16 @@ internal static class HtmlCssPrintFitResolver {
         IHtmlDocument document,
         HtmlComputedStyleSet styles,
         HtmlCssPageRuleSet pageRules,
-        HtmlRenderOptions options) {
+        HtmlRenderOptions options,
+        CancellationToken cancellationToken,
+        HtmlRenderOperationBudget operationBudget) {
         if (!options.AutoFitWidePrintRoot || options.Mode != HtmlRenderMode.Paged
             || !options.HonorCssPageRules || options.PrintFitContentWidth.HasValue
             || pageRules.HasPageSpecificRules) return false;
 
         double contentWidth = options.PageWidth - options.Margins.Left - options.Margins.Right;
         if (contentWidth <= 0D) return false;
-        var resolver = new HtmlRenderStyleResolver(styles, options, new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, options, new HtmlDiagnosticReport(), cancellationToken, operationBudget);
         IElement? root = document.DocumentElement;
         if (root == null) return false;
         HtmlRenderBoxStyle rootStyle = resolver.Resolve(root, contentWidth);
