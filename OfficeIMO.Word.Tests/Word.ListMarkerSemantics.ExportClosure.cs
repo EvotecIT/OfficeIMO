@@ -878,8 +878,11 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         string renderedText = string.Join(" | ", rendered.Select(text => $"'{text.PlainText}'@{text.X}"));
         OfficeDrawingRichText marker = Assert.Single(rendered, text => text.PlainText.StartsWith("*", StringComparison.Ordinal));
-        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.Contains("BeforeInlineImage", StringComparison.Ordinal));
-        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.Contains("AfterInlineImage", StringComparison.Ordinal));
+        string paintedText = string.Concat(rendered.Select(text => text.PlainText));
+        Assert.Contains("BeforeInlineImage", paintedText, StringComparison.Ordinal);
+        Assert.Contains("AfterInlineImage", paintedText, StringComparison.Ordinal);
+        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.Contains("Before", StringComparison.Ordinal));
+        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.Contains("After", StringComparison.Ordinal));
         double markerX = GetSplitRowTokenX(marker, "*");
         double beforeX = GetSplitRowTokenX(before, "Before");
         double afterX = GetSplitRowTokenX(after, "After");

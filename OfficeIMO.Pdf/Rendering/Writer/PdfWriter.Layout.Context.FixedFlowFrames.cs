@@ -13,17 +13,40 @@ internal static partial class PdfWriter {
             double minimum = containerWidth;
             if (activeColumnFlow is not { } scope) return minimum;
             foreach (double columnWidth in scope.Widths) {
-                double available = ResolveFixedFlowWidth(columnWidth, containerWidth);
-                if (available > 0D) minimum = Math.Min(minimum, available);
+                if (TryResolveFixedFlowWidth(columnWidth, containerWidth, out double available))
+                    minimum = Math.Min(minimum, available);
             }
             return minimum;
         }
 
         private double ResolveFixedFlowWidth(double frameWidth, double containerWidth) {
-            if (activeColumnFlow is not { } scope) return containerWidth;
-            for (int index = scope.ContainerDepth; index < activeContainerScopes.Count; index++)
-                frameWidth = ResolveContainerFrame(activeContainerScopes[index].Container, activeContainerScopes[index].Style, 0D, frameWidth).ContentWidth;
-            return frameWidth - Math.Max(0D, width - containerWidth);
+            if (!TryResolveFixedFlowWidth(frameWidth, containerWidth, out double available))
+                throw new ArgumentException("Container padding must leave positive content width.");
+            return available;
+        }
+
+        /// <summary>Probes a hypothetical column without making an unusable container width a mandatory destination.</summary>
+        private bool TryResolveFixedFlowWidth(double frameWidth, double containerWidth, out double available) {
+            available = containerWidth;
+            if (activeColumnFlow is not { } scope) return available > .001D;
+            for (int index = scope.ContainerDepth; index < activeContainerScopes.Count; index++) {
+                ContainerRenderScope container = activeContainerScopes[index];
+                if (!TryResolveContainerFrame(container.Container, container.Style, 0D, frameWidth, out var frame)) return false;
+                frameWidth = frame.ContentWidth;
+            }
+            available = frameWidth - Math.Max(0D, width - containerWidth);
+            return available > .001D;
+        }
+
+        /// <summary>Finds a usable physical-column width whose measured content fits without rendering a candidate.</summary>
+        private bool CanFitAnotherFixedFlowWidth(double containerWidth, Func<double, double?> measureHeight) {
+            if (activeColumnFlow is not { } scope) return false;
+            foreach (double columnWidth in scope.Widths) {
+                if (!TryResolveFixedFlowWidth(columnWidth, containerWidth, out double candidateWidth)) continue;
+                double? height = measureHeight(candidateWidth);
+                if (height.HasValue && height.Value <= GetMaximumBlockContinuationHeight() + .001D) return true;
+            }
+            return false;
         }
 
         /// <summary>Rebinds the content width after a column or physical-page transition, including resumed containers.</summary>

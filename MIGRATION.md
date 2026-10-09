@@ -1016,6 +1016,11 @@ Use worksheet ranges and `PowerPointLayoutBox` for bounded placement.
 render/import; prepare again to change label layout or typography. Use
 `OfficeVisualDocumentStyle.CreateContext` to prepare at the intended point size.
 
+Native Visio graph titles measure their saved text at the configured native font.
+`Title(..., height: ...)` supplies a minimum height. Preserved ChartForgeX geometry
+keeps its node and route positions; a title that cannot fit its free header
+corridor is omitted with `TitleNotProjected` rather than covering those objects.
+
 Rebuild callers of `OfficeIMO.ChartForgeX` against ChartForgeX 2.0. The bridge keeps
 its core-only ChartForgeX dependency. Add `ChartForgeX.Visuals` to the application
 when rendering factual tables, canvases, or watermarks; optional story and motion
