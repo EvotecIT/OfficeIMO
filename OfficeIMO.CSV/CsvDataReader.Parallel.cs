@@ -196,6 +196,21 @@ internal sealed partial class CsvDataReader
         throw new InvalidOperationException(
             "The current CSV row is not backed by decoded source text.");
     }
+
+    internal ReadOnlySpan<char> GetCurrentSourceSpan(int ordinal) => GetCurrentSourceSpan(ordinal, out _);
+
+    internal ReadOnlySpan<char> GetCurrentSourceSpan(int ordinal, out string? materialized)
+    {
+        EnsureOpenRow();
+        if ((uint)ordinal >= (uint)_columns.Length) throw new IndexOutOfRangeException();
+        if (_textRowSource is CsvIncrementalRowSource incremental)
+            return incremental.GetSpan(ordinal, out materialized);
+        materialized = GetCurrentSourceString(ordinal);
+        return materialized.AsSpan();
+    }
+
+    internal bool IsCurrentFieldNull(int ordinal) => _useRawStringValues && _textRowSource is not null
+        ? _textRowSource.IsNull(ordinal, _stringNullValue) : IsDBNull(ordinal);
 #endif
 
     internal CsvDataReaderRawBatch ReadRawBatch(

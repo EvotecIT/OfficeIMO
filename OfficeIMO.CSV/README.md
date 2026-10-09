@@ -496,12 +496,14 @@ Totals totals = await CsvDocument.AggregateRowsAsParallelAsync(
     cancellationToken: cancellationToken);
 ```
 
-The async parser materializes decoded field strings. Pooled batches retain
-their references and null/missing metadata while the source advances; the
-queue holds at most the configured degree of batches, with no mapped result
-per row. Explicit and inferred schema conversion uses asynchronous sequential
-consumption. The file overload closes its reader on success and failure. The
-stream overload starts at the current position and leaves the stream open.
+For eligible unquoted records, span callbacks avoid materializing field strings.
+Pooled batches own the decoded text and null/missing metadata while the source
+advances. Quoted records, interning, quote normalization and field-length checks
+use the canonical parser. The queue holds at most the configured degree of
+batches, with no mapped result per row. Explicit and inferred schema conversion
+uses asynchronous sequential consumption. The file overload closes its reader
+on success and failure. The stream overload starts at the current position and
+leaves the stream open.
 Callbacks have no thread affinity; completed states merge sequentially in
 source order, and all workers finish before return or failure.
 

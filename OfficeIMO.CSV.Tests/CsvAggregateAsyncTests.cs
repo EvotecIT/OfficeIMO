@@ -110,11 +110,13 @@ public sealed class CsvAggregateAsyncTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task BoundedReadAheadAndCancellationJoinAnAlreadyRunningCallback(bool loadToken) {
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 4096)]
+    [InlineData(true, 4096)]
+    public async Task BoundedReadAheadAndCancellationJoinAnAlreadyRunningCallback(bool loadToken, int chunk) {
         byte[] bytes = Encoding.UTF8.GetBytes("Id\n" + string.Concat(Enumerable.Repeat("1\n", 20_000)));
-        using var input = new AsyncInput(bytes, 1, blockAtEnd: true);
+        using var input = new AsyncInput(bytes, chunk, blockAtEnd: true);
         using var cancel = new CancellationTokenSource();
         using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -142,9 +144,11 @@ public sealed class CsvAggregateAsyncTests {
         Assert.True(input.CanRead);
     }
 
-    [Fact]
-    public async Task WorkerFailureInterruptsBlockedProducerAndPreservesOriginalException() {
-        using var input = new AsyncInput(Encoding.UTF8.GetBytes("Id\n1\n"), 1, blockAtEnd: true);
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4096)]
+    public async Task WorkerFailureInterruptsBlockedProducerAndPreservesOriginalException(int chunk) {
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes("Id\n1\n"), chunk, blockAtEnd: true);
         var expected = new FormatException("worker failure");
         int active = 0, merges = 0;
         FormatException actual = await Assert.ThrowsAsync<FormatException>(() =>

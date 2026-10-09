@@ -9,7 +9,7 @@ namespace OfficeIMO.CSV;
 internal static partial class CsvParser
 {
     // The transport is asynchronous; field splitting and validation use the same grammar as Parse.
-    internal sealed class IncrementalRecords : IDisposable
+    internal sealed partial class IncrementalRecords : IDisposable
     {
         private readonly TextReader _reader;
         private readonly CsvLoadOptions _options;
@@ -41,10 +41,22 @@ internal static partial class CsvParser
             if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after an interrupted record.");
             try
             {
-                while (await ReadLineAsync(asynchronous, token).ConfigureAwait(false) is { } first)
+                _borrowedFields.Clear();
+                while (true)
                 {
                     token.ThrowIfCancellationRequested();
                     ThrowIfCancellationRequested(_options);
+                    if (reuseValues && CanBorrowFields && _pending.Count == 0)
+                    {
+                        if (!await EnsureBufferAsync(asynchronous, token).ConfigureAwait(false)) return false;
+                        if (TryReadBorrowedRecord(out bool emitted))
+                        {
+                            if (emitted) return true;
+                            continue;
+                        }
+                    }
+                    if (await ReadLineAsync(asynchronous, token).ConfigureAwait(false) is not { } first)
+                        return false;
                     StartLine = first.PhysicalLineNumber;
                     var delimiter = _delimiter;
                     var comment = IsRawCommentLine(first.Text, _options);
@@ -111,7 +123,6 @@ internal static partial class CsvParser
                     ReportProgress(_options, ++_emitted, EndLine);
                     return true;
                 }
-                return false;
             }
             catch
             {
@@ -215,6 +226,7 @@ internal static partial class CsvParser
         public void Dispose()
         {
             _fields.Clear();
+            _borrowedFields.Clear();
             _logicalRecordBuffer = _lineBuffer = null;
             Current = default;
             _reader.Dispose();

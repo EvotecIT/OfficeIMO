@@ -48,7 +48,8 @@ public sealed partial class CsvDocument
         var options = loadOptions?.Clone() ?? new CsvLoadOptions();
         int skip = GetInitialRecordsToSkip(options);
         var explicitHeader = NormalizeExplicitHeader(options);
-        var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, options.CancellationToken);
+        CancellationToken loadToken = options.CancellationToken;
+        var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, loadToken);
         options.CancellationToken = lifetime.Token;
         options.Mode = CsvLoadMode.Stream;
         CsvParser.IncrementalRecords? records = null;
@@ -94,7 +95,7 @@ public sealed partial class CsvDocument
                 }
                 schema = new CsvSchema(columns.Select(column => column.ToSchemaColumn(buffered.Count)).ToArray());
             }
-            source = new CsvIncrementalRowSource(records, options, lifetime, header.Count, buffered);
+            source = new CsvIncrementalRowSource(records, options, lifetime, token, loadToken, header.Count, buffered);
             var result = new CsvDataReader(CreateDataReaderColumns(header, schema), source, header.Count,
                 options, options.Culture, options.DateTimeFormats);
             lifetime.Token.ThrowIfCancellationRequested();
