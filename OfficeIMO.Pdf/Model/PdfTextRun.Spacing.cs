@@ -35,6 +35,13 @@ public sealed partial class PdfTextRun {
         return this;
     }
 
+    internal PdfTextRun WithInheritedFontStyle(bool bold, bool italic) {
+        if (InlineElement != null || ((!bold || Bold) && (!italic || Italic))) return this;
+        return CopyRunFormattingTo(new PdfTextRun(Text, Bold || bold, Underline, Color, Italic || italic,
+            Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader,
+            TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
+    }
+
     private PdfTextRun CopyRunFormattingTo(PdfTextRun copy) {
         copy.FeatureSettings = FeatureSettings;
         copy.HorizontalOffset = HorizontalOffset;

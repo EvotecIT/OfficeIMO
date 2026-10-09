@@ -475,18 +475,8 @@ internal static partial class PdfWriter {
             }
 
             var normalFont = ChooseNormal(pageOpts.DefaultFont);
-            if (page.UsedFonts.Count > 0) {
-                EnsurePageFontResource(normalFont, "F1");
-                if (page.UsedBold) {
-                    EnsurePageFontResource(ChooseBold(normalFont), "F2");
-                }
-                if (page.UsedItalic) {
-                    EnsurePageFontResource(ChooseItalic(normalFont), "F3");
-                }
-                if (page.UsedBoldItalic) {
-                    EnsurePageFontResource(ChooseBoldItalic(normalFont), "F4");
-                }
-            }
+            // Reserve only aliases used by page/effect content or an explicit
+            // resource dependency; another standard face does not require F1.
             if (LayoutUsesFontResource("F1")) {
                 EnsurePageFontResource(normalFont, "F1");
             }
