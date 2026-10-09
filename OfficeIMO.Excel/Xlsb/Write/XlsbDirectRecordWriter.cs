@@ -159,8 +159,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal void Flush() {
             if (_position == 0) return;
-            _stream.Write(GetBuffer(), 0, _position);
-            _position = 0;
+            try {
+                _stream.Write(GetBuffer(), 0, _position);
+            } finally {
+                // A destination may accept a prefix before failing. Disposal must
+                // never replay that pending record or replace its write exception.
+                _position = 0;
+            }
         }
 
         private byte[] GetBuffer() =>
