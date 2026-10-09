@@ -15,6 +15,8 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
     }
     public abstract int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason);
     public abstract LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
+    public virtual LegacySpreadsheetModel Parse(byte[] data, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken) =>
+        Parse(data, options.Limits, cancellationToken);
 
     protected static bool ExtensionIs(string? sourceName, params string[] extensions) {
         string extension = Path.GetExtension(sourceName ?? string.Empty);

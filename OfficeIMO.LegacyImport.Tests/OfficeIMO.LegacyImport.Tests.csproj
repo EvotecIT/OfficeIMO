@@ -34,4 +34,7 @@
     <Using Include="System.Threading" />
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures\TextSpreadsheets\*.slk;Fixtures\TextSpreadsheets\*.dif" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

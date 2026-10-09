@@ -9,7 +9,8 @@ internal static class LegacySpreadsheetReaderAdapter {
             Limits = (source.Limits ?? new OfficeLegacyImportLimits()).Clone(),
             FormatHint = source.FormatHint,
             SourceName = source.SourceName,
-            RequireStructured = source.RequireStructured
+            RequireStructured = source.RequireStructured,
+            TextEncoding = source.TextEncoding == null ? null : (System.Text.Encoding)source.TextEncoding.Clone()
         };
     }
 
@@ -69,7 +70,8 @@ internal static class LegacySpreadsheetReaderAdapter {
             Limits = limits,
             FormatHint = source?.FormatHint,
             SourceName = string.IsNullOrWhiteSpace(source?.SourceName) ? sourceName : source!.SourceName,
-            RequireStructured = source?.RequireStructured ?? false
+            RequireStructured = source?.RequireStructured ?? false,
+            TextEncoding = source?.TextEncoding ?? readerOptions.TextEncoding
         };
     }
 

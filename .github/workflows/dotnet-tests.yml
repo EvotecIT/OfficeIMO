@@ -1215,6 +1215,9 @@ jobs:
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
             dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
           fi
+          if [ "${{ matrix.partition }}" = "excel-legacy-reader" ]; then
+            dotnet restore OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj
+          fi
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
             dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
           fi
@@ -1268,6 +1271,9 @@ jobs:
           fi
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
             dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
+          if [ "${{ matrix.partition }}" = "excel-legacy-reader" ]; then
+            dotnet build OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
             dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1513,6 +1519,7 @@ jobs:
               run_excel_tests "excel-closedxml-gap" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ClosedXmlGap'
               ;;
             excel-legacy-reader)
+              dotnet test OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_excel_tests "excel-legacy-xls" 'FullyQualifiedName~OfficeIMO.Tests.Excel.LegacyXls'
               run_excel_tests "excel-performance" 'FullyQualifiedName~OfficeIMO.Tests.Excel.PerformanceReview'
               run_excel_tests "excel-reader" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Reader|FullyQualifiedName~OfficeIMO.Tests.Excel.ReadRows|FullyQualifiedName~OfficeIMO.Tests.Excel.ExcelHttp'
