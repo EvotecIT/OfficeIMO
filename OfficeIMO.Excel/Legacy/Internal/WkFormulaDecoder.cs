@@ -22,8 +22,8 @@ internal static partial class WkFormulaDecoder {
         [0x46] = new("LEN", 1), [0x47] = new("VALUE", 1), [0x49] = new("MID", 3), [0x4A] = new("CHAR", 1),
         [0x50] = new("SUM", -1), [0x51] = new("AVERAGE", -1), [0x52] = new("COUNT", -1), [0x53] = new("MIN", -1), [0x54] = new("MAX", -1),
         [0x56] = new("NPV", 2), [0x57] = new("VAR", -1), [0x58] = new("STDEV", -1), [0x5A] = new("HLOOKUP", 3),
-        [0x60] = new("INDEX", 3), [0x61] = new("COLUMNS", 1), [0x62] = new("ROWS", 1), [0x64] = new("UPPER", 1),
-        [0x65] = new("LOWER", 1), [0x66] = new("LEFT", 2), [0x67] = new("RIGHT", 2), [0x69] = new("PROPER", 1), [0x6B] = new("TRIM", 1)
+        [0x62] = new("INDEX", 3), [0x63] = new("COLUMNS", 1), [0x64] = new("ROWS", 1), [0x66] = new("UPPER", 1),
+        [0x67] = new("LOWER", 1), [0x68] = new("LEFT", 2), [0x69] = new("RIGHT", 2), [0x6B] = new("PROPER", 1), [0x6D] = new("TRIM", 1)
     };
 
     internal static bool TryDecode(byte[] data, int offset, int length, int currentRowZeroBased, int currentColumnZeroBased,

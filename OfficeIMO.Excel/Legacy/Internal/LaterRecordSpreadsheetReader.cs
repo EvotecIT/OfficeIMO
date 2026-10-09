@@ -16,7 +16,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
     private readonly OfficeLegacyImportLimits _limits;
     private readonly CancellationToken _cancellation;
     private readonly LaterSpreadsheetProfile _profile;
-    private readonly LegacySpreadsheetModel _model = new() { Quality = OfficeLegacyImportQuality.Structured };
+    private readonly LegacySpreadsheetModel _model = new() { Quality = OfficeLegacyImportQuality.Structured, PreserveSheetNames = true };
     private readonly Dictionary<int, string> _names = new();
     private readonly Dictionary<(int Sheet, int Row, int Column), LegacySpreadsheetCell> _cells = new();
     private readonly HashSet<(int Sheet, int Row, int Column)> _commentOnly = new();
@@ -37,6 +37,10 @@ internal sealed partial class LaterRecordSpreadsheetReader {
     private LegacySpreadsheetModel Read() {
         var records = new List<(ushort Type, int Offset, int Length)>();
         int p = 0, count = 0; bool eof = false;
+        if (_profile == LaterSpreadsheetProfile.Lotus) {
+            int lastSheet = _data[14];
+            for (int id = 0; id <= lastSheet; id++) EnsureSheet(id);
+        }
         while (p < _data.Length) {
             _cancellation.ThrowIfCancellationRequested();
             if (++count > _limits.MaxRecords) throw new InvalidDataException("Legacy workbook exceeds the record limit.");
@@ -163,12 +167,17 @@ internal sealed partial class LaterRecordSpreadsheetReader {
         if (id < 0 || id > 255) throw new InvalidDataException("Formula sheet reference is outside the source profile.");
         if (!_names.TryGetValue(id, out string? name)) {
             if (_names.Count >= _limits.MaxItems) throw new InvalidDataException("Legacy workbook exceeds the sheet limit.");
-            _names[id] = name = "Sheet" + (id + 1).ToString(CultureInfo.InvariantCulture);
+            string basis = "Sheet" + (id + 1).ToString(CultureInfo.InvariantCulture); name = basis; int suffix = 2;
+            while (_names.Values.Contains(name, StringComparer.OrdinalIgnoreCase)) name = basis + " (" + (suffix++).ToString(CultureInfo.InvariantCulture) + ")";
+            _names[id] = name;
         }
         return name;
     }
     private void SetName(int id, string name) {
         EnsureSheet(id);
+        string trimmed = name.Trim();
+        if (trimmed != name) Loss("LATER_SHEET_NAME", "A source sheet name was trimmed for XLSX; formula references use its final projected name.");
+        name = trimmed;
         if (name.Length == 0 || name.Length > 31 || name.IndexOfAny(new[] { '[', ']', ':', '*', '?', '/', '\\' }) >= 0 ||
             name[0] == '\'' || name[name.Length - 1] == '\'' || _names.Any(item => item.Key != id && string.Equals(item.Value, name, StringComparison.OrdinalIgnoreCase))) {
             Loss("LATER_SHEET_NAME", "A source sheet name cannot be used safely in XLSX; its stable generated name is used."); return;
