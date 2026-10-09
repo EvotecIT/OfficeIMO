@@ -36,10 +36,16 @@ namespace OfficeIMO.Chm {
         private string? EmbedImageReference(string source, ChmConversionOptions options, string sourcePath, ref long bytes,
             List<OfficeConversionFidelityDiagnostic> diagnostics) {
             ChmEntry? entry;
+            string fragment = string.Empty;
             if (Uri.TryCreate(source, UriKind.Absolute, out Uri? uri)) {
                 if (uri.Scheme != "chm" || uri.Host != "archive") return source;
                 entry = FindUriEntry(uri);
-            } else entry = FindEntry(source, sourcePath);
+                fragment = uri.Fragment;
+            } else {
+                entry = FindEntry(source, sourcePath);
+                int hash = source.IndexOf('#');
+                if (hash >= 0) fragment = source.Substring(hash);
+            }
             if (entry == null || entry.IsSystem || entry.IsDirectory) {
                 diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_IMAGE_MISSING", "An image reference has no embedded resource.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", sourcePath));
                 return null;
@@ -47,7 +53,7 @@ namespace OfficeIMO.Chm {
             if (entry.Length > options.MaxEmbeddedImageBytes || entry.Length > options.MaxTotalEmbeddedImageBytes - bytes)
                 throw ChmBinary.Error("CONVERSION_LIMIT", "Embedded images exceed the configured projection budget.");
             bytes += entry.Length;
-            return "data:" + GetMediaType(entry.Path) + ";base64," + Convert.ToBase64String(entry.GetBytes());
+            return "data:" + GetMediaType(entry.Path) + ";base64," + Convert.ToBase64String(entry.GetBytes()) + fragment;
         }
 
         private void RewriteSvgReferences(HtmlElement element, string prefix, string sourcePath, Dictionary<string, string> anchors,

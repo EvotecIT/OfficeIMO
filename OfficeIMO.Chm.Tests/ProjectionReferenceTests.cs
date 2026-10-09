@@ -5,6 +5,27 @@ namespace OfficeIMO.Chm.Tests;
 
 public sealed class ProjectionReferenceTests {
     [Theory]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><image href='views.svg#closeup'/></svg>", "image", "href")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><image xlink:href='views.svg#closeup'/></svg>", "image", "xlink:href")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><defs><filter id='view'><feImage href='views.svg#closeup'/></filter></defs></svg>", "feImage", "href")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><defs><filter id='view'><feImage xlink:href='views.svg#closeup'/></filter></defs></svg>", "feImage", "xlink:href")]
+    [InlineData("<img src='views.svg#closeup' alt='Close view'>", "img", "src")]
+    [InlineData("<img data-src='views.svg#closeup' alt='Close view'>", "img", "data-src")]
+    [InlineData("<picture><source srcset='views.svg#closeup 1x'><img src='views.svg#closeup' alt='Close view'></picture>", "source", "srcset")]
+    public void EmbeddedSvgViewsRetainTheirResourceFragment(string markup, string tag, string attribute) {
+        byte[] svg = ChmFixture.Html("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'><view id='closeup' viewBox='10 0 10 10'/><rect width='20' height='10'/></svg>");
+        ChmDocument book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
+            ["/topic.html"] = ChmFixture.Html(markup), ["/views.svg"] = svg
+        }));
+        var projection = book.ToHtmlDocumentResult();
+        string value = Assert.Single(projection.Value.Document.QuerySelector(tag)!.Attributes, item => item.Name == attribute).Value;
+        if (attribute == "srcset") value = Assert.Single(HtmlSrcSetParser.Parse(value)).Url;
+        Assert.True(HtmlImageDataUri.TryParse(value, out HtmlImageDataUri parsed));
+        Assert.Equal("#closeup", parsed.Fragment);
+        Assert.Equal(svg, parsed.DecodeBytes());
+    }
+
+    [Theory]
     [InlineData("href", "#part", "#chm-topic-1-part")]
     [InlineData("xlink:href", "#part", "#chm-topic-1-part")]
     [InlineData("href", "second.html#part", "#chm-topic-2-part")]

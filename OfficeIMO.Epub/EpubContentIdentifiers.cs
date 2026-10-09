@@ -9,14 +9,18 @@ internal static class EpubContentIdentifiers {
         foreach (XElement element in root.DescendantsAndSelf()) {
             token.ThrowIfCancellationRequested();
             // An element may carry matching id and xml:id attributes; they identify the same target.
-            foreach (string id in element.Attributes().Where(attribute => attribute.Name == "id" ||
-                attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value).Distinct(StringComparer.Ordinal)) {
+            foreach (string id in GetIdentifiers(element)) {
                 if (!ids.Add(id) && rejectDuplicates)
                     throw new InvalidDataException("Duplicate content id in " + path + ": " + id);
             }
         }
         return ids;
     }
+
+    /// <summary>Enumerates distinct destinations on an element, including matching id and xml:id.</summary>
+    internal static IEnumerable<string> GetIdentifiers(XElement element) => element.Attributes()
+        .Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id")
+        .Select(attribute => attribute.Value).Distinct(StringComparer.Ordinal);
 
     internal static void ValidateReferences(XElement root, HashSet<string> ids, string path, CancellationToken token) {
         var mapNames = new HashSet<string>(root.DescendantsAndSelf().Where(element =>

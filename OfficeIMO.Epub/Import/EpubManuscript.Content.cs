@@ -75,21 +75,16 @@ public static partial class EpubManuscript {
     private static void PreserveLegacyNamedAnchors(XElement body, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
         // Reserve only destinations retained in the converted body, including
         // IDs after named anchors. Omitted controls and head elements cannot collide.
-        var anchorIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (XElement element in body.DescendantsAndSelf()) {
-            token.ThrowIfCancellationRequested();
-            string? id = (string?)element.Attribute("id");
-            if (!string.IsNullOrEmpty(id)) anchorIds.Add(id!);
-        }
+        var anchorIds = EpubContentIdentifiers.Collect(body, "HTML manuscript", rejectDuplicates: false, token);
         foreach (XElement element in body.Descendants(Xhtml + "a")) {
             token.ThrowIfCancellationRequested();
             if (element.Attribute("name") is not XAttribute namedAnchor) continue;
             string anchor = namedAnchor.Value;
             namedAnchor.Remove();
-            if (anchor.Length == 0 || (string?)element.Attribute("id") == anchor) continue;
+            if (anchor.Length == 0 || EpubContentIdentifiers.GetIdentifiers(element).Contains(anchor, StringComparer.Ordinal)) continue;
             if (!anchorIds.Add(anchor))
                 AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", "A legacy named anchor collides with an existing destination; its alias was omitted.", anchor, OfficeConversionLossKind.Failure);
-            else if (element.Attribute("id") == null) element.SetAttributeValue("id", anchor);
+            else if (!EpubContentIdentifiers.GetIdentifiers(element).Any()) element.SetAttributeValue("id", anchor);
             else element.AddFirst(new XElement(Xhtml + "span", new XAttribute("id", anchor)));
         }
     }
