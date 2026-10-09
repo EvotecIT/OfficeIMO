@@ -142,6 +142,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? ExplicitWidth;
     internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
+    // Table tracks resolve percentages after the grid's content minimum is known.
+    internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
     internal bool AutoHeightLayoutStretch;
     internal double? MinWidth;
