@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly System.Threading.CancellationToken _cancellationToken;
+    private readonly HtmlRenderOperationBudget _operationBudget;
     private readonly double _rootFontSize;
     private readonly Dictionary<IElement, HashSet<string>> _reportedUnsupportedColors = new Dictionary<IElement, HashSet<string>>();
     private readonly HashSet<IElement> _reportedSmallCapsApproximations = new HashSet<IElement>();
@@ -19,11 +20,12 @@ internal sealed partial class HtmlRenderStyleResolver {
     private bool _activeUprightVerticalText;
 
     internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default, HtmlRenderOperationBudget? operationBudget = null) {
         _computedStyles = computedStyles;
         _options = options;
         _diagnostics = diagnostics;
         _cancellationToken = cancellationToken;
+        _operationBudget = operationBudget ?? new HtmlRenderOperationBudget();
         _viewportWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
         _viewportHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
         _rootFontSize = options.DefaultFontSize;
@@ -175,12 +177,15 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? ResolvePseudoDisplay(computed.GetValue("display"))
             : ResolveDisplay(element, computed.GetValue("display"), computed.GetValue("-webkit-box-orient"), ResolveLineClamp(computed).HasValue);
         bool propagatedUnderline = parent != null && parent.UnderlineStyle != OfficeTextDecorationStyle.None
-            && (display == "inline" || display == "contents");
+            && CanReceiveTextDecoration(display, computed.GetValue("position"), computed.GetValue("float"));
         OfficeFontStyle fontStyle = ResolveFontStyle(fontTag, computed);
         bool defaultLink = !pseudoElement && tag == "a" && element.HasAttribute("href");
         if (defaultLink && !HasAuthoredValue(computed, "text-decoration-line") && !HasAuthoredValue(computed, "text-decoration")) {
             fontStyle |= OfficeFontStyle.Underline;
         }
+        // Decoration follows boxes. A contents element forwards an ancestor's band,
+        // but its own declarations and tag defaults cannot originate one.
+        if (display == "contents") fontStyle &= ~(OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough);
         bool ownsUnderline = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline;
         if (propagatedUnderline) fontStyle |= OfficeFontStyle.Underline;
         fontStyle &= ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic);

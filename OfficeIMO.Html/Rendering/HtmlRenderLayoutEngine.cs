@@ -133,7 +133,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _options = options;
         _diagnostics = diagnostics;
-        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, cancellationToken);
+        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, cancellationToken, _operationBudget);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles, _disclosures);
         foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);

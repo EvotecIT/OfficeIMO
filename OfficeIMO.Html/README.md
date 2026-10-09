@@ -466,14 +466,21 @@ Intrinsic heights, percentage `fit-content()` arguments, and widths on replaced,
 
 Visibility follows the active CSS media and computed `display`. The `hidden` attribute supplies a `display:none` default that author CSS can override, including print rules that reveal report sections. Hidden inline breaks and table cells do not participate in layout. CSS `initial`, `unset`, `inherit`, and cascade reversion retain their distinct display behavior.
 
-Text-decoration shorthands retain underline and strike-through style and color when
-they also specify thickness, for example `text-decoration: underline 0.05em dashed gray`.
+Text-decoration shorthands retain underline, overline and strike-through style and
+color with explicit thickness, for example `text-decoration: underline 0.05em dashed gray`.
 Thickness participates in shorthand resets, declaration order, explicit inheritance
-and custom-property substitution. Painted lines use automatic thickness; an explicit
-thickness on a painted decoration reports `HtmlRenderTextDecorationThicknessApproximated`
-as a loss-bearing approximation. Overline is omitted and reports
-`HtmlRenderTextDecorationLineUnsupported`. `text-underline-offset` does not control
-line placement.
+and custom-property substitution. Ordinary horizontal text paints explicit thickness
+and `text-underline-offset` with shared vector geometry; overline is also painted.
+Same-size in-flow inline descendants and anonymous flex text retain the ancestor's
+band and color. `display:contents` forwards ancestor bands without originating its
+own, and ancestor decoration stops at absolute, fixed and floated descendants.
+From-font metrics, specialized bidi/vertical/baseline contexts, underline/overline
+ink skipping, special positioning, shadows, mixed-size or independently decorated
+descendants, non-solid pattern geometry, and continuity across descendant inline
+margins, borders and padding report `HtmlRenderTextDecorationThicknessApproximated`.
+Specialized text retains automatic underline/strike paint and reports
+`HtmlRenderTextDecorationLineUnsupported` when overline is omitted. Descendant
+`text-decoration:none` preserves an ancestor band without adding an approximation.
 
 Supported inline SVG font and paint presentation attributes participate in the CSS cascade before layout. A label's `font-family`, `font-size` and `font-weight` attributes can override inherited HTML fonts, while author CSS and inline declarations retain their cascade priority. Relative font weights resolve once before inheritance, and nested text adds a baseline shift only when that element declares one.
 
