@@ -569,7 +569,7 @@ public sealed partial class OfficeFontFaceCollection {
         return fontSize.HasValue ? face.ForOpticalSize(fontSize.Value).Program : face.ParsedFont;
     }
 
-    private OfficeFontFace? ResolveStyledFaceForText(string text, string? familyNames, OfficeFontStyle style) {
+    internal OfficeFontFace? ResolveStyledFaceForText(string text, string? familyNames, OfficeFontStyle style) {
         if (string.IsNullOrEmpty(familyNames) || _faces.Count == 0) return null;
         OfficeFontFaceDescriptor requested = OfficeFontFaceDescriptor.FromStyle(style);
         // A style lookup remains local to its supplied families. Callers such as

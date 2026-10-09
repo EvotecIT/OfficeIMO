@@ -1,0 +1,128 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [ 4 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Outlines 9 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/MediaBox [ 0 0 612 792 ]
+/Resources <<
+/Font 6 0 R
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+/Rotate 0
+/Trans <<
+>>
+/Type /Page
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 309
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 72 700 Tm /F2 18 Tf 21.6 TL (\000B\000e\000f\000o\000r\000e\000 \276D\274\000\000 \000a\000f\000t\000e\000r\000 \000p\000a\000g\000e) Tj T* ET
+BT /F1 12 Tf 14.4 TL ET
+BT 1 0 0 1 72 660 Tm (Public summary remains readable.) Tj T* ET
+ 
+
+endstream
+endobj
+6 0 obj
+<<
+/F1 7 0 R
+/F2 8 0 R
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Name /F1
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /HYSMyeongJo-Medium
+/DescendantFonts [ <<
+/BaseFont /HYSMyeongJo-Medium
+/CIDSystemInfo <<
+/Ordering (Korea1)
+/Registry (Adobe)
+/Supplement 1
+>>
+/DW 1000
+/FontDescriptor <<
+/Ascent 752
+/AvgWidth 500
+/CapHeight 737
+/Descent -271
+/Flags 6
+/FontBBox [ 0 -148 1001 880 ]
+/FontName /HYSMyeongJo-Medium
+/ItalicAngle 0
+/Leading 148
+/MaxWidth 1000
+/MissingWidth 500
+/StemH 91
+/StemV 58
+/Type /FontDescriptor
+/XHeight 553
+>>
+/Subtype /CIDFontType2
+/Type /Font
+/W [ 1 [ 333 416 ] 3 [ 416 833 625 916 833 250 500 ] 10 11 500 12 [ 833 291 833 291 375 625 ] 18 26 625 27 28 333 29 30 833 31 [ 916 500 1000 791 708 ] 36 [ 708 750 708 666 750 791 375 500 791 666 916 791 750 666 750 708 666 791 ] 54 [ 791 750 1000 708 ] 58 [ 708 666 500 375 500 ] 63 64 500 65 [ 333 541 583 541 583 ] 70 [ 583 375 583 ] 73 [ 583 291 333 583 291 875 583 ] 80 82 583 83 [ 458 541 375 583 ] 87 [ 583 833 625 ] 90 [ 625 500 583 ] 93 94 583 95 [ 750 ] ]
+>> ]
+/Encoding /UniKS-UCS2-H
+/Name /F2
+/Subtype /Type0
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+>>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000113 00000 n 
+0000000178 00000 n 
+0000000367 00000 n 
+0000000727 00000 n 
+0000000768 00000 n 
+0000000875 00000 n 
+0000001890 00000 n 
+trailer
+<<
+/Size 10
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+1911
+%%EOF

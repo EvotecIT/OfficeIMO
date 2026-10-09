@@ -27,26 +27,29 @@ public static class OfficeImageExportFontDiagnostics {
         OfficeFontStyle requestedStyle = OfficeFontFace.NormalizeStyle(style);
         for (int index = 0; index < families.Count; index++) {
             string family = families[index];
-            IOfficeFontProgram? scoped = fonts.ResolveForText(text!, family, requestedStyle, out OfficeFontStyle resolvedStyle);
+            OfficeFontFace? scoped = fonts.ResolveStyledFaceForText(text!, family, requestedStyle);
             if (scoped != null) {
-                if (index == 0 && resolvedStyle == requestedStyle) return null;
+                OfficeFontStyle resolvedStyle = scoped.Style;
+                if (index == 0 && resolvedStyle == requestedStyle && scoped.InstalledSubstituteFamily == null) return null;
                 return CreateDiagnostic(
                     families[0],
                     requestedStyle,
-                    family,
+                    scoped.InstalledSubstituteFamily ?? family,
                     resolvedStyle,
-                    scoped: true,
+                    scoped: scoped.InstalledSubstituteFamily == null,
                     source);
             }
 
             OfficeTrueTypeFont? platform = OfficeTrueTypeFont.TryLoadFontFamilyForText(
                 family, requestedStyle, text!, out OfficeFontStyle platformStyle);
             if (platform != null) {
-                if (index == 0 && platformStyle == requestedStyle) return null;
+                bool matchesFamily = OfficeSystemFontFamilyAliases.IsSystemUi(family) ||
+                    OfficeSystemFontFamilyAliases.IsMath(family) || platform.MatchesFamilyName(family);
+                if (index == 0 && platformStyle == requestedStyle && matchesFamily) return null;
                 return CreateDiagnostic(
                     families[0],
                     requestedStyle,
-                    family,
+                    matchesFamily ? family : platform.DisplayName ?? "installed substitute",
                     platformStyle,
                     scoped: false,
                     source);

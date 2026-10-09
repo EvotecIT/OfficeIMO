@@ -1,0 +1,57 @@
+{
+  "producerVersions": {
+    "ReportLab": "4.4.9",
+    "pypdf": "6.10.0"
+  },
+  "documentLicense": "MIT",
+  "runtime": "No embedded font programs or ToUnicode; predefined Adobe ROS resources",
+  "traditionalChineseCorrection": "pypdf sets UniCNS-UCS2-H instead of the ReportLab 4.4.9 UniGB-UCS2-H default for Adobe/CNS1",
+  "cases": [
+    {
+      "file": "japanese.pdf",
+      "font": "HeiseiMin-W3",
+      "encoding": "UniJIS-UCS2-H",
+      "term": "機密",
+      "line": "Before 機密 after page",
+      "advancePoints": 165.43800000000002,
+      "bytes": 2626,
+      "sha256": "7cac2863217f42d6a944900fea3263481589d6b13741374c106141f1fe237a75"
+    },
+    {
+      "file": "simplified-chinese.pdf",
+      "font": "STSong-Light",
+      "encoding": "UniGB-UCS2-H",
+      "term": "秘密",
+      "line": "Before 秘密 after page",
+      "advancePoints": 155.66400000000002,
+      "bytes": 2077,
+      "sha256": "779a6e11404b96b2c30d6ccff6af4d3d5a670d0d6a82ad48cd871c00e4051c34"
+    },
+    {
+      "file": "traditional-chinese.pdf",
+      "font": "MSung-Light",
+      "encoding": "UniCNS-UCS2-H",
+      "term": "秘密",
+      "line": "Before 秘密 after page",
+      "advancePoints": 163.96200000000002,
+      "bytes": 2088,
+      "sha256": "485f3c969b4508bd139e9e8102c331c4392840bfe157f5ebad4d60a63dde6865"
+    },
+    {
+      "file": "korean.pdf",
+      "font": "HYSMyeongJo-Medium",
+      "encoding": "UniKS-UCS2-H",
+      "term": "비밀",
+      "line": "Before 비밀 after page",
+      "advancePoints": 196.39800000000002,
+      "bytes": 2189,
+      "sha256": "c7fe6560a7b7a4f9aa8f4f845da0b9f6d5d5ac82c1a5854adfebf8628eb88ea7"
+    }
+  ],
+  "refusalCase": {
+    "file": "mismatched-collection.pdf",
+    "bytes": 2087,
+    "sha256": "602f25b3c49fee67cb63b7f2c5c081f446c427e05d192d138ca5c6ae9b85c0f0",
+    "reason": "UniGB-UCS2-H with Adobe/CNS1"
+  }
+}

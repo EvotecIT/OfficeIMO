@@ -157,3 +157,7 @@ Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff
 
 # Preserve the independent composite-font refusal fixture across checkout platforms.
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -text -diff
+
+# Predefined-font fixtures and pinned Adobe resources are byte-level evidence.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -diff
+OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace
