@@ -27,7 +27,21 @@ public static class OfficeArtBlipStoreEntryReader {
     internal static bool TryRead(byte[] payload, int offset, int length,
         ushort recordInstance, byte[]? delayStream,
         out OfficeArtBlipStoreEntry? entry, int maximumDecodedImageBytes,
-        DelayedBlipPayloadHashCache? delayedPayloadHashCache) {
+        DelayedBlipPayloadHashCache? delayedPayloadHashCache) =>
+        TryReadCore(payload, offset, length, recordInstance, delayStream, out entry,
+            maximumDecodedImageBytes, delayedPayloadHashCache, delayedReadCache: null);
+
+    internal static bool TryRead(byte[] payload, int offset, int length,
+        ushort recordInstance, byte[]? delayStream,
+        out OfficeArtBlipStoreEntry? entry, int maximumDecodedImageBytes,
+        DelayedBlipReadCache delayedReadCache) =>
+        TryReadCore(payload, offset, length, recordInstance, delayStream, out entry,
+            maximumDecodedImageBytes, delayedReadCache.PayloadHashes, delayedReadCache);
+
+    private static bool TryReadCore(byte[] payload, int offset, int length,
+        ushort recordInstance, byte[]? delayStream,
+        out OfficeArtBlipStoreEntry? entry, int maximumDecodedImageBytes,
+        DelayedBlipPayloadHashCache? delayedPayloadHashCache, DelayedBlipReadCache? delayedReadCache) {
         if (payload == null) throw new ArgumentNullException(nameof(payload));
         if (offset < 0 || offset > payload.Length) throw new ArgumentOutOfRangeException(nameof(offset));
         if (length < 0 || length > payload.Length - offset) throw new ArgumentOutOfRangeException(nameof(length));
@@ -64,10 +78,10 @@ public static class OfficeArtBlipStoreEntryReader {
                 int delayedBoundary = GetBlipBoundary(
                     delayedOffset, delayStream.Length, sizeBytes);
                 if (delayedOffset <= delayedBoundary - 8) {
-                    blip = ReadBlip(delayStream, delayedOffset,
-                        delayedBoundary, OfficeArtBlipStorage.Delayed,
-                        maximumDecodedImageBytes,
-                        delayedPayloadHashCache);
+                    blip = delayedReadCache != null
+                        ? delayedReadCache.Read(delayStream, delayedOffset, delayedBoundary, maximumDecodedImageBytes)
+                        : ReadBlip(delayStream, delayedOffset, delayedBoundary, OfficeArtBlipStorage.Delayed,
+                            maximumDecodedImageBytes, delayedPayloadHashCache);
                 }
             }
         }
@@ -422,6 +436,31 @@ public static class OfficeArtBlipStoreEntryReader {
         target[offset + 3] = unchecked((byte)(value >> 24));
     }
 
+    // Cache failed as well as successful decoding: a repeated corrupt compressed
+    // metafile must not repeat inflation merely because no image was extracted.
+    // Decoded ceilings are part of the key so a tighter later call stays strict.
+    internal sealed class DelayedBlipReadCache {
+        private readonly byte[] _source;
+        private readonly Dictionary<(int Offset, int Boundary, int MaximumBytes), BlipReadResult> _results = new();
+        internal DelayedBlipReadCache(byte[] source) {
+            _source = source ?? throw new ArgumentNullException(nameof(source));
+            PayloadHashes = new DelayedBlipPayloadHashCache(source);
+        }
+        internal DelayedBlipPayloadHashCache PayloadHashes { get; }
+        internal BlipReadResult Read(byte[] source, int offset, int boundary, int maximumBytes) {
+            if (!ReferenceEquals(source, _source)) throw new ArgumentException("The delayed BLIP cache belongs to a different source.", nameof(source));
+            // Different FBSE sizes that contain the same complete record share a
+            // result; genuinely shorter boundaries still preserve truncation.
+            int effectiveBoundary = (int)Math.Min(boundary, (long)offset + 8 + ReadUInt32(source, offset + 4));
+            var key = (offset, effectiveBoundary, maximumBytes);
+            if (!_results.TryGetValue(key, out BlipReadResult result)) {
+                result = ReadBlip(source, offset, effectiveBoundary, OfficeArtBlipStorage.Delayed, maximumBytes, PayloadHashes);
+                _results.Add(key, result);
+            }
+            return result;
+        }
+    }
+
     internal sealed class DelayedBlipPayloadHashCache {
         private readonly byte[] _source;
         private readonly Dictionary<long, string> _hashes = new();
@@ -454,7 +493,7 @@ public static class OfficeArtBlipStoreEntryReader {
         }
     }
 
-    private readonly struct BlipReadResult {
+    internal readonly struct BlipReadResult {
         internal BlipReadResult(OfficeArtBlipStorage storage, byte recordVersion,
             ushort recordInstance, ushort recordType, uint payloadLength, int payloadAvailableLength,
             string? payloadSha256, byte[] imageBytes,

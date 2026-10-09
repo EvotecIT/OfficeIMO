@@ -30,8 +30,10 @@ foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
 `Pages` follows publication order and excludes utility pages and master
 definitions. `MasterPages` exposes the recovered definitions; their content is
 also applied to referring pages. Coordinates use points and a top-left origin.
-Each page's `Drawing` is the shared `OfficeDrawing` model. Editing that drawing
-changes subsequent exports; it does not modify the native publication.
+Each page's `Drawing` is the shared `OfficeDrawing` model. Callers can add artwork
+to that scene for subsequent exports. Recovered page content is held in a detached
+clipped group; this API does not directly edit native text frames or modify the
+publication file.
 
 `TextStories` retains complete decoded text, including content that cannot be
 placed or does not fit a frame. Paragraphs carry recovered font names, sizes,
@@ -78,7 +80,10 @@ their current position, support non-seekable input, and remain open. Options are
 snapshotted for each operation. Cancellation applies to input reading, native
 records, and page projection. Exceeding a configured limit rejects the operation
 instead of returning a truncated document. Item and text limits also bound
-projected content, including repeated master use.
+projected content, including repeated master use. `MaxItems` bounds image-store
+entries even when their payload cannot be recovered. `MaxInputBytes` also bounds
+cumulative encoded image-payload processing, including repeated delayed
+references; delayed decoding results are reused within the operation.
 
 Recovery reports distinguish approximation, omission and unassessed content.
 `RequireNoLoss()` rejects any of those categories. Current native recovery

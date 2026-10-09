@@ -28,13 +28,31 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
         bool flipHorizontal = false,
         bool flipVertical = false,
         OfficeTextPadding? padding = null,
-        OfficeTextParagraphIndent? paragraphIndent = null) {
+        OfficeTextParagraphIndent? paragraphIndent = null)
+        : this(runs, x, y, width, height, alignment, lineHeight, verticalAlignment,
+            rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit,
+            flipHorizontal, flipVertical, padding, paragraphIndent, allowOverflow: false) {
+    }
+
+    // Native adapters may retain finite bleed coordinates until an enclosing clip
+    // is painted. The public constructor and ordinary insertion bounds stay strict.
+    internal OfficeDrawingRichText(IReadOnlyList<OfficeRichTextRun> runs,
+        double x, double y, double width, double height, OfficeTextAlignment alignment,
+        double? lineHeight, OfficeTextVerticalAlignment verticalAlignment,
+        double rotationDegrees, double? rotationCenterX, double? rotationCenterY,
+        bool wrapText, bool shrinkToFit, bool flipHorizontal, bool flipVertical,
+        OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, bool allowOverflow) {
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
         }
 
-        ValidateFiniteNonNegative(x, nameof(x));
-        ValidateFiniteNonNegative(y, nameof(y));
+        if (allowOverflow) {
+            ValidateFinite(x, nameof(x));
+            ValidateFinite(y, nameof(y));
+        } else {
+            ValidateFiniteNonNegative(x, nameof(x));
+            ValidateFiniteNonNegative(y, nameof(y));
+        }
         ValidatePositiveFinite(width, nameof(width));
         ValidatePositiveFinite(height, nameof(height));
         ValidateFinite(rotationDegrees, nameof(rotationDegrees));
@@ -162,7 +180,7 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
     public OfficeImageFrameTransform CreateFrameTransform() => new OfficeImageFrameTransform(RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
 
     /// <summary>Creates a detached copy of this positioned rich text box.</summary>
-    public OfficeDrawingRichText Clone() => new OfficeDrawingRichText(Runs, X, Y, Width, Height, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, FlipHorizontal, FlipVertical, Padding, ParagraphIndent) {
+    public OfficeDrawingRichText Clone() => new OfficeDrawingRichText(Runs, X, Y, Width, Height, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, allowOverflow: true) {
         NormalizeHorizontalPaint = NormalizeHorizontalPaint
     }.WithParagraphs(Paragraphs).WithTextAreaAlignment(TextAreaAlignment);
 

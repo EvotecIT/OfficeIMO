@@ -65,7 +65,11 @@ characters, 1 million inspected records, 250,000 source/projected items,
 16 MiB per extracted/projected image and 64 MiB aggregate image accounting.
 Application raster codec output is limited to 8 million pixels. Limits are
 caller-configurable, reject oversized input and also account for repeated
-projection work. Each source text story currently has the shared drawing
+projection work. The input byte ceiling also bounds cumulative encoded image
+processing, and unavailable image-store entries consume the item ceiling.
+Delayed decoding is cached and cancellation is checked between image entries.
+Finite text/table bleed coordinates survive projection and copying until page
+clipping is applied. Each source text story currently has the shared drawing
 ceiling of 100,000 characters and 4,096 rich-text runs/paragraphs.
 
 Open implementation and qualification work belongs to the

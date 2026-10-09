@@ -11,8 +11,10 @@ internal sealed class PublisherEscherReader {
     private readonly PublisherParseContext _context;
     private readonly PublisherEscherData _result = new();
     private readonly HashSet<uint> _shapeIds = new();
+    private readonly OfficeArtBlipStoreEntryReader.DelayedBlipReadCache? _delayedImages;
     internal PublisherEscherReader(PublisherBinaryData data, PublisherBinaryData? delay, PublisherParseContext context) {
         _data = data; _delay = delay; _context = context;
+        if (delay != null) _delayedImages = new OfficeArtBlipStoreEntryReader.DelayedBlipReadCache(delay.Bytes);
     }
     internal PublisherEscherData Read() {
         foreach (PublisherEscherRecord record in Records(0, _data.Length)) Visit(record, null, 0);
@@ -98,13 +100,20 @@ internal sealed class PublisherEscherReader {
     private void ReadImages(PublisherEscherRecord store) {
         int index = 0;
         foreach (PublisherEscherRecord record in Records(store.Offset, store.End)) {
+            _context.AccountImageStoreEntry();
             if (record.Kind != 0xF007) throw new InvalidDataException("Unexpected Publisher image store record.");
             index++;
             int remaining = (int)(_context.Options.MaximumTotalImageBytes - _context.ImageBytes);
-            if (!OfficeArtBlipStoreEntryReader.TryRead(_data.Bytes, record.Offset, record.Length,
-                (ushort)(record.Initial >> 4), _delay?.Bytes, out OfficeArtBlipStoreEntry? image,
-                Math.Min(_context.Options.MaximumImageBytes, remaining)))
+            bool read = _delayedImages != null
+                ? OfficeArtBlipStoreEntryReader.TryRead(_data.Bytes, record.Offset, record.Length,
+                    (ushort)(record.Initial >> 4), _delay!.Bytes, out OfficeArtBlipStoreEntry? image,
+                    Math.Min(_context.Options.MaximumImageBytes, remaining), _delayedImages)
+                : OfficeArtBlipStoreEntryReader.TryRead(_data.Bytes, record.Offset, record.Length,
+                    (ushort)(record.Initial >> 4), null, out image, Math.Min(_context.Options.MaximumImageBytes, remaining));
+            _context.Token.ThrowIfCancellationRequested();
+            if (!read)
                 throw new InvalidDataException("Invalid Publisher image store entry.");
+            _context.AccountImageProcessing(image!.BlipPayloadAvailableLength.GetValueOrDefault());
             if (image!.WasImageRejectedBySizeLimit) throw new InvalidDataException("Publisher decoded image byte limit exceeded.");
             if (image.IsPayloadTruncated) throw new InvalidDataException("Truncated Publisher image payload.");
             byte[]? bytes = image.HasImportableImage ? image.ImageBytes : ReadPublisherGif(image, record, Math.Min(_context.Options.MaximumImageBytes, remaining));

@@ -218,6 +218,32 @@ public sealed class DrawingOfficeArtBlipTests {
     }
 
     [Fact]
+    public void CachedDelayedDecodingPreservesPerCallSizeAndTruncationLimits() {
+        byte[] png = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+        byte[] fbse = BuildFbse(Array.Empty<byte>(), 0, (uint)blip.Length);
+        var cache = new OfficeArtBlipStoreEntryReader.DelayedBlipReadCache(blip);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0, fbse.Length, 6, blip,
+            out OfficeArtBlipStoreEntry? first, png.Length, cache));
+        Assert.Equal(png, first!.ImageBytes);
+        byte[] detached = first.ImageBytes;
+        detached[0] = 0;
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0, fbse.Length, 6, blip,
+            out OfficeArtBlipStoreEntry? repeated, png.Length, cache));
+        Assert.Equal(png, repeated!.ImageBytes);
+        Assert.Equal(first.BlipPayloadSha256, repeated.BlipPayloadSha256);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(fbse, 0, fbse.Length, 6, blip,
+            out OfficeArtBlipStoreEntry? smaller, png.Length - 1, cache));
+        Assert.True(smaller!.WasImageRejectedBySizeLimit);
+        Assert.Empty(smaller.ImageBytes);
+        byte[] truncated = BuildFbse(Array.Empty<byte>(), 0, (uint)blip.Length - 1);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(truncated, 0, truncated.Length, 6, blip,
+            out OfficeArtBlipStoreEntry? partial, png.Length, cache));
+        Assert.True(partial!.IsPayloadTruncated);
+        Assert.Empty(partial.ImageBytes);
+    }
+
+    [Fact]
     public void ReaderUsesTwoUidRasterPrefixAndBuildsBmpFileHeader() {
         byte[] dib = new byte[44];
         WriteUInt32(dib, 0, 40);

@@ -9,6 +9,8 @@ internal sealed class PublisherParseContext {
     internal int Records { get; private set; }
     internal long ImageBytes { get; private set; }
     private long _projectedElements, _projectedCharacters;
+    private long _imageProcessingBytes;
+    private int _imageStoreEntries;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
         Token.ThrowIfCancellationRequested();
@@ -22,6 +24,14 @@ internal sealed class PublisherParseContext {
     internal void AccountImage(int bytes) {
         if (bytes > Options.MaximumTotalImageBytes - ImageBytes) throw new InvalidDataException("Publisher total image byte limit exceeded.");
         ImageBytes += bytes;
+    }
+    internal void AccountImageStoreEntry() {
+        Token.ThrowIfCancellationRequested();
+        if (++_imageStoreEntries > Options.Limits.MaxItems) throw new InvalidDataException("Publisher image store entry limit exceeded.");
+    }
+    internal void AccountImageProcessing(int bytes) {
+        if (bytes > Options.Limits.MaxInputBytes - _imageProcessingBytes) throw new InvalidDataException("Publisher image processing byte limit exceeded.");
+        _imageProcessingBytes += bytes;
     }
     internal void AccountProjection(OfficeIMO.Drawing.OfficeDrawing drawing) {
         foreach (OfficeIMO.Drawing.OfficeDrawingElement element in drawing.Elements) {
