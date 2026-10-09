@@ -61,6 +61,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     private bool _hasBufferedRow;
     private bool _checkedForRows;
     private bool _hasCurrentTextRow;
+    private bool _readFailed;
     private bool? _hasRows;
     private bool _closed;
     private int _rowIndex = -1;
@@ -911,12 +912,10 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     }
 
 #if NET8_0_OR_GREATER
-    private bool _incrementalReadFailed;
-
     private async ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
     {
         if (_closed) return false;
-        if (_incrementalReadFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        if (_readFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -936,7 +935,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         }
         catch
         {
-            _incrementalReadFailed = true;
+            _readFailed = true;
             ClearCurrentRow();
             throw;
         }
@@ -954,6 +953,26 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
             return ReadIncrementalAsync(asynchronousRows, asynchronous: false, cancellationToken).GetAwaiter().GetResult();
 #endif
+        if (_readFailed && !_closed)
+        {
+            throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        }
+
+        try
+        {
+            return ReadSynchronousCore(cancellationToken);
+        }
+        catch
+        {
+            _readFailed = true;
+            ClearCurrentRow();
+            throw;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool ReadSynchronousCore(CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed)

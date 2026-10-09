@@ -619,6 +619,10 @@ Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
 the current record when the selected reader path retains that information.
 Physical line values are `null` for materialized paths rather than estimated.
 
+CSV data readers clear the current row and its position when `Read` or
+`ReadAsync` throws, and reject subsequent advances. Scalar getter conversion
+errors leave the current row available.
+
 ## Real-world headers
 
 CSV exports often contain blank or repeated header names. By default, blank headers are generated as `H1`, `H2`, and duplicate names are renamed with suffixes so name-based row access stays unambiguous:
