@@ -176,7 +176,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public async Task OpenDataReader_CanceledWindowAdvanceKeepsPreviousValuesAndCanBeRetried() {
+    public async Task OpenDataReader_PreCanceledReadKeepsPreviousWindowValuesAndCanBeRetried() {
         string rows = "<row><c t=\"inlineStr\"><is><t>first</t></is></c></row><row><c t=\"inlineStr\"><is><t>second</t></is></c></row>";
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(rows, "A1:A2"));
         try {

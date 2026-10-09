@@ -1238,8 +1238,6 @@ namespace OfficeIMO.Tests {
             var sheetData = worksheet.GetFirstChild<SheetData>()!;
             Assert.Contains(sheetData.Elements<Row>(), row => row.RowIndex?.Value == 3U);
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.True(cells.ContainsKey("A3"));
-            Assert.True(cells.ContainsKey("B3"));
             AssertMissingSpreadsheetCell(cells, "A3");
             AssertMissingSpreadsheetCell(cells, "B3");
             var tableDefinition = spreadsheet.WorkbookPart.WorksheetParts.First().TableDefinitionParts.Single().Table!;

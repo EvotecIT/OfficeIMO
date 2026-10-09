@@ -860,7 +860,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number || dataType == null) {
                 if (string.IsNullOrEmpty(rawValue)) {
-                    return LegacyXlsCell.Blank(row, column, styleIndex);
+                    return HasExplicitCellStyle(cell)
+                        ? LegacyXlsCell.Blank(row, column, styleIndex)
+                        : null;
                 }
 
                 if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
@@ -890,12 +892,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return LegacyXlsCell.Text(row, column, styleIndex, string.Empty);
                 }
 
-                return LegacyXlsCell.Blank(row, column, styleIndex);
+                return HasExplicitCellStyle(cell)
+                    ? LegacyXlsCell.Blank(row, column, styleIndex)
+                    : null;
             }
 
             EnsureSupportedLabelTextLength(text, ToA1Address(row, column));
             return LegacyXlsCell.Text(row, column, styleIndex, text);
         }
+
+        private static bool HasExplicitCellStyle(Cell cell) =>
+            cell.StyleIndex != null && cell.StyleIndex.HasValue;
 
         private static LegacyXlsCell ConvertFormulaCell(
             ExcelSheet sheet,

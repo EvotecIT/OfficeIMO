@@ -291,7 +291,8 @@ namespace OfficeIMO.Excel {
             ref Dictionary<string, int>? sharedStringIndexes,
             bool preserveMissingValues = true) {
             if (preserveMissingValues && (value == null || value == DBNull.Value)) {
-                return new Cell { CellReference = cellReference };
+                // Retain intentional missing coordinates without adding a custom style.
+                return new Cell { CellReference = cellReference, StyleIndex = 0U };
             }
 
             var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKind, useDirectStringCells, ref sharedStringIndexes);
