@@ -90,6 +90,50 @@ public sealed class IWorkEverydayNativeExportTests {
         Assert.Equal(109, formulaCaches);
     }
 
+    [Fact]
+    public void Uniform_formula_fonts_alignment_and_caches_match_independent_Numbers_export() {
+        VerifyManifest("numbers-formula-formatting-v14.5.json");
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Corpus("native-exports/numbers-formula-formatting-v14.5.numbers"),
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var actual = SpreadsheetDocument.Open(saved, false);
+        using var apple = SpreadsheetDocument.Open(Corpus("native-exports/numbers-formula-formatting-v14.5.xlsx"), false);
+        WorkbookPart reference = apple.WorkbookPart!, output = actual.WorkbookPart!;
+        foreach ((string nativeAddress, string address, string expression) in new[] {
+            ("A10", "A9", "\"\"\"\"&A4&\"\"\" \"\"\"&B4&\"\"\"\""),
+            ("A11", "A10", "A5&\" \"&B5&\" melon\"") }) {
+            Cell nativeCell = FormulaCell(reference, nativeAddress), cell = FormulaCell(output, address);
+            Assert.Equal(Value(reference, nativeCell), Value(output, cell));
+            Assert.NotNull(nativeCell.CellFormula);
+            Assert.Equal(expression, cell.CellFormula!.Text);
+            CellFormat expectedFormat = Format(reference, nativeCell), format = Format(output, cell);
+            Assert.Equal(expectedFormat.Alignment!.Horizontal!.Value, format.Alignment!.Horizontal!.Value);
+            Font expectedFont = Font(reference, expectedFormat), font = Font(output, format);
+            Assert.Equal(Enabled(expectedFont.Bold), Enabled(font.Bold));
+            Assert.Equal(Enabled(expectedFont.Italic), Enabled(font.Italic));
+            Assert.Equal(expectedFont.Underline is not null, font.Underline is not null);
+            Assert.Equal(Enabled(expectedFont.Strike), Enabled(font.Strike));
+            Assert.Equal(expectedFont.FontSize!.Val!.Value, font.FontSize!.Val!.Value);
+            Assert.Equal("Helvetica Neue", expectedFont.FontName!.Val!.Value);
+            Assert.Equal("HelveticaNeue", font.FontName!.Val!.Value);
+            Assert.Equal(8u, expectedFont.Color!.Indexed!.Value); // Native indexed black.
+            Assert.Equal("FF000000", font.Color!.Rgb!.Value);
+        }
+    }
+
+    private static Cell FormulaCell(WorkbookPart workbook, string address) {
+        Sheet sheet = workbook.Workbook!.Sheets!.Elements<Sheet>().Single(s => s.Name!.Value == "Main Sheet - Formula Tests");
+        return ((WorksheetPart)workbook.GetPartById(sheet.Id!.Value!)).Worksheet!.Descendants<Cell>()
+            .Single(c => c.CellReference!.Value == address);
+    }
+
+    private static CellFormat Format(WorkbookPart workbook, Cell cell) =>
+        workbook.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+    private static Font Font(WorkbookPart workbook, CellFormat format) =>
+        workbook.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().ElementAt((int)format.FontId!.Value);
+    private static bool Enabled(BooleanPropertyType? property) => property is not null && (property.Val?.Value ?? true);
+
     private static (string kind, string? value) Value(WorkbookPart workbook, Cell cell) {
         if (cell.DataType?.Value == CellValues.SharedString)
             return ("text", workbook.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>()

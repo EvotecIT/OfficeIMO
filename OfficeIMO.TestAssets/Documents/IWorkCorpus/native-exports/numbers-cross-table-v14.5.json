@@ -34,6 +34,6 @@
   "qualification": [
     "Apple exports one XLSX worksheet per source table and a title row; comparisons map table names and shift rows by one.",
     "All 529 populated cached/text/number cells with native values match, including 109 formula caches. One SUM(#REF!) formula has no native cache; OfficeIMO reports an approximate generic error.",
-    "Worksheet ordering, complete formula-expression equivalence, cache freshness, recalculation, and appearance are not qualified. Formula rich text still requires explicit partial acceptance."
+    "Worksheet ordering, complete formula-expression equivalence, cache freshness, recalculation, and appearance are not qualified. Uniform formula-result formatting is covered separately by numbers-formula-formatting-v14.5.json."
   ]
 }

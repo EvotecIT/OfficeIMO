@@ -42,6 +42,8 @@ The optional wrapped probes change only selected body text and keep-lines in a c
 
 ## Everyday Apple export references
 
+`native-exports/numbers-formula-formatting-v14.5.json` records a Numbers 14.5 derivative of the licensed cross-table workbook. Formula Tests A9 uses 18-point bold/italic/underline text aligned right; A10 uses 14-point strikethrough text aligned center. The source, XLSX and two-page PDF are hashed. Saved OfficeIMO XLSX checks compare both formula caches, source expressions, font traits, font size, opaque black foreground and alignment with the Apple export after its table-title row is accounted for. The source PostScript name `HelveticaNeue` and exported family name `Helvetica Neue` are recorded aliases for this fixture. Native PDF inspection covers the two source cells; complete appearance and recalculation remain unqualified. Original MIT attribution applies to the derivative.
+
 `native-exports/keynote-image-tracking-v15.4.json` pairs the unchanged licensed image deck with Keynote 15.4 PPTX/PDF exports and an Apple PDF rendered from OfficeIMO PPTX. It qualifies -0.02-em tracking at 116 points as -2.32-point DrawingML spacing, the retained image, and native opening without repair. The recorded render-bound difference and font warning limit the appearance claim.
 
 `native-exports/pages-everyday-v15.4.json` records fresh DOCX/PDF from the unchanged three-page Pages fixture. Executable checks compare meaningful body order, section header/footer text, image count and selected cells across all three tables. Seven date/currency cells have unqualified locale display. Selected typography and native pagination remain bounded by the explicit partial policy.
