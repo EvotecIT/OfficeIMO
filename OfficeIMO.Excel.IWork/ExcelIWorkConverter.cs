@@ -82,6 +82,14 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => TableBorderWidths(table, cancellationToken))
+            .Any(width => width is not (0.5d or 1d or 2d or 3d))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED",
+                    "Native border widths outside the portable 0.5, 1, 2 and 3 point profile use the nearest XLSX hair, thin, medium or thick style; colors and explicit invisible edges are retained.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && settings.FindUnacceptedDestinationOmission(destinationDiagnostics) is { } omission) {
             destinationLimitation = omission;
             editable = false;
@@ -202,11 +210,7 @@ public static partial class ExcelIWorkConverter {
                                     sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
                                         display: null, style: false);
                                 }
-                                bool headerCell = IsHeaderCell(table, cell);
-                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell && defaultStyle?.TextStyle.Bold == null, cancellationToken, defaultStyle?.TextStyle));
-                            }
-                            if (IsHeaderCell(table, cell)) {
-                                if (defaultStyle?.TextStyle.Bold == null) targetCell.SetBold();
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, false, cancellationToken, defaultStyle?.TextStyle));
                             }
                             if (cell.Kind == IWorkCellKind.Formula && formula != null
                                 && !string.IsNullOrEmpty(formula) && !formulaWritten) {
@@ -214,7 +218,7 @@ public static partial class ExcelIWorkConverter {
                             }
                             if (cell.Kind == IWorkCellKind.Formula && cell.RichText is { } formulaText) {
                                 ApplyUniformFormulaTextStyle(sheet, targetCell, formulaText,
-                                    IsHeaderCell(table, cell) && defaultStyle?.TextStyle.Bold == null, defaultStyle);
+                                    false, defaultStyle);
                             }
                             if (cell.VerticalAlignment is { } vertical) sheet.CellVerticalAlign(cell.Row, cell.Column, vertical switch {
                                 IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
@@ -315,7 +319,7 @@ public static partial class ExcelIWorkConverter {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
-                if (TableParagraphStyles(table).Any() || HasTableFillDefaults(table)) {
+                if (HasTableDefaultStyles(table)) {
                     long area = (long)table.RowCount * table.ColumnCount;
                     if (area > 100_000 || styledCellCount > 1_000_000 - area)
                         return "Numbers table style defaults exceed the bounded XLSX styled-cell budget.";

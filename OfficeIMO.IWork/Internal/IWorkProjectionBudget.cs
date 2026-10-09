@@ -7,6 +7,7 @@ internal sealed class IWorkProjectionBudget {
     private int _drawableReferenceCount;
     private int _tableCatalogEntryCount;
     private int _tableDimensionEntryCount;
+    private int _tableBorderEntryCount;
     private int _textItemCount;
     private int _textBoundaryCount;
     private long _textCharacterCount;
@@ -36,7 +37,7 @@ internal sealed class IWorkProjectionBudget {
 
     internal void AddTableDimensionEntries(int count) {
         if (count < 0 || _tableDimensionEntryCount > _options.MaximumTableDimensionEntries - count)
-            throw new InvalidDataException(
+            throw IWorkProtobuf.LimitException(
                 $"iWork table dimension entries exceed the configured source-wide limit of {_options.MaximumTableDimensionEntries}.");
         _tableDimensionEntryCount += count;
     }
@@ -47,6 +48,13 @@ internal sealed class IWorkProjectionBudget {
                 $"iWork table count exceeds the configured projection limit of {_options.MaximumProjectedTables}.");
         }
         _tableCount++;
+    }
+
+    internal void AddTableBorderEntries(int count) {
+        if (count < 0 || _tableBorderEntryCount > _options.MaximumTableBorderEntries - count)
+            throw IWorkProtobuf.LimitException(
+                $"iWork table stroke declarations exceed the configured source-wide limit of {_options.MaximumTableBorderEntries}.");
+        _tableBorderEntryCount += count;
     }
 
     internal void AddImage() {

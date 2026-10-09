@@ -18,5 +18,6 @@
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-opaque.png" Link="created-opaque.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-alpha.png" Link="created-alpha.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-jpeg.jpg" Link="created-jpeg.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-table-borders-v15.4.key" Link="native-table-borders.key" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

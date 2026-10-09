@@ -668,24 +668,8 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to style.</param>
         /// <param name="style">The border style to apply on all four sides.</param>
         /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
-        public void CellBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
-                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
-                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
-                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
-                EnsureDefaultStylePrimitives(stylesheet);
-
-                var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
-                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetUniformBorder(border, style.ToOpenXml(), hexColor));
-                ApplyCellFormatOverride(stylesheet, cell, format => {
-                    format.BorderId = borderId;
-                    format.ApplyBorder = true;
-                });
-
-                SaveStylesheet(stylesPart);
-            });
-        }
+        public void CellBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null) =>
+            CellBorder(row, column, ExcelCellBorders.All, style, hexColor);
 
         /// <summary>
         /// Applies diagonal border lines to a single cell.
@@ -892,10 +876,11 @@ namespace OfficeIMO.Excel {
         private static string NormalizeHexColor(string hex) {
             hex = hex.Trim();
             if (hex.StartsWith("#")) hex = hex.Substring(1);
+            if (hex.Length is not (6 or 8) || hex.Any(character => !((character >= '0' && character <= '9')
+                || (character >= 'A' && character <= 'F') || (character >= 'a' && character <= 'f'))))
+                throw new ArgumentException("A cell color must contain six RGB or eight ARGB hexadecimal digits.", nameof(hex));
             if (hex.Length == 6) return "FF" + hex.ToUpperInvariant();
-            if (hex.Length == 8) return hex.ToUpperInvariant();
-            // Fallback default
-            return "FFFFFFFF";
+            return hex.ToUpperInvariant();
         }
 
         private void ApplyBackground(Cell cell, string hexColor) {

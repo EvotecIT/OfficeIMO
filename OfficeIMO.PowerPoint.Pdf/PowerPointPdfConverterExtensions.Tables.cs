@@ -199,6 +199,9 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfTableStyle style = PdfCore.TableStyles.Light().Clone();
+        // Every anchor cell receives its resolved presentation borders. A PDF
+        // preset grid would paint over them and restore explicitly hidden edges.
+        style.BorderColor = null;
         style.FontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
         style.HeaderFontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
         style.CellPaddingX = 3.6D;

@@ -19,13 +19,14 @@ public static partial class PowerPointIWorkConverter {
             left, top, width, height);
         table.AltText = source.AccessibilityDescription;
         table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
-        table.FirstRow = source.HeaderRowCount > 0;
-        table.FirstColumn = source.HeaderColumnCount > 0;
-        table.LastRow = source.FooterRowCount > 0;
+        // Native region styles are expanded below. Destination heading and
+        // banding flags would add a different theme over those declarations.
+        table.ApplyStyle(PowerPointTableStylePreset.Plain);
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int column = 1; column <= source.ColumnCount; column++) {
                 PowerPointTableCell fillTarget = table.GetCell(row - 1, column - 1);
+                ApplyTableBorders(fillTarget, source.GetBorders(row, column));
                 if (source.GetFill(row, column) is { } fill) {
                     if (fill.IsNone) fillTarget.NoFill = true;
                     else fillTarget.FillColor = fill.Color!.RgbHex;
@@ -52,8 +53,6 @@ public static partial class PowerPointIWorkConverter {
                 _ => PowerPointTextVerticalAlignment.Bottom
             };
             IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
-            bool header = sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount;
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
                     richText.Paragraphs.Select(_ => string.Empty));
@@ -64,12 +63,11 @@ public static partial class PowerPointIWorkConverter {
                     if (defaultStyle != null) ApplyParagraphStyle(paragraphs[index], defaultStyle, sourceParagraph.Text);
                     ApplyParagraphStyle(paragraphs[index], sourceParagraph,
                         listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, resolveHyperlink, defaultStyle?.TextStyle, header);
+                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, resolveHyperlink, defaultStyle?.TextStyle);
                 }
             } else {
                 sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
                 target.Text = cellText;
-                if (header) target.Bold = true;
                 if (defaultStyle != null) {
                     foreach (PowerPointParagraph paragraph in target.Paragraphs) {
                         ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);

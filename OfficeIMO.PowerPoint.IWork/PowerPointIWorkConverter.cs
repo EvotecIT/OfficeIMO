@@ -24,7 +24,7 @@ public static partial class PowerPointIWorkConverter {
         IWorkKeynoteProjection projection = source.ReadKeynote();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindPowerPointProjectionLimitation(projection, settings.AllowPartialEditableReconstruction);
+            : FindPowerPointProjectionLimitation(projection, settings.AllowPartialEditableReconstruction, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -193,7 +193,7 @@ public static partial class PowerPointIWorkConverter {
     }
 
     private static string? FindPowerPointProjectionLimitation(IWorkKeynoteProjection projection,
-        bool allowPartialEditableReconstruction) {
+        bool allowPartialEditableReconstruction, CancellationToken cancellationToken) {
         const double MaximumPointMeasurement = int.MaxValue / 12700d;
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
@@ -320,6 +320,9 @@ public static partial class PowerPointIWorkConverter {
                 if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                     return "Keynote tables exceed the bounded PPTX destination cell budget.";
                 }
+                if (TableBorderWidths(table, cancellationToken).Any(width => Math.Round(width * 12700d) > 20116800d
+                    || !allowPartialEditableReconstruction && !IsExactEmu(width)))
+                    return $"Keynote table '{table.Name}' has border strokes outside the PPTX line-width range or EMU precision.";
                 if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
                     && (cell.Value == null || !cell.CachedValueIsComplete))) {
                     return $"Keynote table '{table.Name}' contains a formula without a complete cached value that the PPTX owner cannot evaluate.";
@@ -388,6 +391,7 @@ public static partial class PowerPointIWorkConverter {
                     || !IsExactEmu(geometry.HeightPoints))
             || projection.Slides.SelectMany(slide => slide.Tables)
                 .Any(table => TableSizingRequiresEmuRounding(table))
+            || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => TableBorderWidths(table, cancellationToken)).Any(width => !IsExactEmu(width))
             || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
                 .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)))
             || projection.Slides.SelectMany(slide => slide.TextBoxes.Concat(slide.TitleBox == null

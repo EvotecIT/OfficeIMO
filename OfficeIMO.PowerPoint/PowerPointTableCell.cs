@@ -206,7 +206,7 @@ namespace OfficeIMO.PowerPoint {
             get => GetRun()?.RunProperties?.Bold?.Value == true;
             set {
                 var props = EnsureRunProperties();
-                props.Bold = value ? true : null;
+                props.Bold = value;
             }
         }
 
@@ -217,7 +217,7 @@ namespace OfficeIMO.PowerPoint {
             get => GetRun()?.RunProperties?.Italic?.Value == true;
             set {
                 var props = EnsureRunProperties();
-                props.Italic = value ? true : null;
+                props.Italic = value;
             }
         }
 
@@ -487,9 +487,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies border styling to the specified sides.
         /// </summary>
         public void SetBorders(PowerPointTableCellBorders borders, string color, double? widthPoints = null) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Border color cannot be null or empty.", nameof(color));
-            }
+            ValidateBorderStyle(borders, color, widthPoints);
 
             TableCellProperties props = EnsureProperties();
 
@@ -523,9 +521,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies border styling with a dash pattern to the specified sides.
         /// </summary>
         public void SetBorders(PowerPointTableCellBorders borders, string color, double? widthPoints, PowerPointLineDashStyle dash) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Border color cannot be null or empty.", nameof(color));
-            }
+            ValidateBorderStyle(borders, color, widthPoints);
 
             TableCellProperties props = EnsureProperties();
 
@@ -582,10 +578,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyLine(LinePropertiesType line, string color, double? widthPoints) {
-            line.RemoveAllChildren<SolidFill>();
-            line.Append(new SolidFill(new RgbColorModelHex { Val = color }));
+            SetBorderLineFill(line, new SolidFill(new RgbColorModelHex { Val = color }));
             if (widthPoints != null) {
-                line.Width = (int)Math.Round(widthPoints.Value * EmusPerPoint);
+                line.Width = PowerPointShape.ToDrawingLineWidth(widthPoints.Value, nameof(widthPoints));
             }
         }
 

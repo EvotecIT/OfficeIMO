@@ -36,10 +36,12 @@ public static partial class WordIWorkConverter {
             List<WordTableCell>? targetCells = null;
             for (int column = 1; column <= source.ColumnCount; column++) {
                 var fill = source.GetFill(row, column);
+                var borders = source.GetBorders(row, column);
                 IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
-                if (fill == null && style == null) continue;
+                if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null) continue;
                 targetCells ??= rows[row - 1].Cells;
                 WordTableCell target = targetCells[column - 1];
+                ApplyTableBorders(target, borders);
                 if (fill != null) {
                     if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
                     else target.ShadingPattern = WordShadingPattern.Nil;
@@ -72,9 +74,6 @@ public static partial class WordIWorkConverter {
                 _ => WordTableVerticalAlignment.Bottom
             };
             IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
-            bool header = sourceCell.Row <= source.HeaderRowCount
-                || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount;
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 bool first = true;
                 AddRichText(richText, _ => {
@@ -82,12 +81,11 @@ public static partial class WordIWorkConverter {
                         removeExistingParagraphs: first);
                     first = false;
                     return paragraph;
-                }, nativeLists, forceBold: header && defaultStyle?.TextStyle.Bold == null, cancellationToken: cancellationToken, defaultStyle: defaultStyle);
+                }, nativeLists, cancellationToken: cancellationToken, defaultStyle: defaultStyle);
             } else {
                 sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
                 WordParagraph paragraph = target.AddParagraph(cellText,
                     removeExistingParagraphs: true);
-                if (header) paragraph.Bold = true;
                 if (defaultStyle != null) {
                     ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
                     ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);

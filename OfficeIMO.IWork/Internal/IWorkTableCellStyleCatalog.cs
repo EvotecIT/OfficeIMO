@@ -11,14 +11,15 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
 
     internal bool FillsFullyReconstructed { get; private set; } = true;
     internal bool LayoutFullyReconstructed { get; private set; } = true;
+    internal bool BordersFullyReconstructed { get; private set; } = true;
 
     internal IWorkTableCellStyle? Read(uint key) {
         source.CancellationToken.ThrowIfCancellationRequested();
         if (!_initialized) Initialize();
-        if (!_catalogComplete) FillsFullyReconstructed = LayoutFullyReconstructed = false;
+        if (!_catalogComplete) FillsFullyReconstructed = LayoutFullyReconstructed = BordersFullyReconstructed = false;
         if (_resolved.TryGetValue(key, out var cached)) return cached;
         if (!_entries.TryGetValue(key, out var entry)) {
-            FillsFullyReconstructed = LayoutFullyReconstructed = false;
+            FillsFullyReconstructed = LayoutFullyReconstructed = BordersFullyReconstructed = false;
             return null;
         }
         string path = IWorkTableCatalogIndex.EntryPath(entry.Position) + "/4";
@@ -34,6 +35,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         IWorkCellPadding? padding = null;
         IWorkCellVerticalAlignment? vertical = null;
         bool fillsComplete = true, paddingComplete = true, verticalComplete = true;
+        var borders = new IWorkCellBorderStyle();
         if (complete) {
             var chain = IWorkStyleReader.ReadChain(source.Index, style!.Identifier,
                 budget.MaximumTextStyleInheritanceDepth, type => type == 6004,
@@ -53,6 +55,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
                 IWorkCellFillReader.Read(owner, properties, references, ref fill, ref fillsComplete);
                 ReadPadding(owner, properties, ref padding, ref paddingComplete);
                 ReadVerticalAlignment(owner, properties, ref vertical, ref verticalComplete);
+                borders.Read(owner, properties, references);
             }
         }
         if (!complete || !fillsComplete || !paddingComplete || !verticalComplete) {
@@ -66,7 +69,9 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         if (!complete || !paddingComplete || !verticalComplete) LayoutFullyReconstructed = false;
         if (!complete || !paddingComplete) padding = null;
         if (!complete || !verticalComplete) vertical = null;
-        var result = new IWorkTableCellStyle(fill, padding, vertical, complete && fillsComplete);
+        if (!complete) borders.Invalidate();
+        if (!borders.FullyReconstructed) BordersFullyReconstructed = false;
+        var result = new IWorkTableCellStyle(fill, padding, vertical, complete && fillsComplete, borders);
         _resolved.Add(key, result);
         return result;
     }
@@ -163,9 +168,10 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
 
 /// <summary>Resolved independent selected cell properties; unsupported properties stay null without discarding other qualified fields.</summary>
 internal sealed class IWorkTableCellStyle(IWorkCellFill? fill, IWorkCellPadding? padding,
-    IWorkCellVerticalAlignment? verticalAlignment, bool fillIsComplete = true) {
+    IWorkCellVerticalAlignment? verticalAlignment, bool fillIsComplete = true, IWorkCellBorderStyle? borders = null) {
     internal bool FillIsComplete { get; } = fillIsComplete;
     internal IWorkCellFill? Fill { get; } = fill;
     internal IWorkCellPadding? Padding { get; } = padding;
     internal IWorkCellVerticalAlignment? VerticalAlignment { get; } = verticalAlignment;
+    internal IWorkCellBorderStyle? Borders { get; } = borders;
 }

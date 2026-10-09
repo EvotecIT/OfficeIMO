@@ -566,7 +566,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 foreach (A.Run run in Runs) {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.Bold = value ? true : null;
+                    runProps.Bold = value;
                 }
             }
         }
@@ -582,7 +582,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 foreach (A.Run run in Runs) {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
-                    runProps.Italic = value ? true : null;
+                    runProps.Italic = value;
                 }
             }
         }

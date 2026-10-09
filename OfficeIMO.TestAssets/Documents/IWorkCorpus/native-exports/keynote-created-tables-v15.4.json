@@ -262,7 +262,7 @@
     "knownDifferences": [
       "Native Polish number/boolean display versus invariant destination values",
       "Native color emoji versus explicit monochrome fallback",
-      "Native black borders versus destination default grid; I3 fidelity work remains open"
+      "The initial destination-grid difference is covered by the solid/invisible border qualification in keynote-table-borders-v15.4.json"
     ]
   },
   "boundaries": [

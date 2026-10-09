@@ -143,10 +143,9 @@ public static partial class PowerPointIWorkConverter {
 
     private static void WriteParagraphContent(PowerPointParagraph paragraph,
         IWorkTextParagraph source, CancellationToken cancellationToken, Func<string?, string?> resolveHyperlink,
-        IWorkTextStyle? defaultStyle = null, bool header = false) {
+        IWorkTextStyle? defaultStyle = null) {
         paragraph.Text = string.Empty;
         foreach (PowerPointTextRun run in paragraph.Runs) {
-            if (header) run.Bold = true;
             if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
             ApplyTextStyle(run, source.Style.TextStyle);
         }
@@ -162,7 +161,7 @@ public static partial class PowerPointIWorkConverter {
                 }
                 if (lines[lineIndex].Length > 0) {
                     AppendStyledText(paragraph, lines[lineIndex], sourceRun.Style,
-                        resolveHyperlink(sourceRun.Hyperlink), ref canReuseInitialRun, defaultStyle, header);
+                        resolveHyperlink(sourceRun.Hyperlink), ref canReuseInitialRun, defaultStyle);
                 }
             }
         }
@@ -273,7 +272,7 @@ public static partial class PowerPointIWorkConverter {
     }
 
     private static void AppendStyledText(PowerPointParagraph paragraph, string text,
-        IWorkTextStyle style, string? hyperlink, ref bool canReuseInitialRun, IWorkTextStyle? defaultStyle = null, bool header = false) {
+        IWorkTextStyle style, string? hyperlink, ref bool canReuseInitialRun, IWorkTextStyle? defaultStyle = null) {
         PowerPointTextRun run;
         if (canReuseInitialRun) {
             run = paragraph.Runs[0];
@@ -282,7 +281,6 @@ public static partial class PowerPointIWorkConverter {
         } else {
             run = paragraph.AddRun(text);
         }
-        if (header) run.Bold = true;
         if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
         ApplyTextStyle(run, style);
         if (hyperlink != null

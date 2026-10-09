@@ -141,6 +141,7 @@ internal static partial class IWorkTableReader {
         }
         int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
         int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
+        bool ordinaryLayout = AssessGrouping(source, model, message, projectionBudget, references, diagnostics, ref supportsEditableReconstruction);
         AssessVisibilityCounts(source, model, message, rows, columns, references,
             diagnostics, ref supportsEditableReconstruction);
         var hiddenRows = new HashSet<int>();
@@ -183,6 +184,9 @@ internal static partial class IWorkTableReader {
             diagnostics, ref supportsEditableReconstruction, out bool fillDefaultsSupported, out IWorkCellFill? bandedBodyFill);
         var fillStyles = new IWorkTableFillStyleReader(source, model, message, projectionBudget, references,
             rows, columns, headerRows, headerColumns, footerRows, fillDefaultsSupported, bandedBodyFill);
+        var borderResolver = IWorkTableBorderReader.Read(source, model, message, projectionBudget, references,
+            rows, columns, headerRows, headerColumns, footerRows, ordinaryLayout);
+        if (!borderResolver.FullyReconstructed) MarkTableBordersUnsupported(model, diagnostics, ref supportsEditableReconstruction);
         if (!fillStyles.FullyReconstructed) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED",
@@ -467,6 +471,7 @@ internal static partial class IWorkTableReader {
                 "Selected cell padding or vertical alignment contains unsupported or unresolved declarations; cell values remain available.",
                 model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
+        if (!cellStyles.BordersFullyReconstructed) MarkTableBordersUnsupported(model, diagnostics, ref supportsEditableReconstruction);
         if (!numberFormats.FullyReconstructed) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED",
@@ -494,7 +499,12 @@ internal static partial class IWorkTableReader {
                 global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         if (!deferFormulaAssessment) AssessFormulas(cells, name, model, diagnostics, ref supportsEditableReconstruction);
-        return CreateTable();
+        var resultTable = CreateTable();
+        if (!borderResolver.CellEdgesAreUnambiguous(resultTable, source.CancellationToken)) {
+            references.Declarations.Record(model, "$cell-border-edges", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
+            MarkTableBordersUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+        }
+        return resultTable;
 
         IWorkTable CreateTable() {
             IWorkTable table = new(name, rows, columns, cells,
@@ -504,10 +514,20 @@ internal static partial class IWorkTableReader {
                 && new[] { 6, 7, 9, 10, 11 }.All(field => message.FieldCount(field) <= 1
                     && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
                 && (long)headerRows + footerRows <= rows, autoResizeRows, textStyles?.Defaults, fillStyles.Defaults,
-            hiddenRows.ToArray(), hiddenColumns.ToArray());
+            hiddenRows.ToArray(), hiddenColumns.ToArray(), borderResolver);
             textStyles?.ChargeCellParagraphUses(table);
             return table;
         }
+
+    }
+
+    private static void MarkTableBordersUnsupported(IWorkArchiveRecord model, List<IWorkDiagnostic> diagnostics,
+        ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED" && diagnostic.RecordIdentifier == model.Identifier)) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_BORDERS_UNSUPPORTED",
+            "Table or selected edge borders contain unsupported or unresolved stroke, visibility or sparse-layer declarations; recoverable cell values remain available.",
+            model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
     }
 
     private static void MarkTableTextStyleUnsupported(IWorkArchiveRecord model, List<IWorkDiagnostic> diagnostics,

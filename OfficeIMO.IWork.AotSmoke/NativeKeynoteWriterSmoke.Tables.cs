@@ -26,6 +26,8 @@ internal static partial class NativeKeynoteWriterSmoke {
             IWorkKeynoteDrawableKind.Table, IWorkKeynoteDrawableKind.TextBox
         }), "NativeAOT table stacking order differs.");
         Require(projection.Slides[2].Tables.Single().Cells.Count == 0, "NativeAOT empty table gained content.");
+        Require(table.GetBorders(2, 2).Bottom is { Width: 1 } border && border.Color.ToRgbHex() == "000000",
+            "NativeAOT table default borders differ.");
         using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
@@ -43,6 +45,27 @@ internal static partial class NativeKeynoteWriterSmoke {
             Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "Table-budget failure changed the destination.");
         }
         Console.WriteLine($"PASS | native Keynote tables | {TableAcceptedSha256} | {bytes.Length} bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits");
+        RunNativeTableBorders();
+    }
+
+    private static void RunNativeTableBorders() {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "native-table-borders.key"));
+        Require(Convert.ToHexString(SHA256.HashData(bytes)) == "2032CE6CDEE7F75DA8DE21D502B47D4E5C7F4EB4D152786A84DD81FEDA176D45",
+            "NativeAOT controlled border source changed.");
+        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        converted.Report.RequireCompleteEditableReconstruction();
+        var table = converted.Projection.Slides[0].Tables.Single();
+        Require(table.GetBorders(2, 2).Bottom is { Width: 3 } red && red.Color.ToRgbHex() == "FF3333"
+            && table.GetBorders(3, 2).Top is { Width: 3 } shared && shared.Color.ToRgbHex() == "FF3333"
+            && table.GetBorders(2, 2).Right is { Width: 0 } && table.GetBorders(2, 3).Left is { Width: 0 }
+            && table.GetBorders(1, 2).Top is { Width: 2 } && table.GetBorders(3, 3).Top is { Width: 0 },
+            "NativeAOT border inheritance, visibility or ordered shared edges differ.");
+        using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        Require(!reopened.ValidateDocument().Any() && converted.Projection.SourceDeclarationIssues.Count == 0
+            && converted.Projection.SourceReferenceIssues.Count == 0, "NativeAOT border PPTX or source qualification is incomplete.");
+        Console.WriteLine("PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX");
     }
 
     private static IWorkKeynoteDocument CreateTableExample() {

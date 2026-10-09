@@ -29,7 +29,7 @@ public static partial class WordIWorkConverter {
         IWorkPagesProjection projection = source.ReadPages();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction);
+            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -39,7 +39,7 @@ public static partial class WordIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection)) {
+        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection, cancellationToken)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_DOCX_PRECISION",
                     "Source geometry, spacing, or font sizes were rounded to the nearest supported DOCX measurement unit; original values remain available on the projection.")

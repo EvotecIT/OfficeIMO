@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
             get => RunProperties?.Bold?.Value == true;
             set {
                 A.RunProperties props = EnsureRunProperties();
-                props.Bold = value ? true : null;
+                props.Bold = value;
             }
         }
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
             get => RunProperties?.Italic?.Value == true;
             set {
                 A.RunProperties props = EnsureRunProperties();
-                props.Italic = value ? true : null;
+                props.Italic = value;
             }
         }
 
