@@ -42,10 +42,20 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlideLinkFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape,
         string destination, double x, double y, double width, double height) {
+        double centerX = x + width / 2D, centerY = y + height / 2D;
+        if (IsLineShape(shape)) {
+            // Horizontal/vertical lines have zero extent, and AddLine's one-EMU
+            // extent rounds to zero in PDF annotations. Include the visible stroke
+            // while retaining the original rotation/flip center.
+            double stroke = Math.Max(0.002D, shape.OutlineWidthPoints
+                ?? (ParseOfficeColor(shape.OutlineColor).HasValue ? 1D : 0D));
+            x -= stroke / 2D; y -= stroke / 2D;
+            width += stroke; height += stroke;
+        }
         if (width <= 0 || height <= 0) return;
         string? contents = string.IsNullOrWhiteSpace(shape.AltText) ? null : shape.AltText;
         void Add(PdfCore.PdfPageCanvas target) => target.LinkToNamedDestination(destination, x, y, width, height, contents);
-        var frame = new OfficeImageFrameTransform(shape.Rotation ?? 0D, x + width / 2D, y + height / 2D,
+        var frame = new OfficeImageFrameTransform(shape.Rotation ?? 0D, centerX, centerY,
             shape.HorizontalFlip == true, shape.VerticalFlip == true);
         if (frame.HasTransform) canvas.Effect(frame.CreateDestinationTransform(), 1D, Add);
         else Add(canvas);

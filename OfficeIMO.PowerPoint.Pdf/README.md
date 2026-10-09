@@ -123,7 +123,7 @@ result.Report.RequireNoErrorWarnings();
 
 ### Links between slides
 
-Full-slide output preserves supported internal slide links as PDF named destinations. Text-run links follow wrapping, clipping and frame/group transforms; picture and supported shape links use their transformed frame bounds. Rich table-cell links also retain their targets. Native PowerPoint next-slide actions resolve against the authored slide order.
+Full-slide output preserves supported internal slide links as PDF named destinations. Text-run links follow wrapping, clipping and frame/group transforms; picture and supported shape links use their transformed frame bounds. Line links include the visible stroke so horizontal and vertical lines retain a usable region. Rich table-cell links also retain their targets. Native PowerPoint next-slide actions, including inherited layout/master text, resolve against the active slide in the authored slide order.
 
 Hidden slides keep their source identities. If an export excludes a target slide, its links are omitted with `internal-slide-target-omitted` evidence. A next-slide action on the final slide has the same missing-target outcome. Other exposed relative targets produce `relative-hyperlink` omission evidence. These internal-link guarantees apply to the slides layout; notes and handouts retain their separate thumbnail contract. External text-run and picture links remain supported; external links on other shape frames and additional slideshow actions remain outside this mapping.
 

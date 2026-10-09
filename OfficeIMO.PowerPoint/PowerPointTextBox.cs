@@ -58,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Paragraphs contained in the textbox.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart, _ownerPart)).ToList();
+            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart)).ToList();
 
         /// <summary>
         ///     Adds a paragraph to the textbox.
@@ -707,7 +707,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
+            return new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

@@ -12,6 +12,83 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointPdfSlideLinkTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void StrokedLineLinksHaveUsableRegionsForZeroAndOneEmuExtents(bool vertical, bool helper) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(320, 240);
+        PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
+        PowerPointAutoShape line = helper
+            ? first.AddLinePoints(20, 40, vertical ? 20 : 220, vertical ? 200 : 40)
+            : first.AddShapePoints(OfficePresetShapeType.Line, 20, 40, vertical ? 0 : 200, vertical ? 160 : 0);
+        line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
+        line.SetHyperlink(second);
+        using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
+        Assert.Equal("powerpoint-slide-2", link.DestinationName);
+        Assert.True(link.X2 - link.X1 >= 1.99D && link.Y2 - link.Y1 >= 1.99D);
+        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, d => d.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(90)]
+    public void RotatedLineLinksKeepTheStrokeCenterAndPageClip(double rotation) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.SlideSize.SetSizePoints(320, 240);
+        PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
+        PowerPointAutoShape line = first.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 200, 0);
+        line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
+        line.Rotation = rotation; line.SetHyperlink(second);
+        PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdfBytes()).LinkAnnotations);
+        OfficeTransform transform = new OfficeImageFrameTransform(rotation, 120, 40, false, false).CreateDestinationTransform();
+        OfficePoint[] corners = new[] { new OfficePoint(19, 39), new OfficePoint(221, 39),
+            new OfficePoint(19, 41), new OfficePoint(221, 41) }.Select(transform.TransformPoint).ToArray();
+        Assert.Equal("powerpoint-slide-2", link.DestinationName);
+        Assert.InRange(Math.Abs(Math.Max(0, corners.Min(p => p.X)) - link.X1), 0D, 0.002D);
+        Assert.InRange(Math.Abs(Math.Min(320, corners.Max(p => p.X)) - link.X2), 0D, 0.002D);
+        Assert.InRange(Math.Abs(240 - Math.Min(240, corners.Max(p => p.Y)) - link.Y1), 0D, 0.002D);
+        Assert.InRange(Math.Abs(240 - Math.Max(0, corners.Min(p => p.Y)) - link.Y2), 0D, 0.002D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InheritedNextSlideRunsUseEachActiveSlideAndRetainTheRelationshipOwner(bool master) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide first = presentation.AddSlide(); presentation.AddSlide();
+        PowerPointTextBox box = first.AddTextBoxPoints("Inherited next", 30, 30, 240, 90);
+        A.Run run = box.Element.Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        run.RunProperties.Append(new A.HyperlinkOnClick {
+            Id = string.Empty, Action = "ppaction://hlinkshowjump?jump=nextslide"
+        });
+        P.Shape native = (P.Shape)box.Element;
+        native.Remove();
+        var layout = first.SlidePart.SlideLayoutPart!;
+        (master ? layout.SlideMasterPart!.SlideMaster!.CommonSlideData!.ShapeTree!
+            : layout.SlideLayout!.CommonSlideData!.ShapeTree!).Append(native);
+        using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        for (int index = 0; index < 2; index++) {
+            PowerPointTextRun inherited = reopened.Slides[index].GetInheritedShapesForExport()
+                .OfType<PowerPointTextBox>().Single(b => b.Text == "Inherited next").Paragraphs[0].Runs[0];
+            Assert.Equal("#slide-" + (index + 2), inherited.Hyperlink?.OriginalString);
+            Assert.True(master ? inherited.OwnerPart is DocumentFormat.OpenXml.Packaging.SlideMasterPart
+                : inherited.OwnerPart is DocumentFormat.OpenXml.Packaging.SlideLayoutPart);
+        }
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(conversion.ToBytes()).LinkAnnotations);
+        Assert.Equal("powerpoint-slide-2", link.DestinationName);
+        Assert.Single(conversion.Report.FidelityDiagnostics, d => d.Code == "internal-slide-target-omitted"
+            && d.LossKind == OfficeConversionLossKind.Omission);
+    }
+
     [Fact]
     public void ApplePptxExportKeepsUuidResolvedAndNextActionLinkTargetsInPdf() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",

@@ -19,8 +19,9 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            if (shape is PptCore.PowerPointGroupShape) {
-                // Establish the page clip before any nested group transforms change coordinates.
+            if (shape is PptCore.PowerPointGroupShape || IsLineShape(shape)) {
+                // Establish the page clip before nested transforms or a line's
+                // stroke-sized link region extend beyond the raw shape box.
                 canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
             } else if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
                 NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
