@@ -143,6 +143,8 @@ Native editing is qualified for unprotected Jet 4 and ACE 12/14 application stor
 
 Close readers before applying a project. Update scopes roll back staged VBA, inventory and catalog changes together. Saving over the retained source with an explicit replacement policy uses a guarded atomic commit; an external change during staging is preserved and causes the save to fail.
 
+Detached module identities survive intervening applications of other detached projects. Applying a module whose native identity was deleted fails before mutation, even if a new module now uses its old name; reload the current project before continuing that edit.
+
 ## Create a native database
 
 ```csharp

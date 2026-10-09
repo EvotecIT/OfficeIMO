@@ -10,7 +10,6 @@ namespace OfficeIMO.Access {
             internal byte[] ProjectBytes = null!;
             internal string Sha256 = null!;
             internal AccessNativeDatabase ReadProjection = null!;
-            internal IReadOnlyDictionary<OfficeVbaModule, string> AppliedNames = null!;
         }
         /// <summary>Loads a detached editable VBA project from the decoded native application storage.</summary>
         /// <remarks>Editing the returned project does not change this database. Missing or opaque source is rejected by the shared project editor; inspection remains available through <see cref="VbaProject"/>.</remarks>
@@ -20,7 +19,9 @@ namespace OfficeIMO.Access {
                 throw new NotSupportedException("The Access VBA project is not decoded. Its native storage remains preserve-only.");
             options ??= new OfficeVbaReadOptions();
             if (options.MaximumProjectBytes < 1 || options.MaximumExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(options));
-            return OfficeVbaProject.Load(_vbaMutation?.ProjectBytes ?? NativeDatabase!.DetachVbaProject(options.MaximumProjectBytes, cancellationToken), options);
+            OfficeVbaProject project = OfficeVbaProject.Load(_vbaMutation?.ProjectBytes ?? NativeDatabase!.DetachVbaProject(options.MaximumProjectBytes, cancellationToken), options);
+            BindVbaModuleIdentities(project, Catalog.Items, undoable: false);
+            return project;
         }
 
         /// <summary>Stages a shared VBA project in a qualified native MDB/ACCDB snapshot. Call Save to persist it.</summary>
@@ -32,6 +33,7 @@ namespace OfficeIMO.Access {
                 throw new NotSupportedException("VBA application requires a decoded native database and project.");
             ValidateSourceIdentity(cancellationToken);
             AccessNativeDatabase source = _vbaMutation?.ReadProjection ?? NativeDatabase;
+            IReadOnlyDictionary<OfficeVbaModule, string> appliedNames = ResolveVbaModuleNames(project);
             options ??= new OfficeVbaWriteOptions();
             byte[] bytes = project.Write(options).GetBytes();
             var limits = new OfficeCompoundReadOptions(maxStreamBytes: options.MaximumProjectBytes, maxTotalStreamBytes: options.MaximumProjectBytes);
@@ -44,7 +46,7 @@ namespace OfficeIMO.Access {
                 : GetVbaProject(new OfficeVbaReadOptions { MaximumProjectBytes = options.MaximumProjectBytes, MaximumExpandedBytes = options.MaximumExpandedBytes }, cancellationToken);
             if (current.IsProtected || project.IsProtected) throw new InvalidOperationException("Access VBA editing does not bypass project protection.");
             HashSet<string> hosts = source.GetVbaHostNames(current);
-            ValidateAccessVbaHostModules(current, project, hosts, _vbaMutation?.AppliedNames);
+            ValidateAccessVbaHostModules(current, project, hosts, appliedNames);
             foreach (AccessApplicationObject host in Forms.Concat(Reports)) {
                 string name = (host.CatalogEntry.NativeType == -32768 ? "Form_" : "Report_") + host.Name;
                 if (!hosts.Contains(name) && project.Modules.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
@@ -62,7 +64,7 @@ namespace OfficeIMO.Access {
                 || x.Path.IndexOf("DigitalSignature", StringComparison.OrdinalIgnoreCase) >= 0))
                 throw new NotSupportedException("An unqualified VBA or signature carrier prevents native Access editing.");
             long maximumBytes = Math.Min(int.MaxValue, checked(Math.Max(_inputLimit, source.Snapshot().Length) + options.MaximumProjectBytes));
-            AccessNativeWriter plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, _vbaMutation?.AppliedNames);
+            AccessNativeWriter plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, appliedNames);
             using OfficeBoundedMemoryStream output = new OfficeBoundedMemoryStream(maximumBytes);
             plan.Write(output, cancellationToken); byte[] candidateBytes = output.ToArray();
             using AccessDocument candidate = FromBytes(candidateBytes, new AccessLoadOptions {
@@ -89,14 +91,15 @@ namespace OfficeIMO.Access {
             }).ToArray();
             cancellationToken.ThrowIfCancellationRequested();
             AccessNativeDatabase readProjection = candidate.NativeDatabase!; readProjection.BindReadProjection(this); candidate.NativeDatabase = null;
-            var next = new VbaMutationState { Plan = plan, ProjectBytes = bytes, Sha256 = candidate.Inspection!.Sha256, ReadProjection = readProjection,
-                AppliedNames = project.Modules.ToDictionary(x => x, x => x.Name) };
+            var next = new VbaMutationState { Plan = plan, ProjectBytes = bytes, Sha256 = candidate.Inspection!.Sha256, ReadProjection = readProjection };
+            Action? undoBindings = BindVbaModuleIdentities(project, nextModules, HasActiveUpdate);
             if (HasActiveUpdate && previous != null) _vbaUndoStates.Add(previous);
             _vbaMutation = next; VbaProject = candidate.VbaProject; ApplicationStreams = candidate.ApplicationStreams;
             Catalog.Items.RemoveAll(x => x.NativeType == -32761); Catalog.Items.AddRange(nextModules);
             Changed(() => {
                 _vbaMutation = previous; VbaProject = previousInfo; ApplicationStreams = previousStreams;
                 Catalog.Items.Clear(); Catalog.Items.AddRange(previousCatalog);
+                undoBindings?.Invoke();
                 if (previous != null) _vbaUndoStates.Remove(previous);
                 next.ReadProjection.Dispose();
             }, operation: "vba.apply");

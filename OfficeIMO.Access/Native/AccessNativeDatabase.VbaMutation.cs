@@ -12,8 +12,8 @@ namespace OfficeIMO.Access {
             AccessNativeTable catalog = _tables["MSysObjects"];
             var original = _catalog.Where(x => x.Type == -32761).ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
             OfficeVbaModule[] ordinary = project.Modules.Where(x => !hosts.Contains(x.Name) && (x.Kind == OfficeVbaModuleKind.Standard || x.Kind == OfficeVbaModuleKind.Class)).ToArray();
-            // Core retains the detached model's load identity. A reused model must instead
-            // address the native names accepted by its immediately preceding application.
+            // Core retains the detached model's load identity. The document adapter
+            // resolves its current native name through the stable catalog identity.
             var sourceNames = ordinary.ToDictionary(x => x, x => appliedNames != null && appliedNames.TryGetValue(x, out string? applied)
                 ? applied : x.IsNew ? null : x.OriginalName);
             var renamed = ordinary.Where(x => sourceNames[x] != null && original.ContainsKey(sourceNames[x]!) && x.Name != sourceNames[x])

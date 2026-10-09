@@ -76,6 +76,60 @@ namespace OfficeIMO.Access.Tests {
         }
 
         [Theory]
+        [InlineData("Application/objects-jet4.mdb", false)]
+        [InlineData("Application/objects-ace12.accdb", false)]
+        [InlineData("Application/objects-jet4.mdb", true)]
+        [InlineData("Application/objects-ace12.accdb", true)]
+        public void AlternatingDetachedProjectsRetainLoadedAndAcceptedModuleIdentity(string file, bool applyFirst) {
+            using AccessDocument document = Load(file);
+            AccessCatalogEntry original = document.Catalog.Single(x => x.NativeType == -32761);
+            int? slot = document.ApplicationStreams.Single(x => x.Path == "Modules/0/PropData").NativeId;
+            OfficeVbaProject first = document.GetVbaProject();
+            if (applyFirst) { first.RenameModule(original.Name, "FirstName"); document.SetVbaProject(first); }
+            OfficeVbaProject second = document.GetVbaProject();
+            second.RenameModule(second.Modules.Single().Name, "SecondName"); document.SetVbaProject(second);
+            first.RenameModule(first.Modules.Single().Name, "FinalName"); document.SetVbaProject(first);
+            AccessCatalogEntry final = document.Catalog.Single(x => x.NativeType == -32761);
+            Assert.Equal(original.NativeId, final.NativeId); Assert.Equal(original.Id, final.Id);
+            Assert.Equal(slot, document.ApplicationStreams.Single(x => x.Path == "Modules/0/PropData").NativeId);
+            using AccessDocument saved = AccessDocument.Load(new MemoryStream(Save(document)));
+            Assert.Equal(original.NativeId, saved.Catalog.Single(x => x.NativeType == -32761).NativeId);
+            Assert.Equal("FinalName", saved.GetVbaProject().Modules.Single().Name);
+        }
+
+        [Theory]
+        [InlineData("Application/objects-jet4.mdb")]
+        [InlineData("Application/objects-ace12.accdb")]
+        public void DetachedIdentityDeletedAndRecreatedCannotReplaceTheNewIdentity(string file) {
+            using AccessDocument document = Load(file);
+            OfficeVbaProject stale = document.GetVbaProject(); string name = stale.Modules.Single().Name;
+            OfficeVbaProject current = document.GetVbaProject(); current.DeleteModule(name); document.SetVbaProject(current);
+            current = document.GetVbaProject(); current.AddModule(name, "Public Const NewIdentity As Long = 96\r\n"); document.SetVbaProject(current);
+            byte[] before = Save(document); long revision = document.Revision;
+            stale.SetModuleSource(name, "Public Const StaleIdentity As Long = 97\r\n");
+            Assert.Throws<InvalidOperationException>(() => document.SetVbaProject(stale));
+            Assert.Equal(revision, document.Revision); Assert.Equal(before, Save(document));
+        }
+
+        [Theory]
+        [InlineData("Application/objects-jet4.mdb")]
+        [InlineData("Application/objects-ace12.accdb")]
+        public void RolledBackBindingsAllowTheOriginalDetachedModelToBeAppliedAgain(string file) {
+            using AccessDocument document = Load(file);
+            AccessCatalogEntry original = document.Catalog.Single(x => x.NativeType == -32761);
+            OfficeVbaProject project = document.GetVbaProject();
+            project.RenameModule(original.Name, "RenamedModule");
+            project.AddModule("AddedModule", "Public Const Added As Long = 98\r\n");
+            byte[] before = Save(document);
+            using (document.BeginUpdate()) document.SetVbaProject(project);
+            Assert.Equal(before, Save(document));
+            document.SetVbaProject(project);
+            Assert.Equal(original.NativeId, document.Catalog.Single(x => x.Name == "RenamedModule").NativeId);
+            Assert.Equal(original.Id, document.Catalog.Single(x => x.Name == "RenamedModule").Id);
+            Assert.Single(document.Catalog, x => x.Name == "AddedModule");
+        }
+
+        [Theory]
         [InlineData("CodeBehind/empty-application-jet4.mdb")]
         [InlineData("CodeBehind/empty-application-ace12.accdb")]
         public void FirstProjectInExistingNativeApplicationRetainsBothModuleKinds(string file) {
