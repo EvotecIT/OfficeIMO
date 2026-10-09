@@ -6,12 +6,16 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
     public override string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)
-            ? "microsoft-works-wks-dos-records" : OfficeLegacyCompoundInspector.IsValidCompound(data, limits, cancellationToken)
+            ? "microsoft-works-wks-dos-records" : LaterRecordSpreadsheetReader.IsWorks(data) ? "microsoft-works-wks-windows-records" : OfficeLegacyCompoundInspector.IsValidCompound(data, limits, cancellationToken)
                 ? "microsoft-works-xlr-compound-salvage" : "microsoft-works-spreadsheet-binary-salvage";
     }
 
     public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (LaterRecordSpreadsheetReader.IsWorks(data)) {
+            reason = "Microsoft Works Windows WKS generation-specific BOF payload.";
+            return 100;
+        }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)) {
             reason = ExtensionIs(sourceName, ".wks")
                 ? "Exact Microsoft Works WKS BOF signature with corroborating source extension."
@@ -39,6 +43,7 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
     }
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
+        if (LaterRecordSpreadsheetReader.IsWorks(data)) return LaterRecordSpreadsheetReader.Read(data, limits, cancellationToken, LaterSpreadsheetProfile.WorksWindows);
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)) return ParseWkRecords(data, limits, "Microsoft Works WKS", 0x04, 0x04, cancellationToken);
         LegacySpreadsheetModel model = ParseDelimitedSalvage(data, limits,
             "Microsoft Works spreadsheet text was salvaged; sheet structure, formulas, formatting, comments, and charts were not reconstructed.", cancellationToken);
