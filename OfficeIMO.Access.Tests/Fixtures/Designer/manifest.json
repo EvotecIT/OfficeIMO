@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "producer": "Microsoft Access",
+  "producerVersion": "16.0",
+  "license": "MIT (synthetic fixtures)",
+  "security": "Owned new instance; ForceDisable=3; all content remains inert; no user databases",
+  "files": [
+    {
+      "path": "designer-jet4.mdb",
+      "sha256": "a2975e5d07912a475e233eabd09d7694d7d384f944ede7b8b9b4d8605cacb88e",
+      "objects": [
+        {
+          "kind": "form",
+          "name": "BoundForm1",
+          "caption": "Synthetic form 1",
+          "recordSource": "Contacts",
+          "width": 4800,
+          "detailHeight": 3600,
+          "export": "designer-jet4.mdb.BoundForm1.txt",
+          "exportSha256": "cc295d2611a5a3a5d2e4b11ef7d9b91038ba0e350b2479f2f4366dbc3e179881"
+        },
+        {
+          "kind": "form",
+          "name": "BoundForm2",
+          "caption": "Synthetic form 2",
+          "recordSource": "Contacts",
+          "width": 4800,
+          "detailHeight": 3600,
+          "export": "designer-jet4.mdb.BoundForm2.txt",
+          "exportSha256": "c001f57b7f303ee5e3b2044c81f8557e1352aa19a8bc01b9124e64cfc6dd65bb"
+        },
+        {
+          "kind": "report",
+          "name": "BoundReport",
+          "recordSource": "Contacts",
+          "export": "designer-jet4.mdb.BoundReport.txt",
+          "exportSha256": "4e4e02ebf535cf08b0f4d8847b7c6a2364e50f5853b73f552dc8513b6ff0c9a4"
+        },
+        {
+          "kind": "vba-module",
+          "name": "DesignerModule",
+          "export": "designer-jet4.mdb.DesignerModule.txt",
+          "exportSha256": "c65a711405b77c938c0caaa0a8660e28683b757801625cd715770bf95f5523f3"
+        },
+        {
+          "kind": "action-macro",
+          "name": "StopHere",
+          "action": "StopMacro",
+          "export": "designer-jet4.mdb.StopHere.txt",
+          "exportSha256": "0b68a41e7fe401ee2a2788f1d65c0ecc1f722fc62bfdc368bbf83b6400f18dfb"
+        },
+        {
+          "kind": "action-macro",
+          "name": "AutoExec",
+          "action": "StopMacro",
+          "export": "designer-jet4.mdb.AutoExec.txt",
+          "exportSha256": "0b68a41e7fe401ee2a2788f1d65c0ecc1f722fc62bfdc368bbf83b6400f18dfb"
+        }
+      ]
+    },
+    {
+      "path": "designer-ace12.accdb",
+      "sha256": "faddbed7df913685258e48e7771e109e1059faa9bef14a7355ecc3a2e9f2967c",
+      "objects": [
+        {
+          "kind": "form",
+          "name": "BoundForm1",
+          "caption": "Synthetic form 1",
+          "recordSource": "Contacts",
+          "width": 4800,
+          "detailHeight": 3600,
+          "export": "designer-ace12.accdb.BoundForm1.txt",
+          "exportSha256": "f74ebe547a0cc1fec73f998a3f33f21ebe398392abc7b356c01d7e9433c29bfa"
+        },
+        {
+          "kind": "form",
+          "name": "BoundForm2",
+          "caption": "Synthetic form 2",
+          "recordSource": "Contacts",
+          "width": 4800,
+          "detailHeight": 3600,
+          "export": "designer-ace12.accdb.BoundForm2.txt",
+          "exportSha256": "24a1d3c601449b6400a1abeb10dca17384c5d154fc1920fa3bb1de8740624d92"
+        },
+        {
+          "kind": "report",
+          "name": "BoundReport",
+          "recordSource": "Contacts",
+          "export": "designer-ace12.accdb.BoundReport.txt",
+          "exportSha256": "786cf4d58db6e3e8dd3ca9d146be7afbf94e4e3d0b7dfa1de4136e82e6644907"
+        },
+        {
+          "kind": "vba-module",
+          "name": "DesignerModule",
+          "export": "designer-ace12.accdb.DesignerModule.txt",
+          "exportSha256": "c65a711405b77c938c0caaa0a8660e28683b757801625cd715770bf95f5523f3"
+        },
+        {
+          "kind": "action-macro",
+          "name": "StopHere",
+          "action": "StopMacro",
+          "export": "designer-ace12.accdb.StopHere.txt",
+          "exportSha256": "0dd716423eef49b015b4ab64465a2b8e360a68ee9f61a9c6695f413e9278945e"
+        },
+        {
+          "kind": "action-macro",
+          "name": "AutoExec",
+          "action": "StopMacro",
+          "export": "designer-ace12.accdb.AutoExec.txt",
+          "exportSha256": "0dd716423eef49b015b4ab64465a2b8e360a68ee9f61a9c6695f413e9278945e"
+        },
+        {
+          "kind": "table-data-macro",
+          "name": "Contacts",
+          "export": "designer-ace12.accdb.Contacts.datamacro.xml",
+          "exportSha256": "1f5881a9259f4a41e8a9cf5de26a94d754c334b1b7633707192d33ca6e63ce4b"
+        }
+      ]
+    }
+  ]
+}

@@ -513,70 +513,6 @@ internal static partial class ResourceResolver {
         "|intent:" +
         ((int)renderingIntent).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font, int maxDecodedTextCharacters) {
-        // Prefer font-specific ToUnicode map when present
-        if (font.HasToUnicode && font.CMap is not null) return bytes => font.CMap.MapBytes(bytes, maxDecodedTextCharacters);
-        var baseDecoder = BuildBaseEncodingDecoder(font.Encoding, maxDecodedTextCharacters);
-        if (font.Differences is not null && font.Differences.Count > 0) {
-            var differences = font.Differences;
-            return bytes => DecodeWithDifferences(bytes, differences, baseDecoder, maxDecodedTextCharacters);
-        }
-
-        return baseDecoder;
-    }
-
-    internal static System.Func<byte[], int, string> CreateBudgetedDecoder(PdfFontResource font) => BuildBudgetedDecoderForFont(font);
-
-    /// <summary>Decodes one simple-font code through its encoding and Differences, ignoring ToUnicode.</summary>
-    internal static System.Func<byte, string> CreateSimpleEncodingDecoder(PdfFontResource font) {
-        System.Func<byte[], int, string> baseDecoder = BuildBudgetedBaseEncodingDecoder(font.Encoding);
-        IReadOnlyDictionary<int, string>? differences = font.Differences;
-        return code => differences != null && differences.TryGetValue(code, out string? difference)
-            ? difference
-            : baseDecoder(new[] { code }, 1);
-    }
-
-    private static System.Func<byte[], int, string> BuildBudgetedDecoderForFont(PdfFontResource font) {
-        if (font.HasToUnicode && font.CMap is not null) {
-            return (bytes, maximumCharacters) => font.CMap.MapBytes(bytes, maximumCharacters);
-        }
-
-        if (font.Differences is not null && font.Differences.Count > 0) {
-            var differences = font.Differences;
-            return (bytes, maximumCharacters) => DecodeWithDifferences(
-                bytes,
-                differences,
-                BuildBaseEncodingDecoder(font.Encoding, maximumCharacters),
-                maximumCharacters);
-        }
-
-        return BuildBudgetedBaseEncodingDecoder(font.Encoding);
-    }
-
-    private static System.Func<byte[], int, string> BuildBudgetedBaseEncodingDecoder(string encoding) {
-        if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
-            return static (bytes, maximumCharacters) => PdfStandardEncoding.Decode(bytes, maximumCharacters);
-        }
-
-        if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
-            return static (bytes, maximumCharacters) => PdfMacRomanEncoding.Decode(bytes, maximumCharacters);
-        }
-
-        return static (bytes, maximumCharacters) => PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
-    }
-
-    private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding, int maxDecodedTextCharacters) {
-        if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
-            return bytes => PdfStandardEncoding.Decode(bytes, maxDecodedTextCharacters);
-        }
-
-        if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
-            return bytes => PdfMacRomanEncoding.Decode(bytes, maxDecodedTextCharacters);
-        }
-
-        return bytes => PdfWinAnsiEncoding.Decode(bytes, maxDecodedTextCharacters);
-    }
-
     internal static PdfFontResource CreateFontResource(
         string resourceName,
         PdfDictionary fontVal,
@@ -922,32 +858,6 @@ internal static partial class ResourceResolver {
         }
 
         return map.Count == 0 ? null : map;
-    }
-
-    private static string DecodeWithDifferences(
-        byte[] bytes,
-        IReadOnlyDictionary<int, string> differences,
-        System.Func<byte[], string> baseDecoder,
-        int maxDecodedTextCharacters) {
-        if (bytes is null || bytes.Length == 0) return string.Empty;
-        if (bytes.LongLength > maxDecodedTextCharacters) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, bytes.LongLength);
-        }
-        var builder = new System.Text.StringBuilder(bytes.Length);
-        for (int i = 0; i < bytes.Length; i++) {
-            int code = bytes[i];
-            string value = differences.TryGetValue(code, out string? difference)
-                ? difference!
-                : baseDecoder(new[] { bytes[i] });
-            long nextLength = (long)builder.Length + value.Length;
-            if (nextLength > maxDecodedTextCharacters) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxDecodedTextCharacters, nextLength);
-            }
-
-            builder.Append(value);
-        }
-
-        return builder.ToString();
     }
 
     private static bool TryDecodeGlyphName(string glyphName, out string? value) {

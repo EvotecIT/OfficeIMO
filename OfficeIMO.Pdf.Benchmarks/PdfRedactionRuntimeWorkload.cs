@@ -67,6 +67,7 @@ namespace OfficeIMO.Pdf.Benchmarks {
             if (_result is null || _plan is null || !_result.Evidence.IsVerified) throw new InvalidDataException("No verified result.");
             PdfReadDocument read = PdfReadDocument.Open(_result.Pdf);
             if (read.Pages.Count != ExpectedPages) throw new InvalidDataException("Page count changed.");
+            ValidatePageCoverage();
             var expression = new System.Text.RegularExpressions.Regex(_pattern,
                 System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
             foreach (PdfReadPage page in read.Pages) {
@@ -99,6 +100,18 @@ namespace OfficeIMO.Pdf.Benchmarks {
         public void ReleaseResults() {
             _plan = null;
             _result = null;
+        }
+
+        private void ValidatePageCoverage() {
+            int[] areasPerPage = new int[ExpectedPages];
+            foreach (PdfRedactionArea area in _plan!.Areas) {
+                if (area.PageNumber < 1 || area.PageNumber > ExpectedPages)
+                    throw new InvalidDataException("A reviewed area identifies an unexpected page.");
+                areasPerPage[area.PageNumber - 1]++;
+            }
+            foreach (int count in areasPerPage) {
+                if (count != 1) throw new InvalidDataException("Expected exactly one reviewed area on each page.");
+            }
         }
     }
 }

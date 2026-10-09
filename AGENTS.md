@@ -49,6 +49,14 @@
 - Before reporting a milestone complete, account for every acceptance criterion and validated in-scope defect. During active work use checklists in the task; once delivered, remove completed roadmap work after its current contract and evidence are in the proper package/matrix owners. Preserve stable milestone references in remaining dependencies, linking to those owners when a completed subsection is removed.
 - End each implementation task with a compact handoff: milestone and satisfied/remaining criteria, branch/worktree and head, relevant evidence commands/results, unresolved decisions, PR/release state when applicable, exact next deliverable, and retained artifact paths. Do not create a second roadmap or a permanent implementation journal.
 
+## Access implementation discipline
+
+- Follow the [Access milestones](Docs/ROADMAP.md#microsoft-access-document-library) and [Access design](Docs/officeimo.access-design.md). Start with A00; do not infer native writer, VBA-carrier, form/report or producer-profile feasibility from existing OfficeIMO support for other formats.
+- At task start identify the active milestone, its remaining acceptance criteria, existing fixture/oracle evidence and next bounded deliverable. At handoff record satisfied/remaining criteria, branch/head, decisive evidence, held dependencies and the next deliverable. Keep implementation work and gaps in the owning package/support matrix and single roadmap, not another journal or backlog.
+- Preserve one typed `AccessDocument` model, generation-specific native codecs, shared VBA/security ownership, explicit inert file operations, default strict loss policy and the optional DbaClientX execution boundary. Changes to dependencies, native-versus-provider scope or accepted profile/operation criteria require an explicit decision; routine in-scope defect fixes do not.
+- Qualify reading, opaque preservation, typed editing, template-free native creation, profile conversion, rendering and execution separately. Do not replace required native work with ACE/COM wrappers, copied seed databases, text exports or self-round-trip proof. A missing oracle or unresolved writer holds only dependent criteria and remains visible.
+- Keep code/module/macro content inert and oracle validation isolated. Do not enable a trusted location, execute startup/VBA/data macros, modify a user database or use persistent signing keys for routine validation. Planning does not authorize implementation, PR publication, merge or release; apply the existing repository gates to each separately authorized step.
+
 ## Independent HTML engine development
 
 - Keep the architecture in `Docs/officeimo.html-engine-design.md` and open milestones in `Docs/ROADMAP.md`; do not introduce a second program backlog. Update generated support contracts only when behavior is implemented and qualified.
