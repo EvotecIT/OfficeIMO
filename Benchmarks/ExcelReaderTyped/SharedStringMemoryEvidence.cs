@@ -16,6 +16,18 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks;
 internal static class SharedStringMemoryEvidence {
     private enum TextPolicy { Materialized, Utf8 }
 
+    internal static async Task SaveFixtureAsync(string path) {
+        int rows = GetSingleRowCount();
+        byte[] source = await StringHeavyWorkbookGenerator.BuildXlsxAsync(rows);
+        using (var input = new MemoryStream(source, writable: false)) {
+            using var package = new System.IO.Compression.ZipArchive(input, System.IO.Compression.ZipArchiveMode.Read);
+            WrittenWorkbookValidation.ValidateEntries(package);
+            WrittenWorkbookValidation.ValidateRelationships(package);
+        }
+        using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write)) output.Write(source);
+        BenchmarkInput.WriteWorkbookFixtureIdentity($"shared-memory-frozen/Xlsx/dataRows={rows}", source);
+    }
+
     internal static async Task RunAsync(string[] args) {
         if (args.Length != 2)
             throw new ArgumentException("Usage: --measure-shared-memory <Stored|Deflated> <Materialized|Utf8>. Run each policy in a fresh process.");
@@ -33,10 +45,7 @@ internal static class SharedStringMemoryEvidence {
         if (policy == TextPolicy.Utf8)
             throw new InvalidOperationException("Utf8 memory evidence requires -p:OfficeIMOBenchmarkNewApis=true.");
 #endif
-        int[] rowCounts = new StringHeavyReadBenchmarks().RowCounts().ToArray();
-        if (rowCounts.Length != 1)
-            throw new ArgumentException("Memory evidence requires exactly one OFFICEIMO_STRING_BENCHMARK_ROWS count per fresh process.");
-        int rows = rowCounts[0];
+        int rows = GetSingleRowCount();
 
         // Do not call a reader qualification/setup method here: it would populate
         // reader caches and pools before the baseline observation.
@@ -59,6 +68,7 @@ internal static class SharedStringMemoryEvidence {
             validatedFields = (long)(rows + 1) * StringHeavyWorkbookGenerator.Headers.Length,
             validation = "Every header/text byte or string, native Double/DateTime value and typed getter, row order/count, raw object schema and single sheet.",
             fixtureBytes = fixture.Bytes.LongLength,
+            sourceFixturePolicy = fixture.FromSavedInput ? "SavedInputLoadedBeforeBaseline" : "GeneratedBeforeBaseline",
             sourceFixtureSha256 = fixture.SourceSha256,
             fixtureSha256 = fixture.Sha256,
             officeIMOExcelInformationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
@@ -80,7 +90,8 @@ internal static class SharedStringMemoryEvidence {
     }
 
     private static async Task<Fixture> BuildFixtureAsync(int rows, SharedStringZipStorage storage) {
-        byte[] source = await StringHeavyWorkbookGenerator.BuildXlsxAsync(rows);
+        string? configured = Environment.GetEnvironmentVariable("OFFICEIMO_SHARED_XLSX_FIXTURE");
+        byte[] source = configured == null ? await StringHeavyWorkbookGenerator.BuildXlsxAsync(rows) : File.ReadAllBytes(configured);
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
         byte[] bytes = storage == SharedStringZipStorage.Stored ? SharedStringLifecycleWorkload.Store(source) : source;
         if (storage == SharedStringZipStorage.Stored)
@@ -90,7 +101,13 @@ internal static class SharedStringMemoryEvidence {
             if (storage == SharedStringZipStorage.Deflated) WrittenWorkbookValidation.ValidateEntries(package);
             WrittenWorkbookValidation.ValidateRelationships(package);
         }
-        return new Fixture(bytes, sourceSha256, Convert.ToHexString(SHA256.HashData(bytes)));
+        return new Fixture(bytes, sourceSha256, Convert.ToHexString(SHA256.HashData(bytes)), configured != null);
+    }
+
+    private static int GetSingleRowCount() {
+        int[] counts = new StringHeavyReadBenchmarks().RowCounts().ToArray();
+        return counts.Length == 1 ? counts[0]
+            : throw new ArgumentException("Memory evidence requires exactly one OFFICEIMO_STRING_BENCHMARK_ROWS count per fresh process.");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -186,7 +203,7 @@ internal static class SharedStringMemoryEvidence {
             process.WorkingSet64, peakBytes > 0 ? peakBytes : null);
     }
 
-    private sealed record Fixture(byte[] Bytes, string SourceSha256, string Sha256);
+    private sealed record Fixture(byte[] Bytes, string SourceSha256, string Sha256, bool FromSavedInput);
     private sealed record MemorySnapshot(string Stage, long ManagedRetainedBytes, long ManagedDeltaFromBeforeOpenBytes,
         long ProcessWorkingSetBytes, long? ProcessPeakWorkingSetBytes);
 }

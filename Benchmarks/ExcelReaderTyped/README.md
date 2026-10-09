@@ -607,6 +607,16 @@ borrowed span against owned expected bytes before advancing, without materializi
 text through `GetValue`. Full collections happen only at the four snapshot stages.
 Reports identify source/selected fixture hashes and the loaded OfficeIMO assembly.
 Managed deltas include pool and static-cache retention and validation effects.
+
+For a paired run, create one deflated fixture in a separate process and set
+`OFFICEIMO_SHARED_XLSX_FIXTURE` to its path for both saved-assembly runners.
+`--prepare-shared-memory-fixture <path.xlsx>` uses the selected single
+`OFFICEIMO_STRING_BENCHMARK_ROWS` count and refuses to overwrite an existing
+file. The memory and XLSX lifecycle cases load that same input before their
+measurement boundary, then validate the complete expected row/field contract.
+Stored variants preserve entry timestamps and every inflated byte. Reports name
+the input policy and hashes; generation and loaded-input memory observations
+are distinct policies and should not be mixed.
 Process working-set values and lifetime peaks include fixture generation, package
 qualification and JIT; they do not isolate a reader peak or report allocation totals.
 Unavailable .NET peaks appear as `null`. On macOS, prefix each fresh `dotnet`

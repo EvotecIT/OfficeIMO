@@ -26,7 +26,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             ComparisonWorkbookFormat format = ComparisonWorkbookFormat.Xlsx) {
             BenchmarkInput.WriteDescription();
             _format = format;
-            byte[] deflated = await (format switch {
+            string? configured = format == ComparisonWorkbookFormat.Xlsx
+                ? Environment.GetEnvironmentVariable("OFFICEIMO_SHARED_XLSX_FIXTURE") : null;
+            byte[] deflated = configured != null ? File.ReadAllBytes(configured) : await (format switch {
                 ComparisonWorkbookFormat.Xlsx => StringHeavyWorkbookGenerator.BuildXlsxAsync(rows),
                 ComparisonWorkbookFormat.Xlsb => StringHeavyWorkbookGenerator.BuildXlsbAsync(rows),
                 _ => throw new ArgumentOutOfRangeException(nameof(format)),
@@ -207,7 +209,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             using (ZipArchive target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 foreach (ZipArchiveEntry entry in sourcePackage.Entries) {
                     using Stream input = entry.Open();
-                    using Stream destination = target.CreateEntry(entry.FullName, CompressionLevel.NoCompression).Open();
+                    ZipArchiveEntry storedEntry = target.CreateEntry(entry.FullName, CompressionLevel.NoCompression);
+                    storedEntry.LastWriteTime = entry.LastWriteTime;
+                    using Stream destination = storedEntry.Open();
                     input.CopyTo(destination);
                 }
             }

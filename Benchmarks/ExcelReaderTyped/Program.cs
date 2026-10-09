@@ -18,6 +18,11 @@ string? arrow = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmar
 string? generatedMapping = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkGeneratedMapping").Value;
 BenchmarkInput.WriteDescription();
 
+if (args is ["--prepare-shared-memory-fixture", string fixturePath]) {
+    await SharedStringMemoryEvidence.SaveFixtureAsync(fixturePath);
+    return;
+}
+
 if (args.Length > 0 && args[0] == "--measure-shared-memory") {
     await SharedStringMemoryEvidence.RunAsync(args[1..]);
     return;
