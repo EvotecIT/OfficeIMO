@@ -90,6 +90,9 @@ internal sealed class PublisherQuillTextReader {
                 cursor = next;
             }
             if (runs.Count == 0) { runs.Add(styles.Run(string.Empty, null, paragraph)); runCount++; }
+            if (paragraph.Tabs == null && runs.Any(run => run.Text.IndexOf('\t') >= 0))
+                _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tabs without an explicit array use the shared measured 36-point interval.",
+                    OfficeConversionLossKind.Approximation, "Quill/FDPP");
             OfficeTextParagraphLabel? label = ListLabel(paragraph, runs[0], styles);
             projectedCharacters = checked(projectedCharacters + runs.Sum(run => run.Text.Length)
                 + (label?.Run.Text.Length ?? 0) + (paragraphs.Count == 0 ? 0 : 1));

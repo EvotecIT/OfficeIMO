@@ -42,6 +42,23 @@ public sealed class PublisherTextStyleTests {
         Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TAB_LAYOUT_APPROXIMATED");
     }
 
+    [Theory]
+    [InlineData("SampleNewsletter.pub", "Jay Adams")]
+    [InlineData("SampleBrochure.pub", "Saturday")]
+    public void Native_tabs_without_arrays_use_a_measured_default_grid(string file, string prefix) {
+        PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture(file));
+        OfficeRichTextParagraph paragraph = document.TextStories.SelectMany(story => story.Paragraphs)
+            .Single(item => Text(item).StartsWith(prefix) && Text(item).Contains("\t"));
+        Assert.NotNull(paragraph.TabStops); Assert.Empty(paragraph.TabStops!.Stops);
+        Assert.Equal(36, paragraph.TabStops.DefaultInterval); Assert.Equal(-paragraph.Margins.Left, paragraph.TabStops.Origin);
+        string[] fields = Text(paragraph).Split('\t'); Assert.Equal(2, fields.Length);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { paragraph }, 400, 400,
+            (value, size, family, style) => value?.Length ?? 0);
+        Assert.Equal(36 + fields[1].Length + paragraph.Margins.Right, layout.Width, 6);
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, finding => finding.Code == "PUB_TAB_LAYOUT_APPROXIMATED"
+            && finding.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
     [Fact]
     public void Malformed_native_tab_positions_and_counts_fail_before_rendering() {
         // Offsets are in the provenance-pinned newsletter's Quill stream.
