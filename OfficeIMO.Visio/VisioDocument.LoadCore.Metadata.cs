@@ -35,10 +35,6 @@ namespace OfficeIMO.Visio {
                 foreach (XElement cell in row.Elements(ns + "Cell")) {
                     string? cellName = cell.Attribute("N")?.Value;
                     string? value = cell.Attribute("V")?.Value;
-                    if (IsHyperlinkCell(cellName)) {
-                        hyperlink.PreservedKnownCells[cellName!] = new XElement(cell);
-                    }
-
                     switch (cellName) {
                         case "Description":
                             hyperlink.Description = value;
@@ -71,8 +67,13 @@ namespace OfficeIMO.Visio {
                             hyperlink.PreservedCells.Add(new XElement(cell));
                             break;
                     }
+
+                    if (IsHyperlinkCell(cellName)) {
+                        hyperlink.PreservedKnownCells[cellName!] = new XElement(cell);
+                    }
                 }
 
+                hyperlink.ResetValueAssignments();
                 target.Add(hyperlink);
             }
         }
@@ -114,12 +115,13 @@ namespace OfficeIMO.Visio {
                     } else if (string.Equals(cellName, "Prompt", StringComparison.OrdinalIgnoreCase)) {
                         userCell.Prompt = cell.Attribute("V")?.Value;
                         userCell.PromptFormula = cell.Attribute("F")?.Value;
-                        CopyPreservedCellAttributes(cell, userCell.PreservedPromptAttributes);
+                        CopyPreservedCellAttributes(cell, userCell.PreservedPromptAttributes, preserveUnit: true);
                     } else {
                         userCell.PreservedCells.Add(new XElement(cell));
                     }
                 }
 
+                userCell.ResetValueAssignments();
                 target.Add(userCell);
             }
         }
@@ -130,12 +132,12 @@ namespace OfficeIMO.Visio {
                     string.Equals(cell.Value, "true", StringComparison.OrdinalIgnoreCase));
         }
 
-        private static void CopyPreservedCellAttributes(XElement cell, IList<XAttribute> target) {
+        private static void CopyPreservedCellAttributes(XElement cell, IList<XAttribute> target, bool preserveUnit = false) {
             foreach (XAttribute attribute in cell.Attributes()) {
                 if (attribute.IsNamespaceDeclaration ||
                     string.Equals(attribute.Name.LocalName, "N", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(attribute.Name.LocalName, "V", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(attribute.Name.LocalName, "U", StringComparison.OrdinalIgnoreCase) ||
+                    (!preserveUnit && string.Equals(attribute.Name.LocalName, "U", StringComparison.OrdinalIgnoreCase)) ||
                     string.Equals(attribute.Name.LocalName, "F", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }

@@ -358,6 +358,15 @@ public sealed class OfficeShape {
         };
     }
 
+    /// <summary>Creates a detached path with replacement geometry and this descriptor's paint and effects.</summary>
+    internal OfficeShape CloneWithPath(double width, double height, IReadOnlyList<OfficePathCommand> commands) {
+        OfficeShape geometry = Path(width, height, commands);
+        OfficeShape copy = Clone();
+        copy.Kind = OfficeShapeKind.Path; copy.Width = width; copy.Height = height;
+        copy.Points = Array.Empty<OfficePoint>(); copy.PathCommands = geometry.PathCommands;
+        return copy;
+    }
+
     /// <summary>Creates a detached copy of this shape.</summary>
     public OfficeShape Clone() => new OfficeShape {
         Kind = Kind,

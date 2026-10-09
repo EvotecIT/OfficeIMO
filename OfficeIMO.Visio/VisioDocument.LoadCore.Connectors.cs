@@ -62,7 +62,11 @@ namespace OfficeIMO.Visio {
                     return ConnectorKind.Curved;
                 }
 
-                points.Add((GetCellValue(row, ns, "X"), GetCellValue(row, ns, "Y")));
+                double x = GetCellValue(row, ns, "X"), y = GetCellValue(row, ns, "Y");
+                double angle = GetCellValue(connectorElement, ns, "Angle");
+                if (TryGetTruthyCellValue(connectorElement, "FlipX")) x = -x;
+                if (TryGetTruthyCellValue(connectorElement, "FlipY")) y = -y;
+                points.Add((x * Math.Cos(angle) - y * Math.Sin(angle), x * Math.Sin(angle) + y * Math.Cos(angle)));
             }
 
             if (points.Count <= 2) {
@@ -104,6 +108,7 @@ namespace OfficeIMO.Visio {
             }
 
             List<(double X, double Y)> points = new();
+            VisioShape? frame = connector.NativeGeometry?.CreateShape(connector);
             for (int i = 0; i < rows.Count; i++) {
                 XElement row = rows[i];
                 string? rowType = row.Attribute("T")?.Value;
@@ -116,7 +121,10 @@ namespace OfficeIMO.Visio {
                     return;
                 }
 
-                points.Add((x, y));
+                // Older OfficeIMO files used page coordinates without an XForm; its zero frame is identity.
+                if (connector.NativeGeometry != null && frame != null) {
+                    points.Add(connector.NativeGeometry.ToPage(frame, x, y));
+                } else points.Add((x, y));
             }
 
             ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
@@ -325,6 +333,7 @@ namespace OfficeIMO.Visio {
                    string.Equals(cellName, "TxtHeight", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "TxtLocPinX", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "TxtLocPinY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "TxtAngle", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "ShapeRouteStyle", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "ConLineRouteExt", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "ConLineJumpStyle", StringComparison.OrdinalIgnoreCase) ||
@@ -370,6 +379,7 @@ namespace OfficeIMO.Visio {
                    !string.Equals(cellName, "TxtHeight", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "TxtLocPinX", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "TxtLocPinY", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "TxtAngle", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "ShapeRouteStyle", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "ConLineRouteExt", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "ConLineJumpStyle", StringComparison.OrdinalIgnoreCase) &&

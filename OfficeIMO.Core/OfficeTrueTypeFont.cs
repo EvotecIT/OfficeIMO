@@ -1187,16 +1187,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
-            foreach (string path in CandidateFamilyPaths(family)) {
-                OfficeTrueTypeFont? font = TryLoad(path, null, family);
-                if (font == null) {
-                    font = TryLoad(path);
-                }
-
-                if (font != null && font.HasFamilyKey(NormalizeFontFamilyKey(family))
-                    && font.HasGlyphs("OfficeIMO 0123456789")) {
-                    return new FontFamilyResolution(font, path);
-                }
+            foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, OfficeFontFaceDescriptor.Regular)) {
+                if (resolved.Font!.HasGlyphs("OfficeIMO 0123456789")) return resolved;
             }
         }
 
@@ -1240,6 +1232,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             yield break;
         }
         string key = NormalizeFontFamilyKey(family);
+        string[]? cjk = CjkSubstituteFamilies(key);
+        if (cjk != null) {
+            yield return family;
+            foreach (string candidate in cjk) yield return candidate;
+            yield break;
+        }
         if (key == "sansserif" || key == "sans") {
             yield return "Aptos";
             yield return "Calibri";
@@ -1303,6 +1301,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidateKnownFamilyPaths(string key) {
+        foreach (string path in CandidateCjkFamilyPaths(key)) yield return path;
         if (key == "sfns") yield return "/System/Library/Fonts/SFNS.ttf";
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows)) {

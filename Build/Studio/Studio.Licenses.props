@@ -4,6 +4,10 @@
     <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Core/Licenses/*.txt" Link="Licenses/%(Filename)%(Extension)" />
     <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Core/THIRD-PARTY-NOTICES.md" Link="Licenses/OfficeIMO.Core-THIRD-PARTY-NOTICES.md" />
     <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/Resources/sRGB-LICENSE.txt" Link="Licenses/sRGB-LICENSE.txt" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/THIRD-PARTY-NOTICES.md" Link="Licenses/OfficeIMO.Pdf-THIRD-PARTY-NOTICES.md" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/Resources/AdobeCMaps/LICENSE.md" Link="Licenses/AdobeCMaps/LICENSE.md" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/Resources/AdobeCMaps/LICENSE.txt" Link="Licenses/AdobeCMaps/LICENSE.txt" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/Resources/AdobeCMaps/source.json" Link="Licenses/AdobeCMaps/source.json" />
     <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Studio/OPEN_SOURCE.md" Link="Licenses/OPEN_SOURCE.md" />
   </ItemGroup>
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio.iOS'">

@@ -558,10 +558,10 @@ namespace OfficeIMO.Tests {
         public void PngRendererPreservesVisioShapeAngleDirection() {
             RgbaPng image = DecodeRgbaPng(RenderEllipseShape(Math.PI / 4D));
 
-            Assert.True(HasRedPixelNear(image, 105, 55, radius: 3), "Expected positive Visio shape.Angle to rotate the ellipse toward the upper-left.");
-            Assert.True(HasRedPixelNear(image, 195, 145, radius: 3), "Expected positive Visio shape.Angle to rotate the ellipse toward the lower-right.");
-            Assert.True(IsWhitePixel(image, 195, 55), "Expected the opposite upper-right diagonal to remain background.");
-            Assert.True(IsWhitePixel(image, 105, 145), "Expected the opposite lower-left diagonal to remain background.");
+            Assert.True(HasRedPixelNear(image, 195, 55, radius: 3), "Expected positive Visio shape.Angle to rotate the ellipse toward the upper-right.");
+            Assert.True(HasRedPixelNear(image, 105, 145, radius: 3), "Expected positive Visio shape.Angle to rotate the ellipse toward the lower-left.");
+            Assert.True(IsWhitePixel(image, 105, 55), "Expected the opposite upper-left diagonal to remain background.");
+            Assert.True(IsWhitePixel(image, 195, 145), "Expected the opposite lower-right diagonal to remain background.");
         }
 
         [Fact]
@@ -780,7 +780,7 @@ namespace OfficeIMO.Tests {
                 Color = OfficeColor.Black
             };
 
-            VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page).Resolve(
+            VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page, new VisioRenderLayerVisibility(page, VisioLayerRenderMode.Visible)).Resolve(
                 connector,
                 new[] { (1.5D, 1.5D), (4.5D, 1.5D) });
             Assert.True(placement.Adjusted, "Expected endpoint collision avoidance to adjust the connector label placement.");
@@ -847,7 +847,7 @@ namespace OfficeIMO.Tests {
             VisioShape bottom = page.AddRectangle(3, 0.3, 0.5, 0.4, string.Empty);
             page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
 
-            VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page).Resolve(
+            VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page, new VisioRenderLayerVisibility(page, VisioLayerRenderMode.Visible)).Resolve(
                 labeled,
                 new[] { (1.5D, 1.5D), (4.5D, 1.5D) });
             Assert.True(placement.Adjusted, "Expected connector-line collision avoidance to adjust the connector label placement.");
@@ -879,7 +879,7 @@ namespace OfficeIMO.Tests {
             upper.Label = "phase two";
             upper.PlaceLabel(0.5, width: 1.2, height: 0.3);
 
-            VisioRenderLabelLayout layout = VisioRenderLabelLayout.Create(page);
+            VisioRenderLabelLayout layout = VisioRenderLabelLayout.Create(page, new VisioRenderLayerVisibility(page, VisioLayerRenderMode.Visible));
             VisioRenderConnectorLabelPlacement lowerPlacement = layout.Resolve(
                 lower,
                 new[] { (1.3D, 1.5D), (4.7D, 1.5D) });
@@ -2175,7 +2175,7 @@ namespace OfficeIMO.Tests {
             });
 
             RgbaPng image = DecodeRgbaPng(png);
-            Assert.True(IsWhitePixel(image, 150, 140), "Expected ArcTo geometry to cut away the lower middle instead of rendering a rectangle.");
+            Assert.True(IsRedPixel(image, 150, 165), "Expected positive ArcTo geometry to bow below its chord in Visio coordinates.");
             Assert.True(IsRedPixel(image, 150, 100), "Expected ArcTo geometry to fill inside the curved imported outline.");
         }
 

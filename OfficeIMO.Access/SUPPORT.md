@@ -74,7 +74,7 @@ The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysA
 
 `ChangeJournal` records modeled object identities, revisions and operations; rollback removes its entries. Loaded native documents remain immutable, so this journal does not imply an existing-file editor.
 
-VBA inspection shares one expansion allowance across the directory and module sources, bounded by `MaxMetadataBytes`. Bytes expanded before malformed source fails still consume that allowance. Encoded module processing has a separate allowance derived from the supplied native stream bytes; repeated malformed source attempts consume it before copying input. After exhaustion, declared module metadata remains available and unread source remains opaque with a limit diagnostic. Cancellation reaches module and compressed-chunk traversal.
+VBA inspection shares one expansion allowance across the directory and module sources, bounded by `MaxMetadataBytes`. Bytes expanded before malformed source fails still consume that allowance. The native storage reader bounds encoded input before supplying project streams. Duplicate module names or stream identities make the project inventory opaque, so the inspector does not decode the same stream repeatedly. After expansion-budget exhaustion, declared module metadata remains available and unread source remains opaque with a limit diagnostic. Cancellation reaches module and compressed-chunk traversal.
 
 ## Unchanged preservation
 

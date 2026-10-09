@@ -317,8 +317,8 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(connector.LabelPlacement);
             });
 
-            VisioConnector ingressToApi = page.Connectors.Single(connector => connector.From.Id == "ingress" && connector.To.Id == "api");
-            VisioConnector apiToDatabase = page.Connectors.Single(connector => connector.From.Id == "api" && connector.To.Id == "db");
+            VisioConnector ingressToApi = page.Connectors.Single(connector => connector.From?.Id == "ingress" && connector.To?.Id == "api");
+            VisioConnector apiToDatabase = page.Connectors.Single(connector => connector.From?.Id == "api" && connector.To?.Id == "db");
             Assert.Equal("observed", ingressToApi.Label);
             Assert.Equal(EndArrow.Triangle, apiToDatabase.EndArrow);
             Assert.Equal(2, apiToDatabase.LinePattern);
@@ -440,9 +440,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, page.GetContainerMembers(runtime).Count);
             Assert.True(runtime.GetShapeBounds().Left < ingress.GetShapeBounds().Left);
             Assert.True(runtime.GetShapeBounds().Right > worker.GetShapeBounds().Right);
-            Assert.NotEmpty(page.Connectors.Single(connector => connector.From.Id == "ingress" && connector.To.Id == "api").Waypoints);
-            Assert.NotEmpty(page.Connectors.Single(connector => connector.From.Id == "api" && connector.To.Id == "worker").Waypoints);
-            Assert.Empty(page.Connectors.Single(connector => connector.From.Id == "worker" && connector.To.Id == "audit").Waypoints);
+            Assert.NotEmpty(page.Connectors.Single(connector => connector.From?.Id == "ingress" && connector.To?.Id == "api").Waypoints);
+            Assert.NotEmpty(page.Connectors.Single(connector => connector.From?.Id == "api" && connector.To?.Id == "worker").Waypoints);
+            Assert.Empty(page.Connectors.Single(connector => connector.From?.Id == "worker" && connector.To?.Id == "audit").Waypoints);
 
             Assert.Empty(VisioValidator.Validate(updatedPath));
         }

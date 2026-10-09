@@ -28,6 +28,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int textBoxes = 0, pictures = 0, tables = 0, autoShapes = 0;
         int notes = 0, transitions = 0, backgrounds = 0, unsupportedBackgrounds = 0, unsupportedShapes = 0, unsupportedPictures = 0;
         int transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
+        int unsupportedImageCrop = 0;
         int mappedPlaceholderRoles = 0, unsupportedPlaceholderRoles = 0;
         int mappedMasters = 0, mappedLayouts = 0, mappedMasterBackgrounds = 0, approximatedMasterLayouts = 0;
         var masterNames = new Dictionary<SlideMasterPart, string>();
@@ -92,6 +93,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             if (suppressInheritedBackground && !targetSlide.BackgroundColor.HasValue)
                 targetSlide.SuppressInheritedBackground();
             if (MapTransition(sourceSlide.Transition, targetSlide)) transitions++;
+            Dictionary<uint, SourceRectangle> imageCrops = GetPowerPointImageCrops(sourcePresentation,
+                slideIndex < sourceSlideIds.Length ? sourceSlideIds[slideIndex] : null);
 
             foreach (PowerPointShape shape in sourceSlide.Shapes.OrderBy(item => item.DrawingOrder)) {
                 if (shape is PowerPointMedia) unsupportedShapes++;
@@ -123,13 +126,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         }
                         OdpImage converted = targetSlide.AddImage(imageBytes, storedFileName, ToOdfRect(picture), picture.Name);
                         CopyShapeAppearance(picture, converted, effective);
-                        if (picture.CropLeftRatio > 0D || picture.CropTopRatio > 0D || picture.CropRightRatio > 0D || picture.CropBottomRatio > 0D) {
-                            converted.Crop = new OdfInsets(
-                                OdfLength.Points(picture.CropTopRatio * picture.HeightPoints),
-                                OdfLength.Points(picture.CropRightRatio * picture.WidthPoints),
-                                OdfLength.Points(picture.CropBottomRatio * picture.HeightPoints),
-                                OdfLength.Points(picture.CropLeftRatio * picture.WidthPoints));
-                        }
+                        if (picture.Id.HasValue && imageCrops.TryGetValue(picture.Id.Value, out SourceRectangle? crop))
+                            unsupportedImageCrop += ApplyPowerPointCrop(crop, imageBytes, storedFileName, converted);
                         pictures++;
                     } catch (Exception exception) when (exception is InvalidOperationException || exception is NotSupportedException) {
                         unsupportedPictures++;
@@ -248,6 +246,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "run-interactions", textState.UnsupportedRunInteractions,
             "PowerPoint run actions, mouse-over interactions, and action sounds outside ordinary click hyperlinks are not represented in ODP.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or unavailable from an embedded image part were skipped.");
+        AddUnsupported(report, "shape-appearance", unsupportedImageCrop,
+            "PowerPoint image crop with malformed, negative, or collapsed source offsets, vector content, or unavailable intrinsic dimensions was omitted; image bytes and frame bounds were retained.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Charts, SmartArt, media, groups, and other advanced drawing shapes are not translated.");
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "Text frame settings, picture effects, and theme, image, gradient, transparency, dash, or shape effect styling outside direct solid RGB fill and outline were omitted.");
@@ -399,7 +399,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     }
                     try {
                         byte[] imageBytes = image.GetImageBytes();
-                        if (!TryGetImagePartType(image.Path, imageBytes, out OfficeImageFormat imageType)) {
+                        if (!OfficeImageReader.TryIdentifyByContent(imageBytes, image.Path, out OfficeImageInfo imageInfo)) {
                             unsupportedPictures++;
                             continue;
                         }
@@ -409,10 +409,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             continue;
                         }
                         using var stream = new MemoryStream(imageBytes, writable: false);
-                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, imageBounds);
+                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageInfo.Format, imageBounds);
                         converted.Name = image.Name;
                         unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
-                        unsupportedImageCrop += ApplyOdpCrop(image, converted);
+                        unsupportedImageCrop += ApplyOdpCrop(image, imageInfo, converted);
                         pictures++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {
@@ -571,7 +571,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "shape-appearance", unsupportedShapeAppearance,
             "ODP graphic fill, stroke, transparency, dash, or effect styling outside solid colors was omitted.");
         AddUnsupported(report, "shape-appearance", unsupportedImageCrop,
-            "ODP image crop outside the PowerPoint representable range was clamped or omitted.");
+            "ODP image crop with malformed, negative, collapsed, or unrepresentable source offsets, vector content, or unavailable intrinsic dimensions was omitted; image bytes and frame bounds were retained.");
         AddUnsupported(report, "text-box-chains", CountUnmappedOdpTextBoxChains(source),
             "Linked ODP text boxes were converted as independent boxes; text flow between frames was not retained.");
         AddUnsupported(report, "text-box-layout", CountUnmappedOdpTextBoxLayout(source),
@@ -869,33 +869,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return true;
     }
 
-    private static int ApplyOdpCrop(OdpImage source, PowerPointPicture target) {
-        if (!source.Crop.HasValue) return 0;
-        OdfInsets crop = source.Crop.Value;
-        if (!source.Bounds.Width.TryToPoints(out double width) || !source.Bounds.Height.TryToPoints(out double height)
-            || !crop.Left.TryToPoints(out double left) || !crop.Top.TryToPoints(out double top)
-            || !crop.Right.TryToPoints(out double right) || !crop.Bottom.TryToPoints(out double bottom)) return 1;
-        if (width <= 0D || height <= 0D) return 1;
-        double leftPercent = left / width * 100D;
-        double topPercent = top / height * 100D;
-        double rightPercent = right / width * 100D;
-        double bottomPercent = bottom / height * 100D;
-        bool lossy = leftPercent < 0D || topPercent < 0D || rightPercent < 0D || bottomPercent < 0D
-            || leftPercent > 100D || topPercent > 100D || rightPercent > 100D || bottomPercent > 100D
-            || leftPercent + rightPercent >= 100D || topPercent + bottomPercent >= 100D;
-        double mappedLeft = ClampPercent(leftPercent);
-        double mappedTop = ClampPercent(topPercent);
-        double mappedRight = ClampPercent(rightPercent);
-        double mappedBottom = ClampPercent(bottomPercent);
-        // PowerPoint stores thousandths of a percent. Do not write a crop that leaves no visible image after rounding.
-        if (Math.Round(mappedLeft * 1000D) + Math.Round(mappedRight * 1000D) >= 100000D
-            || Math.Round(mappedTop * 1000D) + Math.Round(mappedBottom * 1000D) >= 100000D) return 1;
-        target.Crop(mappedLeft, mappedTop, mappedRight, mappedBottom);
-        return lossy ? 1 : 0;
-    }
-
-    private static double ClampPercent(double value) => Math.Max(0D, Math.Min(100D, value));
-
     private static OdfColor? ParseColor(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         string hex = value!.Trim().TrimStart('#');
@@ -914,39 +887,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             case "image/x-wmf": return "image.wmf";
             default: return "image.png";
         }
-    }
-
-    private static bool TryGetImagePartType(string path, byte[] bytes, out OfficeImageFormat type) {
-        string normalizedPath = path;
-        int suffix = normalizedPath.IndexOfAny(new[] { '?', '#' });
-        if (suffix >= 0) normalizedPath = normalizedPath.Substring(0, suffix);
-        try { normalizedPath = Uri.UnescapeDataString(normalizedPath); } catch (UriFormatException) { }
-        switch (System.IO.Path.GetExtension(normalizedPath).ToLowerInvariant()) {
-            case ".png": type = OfficeImageFormat.Png; return true;
-            case ".jpg":
-            case ".jpeg": type = OfficeImageFormat.Jpeg; return true;
-            case ".gif": type = OfficeImageFormat.Gif; return true;
-            case ".bmp": type = OfficeImageFormat.Bmp; return true;
-            case ".tif":
-            case ".tiff": type = OfficeImageFormat.Tiff; return true;
-        }
-        if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
-            type = OfficeImageFormat.Png; return true;
-        }
-        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
-            type = OfficeImageFormat.Jpeg; return true;
-        }
-        if (bytes.Length >= 6 && bytes[0] == (byte)'G' && bytes[1] == (byte)'I' && bytes[2] == (byte)'F') {
-            type = OfficeImageFormat.Gif; return true;
-        }
-        if (bytes.Length >= 2 && bytes[0] == (byte)'B' && bytes[1] == (byte)'M') {
-            type = OfficeImageFormat.Bmp; return true;
-        }
-        if (bytes.Length >= 4 && ((bytes[0] == (byte)'I' && bytes[1] == (byte)'I' && bytes[2] == 42 && bytes[3] == 0) ||
-                                (bytes[0] == (byte)'M' && bytes[1] == (byte)'M' && bytes[2] == 0 && bytes[3] == 42))) {
-            type = OfficeImageFormat.Tiff; return true;
-        }
-        type = OfficeImageFormat.Png; return false;
     }
 
     private static void AddAdvancedPowerPointFindings(PowerPointFeatureReport source, OdfConversionReport target) {
