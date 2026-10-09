@@ -2,28 +2,25 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     internal static partial class XlsbWorksheetPartWriter {
-        internal static bool TryCreateDirectTabular(
+        /// <summary>Emits each source value once to an owned worksheet entry before package publication.</summary>
+        internal static bool TryWriteDirectTabular(
             ExcelDocument document,
             ExcelSheet sheet,
             ExcelDirectTabularSource source,
+            Stream output,
             CancellationToken cancellationToken,
-            out ArraySegment<byte> worksheetPart,
             XlsbSharedStringTable? sharedStrings = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
             IExcelSheetTabularRowSource rows = source.Rows;
             int rowOffset = source.IncludeHeaders ? 1 : 0;
-            int totalRows = checked(rows.RowCount + rowOffset);
-            if (totalRows > 1_048_576 || rows.ColumnCount > 16_384) {
-                throw new NotSupportedException("Native XLSB saving supports 1,048,576 rows and 16,384 columns per worksheet.");
-            }
+            int totalRows = ValidateDirectTabularDimensions(source);
             object?[]? flatValues = rows.TryGetFlatValues(out object?[] candidateValues, out int flatColumnCount)
                 && flatColumnCount == rows.ColumnCount
                 && candidateValues.Length == checked(rows.RowCount * rows.ColumnCount)
                     ? candidateValues
                     : null;
 
-            using var output = new MemoryStream(EstimateDirectWorksheetCapacity(totalRows, rows.ColumnCount));
             using var writer = new XlsbDirectRecordWriter(output);
             writer.WriteRecord(129); // BrtBeginSheet
             writer.WriteHeader(BrtWsDim, 16);
@@ -78,7 +75,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                             WriteDirectBooleanCell(writer, column, value.Boolean);
                             break;
                         default:
-                            worksheetPart = default;
                             return false;
                     }
                 }
@@ -94,8 +90,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             writer.WriteRecord(BrtEndSheetData);
             writer.WriteRecord(BrtEndSheet);
             writer.Flush();
-            worksheetPart = new ArraySegment<byte>(output.GetBuffer(), 0, checked((int)output.Length));
             return true;
+        }
+
+        /// <summary>Retains the staged worksheet's bounded initial reservation for an owned package.</summary>
+        internal static int EstimateDirectWorksheetCapacity(ExcelDirectTabularSource source) =>
+            EstimateDirectWorksheetCapacity(ValidateDirectTabularDimensions(source), source.Rows.ColumnCount);
+
+        private static int ValidateDirectTabularDimensions(ExcelDirectTabularSource source) {
+            int totalRows = checked(source.Rows.RowCount + (source.IncludeHeaders ? 1 : 0));
+            if (totalRows > 1_048_576 || source.Rows.ColumnCount > 16_384) {
+                throw new NotSupportedException("Native XLSB saving supports 1,048,576 rows and 16,384 columns per worksheet.");
+            }
+            return totalRows;
         }
 
         private static void WriteDirectDimension(XlsbDirectRecordWriter writer, int rowCount, int columnCount) {
