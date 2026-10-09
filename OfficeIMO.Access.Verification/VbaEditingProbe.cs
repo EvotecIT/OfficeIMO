@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace OfficeIMO.Access.Verification {
     /// <summary>Executable public native VBA workflow over independently produced synthetic applications.</summary>
     internal static class VbaEditingProbe {
-        internal static void Generate(string fixtures, string outputDirectory) {
+        internal static void Generate(string fixtures, string outputDirectory, bool recreateModule = false) {
             string root = Path.GetFullPath(outputDirectory);
             Directory.CreateDirectory(root);
             var observations = new List<object>();
@@ -20,11 +20,18 @@ namespace OfficeIMO.Access.Verification {
                 // The native oracle runs on Windows ANSI 1252. These characters have
                 // identical bytes in both 1250 and 1252; portable tests retain Polish text.
                 source = source.Replace("'Zażółć gęślą jaźń", "'Native source: éóö€");
-                project.SetModuleSource(name, source);
+                AccessCatalogEntry originalModule = database.Catalog.Single(x => x.NativeType == -32761);
+                if (recreateModule) {
+                    project.DeleteModule(name);
+                    project.AddModule(name, source, OfficeVbaModuleKind.Class);
+                } else project.SetModuleSource(name, source);
                 string growth = string.Join("\r\n", Enumerable.Range(0, 1800).Select(i => "' " + Convert.ToHexString(SHA256.HashData(BitConverter.GetBytes(i)))));
                 project.AddModule("AddedModule", "Option Explicit\r\nPublic Function AddedValue() As Long\r\n AddedValue = 44\r\nEnd Function\r\n" + growth);
                 project.AddModule("AddedClass", "Option Explicit\r\nPublic Function ClassValue() As Long\r\n ClassValue = 45\r\nEnd Function\r\n", OfficeVbaModuleKind.Class);
                 database.SetVbaProject(project);
+                if (recreateModule && (database.Catalog.Single(x => x.Name == name).NativeId == originalModule.NativeId
+                    || database.ApplicationStreams.Any(x => x.Path == "Modules/0/PropData")))
+                    throw new InvalidDataException("Recreated module retained its deleted native identity or storage.");
                 string output = Path.Combine(root, Path.GetFileName(file));
                 database.Save(output);
                 File.WriteAllText(output + ".expected-module.txt", project.GetModule(name).Source);
@@ -40,7 +47,8 @@ namespace OfficeIMO.Access.Verification {
                         throw new InvalidDataException("Unrelated native stream differs: " + stream.Path);
                 }
                 if (!original.SequenceEqual(File.ReadAllBytes(input))) throw new InvalidDataException("The input fixture changed.");
-                observations.Add(new { file, output, module = name, profile = saved.Profile.ToString(), sourceExact = true, unrelatedStreamsExact = true,
+                observations.Add(new { file, output, module = name, moduleKind = (int)project.GetModule(name).Kind, recreateModule,
+                    profile = saved.Profile.ToString(), sourceExact = true, unrelatedStreamsExact = true,
                     inputUnchanged = true, outputBytes = new FileInfo(output).Length, sha256 = saved.Inspection!.Sha256 });
             }
             File.WriteAllText(Path.Combine(root, "vba-editing.json"), JsonSerializer.Serialize(observations, new JsonSerializerOptions { WriteIndented = true }));

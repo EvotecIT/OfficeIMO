@@ -41,7 +41,8 @@ namespace OfficeIMO.Access {
                 throw new InvalidDataException(error ?? "The VBA writer did not produce a valid project.");
             const string prefix = "VBA/VBAProject/";
             AccessStorageStream[] original = ApplicationStreams.Where(x => x.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (original.Length == compound.Streams.Count && original.All(x => compound.Streams.TryGetValue(x.Path.Substring(prefix.Length), out byte[]? value) && x.Payload.GetBytes().SequenceEqual(value))) return;
+            if (project.Modules.All(module => VbaModuleSourceName(module, appliedNames) != null)
+                && original.Length == compound.Streams.Count && original.All(x => compound.Streams.TryGetValue(x.Path.Substring(prefix.Length), out byte[]? value) && x.Payload.GetBytes().SequenceEqual(value))) return;
             OfficeVbaProject current = original.Length == 0 ? OfficeVbaProject.Create(project.Name, project.CodePage)
                 : GetVbaProject(new OfficeVbaReadOptions { MaximumProjectBytes = options.MaximumProjectBytes, MaximumExpandedBytes = options.MaximumExpandedBytes }, cancellationToken);
             if (current.IsProtected || project.IsProtected) throw new InvalidOperationException("Access VBA editing does not bypass project protection.");
@@ -117,8 +118,8 @@ namespace OfficeIMO.Access {
         private static void ValidateAccessVbaHostModules(OfficeVbaProject original, OfficeVbaProject replacement, ISet<string> boundHosts,
             IReadOnlyDictionary<OfficeVbaModule, string>? appliedNames) {
             foreach (OfficeVbaModule module in replacement.Modules) {
-                string identity = appliedNames != null && appliedNames.TryGetValue(module, out string? applied) ? applied : module.IsNew ? module.Name : module.OriginalName;
-                OfficeVbaModule? previous = original.Modules.FirstOrDefault(x => x.Name.Equals(identity, StringComparison.OrdinalIgnoreCase));
+                string? identity = VbaModuleSourceName(module, appliedNames);
+                OfficeVbaModule? previous = identity == null ? null : original.Modules.FirstOrDefault(x => x.Name.Equals(identity, StringComparison.OrdinalIgnoreCase));
                 if (previous != null && previous.Kind != module.Kind) throw new ArgumentException("Replacing an Access module cannot change its native persistence kind.", nameof(replacement));
             }
             OfficeVbaModule[] hosts = original.Modules.Where(x => boundHosts.Contains(x.Name)).ToArray();

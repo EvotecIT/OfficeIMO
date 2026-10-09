@@ -19,6 +19,7 @@ try {
             $application.DoCmd.OpenModule($record.module)
             $application.DoCmd.RunCommand(126)
             $module=$application.Modules.Item($record.module)
+            if([int]$module.Type -ne [int]$record.moduleKind){throw 'Native edited module kind differs.'}
             $native=[string]$module.Lines(1,$module.CountOfLines)
             $expected=[IO.File]::ReadAllText($path+'.expected-module.txt') -replace '(?m)^Attribute [^\r\n]*\r?\n',''
             [IO.File]::WriteAllText($path+'.native-module.txt',$native)

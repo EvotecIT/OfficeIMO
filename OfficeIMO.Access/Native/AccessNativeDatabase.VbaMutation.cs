@@ -14,13 +14,12 @@ namespace OfficeIMO.Access {
             OfficeVbaModule[] ordinary = project.Modules.Where(x => !hosts.Contains(x.Name) && (x.Kind == OfficeVbaModuleKind.Standard || x.Kind == OfficeVbaModuleKind.Class)).ToArray();
             // Core retains the detached model's load identity. The document adapter
             // resolves its current native name through the stable catalog identity.
-            var sourceNames = ordinary.ToDictionary(x => x, x => appliedNames != null && appliedNames.TryGetValue(x, out string? applied)
-                ? applied : x.IsNew ? null : x.OriginalName);
+            var sourceNames = ordinary.ToDictionary(x => x, x => AccessDocument.VbaModuleSourceName(x, appliedNames));
             var renamed = ordinary.Where(x => sourceNames[x] != null && original.ContainsKey(sourceNames[x]!) && x.Name != sourceNames[x])
                 .ToDictionary(x => sourceNames[x]!, x => x.Name, StringComparer.OrdinalIgnoreCase);
-            string[] deletedNames = original.Keys.Where(name => !renamed.ContainsKey(name) && !ordinary.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))).ToArray();
-            OfficeVbaModule[] added = ordinary.Where(x => (!original.ContainsKey(x.Name) || renamed.ContainsKey(x.Name))
-                && (sourceNames[x] == null || !renamed.ContainsKey(sourceNames[x]!))).ToArray();
+            var retained = new HashSet<string>(sourceNames.Values.Where(x => x != null).Select(x => x!), StringComparer.OrdinalIgnoreCase);
+            string[] deletedNames = original.Keys.Where(name => !retained.Contains(name)).ToArray();
+            OfficeVbaModule[] added = ordinary.Where(x => sourceNames[x] == null || !original.ContainsKey(sourceNames[x]!)).ToArray();
             var deletedIds = new HashSet<int>(deletedNames.Select(name => original[name].Id));
             var additions = new List<object?[]>(); var catalogRemovals = new HashSet<uint>(); var catalogRenames = new Dictionary<uint, string>();
             int namespaceId = 0; byte[]? owner = null;

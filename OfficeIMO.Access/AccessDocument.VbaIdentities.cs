@@ -10,6 +10,10 @@ namespace OfficeIMO.Access {
             internal Guid Id { get; }
         }
 
+        /// <summary>Resolves an existing native identity; an unbound new module has no predecessor even when its name is reused.</summary>
+        internal static string? VbaModuleSourceName(OfficeVbaModule module, IReadOnlyDictionary<OfficeVbaModule, string>? appliedNames) =>
+            appliedNames != null && appliedNames.TryGetValue(module, out string? applied) ? applied : module.IsNew ? null : module.OriginalName;
+
         private IReadOnlyDictionary<OfficeVbaModule, string> ResolveVbaModuleNames(OfficeVbaProject project) {
             var names = new Dictionary<OfficeVbaModule, string>();
             var current = Catalog.Items.Where(x => x.NativeType == -32761).ToDictionary(x => x.Id);
