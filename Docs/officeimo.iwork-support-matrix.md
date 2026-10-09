@@ -102,6 +102,12 @@ saved/reopened PPTX, decoration resets, image alpha, descriptions, geometry,
 stacking, Decimal128 scalar values, empty tables and configured run/image/table budgets are checked. This bounded evidence does
 not extend the rich-run/image/table claims to Windows, Linux or other architectures.
 
+The [macOS table-border NativeAOT evidence](Compatibility/iwork-table-borders-native-aot-macos-arm64-2026-10-10.json)
+adds the native Keynote 15.4 border fixture under both runtimes. Saved/reopened PPTX
+retains inherited strokes, hidden region edges and ordered shared-cell overrides.
+Merged-cell perimeter and varied-edge policy checks have separate managed
+saved-output evidence; this native executable does not qualify their rendering.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
