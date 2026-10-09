@@ -6,6 +6,50 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTableTextReuseTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void RepeatedTextRetainsEachCellsSpacingAndScaling(bool rowColumn, bool horizontalScaling) {
+        byte[] Render(bool explicitSize) {
+            var options = new PdfOptions {
+                PageWidth = 400, PageHeight = 300,
+                MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+            };
+            var style = TableStyles.Minimal();
+            style.HeaderRowCount = 0;
+            style.FontSize = 10;
+            style.CellPaddingX = style.CellPaddingY = 0;
+            style.ColumnWidthPoints = new List<double?> { 100, 100, 100 };
+            PdfTextRun Plain() => PdfTextRun.Normal("AB", fontSize: explicitSize ? 10 : null);
+            PdfTextRun styled = horizontalScaling
+                ? Plain().WithHorizontalTextScaling(150)
+                : Plain().WithCharacterSpacing(10);
+            var rows = new[] { new[] {
+                new PdfTableCell(new[] { Plain() }),
+                new PdfTableCell(new[] { styled }),
+                new PdfTableCell(new[] { Plain() })
+            } };
+            PdfDocument document = PdfDocument.Create(options);
+            if (rowColumn) document.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
+            else document.Table(rows, style: style);
+            return document.ToBytes();
+        }
+
+        byte[] expected = Render(true);
+        using (var control = UglyToad.PdfPig.PdfDocument.Open(expected)) {
+            var letters = control.GetPage(1).Letters;
+            Assert.Equal("ABABAB", string.Concat(letters.Select(letter => letter.Value)));
+            double plainAdvance = letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+            double styledAdvance = letters[3].StartBaseLine.X - letters[2].StartBaseLine.X;
+            Assert.True(styledAdvance > plainAdvance + 1D,
+                "The control must exercise different glyph placement for the styled cell.");
+        }
+        AssertSameLetters(expected, Render(false));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void RepeatedImportedNoWrapCellsRetainThePageFrameWrappingPolicy(bool rowColumn) {

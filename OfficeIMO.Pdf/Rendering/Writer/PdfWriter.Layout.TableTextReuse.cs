@@ -53,6 +53,7 @@ internal static partial class PdfWriter {
                 run.FontFamily != null || run.LinkUri != null || run.LinkDestinationName != null || run.LinkContents != null ||
                 run.Baseline != PdfTextBaseline.Normal || run.TabLeader != PdfTabLeaderStyle.None ||
                 run.TabAlignment != PdfTabAlignment.Left || run.InlineElement != null || run.HorizontalOffset != 0D ||
+                run.CharacterSpacing != 0D || run.HorizontalTextScaling != 100D ||
                 !run.FeatureSettings.IsDefault || run.TextDirection != OfficeTextDirection.Auto ||
                 run.Text.Length == 0 || run.Text.Length > MaximumTextLength) {
                 return false;
