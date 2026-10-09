@@ -12,6 +12,19 @@ The raster constructor now enforces the existing 50-million-pixel limit before a
 
 `OfficeRasterResizeOptions` and an immutable `OfficeRasterResizePlan` replace consumer-owned aspect, crop, and temporary-memory calculations. Contain rounds midpoint ties away from zero within the requested bounds; Cover rounds upward and center-crops, with an odd extra pixel removed from the right or bottom. Percentage frame resizing retains floor rounding with a one-pixel minimum. See [managed raster workflows](Docs/officeimo.core-raster-workflows.md) for examples and metadata-omission evidence.
 
+## PDF named composite font mappings
+
+Text extraction throws `NotSupportedException` when shown text uses a named
+composite encoding such as `UniJIS-UCS2-H` without a `ToUnicode` map covering its
+shown character codes. Explicit `ActualText` and default artifact exclusion
+retain their logical extraction behavior.
+Redaction search and planning return a non-reviewable plan with an error finding
+for the same input. Previous versions could interpret these character codes as
+WinAnsi and report misleading text or no matches. Redaction review also requires
+mappings for painted text under `ActualText` or artifacts. Supply a PDF with an explicit
+Unicode map, handle the extraction failure, and check `plan.IsReviewable` before
+applying redaction. Existing `Identity-H` and `Identity-V` behavior is unchanged.
+
 ## PDF mutation assessment cancellation
 
 Replace `pdf.AssessMutations(default)` with

@@ -1,0 +1,18 @@
+{
+  "producer": "ReportLab with HeiseiMin-W3 UnicodeCIDFont; pypdf page rotation/canonical save",
+  "file": "unijis-without-to-unicode.pdf",
+  "sha256": "b46d6c1a889bc61507005758c71181b8f96146e2e18777395e3b306c23302414",
+  "byteLength": 3561,
+  "pages": 2,
+  "text": "Before private account 123 after page",
+  "encoding": "UniJIS-UCS2-H",
+  "toUnicode": false,
+  "embeddedFontPrograms": false,
+  "purpose": "Text extraction and redaction search refuse unsupported composite text mapping; not a successful font rendering fixture",
+  "runtimeBoundary": "PDF test fixture only; no Adobe CMap or font program is embedded in OfficeIMO runtime",
+  "producerVersions": {
+    "ReportLab": "4.4.9",
+    "pypdf": "6.10.0"
+  },
+  "documentLicense": "MIT"
+}

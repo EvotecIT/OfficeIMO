@@ -439,24 +439,17 @@ internal static partial class PdfPageExtractor {
         return PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
     }
     
-    private static string FormatNumber(double value) {
-        if (Math.Abs(value % 1) < 0.0000001) {
-            return ((long)Math.Round(value)).ToString(CultureInfo.InvariantCulture);
-        }
-    
-        return value.ToString("0.###", CultureInfo.InvariantCulture);
-    }
+    private static string FormatNumber(double value) => PdfNumberFormatter.Precise(value);
 
     private static void AppendNumber(StringBuilder destination, double value) {
 #if NET6_0_OR_GREATER
         Span<char> buffer = stackalloc char[64];
-        if (Math.Abs(value % 1) < 0.0000001) {
-            long rounded = (long)Math.Round(value);
-            if (rounded.TryFormat(buffer, out int integerWritten, default, CultureInfo.InvariantCulture)) {
-                destination.Append(buffer.Slice(0, integerWritten));
-                return;
-            }
-        } else if (value.TryFormat(buffer, out int realWritten, "0.###", CultureInfo.InvariantCulture)) {
+        // Keep the allocation-free common path, but preserve imported PDF reals
+        // exactly and expand exponent notation through the canonical formatter.
+        if (!double.IsNaN(value) && !double.IsInfinity(value) &&
+            value.TryFormat(buffer, out int realWritten, "R", CultureInfo.InvariantCulture) &&
+            buffer.Slice(0, realWritten).IndexOf('E') < 0 &&
+            buffer.Slice(0, realWritten).IndexOf('e') < 0) {
             destination.Append(buffer.Slice(0, realWritten));
             return;
         }

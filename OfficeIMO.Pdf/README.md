@@ -1158,6 +1158,20 @@ bounded by `MaxFormResourceTraversals`.
 For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
 was not declared and retains an explicit or inherited authored `Normal` value.
 
+Named composite font encodings such as `UniJIS-UCS2-H` require a usable `ToUnicode`
+map covering the shown character codes for text extraction and redaction search.
+If shown text lacks that mapping,
+extraction throws `NotSupportedException` and redaction planning reports an error
+instead of interpreting the character codes as WinAnsi text. Supply a PDF with
+an explicit Unicode map before using those text operations. Logical extraction
+still uses explicit `ActualText` and excludes artifacts by default. Redaction
+review requires mappings for painted text even under `ActualText` or artifacts.
+Area-based redaction and image removal also reject a blocked inspection plan,
+including unsupported text on an unselected page. Redaction refuses before
+painting marks or replacing output files and streams.
+Unused font resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain
+their current behavior and editability limits.
+
 Text extraction excludes PDF artifact marked content by default, which is the
 logical-text behavior expected for decorative headers, footers, and chart
 labels. Opt into visual text when those marked artifacts are part of the
@@ -1676,6 +1690,15 @@ reader's positioned width model, rather than an exact glyph-outline guarantee.
 Complete logical blocks and `TextAndUnderlay` remain the search defaults.
 Evidence for `TextOnly` includes text and annotation removals; preserved image and
 vector underlays remain visible in the plan without being counted as removals.
+
+Precise selection retains inherited font state and uses the source text matrix for
+scaled or sheared glyph bounds. Rewriting preserves imported numeric font resources
+and fractional review geometry. Independently produced TrueType and CFF regression
+inputs cover neighboring text, bookmarks and ink preservation; the
+[viewer checks](../Build/PdfViewerVerification/README.md) describe independent
+readback and rendering. Outlined letters require a reviewed area because they are
+vector paths rather than searchable text. Tight spacing can still block a substring
+when its review envelope intersects an unselected glyph.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
 
