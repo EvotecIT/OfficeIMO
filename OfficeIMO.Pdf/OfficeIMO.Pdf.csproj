@@ -82,6 +82,8 @@
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Visio.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odg.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
   </ItemGroup>
 

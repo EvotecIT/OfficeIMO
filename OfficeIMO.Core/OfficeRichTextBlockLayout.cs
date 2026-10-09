@@ -43,6 +43,12 @@ public sealed class OfficeRichTextBlockLayout {
     /// </summary>
     public bool Clipped { get; }
 
+    /// <summary>
+    /// Identifies a clipping flag caused only by unwrapped width overflow under
+    /// the Clip policy, which retains the complete body for drawing overhang.
+    /// </summary>
+    internal bool OnlyUnwrappedWidthOverflow { get; set; }
+
     // Keeps ink above the nominal baseline box inside a fitted frame.
     internal double ContentOffsetY { get; set; }
 }
