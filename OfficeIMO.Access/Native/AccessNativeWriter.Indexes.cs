@@ -3,6 +3,8 @@ namespace OfficeIMO.Access {
         private static readonly byte[] LetterWeights = { 0x4a, 0x4c, 0x4d, 0x4f, 0x51, 0x53, 0x55, 0x57, 0x59, 0x5b, 0x5c, 0x5e, 0x60, 0x62, 0x64, 0x66, 0x68, 0x69, 0x6b, 0x6d, 0x6f, 0x71, 0x73, 0x75, 0x76, 0x78 };
         private static byte[] TextKey(string value) {
             using MemoryStream bytes = new MemoryStream();
+            bool directory = value.StartsWith("\u0003", StringComparison.Ordinal);
+            if (directory) value = value.Substring(1);
             // General legacy (1033) weights observed in independently produced Jet4 and ACE12 keys.
             foreach (char c in value.TrimEnd(' ')) {
                 if (c >= 'a' && c <= 'z') bytes.WriteByte(LetterWeights[c - 'a']);
@@ -12,7 +14,13 @@ namespace OfficeIMO.Access {
                 else if (c == ' ') bytes.WriteByte(7);
                 else throw new NotSupportedException("Native text keys currently qualify ASCII letters, digits, underscore and spaces. Other indexed text and catalog names require additional collation qualification.");
             }
-            bytes.WriteByte(1); bytes.WriteByte(0); return bytes.ToArray();
+            bytes.WriteByte(1);
+            if (directory) {
+                // Qualified leading directory-name control character: General legacy's unprintable weight.
+                bytes.WriteByte(1); bytes.WriteByte(1); bytes.WriteByte(1);
+                bytes.WriteByte(0x80); bytes.WriteByte(7); bytes.WriteByte(6); bytes.WriteByte(5);
+            }
+            bytes.WriteByte(0); return bytes.ToArray();
         }
         private static byte[] Key(Table table, Index index, object?[] row) {
             using MemoryStream key = new MemoryStream();
@@ -45,6 +53,9 @@ namespace OfficeIMO.Access {
                 entries.Add(entry);
             }
             index.UniqueCount = keys.Count; entries.Sort(CompareBytes);
+            WriteIndexEntries(table, index, entries);
+        }
+        private void WriteIndexEntries(Table table, Index index, List<byte[]> entries) {
             List<List<byte[]>> groups = PackIndexEntries(entries);
             if (groups.Count == 1) { _pages[index.RootPage] = IndexPage(table.DefinitionPage, groups[0]); index.Pages.Add(index.RootPage); return; }
             List<(int Page, byte[] Last)> layer = new List<(int Page, byte[] Last)>();

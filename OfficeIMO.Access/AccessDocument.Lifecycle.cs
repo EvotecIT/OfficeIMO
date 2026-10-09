@@ -84,7 +84,7 @@ namespace OfficeIMO.Access {
             EnsureNotDisposed(); cancellationToken.ThrowIfCancellationRequested();
             if (Inspection == null || _path == null) return;
             AccessInspection current = Inspect(_path, new AccessLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, MaxInputBytes = _inputLimit, MaxPages = _pageLimit }, cancellationToken);
-            if (current.Sha256 != Inspection.Sha256) throw new IOException("The Access source changed after loading. Reload before assessing native edits.");
+            if (current.Sha256 != (_savedSourceIdentity ?? Inspection.Sha256)) throw new IOException("The Access source changed after loading. Reload before assessing native edits.");
         }
         private AccessFileFormat ResolveTarget(string? path, AccessSaveOptions options) {
             options.Validate();
@@ -113,6 +113,12 @@ namespace OfficeIMO.Access {
                 if (Inspection.Length > options.MaxOutputBytes) throw new InvalidDataException("Native Access output exceeds MaxOutputBytes.");
                 return new AccessOperationReport(Id, Revision, target, profile, Array.AsReadOnly(new[] {
                     new AccessDiagnostic("access.preservation.whole-file", "The immutable native snapshot is copied byte-for-byte, including unknown, compiled, signed and protected payloads. No native editing or signature validation is performed.", Id)
+                }), AccessOperationStatus.Supported);
+            }
+            if (Inspection != null && _vbaMutation != null && target == Format && profile == Profile) {
+                if (_vbaMutation.Plan.Length > options.MaxOutputBytes) throw new InvalidDataException("Native Access output exceeds MaxOutputBytes.");
+                return new AccessOperationReport(Id, Revision, target, profile, Array.AsReadOnly(new[] {
+                    new AccessDiagnostic("access.edit.vba", "The bounded native plan updates VBA streams and their qualified module catalog. Unrelated source pages and application objects are retained; old unreachable pages require separate compaction.", Id)
                 }), AccessOperationStatus.Supported);
             }
             if (Inspection == null && target == Format && profile == Profile) {
@@ -170,11 +176,16 @@ namespace OfficeIMO.Access {
             EnsureSaveAllowed(); AssessSave(path, options, cancellationToken).RequireNoLoss();
             options ??= new AccessSaveOptions(); ValidateSourceIdentity(cancellationToken);
             OfficeFileCommit.ConflictPolicy conflict = options.FileConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace;
-            if (Inspection != null && _path != null && StringComparer.Ordinal.Equals(Path.GetFullPath(path), _path) && conflict == OfficeFileCommit.ConflictPolicy.Replace) {
+            if (Inspection != null && _path != null && SameSourcePath(path, _path) && conflict == OfficeFileCommit.ConflictPolicy.Replace) {
                 // The unchanged source needs no replacement; identity was checked above.
-                return;
+                if (_vbaMutation == null) return;
             }
             OfficeFileCommit.WriteAtomically(path, stream => WriteNative(stream, cancellationToken), cancellationToken, conflict);
+            if (Inspection != null && _path != null && SameSourcePath(path, _path)) {
+                _savedSourceIdentity = _vbaMutation?.Sha256 ?? Inspection.Sha256;
+                _inputLimit = Math.Max(_inputLimit, _vbaMutation?.Plan.Length ?? Inspection.Length);
+                _pageLimit = Math.Max(_pageLimit, checked((int)((_vbaMutation?.Plan.Length ?? Inspection.Length) / 4096)));
+            }
         }
         /// <summary>Requests native stream output. The caller's position, length and ownership remain unchanged on unsupported output.</summary>
         public void Save(Stream stream, AccessSaveOptions? options = null, CancellationToken cancellationToken = default) {
@@ -182,7 +193,7 @@ namespace OfficeIMO.Access {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             AssessSave(options, cancellationToken).RequireNoLoss();
             ValidateSourceIdentity(cancellationToken); cancellationToken.ThrowIfCancellationRequested();
-            if (Inspection != null) OfficeStreamWriter.WriteAllBytes(stream, NativeDatabase!.Snapshot());
+            if (Inspection != null && _vbaMutation == null) OfficeStreamWriter.WriteAllBytes(stream, NativeDatabase!.Snapshot());
             else OfficeStreamWriter.Write(stream, destination => {
                 WriteNative(destination, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -196,8 +207,11 @@ namespace OfficeIMO.Access {
         }
         private void WriteNative(Stream stream, CancellationToken cancellation) {
             cancellation.ThrowIfCancellationRequested();
-            if (Inspection == null) _creationPlan!.Write(stream, cancellation);
+            if (_vbaMutation != null) _vbaMutation.Plan.Write(stream, cancellation);
+            else if (Inspection == null) _creationPlan!.Write(stream, cancellation);
             else { byte[] bytes = NativeDatabase!.Snapshot(); stream.Write(bytes, 0, bytes.Length); }
         }
+        private static bool SameSourcePath(string left, string right) => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right),
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     }
 }

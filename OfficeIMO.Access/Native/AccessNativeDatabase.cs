@@ -6,7 +6,7 @@ namespace OfficeIMO.Access {
     /// <summary>Immutable bounded source snapshot and shared Jet4/ACE page substrate. No providers or external references are opened.</summary>
     internal sealed partial class AccessNativeDatabase : IDisposable {
         private byte[] _bytes;
-        private readonly AccessDocument _document;
+        private AccessDocument _document;
         private readonly Dictionary<int, AccessNativeTable> _definitions = new Dictionary<int, AccessNativeTable>();
         private long _metadataBytes;
         internal void AccountMetadata(int bytes) {
@@ -25,6 +25,16 @@ namespace OfficeIMO.Access {
         }
         internal int PageCount => _bytes.Length / 4096;
         internal AccessDocument Document => _document;
+        /// <summary>Transfers a validated read projection to its containing live document without changing native bytes.</summary>
+        internal void BindReadProjection(AccessDocument document) {
+            if (document.Format != _document.Format || document.Profile != _document.Profile)
+                throw new InvalidOperationException("A native read projection must retain its database format.");
+            _document = document;
+            foreach (AccessNativeTable table in _definitions.Values) {
+                AccessTable? model = document.SystemTables.FirstOrDefault(x => x.NativeTable?.DefinitionPage == table.DefinitionPage);
+                if (model != null) { table.Model = model; foreach (AccessNativeColumn column in table.Columns) column.Model = model.Columns.FirstOrDefault(x => x.Name == column.Name); }
+            }
+        }
         internal byte[] Snapshot() { _document.EnsureNotDisposed(); return _bytes; }
         internal OfficeByteView Page(int page, byte? expectedType = null) {
             _document.EnsureNotDisposed();
@@ -51,6 +61,9 @@ namespace OfficeIMO.Access {
             reason = string.Empty; return true;
         }
         internal OfficeByteView Row(int pageNumber, int rowNumber, bool followOverflow, CancellationToken cancellation) {
+            return Row(pageNumber, rowNumber, followOverflow, cancellation, out _);
+        }
+        internal OfficeByteView Row(int pageNumber, int rowNumber, bool followOverflow, CancellationToken cancellation, out uint physicalPointer) {
             HashSet<long> visited = new HashSet<long>();
             for (int depth = 0; ; depth++) {
                 cancellation.ThrowIfCancellationRequested();
@@ -61,7 +74,7 @@ namespace OfficeIMO.Access {
                 int end = rowNumber == 0 ? 4096 : U16(page, 14 + (rowNumber - 1) * 2) & 0x1fff;
                 if (start < 14 + count * 2 || end < start || end > 4096) throw new InvalidDataException("Native Access row directory is malformed.");
                 OfficeByteView row = Slice(page, start, end - start);
-                if (!followOverflow || (slot & 0x4000) == 0) return row;
+                if (!followOverflow || (slot & 0x4000) == 0) { physicalPointer = checked(((uint)pageNumber << 8) | (uint)rowNumber); return row; }
                 uint pointer = U32(row, 0); rowNumber = (int)(pointer & 255); pageNumber = checked((int)(pointer >> 8));
             }
         }
