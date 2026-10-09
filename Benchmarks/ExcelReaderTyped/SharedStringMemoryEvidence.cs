@@ -77,7 +77,7 @@ internal static class SharedStringMemoryEvidence {
             runtime = RuntimeInformation.FrameworkDescription,
             operatingSystem = RuntimeInformation.OSDescription,
             serverGc = GCSettings.IsServerGC,
-            managedScope = "GC-retained managed bytes after forced full collections; deltas from before opening include existing pool/static-cache retention and validation effects, not allocation totals or an isolated reader footprint.",
+            managedScope = "Retained managed bytes are HeapSizeBytes minus FragmentedBytes from GC.GetGCMemoryInfo(GCKind.FullBlocking), captured after two forced blocking full collections with compaction requested and a finalizer wait. The raw GC.GetTotalMemory(false) estimate is a separate observation. Deltas from before opening include pool/static-cache retention and validation effects, not allocation totals or an isolated reader footprint.",
             processScope = "Current working set and supported .NET peak working set belong to this complete process, including fixture generation, package qualification and JIT; peaks are not per-reader peaks. A null peak means unavailable; on macOS wrap the fresh process with /usr/bin/time -l for lifetime maximum RSS.",
             snapshots,
         };
@@ -196,14 +196,18 @@ internal static class SharedStringMemoryEvidence {
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
         GC.WaitForPendingFinalizers();
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
-        long managedBytes = GC.GetTotalMemory(forceFullCollection: false);
+        GCMemoryInfo collection = GC.GetGCMemoryInfo(GCKind.FullBlocking);
+        long managedBytes = collection.HeapSizeBytes - collection.FragmentedBytes;
+        long rawEstimateBytes = GC.GetTotalMemory(forceFullCollection: false);
         process.Refresh();
         long peakBytes = process.PeakWorkingSet64;
         return new MemorySnapshot(stage, managedBytes, managedBytes - (baseline ?? managedBytes),
+            collection.Index, collection.HeapSizeBytes, collection.FragmentedBytes, rawEstimateBytes,
             process.WorkingSet64, peakBytes > 0 ? peakBytes : null);
     }
 
     private sealed record Fixture(byte[] Bytes, string SourceSha256, string Sha256, bool FromSavedInput);
     private sealed record MemorySnapshot(string Stage, long ManagedRetainedBytes, long ManagedDeltaFromBeforeOpenBytes,
+        long GcCollectionIndex, long GcHeapSizeBytes, long GcFragmentedBytes, long GcGetTotalMemoryEstimateBytes,
         long ProcessWorkingSetBytes, long? ProcessPeakWorkingSetBytes);
 }

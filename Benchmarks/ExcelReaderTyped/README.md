@@ -608,6 +608,17 @@ text through `GetValue`. Full collections happen only at the four snapshot stage
 Reports identify source/selected fixture hashes and the loaded OfficeIMO assembly.
 Managed deltas include pool and static-cache retention and validation effects.
 
+Each snapshot performs two forced blocking full collections with compaction
+requested and a finalizer wait between them. `managedRetainedBytes` uses the
+last full blocking collection's `gcHeapSizeBytes` minus `gcFragmentedBytes`;
+`managedDeltaFromBeforeOpenBytes` subtracts the before-open value.
+`gcCollectionIndex` identifies that collection. The
+[heap size](https://learn.microsoft.com/en-us/dotnet/api/system.gcmemoryinfo.heapsizebytes?view=net-10.0)
+and [fragmentation](https://learn.microsoft.com/en-us/dotnet/api/system.gcmemoryinfo.fragmentedbytes?view=net-10.0)
+describe the recorded collection state. `gcGetTotalMemoryEstimateBytes` reports
+the separate raw `GC.GetTotalMemory(false)` estimate for diagnostics; retained
+totals and deltas use the collection figures above.
+
 For a paired run, create one deflated fixture in a separate process and set
 `OFFICEIMO_SHARED_XLSX_FIXTURE` to its path for both saved-assembly runners.
 `--prepare-shared-memory-fixture <path.xlsx>` uses the selected single
