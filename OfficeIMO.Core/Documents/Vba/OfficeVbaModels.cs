@@ -31,6 +31,7 @@ public sealed class OfficeVbaModule {
     internal string OriginalSource { get; }
     internal Core.Internal.OfficeVbaDirectoryCodec.ModuleModel Directory { get; }
     internal bool IsNew { get; set; }
+    internal bool IsDocumentClass { get; set; }
 }
 
 /// <summary>A VBA library reference; unknown/control/project reference records remain opaque and preserved.</summary>

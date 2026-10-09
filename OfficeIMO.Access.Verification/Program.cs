@@ -4,6 +4,12 @@ using System.Data;
 using System.Text;
 using System.Text.Json;
 
+if (args.Length == 3 && args[0] == "--edit-vba-hosts") {
+    OfficeIMO.Access.Verification.VbaHostEditingProbe.Generate(args[1], args[2]);
+    Console.WriteLine("Public native code-behind/event edits and unrelated stream preservation verified. Native Access qualification is separate.");
+    return;
+}
+
 if (args.Length == 3 && args[0] == "--edit-vba") {
     OfficeIMO.Access.Verification.VbaEditingProbe.Generate(args[1], args[2]);
     Console.WriteLine("Public native VBA edits and unchanged unrelated streams verified. Native Access/VBE qualification is separate.");

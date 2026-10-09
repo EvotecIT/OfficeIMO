@@ -64,7 +64,12 @@
     {
       "operation": "application.objects.write",
       "supported": false,
-      "boundary": "Form/report creation, designer changes and macro authoring are unqualified. Existing code-behind source uses vba.edit."
+      "boundary": "Form/report object creation, general designer changes and macro authoring are unqualified. Code-behind uses vba.edit; selected inert event edits use application.events.write."
+    },
+    {
+      "operation": "application.events.write",
+      "supported": true,
+      "boundary": "ACE expanded version-21 form/report Open, label/text-box/combo-box Click and text-box/combo-box AfterUpdate binding/clearing without execution. Replacing Click removes its associated embedded macro. Jet version-19, nonempty deltas and other control/event layouts reject edits."
     },
     {
       "operation": "vba.inspect",
@@ -74,7 +79,7 @@
     {
       "operation": "vba.edit",
       "supported": true,
-      "boundary": "Detached shared Core project editing and explicit native Jet4/ACE12/14 persistence. Qualified unsigned/unprotected storage supports ordinary module source/add/remove/rename and existing form/report source; native host bindings, catalog identities and unrelated pages remain preserved. First projects require an existing qualified native application. Unknown storage/permission/index/signature layouts reject mutation."
+      "boundary": "Detached shared Core project editing and explicit native Jet4/ACE12/14 persistence. Qualified unsigned/unprotected storage supports ordinary module source/add/remove/rename and new/existing code-behind on existing forms/reports; retained host bindings, catalog identities and unrelated pages remain preserved. First projects require an existing qualified native application. Unknown storage/permission/index/signature layouts reject mutation."
     },
     {
       "operation": "protection.inspect",

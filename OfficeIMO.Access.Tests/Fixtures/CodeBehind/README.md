@@ -12,3 +12,5 @@ These files contain synthetic project-owned data. Microsoft Access created the a
 The form and report have inert Open handlers. `GroupChoice1` has an inert AfterUpdate handler. Existing designer data and the embedded macro remain in the files. PROJECT declares the bound modules with `DocClass`; their source carries the native `VB_Base` identity.
 
 `New-NativeCodeBehind.ps1 -FixtureRoot <fixtures> -OutputRoot <new-output-folder>` regenerates code-behind from the `Designer` corpus. `New-NativeEmptyApplications.ps1 -OutputRoot <new-output-folder>` creates empty applications and separate copies containing an independently imported first module. Both scripts require Windows Microsoft Access only for fixture generation, force macros disabled, and close their owned application. They are outside the library runtime and ordinary test execution.
+
+`empty-designer-ace12.accdb` is a native ACE 12 form with one label and no source modules. `New-NativeEmptyDesigner.ps1 -OutputPath <new-file.accdb>` recreates it with macros disabled. It qualifies designer-only event edits and a first native code-behind class; no VBA or event action is executed.

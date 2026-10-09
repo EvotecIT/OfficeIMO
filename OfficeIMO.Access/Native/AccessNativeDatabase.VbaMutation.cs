@@ -5,7 +5,8 @@ namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeDatabase {
         /// <summary>Adapts a shared project artifact to native Access storage and its module catalog.</summary>
         internal AccessNativeWriter BuildVbaMutation(OfficeVbaProject project, OfficeCompoundFile compound,
-            long maximumBytes, CancellationToken cancellation, ISet<string> hosts, IReadOnlyDictionary<OfficeVbaModule, string>? appliedNames = null) {
+            long maximumBytes, CancellationToken cancellation, ISet<string> hosts, IReadOnlyDictionary<OfficeVbaModule, string>? appliedNames = null,
+            IReadOnlyDictionary<string, byte[]>? hostStreams = null) {
             const string prefix = "VBA/VBAProject/";
             var replacements = compound.Streams.ToDictionary(x => prefix + x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
             var removals = new HashSet<string>(_applicationStreams.Keys.Where(x => x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !replacements.ContainsKey(x)), StringComparer.OrdinalIgnoreCase);
@@ -85,13 +86,18 @@ namespace OfficeIMO.Access {
                 byte[] metadata = new byte[12]; metadata[0] = 1; metadata[4] = 1;
                 for (int i = 0; i < 4; i++) metadata[8 + i] = (byte)(project.Modules.Count >> (i * 8));
                 replacements["VBA/AcessVBAData"] = metadata;
-                if (!_applicationStreams.TryGetValue("PropData", out AccessStorageStream? propertyStream)
-                    || !propertyStream.Payload.GetBytes().SequenceEqual(new byte[] { 0,0,0,0,2,0x69,0,0,0,4,0,0,0 }))
+                byte[] prefixProperties = { 0,0,0,0,2,0x69,0,0,0,4,0,0,0 };
+                if (!_applicationStreams.TryGetValue("PropData", out AccessStorageStream? propertyStream))
                     throw new NotSupportedException("First-project application properties require the qualified empty native layout.");
-                using MemoryStream properties = new MemoryStream(); properties.Write(propertyStream.Payload.GetBytes(), 0, 13);
+                byte[] existing = propertyStream.Payload.GetBytes();
+                using MemoryStream properties = new MemoryStream(); properties.Write(prefixProperties, 0, prefixProperties.Length);
                 using (BinaryWriter value = new BinaryWriter(properties, Encoding.Unicode, true)) { value.Write((byte)2); value.Write(0x6a); value.Write(project.CodePage); }
-                replacements["PropData"] = properties.ToArray();
+                byte[] initialized = properties.ToArray();
+                if (existing.SequenceEqual(prefixProperties)) replacements["PropData"] = initialized;
+                else if (!existing.SequenceEqual(initialized))
+                    throw new NotSupportedException("First-project application properties have an unqualified code-page or record layout.");
             }
+            if (hostStreams != null) foreach (var stream in hostStreams) replacements.Add(stream.Key, stream.Value);
             AccessNativeWriter writer = BuildApplicationStreamReplacement(replacements, maximumBytes, cancellation, removals);
             writer.MutateApplicationRows(this, catalog, additions, catalogRemovals, catalogRenames);
             if (additions.Count != 0 || deletedIds.Count != 0) MutateModulePermissions(writer, namespaceId, original.Values.Select(x => x.Id).ToArray(), additions, deletedIds, cancellation);

@@ -137,7 +137,19 @@ database.Save("edited.accdb");
 
 The executable public workflow is `dotnet run --project OfficeIMO.Access.Verification -- --edit-vba OfficeIMO.Access.Tests/Fixtures <new-output-folder>`. On a Windows machine with Access installed, `OfficeIMO.Access.Verification/Test-NativeVbaEditing.ps1 -OutputRoot <output-folder>` independently reopens and compiles those synthetic outputs with macros disabled.
 
-Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. Host module rename/removal, adding new code-behind, and designer/event-binding changes are unqualified.
+Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. `SetCodeBehind` creates or replaces code-behind on an existing native form or report, including its first class module. Host module rename/removal remains unqualified.
+
+```csharp
+AccessApplicationObject form = database.Forms["Orders"];
+form.SetCodeBehind("Option Explicit\r\nPrivate Sub Form_Open(Cancel As Integer)\r\nEnd Sub\r\n");
+form.SetEventBinding(AccessEventKind.Open, "[Event Procedure]");
+form.SetEventBinding(AccessEventKind.AfterUpdate, "=Len(\"inert\")", "CustomerChoice");
+database.Save("orders-edited.accdb");
+```
+
+Event authoring is qualified for ACE expanded version-21 designers: form/report Open, label/text-box/combo-box Click, and text-box/combo-box AfterUpdate. Bindings remain inert; setting an event does not create or run a handler. `[Event Procedure]` requires existing code-behind. Null or empty clears a binding. Replacing Click also removes its associated embedded macro; unrelated native records remain exact. Jet version-19 designers, nonempty designer deltas, other control/event layouts and new embedded actions reject event edits.
+
+The executable host workflow is `dotnet run --project OfficeIMO.Access.Verification -- --edit-vba-hosts OfficeIMO.Access.Tests/Fixtures <new-output-folder>`. `Test-NativeVbaHosts.ps1 -OutputRoot <output-folder>` and `Test-NativeVbaHostEvents.ps1 -OutputRoot <output-folder>` independently verify native class source, event state and VBE compilation with macros disabled.
 
 Native editing is qualified for unprotected Jet 4 and ACE 12/14 application storage. Module catalog IDs, storage slots, permission records and unrelated application payloads remain preserved. Unknown permission/index/signature carriers reject editing; signature validation and signed-project authoring are unavailable. The default `MaximumRecoveryBytes` is 64 MiB. Old unreachable pages remain allocated; this operation does not compact the database.
 
