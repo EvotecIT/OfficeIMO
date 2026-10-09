@@ -550,7 +550,12 @@ all five Double monetary fields. Both readers use their ordinary automatic
 header mapping. Sylvan supplies an independent per-field oracle outside timing.
 
 `SharedStringFirstRowBenchmarks` measures initialization, moving to the first
-header row, and disposal. `SharedStringFullScanBenchmarks` consumes all
+header row, and disposal. It does not materialize header values.
+`SharedStringHeaderBenchmarks` materializes every header string after opening
+the same large table, then disposes the reader. This separates sparse string
+materialization from a first-row cursor move. Setup checks every header against
+the generator in all three readers and retains the complete field qualification.
+`SharedStringFullScanBenchmarks` consumes all
 materialized fields separately. `SharedStringBorrowedScanBenchmarks` retains
 the original peer span reads and its explicit prefetch option as diagnostics.
 `SharedStringUtf8ReadBenchmarks` adds the public OfficeIMO borrowed shared-string
@@ -564,9 +569,10 @@ there is no caller string-to-byte adapter.
 Its text fields use public borrowed UTF-8 spans, and numeric/date values retain
 their native getters. Setup validates every borrowed byte, native field type,
 count, and order against the generator, peer, and independent Sylvan reader.
-Each measured operation opens and disposes a new reader. OfficeIMO normalizes
-shared-string text and encodes UTF-8 on lookup, with a bounded cache owned by that
-reader. Native XLSB decodes its UTF-16 string storage and uses its canonical
+Each measured operation opens and disposes a new reader. OfficeIMO borrows
+canonical bytes for indexed plain ASCII shared strings. Other normalized
+shared strings encode UTF-8 on lookup with a bounded reader-owned cache.
+Native XLSB decodes its UTF-16 string storage and uses its canonical
 bounded UTF-8 cache. First lookup, eviction, and uncached encoding costs remain
 timed in both formats. The
 peer's normal and explicit decompression-prefetch policies remain separate.

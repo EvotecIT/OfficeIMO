@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         private readonly WorkbookScanWorkload _scan = new();
         private int _rows;
         private ComparisonWorkbookFormat _format;
+        private long _headerChecksum;
 #if OFFICEIMO_BENCHMARK_NEW_APIS
         private long _borrowedChecksum;
 #endif
@@ -41,8 +42,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             object[] headers = StringHeavyWorkbookGenerator.Headers.Cast<object>().ToArray();
             _scan.Setup(_bytes, format, rows + 1, headers.Length,
                 index => index == 0 ? headers : StringHeavyWorkbookGenerator.ExpectedValues(index));
+            _headerChecksum = StringHeavyWorkbookGenerator.Headers.Sum(static text => (long)text.Length);
             if (!ExcelReaderFirstRow() || !OfficeIMOFirstRow() || !SylvanFirstRow())
                 throw new InvalidDataException("The SST lifecycle case did not produce its first header row.");
+            ValidateMaterializedHeaders();
             Console.WriteLine($"Qualified shared-string lifecycle {format}/{storage}: rows={rows + 1}, bytes={_bytes.Length}; "
                 + $"SHA256={Convert.ToHexString(SHA256.HashData(_bytes))}; "
                 + "stored variant changes compression of every ZIP part, preserving all inflated bytes.");
@@ -133,6 +136,63 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return reader.Read();
         }
 
+        internal long ExcelReaderMaterializedHeaders() {
+            using MemoryStream stream = new MemoryStream(_bytes, writable: false);
+            using IExcelWorkbook workbook = OpenPeer(stream);
+            using IExcelRowEnumerator rows = workbook.FirstSheet.GetEnumerator();
+            if (!rows.MoveNext()) throw new InvalidDataException("The SST header row is missing.");
+            long checksum = 0;
+            for (int column = 0; column < StringHeavyWorkbookGenerator.Headers.Length; column++)
+                checksum += rows.Current[column].GetString().Length;
+            return ValidateHeaderChecksum(checksum);
+        }
+
+        internal long OfficeIMOMaterializedHeaders() {
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
+            if (!reader.Read() || reader.FieldCount != StringHeavyWorkbookGenerator.Headers.Length)
+                throw new InvalidDataException("The SST header row shape differs.");
+            long checksum = 0;
+            for (int column = 0; column < reader.FieldCount; column++) checksum += reader.GetString(column).Length;
+            return ValidateHeaderChecksum(checksum);
+        }
+
+        internal long SylvanMaterializedHeaders() {
+            using MemoryStream stream = new MemoryStream(_bytes, writable: false);
+            using Sylvan.Data.Excel.ExcelDataReader reader = global::Sylvan.Data.Excel.ExcelDataReader.Create(stream,
+                _format == ComparisonWorkbookFormat.Xlsx ? ExcelWorkbookType.ExcelXml : ExcelWorkbookType.ExcelBinary,
+                new ExcelDataReaderOptions { Schema = ExcelSchema.NoHeaders });
+            if (!reader.Read() || reader.FieldCount != StringHeavyWorkbookGenerator.Headers.Length)
+                throw new InvalidDataException("The SST header row shape differs.");
+            long checksum = 0;
+            for (int column = 0; column < reader.FieldCount; column++) checksum += reader.GetString(column).Length;
+            return ValidateHeaderChecksum(checksum);
+        }
+
+        private long ValidateHeaderChecksum(long checksum) => checksum == _headerChecksum ? checksum
+            : throw new InvalidDataException("The SST materialized header checksum differs.");
+
+        private void ValidateMaterializedHeaders() {
+            using MemoryStream stream = new MemoryStream(_bytes, writable: false);
+            using IExcelWorkbook peer = OpenPeer(stream);
+            using IExcelRowEnumerator peerRows = peer.FirstSheet.GetEnumerator();
+            using ExcelWorkbookDataReader office = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
+            using MemoryStream sylvanStream = new MemoryStream(_bytes, writable: false);
+            using Sylvan.Data.Excel.ExcelDataReader sylvan = global::Sylvan.Data.Excel.ExcelDataReader.Create(sylvanStream,
+                _format == ComparisonWorkbookFormat.Xlsx ? ExcelWorkbookType.ExcelXml : ExcelWorkbookType.ExcelBinary,
+                new ExcelDataReaderOptions { Schema = ExcelSchema.NoHeaders });
+            if (!peerRows.MoveNext() || !office.Read() || !sylvan.Read()
+                || office.FieldCount != StringHeavyWorkbookGenerator.Headers.Length || sylvan.FieldCount != office.FieldCount)
+                throw new InvalidDataException("The SST materialized header row shape differs.");
+            for (int column = 0; column < office.FieldCount; column++) {
+                string expected = StringHeavyWorkbookGenerator.Headers[column];
+                if (peerRows.Current[column].GetString() != expected || office.GetString(column) != expected || sylvan.GetString(column) != expected)
+                    throw new InvalidDataException($"The SST materialized header differs at column {column + 1}.");
+            }
+            if (ExcelReaderMaterializedHeaders() != _headerChecksum || OfficeIMOMaterializedHeaders() != _headerChecksum
+                || SylvanMaterializedHeaders() != _headerChecksum)
+                throw new InvalidDataException("The SST materialized header operations differ.");
+        }
+
         private IExcelWorkbook OpenPeer(Stream stream) => _format switch {
             ComparisonWorkbookFormat.Xlsx => ExcelReaderApi.FromXlsx(stream),
             ComparisonWorkbookFormat.Xlsb => ExcelReaderApi.FromXlsb(stream),
@@ -195,6 +255,26 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         public bool OfficeIMOOpenThroughFirstRow() => _workload.OfficeIMOFirstRow();
         [Benchmark]
         public bool SylvanOpenThroughFirstRow() => _workload.SylvanFirstRow();
+    }
+
+    /// <summary>Opens a fresh reader and materializes only the header strings from a large shared table.</summary>
+    [MemoryDiagnoser]
+    [BenchmarkCategory("SharedStringsMaterializedHeaders")]
+    public class SharedStringHeaderBenchmarks {
+        private readonly SharedStringLifecycleWorkload _workload = new();
+        [ParamsSource(nameof(RowCounts))]
+        public int RowCount { get; set; } = 65_536;
+        [ParamsAllValues]
+        public SharedStringZipStorage Storage { get; set; }
+        public IEnumerable<int> RowCounts() => new StringHeavyReadBenchmarks().RowCounts();
+        [GlobalSetup]
+        public Task SetupAsync() => _workload.SetupAsync(RowCount, Storage);
+        [Benchmark(Baseline = true)]
+        public long ExcelReaderMaterializedHeaders() => _workload.ExcelReaderMaterializedHeaders();
+        [Benchmark]
+        public long OfficeIMOMaterializedHeaders() => _workload.OfficeIMOMaterializedHeaders();
+        [Benchmark]
+        public long SylvanMaterializedHeaders() => _workload.SylvanMaterializedHeaders();
     }
 
     /// <summary>Consumes all materialized fields with compression varied independently of worksheet content.</summary>
