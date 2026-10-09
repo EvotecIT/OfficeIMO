@@ -28,7 +28,7 @@ public sealed partial class ChmDocument {
                 source.Document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
                     attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase) || attribute.LocalName.Equals("srcdoc", StringComparison.OrdinalIgnoreCase))))
                 diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_ACTIVE_CONTENT_OMITTED", "Scripts, executable attributes, embedded controls and help-viewer frames are not reproduced in the document projection.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topic.Path));
-            HtmlDocument normalized = source.CreateDocumentForConversion();
+            HtmlDocument normalized = source.CreateDocumentForConversion(cancellationToken);
             string prefix = anchors[topic.Path];
             foreach (HtmlElement element in normalized.QuerySelectorAll("*")) {
                 cancellationToken.ThrowIfCancellationRequested();

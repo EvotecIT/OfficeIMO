@@ -102,7 +102,11 @@ public sealed partial class HtmlConversionDocument {
     /// <summary>
     /// Creates an independent policy-normalized DOM for the conversion profile's default media context.
     /// </summary>
-    public Dom.HtmlDocument CreateDocumentForConversion() => CreateDocumentForConversion(_mediaContext);
+    public Dom.HtmlDocument CreateDocumentForConversion() => CreateDocumentForConversion(_mediaContext, CancellationToken.None);
+
+    /// <summary>Creates an independent policy-normalized DOM with cooperative cancellation.</summary>
+    public Dom.HtmlDocument CreateDocumentForConversion(CancellationToken cancellationToken) =>
+        CreateDocumentForConversion(_mediaContext, cancellationToken);
 
     /// <summary>
     /// Creates a policy-normalized DOM filtered for a target media context without reparsing source HTML or mutating shared state.
@@ -110,19 +114,33 @@ public sealed partial class HtmlConversionDocument {
     /// <param name="mediaContext">Screen or print media context selected by the target adapter.</param>
     /// <returns>An independent DOM clone that the target adapter may safely mutate.</returns>
     public Dom.HtmlDocument CreateDocumentForConversion(HtmlCssMediaContext mediaContext) =>
-        NativeDomBridge.Import(CreateNativeDocumentForConversion(mediaContext));
+        CreateDocumentForConversion(mediaContext, CancellationToken.None);
+
+    /// <summary>Creates an independent policy-normalized DOM for the selected media context with cooperative cancellation.</summary>
+    /// <param name="mediaContext">Screen or print media context selected by the target adapter.</param>
+    /// <param name="cancellationToken">Cancels normalization, cloning, media filtering and owned-DOM projection.</param>
+    /// <returns>An independent DOM clone that the target adapter may safely mutate.</returns>
+    public Dom.HtmlDocument CreateDocumentForConversion(HtmlCssMediaContext mediaContext, CancellationToken cancellationToken) =>
+        NativeDomBridge.Import(CreateNativeDocumentForConversion(mediaContext, cancellationToken), cancellationToken: cancellationToken);
 
     /// <summary>Native DOM boundary retained for the existing format/CSS implementation.</summary>
-    internal IHtmlDocument CreateNativeDocumentForConversion(HtmlCssMediaContext? mediaContext = null) {
+    internal IHtmlDocument CreateNativeDocumentForConversion(HtmlCssMediaContext? mediaContext = null) =>
+        CreateNativeDocumentForConversion(mediaContext, CancellationToken.None);
+
+    internal IHtmlDocument CreateNativeDocumentForConversion(HtmlCssMediaContext? mediaContext, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         HtmlCssMediaContext effectiveMedia = mediaContext ?? _mediaContext;
-        IHtmlDocument canonical = _adapterDocument.Value;
+        // A cancelled per-operation factory must not poison the shared Lazy with a cached exception.
+        IHtmlDocument canonical = !cancellationToken.CanBeCanceled || _adapterDocument.IsValueCreated
+            ? _adapterDocument.Value : BuildAdapterDocument(cancellationToken);
         IHtmlDocument document;
-        lock (_analysisSync) document = HtmlDocumentParser.CloneDocument(canonical);
+        lock (_analysisSync) document = HtmlDocumentParser.CloneDocument(canonical, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
-        HtmlActiveMediaFilter.Filter(document, effectiveMedia, diagnostics);
+        HtmlActiveMediaFilter.Filter(document, effectiveMedia, diagnostics, cancellationToken);
         if (diagnostics.Count > 0) {
             lock (_diagnosticSync) _diagnostics.AddRange(diagnostics);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return document;
     }
 
@@ -144,21 +162,21 @@ public sealed partial class HtmlConversionDocument {
 
     internal IHtmlDocument CreateSourceDocumentForConversion(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        return AnalyzeSource(source => HtmlDocumentParser.CloneDocument(source, cancellationToken));
+        return AnalyzeSource(source => HtmlDocumentParser.CloneDocument(source, cancellationToken), cancellationToken);
     }
 
     /// <summary>
     /// Projects the canonical source DOM under the document's analysis lock. The projection must
     /// treat the supplied document as read-only and must not retain it after the callback returns.
     /// </summary>
-    internal T ProjectSourceDocument<T>(Func<IHtmlDocument, T> projection) {
+    internal T ProjectSourceDocument<T>(Func<IHtmlDocument, T> projection, CancellationToken cancellationToken = default) {
         if (projection == null) throw new ArgumentNullException(nameof(projection));
-        return AnalyzeSource(projection);
+        return AnalyzeSource(projection, cancellationToken);
     }
 
     /// <summary>Counts the source nodes covered by the shared parser budget, including template and srcdoc trees.</summary>
     internal int CountSourceNodes(CancellationToken cancellationToken) =>
-        AnalyzeSource(source => HtmlConversionInputGuard.ValidateDocument(source, _options.Limits, cancellationToken));
+        AnalyzeSource(source => HtmlConversionInputGuard.ValidateDocument(source, _options.Limits, cancellationToken), cancellationToken);
 
     /// <summary>
     /// Creates a policy-normalized adapter DOM without selecting a media context. Structural
@@ -265,17 +283,21 @@ public sealed partial class HtmlConversionDocument {
         }
     }
 
-    private IHtmlDocument BuildAdapterDocument() {
+    private IHtmlDocument BuildAdapterDocument() => BuildAdapterDocument(CancellationToken.None);
+
+    private IHtmlDocument BuildAdapterDocument(CancellationToken cancellationToken) {
         return AnalyzeSource(source => {
-            IHtmlDocument document = HtmlNormalizer.NormalizeToDocument(source, ConfigureAdapterNormalization(source, _options));
-            HtmlConversionInputGuard.ValidateDocument(document, _options.Limits);
+            IHtmlDocument document = HtmlNormalizer.NormalizeToDocument(source, ConfigureAdapterNormalization(source, _options), cancellationToken);
+            HtmlConversionInputGuard.ValidateDocument(document, _options.Limits, cancellationToken);
             return document;
-        });
+        }, cancellationToken);
     }
 
-    private T AnalyzeSource<T>(Func<IHtmlDocument, T> analysis) {
+    private T AnalyzeSource<T>(Func<IHtmlDocument, T> analysis, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         lock (_analysisSync) {
-            IHtmlDocument source = _sourceDocument ?? NativeDomBridge.GetNativeDocument(_document.Value);
+            cancellationToken.ThrowIfCancellationRequested();
+            IHtmlDocument source = _sourceDocument ?? NativeDomBridge.GetNativeDocument(_document.Value, cancellationToken);
             return analysis(source);
         }
     }

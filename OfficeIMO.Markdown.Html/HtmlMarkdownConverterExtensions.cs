@@ -65,13 +65,13 @@ public static class HtmlMarkdownConverterExtensions {
                 converter.ConvertReadOnlyDocumentToDocument(
                     sourceDocument,
                     operation,
-                    document.SourceHtml.Length));
+                    document.SourceHtml.Length), cancellationToken);
         } else {
             AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateSourceDocumentForConversion(cancellationToken);
             if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
-                HtmlActiveMediaFilter.Filter(sourceDocument, HtmlCssMediaContext.Print);
+                HtmlActiveMediaFilter.Filter(sourceDocument, HtmlCssMediaContext.Print, diagnostics: null, cancellationToken);
             } else {
-                HtmlActiveMediaFilter.FilterUnsupportedPictureSources(sourceDocument);
+                HtmlActiveMediaFilter.FilterUnsupportedPictureSources(sourceDocument, cancellationToken);
             }
             value = converter.ConvertPreparedDocumentToDocument(
                 sourceDocument,
@@ -89,9 +89,9 @@ public static class HtmlMarkdownConverterExtensions {
         HtmlToMarkdownOptions operation = options.Clone();
         ApplyDocumentPolicies(document, operation);
         if (document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint) {
-            HtmlActiveMediaFilter.Filter(prepared, HtmlCssMediaContext.Print);
+            HtmlActiveMediaFilter.Filter(prepared, HtmlCssMediaContext.Print, diagnostics: null, cancellationToken);
         } else {
-            HtmlActiveMediaFilter.FilterUnsupportedPictureSources(prepared);
+            HtmlActiveMediaFilter.FilterUnsupportedPictureSources(prepared, cancellationToken);
         }
         return new HtmlToMarkdownConverter(cancellationToken).ConvertReadOnlyDocumentToDocument(
             prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions, cancellationToken);

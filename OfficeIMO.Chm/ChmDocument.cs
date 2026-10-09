@@ -132,6 +132,11 @@ public sealed partial class ChmDocument {
             ParserProvider = _options.ParserProvider, InputEncodingProvider = _options.EncodingProvider
         };
         options.BaseUri = GetTopicUri(path);
+        if (options.NormalizationOptions != null) {
+            // Resolve authored bases from the topic URI, never from caller fallback context.
+            options.NormalizationOptions.BaseUri = null;
+            options.NormalizationOptions.BaseElementBaseUri = null;
+        }
         options.Limits.MaxInputCharacters = Math.Min(requested?.Limits.MaxInputCharacters ?? int.MaxValue, _options.MaxEntryBytes);
         options.Limits.MaxHtmlNodes = Math.Min(requested?.Limits.MaxHtmlNodes ?? int.MaxValue, _options.MaxHtmlNodes);
         options.Limits.MaxHtmlDepth = Math.Min(requested?.Limits.MaxHtmlDepth ?? int.MaxValue, _options.MaxHtmlDepth);

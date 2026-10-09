@@ -96,10 +96,10 @@ internal static partial class HtmlReaderAdapter {
             cancellationToken);
         sourceNodeCount = countSourceNodes ? conversionDocument.CountSourceNodes(cancellationToken) : 0;
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
-            conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen),
+            conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen, cancellationToken),
             projectionOptions, cancellationToken);
         projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
-        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
+        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false, cancellationToken);
         if (hasProjectionFilters) {
             projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
         }

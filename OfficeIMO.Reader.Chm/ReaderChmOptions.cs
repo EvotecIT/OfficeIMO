@@ -9,7 +9,7 @@ public sealed class ReaderChmOptions {
     public ChmReadOptions ReadOptions { get; set; } = new ChmReadOptions();
     /// <summary>Topic selection and aggregate HTML budgets.</summary>
     public ChmConversionOptions ConversionOptions { get; set; } = new ChmConversionOptions();
-    /// <summary>Options for the canonical rich HTML reader used on each topic.</summary>
+    /// <summary>Options for the canonical rich HTML reader used on each topic. The archive topic URI supplies the projection base.</summary>
     public ReaderHtmlOptions HtmlOptions { get; set; } = ReaderHtmlOptions.CreateOfficeIMOProfile();
     /// <summary>Creates a detached registration snapshot.</summary>
     public ReaderChmOptions Clone() => new ReaderChmOptions {

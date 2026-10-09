@@ -322,7 +322,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 PreserveStyleElements = true,
                 RemoveEventHandlerAttributes = true,
                 CollapseTextWhitespace = false
-            });
+            }, context?.CancellationToken ?? default);
     }
 
     private static string NormalizeBlockText(string? value) {

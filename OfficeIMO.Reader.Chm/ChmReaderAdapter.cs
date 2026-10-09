@@ -25,6 +25,8 @@ internal static class ChmReaderAdapter {
             string virtualPath = input.Source.Path + "!" + topic.Path;
             ReaderHtmlOptions htmlOptions = options.HtmlOptions.Clone();
             htmlOptions.ConversionOptions = book.CreateHtmlOptions(topic.Path, htmlOptions.ConversionOptions);
+            if (htmlOptions.HtmlToMarkdownOptions != null)
+                htmlOptions.HtmlToMarkdownOptions.BaseUri = htmlOptions.ConversionOptions.BaseUri;
             ChmDocument.LimitHtmlNodes(htmlOptions.ConversionOptions, nodes, options.ConversionOptions);
             OfficeDocumentReadResult projected = HtmlReaderAdapter.ReadContentDocument(html, virtualPath, reader, htmlOptions, token, out int topicNodes);
             ChmDocument.ReserveHtmlNodes(ref nodes, topicNodes, options.ConversionOptions);
