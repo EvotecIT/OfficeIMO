@@ -19,7 +19,7 @@ internal static partial class CsvParser
     /// the canonical text row source from the current record boundary so quote and comment
     /// behavior continues to have one implementation.
     /// </summary>
-    internal sealed class CsvUtf8StreamDataReaderRowSource : ICsvDataReaderHeaderRowSource, ICsvDataReaderPositionSource
+    internal sealed partial class CsvUtf8StreamDataReaderRowSource : ICsvDataReaderHeaderRowSource, ICsvDataReaderPositionSource
     {
         private const int BufferSize = 256 * 1024;
         private const int FallbackTextBufferSize = 128 * 1024;
