@@ -32,8 +32,7 @@ public sealed partial class OfficeWorkflowRunner {
         try {
             conversion = source.ToPdfDocumentResult(options, token);
             if (imported != null) conversion = conversion.WithSourceConversionReport(imported.Report);
-            byte[] bytes = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
-            var evidence = new OfficeWorkflowConversionEvidence(conversion.ConversionReports, facts);
+            var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
             if (settings.RequireNoLoss) evidence.RequireNoLoss();
             AddConversionDiagnostics(evidence, diagnostics);
             return (bytes, evidence);

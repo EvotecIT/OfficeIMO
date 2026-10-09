@@ -173,6 +173,8 @@ public sealed partial class OfficeWorkflowRunner {
                 $"Assembled {sourceCount:N0} {(sourceCount == 1 ? "input" : "inputs")} into {pageCount:N0} PDF {(pageCount == 1 ? "page" : "pages")}.",
                 diagnostics);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelledConversion)
+                AddConversionDiagnostics(cancelledConversion.Evidence, diagnostics);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
@@ -198,7 +200,7 @@ public sealed partial class OfficeWorkflowRunner {
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
-            if (ex is WorkflowConversionFailureException conversionFailure)
+            if (ex is WorkflowConversionFailureException { DiagnosticsAdded: false } conversionFailure)
                 AddConversionDiagnostics(conversionFailure.Evidence, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PdfAssemblyFailed",

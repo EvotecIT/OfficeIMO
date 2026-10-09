@@ -37,7 +37,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (string.Equals(outputExtension, ".pdf", StringComparison.OrdinalIgnoreCase)) {
             // Media has already been optimized once. PDF generation keeps its default image policy.
             var conversion = word.ToPdfDocumentResult(new WordToPdfOptions(), token);
-            bytes = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token);
+            bytes = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token).Bytes;
             AddPdfWarnings(conversion.Warnings, diagnostics);
         } else {
             using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
