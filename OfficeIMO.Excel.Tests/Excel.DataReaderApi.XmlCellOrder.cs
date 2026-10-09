@@ -24,12 +24,14 @@ public partial class Excel {
                 _ => "<c r=\"B2\"><v>1</v></c><c r=\"A2\"><v>2</v></c><c r=\"B2\"><v>3</v></c>"
             };
             string xml = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-                + "<dimension ref=\"A1:B4\"/><sheetData>"
+                + "<dimension ref=\"A1:B4097\"/><sheetData>"
                 + "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Id</t></is></c>"
                 + "<c r=\"B1\" t=\"inlineStr\"><is><t>Value</t></is></c></row>"
                 + "<row r=\"2\">" + cells + "</row>"
                 + "<row r=\"3\"><c r=\"A3\"><v>4</v></c><c r=\"B3\"><v>5</v></c></row>"
-                + "<row r=\"4\"><c r=\"A4\"><v>6</v></c></row></sheetData></worksheet>";
+                + "<row r=\"4\"><c r=\"A4\"><v>6</v></c></row>"
+                // A real later row selects the supported streaming range in both workbook surfaces.
+                + "<row r=\"4097\"><c r=\"A4097\"><v>7</v></c></row></sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             foreach (string firstAccess in new[] { "ascending", "descending", "bulk" }) {
                 var options = new ExcelReadOptions { MaxDataReaderBufferedCells = 2 };
@@ -63,13 +65,9 @@ public partial class Excel {
                 Assert.True(reader.Read());
                 Assert.True(reader.IsDBNull(1));
                 Assert.Equal(6, reader.GetInt32(0));
-                if (surface == "explicitXml") {
-                    Assert.True(reader.Read());
-                    Assert.True(reader.IsDBNull(0));
-                    Assert.True(reader.IsDBNull(1));
-                } else {
-                    Assert.False(reader.Read());
-                }
+                Assert.True(reader.Read());
+                Assert.True(reader.IsDBNull(0));
+                Assert.True(reader.IsDBNull(1));
                 reader.Close();
                 Assert.True(reader.IsClosed);
             }
@@ -95,7 +93,7 @@ public partial class Excel {
                 + "<cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"14\"/></cellXfs></styleSheet>";
             ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles));
             string xml = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-                + "<dimension ref=\"A1:F2\"/><sheetData><row r=\"1\">"
+                + "<dimension ref=\"A1:F4097\"/><sheetData><row r=\"1\">"
                 + string.Concat(new[] { "Amount", "Missing", "Date", "Cleared", "Flag", "Text" }.Select((name, column) =>
                     $"<c r=\"{(char)('A' + column)}1\" t=\"inlineStr\"><is><t>{name}</t></is></c>"))
                 + "</row><row r=\"2\">"
@@ -104,7 +102,7 @@ public partial class Excel {
                 + "<c r=\"D2\" s=\"1\"><v>1</v></c><c r=\"D2\"/>"
                 + "<c r=\"E2\" t=\"inlineStr\"><is><t>old</t></is></c><c r=\"E2\" t=\"b\"><v>1</v></c>"
                 + "<c r=\"F2\"><v>1</v></c><c r=\"F2\" t=\"inlineStr\"><is/></c>"
-                + "</row></sheetData></worksheet>";
+                + "</row><row r=\"4097\"><c r=\"A4097\"><v>7</v></c></row></sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             foreach (string firstAccess in new[] { "numeric", "decimal", "date", "null", "boolean", "bulk" }) {
                 var options = new ExcelReadOptions {
