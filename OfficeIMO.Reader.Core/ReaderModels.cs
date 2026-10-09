@@ -114,7 +114,9 @@ public enum ReaderInputKind {
     /// </summary>
     IWork = 25,
     /// <summary>Native XPS or OpenXPS fixed-page package.</summary>
-    Xps = 26
+    Xps = 26,
+    /// <summary>Microsoft Publisher native publication.</summary>
+    Publisher = 29
 }
 
 /// <summary>

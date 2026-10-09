@@ -121,5 +121,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.DocBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Publisher" />
   </ItemGroup>
 </Project>

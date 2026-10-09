@@ -14,6 +14,7 @@ Install the adapters an application actually uses. Every adapter brings Core and
 | Word | `OfficeIMO.Reader.Word` |
 | Excel | `OfficeIMO.Reader.Excel` |
 | PowerPoint | `OfficeIMO.Reader.PowerPoint` |
+| Publisher source stories and page inventory | `OfficeIMO.Reader.Publisher` |
 | Markdown | `OfficeIMO.Reader.Markdown` |
 | Email, Outlook stores, and OAB | `OfficeIMO.Reader.Email` |
 | PDF | `OfficeIMO.Reader.Pdf` |

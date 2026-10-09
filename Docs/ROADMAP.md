@@ -701,14 +701,14 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
 
 Current native decoding, public API and evidence boundaries are owned by the
 [Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md). Keep one native
-codec and shared drawing projection; PDF and future ingestion surfaces remain
+codec and shared drawing projection; PDF and Reader surfaces remain
 thin consumers. Native `.pub` authoring is outside the read-and-convert product.
 
 - [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps and dynamic-field display against independently produced publications.
 - [ ] Extend native shape geometry, group transforms, non-solid fills, individual table styling, picture effects and background/master inheritance with precise per-feature loss reporting.
 - [ ] Qualify later Publisher producers and native Publisher PDF/SVG comparisons across brochures, newsletters, labels, custom page sizes and multilingual fonts. Keep producer fixtures, independent-reader evidence and pixel fidelity distinct.
 - [ ] Add separately qualified Publisher 97/98 and 2000 native decoders without routing them through text salvage or weakening current resource limits.
-- [ ] Integrate the existing codec through thin Reader and remaining host routes, carrying source recovery losses into every downstream artifact and keeping native active content inert.
+- [ ] Qualify remaining host routes and richer semantic Reader output, carrying source recovery losses into every downstream artifact and keeping native active content inert.
 
 ### Future integration decisions
 

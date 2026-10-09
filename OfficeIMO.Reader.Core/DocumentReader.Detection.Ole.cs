@@ -59,6 +59,9 @@ internal static partial class DocumentReaderEngine {
                     "container:ole-powerpoint-presentation"),
             OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage =>
                 DetectionCandidate.Unknown(EncryptedOpenXmlEvidence),
+            OfficeCompoundDocumentDetector.DocumentKind.PublisherPublication =>
+                DetectionCandidate.High(ReaderInputKind.Publisher, "application/x-mspublisher",
+                    "container:ole-publisher-quill"),
             _ => DetectionCandidate.Unknown("container:ole-compound-unrecognized")
         };
 

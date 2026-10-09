@@ -347,6 +347,8 @@ reports. [OfficeIMO.Publisher.Pdf](OfficeIMO.Publisher.Pdf/README.md) adds multi
 PDF conversion through the shared drawing and PDF engines. The
 [support contract](OfficeIMO.Publisher/SUPPORT.md) identifies profile and rendering
 limits. The reader references only `OfficeIMO.Core` and does not require Publisher.
+The [Reader adapter](OfficeIMO.Reader.Publisher/README.md) retains complete stories,
+physical page inventory and image descriptors for semantic ingestion.
 
 #### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
 
@@ -1009,6 +1011,13 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeI
 - [x] Slide, notes, table, image, metadata, diagnostic, and password-aware projection
 
 _Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.PowerPoint`.
+
+#### [OfficeIMO.Reader.Publisher](OfficeIMO.Reader.Publisher/README.md)
+
+Complete native `.pub` story extraction, bullet markers, physical page inventory
+and optional embedded-image payloads, with explicit semantic projection losses.
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Publisher`.
 
 #### [OfficeIMO.Reader.Markdown](OfficeIMO.Reader.Markdown/README.md)
 

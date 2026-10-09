@@ -540,6 +540,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Publisher.Pdf", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Publisher.Tests", "OfficeIMO.Publisher.Tests\OfficeIMO.Publisher.Tests.csproj", "{716F9A49-A76F-48FA-99CA-87A01211494D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Publisher", "OfficeIMO.Reader.Publisher\OfficeIMO.Reader.Publisher.csproj", "{5C05D787-9352-4C2F-B14A-B55787471863}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -3058,6 +3060,18 @@ Global
 		{716F9A49-A76F-48FA-99CA-87A01211494D}.Release|x64.Build.0 = Release|Any CPU
 		{716F9A49-A76F-48FA-99CA-87A01211494D}.Release|x86.ActiveCfg = Release|Any CPU
 		{716F9A49-A76F-48FA-99CA-87A01211494D}.Release|x86.Build.0 = Release|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Debug|x64.Build.0 = Debug|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Debug|x86.Build.0 = Debug|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Release|x64.ActiveCfg = Release|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Release|x64.Build.0 = Release|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Release|x86.ActiveCfg = Release|Any CPU
+		{5C05D787-9352-4C2F-B14A-B55787471863}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -38,6 +38,12 @@ file batches and document previews. Source recovery diagnostics survive output
 publication and checkpoint reuse. Strict acceptance and resource-limit failures
 preserve existing destinations.
 
+`OfficeIMO.Reader.Publisher` projects complete stories once, native bullet
+markers, physical page inventory and optional original image bytes. It carries
+native losses into Reader diagnostics. Its semantic output omits table structure,
+typography and page placement explicitly; paragraph locations do not claim
+physical pages. The same adapter is included in `OfficeIMO.Reader.All`.
+
 Source object counts measure recovered descriptors and distinct projected
 objects. They do not measure pixel fidelity or prove that all content of an
 object survived. Complete source stories remain inspectable even when their

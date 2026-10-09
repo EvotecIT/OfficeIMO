@@ -925,6 +925,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.DocBook => "application/docbook+xml",
             ReaderInputKind.OneNote => "application/onenote",
             ReaderInputKind.IWork => "application/octet-stream",
+            ReaderInputKind.Publisher => "application/x-mspublisher",
             ReaderInputKind.Text => "text/plain",
             ReaderInputKind.Csv => "text/csv",
             ReaderInputKind.Json => "application/json",
