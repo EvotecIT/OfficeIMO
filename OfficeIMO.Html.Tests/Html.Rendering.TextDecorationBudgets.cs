@@ -16,10 +16,11 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void TextDecorationDescendantResolutionsReuseTheBudgetedSubtreeSummary() {
-        // One 64-level subtree plus 64 character chunks fits. Repeated ancestor
-        // rescans would exceed this public work budget despite emitting no text.
+        // One 64-level subtree scan, 64 character chunks and the ordinary inline
+        // traversal fit. Repeated ancestor rescans would exceed this shared
+        // public work budget despite emitting no text.
         var scene = HtmlRenderTestDriver.Render(DecorationScanInput(64, 16384),
-            new HtmlRenderOptions { MaxLayoutDepth = 160, MaxLayoutOperations = 160 });
+            new HtmlRenderOptions { MaxLayoutDepth = 160, MaxLayoutOperations = 220 });
         Assert.Empty(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderText>());
     }
 

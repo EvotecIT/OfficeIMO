@@ -28,8 +28,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderFlowBlock LayoutRootBox(IElement root, double width, HtmlRenderBoxStyle style,
         IElement? continuationTarget = null, int continuationLogicalCharacters = 0, PagedFloatBoundary? pageBoundary = null) {
-        HtmlRenderBoxStyle boxStyle = ResolveOrdinaryIntrinsicWidths(root, style, width, 0);
-        boxStyle = ResolveNormalFlowHorizontalAutoMargins(root, boxStyle, width).Clone();
+        var boxStyle = style.Clone();
         // The canvas owns a propagated background. Paint the root border and content
         // without compositing a translucent background a second time over that canvas.
         if (ReferenceEquals(_surfaceRootElement, root)) {

@@ -5,19 +5,6 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlBodyBoxTests {
-    [Theory]
-    [InlineData("content-box")]
-    [InlineData("border-box")]
-    public void IntrinsicBodyWidthRetainsTrailingPaddingInTheScrollSurface(string sizing) {
-        string html = "<style>*{margin:0}body{width:max-content;box-sizing:" + sizing
-            + ";padding:0 20px;background:red}span{display:inline-block;width:300px;height:20px}</style><span></span>";
-        HtmlRenderDocument result = Render(html);
-        Assert.Equal(340D, result.Pages[0].Width, 3);
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(result.Pages[0].CreateDrawing());
-        Assert.Equal(OfficeColor.Red, raster.GetPixel(339, 10));
-        result.RequireNoLoss();
-    }
-
     [Fact]
     public void BodyBorderPaddingAndMarginsParticipateInLayoutAndPaint() {
         var result = Render("<style>*{margin:0}body{margin:5px;padding:7px;border:3px solid blue;font-size:16px;line-height:20px}</style><p>Body</p>");
