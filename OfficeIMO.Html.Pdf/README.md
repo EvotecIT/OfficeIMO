@@ -287,7 +287,7 @@ Outline-only private-use symbols encountered after exhaustion are omitted with
 `HtmlPdfUnavailablePrivateUseGlyphOmitted`, rather than passed to an incompatible
 PDF text font.
 
-HTML body text and SVG text share font discovery, including nested SVG viewports, effect groups and tiling patterns. Fonts registered through `options.Fonts` are available to layout and PDF encoding in those groups. Automatic installed-font fallback follows `ResourcePolicy` for both HTML and SVG text; `CreatePortableDeterministic()` requires explicit in-memory or allowed document fonts. Uncovered characters retain strict encoding diagnostics.
+HTML body text and SVG text share font discovery, including nested SVG viewports, effect groups and tiling patterns. Fonts registered through `options.Fonts` are available to layout and PDF encoding in those groups. Automatic installed-font fallback follows `ResourcePolicy` for both HTML and SVG text; `CreatePortableDeterministic()` requires explicit in-memory or allowed document fonts. Already registered style faces in the requested family remain eligible when the nominal face lacks a glyph. If the selected fonts cannot encode painted text, PDF conversion throws `HtmlConversionException` with the encoding diagnostics before returning a generated document. Logical `ActualText` and accessibility labels do not require painted-glyph coverage.
 
 No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
 
