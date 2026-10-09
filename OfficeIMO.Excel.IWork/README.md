@@ -78,6 +78,8 @@ This token governs loading, projection, and destination construction. It also go
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Excel`. It does not add iWork support to the default Excel package graph.
 
+XLSX has no equivalent for font-relative character tracking. Nonzero tracking in selected table or rich-text styles requires partial acceptance and remains on the source projection.
+
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for supported structures and conversion limits.
 
 Qualified Numbers root cell comments retain plain text, display author, UTC creation time and cell address as XLSX threaded comments. Inspect `IWorkTableCell.Comment` on the source projection. Replies and unsupported comment records remain diagnosed; author normalization and empty comment text use destination fallback. See the [table-comment contract](../Docs/officeimo.iwork-support-matrix.md#table-cell-comments).

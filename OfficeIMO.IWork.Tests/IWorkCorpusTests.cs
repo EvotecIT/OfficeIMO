@@ -512,17 +512,10 @@ public sealed class IWorkCorpusTests {
         Assert.InRange(table.WidthPoints, expectedWidth - 0.001d, expectedWidth + 0.001d);
         Assert.InRange(table.HeightPoints, expectedHeight - 0.001d, expectedHeight + 0.001d);
 
-        using var imageFallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Fixture("keynotekit/imagedeck-v15.2.1.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
-        Assert.True(imageFallback.IsVisualFallback);
-        Assert.Contains(imageFallback.Report.SourceDeclarationIssues, issue => issue.FieldPath == "11/27"
-            && issue.Owner.EntryPath == "Index/DocumentStylesheet.iwa"
-            && issue.Kind == IWorkSourceDeclarationIssueKind.UnsupportedField);
         using var imageResult = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Fixture("keynotekit/imagedeck-v15.2.1.key"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            Fixture("keynotekit/imagedeck-v15.2.1.key"));
         Assert.False(imageResult.IsVisualFallback);
-        Assert.True(imageResult.Report.IsPartialEditableReconstruction);
+        imageResult.Report.RequireCompleteEditableReconstruction();
         PowerPointPicture picture = Assert.Single(Assert.Single(imageResult.Value.Slides).Pictures);
         Assert.Equal("image/png", picture.ContentType);
         Assert.True(picture.GetImageBytes().Length > 100);

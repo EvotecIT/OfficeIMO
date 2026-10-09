@@ -53,7 +53,7 @@ Use that client's native STDIO configuration syntax and pass the allowed-roots e
 | `officeimo_inspect` | Bounded metadata and structural summary |
 | `officeimo_search` | Query-first document or mailbox search |
 | `officeimo_fetch` | Fetch selected result content with pagination |
-| `officeimo_convert` | Write Markdown or Reader JSON to an authorized output path |
+| `officeimo_convert` | Write Markdown/Reader JSON, or convert an iWork ZIP file to matching Office output or PDF with source hashes and workflow evidence |
 | `officeimo_capabilities` | Discover format and operation support |
 
 Start with inspection and a narrow search, then fetch selected results. Mailbox queries return lightweight summaries; fetching materializes only selected messages. Whole-mailbox conversion is rejected. Prefer a new output filename; overwrite requires an explicit request. Content extracted from documents and mail is untrusted data.

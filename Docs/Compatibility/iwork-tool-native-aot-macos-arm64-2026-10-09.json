@@ -1,0 +1,132 @@
+{
+  "artifactSha256": "4767f8b1eec9eec21da5b014424e61d93fe0d9487aa727d2e99699b0bbcc548f",
+  "artifactBytes": 127565040,
+  "platform": "unsigned osx-arm64 NativeAOT source executable",
+  "cli": [
+    {
+      "source": "simple.pages",
+      "exitCode": 0,
+      "bytes": 1044,
+      "pages": "1"
+    },
+    {
+      "source": "simple.numbers",
+      "exitCode": 0,
+      "bytes": 1527,
+      "pages": "1"
+    },
+    {
+      "source": "simple.key",
+      "exitCode": 0,
+      "bytes": 1555,
+      "pages": "2"
+    }
+  ],
+  "mcp": {
+    "protocolVersion": "2025-06-18",
+    "toolCount": 7,
+    "typedIWorkPolicy": true,
+    "conversions": [
+      {
+        "source": "simple.pages",
+        "format": "docx",
+        "succeeded": true,
+        "expectedContentVerified": true,
+        "outputSha256": "5f617b80a06d123f3bada6aade31dc6b4869029c8a23b4a773e05d98be23ab66"
+      },
+      {
+        "source": "simple.pages",
+        "format": "pdf",
+        "succeeded": true,
+        "expectedContentVerified": true,
+        "outputSha256": "a0814b1830e42d8ab3cbbb736ebadcc0bb219c62967bfef618bcbffd626afbf2"
+      },
+      {
+        "source": "simple.numbers",
+        "format": "xlsx",
+        "succeeded": true,
+        "expectedContentVerified": true,
+        "outputSha256": "14d1fd1365bdc7a0cb5ba012c4159f2f810ffe19652e834a86354baaed6229d5"
+      },
+      {
+        "source": "simple.numbers",
+        "format": "pdf",
+        "succeeded": true,
+        "expectedContentVerified": true,
+        "outputSha256": "67ad595ed72f3ee68351dea4900a06a657e832d105fe6a886e63edbd252aad1f"
+      },
+      {
+        "source": "simple.key",
+        "format": "pptx",
+        "succeeded": true,
+        "expectedContentVerified": true,
+        "outputSha256": "58351a0e67342b19a62fe6864157db8c62c7c478a19a54f1d0120d2931247116"
+      },
+      {
+        "source": "simple.key",
+        "format": "pdf",
+        "succeeded": true,
+        "expectedContentVerified": true,
+        "outputSha256": "b21edaa4c31a747e9332e1b147fcf2e8c622d7fdf30b8c2970d0b216f43fb8be"
+      }
+    ],
+    "partialPolicyRejected": true,
+    "outputLimitRejected": true,
+    "existingOutputPreserved": true
+  },
+  "independentReaders": "Poppler 26.09.0 and Python ZIP/XML: expected content verified",
+  "capturedUtc": "2026-10-09",
+  "scope": "Simple licensed Pages/Numbers/Keynote fixtures through source CLI and real stdio MCP; native macOS executable only. Appearance, installed package, signed sandbox, devices and other architectures remain separate.",
+  "officeimoBase": "d0301ab016e0c1d3d15834f311a97268a101f0ac",
+  "sdk": "10.0.112",
+  "nativeCompilerVersion": "10.0.12",
+  "build": "dotnet publish OfficeIMO.Tool/OfficeIMO.Tool.csproj -c Release -f net10.0 -r osx-arm64 -p:AotValidation=true --artifacts-path <scratch>/aot-artifacts --output <scratch>/aot",
+  "fixtures": [
+    {
+      "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.pages",
+      "sha256": "5aee6d03277d2db2104f593e64afe081dec539f0117b97124b6f99158124c93e"
+    },
+    {
+      "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.numbers",
+      "sha256": "d0b00d9cae5985cccaa3b2fb251fae92eb0e38360fb4b5df8b4350eb658f752b"
+    },
+    {
+      "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.key",
+      "sha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb"
+    }
+  ],
+  "changedRuntimeSourceSha256": {
+    "OfficeIMO.Core/Compatibility/OfficeConversionCapabilityCatalog.cs": "1e24c935954fbb4fa15e5e8bf2115475edb7bfc8e64cbdf8e347364bb5ea367c",
+    "OfficeIMO.Core/Compatibility/OfficeConversionSupportAssessments.cs": "71e6cb1a46d6c71f3658f17b5206d70d8b4ec01d6ae35e5773d7fb650291104e",
+    "OfficeIMO.Excel.IWork/ExcelIWorkConverter.TableStyles.cs": "09ee0a98e664665bb09fab513b871a8c345f721960ee60fd86b18cb21a3b026d",
+    "OfficeIMO.Excel.IWork/ExcelIWorkConverter.cs": "484d8efe34a9620313ab42dd2c5e4186a33131abe4e4552370310ac95d8b99b6",
+    "OfficeIMO.IWork/IWorkText.cs": "7381d281336d2d573c565040aade6b09c1d0b6fa9823dc6c43daf630d6e0d551",
+    "OfficeIMO.IWork/Internal/IWorkTextReader.Styles.cs": "7c702d2795454bdb7a85b1c9813c775a82426ac9ca81729f0ededf7a0cea75a6",
+    "OfficeIMO.IWork/Internal/IWorkTextReader.Typography.cs": "ac8ed6fd10d63693e2df913dcbb79d9172252314bd9d64e6d33275257bb39d88",
+    "OfficeIMO.IWork/Internal/IWorkTextReader.cs": "096e4fdddfe915b6a560c61f30e1e9eba8c48332027b6ef81dc179041ce12374",
+    "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.Tables.cs": "da79cafed4c443270ac01fa643ec80415a91dc8e4be0ea70890ed3e951086fe1",
+    "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.Text.cs": "07135a01f1f38d86f2eed905c67490d09669c9c4d039c68ebe9704c1be957031",
+    "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.cs": "a461715086ecc209cfa8c27e43810ceacad087ab9c956609e7e014164a551198",
+    "OfficeIMO.PowerPoint.Pdf/PowerPointPdfConverterExtensions.TableText.cs": "04cfb6288efd031c5e6d9c156fa5051750f5de9870b674314cb0fd16964006e0",
+    "OfficeIMO.PowerPoint/Imaging/PowerPointSlideImageRenderer.TextScene.cs": "40920493eba00ff4d6ef2e06b776fa7e121281c8c76032cffbfd326fb6b3d5b3",
+    "OfficeIMO.PowerPoint/Imaging/PowerPointSlideImageRenderer.cs": "932830f0cab5f5775432d3f6fb7284d77adabafc021bad14be0f863c0586cd3b",
+    "OfficeIMO.PowerPoint/PowerPointTextRun.CharacterSpacing.cs": "fbe8bacee418ab352a6063ad8a2df89339fcb34752c2bd6a978dd2493856a5d4",
+    "OfficeIMO.Studio/Features/Workflows/ConversionJobViewModel.IWork.cs": "7c572588e8f653018baf6db67f74b85c6ca80598c29726f044c0096fa7f6878d",
+    "OfficeIMO.Studio/Features/Workflows/ConversionWorkbenchViewModel.cs": "01662ccf1c95623d0e3ae07f36ce7fe5b6ad99e0fdf82e835d5cd6c4ed0ae25e",
+    "OfficeIMO.Tool/Agent/AgentContracts.cs": "89da1f99a3f0a085d11a8e193d57ef4d9d334843aa7c2f0c7b948d1bb7718a56",
+    "OfficeIMO.Tool/Agent/AgentJson.cs": "d1b3c57b8dab842e481cb4efc65cbb6859bbdcf199ef79c3449727b364829036",
+    "OfficeIMO.Tool/Agent/OfficeImoAgentService.IWorkConversion.cs": "12dc40c42d7e9efeacd0952df778569d0ffa06193ef05bb1067f2549145a17e5",
+    "OfficeIMO.Tool/Agent/OfficeImoAgentService.cs": "0da0208b484651b75fa42b4e9a3e3e977ff6cd264cb4a925b5d3df53e9bb5d1e",
+    "OfficeIMO.Tool/Commands/Agent/AgentCommand.cs": "56e688a451085662fafb218e281553097dbe2264362e8e697745229057a089ce",
+    "OfficeIMO.Tool/Commands/Convert/ConvertCommand.cs": "82af9b6d7730076fbba2144be1fab2f9449cabd99f51f801cdcc53fd85f42cec",
+    "OfficeIMO.Tool/Commands/Convert/IWorkConvertCommand.cs": "b8926ab33a0731adb14ed87b725d5738b32e8c0da438b6b5e5c7817fabf468c2",
+    "OfficeIMO.Tool/Mcp/OfficeImoMcpTools.cs": "c99b029fc6be01afd1285c0eca9ed57e3623281ad7fe480e7897e28ff8b99589",
+    "OfficeIMO.Word.IWork/WordIWorkConverter.Validation.cs": "2f9a5e4b45b50b5e6867986c49dc0a41d95bf38d7f93ab4d8e59793cba1ece54",
+    "OfficeIMO.Word.IWork/WordIWorkConverter.cs": "5b2782761cf2e01376e74e2e43d890687558a920a40288fe82c1bb2ae55fc31d",
+    "OfficeIMO.Workflows.IWork/IWorkWorkflow.Pdf.cs": "174d523e2a7ebf60796c265f5b51d735f85466337bd8f211b8b2a0dd0b954c28",
+    "OfficeIMO.Workflows.IWork/IWorkWorkflow.cs": "851e985ee07f362594346d827a8147ed45b3a2406270cfce90caabbacce27b99",
+    "OfficeIMO.Workflows.IWork/IWorkWorkflowSettings.cs": "0c7e4d0b3d23a6127f7ec4e204e70c2f060d3f6ab5de4e9f1dbfa17b3dbf19ce",
+    "OfficeIMO.Workflows.IWork/OfficeIMO.Workflows.IWork.csproj": "026b023010092ecc1883d38e095df6bf80bf49d5e4dc08cd9c001d274ea122dd",
+    "OfficeIMO.Workflows/OfficeWorkflowConversionRegistration.cs": "1babddf404d798d7b8145f856d062798a93d63d468be873ba773c412f0577151"
+  }
+}

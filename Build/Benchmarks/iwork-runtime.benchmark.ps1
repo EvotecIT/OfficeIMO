@@ -10,7 +10,7 @@ $retainedBaselines = @{}
 
 New-BenchmarkSuite 'officeimo-iwork-runtime' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 5 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
-    Add-BenchmarkMetadata Contract 'Deterministic synthetic ZIP or pinned native Pages/Numbers/Keynote fixture: load/project or load/convert/save. Cancellation cases request cancellation after actual package-read or native-copy I/O. Input/model preparation and full semantic readback are outside timing. No native Apple appearance qualification.'
+    Add-BenchmarkMetadata Contract 'Deterministic synthetic ZIP, pinned Apple fixture, or OfficeIMO-created native Keynote package: load/project, load/convert/save, or native encoding/save. Cancellation cases request cancellation after actual package-read or native-copy I/O. Input/model preparation and full semantic readback are outside timing. Owned native creation is not independent Apple or appearance qualification.'
     Add-BenchmarkMetadata Measurement 'PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.'
     Add-BenchmarkMetadata RetainedMemory 'Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.'
     Add-BenchmarkMetadata SampledMemory 'Opt-in PowerForge managed-heap/resident observations during operations. Maxima are observed lower bounds, include observer/host effects and do not isolate native allocations. Instrumented timing uses a separate run mode.'
@@ -30,25 +30,29 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
             return
         }
         foreach ($factor in $factors) {
-            $size = switch ($factor) { 1 { 'Small' } 10 { 'Medium' } 100 { 'Large' } 0 { 'Native' } default { throw 'Unknown iWork workload scale.' } }
+            $size = switch ($factor) { 1 { 'Small' } 10 { 'Medium' } 100 { 'Large' } 0 { 'Native' } -1 { 'NativeCreated' } default { throw 'Unknown iWork workload scale.' } }
             foreach ($kind in 'Pages', 'Numbers', 'Keynote') {
+                if ($factor -eq -1 -and $kind -ne 'Keynote') { continue }
                 $base = switch ($kind) { Pages { 100 } Numbers { 1000 } Keynote { 10 } }
-                $units = if ($factor -eq 0) { switch ($kind) { Pages { 3 } Numbers { 9 } Keynote { 2 } } } else { $base * $factor }
-                $key = "$kind-$units"
+                $units = if ($factor -eq 0) { switch ($kind) { Pages { 3 } Numbers { 9 } Keynote { 2 } } } elseif ($factor -eq -1) { 1000 } else { $base * $factor }
+                $key = "$kind-$size"
                 $workloads[$key] = if ($factor -eq 0) {
                     [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, (Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/IWorkCorpus'))
-                } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, $units) }
+                } elseif ($factor -eq -1) { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::CreateNativeKeynote($units) }
+                else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, $units) }
                 [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Source = $size; ConversionPolicy = 'CompleteEditable'; MeasureRetainedMemory = $measureRetainedMemory; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
             }
         }
     }
     Set-BenchmarkSetup {
         param($case, $run)
-        $key = "$($case.Kind)-$($case.Units)"
+        $key = "$($case.Kind)-$($case.Source)"
+        if ($nativeCopyCase) { $key = 'Keynote-1' }
         if (-not $workloads.ContainsKey($key)) {
             $workloads[$key] = if ($case.Source -eq 'Native') {
                 [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, (Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/IWorkCorpus'))
-            } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, $case.Units) }
+            } elseif ($case.Source -eq 'NativeCreated') { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::CreateNativeKeynote($case.Units) }
+            else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, $case.Units) }
         }
         $run.Workload = $workloads[$key]
         $run.Workload.Prepare($case.Operation)
@@ -57,7 +61,7 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
         }
     }
     Add-BenchmarkEngine OfficeIMO {
-        foreach ($operation in 'LoadProject', 'ConvertSave', 'CancelDuringLoad', 'CancelDuringConvert', 'CancelDuringNativeCopy') {
+        foreach ($operation in 'LoadProject', 'ConvertSave', 'NativeSave', 'CancelDuringLoad', 'CancelDuringConvert', 'CancelDuringNativeCopy') {
             Add-BenchmarkOperation $operation {
                 param($case, $run)
                 $run.Workload.Execute($case.Operation)

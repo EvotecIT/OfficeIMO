@@ -51,4 +51,5 @@ internal static class AgentJson {
 [JsonSerializable(typeof(AgentCapabilitiesResult))]
 [JsonSerializable(typeof(AgentOperationCapabilitySummary))]
 [JsonSerializable(typeof(AgentConvertResult))]
+[JsonSerializable(typeof(OfficeIMO.IWork.IWorkConversionOptions))]
 internal sealed partial class AgentJsonContext : JsonSerializerContext;

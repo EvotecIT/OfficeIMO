@@ -136,6 +136,7 @@ officeimo convert diagram.odg diagram.pdf --require-no-loss
 officeimo convert document.pages document.docx
 officeimo convert budget.numbers budget.xlsx
 officeimo convert presentation.key presentation.pptx
+officeimo convert document.pages document.pdf
 
 # Supported documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
@@ -195,7 +196,7 @@ Markdown and JSON destinations are semantic Reader projections rather than fixed
 
 `officeimo reader read` accepts iWork directory bundles with `.pages`, `.numbers`, or `.key` extensions as individual documents. Folder discovery also keeps each bundle intact. Export files and asset directories must be outside the source bundle; reported size and content hashes describe the bounded captured package. These Reader outputs are semantic extraction, with the same rendering limits as other Reader routes.
 
-Apple-to-OOXML conversion accepts ZIP files and local directory packages and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory-package checksums describe a private transport ZIP, identified by `snapshotKind = DirectoryPackage`. Root replacement and changes to file membership or content prevent publication. The destination must be outside the source package and separate from its members. Native permission-scoped directory intake remains outside this local-filesystem contract.
+Apple-to-OOXML and Apple-to-PDF conversion accept ZIP files and local directory packages and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory-package checksums describe a private transport ZIP, identified by `snapshotKind = DirectoryPackage`. Root replacement and changes to file membership or content prevent publication. The destination must be outside the source package and separate from its members. Native permission-scoped directory intake remains outside this local-filesystem contract. PDF requires complete editable reconstruction and retains both source and PDF-stage evidence; partial output, previews, content exclusion and PDF-stage omissions or failures are rejected.
 
 All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
 
@@ -203,7 +204,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 
 - `officeimo invoice` inspects, validates, converts and renders CII/UBL invoices through the shared invoice workflows, individually or in bounded batches.
 
-- `officeimo convert` routes Apple-to-OOXML destinations through `OfficeIMO.Workflows.IWork`, Office PDF destinations to their first-party adapters, Draw PDF destinations through `OfficeIMO.Workflows`, and Markdown/JSON destinations to OfficeIMO.Reader.
+- `officeimo convert` routes Apple-to-OOXML and Apple-to-PDF destinations through `OfficeIMO.Workflows.IWork`, Office PDF destinations to their first-party adapters, Draw PDF destinations through `OfficeIMO.Workflows`, and Markdown/JSON destinations to OfficeIMO.Reader.
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.

@@ -43,6 +43,7 @@ public static partial class ExcelIWorkConverter {
 
     private static bool HasUnsupportedTableTextStyle(IWorkParagraphStyle style) =>
         style.TextStyle.BackgroundColor != null || style.TextStyle.Color is { Alpha: < byte.MaxValue }
+        || style.TextStyle.CharacterTrackingEm.GetValueOrDefault() != 0
         || style.FirstLineIndentPoints.GetValueOrDefault() != 0 || style.LeftIndentPoints.GetValueOrDefault() != 0
         || style.RightIndentPoints.GetValueOrDefault() != 0 || style.SpaceBeforePoints.GetValueOrDefault() != 0
         || style.TabStops?.Count > 0 || style.LineSpacingMultiplier is double spacing && spacing != 1

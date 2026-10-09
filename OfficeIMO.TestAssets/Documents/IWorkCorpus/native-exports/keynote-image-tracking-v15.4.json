@@ -1,0 +1,57 @@
+{
+  "source": "keynotekit/imagedeck-v15.2.1.key",
+  "sourceSha256": "a9af589197588e04ee52388b0aa6c2dad1110e5d6db814b58afe543831cf2128",
+  "sourceModified": false,
+  "producer": "Apple Keynote",
+  "producerVersion": "15.4",
+  "producerBuild": "7051.0.79",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-09T08:48:57.217507+00:00",
+  "artifacts": [
+    {
+      "path": "native-exports/keynote-image-tracking-v15.4.pptx",
+      "sha256": "58ba6cc339df4b33c02d9cc922b5dcbf9c72173b124af2db976f837184f5ddae",
+      "bytes": 37976
+    },
+    {
+      "path": "native-exports/keynote-image-tracking-v15.4.pdf",
+      "sha256": "a411a23f694a582b377219f53f6896ed13bc4fb26a7f91df9b22aec07c5eebcb",
+      "bytes": 9670
+    },
+    {
+      "path": "native-exports/keynote-image-tracking-officeimo-v15.4.pdf",
+      "sha256": "5d8b3aa222ba7541268e97c8546e47478ec32e28ff871691e86d5300bc36030d",
+      "bytes": 9507
+    }
+  ],
+  "exportOptions": {
+    "powerpoint": "PPTX, no password.",
+    "pdf": "Best quality; include skipped slides; presenter notes, animation steps, comments, password disabled."
+  },
+  "typography": {
+    "nativeTrackingEm": -0.02,
+    "effectiveFontSizePoints": 116,
+    "pptxCharacterSpacingHundredthsOfPoint": -232,
+    "font": "HelveticaNeue-Bold"
+  },
+  "fontProvenance": "Installed macOS Helvetica Neue Bold; native PDF embeds a subset. No standalone font is distributed. Keynote showed a missing-font warning when opening OfficeIMO PPTX; the rendered text uses HelveticaNeue-Bold.",
+  "destinationRendering": {
+    "convertedPptxSha256": "cb07bbf848bb1071f00d8acd6f0c707c9e2c871b12871d919a3d6229a802ad83",
+    "renderer": "Apple Keynote 15.4",
+    "importRepairPrompt": false,
+    "fontWarning": true
+  },
+  "renderComparison": {
+    "pageCount": 1,
+    "maximumWordBoundsDeltaPoints": 6.133100000000013,
+    "text": [
+      "Image",
+      "Test"
+    ],
+    "rasterizer": "pdftoppm 26.09.0",
+    "rasterOptions": "-singlefile -scale-to 1200 -png",
+    "visuallyInspected": true,
+    "scope": "One title and one image in this unchanged licensed source; no general typography, layout or theme claim."
+  },
+  "license": "Existing keynotekit MIT fixture notice recorded in IWorkCorpus/README.md."
+}

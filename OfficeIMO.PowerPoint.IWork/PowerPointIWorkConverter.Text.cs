@@ -295,8 +295,16 @@ public static partial class PowerPointIWorkConverter {
         if (style.Underline.HasValue) run.Underline = style.Underline.Value;
         if (style.Strikethrough.HasValue) run.Strikethrough = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
+        if (style.CharacterSpacingPoints.HasValue) run.CharacterSpacingPoints = style.CharacterSpacingPoints.Value;
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontName = style.FontName;
         if (style.Color != null) run.Color = style.Color.RgbHex;
         if (style.BackgroundColor != null) run.HighlightColor = style.BackgroundColor.RgbHex;
     }
+
+    private static bool CanApplyCharacterTracking(IWorkTextStyle style) => !style.CharacterTrackingEm.HasValue
+        || style.CharacterSpacingPoints is double spacing && IsFinite(spacing) && spacing is >= -4000d and <= 4000d;
+
+    private static bool CharacterTrackingNeedsRounding(IWorkTextStyle style) =>
+        style.CharacterSpacingPoints is double spacing
+        && Math.Abs(spacing - Math.Round(spacing * 100d, MidpointRounding.AwayFromZero) / 100d) > 0.00001d;
 }

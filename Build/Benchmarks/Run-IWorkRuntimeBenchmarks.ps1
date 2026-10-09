@@ -2,9 +2,9 @@ param(
     [string] $BinaryRoot = (Join-Path $PSScriptRoot '../../OfficeIMO.IWork.Benchmarks/bin/Release/net8.0'),
     [string] $OutputRoot = (Join-Path $PSScriptRoot '../../Ignore/Benchmarks/IWorkRuntime'),
     [string] $ModulePath = 'PSPublishModule',
-    [ValidateSet('Small', 'Medium', 'Large', 'Native')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
+    [ValidateSet('Small', 'Medium', 'Large', 'Native', 'NativeCreated')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
     [ValidateSet('Pages', 'Numbers', 'Keynote')] [string[]] $Kind = @('Pages', 'Numbers', 'Keynote'),
-    [ValidateSet('LoadProject', 'ConvertSave', 'CancelDuringLoad', 'CancelDuringConvert', 'CancelDuringNativeCopy')] [string[]] $Operation = @('LoadProject', 'ConvertSave'),
+    [ValidateSet('LoadProject', 'ConvertSave', 'NativeSave', 'CancelDuringLoad', 'CancelDuringConvert', 'CancelDuringNativeCopy')] [string[]] $Operation = @('LoadProject', 'ConvertSave'),
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,
     [ValidateRange(1, 100)] [int] $IterationCount = 5,
     [ValidateRange(0, 1000)] [int] $MemorySamplingIntervalMilliseconds = 0,
@@ -12,6 +12,12 @@ param(
     [switch] $Plan
 )
 $ErrorActionPreference = 'Stop'
+if ('NativeCreated' -in $Scale -and ($Kind.Count -ne 1 -or $Kind[0] -ne 'Keynote')) {
+    throw 'NativeCreated requires -Kind Keynote.'
+}
+if ('NativeSave' -in $Operation -and ($Scale.Count -ne 1 -or $Scale[0] -ne 'NativeCreated')) {
+    throw 'NativeSave requires -Scale NativeCreated -Kind Keynote.'
+}
 if ('CancelDuringNativeCopy' -in $Operation -and ($Operation.Count -ne 1 -or $Kind.Count -ne 1 -or $Kind[0] -ne 'Keynote' -or $Scale.Count -ne 1 -or $Scale[0] -ne 'Native')) {
     throw 'CancelDuringNativeCopy requires only -Scale Native -Kind Keynote -Operation CancelDuringNativeCopy.'
 }
@@ -20,7 +26,7 @@ $BinaryRoot = (Resolve-Path -LiteralPath $BinaryRoot).Path
 [void] [Reflection.Assembly]::LoadFrom((Join-Path $BinaryRoot 'OfficeIMO.Core.dll'))
 Import-Module $ModulePath -ErrorAction Stop
 $caseNames = @(foreach ($size in $Scale) { foreach ($family in $Kind) { "$family-$size" } })
-$factors = @(foreach ($size in $Scale) { switch ($size) { Small { 1 } Medium { 10 } Large { 100 } Native { 0 } } })
+$factors = @(foreach ($size in $Scale) { switch ($size) { Small { 1 } Medium { 10 } Large { 100 } Native { 0 } NativeCreated { -1 } } })
 $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'iwork-runtime.benchmark.ps1') `
     -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Factors = $factors; NativeCopyCase = ('CancelDuringNativeCopy' -in $Operation); MeasureRetainedMemory = [bool]$MeasureRetainedMemory } `
     -Case $caseNames -Operation $Operation -WarmupCount $WarmupCount -IterationCount $IterationCount `

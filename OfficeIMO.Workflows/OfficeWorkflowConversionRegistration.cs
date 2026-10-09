@@ -2,15 +2,21 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Workflows;
 
-// Carries an owning converter's evidence across the runner's structured failure boundary.
-internal sealed class WorkflowConversionFailureException : InvalidOperationException {
+/// <summary>Carries a converter's captured fidelity evidence when an opt-in conversion fails.</summary>
+public sealed class WorkflowConversionFailureException : InvalidOperationException {
+    /// <summary>Retains the original failure and the completed stages' immutable evidence.</summary>
+    public WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence)
+        : this(cause, evidence, false) { }
+
     internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence, bool diagnosticsAdded = false)
-        : base(cause.Message, cause) {
+        : base((cause ?? throw new ArgumentNullException(nameof(cause))).Message, cause) {
+        ArgumentNullException.ThrowIfNull(evidence);
         Evidence = evidence;
         DiagnosticsAdded = diagnosticsAdded;
     }
 
-    internal OfficeWorkflowConversionEvidence Evidence { get; }
+    /// <summary>Evidence captured before the operation failed.</summary>
+    public OfficeWorkflowConversionEvidence Evidence { get; }
     internal bool DiagnosticsAdded { get; }
 }
 
@@ -32,8 +38,8 @@ public sealed class OfficeWorkflowConversionRegistration {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(routeId)
             ?? throw new ArgumentException("Choose an existing canonical conversion route.", nameof(routeId));
         if (route.CanExecute) throw new ArgumentException("Built-in conversion routes cannot be replaced.", nameof(routeId));
-        if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx"))
-            throw new NotSupportedException("Opt-in workflow conversion currently supports DOCX, XLSX, and PPTX destinations.");
+        if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx" or "pdf"))
+            throw new NotSupportedException("Opt-in workflow conversion supports DOCX, XLSX, PPTX, and PDF destinations.");
         RouteId = route.Id;
         Converter = converter;
         _acceptsSettings = acceptsSettings;
@@ -90,7 +96,10 @@ public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
         Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts ?? new Dictionary<string, string>(), StringComparer.Ordinal));
     }
 
-    internal OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+    /// <summary>Copies evidence from ordered conversion stages after their output operations have completed.</summary>
+    public OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+        ArgumentNullException.ThrowIfNull(reports);
+        ArgumentNullException.ThrowIfNull(facts);
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
         Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts, StringComparer.Ordinal));
     }

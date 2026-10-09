@@ -53,7 +53,7 @@ public sealed class IWorkColor {
 public sealed class IWorkTextStyle {
     internal IWorkTextStyle(string? name, bool? bold, bool? italic, bool? underline,
         bool? strikethrough, double? fontSizePoints, string? fontName,
-        IWorkColor? color, IWorkColor? backgroundColor) {
+        IWorkColor? color, IWorkColor? backgroundColor, double? characterTrackingEm = null) {
         Name = name;
         Bold = bold;
         Italic = italic;
@@ -63,6 +63,7 @@ public sealed class IWorkTextStyle {
         FontName = fontName;
         Color = color;
         BackgroundColor = backgroundColor;
+        CharacterTrackingEm = characterTrackingEm;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -83,6 +84,11 @@ public sealed class IWorkTextStyle {
     public IWorkColor? Color { get; }
     /// <summary>Gets the background or highlight color.</summary>
     public IWorkColor? BackgroundColor { get; }
+    /// <summary>Gets additional character spacing as a fraction of the effective font size. Zero explicitly clears inherited tracking.</summary>
+    public double? CharacterTrackingEm { get; }
+    /// <summary>Gets character spacing in points when tracking and its effective font size are known.</summary>
+    public double? CharacterSpacingPoints => CharacterTrackingEm is double tracking
+        ? tracking == 0 ? 0 : FontSizePoints is double size ? tracking * size : null : null;
 }
 
 /// <summary>Paragraph formatting recovered from an iWork paragraph style.</summary>

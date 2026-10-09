@@ -13,7 +13,7 @@ using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class StudioIWorkConversionTests {
+public sealed partial class StudioIWorkConversionTests {
     [Theory]
     [InlineData("simple.pages", "pages-docx", false)]
     [InlineData("simple.pages", "pages-docx", true)]

@@ -41,6 +41,13 @@ public sealed partial class IWorkRuntimeWorkload {
             ExecuteCancellation(operation);
             return;
         }
+        if (operation == "NativeSave") {
+            using var nativeOutput = new MemoryStream();
+            (_createdNativeDocument ?? throw new InvalidOperationException("NativeSave requires an owned native Keynote workload."))
+                .Save(nativeOutput);
+            _output = nativeOutput.ToArray();
+            return;
+        }
         using var input = new MemoryStream(_input, writable: false);
         IWorkSourceDocument source = IWorkSourceDocument.Open(input, _kind);
         if (operation == "LoadProject") {
@@ -89,7 +96,12 @@ public sealed partial class IWorkRuntimeWorkload {
             return;
         }
         if (_native) { ValidateNative(); return; }
-        if (_operation == "LoadProject") {
+        if (_operation == "NativeSave" && _output is { Length: > 0 }) {
+            using var nativeOutput = new MemoryStream(_output, writable: false);
+            IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(nativeOutput, IWorkDocumentKind.Keynote).ReadKeynote();
+            if (!keynote.HasEditableContent) throw new InvalidDataException("Saved native Keynote content is incomplete.");
+            ValidateText(keynote.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), nativeParagraphTerminator: true);
+        } else if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {
                 if (!pages.HasEditableContent) throw new InvalidDataException("Pages input is incomplete.");
                 ValidateText(pages.Body.Paragraphs.Select(p => p.Text));
@@ -109,7 +121,8 @@ public sealed partial class IWorkRuntimeWorkload {
             } else if (_projection is IWorkKeynoteProjection keynote) {
                 if (!keynote.HasEditableContent) throw new InvalidDataException("Keynote input is incomplete: "
                     + string.Join("; ", keynote.Diagnostics.Select(d => d.Code + ": " + d.Message)));
-                ValidateText(keynote.Slides.Select(slide => slide.Title));
+                ValidateText(keynote.Slides.Select(slide => _createdNativeDocument is null
+                    ? slide.Title : slide.TextBoxes.Single().Content.PlainText), nativeParagraphTerminator: _createdNativeDocument is not null);
             } else throw new InvalidDataException("Missing projection result.");
         } else if (_operation == "ConvertSave" && _output is { Length: > 0 }) {
             using var saved = new MemoryStream(_output, writable: false);
@@ -133,17 +146,19 @@ public sealed partial class IWorkRuntimeWorkload {
                 VerifiedUnits = rows.Length;
             } else {
                 using PowerPointPresentation document = PowerPointPresentation.Load(saved);
-                ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text));
+                ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text), nativeParagraphTerminator: _createdNativeDocument is not null);
             }
         } else throw new InvalidDataException("Missing saved result.");
         if (VerifiedUnits != _units) throw new InvalidDataException("iWork workload unit count mismatch.");
     }
 
-    private void ValidateText(IEnumerable<string> values) {
+    private void ValidateText(IEnumerable<string> values, bool nativeParagraphTerminator = false) {
         int index = 0;
         foreach (string text in values) {
             index++;
-            if (text != IWorkScaleInput.Text(index)) throw new InvalidDataException("iWork text or order mismatch.");
+            string expected = IWorkScaleInput.Text(index) + (nativeParagraphTerminator ? "\n" : string.Empty);
+            if (text != expected) throw new InvalidDataException(
+                $"iWork text or order mismatch at unit {index}: expected {System.Text.Json.JsonSerializer.Serialize(expected)}, read {System.Text.Json.JsonSerializer.Serialize(text)}.");
         }
         VerifiedUnits = index;
     }

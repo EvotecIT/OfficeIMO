@@ -7,6 +7,10 @@ deterministic native-content and cancellation checks run in a dedicated workflow
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
+The [1,000-slide native creation run](../Docs/benchmarks/officeimo.iwork-native-created-runtime-2026-10-09.md)
+records 18 semantically validated reading, conversion/save and native encoding/save
+samples on macOS, with separate memory observations and explicit host limits.
+
 The [2026-10-04 portable run](../Docs/benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md)
 retains 6,390 validated samples on Linux x64, macOS arm64 and Windows x64. It covers
 two scale/native passes, 50 repeated operations per native case, separate managed/resident
@@ -20,9 +24,15 @@ not establish portable performance budgets.
 Build from the repository root using the pinned SDK:
 
 ```powershell
-dotnet build OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release
+dotnet build OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0
 ./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Plan
-./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -OutputRoot $env:EVOTEC_DEV_TEMP/iwork-runtime
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -OutputRoot $env:EVOTEC_SCRATCH_ROOT/iwork-runtime
+```
+
+The workload project also targets `net10.0`; pass that framework when building and select its output with `-BinaryRoot`. `NativeCreated` measures a 1,000-slide package produced by the OfficeIMO Keynote writer, with unique text on every slide. `LoadProject` and `ConvertSave` verify every slide; `NativeSave` measures native encoding and saving, then reopens the result through the source owner. Input/model creation and validation remain outside measurement. Native paragraph terminators are checked explicitly. This profile is owned-producer scale evidence, separate from Apple-produced workloads.
+
+```powershell
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale NativeCreated -Kind Keynote -Operation LoadProject,ConvertSave,NativeSave -OutputRoot $env:EVOTEC_SCRATCH_ROOT/iwork-native-created
 ```
 
 Use a fresh PowerShell 7 process. The runner requires PowerForge operation allocation
@@ -65,7 +75,7 @@ they do not establish large native-package budgets or new rendering/font coverag
 Validate the pinned native workload and active cancellation without measuring performance:
 
 ```powershell
-dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -- --validate OfficeIMO.TestAssets/Documents/IWorkCorpus
+dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0 -- --validate OfficeIMO.TestAssets/Documents/IWorkCorpus
 ```
 
 The [iWork runtime evidence workflow](../.github/workflows/iwork-runtime-evidence.yml)

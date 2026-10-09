@@ -15,5 +15,7 @@
     <ProjectReference Include="..\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\keynotekit\tabledeck-v15.2.1.key" Link="Corpus\tabledeck.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.*" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-colors-v15.4.key" Link="Corpus\colors.key" CopyToOutputDirectory="Always" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-created-edited-v15.4.key" Link="Corpus\unicode.key" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -40,7 +40,7 @@ public static partial class ExcelIWorkConverter {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
-                    "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
+                    "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, character tracking, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
         if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
@@ -55,7 +55,7 @@ public static partial class ExcelIWorkConverter {
             .Any(HasUnsupportedTableTextStyle)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_TABLE_TEXT_STYLE_PARTIAL",
-                    "XLSX retains supported table fonts and horizontal alignment; paragraph indents, spacing, pagination, highlights and color transparency remain on the iWork projection.",
+                    "XLSX retains supported table fonts and horizontal alignment; paragraph indents, spacing, pagination, highlights, character tracking and color transparency remain on the iWork projection.",
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
             }).ToArray();
         }
@@ -287,6 +287,7 @@ public static partial class ExcelIWorkConverter {
             && UniformCellHyperlink(content) == null
         || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
             .Any(run => run.Style.BackgroundColor != null
+                || run.Style.CharacterTrackingEm.GetValueOrDefault() != 0
                 || run.Style.Color is { Alpha: < byte.MaxValue })
         || content.Paragraphs.Any(paragraph =>
             paragraph.ListLevel >= 0 || !string.IsNullOrEmpty(paragraph.ListLabel)

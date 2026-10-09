@@ -40,11 +40,15 @@ internal static class IWorkConvertCommand {
             }
             if (input is null) throw new ConvertUsageException("Specify an Apple input document.");
             input = Path.TrimEndingDirectorySeparator(input);
-            string route = Path.GetExtension(input).ToLowerInvariant() switch {
-                ".pages" => "pages-docx", ".numbers" => "numbers-xlsx", ".key" => "keynote-pptx",
-                _ => throw new ConvertUsageException("Apple OOXML conversion requires a .pages, .numbers, or .key document file or directory bundle.")
-            };
             var runner = IWorkWorkflow.CreateRunner(conversionOptions: policy);
+            string sourceExtension = Path.GetExtension(input).ToLowerInvariant();
+            string targetExtension = destination is null ? sourceExtension switch {
+                ".pages" => ".docx", ".numbers" => ".xlsx", ".key" => ".pptx",
+                _ => throw new ConvertUsageException("Choose a .pages, .numbers, or .key source.")
+            } : Path.GetExtension(destination).ToLowerInvariant();
+            string route = runner.ConversionRoutes.SingleOrDefault(item => item.SourceExtensions.Contains(sourceExtension)
+                && item.TargetExtension == targetExtension)?.Id
+                ?? throw new ConvertUsageException("Choose the matching DOCX, XLSX, PPTX, or PDF destination for this Apple document.");
             OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = Path.GetFullPath(input!),
                 OutputPath = destination is null ? null : Path.GetFullPath(destination), ConversionRouteId = route,

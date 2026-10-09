@@ -1,6 +1,6 @@
 # OfficeIMO.Workflows.IWork
 
-Opt-in Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint conversion through the shared OfficeIMO workflow runner.
+Opt-in Pages-to-Word, Numbers-to-Excel, Keynote-to-PowerPoint, and complete editable iWork-to-PDF conversion through the shared OfficeIMO workflow runner.
 
 ```csharp
 using OfficeIMO.Workflows;
@@ -34,6 +34,21 @@ var request = new OfficeWorkflowRequest {
 OfficeWorkflowResult preview = await runner.RunAsync(request);
 ```
 
+The `pages-pdf`, `numbers-pdf`, and `keynote-pdf` routes compose the same editable adapters with the existing Word, Excel, and PowerPoint PDF owners. They reject visual previews, explicitly partial reconstruction, content-excluding options, and PDF-stage omissions or failures before publication. Numbers includes every worksheet, row, and column without print-area clipping; Keynote includes hidden slides. Complete editable content does not establish exact pagination or typography. Font and rendering approximations remain in the result.
+
+```csharp
+var pdfSettings = new IWorkWorkflowSettings();
+OfficeWorkflowResult pdf = await runner.RunAsync(new OfficeWorkflowRequest {
+    InputPath = "presentation.key",
+    OutputPath = "presentation.pdf",
+    Operation = OfficeWorkflowOperation.Convert,
+    ConversionRouteId = "keynote-pdf",
+    RegisteredConversionSettings = pdfSettings
+});
+```
+
+Use `PagesPdfOptions`, `NumbersPdfOptions`, and `KeynotePdfOptions` for destination layout, font, and resource policy; request snapshots copy these options. `ConversionEvidence` retains both the iWork and PDF reports, including serialization/font preflight evidence, with `conversionStages = iwork-editable,pdf`. Failed PDF saves retain available stage evidence and preserve an existing destination. Cancellation after staged-output reopening also removes staging without replacing the destination.
+
 Routes accept local ZIP files, local directory packages, provider ZIP streams, and provider directory packages. Directory capture uses the bounded iWork container owner, including nested `Index.zip` packages. Output cannot be placed inside a source package or alias one of its members. For provider directories, set `InputDirectoryPackage` to an `OfficeWorkflowDirectoryPackageInput` containing the selected filename, a reopenable `OfficeWorkflowDirectoryInput`, and a permission-aware root identity/output-separation guard. Set an explicit `OutputPath` and omit `InputStream`. The shared runner captures at most `MaximumEntries` members (10,000 by default) within `Limits.MaximumInputBytes`, then invokes the format owner on private staging. Before publication it re-enumerates the original provider and verifies member identities and bytes. The provider guard must reject root replacement and destinations inside or containing the source package. Native sandbox/bookmark qualification remains separate from this provider contract. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for format limits and the [workflow guide](../OfficeIMO.Workflows/README.md) for publication and provider contracts.
 
 Retained evidence includes identified source-unit totals and reconstructed, omitted, and unassessed counts. These totals describe units selected by the semantic projection, including explicitly omitted unsupported drawables and Numbers sheet references. Inactive templates, auxiliary table models/tiles, unresolved references, and unassessed content paths remain excluded. A visual preview does not establish individual object coverage. Full per-kind counts and native object identities are available on the owning adapter's `IWorkConversionReport`.
@@ -45,3 +60,15 @@ Declaration evidence retains `sourceDeclarationIssueCount` after destination dis
 Cell evidence retains `sourceCellIssueCount` after destination disposal. It counts materialized selected cells with decoding failures; native error markers and unmaterialized storage are excluded. Table identities, coordinates and messages are available in `IWorkConversionReport.SourceCellIssues`.
 
 Reference evidence retains `sourceReferenceIssueCount`, `sourceMissingReferenceTargetCount`, `sourceMalformedReferenceCount`, `sourceRejectedReferenceSetCount` and `sourceUnexpectedReferenceTargetTypeCount` after destination disposal. These count failed declared occurrences in the core's assessed content paths, separately from identified objects. Repeated occurrences within a source field remain separate; reuse of a shared text or template archive does not multiply its evidence. Full owner identities, field paths and target identifiers remain in `IWorkConversionReport.SourceReferenceIssues`. Missing, unreadable or unsupported target-type references have unassessed fidelity; the counts do not establish omitted-object totals or preview coverage.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Convert | 0 | 3 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Workflows.IWork` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

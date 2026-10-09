@@ -19379,6 +19379,48 @@
       "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
     },
     {
+      "id":"conversion:keynote-pdf",
+      "packageId":"OfficeIMO.Workflows.IWork",
+      "formatId":"Keynote",
+      "targetFormatId":"PDF",
+      "capabilityId":"keynote-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "evidence":"Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".key"],
+      "limitation":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
+    },
+    {
+      "id":"conversion:numbers-pdf",
+      "packageId":"OfficeIMO.Workflows.IWork",
+      "formatId":"Numbers",
+      "targetFormatId":"PDF",
+      "capabilityId":"numbers-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "evidence":"Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".numbers"],
+      "limitation":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
+    },
+    {
+      "id":"conversion:pages-pdf",
+      "packageId":"OfficeIMO.Workflows.IWork",
+      "formatId":"Pages",
+      "targetFormatId":"PDF",
+      "capabilityId":"pages-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"IWorkWorkflow.CreateRunner().RunAsync(request)",
+      "evidence":"Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".pages"],
+      "limitation":"Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific."
+    },
+    {
       "id":"conversion:xps-pdf",
       "packageId":"OfficeIMO.Xps.Pdf",
       "formatId":"XPS/OpenXPS",

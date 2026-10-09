@@ -290,6 +290,8 @@ public static partial class PowerPointIWorkConverter {
                                     MidpointRounding.AwayFromZero)))) {
                         return $"Keynote slide {slide.Index} contains a font size outside the PPTX range or hundredth-point precision.";
                     }
+                    if (textStyles.Any(textStyle => !CanApplyCharacterTracking(textStyle)))
+                        return $"Keynote slide {slide.Index} contains character tracking without a qualified font size or outside the PPTX spacing range.";
                     if (textStyles.Any(textStyle => textStyle.Color is { Alpha: < byte.MaxValue }
                             || textStyle.BackgroundColor is { Alpha: < byte.MaxValue })) {
                         return $"Keynote slide {slide.Index} contains transparent text colors that cannot be represented by the PPTX owner.";
@@ -385,6 +387,15 @@ public static partial class PowerPointIWorkConverter {
             || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
                 .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)));
         var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(SlideText).SelectMany(content => content.Paragraphs)
+                .SelectMany(paragraph => paragraph.Runs.Select(run => run.Style).Prepend(paragraph.Style.TextStyle))
+                .Concat(projection.Slides.SelectMany(slide => slide.Tables).SelectMany(TableParagraphStyles).Select(style => style.TextStyle))
+                .Any(CharacterTrackingNeedsRounding)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_CHARACTER_SPACING_PRECISION",
+                "Keynote character spacing was rounded to the nearest PPTX hundredth of a point; font-relative tracking remains on the source projection.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation));
+        }
         if (projection.Slides.SelectMany(slide => slide.Tables).Any(table => table.Cells.Any(cell => cell.Comment != null))) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_TABLE_COMMENTS_OMITTED",
                 "PPTX table reconstruction omits native cell comments; qualified comments remain on the iWork projection.",

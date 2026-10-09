@@ -459,6 +459,7 @@ public static partial class WordIWorkConverter {
         if (style.Underline.HasValue) run.Underline = style.Underline.Value ? WordUnderlineStyle.Single : null;
         if (style.Strikethrough.HasValue) run.Strike = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
+        if (style.CharacterSpacingPoints is double spacing) run.Spacing = ToSignedTwips(spacing);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
         if (style.Color != null) run.ColorHex = style.Color.RgbHex;
         if (style.BackgroundColor != null) run.RunShadingFillColorHex = style.BackgroundColor.RgbHex;

@@ -8,8 +8,8 @@ using OfficeIMO.Word.IWork;
 namespace OfficeIMO.Workflows.IWork;
 
 /// <summary>Opt-in Apple iWork conversion using the bounded source reader and existing Office destination owners.</summary>
-public static class IWorkWorkflow {
-    /// <summary>Creates a runner with Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes.</summary>
+public static partial class IWorkWorkflow {
+    /// <summary>Creates a runner with iWork-to-Office and complete-editable-subset PDF routes.</summary>
     /// <remarks>Defaults reject partial editable reconstruction and visual previews without known full-document coverage. Local ZIP files and directory bundles, and provider ZIP streams, use captured inputs and publication-time source verification.</remarks>
     public static OfficeWorkflowRunner CreateRunner(IWorkReadOptions? readOptions = null,
         IWorkConversionOptions? conversionOptions = null) => new(null, null, conversions: CreateRegistrations(readOptions, conversionOptions));
@@ -19,7 +19,7 @@ public static class IWorkWorkflow {
         IWorkConversionOptions? conversionOptions = null) {
         IWorkReadOptions reading = (readOptions ?? new IWorkReadOptions { PreserveSourceRecords = false }).Clone();
         IWorkConversionOptions conversion = (conversionOptions ?? new IWorkConversionOptions { RequireCompleteVisualCoverage = true }).Clone();
-        return Array.AsReadOnly(new[] {
+        var registrations = new List<OfficeWorkflowConversionRegistration> {
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
                 using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
@@ -35,7 +35,9 @@ public static class IWorkWorkflow {
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
-        });
+        };
+        AddPdfRegistrations(registrations, reading, conversion);
+        return Array.AsReadOnly(registrations.ToArray());
     }
 
     private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeWorkflowLimits limits) {

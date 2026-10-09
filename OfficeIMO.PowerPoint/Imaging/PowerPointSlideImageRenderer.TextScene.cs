@@ -54,6 +54,15 @@ namespace OfficeIMO.PowerPoint {
         private static string ResolveTextBoxFallbackFont(PowerPointTextBox textBox, string? defaultFontFamily) =>
             defaultFontFamily ?? PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide) ?? "Calibri";
 
+        private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                    .Any(run => run.CharacterSpacingPoints.GetValueOrDefault() != 0)) return;
+            diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                "POWERPOINT_CHARACTER_SPACING_APPROXIMATED",
+                "Shared text rendering uses default character spacing; explicit spacing is retained in the presentation.",
+                DescribeShape(textBox), OfficeConversionLossKind.Approximation));
+        }
+
         private static IEnumerable<OfficeRichTextRun> CreateEffectiveTextRuns(string text, PowerPointTextRun? run,
             PowerPointTextBox textBox, PowerPointParagraph paragraph, DocumentFormat.OpenXml.Drawing.ColorScheme? colors,
             PowerPointShapeBoundsMapping mapping, string? defaultFontFamily = null) {

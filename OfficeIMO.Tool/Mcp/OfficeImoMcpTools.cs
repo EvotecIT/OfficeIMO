@@ -3,6 +3,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using OfficeIMO.Tool.Agent;
 using OfficeIMO.Tool.Commands.Reader;
+using OfficeIMO.IWork;
 
 namespace OfficeIMO.Tool.Mcp;
 
@@ -147,16 +148,20 @@ internal sealed class OfficeImoMcpTools {
         OpenWorld = false,
         UseStructuredContent = true,
         OutputSchemaType = typeof(AgentConvertResult))]
-    [Description("Write one ordinary document as Markdown or Reader JSON. Whole-mailbox conversion is intentionally rejected.")]
+    [Description("Write one ordinary document as Markdown or Reader JSON, or convert an iWork ZIP file to its matching DOCX/XLSX/PPTX destination or PDF through shared workflows. Retains source hashes and fidelity evidence. PDF requires complete editable reconstruction. Whole-mailbox conversion is intentionally rejected.")]
     public async Task<CallToolResult> ConvertAsync(
         [Description("Path to one supported local document.")] string path,
         [Description("Destination file path. Existing files are protected unless overwrite is true.")] string outputPath,
-        [Description("Output format: markdown or json.")] string format = "markdown",
+        [Description("Output format: markdown, json, docx, xlsx, pptx, or pdf. Office and PDF formats require a matching iWork source.")] string format = "markdown",
         [Description("Whether an existing destination may be replaced.")] bool overwrite = false,
+        [Description("Typed iWork representation and acceptance options. Defaults reject partial output and incomplete previews; PDF always requires complete editable output.")] IWorkConversionOptions? iworkOptions = null,
+        [Description("Maximum captured iWork input bytes.")] long maximumInputBytes = 256L * 1024L * 1024L,
+        [Description("Maximum generated iWork destination bytes.")] long maximumOutputBytes = 512L * 1024L * 1024L,
         CancellationToken cancellationToken = default) =>
         await ExecuteAsync(
-            () => _service.ConvertAsync(path, outputPath, format, overwrite, cancellationToken),
-            result => "Wrote " + result.Format + " to " + result.OutputPath + ".").ConfigureAwait(false);
+            () => _service.ConvertAsync(path, outputPath, format, overwrite, cancellationToken, iworkOptions, maximumInputBytes, maximumOutputBytes),
+            result => result.Workflow is { Succeeded: false } failed ? failed.Summary : "Wrote " + result.Format + " to " + result.OutputPath + ".",
+            result => result.Workflow is { Succeeded: false }).ConfigureAwait(false);
 
     [McpServerTool(
         Name = "officeimo_capabilities",
@@ -180,10 +185,13 @@ internal sealed class OfficeImoMcpTools {
 
     private static async Task<CallToolResult> ExecuteAsync<T>(
         Func<Task<T>> action,
-        Func<T, string> summary) where T : class {
+        Func<T, string> summary,
+        Func<T, bool>? isError = null) where T : class {
         try {
             T result = await action().ConfigureAwait(false);
-            return Success(result, summary(result));
+            CallToolResult response = Success(result, summary(result));
+            response.IsError = isError?.Invoke(result) == true;
+            return response;
         } catch (AgentUsageException exception) {
             return Error(exception.Message);
         } catch (FileNotFoundException exception) {

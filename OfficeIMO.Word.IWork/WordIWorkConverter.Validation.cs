@@ -153,6 +153,9 @@ public static partial class WordIWorkConverter {
                 return "Pages paragraph formatting exceeds the DOCX measurement range.";
         }
         foreach (IWorkTextStyle style in AllPagesRunStyles(projection)) {
+            if (style.CharacterTrackingEm.HasValue && (!style.CharacterSpacingPoints.HasValue
+                || !FitsSignedTwips(style.CharacterSpacingPoints, allowPartialEditableReconstruction)))
+                return "Pages character tracking has no qualified font size or exceeds the DOCX measurement range or twip precision.";
             if (style.Color is { Alpha: < byte.MaxValue } || style.BackgroundColor is { Alpha: < byte.MaxValue })
                 return "Pages contains transparent text colors that cannot be represented by the DOCX owner.";
             if (style.FontSizePoints is double fontSize
@@ -176,6 +179,7 @@ public static partial class WordIWorkConverter {
             && !IsExactDestinationUnit(multiplier, 240d))
         || AllPagesRunStyles(projection)
             .Any(style => style.FontSizePoints is double size && !IsExactDestinationUnit(size, 2d))
+        || AllPagesRunStyles(projection).Any(style => style.CharacterSpacingPoints is double spacing && !IsExactDestinationUnit(spacing, 20d))
         || projection.TextBoxObjects.Select(box => box.Geometry)
             .Concat(projection.Images.Select(image => image.Geometry))
             .Any(geometry => geometry != null && (!IsExactDestinationUnit(geometry.LeftPoints, 12700d)

@@ -21,6 +21,14 @@ try {
             Console.WriteLine($"{kind}/CancelDuringNativeCopy: verified {workload.VerifiedUnits}; written {workload.CancellationProcessedBytes} bytes");
         }
     }
+    var largeNative = IWorkRuntimeWorkload.CreateNativeKeynote(1000);
+    foreach (string operation in new[] { "LoadProject", "ConvertSave", "NativeSave" }) {
+        largeNative.Prepare(operation);
+        largeNative.Execute(operation);
+        largeNative.Validate();
+        Console.WriteLine($"Keynote/NativeCreated/{operation}: verified {largeNative.VerifiedUnits}; input {largeNative.InputBytes}; output {largeNative.OutputBytes}");
+        largeNative.ReleaseResults();
+    }
     return 0;
 } catch (Exception exception) {
     Console.Error.WriteLine(exception);

@@ -239,6 +239,7 @@ internal static partial class IWorkTextReader {
         private readonly bool? _underline;
         private readonly bool? _strikethrough;
         private readonly double? _fontSizePoints;
+        private readonly double? _characterTrackingEm;
         private readonly string? _fontName;
         private readonly uint? _color;
         private readonly uint? _backgroundColor;
@@ -251,6 +252,7 @@ internal static partial class IWorkTextReader {
             _underline = inherited.Underline;
             _strikethrough = inherited.Strikethrough;
             _fontSizePoints = inherited.FontSizePoints;
+            _characterTrackingEm = inherited.CharacterTrackingEm;
             _fontName = inherited.FontName;
             _color = Pack(inherited.Color);
             _backgroundColor = Pack(inherited.BackgroundColor);
@@ -261,6 +263,7 @@ internal static partial class IWorkTextReader {
             && _bold == other._bold && _italic == other._italic
             && _underline == other._underline && _strikethrough == other._strikethrough
             && _fontSizePoints == other._fontSizePoints
+            && _characterTrackingEm == other._characterTrackingEm
             && string.Equals(_fontName, other._fontName, StringComparison.Ordinal)
             && _color == other._color && _backgroundColor == other._backgroundColor;
 
@@ -275,6 +278,7 @@ internal static partial class IWorkTextReader {
                 hash = hash * 31 + _underline.GetHashCode();
                 hash = hash * 31 + _strikethrough.GetHashCode();
                 hash = hash * 31 + _fontSizePoints.GetHashCode();
+                hash = hash * 31 + _characterTrackingEm.GetHashCode();
                 hash = hash * 31 + (_fontName?.GetHashCode() ?? 0);
                 hash = hash * 31 + _color.GetHashCode();
                 return hash * 31 + _backgroundColor.GetHashCode();
@@ -293,6 +297,7 @@ internal static partial class IWorkTextReader {
         internal bool? Underline;
         internal bool? Strikethrough;
         internal double? FontSizePoints;
+        internal double? CharacterTrackingEm;
         internal string? FontName;
         internal IWorkColor? Color;
         internal IWorkColor? BackgroundColor;
@@ -301,11 +306,12 @@ internal static partial class IWorkTextReader {
             Name = style.Name, Bold = style.Bold, Italic = style.Italic,
             Underline = style.Underline, Strikethrough = style.Strikethrough,
             FontSizePoints = style.FontSizePoints, FontName = style.FontName,
-            Color = style.Color, BackgroundColor = style.BackgroundColor
+            Color = style.Color, BackgroundColor = style.BackgroundColor,
+            CharacterTrackingEm = style.CharacterTrackingEm
         };
 
         internal IWorkTextStyle ToPublic() => new(Name, Bold, Italic, Underline,
-            Strikethrough, FontSizePoints, FontName, Color, BackgroundColor);
+            Strikethrough, FontSizePoints, FontName, Color, BackgroundColor, CharacterTrackingEm);
     }
 
     private sealed class ParagraphStyleData {

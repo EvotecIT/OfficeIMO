@@ -12,6 +12,26 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
+    public void CharacterSpacingSurvivesSaveReopenAndRenderingReportsItsApproximation() {
+        using var bytes = new MemoryStream();
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(bytes, new PowerPointCreateOptions())) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBoxPoints("Spaced", 10, 10, 200, 40).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 80, 200, 60).GetCell(0, 0);
+            cell.Text = "Cell";
+            cell.Paragraphs[0].Runs[0].CharacterSpacingPoints = 1.25;
+            presentation.Save();
+        }
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(bytes.ToArray()));
+        Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacingPoints);
+        Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacingPoints);
+        PdfCore.PdfDocumentConversionResult conversion = reopened.ToPdfDocumentResult();
+        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code.Contains("CHARACTER_SPACING")
+            && d.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
+    }
+
+    [Fact]
     public void NativeRunFormattingProjectsToSharedDrawingRuns() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());

@@ -1,0 +1,119 @@
+using System.Security.Cryptography;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
+using OfficeIMO.IWork;
+using OfficeIMO.Pdf;
+using OfficeIMO.Tool.Agent;
+using OfficeIMO.Tool.Commands.Agent;
+using OfficeIMO.Tool.Mcp;
+using Xunit;
+
+namespace OfficeIMO.Tool.Tests;
+
+public sealed class AgentIWorkConversionTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Agent_cli_exit_code_matches_the_structured_iwork_workflow_result(bool overwrite) {
+        using var files = new Files();
+        string output = files.Output("docx");
+        File.WriteAllText(output, "keep existing");
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var arguments = new List<string> { "convert", files.Input, "--output", output, "--format", "docx" };
+        if (overwrite) arguments.Add("--overwrite");
+        int exit = await AgentCommand.RunAsync(arguments.ToArray(), stdout, stderr);
+        using var response = System.Text.Json.JsonDocument.Parse(stdout.ToString());
+        Assert.Equal(overwrite, response.RootElement.GetProperty("workflow").GetProperty("succeeded").GetBoolean());
+        Assert.Equal((int)(overwrite ? OfficeImoToolExitCode.Success : OfficeImoToolExitCode.OperationFailed), exit);
+        if (!overwrite) Assert.Equal("keep existing", File.ReadAllText(output));
+    }
+
+    [Fact]
+    public async Task Stdio_iwork_conversion_accepts_typed_policy_and_returns_structured_stage_evidence() {
+        using var files = new Files();
+        var transport = new StdioClientTransport(new StdioClientTransportOptions {
+            Name = "officeimo-iwork-source-test",
+            Command = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
+            Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
+            WorkingDirectory = files.Root,
+            EnvironmentVariables = new Dictionary<string, string?> {
+                [AgentPathPolicy.AllowedRootsEnvironmentVariable] = files.Root
+            }
+        });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+        var arguments = new Dictionary<string, object?> {
+            ["path"] = files.Input, ["outputPath"] = files.Output("pdf"), ["format"] = "pdf",
+            ["iworkOptions"] = new Dictionary<string, object?> { ["mode"] = 1 }
+        };
+        CallToolResult result = await client.CallToolAsync("officeimo_convert", arguments, cancellationToken: timeout.Token);
+        Assert.False(result.IsError, string.Join("; ", result.Content.OfType<TextContentBlock>().Select(item => item.Text)));
+        var data = result.StructuredContent!.Value;
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), data.GetProperty("sourceSha256").GetString(), ignoreCase: true);
+        Assert.Equal("iwork-editable,pdf", data.GetProperty("workflow").GetProperty("conversionEvidence").GetProperty("facts").GetProperty("conversionStages").GetString());
+        arguments["overwrite"] = true;
+        arguments["iworkOptions"] = new Dictionary<string, object?> { ["allowPartialEditableReconstruction"] = true };
+        string outputHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Output("pdf"))));
+        CallToolResult rejected = await client.CallToolAsync("officeimo_convert", arguments, cancellationToken: timeout.Token);
+        Assert.True(rejected.IsError);
+        Assert.NotNull(rejected.StructuredContent);
+        Assert.Equal(outputHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Output("pdf")))));
+    }
+
+    [Theory]
+    [InlineData("docx")]
+    [InlineData("pdf")]
+    public async Task Mcp_iwork_conversion_uses_the_shared_workflow_and_retains_source_hash(string format) {
+        using var files = new Files();
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
+        AgentConvertResult result = await service.ConvertAsync(files.Input, files.Output(format), format);
+        Assert.True(result.Workflow!.Succeeded, result.Workflow.Summary);
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), result.SourceSha256, ignoreCase: true);
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(result.OutputPath))), result.Sha256, ignoreCase: true);
+        Assert.Equal("EditableReconstruction", result.Workflow.ConversionEvidence!.Facts["projectionKind"]);
+        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains("sourceSha256", AgentJson.Serialize(result));
+        var tools = new OfficeImoMcpTools(service);
+        var response = await tools.ConvertAsync(files.Input, files.Output("pdf"), "pdf", overwrite: true,
+            iworkOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        Assert.False(response.IsError);
+        Assert.NotNull(response.StructuredContent);
+        Assert.Contains("hello pages", PdfReadDocument.Open(File.ReadAllBytes(files.Output("pdf"))).ExtractText());
+    }
+
+    [Fact]
+    public async Task Mcp_output_limit_is_a_structured_failure_and_protects_existing_output() {
+        using var files = new Files();
+        string output = files.Output("pdf");
+        File.WriteAllText(output, "keep existing");
+        var tools = new OfficeImoMcpTools(new OfficeImoAgentService(new AgentPathPolicy([files.Root])));
+        var response = await tools.ConvertAsync(files.Input, output, "pdf", overwrite: true, maximumOutputBytes: 32);
+        Assert.True(response.IsError);
+        Assert.NotNull(response.StructuredContent);
+        Assert.Equal("keep existing", File.ReadAllText(output));
+    }
+
+    [Fact]
+    public async Task Mcp_preserves_conflicts_and_rejects_output_outside_authorized_roots() {
+        using var files = new Files();
+        string output = files.Output("docx");
+        File.WriteAllText(output, "keep existing");
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
+        Assert.False((await service.ConvertAsync(files.Input, output, "docx")).Workflow!.Succeeded);
+        Assert.Equal("keep existing", File.ReadAllText(output));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ConvertAsync(files.Input,
+            Path.Combine(Path.GetDirectoryName(files.Root)!, "outside.docx"), "docx"));
+    }
+
+    private sealed class Files : IDisposable {
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), "officeimo-agent-iwork-" + Guid.NewGuid().ToString("N"));
+        public string Input => Path.Combine(Root, "source.pages");
+        public string Output(string format) => Path.Combine(Root, "output." + format);
+        public Files() {
+            Directory.CreateDirectory(Root);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "nim-iwork", "simple.pages"), Input);
+        }
+        public void Dispose() => Directory.Delete(Root, true);
+    }
+}

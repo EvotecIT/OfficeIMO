@@ -106,6 +106,8 @@ public static partial class PowerPointIWorkConverter {
                 || style.TabStops != null && style.TabStops.Any(tab => !FitsTextCoordinate(tab.PositionPoints)))
                 return $"Keynote table '{table.Name}' contains paragraph formatting outside the PPTX range.";
             IWorkTextStyle text = style.TextStyle;
+            if (!CanApplyCharacterTracking(text))
+                return $"Keynote table '{table.Name}' contains character tracking without a qualified font size or outside the PPTX spacing range.";
             if (text.FontSizePoints is double size && (!IsFinite(size) || size < 1d || size > 4000d
                     || size * 100d != Math.Round(size * 100d, MidpointRounding.AwayFromZero)))
                 return $"Keynote table '{table.Name}' contains a font size outside the PPTX range or hundredth-point precision.";

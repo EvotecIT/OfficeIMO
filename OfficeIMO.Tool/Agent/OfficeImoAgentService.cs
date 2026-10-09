@@ -289,7 +289,13 @@ internal sealed partial class OfficeImoAgentService {
         string outputPath,
         string format = "markdown",
         bool overwrite = false,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        OfficeIMO.IWork.IWorkConversionOptions? iworkOptions = null,
+        long maximumInputBytes = 256L * 1024L * 1024L,
+        long maximumOutputBytes = 512L * 1024L * 1024L) {
+        if (format.ToLowerInvariant() is "docx" or "xlsx" or "pptx" or "pdf")
+            return await ConvertIWorkAsync(path, outputPath, format, overwrite, iworkOptions,
+                maximumInputBytes, maximumOutputBytes, cancellationToken).ConfigureAwait(false);
         string inputPath = _pathPolicy.ResolveInput(path);
         AgentSourceRegistration source = _registry.Register(inputPath, cancellationToken);
         if (IsEmailStoreSource(source)) {

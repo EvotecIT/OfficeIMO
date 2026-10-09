@@ -64,6 +64,8 @@ This token governs loading, projection, and destination construction. It also go
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.PowerPoint`. It does not add iWork support to the default PowerPoint package graph.
 
+Font-relative character tracking is mapped to `PowerPointTextRun.CharacterSpacingPoints` when the effective font size is known. PPTX stores hundredths of a point and reports quantization. The qualified image deck now uses the default editable path; shared PDF/image rendering reports its current spacing approximation.
+
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for supported structures and conversion limits.
 
 <!-- officeimo-operation-catalog:start -->
