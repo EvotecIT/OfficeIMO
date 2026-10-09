@@ -27,6 +27,14 @@ internal sealed partial class PublisherPageProjector {
                 pageShapes.Add(owner.Value, shapes = new List<PublisherEscherShape>());
             shapes.Add(shape);
         }
+        PrepareTextFrames();
+        var pageFrames = new Dictionary<uint, List<PublisherTextFrame>>();
+        foreach (PreparedTextFrame frame in _textFrames.Values) {
+            _context.Token.ThrowIfCancellationRequested();
+            if (!pageFrames.TryGetValue(frame.Model.PageId, out List<PublisherTextFrame>? frames))
+                pageFrames.Add(frame.Model.PageId, frames = new List<PublisherTextFrame>());
+            frames.Add(frame.Model);
+        }
         foreach (PublisherSourcePage page in _source.Pages) {
             _context.Token.ThrowIfCancellationRequested();
             var drawing = new OfficeDrawing(_source.Width, _source.Height);
@@ -57,7 +65,8 @@ internal sealed partial class PublisherPageProjector {
             drawing.AddDrawingForClippedRendering(scenes[page.Id], 0, 0, null);
             var clipped = new OfficeDrawing(drawing.Width, drawing.Height);
             clipped.AddClippedDrawing(drawing, 0, 0, OfficeClipPath.Rectangle(drawing.Width, drawing.Height));
-            var projectedPage = new PublisherPage(page.Id, page.Name, page.Master, clipped);
+            var projectedPage = new PublisherPage(page.Id, page.Name, page.Master, clipped,
+                pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>());
             if (page.IsMaster) masters.Add(projectedPage); else pages.Add(projectedPage);
         }
         if (pages.Count == 0) throw new InvalidDataException("Publisher publication has no printable document pages.");
@@ -95,13 +104,9 @@ internal sealed partial class PublisherPageProjector {
         if (!shape.Bounds.HasValue) {
             _context.Add("PUB_OBJECT_ANCHOR_UNRESOLVED", "A publication object has no resolved native anchor.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
-        PublisherNativeRectangle bounds = shape.Bounds.Value;
-        double x = Math.Min(bounds.X1, bounds.X2) / 12700 + page.Width / 2;
-        double y = Math.Min(bounds.Y1, bounds.Y2) / 12700 + page.Height / 2;
-        double width = Math.Abs(bounds.X2 - bounds.X1) / 12700, height = Math.Abs(bounds.Y2 - bounds.Y1) / 12700;
+        FrameRectangle bounds = FrameBounds(shape, page.Width, page.Height);
+        double x = bounds.X, y = bounds.Y, width = bounds.Width, height = bounds.Height;
         double rotation = shape.Transform.RotationDegrees.GetValueOrDefault();
-        double angle = ((rotation % 360) + 360) % 360;
-        if (angle is >= 45 and < 135 or >= 225 and < 315) { x += (width - height) / 2; y += (height - width) / 2; (width, height) = (height, width); }
         double geometryWidth = width, geometryHeight = height;
         if (shape.Type == 20 && (width > 0 || height > 0)) { width = Math.Max(width, 0.01); height = Math.Max(height, 0.01); }
         if (width <= 0 || height <= 0) {
@@ -115,22 +120,24 @@ internal sealed partial class PublisherPageProjector {
         uint? storyId = native.Value(0x27);
         if (storyId.HasValue) {
             if (_text.Stories.TryGetValue(storyId.Value, out PublisherTextStory? story)) {
-                if (_usedStories.Add(storyId.Value)) {
+                if (native.Chunk.Kind == 0x10) {
+                    _usedStories.Add(storyId.Value);
+                    ProjectTable(native, storyId.Value, shape, local);
+                } else if (_textFrames.TryGetValue(shape.Id, out PreparedTextFrame? frame)) {
                     uint vertical = native.Value(0x35) ?? 0;
-                    if (native.Chunk.Kind == 0x10) ProjectTable(native, storyId.Value, shape, local);
-                    else if (story.Paragraphs.Count != 0) ProjectText(story.Paragraphs, local, shape, 0, 0, width, height,
-                        vertical switch { 1 => OfficeTextVerticalAlignment.Center, 2 => OfficeTextVerticalAlignment.Bottom, _ => OfficeTextVerticalAlignment.Top });
-                    _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
-                        OfficeConversionLossKind.Approximation, "Quill");
-                } else _context.Add("PUB_LINKED_TEXT_FRAME_OMITTED", "The complete linked story is placed in its first recovered frame; continuation flow is not reconstructed. TextStories retains the complete text.",
-                    OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
+                    foreach (PreparedTextRegion region in frame.Regions) local.AddRichTextParagraphs(region.Paragraphs,
+                        region.X, region.Y, region.Width, region.Height,
+                        verticalAlignment: vertical switch { 1 => OfficeTextVerticalAlignment.Center, 2 => OfficeTextVerticalAlignment.Bottom, _ => OfficeTextVerticalAlignment.Top });
+                }
+                _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
+                    OfficeConversionLossKind.Approximation, "Quill");
             } else _context.Add("PUB_TEXT_REFERENCE_UNRESOLVED", "A text frame refers to an unavailable story.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
         }
         foreach (OfficeDrawingElement element in local.Elements) element.SourceElementIds = new[] { "publisher-object-" + shape.Id };
         var transform = new OfficeImageFrameTransform(rotation, x + width / 2, y + height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
         _context.AccountProjection(local);
         page.AddDrawingForClippedRendering(local, x, y, transform);
-        if (local.Elements.Count > 0) _projected.Add(shape.Id);
+        if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id)) _projected.Add(shape.Id);
     }
     private OfficeTextPadding TextPadding(PublisherEscherShape shape) => new(
         (shape.Property(0x81) ?? 36576) / 12700D, (shape.Property(0x82) ?? 36576) / 12700D,

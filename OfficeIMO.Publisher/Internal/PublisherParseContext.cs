@@ -10,6 +10,7 @@ internal sealed class PublisherParseContext {
     internal long ImageBytes { get; private set; }
     private long _projectedElements, _projectedCharacters;
     private long _imageProcessingBytes;
+    private long _textLayoutCharacters;
     private int _imageStoreEntries;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
@@ -32,6 +33,12 @@ internal sealed class PublisherParseContext {
     internal void AccountImageProcessing(int bytes) {
         if (bytes > Options.Limits.MaxInputBytes - _imageProcessingBytes) throw new InvalidDataException("Publisher image processing byte limit exceeded.");
         _imageProcessingBytes += bytes;
+    }
+    internal void AccountTextLayout(int characters) {
+        Token.ThrowIfCancellationRequested();
+        if (characters > Options.Limits.MaxTextCharacters - _textLayoutCharacters)
+            throw new InvalidDataException("Publisher text layout character work limit exceeded.");
+        _textLayoutCharacters += characters;
     }
     internal void AccountProjection(OfficeIMO.Drawing.OfficeDrawing drawing) {
         foreach (OfficeIMO.Drawing.OfficeDrawingElement element in drawing.Elements) {

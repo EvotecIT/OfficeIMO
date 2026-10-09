@@ -41,6 +41,22 @@ emphasis, alignment, spacing, and indentation. Dynamic field markers and cached
 display text remain unevaluated. `Images` retains original embedded payloads;
 `GetBytes()` returns an independent copy.
 
+Each page's `TextFrames` exposes native frame identifiers, story links, order,
+column settings and wrap-object references. Linked stories follow their native
+links across frames and pages. Columns and rectangular wrap exclusions use the
+shared managed text engine; tight outlines and native break positions can differ.
+`TextStart` and `TextLength` identify the assigned range in `PublisherTextStory.Text`,
+including paragraph separators. These ranges describe recovered layout, rather
+than stored native break positions. A null range means placement is unresolved;
+`HasOverflow` identifies remaining story content after the final frame.
+
+```csharp
+foreach (var page in publication.Pages)
+    foreach (var frame in page.TextFrames)
+        Console.WriteLine($"Frame {frame.Id}, story {frame.StoryId}, " +
+            $"range {frame.TextStart}+{frame.TextLength}, overflow {frame.HasOverflow}");
+```
+
 ## Export a page as SVG
 
 ```csharp
@@ -84,6 +100,9 @@ projected content, including repeated master use. `MaxItems` bounds image-store
 entries even when their payload cannot be recovered. `MaxInputBytes` also bounds
 cumulative encoded image-payload processing, including repeated delayed
 references; delayed decoding results are reused within the operation.
+`MaxTextCharacters` also bounds cumulative text measured while continuing stories;
+`MaxRecords` bounds wrap-region inspection. Native text frames support up to
+256 columns within the configured item limit.
 
 Recovery reports distinguish approximation, omission and unassessed content.
 `RequireNoLoss()` rejects any of those categories. Current native recovery

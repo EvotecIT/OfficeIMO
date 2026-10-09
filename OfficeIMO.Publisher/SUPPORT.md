@@ -24,11 +24,12 @@ they are not produced by an OfficeIMO writer.
 | --- | --- | --- |
 | Document pages | Native order, physical size and page clipping | Utility/reference definitions are excluded |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
-| Text | UTF-16 stories, font names and sizes, bold, italic, underline, baseline, paragraph alignment, spacing and indents | Shared line breaking and metrics approximate native layout; measured overflow reports omission; linked frame continuation, picture wrap, named styles, custom tabs, lists and drop caps are not fully reconstructed |
+| Text | UTF-16 stories, styled paragraphs, reciprocal native frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; named styles, custom tabs, lists and drop caps are not fully reconstructed |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound strokes and arrowheads remain unassessed |
 | Groups | Native child coordinate spaces and nested placement | Group rotation/mirroring reports approximation when present |
-| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; text wrapping, recoloring and other picture effects are unassessed |
+| Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
+| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; recoloring and other picture effects are unassessed |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -36,6 +37,14 @@ Source object counts measure recovered descriptors and distinct projected
 objects. They do not measure pixel fidelity or prove that all content of an
 object survived. Complete source stories remain inspectable even when their
 visual placement is incomplete.
+
+`PublisherPage.TextFrames` records recovered frame geometry and links. Assigned
+UTF-16 ranges refer to normalized `PublisherTextStory.Text`; they are derived
+from managed measurement, not claimed as native cached break positions. Later
+empty frames have zero-length ranges. Native chains are checked for reciprocal
+links, matching story ownership, consecutive ordinals, cycles and disconnected
+frames. Ambiguous unlinked roots report omission instead of guessed ordering.
+A missing printable frame stops subsequent assignment for that story.
 
 ## Qualification and limits
 
@@ -49,7 +58,10 @@ Managed tests check page inventories, frame coordinates, source style values,
 table cell boundaries, grouped placements, raw image recovery, SVG dimensions,
 PDF page/text output and carried fidelity evidence. They also cover malformed
 native offsets, cyclic Quill directories, invalid UTF-16, resource ceilings,
-cancellation and caller stream ownership.
+cancellation and caller stream ownership. The native newsletter exercises ten
+linked stories, including chains whose object order differs from story order,
+and declared picture exclusions. Multi-column property and malformed-link
+mutations protect the native codec boundary; they are synthetic evidence.
 
 The libmspub 0.1.5 reader independently confirms page dimensions, text-frame
 coordinates, text styling and table semantics for the simple/table sample
@@ -68,6 +80,9 @@ caller-configurable, reject oversized input and also account for repeated
 projection work. The input byte ceiling also bounds cumulative encoded image
 processing, and unavailable image-store entries consume the item ceiling.
 Delayed decoding is cached and cancellation is checked between image entries.
+The text ceiling also bounds cumulative continuation measurement, and the record
+ceiling bounds exclusion-region inspection. Native frames support at most
+256 columns within the configured item ceiling.
 Finite text/table bleed coordinates survive projection and copying until page
 clipping is applied. Each source text story currently has the shared drawing
 ceiling of 100,000 characters and 4,096 rich-text runs/paragraphs.

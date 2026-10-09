@@ -49,8 +49,6 @@ internal sealed partial class PublisherPageProjector {
         }
         byte[] projectedBytes = ProjectImage(image, source.Id, out string projectedContentType);
         drawing.AddImage(projectedBytes, projectedContentType, new OfficeImageProjection(new OfficeImagePlacement(0, 0, drawing.Width, drawing.Height), crop));
-        _context.Add("PUB_PICTURE_TEXT_WRAP_UNASSESSED", "Native text wrapping around picture outlines is not reconstructed. Text follows its recovered frame geometry.",
-            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
         if (picture.HasPictureEffect) _context.Add("PUB_PICTURE_EFFECT_UNASSESSED", "Native picture recoloring, brightness, contrast, or transparency effects require additional projection.",
             OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
     }

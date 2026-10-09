@@ -181,14 +181,17 @@ internal static partial class OfficeDrawingTextLayout {
         double lineWidth = Math.Max(0, width - measured.Margins.Horizontal - line.OffsetX);
         IReadOnlyList<OfficeRichTextSegment> segments = line.Segments;
         bool tabbedLine = paragraph.TabStops != null && ContainsTabAdvance(line);
-        if (!tabbedLine && OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index, measured.Layout.Lines.Count, lineWidth, alignment))
+        if (!tabbedLine && OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index,
+            measured.Layout.Lines.Count + (paragraph.ContinuesInNextRegion ? 1 : 0), lineWidth, alignment))
             segments = JustifiedSegments(line, lineWidth, measure);
         double alignmentOffset = wrap ? OfficeTextPlacement.ResolveLineLeft(0, lineWidth, line.Width, alignment) :
             OfficeTextPlacement.ResolveLeftFromAnchor(OfficeTextPlacement.ResolveAnchorX(0, lineWidth, alignment), line.Width, alignment);
         double offset = measured.Margins.Left + line.OffsetX + (tabbedLine && !paragraph.TabStops!.AlignWithParagraph ? 0 : alignmentOffset);
         if (alignment == OfficeTextAlignment.Justify) offset = measured.Margins.Left + line.OffsetX;
-        var placed = new OfficeRichTextLine(segments, lineHeight, offset);
-        return index == 0 && measured.Label != null ? AddParagraphLabel(placed, measured.Label, lineHeight) : placed;
+        var placed = new OfficeRichTextLine(segments, lineHeight, offset) { SourceTextEnd = line.SourceTextEnd };
+        OfficeRichTextLine result = index == 0 && measured.Label != null ? AddParagraphLabel(placed, measured.Label, lineHeight) : placed;
+        result.SourceTextEnd = line.SourceTextEnd;
+        return result;
     }
 
     private static bool ContainsTabAdvance(OfficeRichTextLine line) {

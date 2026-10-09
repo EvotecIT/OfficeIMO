@@ -7,6 +7,9 @@ namespace OfficeIMO.Drawing;
 /// Describes one measured line of rich text.
 /// </summary>
 public sealed class OfficeRichTextLine {
+    // Exclusive UTF-16 endpoint in source runs, before newline normalization or tab expansion.
+    // Native adapters use this to continue a story without inferring text from painted segments.
+    internal int SourceTextEnd { get; set; }
     /// <summary>Creates a line with renderer-resolved height and no horizontal offset.</summary>
     public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments)
         : this(segments, 0D, 0D) {

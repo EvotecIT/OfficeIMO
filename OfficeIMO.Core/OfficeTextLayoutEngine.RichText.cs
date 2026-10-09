@@ -316,6 +316,7 @@ public static partial class OfficeTextLayoutEngine {
                 break;
             }
             if (token.HardBreak) {
+                builder.SourceTextEnd = token.SourceEnd;
                 if (!AddRichTextLine(lines, builder)) {
                     clipped = true;
                     processingStopped = true;
@@ -346,12 +347,14 @@ public static partial class OfficeTextLayoutEngine {
                     if (double.IsInfinity(advance) || advance > room) advance = 0;
                 }
                 bool leaderLimited = builder.AddTabAdvance(token.Run, advance, selectedStop, leaderBudget, cancellationToken);
+                builder.SourceTextEnd = token.SourceEnd;
                 clipped |= leaderLimited && leaderBudget.ReportClipping;
                 atParagraphStart = false;
                 continue;
             }
 
             if (token.IsWhitespace && builder.IsEmpty && tabStops == null) {
+                builder.SourceTextEnd = token.SourceEnd;
                 continue;
             }
 
@@ -367,6 +370,8 @@ public static partial class OfficeTextLayoutEngine {
                 }
                 builder.SetOffset(ResolveLineOffset(currentParagraphIndent, firstVisualLine: false));
                 if (token.IsWhitespace) {
+                    lines[lines.Count - 1].SourceTextEnd = token.SourceEnd;
+                    builder.SourceTextEnd = token.SourceEnd;
                     continue;
                 }
 
@@ -388,6 +393,7 @@ public static partial class OfficeTextLayoutEngine {
                 }
             } else {
                 builder.Add(token.Run, token.Text);
+                builder.SourceTextEnd = token.SourceEnd;
             }
         }
 
@@ -440,6 +446,7 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, OfficeFontStyle, double> measure,
         OfficeTextParagraphIndent paragraphIndent,
         CancellationToken cancellationToken) {
+        int sourceEnd = token.SourceStart;
         foreach (string textElement in OfficeTextElements.Enumerate(token.Text)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (lines.Count >= MaximumLayoutLines) {
@@ -455,6 +462,8 @@ public static partial class OfficeTextLayoutEngine {
             }
 
             builder.Add(token.Run, textElement);
+            sourceEnd += textElement.Length;
+            builder.SourceTextEnd = sourceEnd;
         }
 
         return true;
@@ -466,7 +475,7 @@ public static partial class OfficeTextLayoutEngine {
             return false;
         }
         if (builder.IsEmpty) {
-            lines.Add(new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), offsetX: builder.OffsetX));
+            lines.Add(new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>(), offsetX: builder.OffsetX) { SourceTextEnd = builder.SourceTextEnd });
             return true;
         }
 
@@ -568,7 +577,7 @@ public static partial class OfficeTextLayoutEngine {
             lines[i] = new OfficeRichTextLine(
                 line.Segments,
                 ResolveRichTextLineHeight(line, lineHeightFactor, fallbackFontSize),
-                line.OffsetX);
+                line.OffsetX) { SourceTextEnd = line.SourceTextEnd };
         }
     }
 

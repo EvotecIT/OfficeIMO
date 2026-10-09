@@ -77,6 +77,7 @@ internal sealed partial class PublisherContentsReader {
                 if (result.Shapes.Count >= _context.Options.Limits.MaxItems) throw new InvalidDataException("Publisher object limit exceeded.");
                 var shape = new PublisherSourceShape(chunk, _blocks.Chunk(chunk.Offset, chunk.End));
                 if (chunk.Kind == 0x10) shape.Table = ReadTable(shape, chunks);
+                else if (shape.Value(0x27).HasValue) shape.WrapObjects = ReadWrapReferences(shape);
                 result.Shapes.Add(chunk.Id, shape);
             } else if (chunk.Kind == 0x5C) ReadPalette(chunk, result.Palette, chunk.End);
         }
@@ -95,6 +96,24 @@ internal sealed partial class PublisherContentsReader {
                 colors.Add(color);
             }
         }
+    }
+    private IReadOnlyList<uint> ReadWrapReferences(PublisherSourceShape shape) {
+        PublisherBlock? references = Field(shape.Fields, 0x47);
+        uint count = shape.Value(0x46) ?? 0;
+        if (!references.HasValue) {
+            if (count != 0) throw new InvalidDataException("Publisher text-wrap count has no reference list.");
+            return Array.Empty<uint>();
+        }
+        var result = new List<uint>();
+        var visited = new HashSet<uint>();
+        foreach (PublisherBlock item in _blocks.Children(references.Value)) {
+            if (item.Type != 0x68 || item.Id != 0 || !visited.Add(item.Value) || item.Value == shape.Chunk.Id)
+                throw new InvalidDataException("Invalid or duplicate Publisher text-wrap reference.");
+            if (result.Count >= _context.Options.Limits.MaxItems) throw new InvalidDataException("Publisher text-wrap item limit exceeded.");
+            result.Add(item.Value);
+        }
+        if (result.Count != count) throw new InvalidDataException("Publisher text-wrap count disagrees with its reference list.");
+        return result;
     }
     internal static PublisherBlock? Field(IReadOnlyList<PublisherBlock> blocks, byte id) {
         PublisherBlock? result = null;
@@ -142,5 +161,6 @@ internal sealed class PublisherSourceShape {
     internal PublisherContentChunk Chunk { get; }
     internal IReadOnlyList<PublisherBlock> Fields { get; }
     internal PublisherSourceTable? Table { get; set; }
+    internal IReadOnlyList<uint> WrapObjects { get; set; } = Array.Empty<uint>();
     internal uint? Value(byte id) => PublisherContentsReader.Field(Fields, id)?.Value;
 }

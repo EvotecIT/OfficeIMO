@@ -33,12 +33,14 @@ public sealed class PublisherNativeTests {
         Assert.Equal(10, normal.FontSize);
         Assert.False(normal.Bold);
         Assert.False(normal.Italic);
-        OfficeDrawingRichText frame = Elements(document.Pages[0].Drawing).OfType<OfficeDrawingRichText>()
+        PublisherTextFrame frame = document.Pages[0].TextFrames.Single(item => item.Id == 293);
+        OfficeDrawingRichText column = Elements(document.Pages[0].Drawing).OfType<OfficeDrawingRichText>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true);
         Assert.Equal(85.03937, frame.X, 4);
         Assert.Equal(70.86614, frame.Y, 4);
         Assert.Equal(399.68504, frame.Width, 4);
-        Assert.Equal(2.88, frame.Padding.Left, 4);
+        Assert.Equal(frame.X + 2.88, column.X, 4);
+        Assert.Equal(frame.Y + 2.88, column.Y, 4);
     }
 
     [Fact]
@@ -72,9 +74,9 @@ public sealed class PublisherNativeTests {
     public void Publication_text_overflow_is_reported_while_complete_stories_remain_available() {
         PublisherDocument document = PublisherDocument.Load(Fixture("SampleNewsletter.pub"));
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW" && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINKED_TEXT_FRAME_OMITTED");
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINKED_TEXT_LAYOUT_APPROXIMATED");
         Assert.Contains(document.TextStories, story => story.Text.Contains("Living and Learning in"));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_PICTURE_TEXT_WRAP_UNASSESSED");
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED");
     }
 
     [Fact]
