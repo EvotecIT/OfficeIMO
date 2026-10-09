@@ -119,5 +119,8 @@
         7
       ]
     ]
-  }
+  },
+  "runtimeCandidate": "f80df6d9e9a7773df9dec18bbe63562e87501357",
+  "requalifiedUtc": "2026-10-09T21:39:25.958863+00:00",
+  "referenceExecutableSha256": "9cc0f653551cdae548e5e5e868197498023efec835406b66ef18903accc4fcaf"
 }

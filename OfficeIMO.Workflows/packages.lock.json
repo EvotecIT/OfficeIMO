@@ -51,6 +51,23 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.djvu": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.djvu.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.DjVu": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Pdf.Ocr": "[3.4.4, )",
+          "OfficeIMO.Reader.DjVu": "[3.4.4, )",
+          "OfficeIMO.Reader.Ocr": "[3.4.4, )"
+        }
+      },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
@@ -218,6 +235,13 @@
       "officeimo.reader.core": {
         "type": "Project"
       },
+      "officeimo.reader.djvu": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.DjVu": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
       "officeimo.reader.image": {
         "type": "Project",
         "dependencies": {
@@ -359,6 +383,23 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.djvu": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.djvu.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.DjVu": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Pdf.Ocr": "[3.4.4, )",
+          "OfficeIMO.Reader.DjVu": "[3.4.4, )",
+          "OfficeIMO.Reader.Ocr": "[3.4.4, )"
         }
       },
       "officeimo.email": {
@@ -528,6 +569,13 @@
       },
       "officeimo.reader.core": {
         "type": "Project"
+      },
+      "officeimo.reader.djvu": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.DjVu": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
       },
       "officeimo.reader.image": {
         "type": "Project",
