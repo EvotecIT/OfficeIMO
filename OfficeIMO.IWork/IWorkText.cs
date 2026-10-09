@@ -153,7 +153,7 @@ public sealed class IWorkTextRun {
     public string Text { get; }
     /// <summary>Gets resolved run formatting.</summary>
     public IWorkTextStyle Style { get; }
-    /// <summary>Gets an external hyperlink target, when present.</summary>
+    /// <summary>Gets a source hyperlink target, including native Keynote slide references, when present.</summary>
     public string? Hyperlink { get; }
     /// <summary>Gets the drawable attachment at this run's source position, or null for an ordinary text run.</summary>
     public IWorkInlineObject? InlineObject { get; }

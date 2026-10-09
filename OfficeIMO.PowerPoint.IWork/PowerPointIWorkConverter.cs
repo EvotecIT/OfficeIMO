@@ -97,6 +97,7 @@ public static partial class PowerPointIWorkConverter {
                 }
                 foreach ((IWorkKeynoteSlide sourceSlide, PowerPointSlide slide) in slidePairs) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    string? ResolveHyperlink(string? target) => projection.ResolveHyperlink(target, sourceSlide.Index);
                     foreach (IWorkKeynoteDrawable drawable in sourceSlide.Drawables) {
                         cancellationToken.ThrowIfCancellationRequested();
                         switch (drawable.Kind) {
@@ -105,23 +106,23 @@ public static partial class PowerPointIWorkConverter {
                                 if (drawable.IsTitlePlaceholder) {
                                     AddRichTextBox(slide, textBox,
                                         canvasWidth * 0.04875d, canvasHeight * 0.06d,
-                                        canvasWidth * 0.9d, canvasHeight / 7.5d, cancellationToken);
+                                        canvasWidth * 0.9d, canvasHeight / 7.5d, cancellationToken, ResolveHyperlink);
                                 } else {
                                     AddRichTextBox(slide, textBox,
                                         canvasWidth * 0.06375d, canvasHeight * 0.22d,
-                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d, cancellationToken);
+                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d, cancellationToken, ResolveHyperlink);
                                 }
                                 break;
                             case IWorkKeynoteDrawableKind.Table:
-                                AddEditableTable(slide, drawable.Table!, cancellationToken);
+                                AddEditableTable(slide, drawable.Table!, cancellationToken, ResolveHyperlink);
                                 break;
                             case IWorkKeynoteDrawableKind.Image:
-                                AddEditableImage(slide, drawable.Image!, canvasWidth, canvasHeight);
+                                AddEditableImage(slide, drawable.Image!, canvasWidth, canvasHeight, ResolveHyperlink);
                                 break;
                         }
                     }
                     if (sourceSlide.PresenterNoteContent.Paragraphs.Count > 0) {
-                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent, cancellationToken);
+                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent, cancellationToken, ResolveHyperlink);
                     }
                 }
             } else {
@@ -160,7 +161,7 @@ public static partial class PowerPointIWorkConverter {
     }
 
     private static void AddEditableImage(PowerPointSlide slide, IWorkImageAsset source,
-        double canvasWidth, double canvasHeight) {
+        double canvasWidth, double canvasHeight, Func<string?, string?> resolveHyperlink) {
         if (source.MediaType is not "image/png" and not "image/jpeg") return;
         double left = source.Geometry?.LeftPoints ?? 72;
         double top = source.Geometry?.TopPoints ?? 72;
@@ -186,7 +187,7 @@ public static partial class PowerPointIWorkConverter {
         picture.Rotation = source.Geometry?.RotationDegrees;
         picture.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null
-            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? imageLink)) {
+            && Uri.TryCreate(resolveHyperlink(source.Hyperlink), UriKind.RelativeOrAbsolute, out Uri? imageLink)) {
             picture.SetHyperlink(imageLink);
         }
     }
@@ -206,7 +207,7 @@ public static partial class PowerPointIWorkConverter {
                 .Select(textBox => textBox.Hyperlink)
                 .Concat(slide.TitleBox == null ? Array.Empty<string?>() : new[] { slide.TitleBox.Hyperlink })
                 .Concat(slide.Images.Select(image => image.Hyperlink));
-            if (drawableHyperlinks.Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))
+            if (drawableHyperlinks.Any(value => IsUnsupportedHyperlink(projection.ResolveHyperlink(value, slide.Index), projection.Slides.Count))
                 || SlideText(slide).SelectMany(content => content.Paragraphs)
                     .SelectMany(paragraph => paragraph.Runs)
                     .Select(run => run.Hyperlink)
@@ -215,13 +216,13 @@ public static partial class PowerPointIWorkConverter {
                         .SelectMany(cell => cell.RichText!.Paragraphs)
                         .SelectMany(paragraph => paragraph.Runs)
                         .Select(run => run.Hyperlink))
-                    .Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))) {
+                    .Any(value => IsUnsupportedHyperlink(projection.ResolveHyperlink(value, slide.Index), projection.Slides.Count))) {
                 return $"Keynote slide {slide.Index} contains a hyperlink that cannot be represented by the PPTX owner.";
             }
             if (slide.TextBoxes.Concat(slide.TitleBox == null ? Array.Empty<IWorkTextBox>() : new[] { slide.TitleBox })
-                .Where(box => box.Layout != null).Any(box => !FitsTextCoordinate(box.Layout!.LeftInsetPoints)
-                    || !FitsTextCoordinate(box.Layout.TopInsetPoints) || !FitsTextCoordinate(box.Layout.RightInsetPoints)
-                    || !FitsTextCoordinate(box.Layout.BottomInsetPoints))) {
+                .Where(box => box.Layout != null).Any(box => !FitsTextCoordinateRange(box.Layout!.LeftInsetPoints)
+                    || !FitsTextCoordinateRange(box.Layout.TopInsetPoints) || !FitsTextCoordinateRange(box.Layout.RightInsetPoints)
+                    || !FitsTextCoordinateRange(box.Layout.BottomInsetPoints))) {
                 return $"Keynote slide {slide.Index} contains text-frame padding outside the PPTX measurement range.";
             }
             IEnumerable<IWorkGeometry> geometries = slide.TextBoxes
@@ -388,7 +389,12 @@ public static partial class PowerPointIWorkConverter {
             || projection.Slides.SelectMany(slide => slide.Tables)
                 .Any(table => TableSizingRequiresEmuRounding(table))
             || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
-                .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)));
+                .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)))
+            || projection.Slides.SelectMany(slide => slide.TextBoxes.Concat(slide.TitleBox == null
+                    ? Array.Empty<IWorkTextBox>() : new[] { slide.TitleBox }))
+                .Any(box => box.Layout != null && new[] { box.Layout.LeftInsetPoints,
+                    box.Layout.TopInsetPoints, box.Layout.RightInsetPoints, box.Layout.BottomInsetPoints }
+                    .Any(points => points.HasValue && !IsExactEmu(points.Value)));
         var diagnostics = new List<IWorkDiagnostic>();
         if (projection.Slides.SelectMany(SlideText).SelectMany(content => content.Paragraphs)
                 .SelectMany(paragraph => paragraph.Runs.Select(run => run.Style).Prepend(paragraph.Style.TextStyle))
@@ -428,7 +434,7 @@ public static partial class PowerPointIWorkConverter {
         if (requiresEmuRounding) diagnostics.AddRange(new[] {
             new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_PPTX_PRECISION",
-                "Keynote point measurements were quantized to the nearest PPTX EMU; the bounded source geometry remains available on the load result.")
+                "Keynote point measurements were quantized to the nearest PPTX EMU; source geometry and text-frame insets remain available on the load result.")
         });
         return diagnostics;
     }
@@ -469,9 +475,12 @@ public static partial class PowerPointIWorkConverter {
     private static bool FitsTextCoordinate(double? points) {
         if (!points.HasValue) return true;
         double scaled = points.Value * PowerPointUnits.EmusPerPoint;
-        return IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / PowerPointUnits.EmusPerPoint
+        return FitsTextCoordinateRange(points)
             && scaled == Math.Round(scaled);
     }
+
+    private static bool FitsTextCoordinateRange(double? points) => !points.HasValue
+        || IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / PowerPointUnits.EmusPerPoint;
 
     private static bool CanApplyListLayout(IWorkTextParagraph paragraph) {
         if (paragraph.ListLayout is not { } layout) return true;

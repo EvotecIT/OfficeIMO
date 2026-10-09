@@ -61,7 +61,7 @@ internal sealed class IWorkProjectionBudget {
         long maximum = Math.Min(int.MaxValue, (long)_options.MaximumProjectedTables
             + _options.MaximumProjectedImages + _options.MaximumProjectedTextItems);
         if (count < 0 || _drawableReferenceCount > maximum - count) {
-            throw new InvalidDataException(
+            throw IWorkProtobuf.LimitException(
                 $"iWork drawable references exceed the configured combined projection limit of {maximum}.");
         }
         _drawableReferenceCount += count;

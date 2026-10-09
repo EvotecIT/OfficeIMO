@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.IWork;
 
 public static partial class PowerPointIWorkConverter {
     private static void AddEditableTable(PowerPointSlide slide, IWorkTable source,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, Func<string?, string?> resolveHyperlink) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
         double left = source.Geometry?.LeftPoints ?? 72d;
         double top = source.Geometry?.TopPoints ?? 72d;
@@ -64,7 +64,7 @@ public static partial class PowerPointIWorkConverter {
                     if (defaultStyle != null) ApplyParagraphStyle(paragraphs[index], defaultStyle, sourceParagraph.Text);
                     ApplyParagraphStyle(paragraphs[index], sourceParagraph,
                         listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, defaultStyle?.TextStyle, header);
+                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, resolveHyperlink, defaultStyle?.TextStyle, header);
                 }
             } else {
                 sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);

@@ -121,6 +121,12 @@ result.Report.RequireNoErrorWarnings();
 - Profile presets through `PowerPointToPdfOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
+### Links between slides
+
+Full-slide output preserves supported internal slide links as PDF named destinations. Text-run links follow wrapping, clipping and frame/group transforms; picture and supported shape links use their transformed frame bounds. Rich table-cell links also retain their targets. Native PowerPoint next-slide actions resolve against the authored slide order.
+
+Hidden slides keep their source identities. If an export excludes a target slide, its links are omitted with `internal-slide-target-omitted` evidence. A next-slide action on the final slide has the same missing-target outcome. Other exposed relative targets produce `relative-hyperlink` omission evidence. These internal-link guarantees apply to the slides layout; notes and handouts retain their separate thumbnail contract. External text-run and picture links remain supported; external links on other shape frames and additional slideshow actions remain outside this mapping.
+
 ## Import PDF pages
 
 The general PDF route reconstructs supported page content as native slide objects. This is a new semantic projection, not recovery of the original slide deck: unsupported or ambiguous content remains explicit in the conversion report.

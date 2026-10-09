@@ -164,7 +164,7 @@ internal static partial class OfficeDrawingTextLayout {
             double size = fontScale == 1D ? run.FontSize * scale : Math.Max(1D, run.FontSize * scale * fontScale);
             runs.Add(new OfficeRichTextRun(run.Text, size, run.Color, run.Bold, run.Italic,
                 run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle,
-                run.StrikethroughStyle, run.Baseline, run.ParagraphIndent?.Scale(scale)) { LinkUri = run.LinkUri });
+                run.StrikethroughStyle, run.Baseline, run.ParagraphIndent?.Scale(scale)) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
         OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(runs,
             availableWidth, double.MaxValue, paragraph.LineHeightFactor ?? 1.2D, measure, wrap,
@@ -209,7 +209,7 @@ internal static partial class OfficeDrawingTextLayout {
             if (token.IsWhitespace && hasWord && OfficeTextBlockRenderer.HasWordAfter(tokens, i + 1)) advance += extra;
             result.Add(new OfficeRichTextSegment(token.Text, advance, source.FontSize, source.Color, source.Bold,
                 source.Italic, source.Underline, source.FontFamily, source.Strikethrough, source.BackgroundColor,
-                source.UnderlineStyle, source.StrikethroughStyle, source.Baseline) { LinkUri = source.LinkUri });
+                source.UnderlineStyle, source.StrikethroughStyle, source.Baseline) { LinkUri = source.LinkUri, LinkDestinationName = source.LinkDestinationName });
             hasWord |= !token.IsWhitespace;
         }
         return result;

@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeRichTextRun {
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }
+    internal string? LinkDestinationName { get; set; }
     internal OfficeFontStyle FontStyle => (Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
         | (Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
 
@@ -139,7 +140,7 @@ public sealed class OfficeRichTextRun {
     /// <summary>Creates a styled copy that starts a paragraph with its own indentation.</summary>
     public OfficeRichTextRun WithParagraphIndent(OfficeTextParagraphIndent paragraphIndent) =>
         new OfficeRichTextRun(Text, FontSize, Color, Bold, Italic, Underline, FontFamily, Strikethrough,
-            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { LinkUri = LinkUri };
+            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
 
     /// <summary>Creates a copy with transformed text casing while preserving all drawing styles.</summary>
     public OfficeRichTextRun WithTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) =>
@@ -156,5 +157,5 @@ public sealed class OfficeRichTextRun {
             UnderlineStyle,
             StrikethroughStyle,
             Baseline,
-            ParagraphIndent) { LinkUri = LinkUri };
+            ParagraphIndent) { LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
 }

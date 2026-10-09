@@ -1,0 +1,53 @@
+using System;
+using System.Linq;
+using OfficeIMO.Drawing;
+using PdfCore = OfficeIMO.Pdf;
+using PptCore = OfficeIMO.PowerPoint;
+
+namespace OfficeIMO.PowerPoint.Pdf;
+
+public static partial class PowerPointPdfConverterExtensions {
+    private static string? ResolveSlideLinkDestination(Uri? link, int slideNumber,
+        PowerPointToPdfOptions options, string owner) {
+        if (link == null || link.IsAbsoluteUri) return null;
+        if (!PptCore.PowerPointHyperlinkResolver.TryParseSlideFragment(link, out int targetSlide)) {
+            AddWarning(options, slideNumber, "relative-hyperlink",
+                "Skipped a relative PowerPoint " + owner + " hyperlink that is not a supported slide target.",
+                lossKind: OfficeConversionLossKind.Omission);
+            return null;
+        }
+
+        string destination = PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(targetSlide);
+        if (options.SlideLinkDestinations.Contains(destination)) return destination;
+        AddWarning(options, slideNumber, "internal-slide-target-omitted",
+            "Skipped a PowerPoint " + owner + " hyperlink because its target slide is absent from the PDF output.",
+            lossKind: OfficeConversionLossKind.Omission);
+        return null;
+    }
+
+    private static void RemoveUnavailableDrawingSlideLinks(OfficeDrawing drawing, PowerPointToPdfOptions options) {
+        foreach (OfficeDrawingRichText text in drawing.Elements.OfType<OfficeDrawingRichText>()) {
+            foreach (OfficeRichTextRun run in text.Runs.Concat(text.Paragraphs.SelectMany(paragraph => paragraph.Runs))) {
+                if (run.LinkDestinationName != null && !options.SlideLinkDestinations.Contains(run.LinkDestinationName))
+                    run.LinkDestinationName = null;
+            }
+        }
+    }
+
+    private static void RenderShapeSlideLink(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape,
+        double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options) {
+        string? destination = ResolveSlideLinkDestination(shape.Hyperlink, slideNumber, options, "shape");
+        if (destination != null) RenderSlideLinkFrame(canvas, shape, destination, x, y, width, height);
+    }
+
+    private static void RenderSlideLinkFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape,
+        string destination, double x, double y, double width, double height) {
+        if (width <= 0 || height <= 0) return;
+        string? contents = string.IsNullOrWhiteSpace(shape.AltText) ? null : shape.AltText;
+        void Add(PdfCore.PdfPageCanvas target) => target.LinkToNamedDestination(destination, x, y, width, height, contents);
+        var frame = new OfficeImageFrameTransform(shape.Rotation ?? 0D, x + width / 2D, y + height / 2D,
+            shape.HorizontalFlip == true, shape.VerticalFlip == true);
+        if (frame.HasTransform) canvas.Effect(frame.CreateDestinationTransform(), 1D, Add);
+        else Add(canvas);
+    }
+}

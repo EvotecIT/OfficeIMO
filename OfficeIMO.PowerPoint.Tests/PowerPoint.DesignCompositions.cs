@@ -3074,17 +3074,7 @@ namespace OfficeIMO.Tests {
             return presentationPath;
         }
 
-        private static string GetTestAssetPath(string fileName) {
-            DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory);
-            for (int i = 0; i < 4; i++) {
-                DirectoryInfo? parent = directory.Parent;
-                Assert.NotNull(parent);
-                directory = parent;
-            }
-
-            return directory.FullName.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
-                   Path.DirectorySeparatorChar + "Assets" +
-                   Path.DirectorySeparatorChar + fileName;
-        }
+        private static string GetTestAssetPath(string fileName) =>
+            Path.Combine(RepositoryTestPaths.Find(), "Assets", fileName);
     }
 }

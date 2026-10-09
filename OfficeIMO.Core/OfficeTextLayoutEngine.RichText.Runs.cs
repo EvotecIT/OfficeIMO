@@ -38,7 +38,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                run.ParagraphIndent) { LinkUri = run.LinkUri });
+                run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
             remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
             processedRuns = i + 1;
         }
@@ -70,7 +70,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri });
+                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
 
         return scaled;
@@ -288,6 +288,7 @@ public static partial class OfficeTextLayoutEngine {
 
         internal static bool CanMerge(OfficeRichTextSegment segment, OfficeRichTextRun run) =>
             segment.Text.Length > 0 && segment.LinkUri == run.LinkUri &&
+            segment.LinkDestinationName == run.LinkDestinationName &&
             segment.FontSize == run.FontSize &&
             segment.Color.Equals(run.Color) &&
             segment.Bold == run.Bold &&
@@ -301,6 +302,6 @@ public static partial class OfficeTextLayoutEngine {
             string.Equals(segment.FontFamily, run.FontFamily, StringComparison.Ordinal);
 
         internal static OfficeRichTextSegment CreateSegment(OfficeRichTextRun run, string text, double width) =>
-            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LinkUri = run.LinkUri };
+            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
     }
 }

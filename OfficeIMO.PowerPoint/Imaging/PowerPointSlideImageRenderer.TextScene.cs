@@ -79,6 +79,8 @@ namespace OfficeIMO.PowerPoint {
                 OfficeColor color = authoredColor ?? (TryParseOfficeColor(style.Color, out OfficeColor effectiveColor)
                     ? effectiveColor : ResolveTextRunColor(run, textBox, colors));
                 string? link = run.Hyperlink is { IsAbsoluteUri: true } uri ? uri.AbsoluteUri : null;
+                string? destination = PowerPointHyperlinkResolver.TryParseSlideFragment(run.Hyperlink, out int targetSlide)
+                    ? PowerPointHyperlinkResolver.GetSlideDestinationName(targetSlide) : null;
                 var underline = MapUnderlineStyle(style.UnderlineStyle);
                 if (link != null && underline == OfficeTextDecorationStyle.None) underline = OfficeTextDecorationStyle.Single;
                 yield return new OfficeRichTextRun(value,
@@ -87,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
                     underline != OfficeTextDecorationStyle.None, style.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                     style.StrikeStyle is { } strike && strike != PowerPointStrikeStyle.None,
                     ResolveTextRunBackgroundColor(run, colors), underline, MapStrikeStyle(style.StrikeStyle),
-                    MapBaseline(style.BaselinePercent)) { LinkUri = link };
+                    MapBaseline(style.BaselinePercent)) { LinkUri = link, LinkDestinationName = destination };
             }
         }
     }

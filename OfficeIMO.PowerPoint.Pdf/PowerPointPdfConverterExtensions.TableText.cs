@@ -58,6 +58,10 @@ public static partial class PowerPointPdfConverterExtensions {
             .Select(source => source.Italic == null ? (bool?)null : source.Italic.Value)
             .FirstOrDefault(value => value.HasValue);
 
+        Uri? hyperlink = cell.SlidePart == null ? null : PptCore.PowerPointHyperlinkResolver.Resolve(
+            cell.SlidePart, cell.SlidePart, directProperties?.GetFirstChild<A.HyperlinkOnClick>());
+        string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "table text run");
+
         return new PdfCore.PdfTextRun(
             text,
             bold: resolvedBold ?? cell.Bold,
@@ -67,6 +71,8 @@ public static partial class PowerPointPdfConverterExtensions {
             strike: strike.HasValue && strike.Value != A.TextStrikeValues.NoStrike,
             fontSize: ReadRunFontSize(sources) ?? cell.FontSize,
             font: MapFont(fontFamily),
+            linkUri: hyperlink is { IsAbsoluteUri: true } ? hyperlink.AbsoluteUri : null,
+            linkDestinationName: destination,
             baseline: MapPowerPointBaseline(baseline.HasValue ? baseline.Value / 1000D : (double?)null, options, slideNumber),
             fontFamily: fontFamily,
             underlineStyle: MapPowerPointUnderline(underline),

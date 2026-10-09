@@ -36,6 +36,16 @@ Native Numbers' Cell Format panel shows source A8 as Automatic and A9 as Text. `
 
 ## Keynote multi-slide editable output
 
+`native-exports/keynote-slide-links-v15.4.json` records a three-slide presentation saved in Keynote 15.4 after importing an OfficeIMO-created PPTX and adding a native frame link. Text links use native slide UUIDs and the frame uses the next-slide action. The source, Apple PDF and Apple PPTX exports are hashed. Independent schema decoding identifies selected slide-node UUIDs in package metadata; pypdf 6.10.0 confirms the native and OfficeIMO PDF targets are 2, 2 and 1. Default editable conversion retains the raw source targets, writes stable PPTX links and rounds the native 3.6-point floating insets with a precision diagnostic. The complete workflow reopens every page with all five text labels and all three links. Inspection of all rendered pages confirms complete visible content with the reported Helvetica font substitution and small baseline differences. Native link activation, exact typography and other slideshow actions remain unqualified.
+
+Reproduce the selected native graph facts in the isolated numbers-parser 4.19.0 evidence environment with the pinned descriptor used by native creation checks:
+
+```text
+python Build/IWork/extract-keynote-slide-links.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-slide-links-v15.4.key <keynote-descriptor.pb> <selected-links.json>
+```
+
+The authored content follows the OfficeIMO MIT license. No standalone Apple fonts are distributed. Native exports use all slides, best PDF quality and no password, presenter notes, comments or build stages.
+
 `native-exports/keynote-simple-v15.4.json` pins the unchanged two-slide Keynote 14.5 source, Keynote 15.4 PPTX/PDF exports and native renderings of Apple and OfficeIMO PPTX files. Default conversion requires complete editable reconstruction and checks slide order, text, notes, selected placeholder geometry, four-point margins, vertical alignment, fit settings and 123% character bullets. Open XML geometry differs by at most two EMUs. Both PPTX renderings have identical rasters at the recorded resolution. The original `.key` PDF has a small ligature/word-advance difference also present in Apple's PPTX round trip. The OfficeIMO import shows an unused Aptos theme-font warning; actual text uses the recorded installed fonts. There is no repair prompt. Exact typography, theme/master preservation and other producer versions remain outside this evidence.
 
 Reproduce selected frame and list declarations with the pinned isolated numbers-parser 4.19.0 environment:
