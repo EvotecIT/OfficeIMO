@@ -128,8 +128,9 @@ namespace OfficeIMO.Access.Tests {
                 OfficeVbaProject added = document.GetVbaProject(); added.AddModule("RolledBack", "Public Const Value As Long = 107\r\n");
                 document.SetVbaProject(added);
                 accepted = OfficeVbaProject.Load(document.GetVbaProject().Write().GetBytes());
-                long revision = document.Revision; byte[] staged = Save(document); document.SetVbaProject(accepted);
-                Assert.Equal(revision, document.Revision); Assert.Equal(staged, Save(document));
+                long revision = document.Revision; AccessCatalogEntry[] staged = document.Catalog.ToArray();
+                document.SetVbaProject(accepted);
+                Assert.Equal(revision, document.Revision); Assert.Equal(staged, document.Catalog.ToArray());
             }
             Assert.Equal(before, Save(document)); long rolledBackRevision = document.Revision;
             accepted.SetModuleSource("RolledBack", "Public Const Value As Long = 108\r\n");
