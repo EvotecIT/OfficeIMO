@@ -34,6 +34,8 @@
       </div>
     </div>
 
+    {{ current_surface = "dotnet" }}{{ if page.title == "PSWriteOffice" }}{{ current_surface = "powershell" }}{{ end }}{{ include "sections/surface-switcher" }}
+
     <section class="imo-product-next">
       <div class="imo-container imo-product-next__inner">
         <div><p class="imo-product-next__eyebrow">Next step</p><h2>Turn the package into a working document.</h2><p>Follow a focused guide and inspect the API reference for this package.</p></div>

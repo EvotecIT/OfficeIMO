@@ -737,33 +737,46 @@
     }).catch(function () { /* Code stays readable without highlighting. */ });
   }
 
-  // Landing pages (products, Studio, CLI) write features as "- **Term** — description" lists.
-  // Mark those lists so CSS can lay them out as cards, and drop the separator between term and text.
+  // Landing pages (products, Studio, CLI) write features as "- **Term** — description" lists, and docs pages
+  // write "- [Area](/docs/x/) for …" and "- **Family:** …" lists. Mark those lists so CSS can lay them out as
+  // cards, and drop the separator between term and text. Docs lists qualify only when every item is short.
   function initFeatureLists() {
-    var lists = document.querySelectorAll(".imo-product__content .markdown-body > ul, .imo-application-guide .markdown-body > ul");
-    Array.prototype.forEach.call(lists, function (list) {
+    var scopes = [
+      { selector: ".imo-product__content .markdown-body > ul, .imo-application-guide .markdown-body > ul", maxText: 0 },
+      { selector: ".imo-docs__content .markdown-body > ul", maxText: 160 }
+    ];
+    scopes.forEach(function (scope) {
+      Array.prototype.forEach.call(document.querySelectorAll(scope.selector), function (list) {
+        markFeatureList(list, scope.maxText);
+      });
+    });
+  }
+
+  function markFeatureList(list, maxText) {
       var items = Array.prototype.filter.call(list.children, function (li) { return li.tagName === "LI"; });
-      if (items.length < 3) return;
+      if (items.length < 3 || (maxText && items.length > 16)) return;
       var featureLike = items.every(function (li) {
         var first = li.firstChild;
         while (first && first.nodeType === 3 && !first.nodeValue.trim()) first = first.nextSibling;
-        return first && first.nodeType === 1 && first.tagName === "STRONG";
+        if (!first || first.nodeType !== 1 || (first.tagName !== "STRONG" && first.tagName !== "A")) return false;
+        if (li.querySelector("ul, ol, pre, table")) return false;
+        return !maxText || li.textContent.trim().length <= maxText;
       });
       if (!featureLike) return;
       list.classList.add("imo-features");
       items.forEach(function (li) {
-        var title = li.querySelector("strong");
+        var title = li.firstElementChild;
+        if (title.tagName === "A") li.classList.add("imo-features__item--link");
         title.classList.add("imo-features__title");
         title.textContent = title.textContent.replace(/[\s:]+$/, "");
         var text = document.createElement("span");
         text.className = "imo-features__text";
         while (title.nextSibling) text.appendChild(title.nextSibling);
         if (text.firstChild && text.firstChild.nodeType === 3) {
-          text.firstChild.nodeValue = text.firstChild.nodeValue.replace(/^[\s:\u2014\u2013-]+/, "");
+          text.firstChild.nodeValue = text.firstChild.nodeValue.replace(/^[\s:\u2014\u2013-]+/, "").replace(/^[a-z]/, function (c) { return c.toUpperCase(); });
         }
         li.appendChild(text);
       });
-    });
   }
 
   // On landing pages, a short "Do this:" line followed by a code block becomes a command card;
@@ -844,8 +857,49 @@
     });
   }
 
+  // Solution pages: three or more neighbouring h2 sections made only of short paragraphs read as principles,
+  // so they become a card grid. Sections with lists, tables or code stay in the normal flow.
+  function initSectionCards() {
+    Array.prototype.forEach.call(document.querySelectorAll(".imo-intent-content > article.markdown-body"), function (body) {
+      var sections = [];
+      var current = null;
+      Array.prototype.slice.call(body.children).forEach(function (node) {
+        if (node.tagName === "H2") {
+          current = { heading: node, nodes: [], prose: true, length: 0 };
+          sections.push(current);
+        } else if (current) {
+          current.nodes.push(node);
+          if (node.tagName !== "P") current.prose = false;
+          current.length += node.textContent.length;
+        }
+      });
+      var run = [];
+      function flush() {
+        if (run.length >= 3) {
+          var grid = document.createElement("div");
+          grid.className = "imo-section-cards";
+          run[0].heading.parentNode.insertBefore(grid, run[0].heading);
+          run.forEach(function (section) {
+            var card = document.createElement("section");
+            card.className = "imo-section-card";
+            card.appendChild(section.heading);
+            section.nodes.forEach(function (node) { card.appendChild(node); });
+            grid.appendChild(card);
+          });
+        }
+        run = [];
+      }
+      sections.forEach(function (section) {
+        if (section.prose && section.nodes.length && section.length <= 900) run.push(section);
+        else flush();
+      });
+      flush();
+    });
+  }
+
   function init() {
     initFeatureLists();
+    initSectionCards();
     initFaqFilter();
     initTableFilters();
     initCommandCards();
