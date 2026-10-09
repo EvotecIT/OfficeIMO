@@ -66,6 +66,12 @@ internal static class OfficeWpgGraphicReader {
                         else if (count == 2) shape = OfficeShape.Line(points[0], points[1]);
                         else {
                             double width = points.Max(point => point.X) - x, height = points.Max(point => point.Y) - y;
+                            if (width == 0 || height == 0) {
+                                if (points.Any(point => point.X < 0 || point.X > drawing.Width || point.Y < 0 || point.Y > drawing.Height))
+                                    throw new NotSupportedException("WPG polyline clipping is outside the basic-vector profile.");
+                                // A stroked path can occupy one axis while retaining a positive canvas.
+                                x = 0; y = 0; width = drawing.Width; height = drawing.Height;
+                            }
                             var commands = points.Select((point, index) => index == 0 ? OfficePathCommand.MoveTo(point.X - x, point.Y - y) : OfficePathCommand.LineTo(point.X - x, point.Y - y)).ToArray();
                             shape = OfficeShape.Path(width, height, commands);
                         }

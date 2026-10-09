@@ -181,4 +181,20 @@ public sealed class WordPerfectImportTests {
         source[512 + 2 * 14] = 1; // Graphics-filename packet contains a child-ID directory.
         return source;
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecoversHorizontalAndVerticalMultiPointWpgLines(bool vertical) {
+        var header = new byte[16]; header[0] = 255; header[1] = (byte)'W'; header[2] = (byte)'P'; header[3] = (byte)'C';
+        header[4] = 16; header[9] = 0x16; header[10] = 1;
+        byte[] points = Join(Number(3), Number(100), Number(100), Number(vertical ? 100 : 200), Number(vertical ? 200 : 100),
+            Number(vertical ? 100 : 300), Number(vertical ? 300 : 100));
+        byte[] wpg = Join(header, new byte[] { 0x0f, 6 }, Number(0), Number(1200), Number(1200),
+            new byte[] { 2, 4, 1, 0 }, Number(20), new byte[] { 6, 14 }, points, new byte[] { 0x10, 0 });
+        using LegacyWordImportResult result = Import(GraphicDocument(wpg));
+        Assert.Single(result.Value.Images);
+        Assert.Equal("BeforeAfter", result.PlainText);
+        Assert.True(result.Content.Paragraphs[0].Runs.Single(run => run.Image != null).Image!.GetPngBytes().Length > 100);
+    }
 }
