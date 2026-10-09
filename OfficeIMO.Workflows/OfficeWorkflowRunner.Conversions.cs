@@ -308,28 +308,52 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new InvalidOperationException("PDF encryption did not preserve the converted document.");
                 bytes = encrypted.Pdf;
             }
+            diagnostics.Add(new OfficeWorkflowDiagnostic(
+                "RouteContract",
+                route.Description,
+                OfficeWorkflowDiagnosticSeverity.Information,
+                "convert",
+                new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["route"] = route.Id,
+                    ["engine"] = route.Engine,
+                    ["fidelity"] = route.Fidelity,
+                    ["supportLevel"] = route.SupportLevel,
+                    ["knownLimitations"] = route.KnownLimitations
+                }));
+            cancellationToken.ThrowIfCancellationRequested();
+            string summary = hasLoss
+                ? route.Label + " completed with fidelity warnings; review the structured diagnostics."
+                : route.Label + " completed and the output reopened successfully.";
+            return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested && evidence != null
+            && exception is not WorkflowConversionCancellationException) {
+            throw new WorkflowConversionCancellationException(exception, evidence, diagnosticsAdded: true);
         } catch (Exception exception) when (evidence != null && exception is not WorkflowConversionFailureException and not OperationCanceledException
             and not OutOfMemoryException and not StackOverflowException) {
             throw new WorkflowConversionFailureException(exception, evidence, diagnosticsAdded: true);
         }
 
-        diagnostics.Add(new OfficeWorkflowDiagnostic(
-            "RouteContract",
-            route.Description,
-            OfficeWorkflowDiagnosticSeverity.Information,
-            "convert",
-            new Dictionary<string, string>(StringComparer.Ordinal) {
-                ["route"] = route.Id,
-                ["engine"] = route.Engine,
-                ["fidelity"] = route.Fidelity,
-                ["supportLevel"] = route.SupportLevel,
-                ["knownLimitations"] = route.KnownLimitations
-            }));
-        cancellationToken.ThrowIfCancellationRequested();
-        string summary = hasLoss
-            ? route.Label + " completed with fidelity warnings; review the structured diagnostics."
-            : route.Label + " completed and the output reopened successfully.";
-        return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);
+    }
+
+    private static byte[] SerializePdfConversion(PdfDocumentConversionResult conversion, long maximumOutputBytes,
+        CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? facts = null) {
+        using var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
+        PdfSaveResult? saved = null;
+        try {
+            saved = conversion.SaveResultAsync(stream, cancellationToken).GetAwaiter().GetResult();
+            if (saved.Exception is OutOfMemoryException or StackOverflowException)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(saved.Exception).Throw();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!saved.Succeeded) {
+                throw new WorkflowConversionFailureException(saved.Exception!,
+                    new OfficeWorkflowConversionEvidence(saved.ConversionReports, facts ?? new Dictionary<string, string>()));
+            }
+            return stream.ToArray();
+        } catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested) {
+            throw new WorkflowConversionCancellationException(exception,
+                new OfficeWorkflowConversionEvidence(saved?.ConversionReports ?? conversion.ConversionReports,
+                    facts ?? new Dictionary<string, string>()));
+        }
     }
 
     private static string DecodeHtmlInput(byte[] input, CancellationToken cancellationToken) {

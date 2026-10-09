@@ -14,6 +14,17 @@ internal sealed class WorkflowConversionFailureException : InvalidOperationExcep
     internal bool DiagnosticsAdded { get; }
 }
 
+// Retains available reports while preserving the runner's cancellation classification.
+internal sealed class WorkflowConversionCancellationException : OperationCanceledException {
+    internal WorkflowConversionCancellationException(OperationCanceledException cause, OfficeWorkflowConversionEvidence evidence,
+        bool diagnosticsAdded = false) : base(cause.Message, cause, cause.CancellationToken) {
+        Evidence = evidence;
+        DiagnosticsAdded = diagnosticsAdded;
+    }
+    internal OfficeWorkflowConversionEvidence Evidence { get; }
+    internal bool DiagnosticsAdded { get; }
+}
+
 /// <summary>Converts a captured input into a bounded output stream. Streams remain owned by the runner.</summary>
 /// <remarks>The delegate must honor cancellation and leave both streams open. Publication and output reopen validation belong to the runner.</remarks>
 public delegate OfficeWorkflowConversionEvidence OfficeWorkflowConverter(

@@ -132,7 +132,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentModelTable table = tables[tableIndex];
-            OfficeDocumentModelBlock? correlated = FindCorrelatedTableBlock(blocks, table, out int correlatedIndex);
+            OfficeDocumentModelBlock? correlated = FindCorrelatedTableBlock(blocks, table, matchedBlocks, out int correlatedIndex);
             if (correlated != null) matchedBlocks.Add(correlated);
             items.Add(ProjectionContentItem.ForTable(
                 table,
@@ -279,10 +279,11 @@ public static partial class OfficeDocumentModelPdfExtensions {
     private static OfficeDocumentModelBlock? FindCorrelatedTableBlock(
         IReadOnlyList<OfficeDocumentModelBlock> blocks,
         OfficeDocumentModelTable table,
+        HashSet<OfficeDocumentModelBlock> matchedBlocks,
         out int blockIndex) {
         for (int index = 0; index < blocks.Count; index++) {
             OfficeDocumentModelBlock block = blocks[index];
-            if (IsTableBlock(block) && TableMatchesBlock(table, block)) {
+            if (!matchedBlocks.Contains(block) && IsTableBlock(block) && TableMatchesBlock(table, block)) {
                 blockIndex = index;
                 return block;
             }

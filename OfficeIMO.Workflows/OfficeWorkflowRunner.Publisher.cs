@@ -26,6 +26,9 @@ public sealed partial class OfficeWorkflowRunner {
             if (settings.RequireNoLoss) evidence.RequireNoLoss();
             AddConversionDiagnostics(evidence, diagnostics);
             return (bytes, evidence);
+        } catch (OperationCanceledException exception) when (token.IsCancellationRequested && exception is not WorkflowConversionCancellationException) {
+            IReadOnlyList<IOfficeConversionReport> reports = conversion?.ConversionReports ?? new IOfficeConversionReport[] { source.ReadReport };
+            throw new WorkflowConversionCancellationException(exception, new OfficeWorkflowConversionEvidence(reports, facts));
         } catch (OfficeConversionException exception) {
             var reports = new List<IOfficeConversionReport> { source.ReadReport };
             reports.Add(exception.Report);

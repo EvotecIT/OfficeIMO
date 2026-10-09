@@ -156,6 +156,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 diagnostics,
                 artifact.HealthReport, artifact.SignatureReport, artifact.ConversionEvidence);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            OfficeWorkflowConversionEvidence? cancelledConversionEvidence = (error as WorkflowConversionCancellationException)?.Evidence
+                ?? artifact?.ConversionEvidence;
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false })
+                AddConversionDiagnostics(cancelledConversionEvidence!, diagnostics);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -174,7 +178,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 "Cancelled",
                 diagnostics,
-                conversionEvidence: artifact?.ConversionEvidence);
+                conversionEvidence: cancelledConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
             ReportInputStagingCleanupFailure(failure, diagnostics);
@@ -639,23 +643,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             "Lossless PDF optimization does not support the TextOnly output profile.", nameof(profile)),
         _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported output profile.")
     };
-
-    private static byte[] SerializePdfConversion(
-        PdfDocumentConversionResult conversion,
-        long maximumOutputBytes,
-        CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, string>? facts = null) {
-        using var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
-        PdfSaveResult saved = conversion.SaveResultAsync(stream, cancellationToken).GetAwaiter().GetResult();
-        if (saved.Exception is OutOfMemoryException or StackOverflowException)
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(saved.Exception).Throw();
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!saved.Succeeded) {
-            throw new WorkflowConversionFailureException(saved.Exception!,
-                new OfficeWorkflowConversionEvidence(saved.ConversionReports, facts ?? new Dictionary<string, string>()));
-        }
-        return stream.ToArray();
-    }
 
     private static byte[] EncodeUtf8Bounded(string value, long maximumOutputBytes) {
         int byteCount = Encoding.UTF8.GetByteCount(value);

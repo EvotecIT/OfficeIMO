@@ -1,10 +1,37 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Publisher;
+using OfficeIMO.TestAssets;
 
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class PublisherPdfWorkflowTests {
+    [Fact]
+    public async Task SerializationCancellationRetainsRecoveryEvidenceAndPreservesTheDestination() {
+        string root = CreateDirectory();
+        try {
+            string input = CopySource(root), output = Path.Combine(root, "result.pdf");
+            byte[] sentinel = [3, 2, 1]; File.WriteAllBytes(output, sentinel);
+            using var cancellation = new CancellationTokenSource();
+            var provider = new CancellingShaper(cancellation);
+            byte[] font = ManagedTextShapingTestAssets.CreateFont(Enumerable.Range(32, 95).ToArray());
+            var options = new PdfOptions { TextShapingProvider = provider };
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Times New Roman", font));
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", font));
+            var request = OfficeWorkflow.Convert(input).To(output).WithConversionOptions(new() { PublisherPdf = options }).Build();
+            request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+            var result = await new OfficeWorkflowRunner().RunAsync(request, cancellationToken: cancellation.Token);
+            Assert.True(provider.Called);
+            Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+            Assert.Equal(sentinel, File.ReadAllBytes(output));
+            Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
+            var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+            Assert.Equal("PUB", evidence.Facts["sourceFormat"]);
+            Assert.Equal("2", evidence.Facts["sourcePages"]);
+            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
+            Assert.Contains(result.Diagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
+        } finally { Directory.Delete(root, true); }
+    }
     [Fact]
     public async Task NativePagesAndRecoveryEvidenceReachThePublishedPdfAndPreview() {
         string root = CreateDirectory();
@@ -142,5 +169,16 @@ public sealed class PublisherPdfWorkflowTests {
     }
     private sealed class ApplicationCodec : IOfficeRasterImageCodec {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) { image = null; return false; }
+    }
+    private sealed class CancellingShaper(CancellationTokenSource source) : IOfficeTextShapingProvider {
+        internal bool Called { get; private set; }
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            if (request.CancellationToken.CanBeCanceled) {
+                Called = true;
+                source.Cancel();
+                request.CancellationToken.ThrowIfCancellationRequested();
+            }
+            return null;
+        }
     }
 }

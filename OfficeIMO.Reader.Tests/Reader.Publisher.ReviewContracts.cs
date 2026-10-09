@@ -190,11 +190,13 @@ public sealed class ReaderPublisherReviewTests {
         Assert.True(text.IndexOf("MiddleTable", StringComparison.Ordinal) < text.LastIndexOf("RepeatedParagraph", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public void TableCorrelationUsesLogicalOrderWhenStoryLocalIndexesRepeat() {
-        OfficeDocumentModelLocation Location(long order) => new() { SourceBlockIndex = 0, TableIndex = 0, LogicalOrder = order };
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TableCorrelationConsumesEachOccurrenceWhenStoryLocalIndexesRepeat(bool firstBlockHasLogicalOrder) {
+        OfficeDocumentModelLocation Location(long? order) => new() { SourceBlockIndex = 0, TableIndex = 0, LogicalOrder = order };
         var source = new OfficeDocumentModel { Blocks = new[] {
-            new OfficeDocumentModelBlock { Kind = "table", Text = "FirstFallback", Location = Location(0) },
+            new OfficeDocumentModelBlock { Kind = "table", Text = "FirstFallback", Location = Location(firstBlockHasLogicalOrder ? 0 : null) },
             new OfficeDocumentModelBlock { Text = "BetweenTables", Location = new() { LogicalOrder = 1 } },
             new OfficeDocumentModelBlock { Kind = "table", Text = "SecondFallback", Location = Location(2) }
         }, Tables = new[] {
