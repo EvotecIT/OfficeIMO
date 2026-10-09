@@ -412,6 +412,12 @@ Reproduce the created package through `RichExample` in the executable writing te
 python Build/IWork/extract-keynote-rich-runs.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-edited-v15.4.key OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.pptx <ranges.json>
 ```
 
+## Native Keynote image creation evidence
+
+`native-exports/keynote-created-images-v15.4.json` pins the `ImageExample` model in `IWorkKeynoteImageWritingTests`, its native Keynote 15.4 PPTX/PDF exports and all-slide rasters. Three 96 × 64-pixel inputs exercise opaque PNG, PNG alpha 0/128/255 and JPEG stretching. Text/image insertion order includes an obscured label and text in front of the first image. Native accessibility descriptions include a non-BMP emoji. The repository MIT license covers these newly authored documents and images.
+
+The pinned independent decoder checks image-class extension 100, object/data references, payload checksums and reserved metadata IDs. Apple and saved OfficeIMO PPTX retain identical image payloads, frames, descriptions and stacking. The edited native package records a JPEG position change from 60 to 80 points, saved, closed and reopened in Keynote. Direct OfficeIMO PDF images are inspected separately; font substitution and reported text overflow remain outside native text-layout equivalence. Use `verify-keynote-creation.py` with the same pinned descriptor to reproduce graph qualification.
+
 ### Integer-function compatibility boundaries
 
 `numbers-parser/integer-function-boundaries.json` records two unchanged formulas in

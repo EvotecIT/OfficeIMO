@@ -20,7 +20,8 @@ SCHEMAS = {1: 'KN.DocumentArchive', 11006: 'TSP.PackageMetadata', 2: 'KN.ShowArc
     10: 'KN.ThemeArchive', 401: 'TSS.StylesheetArchive', 2021: 'TSWP.CharacterStyleArchive',
     2022: 'TSWP.ParagraphStyleArchive', 2025: 'TSWP.ShapeStyleArchive', 9: 'KN.SlideStyleArchive',
     2023: 'TSWP.ListStyleArchive', 2050: 'TSWP.TextStylePresetArchive', 5: 'KN.SlideArchive',
-    4: 'KN.SlideNodeArchive', 2011: 'TSWP.ShapeInfoArchive', 2001: 'TSWP.StorageArchive'}
+    4: 'KN.SlideNodeArchive', 2011: 'TSWP.ShapeInfoArchive', 2001: 'TSWP.StorageArchive',
+    3005: 'TSD.ImageArchive', 3016: 'TSD.MediaStyleArchive'}
 
 
 def records(package):
@@ -39,15 +40,15 @@ def records(package):
     return result
 
 
-def references(message):
-    if message.DESCRIPTOR.full_name == 'TSP.Reference':
+def references(message, name='TSP.Reference'):
+    if message.DESCRIPTOR.full_name == name:
         return {message.identifier}
     result = set()
     for field, value in message.ListFields():
         if field.message_type is None:
             continue
         for nested in value if field.is_repeated else [value]:
-            result.update(references(nested))
+            result.update(references(nested, name))
     return result
 
 
@@ -65,7 +66,10 @@ def verify(path, descriptor):
 
     with ZipFile(path) as package:
         graph = records(package)
+        # Keynote uses these identities for implicit document/support metadata.
+        assert not ({71, 72} & graph.keys())
         objects, text_colors, decoded = [], [], {}
+        data_references = {}
         for identifier, (kind, payload, header) in graph.items():
             message = decode(SCHEMAS[kind], payload)
             decoded[identifier] = message
@@ -77,6 +81,10 @@ def verify(path, descriptor):
                         refs.update(references(decode(schema, value)))
             assert set(header.message_infos[0].object_references) == refs, identifier
             assert refs.issubset(graph.keys()), (identifier, refs - graph.keys())
+            data_refs = references(message, 'TSP.DataReference')
+            assert set(header.message_infos[0].data_references) == data_refs, identifier
+            if data_refs:
+                data_references[identifier] = data_refs
             objects.append({'id': identifier, 'type': kind, 'schema': SCHEMAS[kind], 'references': sorted(refs)})
             if kind in (2021, 2022):
                 character = message.char_properties
@@ -121,8 +129,51 @@ def verify(path, descriptor):
                     'style': style_id, 'font': character.font_name, 'size': character.font_size,
                     'bold': character.bold, 'italic': character.italic,
                     'underline': int(character.underline), 'strikethrough': int(character.strikethru)})
+        metadata = next(message for identifier, message in decoded.items() if graph[identifier][0] == 11006)
+        datas = {data.identifier: data for data in metadata.datas}
+        assert len(datas) == len(metadata.datas)
+        referenced = set().union(*data_references.values()) if data_references else set()
+        assert referenced == set(datas)
+        expected_component_refs = {data: {identifier for identifier, refs in data_references.items() if data in refs}
+            for data in referenced}
+        component_refs = {}
+        for component in metadata.components:
+            for reference in component.data_references:
+                assert reference.data_identifier not in component_refs
+                assert all(object.count == 1 for object in reference.object_reference_list)
+                component_refs[reference.data_identifier] = {object.object_identifier for object in reference.object_reference_list}
+        assert component_refs == expected_component_refs
+        images = []
+        resource_paths = set()
+        for identifier, message in decoded.items():
+            if graph[identifier][0] != 3005:
+                continue
+            assert not message.HasField('mask') and message.HasField('data')
+            data = datas[message.data.identifier]
+            assert data.file_name and '/' not in data.file_name and '\\' not in data.file_name
+            resource = 'Data/' + data.file_name
+            resource_paths.add(resource)
+            payload = package.read(resource)
+            assert hashlib.sha1(payload).digest() == data.digest
+            assert payload.startswith(b'\x89PNG\r\n\x1a\n') or payload.startswith(b'\xff\xd8')
+            # The pinned schema omits DataAttributes extensions. Decode the native
+            # image class marker explicitly, as confirmed in Apple-produced data.
+            attributes = fields(data.attributes.SerializeToString())
+            assert set(attributes) == {100} and len(attributes[100]) == 1
+            image_attributes = decode('TSD.ImageDataAttributes', attributes[100][0])
+            assert image_attributes.HasField('pixel_size')
+            assert image_attributes.pixel_size == message.naturalSize
+            assert image_attributes.HasField('should_be_interpreted_as_generic_if_untagged')
+            assert not image_attributes.should_be_interpreted_as_generic_if_untagged
+            images.append({'id': identifier, 'data_id': data.identifier, 'path': resource,
+                'bytes': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(),
+                'position': [message.super.geometry.position.x, message.super.geometry.position.y],
+                'frame': [message.super.geometry.size.width, message.super.geometry.size.height],
+                'pixel_size': [message.naturalSize.width, message.naturalSize.height],
+                'image_attributes_extension': 100,
+                'description': message.super.accessibility_description})
         names = package.namelist()
-        assert names == sorted(names) and len(names) == 5
+        assert names == sorted(names) and len(names) == 5 + len(resource_paths)
         assert all(item.compress_type == 0 and item.date_time == (1980, 1, 1, 0, 0, 0)
                    for item in package.infolist())
         properties = plistlib.loads(package.read('Metadata/Properties.plist'))
@@ -134,7 +185,8 @@ def verify(path, descriptor):
         'numbers_parser_version': version('numbers-parser'), 'required_fields_complete': True,
         'reference_graph_complete': True, 'deterministic_zip_profile': True,
         'character_ranges_complete': True, 'records': len(objects), 'objects': objects,
-        'modern_text_colors': text_colors, 'native_text_runs': text_runs}
+        'modern_text_colors': text_colors, 'native_text_runs': text_runs,
+        'data_reference_graph_complete': True, 'image_resources': images}
 
 
 def main():
@@ -146,7 +198,7 @@ def main():
     assert version('numbers-parser') == '4.19.0'
     result = verify(args.package, args.descriptor)
     args.output.write_text(json.dumps(result, indent=2) + '\n')
-    print({key: value for key, value in result.items() if key not in ('objects', 'modern_text_colors', 'native_text_runs')})
+    print({key: value for key, value in result.items() if key not in ('objects', 'modern_text_colors', 'native_text_runs', 'image_resources')})
 
 
 if __name__ == '__main__':

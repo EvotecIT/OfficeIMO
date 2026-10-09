@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.IWork;
 
 /// <summary>An immutable positioned text box in a newly created Keynote presentation.</summary>
-public sealed class IWorkKeynoteTextBox {
+public sealed class IWorkKeynoteTextBox : IWorkKeynoteCreationDrawable {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     internal IWorkKeynoteTextBox(string text, float left, float top, float width, float height,

@@ -10,6 +10,7 @@ internal sealed class IWorkProtoWriter {
     private readonly int _maximumBytes;
     private readonly CancellationToken _cancellationToken;
     private readonly SortedSet<ulong> _references = new();
+    private readonly SortedSet<ulong> _dataReferences = new();
 
     internal IWorkProtoWriter(int maximumBytes, CancellationToken cancellationToken) {
         _maximumBytes = maximumBytes;
@@ -17,6 +18,7 @@ internal sealed class IWorkProtoWriter {
     }
 
     internal IReadOnlyCollection<ulong> References => _references;
+    internal IReadOnlyCollection<ulong> DataReferences => _dataReferences;
     internal int Length => checked((int)_output.Length);
     internal byte[] ToArray() => _output.ToArray();
 
@@ -67,12 +69,19 @@ internal sealed class IWorkProtoWriter {
         Ensure(value.Length);
         value._output.WriteTo(_output);
         _references.UnionWith(value._references);
+        _dataReferences.UnionWith(value._dataReferences);
         return this;
     }
 
     internal IWorkProtoWriter Reference(int field, ulong identifier) {
         Message(field, new IWorkProtoWriter(_maximumBytes, _cancellationToken).UInt(1, identifier));
         _references.Add(identifier);
+        return this;
+    }
+
+    internal IWorkProtoWriter DataReference(int field, ulong identifier) {
+        Message(field, new IWorkProtoWriter(_maximumBytes, _cancellationToken).UInt(1, identifier));
+        _dataReferences.Add(identifier);
         return this;
     }
 

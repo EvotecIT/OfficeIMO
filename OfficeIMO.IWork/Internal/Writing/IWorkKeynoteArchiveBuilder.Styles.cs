@@ -47,6 +47,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
     private void AddTheme() {
         var drawingPresets = P().Reference(6, DefaultFrameId).Reference(5, DefaultFrameId)
             .Reference(4, DefaultFrameId).Reference(9, DefaultFrameId);
+        if (_hasImageStyle) drawingPresets.Reference(7, ImageStyleId);
         var textPresets = P().Reference(2, TextPresetId).Reference(7, DefaultParagraphId)
             .Reference(6, DefaultCharacterId).Reference(1, ListId);
         var theme = P().Reference(4, StylesheetId).String(3, "OfficeIMO")

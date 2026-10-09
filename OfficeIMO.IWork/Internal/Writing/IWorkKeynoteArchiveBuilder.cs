@@ -23,14 +23,20 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
 
     internal string DocumentIdentifier => IWorkKeynoteIdentity.Create(_modelHash, "document").Text;
     private IWorkProtoWriter P() => new(_limits.MaximumPackageBytes, _cancellationToken);
-    private ulong Allocate() => _nextId++;
+    private ulong Allocate() {
+        // Apple reserves 71/72 for document/support metadata during unarchiving.
+        // Using either ID for a style or storage makes larger decks unreadable.
+        if (_nextId is 71 or 72) _nextId = 73;
+        return _nextId++;
+    }
     private void Add(ulong id, uint type, IWorkProtoWriter message) => _records.Add((id, type, message));
 
     internal (byte[] Document, byte[] Metadata) Build(IWorkCanvasSize size,
-        IReadOnlyList<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteTextBox[] Boxes)> slides) {
+        IReadOnlyList<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)> slides) {
         _cancellationToken.ThrowIfCancellationRequested();
         Add(DocumentId, 1, P().Message(3, P().Message(1, P().String(4, "en_US")).String(3, "en")).Reference(2, ShowId));
         AddDefaultStyles();
+        if (slides.Any(slide => slide.Drawables.Any(drawable => drawable is IWorkKeynoteImage))) AddImageStyle();
         AddTheme();
         Add(BlankSlideId, 5, P().Reference(1, BlankBackgroundId).Message(4, Transition())
             .String(10, "Blank").Bool(19, true).Bool(41, false));
@@ -45,8 +51,14 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             // Field 10 (name) identifies a KNTemplateSlide to Apple. Ordinary show slides must omit it.
             var slide = P().Reference(1, backgroundId).Message(4, Transition()).Bool(19, true)
                 .Bool(41, false).Reference(17, BlankSlideId);
-            foreach (IWorkKeynoteTextBox box in input.Boxes) {
+            foreach (IWorkKeynoteCreationDrawable drawable in input.Drawables) {
                 _cancellationToken.ThrowIfCancellationRequested();
+                if (drawable is IWorkKeynoteImage image) {
+                    ulong imageId = AddImage(slideId, image);
+                    slide.Reference(7, imageId).Reference(42, imageId);
+                    continue;
+                }
+                var box = (IWorkKeynoteTextBox)drawable;
                 ulong characterId = Allocate(), paragraphId = Allocate(), frameStyleId = Allocate();
                 ulong frameId = Allocate(), storageId = Allocate();
                 bool rich = box.Runs.Count > 1 || box.Runs[0].HasDecoration;
@@ -79,7 +91,9 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         var component = P().UInt(1, DocumentId).String(2, "Document");
         Version(component, 4, 2, 4, 0);
         Version(component, 5, 11, 2, 4);
+        AddImageComponentReferences(component);
         var metadata = P().UInt(1, _nextId - 1).Message(3, component).UInt(9, 2);
+        AddImageMetadata(metadata);
         Version(metadata, 5, 2, 4, 0);
         Version(metadata, 6, 11, 2, 4);
         Version(metadata, 7, 14, 4, 1);
@@ -97,6 +111,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             var info = P().UInt(1, record.Type).UInt(3, (ulong)payload.Length);
             Version(info, 2, 1, 0, 5);
             foreach (ulong reference in record.Message.References) info.UInt(5, reference);
+            foreach (ulong reference in record.Message.DataReferences) info.UInt(6, reference);
             byte[] header = P().UInt(1, record.Id).Message(2, info).ToArray();
             output.AppendLength(header.Length);
             output.Append(header);

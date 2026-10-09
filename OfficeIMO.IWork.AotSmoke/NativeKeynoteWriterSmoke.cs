@@ -60,6 +60,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT copy cancellation closed the caller stream or continued beyond its first chunk.");
         Console.WriteLine($"PASS | native Keynote creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation");
         RunRichText();
+        RunImages();
     }
 
     private static IWorkKeynoteDocument CreateAcceptedModel() {
