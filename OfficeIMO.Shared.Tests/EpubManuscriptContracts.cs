@@ -12,6 +12,34 @@ public sealed class EpubManuscriptContracts {
     private const string ImageData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 
     [Fact]
+    public void Import_NormalizesLegacyHelpTablesAndNavigationWithoutLosingLinks() {
+        var source = HtmlConversionDocument.Parse("<title>Manual</title><h1>Manual</h1><table width='100%' summary='Navigation' border='0' cellpadding='4' cellspacing='0'>" +
+            "<tr><td align='right' valign='top' width='40%' style='text-align:left'>Next</td></tr></table>" +
+            "<ul type='circle'><li>Option</li></ul><dl><dt><a href='#legacy'>Topic</a><dl><dt>Child</dt></dl></dt></dl>" +
+            "<dl><dt>Defined</dt><dd>Definition</dd><dt>Undescribed</dt></dl>" +
+            "<a name='legacy' id='modern'>Target</a><hr align='left' width='100'>");
+        var result = EpubManuscript.ImportHtml(source);
+        Assert.True(result.Succeeded);
+        XDocument chapter = result.Publication.GetContentXml("chapter-1");
+        XElement table = Assert.Single(chapter.Descendants(Html + "table"));
+        Assert.Equal("Navigation", (string?)table.Attribute("aria-description"));
+        Assert.Contains("width:100%", (string?)table.Attribute("style"));
+        Assert.Contains("border:0px solid", (string?)table.Attribute("style"));
+        XElement cell = Assert.Single(chapter.Descendants(Html + "td"));
+        string style = (string)cell.Attribute("style")!;
+        Assert.Contains("padding:4px", style); Assert.Contains("vertical-align:top", style);
+        Assert.True(style.IndexOf("text-align:right", StringComparison.Ordinal) < style.IndexOf("text-align:left", StringComparison.Ordinal));
+        Assert.Contains(chapter.Descendants(Html + "ul"), list => (string?)list.Attribute("style") == "list-style-type:circle;");
+        XElement definitions = Assert.Single(chapter.Descendants(Html + "dl"));
+        Assert.Equal(Html + "dd", definitions.Elements().Last().Name); Assert.Empty(definitions.Elements().Last().Nodes());
+        Assert.Equal("Definition", definitions.Elements(Html + "dd").First().Value);
+        Assert.Contains(chapter.Descendants(Html + "a"), anchor => (string?)anchor.Attribute("href") == "#legacy");
+        Assert.Contains(chapter.Descendants().Attributes("id"), id => id.Value == "legacy");
+        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_LEGACY_LIST_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.NotEmpty(result.Publication.Write().RequireValue());
+    }
+
+    [Fact]
     public void Import_CollectsEmbeddedImagesOnceAndRetainsAlternativeText() {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Images</title><h1>First</h1><img alt='A dot' src='" + ImageData + "'><h1>Second</h1><img alt='' src='" + ImageData + "'>"));
         result.Report.RequireNoLoss();

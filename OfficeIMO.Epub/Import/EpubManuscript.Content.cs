@@ -60,6 +60,18 @@ public static partial class EpubManuscript {
                 element.Add(new XText(text.Data));
             }
         }
+        NormalizeLegacyHtml(element, diagnostics);
+        // HTML 4 named anchors are common in compiled help and older manuals. EPUB
+        // navigation addresses XML IDs; keep both destinations when id and name differ.
+        if (name == "a" && element.Attribute("name") is XAttribute namedAnchor) {
+            string anchor = namedAnchor.Value;
+            namedAnchor.Remove();
+            if (anchor.Length != 0) {
+                if (element.Attribute("id") == null) element.SetAttributeValue("id", anchor);
+                else if ((string?)element.Attribute("id") != anchor)
+                    element.AddFirst(new XElement(Xhtml + "span", new XAttribute("id", anchor)));
+            }
+        }
         if (name == "img" && element.Attribute("alt") == null) {
             string role = source.GetAttribute("role")?.Trim() ?? string.Empty;
             string accessibleName = HtmlAccessibilitySemantics.GetImageAccessibleName(source);

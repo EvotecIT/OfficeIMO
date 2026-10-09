@@ -19,6 +19,7 @@ public sealed partial class OfficeWorkflowRunner {
             [".xlsx"] = "xlsx-pdf",
             [".pptx"] = "pptx-pdf",
             [".xps"] = "xps-pdf",
+            [".chm"] = "chm-pdf",
             [".oxps"] = "xps-pdf",
             [".html"] = "html-pdf",
             [".htm"] = "html-pdf"

@@ -52,6 +52,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 ### Document and conversion formats
 
+- [CHM archive API](../OfficeIMO.Chm/README.md), [support and qualification](../OfficeIMO.Chm/SUPPORT.md), and [Reader adapter](../OfficeIMO.Reader.Chm/README.md)
 - [Electronic invoice model and CII/UBL conversion](../OfficeIMO.Invoicing/README.md)
 - [Typed invoice PDF generation](../OfficeIMO.Invoicing.Pdf/README.md)
 - [Pinned invoice schema and business-rule validation](../OfficeIMO.Invoicing.Validation/README.md)

@@ -536,6 +536,9 @@ internal static partial class DocumentReaderEngine {
         if (prefix.Length == 0) {
             return DetectionCandidate.Unknown("content:empty");
         }
+        if (StartsWith(prefix, new byte[] { 0x49, 0x54, 0x53, 0x46 })) {
+            return DetectionCandidate.High(ReaderInputKind.Chm, "application/vnd.ms-htmlhelp", "signature:itsf");
+        }
         if (StartsWith(prefix, new byte[] { 0xE4, 0x52, 0x5C, 0x7B, 0x8C, 0xD8, 0xA7, 0x4D, 0xAE, 0xB1, 0x53, 0x78, 0xD0, 0x29, 0x96, 0xD3 })) {
             return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-section");
         }
@@ -930,6 +933,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Json => "application/json",
             ReaderInputKind.Xml => "application/xml",
             ReaderInputKind.Html => "text/html",
+            ReaderInputKind.Chm => "application/vnd.ms-htmlhelp",
             ReaderInputKind.Zip => "application/zip",
             ReaderInputKind.Epub => "application/epub+zip",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",

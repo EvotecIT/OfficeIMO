@@ -4,11 +4,6 @@ namespace OfficeIMO.Epub;
 
 /// <summary>Document-local identifiers shared by manuscript splitting and authored-content validation.</summary>
 internal static class EpubContentIdentifiers {
-    private static readonly HashSet<string> ReferenceAttributes = new HashSet<string>(new[] {
-        "aria-activedescendant", "aria-controls", "aria-describedby", "aria-details", "aria-errormessage",
-        "aria-flowto", "aria-labelledby", "aria-owns"
-    }, StringComparer.Ordinal);
-
     internal static HashSet<string> Collect(XElement root, string path, bool rejectDuplicates, CancellationToken token) {
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (XElement element in root.DescendantsAndSelf()) {
@@ -55,11 +50,9 @@ internal static class EpubContentIdentifiers {
 
     /// <summary>Enumerates the same document-local relationships used by validation, repair and boundary planning.</summary>
     internal static IEnumerable<XAttribute> GetReferenceAttributes(XElement element) {
-        bool xhtml = element.Name.NamespaceName == "http://www.w3.org/1999/xhtml";
-        if (!xhtml && element.Name.NamespaceName != "http://www.w3.org/2000/svg") yield break;
         foreach (XAttribute attribute in element.Attributes())
-            if (attribute.Name.NamespaceName.Length == 0 && (ReferenceAttributes.Contains(attribute.Name.LocalName) ||
-                xhtml && IsHtmlIdReference(element.Name.LocalName, attribute.Name.LocalName))) yield return attribute;
+            if (attribute.Name.NamespaceName.Length == 0 && OfficeIMO.Html.HtmlIdentifierReferences.IsReference(
+                element.Name.NamespaceName, element.Name.LocalName, attribute.Name.LocalName)) yield return attribute;
     }
 
     internal static IEnumerable<string> GetReferenceIds(XAttribute attribute) =>
@@ -69,9 +62,4 @@ internal static class EpubContentIdentifiers {
         element.Name.NamespaceName == "http://www.w3.org/1999/xhtml" && element.Name.LocalName is "img" or "object" &&
         (string?)element.Attribute("usemap") is string map && map.StartsWith("#", StringComparison.Ordinal) ? map.Substring(1) : null;
 
-    private static bool IsHtmlIdReference(string element, string attribute) => attribute == "itemref" ||
-        (attribute == "headers" && (element == "td" || element == "th")) ||
-        (attribute == "for" && (element == "label" || element == "output")) ||
-        (attribute == "list" && element == "input") ||
-        (attribute == "form" && new[] { "button", "fieldset", "input", "object", "output", "select", "textarea" }.Contains(element, StringComparer.Ordinal));
 }
