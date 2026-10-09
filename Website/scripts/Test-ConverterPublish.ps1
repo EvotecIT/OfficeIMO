@@ -89,7 +89,7 @@ if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance
     $provenanceGuide -notmatch 'OfficeIMO\.Workflows \+ format packages' -or
     $provenanceGuide -notmatch 'href=["'']?https://www\.nuget\.org/packages/OfficeIMO\.Workflows["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch 'Content Credentials' -or
-    $provenanceGuide -notmatch 'does not remove visible watermarks' -or
+    $provenanceGuide -notmatch 'does not remove visible or invisible watermarks' -or
     $provenanceGuide -notmatch 'href="/browser/file-origin/"' -or
     $provenanceGuide -notmatch 'href="/browser/hidden-characters/"' -or
     $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)') {
