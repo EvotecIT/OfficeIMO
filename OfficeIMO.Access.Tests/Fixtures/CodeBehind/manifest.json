@@ -38,7 +38,7 @@
       "bytes": 344064,
       "sha256": "b35b0b066bf36bd036f518bfc44f882fc6de8d66a55415738f371d3ba32a6c50",
       "profile": "Ace12",
-      "contract": "Native expanded EventForm/EventLabel before its first VBA project"
+      "contract": "Native expanded EventForm/EventLabel without source modules; empty VBA infrastructure is preserved"
     }
   ]
 }

@@ -36,18 +36,19 @@ namespace OfficeIMO.Access {
                     Owner = entry.Owner, NativePayloads = entry.NativePayloads, Diagnostics = entry.Diagnostics
                 };
             }).ToArray();
+            var hostRefresh = PrepareVbaHostRefresh(candidate);
             cancellationToken.ThrowIfCancellationRequested();
             AccessNativeDatabase readProjection = candidate.NativeDatabase!; readProjection.BindReadProjection(this); candidate.NativeDatabase = null;
             var next = new VbaMutationState { Plan = plan, ProjectBytes = projectBytes, Sha256 = candidate.Inspection!.Sha256, ReadProjection = readProjection };
             Action? undoBindings = project == null ? null : BindVbaModuleIdentities(project, nextModules, HasActiveUpdate);
-            Action undoHosts = RefreshVbaHostViews(candidate);
+            hostRefresh.Apply();
             if (HasActiveUpdate && previous != null) _vbaUndoStates.Add(previous);
             _vbaMutation = next; VbaProject = candidate.VbaProject; ApplicationStreams = candidate.ApplicationStreams;
             Catalog.Items.RemoveAll(x => x.NativeType == -32761); Catalog.Items.AddRange(nextModules);
             Changed(() => {
                 _vbaMutation = previous; VbaProject = previousInfo; ApplicationStreams = previousStreams;
                 Catalog.Items.Clear(); Catalog.Items.AddRange(previousCatalog);
-                undoHosts();
+                hostRefresh.Undo();
                 undoBindings?.Invoke();
                 if (previous != null) _vbaUndoStates.Remove(previous);
                 next.ReadProjection.Dispose();

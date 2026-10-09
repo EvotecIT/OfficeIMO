@@ -137,7 +137,7 @@ database.Save("edited.accdb");
 
 The executable public workflow is `dotnet run --project OfficeIMO.Access.Verification -- --edit-vba OfficeIMO.Access.Tests/Fixtures <new-output-folder>`. On a Windows machine with Access installed, `OfficeIMO.Access.Verification/Test-NativeVbaEditing.ps1 -OutputRoot <output-folder>` independently reopens and compiles those synthetic outputs with macros disabled.
 
-Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. `SetCodeBehind` creates or replaces code-behind on an existing native form or report, including its first class module. Host module rename/removal remains unqualified.
+Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. `SetCodeBehind` creates or replaces code-behind on an existing native form or report, including its first class module. A new class requires an ASCII VBA identifier of at most 31 characters including `Form_` or `Report_`; other object names reject creation. Host module rename/removal remains unqualified. Its `OfficeVbaWriteOptions` limits apply to both the existing project load and the staged output.
 
 ```csharp
 AccessApplicationObject form = database.Forms["Orders"];

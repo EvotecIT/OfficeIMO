@@ -5,7 +5,7 @@ using static OfficeIMO.Access.AccessNativeBinary;
 namespace OfficeIMO.Access {
     internal static partial class AccessNativeDesigner {
         /// <summary>Changes one qualified expanded-designer event record, copying all other records and terminators exactly.</summary>
-        internal static byte[] ReplaceEvent(byte[] bytes, string? controlName, ushort code, uint id, string? expression,
+        internal static byte[] ReplaceEvent(byte[] bytes, string? controlName, ushort code, string? expression,
             int maximumNodes, int maximumBytes, CancellationToken cancellation) {
             AccessDesignerNode root = Read(bytes, maximumNodes, cancellation)
                 ?? throw new NotSupportedException("Event authoring requires the qualified expanded version-21 designer.");
@@ -14,9 +14,14 @@ namespace OfficeIMO.Access {
                 : Walk(root).Where(x => string.Equals(x.Name, controlName, StringComparison.OrdinalIgnoreCase)).ToArray();
             if (targets.Length != 1) throw new ArgumentException("The designer control name is missing or ambiguous.", nameof(controlName));
             AccessDesignerNode target = targets[0];
-            if (controlName != null && (target.NativeKind != 100 && target.NativeKind != 109 && target.NativeKind != 111
-                || code == 86 && target.NativeKind == 100))
-                throw new NotSupportedException("This control/event combination is outside the qualified label, text-box and combo-box layouts.");
+            // Access binds by the per-control property identity, not just the shared
+            // event code. A label's Click identity means RowSource on a combo box.
+            uint id = (target.NativeKind, code) switch {
+                (150, 77) or (151, 77) => 227U,
+                (100, 126) => 223U, (109, 126) => 242U, (111, 126) => 243U,
+                (109, 86) => 227U, (111, 86) => 229U,
+                _ => throw new NotSupportedException("This control/event combination is outside the qualified form/report, label, text-box and combo-box layouts.")
+            };
             AccessDesignerProperty[] existing = target.Properties.Where(x => x.NativeCode == code).ToArray();
             if (existing.Length > 1 || existing.Any(x => x.NativeId != id || x.NativeType != 12 || x.NativeDefaultWidth != 4))
                 throw new NotSupportedException("The event property is outside its qualified native record layout.");

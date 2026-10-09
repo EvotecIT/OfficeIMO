@@ -17,6 +17,7 @@ try {
             if($formSource.Replace("`r`n","`n").TrimEnd("`n") -ne [IO.File]::ReadAllText($path+'.form.expected.txt')){throw 'Native form source differs from the writer output'}
             if($Events -and $file.EndsWith('.accdb')) {
                 if($form.OnOpen -ne '[Event Procedure]' -or $form.Controls.Item('GroupChoice1').AfterUpdate -ne '=Len("proof")' -or $form.Controls.Item('Title1').OnClick -ne '=Len("click")'){throw 'Native form event changes were not accepted'}
+                if($form.Controls.Item('DisplayName1').OnClick -ne '=Len("text-click")' -or $form.Controls.Item('DisplayName1').AfterUpdate -ne '=Len("text-update")' -or $form.Controls.Item('GroupChoice1').OnClick -ne '=Len("combo-click")'){throw 'Native text-box/combo-box event changes were not accepted'}
             }
             $application.DoCmd.Close(2,'BoundForm1',2); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($form)|Out-Null
             $application.DoCmd.OpenReport('BoundReport',1); $report=$application.Reports.Item('BoundReport')
@@ -24,6 +25,7 @@ try {
             $reportSource=[string]$report.Module.Lines(1,$report.Module.CountOfLines)
             if($reportSource.Replace("`r`n","`n").TrimEnd("`n") -ne [IO.File]::ReadAllText($path+'.report.expected.txt')){throw 'Native report source differs from the writer output'}
             if($Events -and $file.EndsWith('.accdb') -and $report.OnOpen -ne '[Event Procedure]'){throw 'Native report event changes were not accepted'}
+            if($Events -and $file.EndsWith('.accdb') -and $report.Controls.Item('Label0').OnClick -ne '=Len("report-click")'){throw 'Native report-control event change was not accepted'}
             $application.DoCmd.Close(3,'BoundReport',2); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($report)|Out-Null
             if($Events -and $file.EndsWith('.accdb')) {
                 $application.DoCmd.OpenForm('BoundForm2',1);$form2=$application.Forms.Item('BoundForm2')

@@ -15,8 +15,12 @@ namespace OfficeIMO.Access.Verification {
                     document.Forms["BoundForm1"].SetEventBinding(AccessEventKind.Open, "[Event Procedure]");
                     document.Forms["BoundForm1"].SetEventBinding(AccessEventKind.AfterUpdate, "=Len(\"proof\")", "GroupChoice1");
                     document.Forms["BoundForm1"].SetEventBinding(AccessEventKind.Click, "=Len(\"click\")", "Title1");
+                    document.Forms["BoundForm1"].SetEventBinding(AccessEventKind.Click, "=Len(\"text-click\")", "DisplayName1");
+                    document.Forms["BoundForm1"].SetEventBinding(AccessEventKind.AfterUpdate, "=Len(\"text-update\")", "DisplayName1");
+                    document.Forms["BoundForm1"].SetEventBinding(AccessEventKind.Click, "=Len(\"combo-click\")", "GroupChoice1");
                     document.Forms["BoundForm2"].SetEventBinding(AccessEventKind.Click, "=Len(\"new\")", "Title2");
                     document.Reports["BoundReport"].SetEventBinding(AccessEventKind.Open, "[Event Procedure]");
+                    document.Reports["BoundReport"].SetEventBinding(AccessEventKind.Click, "=Len(\"report-click\")", "Label0");
                     unchanged.Remove("Forms/0/Blob"); unchanged.Remove("Forms/1/Blob"); unchanged.Remove("Reports/0/Blob");
                 }
                 string output = Path.Combine(outputRoot, name); document.Save(output);

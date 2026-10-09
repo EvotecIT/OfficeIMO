@@ -6,11 +6,13 @@ namespace OfficeIMO.Access {
             ValidateVbaHost(host);
             AccessNativeDatabase native = _vbaMutation?.ReadProjection ?? NativeDatabase
                 ?? throw new NotSupportedException("Code-behind requires an existing native application.");
+            options ??= new OfficeVbaWriteOptions(); ValidateNativeApplicationMutation(options);
             byte[] properties = native.GetVbaHostProperties(host);
             int moduleOffset = AccessNativeDatabase.HostModuleValueOffset(properties);
             string name = (host.CatalogEntry.NativeType == -32768 ? "Form_" : "Report_") + host.Name;
             OfficeVbaProject project = ApplicationStreams.Any(x => x.Path.StartsWith("VBA/VBAProject/", StringComparison.OrdinalIgnoreCase))
-                ? GetVbaProject(cancellationToken: cancellation) : OfficeVbaProject.Create("Database");
+                ? GetVbaProject(new OfficeVbaReadOptions { MaximumProjectBytes = options.MaximumProjectBytes, MaximumExpandedBytes = options.MaximumExpandedBytes }, cancellation)
+                : OfficeVbaProject.Create("Database");
             if (properties[moduleOffset] == 1) {
                 native.GetVbaHostNames(project);
                 project.SetModuleSource(name, source);
@@ -31,18 +33,25 @@ namespace OfficeIMO.Access {
                 throw new NotSupportedException("Only qualified existing native forms and reports accept code-behind or event edits.");
         }
 
-        private Action RefreshVbaHostViews(AccessDocument candidate) {
-            var originals = Forms.Concat(Reports).Select(x => new { Host = x, x.Streams, x.Definition, x.Diagnostics }).ToArray();
-            foreach (var state in originals) {
-                AccessApplicationObject updated = candidate.Forms.Concat(candidate.Reports).Single(x => x.StoragePath == state.Host.StoragePath);
-                state.Host.Streams = updated.Streams; state.Host.Definition = updated.Definition;
-                state.Host.Diagnostics = Array.AsReadOnly(updated.Diagnostics.Select(x => new AccessDiagnostic(x.Code, x.Message, state.Host.Id)).ToArray());
-            }
-            return () => {
+        private (Action Apply, Action Undo) PrepareVbaHostRefresh(AccessDocument candidate) {
+            var updated = candidate.Forms.Concat(candidate.Reports).ToDictionary(x => (x.CatalogEntry.NativeType, x.CatalogEntry.NativeId));
+            // Nullable paths intentionally represent preserve-only hosts. Native catalog
+            // identity remains stable even when two unrelated objects have no mapping.
+            var originals = Forms.Concat(Reports).Select(host => {
+                if (!updated.TryGetValue((host.CatalogEntry.NativeType, host.CatalogEntry.NativeId), out AccessApplicationObject? next))
+                    throw new InvalidDataException("The native candidate did not retain a form/report catalog identity.");
+                return new { Host = host, host.Streams, host.Definition, host.Diagnostics, NextStreams = next.Streams, NextDefinition = next.Definition,
+                    NextDiagnostics = Array.AsReadOnly(next.Diagnostics.Select(x => new AccessDiagnostic(x.Code, x.Message, host.Id)).ToArray()) };
+            }).ToArray();
+            return (() => {
+                foreach (var state in originals) {
+                    state.Host.Streams = state.NextStreams; state.Host.Definition = state.NextDefinition; state.Host.Diagnostics = state.NextDiagnostics;
+                }
+            }, () => {
                 foreach (var state in originals) {
                     state.Host.Streams = state.Streams; state.Host.Definition = state.Definition; state.Host.Diagnostics = state.Diagnostics;
                 }
-            };
+            });
         }
     }
 }

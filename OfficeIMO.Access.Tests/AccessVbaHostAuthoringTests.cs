@@ -6,6 +6,55 @@ namespace OfficeIMO.Access.Tests {
         private static byte[] Save(AccessDocument document) { using MemoryStream bytes = new MemoryStream(); document.Save(bytes); return bytes.ToArray(); }
         private static IEnumerable<AccessDesignerNode> Nodes(AccessDesignerNode node) => new[] { node }.Concat(node.Children.SelectMany(Nodes));
 
+        [Fact]
+        public void EventCapabilityRequiresMutableDecodedAceApplication() {
+            const string operation = "application.events.write";
+            using AccessDocument modeled = AccessDocument.Create();
+            using AccessDocument readOnly = AccessDocument.Load(Fixture("designer-ace12.accdb"), new AccessLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            using AccessDocument undecoded = AccessDocument.Load(Fixture("designer-ace12.accdb"), new AccessLoadOptions { DecodeApplicationObjects = false });
+            using AccessDocument headerOnly = AccessDocument.Load(Fixture("designer-ace12.accdb"), new AccessLoadOptions { DecodeCatalog = false });
+            using AccessDocument jet = AccessDocument.Load(Fixture("designer-jet4.mdb"));
+            foreach (AccessDocument document in new[] { modeled, readOnly, undecoded, headerOnly, jet })
+                Assert.False(document.Capabilities.Single(x => x.Operation == operation).IsSupported);
+            using AccessDocument ace = AccessDocument.Load(Fixture("designer-ace12.accdb"));
+            Assert.True(ace.Capabilities.Single(x => x.Operation == operation).IsSupported);
+            ace.Forms["BoundForm1"].SetEventBinding(AccessEventKind.Open, "=Len(\"inert\")");
+        }
+
+        [Theory]
+        [InlineData("DisplayName1", AccessEventKind.Click, 242U)]
+        [InlineData("DisplayName1", AccessEventKind.AfterUpdate, 227U)]
+        [InlineData("GroupChoice1", AccessEventKind.Click, 243U)]
+        public void ControlEventsUseNativePerControlIdentityAndPreserveUnrelatedProperties(string name, AccessEventKind eventKind, uint id) {
+            using AccessDocument document = AccessDocument.Load(Fixture("designer-ace12.accdb"));
+            AccessApplicationObject host = document.Forms["BoundForm1"];
+            AccessDesignerNode original = Nodes(host.Definition!).Single(x => x.Name == name);
+            ushort code = eventKind == AccessEventKind.Click ? (ushort)126 : (ushort)86;
+            var unchanged = original.Properties.Where(x => x.NativeCode != code).ToArray();
+            host.SetEventBinding(eventKind, "=Len(\"inert-control\")", name);
+            using AccessDocument saved = AccessDocument.Load(new MemoryStream(Save(document)));
+            AccessDesignerNode node = Nodes(saved.Forms["BoundForm1"].Definition!).Single(x => x.Name == name);
+            Assert.Equal(id, Assert.Single(node.Properties, x => x.NativeCode == code).NativeId);
+            foreach (var property in unchanged) {
+                AccessDesignerProperty retained = Assert.Single(node.Properties, x => x.NativeId == property.NativeId);
+                Assert.Equal(property.Payload.GetBytes(), retained.Payload.GetBytes()); Assert.Equal(property.NativeCode, retained.NativeCode);
+            }
+            host.SetEventBinding(eventKind, "=Len(\"updated-control\")", name); host.SetEventBinding(eventKind, null, name);
+            Assert.DoesNotContain(Nodes(host.Definition!).Single(x => x.Name == name).Properties, x => x.NativeCode == code);
+        }
+
+        [Fact]
+        public void CodeBehindHonorsConfiguredReadAndWriteLimitsWithoutMutationOnRejection() {
+            using AccessDocument document = AccessDocument.Load(Fixture("designer-ace12.accdb")); byte[] before = Save(document);
+            AccessApplicationObject host = document.Forms["BoundForm1"];
+            Assert.Throws<ArgumentOutOfRangeException>(() => host.SetCodeBehind("Public Const Inert As Long = 1\r\n", new OfficeVbaWriteOptions { MaximumExpandedBytes = 0 }));
+            Assert.Throws<InvalidDataException>(() => host.SetCodeBehind("Public Const Inert As Long = 1\r\n", new OfficeVbaWriteOptions { MaximumExpandedBytes = 1 }));
+            Assert.Throws<InvalidDataException>(() => host.SetCodeBehind("Public Const Inert As Long = 1\r\n", new OfficeVbaWriteOptions { MaximumProjectBytes = 1 }));
+            Assert.Equal(before, Save(document)); Assert.False(document.IsModified);
+            host.SetCodeBehind("Public Const Inert As Long = 2\r\n", new OfficeVbaWriteOptions { MaximumExpandedBytes = 128 * 1024, MaximumProjectBytes = 128 * 1024 });
+            Assert.Contains("Inert As Long = 2", document.GetVbaProject().GetModule("Form_BoundForm1").Source);
+        }
+
         [Theory]
         [InlineData("designer-jet4.mdb")]
         [InlineData("designer-ace12.accdb")]
