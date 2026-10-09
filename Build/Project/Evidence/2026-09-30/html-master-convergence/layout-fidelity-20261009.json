@@ -1,0 +1,550 @@
+{
+  "schema": "officeimo.html.layout-resource-qualification",
+  "recordedUtc": "2026-10-09T17:36:16.683839+00:00",
+  "integratedSourceCommit": "044477ee600e1075f5df5ec2a8da7407baaa8962",
+  "integratedMasterCommit": "fbc11b41dbf7524231d68de7f95d642b04b5c044",
+  "preIntegrationProductionCommit": "4919ceb22264173744d5016c4f06657ee06e589c",
+  "testOnlySuccessor": "d8fc0e5fc4a9e1a6810310a80e1ca96d42d59904",
+  "sourceOwnerTrees": {
+    "OfficeIMO.Core": "ba6bdb557d570fe34aa6de73f7e7b21545c8fca3",
+    "OfficeIMO.Html.Core": "d70b80339a77314e20ff6ded548d2c743218ebc7",
+    "OfficeIMO.Html.AngleSharp": "7e1f46c329df040d2c2bd0c559e7b938bf80e26a",
+    "OfficeIMO.Html": "36ccd6f8db60bf9706aceec75fe920a8909c268d",
+    "OfficeIMO.Html.Pdf": "88b3130515d409f70126fc40a67ee2391180ac14",
+    "OfficeIMO.Mhtml": "50a4a1d06360614bfad22cd705418a397675dbfc",
+    "OfficeIMO.Mhtml.Pdf": "f260be4c80b287db7a53ff92c52ffcdcebfdb664",
+    "OfficeIMO.Pdf": "97a3b622d3f28249a29b8f0b149f3dcee25d2e4f"
+  },
+  "actualRuntimeDlls": {
+    "OfficeIMO.Core.dll": {
+      "sha256": "a6c42d11b4ecfff86a46a8de124a29d71c50f5a7960457832646f7e00f08c998",
+      "bytes": 4655104
+    },
+    "OfficeIMO.Email.dll": {
+      "sha256": "bbbeb3f7db9e3502ce26575197c6f9b9afb106d9fc6d5f43317add8f0d0c20dc",
+      "bytes": 1779200
+    },
+    "OfficeIMO.Html.AngleSharp.dll": {
+      "sha256": "9b4311f2ecf68d951506c4bc0262025d71fafbd64ad8d5149a5c8c6cd084a8d9",
+      "bytes": 48128
+    },
+    "OfficeIMO.Html.Core.dll": {
+      "sha256": "e6363a3935e22140dbb83c3e163a21dc7994d01050adbff707a5070636d5066b",
+      "bytes": 148480
+    },
+    "OfficeIMO.Html.Pdf.dll": {
+      "sha256": "b6fbe3f218bb5044b90c7f2b880f758afbfbe17a62b9bcc3002585b65328c5f3",
+      "bytes": 290816
+    },
+    "OfficeIMO.Html.dll": {
+      "sha256": "eec164734d272e86ca7f1d87fdbf56d2c0319f9d092714bd5afadc95bfa47abc",
+      "bytes": 2379776
+    },
+    "OfficeIMO.Mhtml.Pdf.dll": {
+      "sha256": "114392c351470220074030e2b5eb095fe7f7796d416aa3e6cdb99e747c128c5b",
+      "bytes": 17408
+    },
+    "OfficeIMO.Mhtml.dll": {
+      "sha256": "758a3c97d03287e338e561c98792d17139734d8f34527aafad2402765c8553ab",
+      "bytes": 50688
+    },
+    "OfficeIMO.Pdf.dll": {
+      "sha256": "94a7339b243293408bde592925c745cad7316e4808697921183db5ffe945f7d6",
+      "bytes": 7921152
+    },
+    "OfficeIMO.Rtf.dll": {
+      "sha256": "6a216b88e29021f3391b9c4b1066a5cb4e8d8a1bf742c6eb8f886d502615e6cb",
+      "bytes": 576512
+    }
+  },
+  "producerHelperSourceSha256": "bc219ded2630ce1635f51053242a8b5a495dd6c752c5886a1c58be82f041f8d8",
+  "producerHelperProjectSha256": "1e8f307ebec630961232faad9e37bc6e6b7f64f26eb4b3c53b62490b9213753f",
+  "contracts": [
+    "Contextless projected paint layers retain the ancestor atomic/float paint phase; opaque ancestor backgrounds do not hide promoted descendant text.",
+    "Inherited table header bold/italic affects measurement, fallback selection, painting and font registration consistently.",
+    "PDF font resources reflect effective usage rather than eager regular/style reservations, including buffered and forward-only output.",
+    "Per-cell character spacing and horizontal text scaling bypass plain-text table layout reuse in flow and row-column paths.",
+    "The clean master merge retains these contracts through the shared merged-cell and rowspan preparation/fragmentation paths."
+  ],
+  "focusedAndFramework": {
+    "preIntegrationHtmlNet8": {
+      "passed": 5525,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "a5122fc045aa42bfab0bc409231f74c67a167f7c2707c786f0b3884260122c29"
+    },
+    "preIntegrationHtmlNet10": {
+      "passed": 5525,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "c3dad4b226e2e0dda74ceac2630098761617d8b53544de463014b3fe5b8249e9"
+    },
+    "preIntegrationPdfNet10": {
+      "passed": 9863,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "f232fd6dc551defdfd947d668b1e23e36e3266a5380c7bde5ad47120358ebcc9"
+    },
+    "preIntegrationPdfFocusedNet8": {
+      "passed": 216,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "df359026c6832298c4e3563155c1b271e0fb78faa415876d662778ea78672238"
+    },
+    "integratedTableFontNet10": {
+      "passed": 410,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "30db7dfa275b3d74d1e7eee59d80eaaca86d2bc124aa778703b00cfc56f97721"
+    },
+    "integratedTableFontNet8": {
+      "passed": 410,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "bbec7dc8ce9241de5a1db399d28730eb9126df3c9ac07d8d68ed212ace961f20"
+    }
+  },
+  "netstandard2OwnerGraph": {
+    "project": "OfficeIMO.Mhtml.Pdf",
+    "passed": true,
+    "warnings": 0,
+    "errors": 0,
+    "logSha256": "5bb775e59204a9183e94efda1eceaa2ed022c2a5f60285190f77640ae2984db2",
+    "sdk": "10.0.303"
+  },
+  "beforeFailures": {
+    "tableCache": "Four focused flow/row-column spacing/scaling cases fail before the cache eligibility fix; all four pass afterwards.",
+    "projectedPaint": "Four positioned float/atomic controls fail before paint-phase retention; one unpositioned control passes.",
+    "fullPdfInitial": "9862 pass and one stale raw-font-object assertion fails. The assertion now checks actual glyph faces; final 9863 pass. No production change was required for that assertion."
+  },
+  "review": {
+    "fontOwner": "One fresh independent read-only pass; no introduced P0-P3 findings. A pre-existing table-cache P2 was reproduced and fixed.",
+    "cacheConfirmation": "One targeted confirmation accepted the fix and reachable run-property eligibility sweep.",
+    "mergedCellIntegration": "One fresh read-only pass over the newly merged table interaction at044: no actionable P0-P3. Shared effective row-font selection, cache eligibility, continuation state, deferred paint and structure ownership accepted as shaped. Prior unchanged font/cache passes were not repeated."
+  },
+  "frozenInputs": [
+    {
+      "name": "wai",
+      "sourceSha256": "e412cfda033d9aa02b7abd455ae0fab917c2e44ba0ad0f4bc83f233877a4397d",
+      "bytes": 292469,
+      "role": "development-regression"
+    },
+    {
+      "name": "nist",
+      "sourceSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
+      "bytes": 1099322,
+      "role": "development-regression"
+    },
+    {
+      "name": "nws",
+      "sourceSha256": "fbbe27e8d1d4d9d767126ab0e0eafd157a27815b520c7cd80a909465c70da641",
+      "bytes": 564087,
+      "role": "development-regression"
+    },
+    {
+      "name": "epa",
+      "sourceSha256": "12ac44c94520a28c5797c1c764df47ecb833db932e2772be868a25e9b7062dc3",
+      "bytes": 1196649,
+      "role": "development-regression"
+    },
+    {
+      "name": "reference",
+      "sourceSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+      "bytes": 1410684,
+      "role": "development-regression"
+    },
+    {
+      "name": "planetary",
+      "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "bytes": 2641258,
+      "role": "development-regression"
+    },
+    {
+      "name": "chesapeake",
+      "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+      "bytes": 1261414,
+      "role": "held-out"
+    }
+  ],
+  "requests": {
+    "profiles": [
+      "print-paged",
+      "screen-media-paged",
+      "screen-snapshot-paged"
+    ],
+    "additionalZeroMarginSources": [
+      "reference",
+      "planetary"
+    ],
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "ordinaryMargins": 48,
+    "fontPolicy": "PortableDeterministic; host fallback disabled"
+  },
+  "unfamiliarPages": {
+    "summary": {
+      "profiles": 23,
+      "produced": 20,
+      "knownFontPreconditionFailures": 3,
+      "pages": 151,
+      "nativePagesVisuallyInspected": 151,
+      "reviewSheetsVisuallyInspected": 24,
+      "nativePagesPixelIdenticalToA667": 148,
+      "nativePagesChangedVsA667": 3,
+      "nwsNativePagesPixelIdenticalToAcceptedC34": 6,
+      "pageWordRectanglesEqualToA667": 151,
+      "newObservedContentGeometryOrPaintRegressions": 0
+    },
+    "comparisonToA667": {
+      "all20PageGeometryEqual": true,
+      "all20WordAndCharacterMultisetsEqual": true,
+      "all151PerPageWordAndRectanglesEqual": true,
+      "all20PageTargetRectangleLinkMultisetsEqual": true,
+      "all20WarningsCodesEqual": true,
+      "all20SemanticImageRowsEqual": true,
+      "all20DecodedImageResourcesAndMasksEqual": true,
+      "rawImageObjectRecordDifferenceProfiles": 12,
+      "rawImageDifferenceMeaning": "Only object/generation identifiers differ; no decoded pixel/mask or semantic image instance loss.",
+      "pixelMethod": "Exact RGB equality of all captured native PNG pages (350-pixel longest edge); all six NWS pages additionally compared to accepted c34 at 1000 pixels."
+    },
+    "changedPaintClassification": [
+      "NWS Print page1: title, breadcrumb, Daily heading/description and separators restored without table geometry change.",
+      "NWS Media page1: forecast label, Go button, Location Help, title, breadcrumb, Daily heading/description and separators restored.",
+      "NWS Media page2: social strip icon/glyph paint restored. Media page3 and both Snapshot pages are unchanged from a667. All six final NWS pages are pixel-identical to accepted c34 at 1000 pixels."
+    ],
+    "nwsContracts": {
+      "PrintPages": 1,
+      "MediaPages": 3,
+      "SnapshotPages": 2,
+      "calendarDays1to31ExactlyOnceInEveryProfile": true,
+      "nativeCalendarInkAndAlternatingBandsInspected": true,
+      "forecastControlsRestoredForScreenProfiles": true,
+      "snapshotRetainedNodeBoundary": "A logical retained day18 node can occur on two clipped scene surfaces; physical PDF text/paint contains the calendar row once."
+    },
+    "improvementVsOriginalBaseline": {
+      "rootComparisonSha256": "abcefa3ef3771d1ce5c5dd98df503ffbf37a600a3dc1202408d971d403bbdc53",
+      "all20NoWordCharacterLinkOrDecodedImageLoss": true,
+      "nwsMediaOriginalMissingDay": 26,
+      "nwsMediaFinalMissingDays": [],
+      "nwsMediaAddedWords": 11,
+      "nwsMediaAddedCharacters": 25
+    },
+    "knownFontFailures": [
+      {
+        "source": "nist",
+        "profile": "print-paged",
+        "status": "producer-failed",
+        "exception": "OfficeIMO.Html.HtmlConversionException",
+        "message": "HTML conversion failed: Text contains character U+2212 '\u2212' at index 37 that cannot be encoded with PDF WinAnsiEncoding. Embedded Unicode fonts are required for this text."
+      },
+      {
+        "source": "nist",
+        "profile": "screen-media-paged",
+        "status": "producer-failed",
+        "exception": "OfficeIMO.Html.HtmlConversionException",
+        "message": "HTML conversion failed: Text contains character U+2212 '\u2212' at index 0 that cannot be encoded with embedded TrueType font 'SourceSansProWeb-Regular'. Choose a font that contains this glyph or configure a fallback before rendering."
+      },
+      {
+        "source": "nist",
+        "profile": "screen-snapshot-paged",
+        "status": "producer-failed",
+        "exception": "OfficeIMO.Html.HtmlConversionException",
+        "message": "HTML conversion failed: Text contains character U+2212 '\u2212' at index 0 that cannot be encoded with embedded TrueType font 'SourceSansProWeb-Regular'. Choose a font that contains this glyph or configure a fallback before rendering."
+      }
+    ],
+    "nativeReceiptSha256": "684bda945b16a76ed7d338aa7ff868fa6be07ec786778dd3daedd86db36e4693",
+    "nativeEvidence": [
+      {
+        "path": "layout-fidelity-native-20261009/nws-print-page1.png",
+        "sha256": "0fca2da79d4c952505d21b5208ddd4ced136e8039004f78251fd6a4c6e3ab0aa",
+        "bytes": 139098,
+        "scope": "Native a667 control versus accepted 4919; integrated 044 PDF bytes are identical to 4919."
+      },
+      {
+        "path": "layout-fidelity-native-20261009/nws-media-page1.png",
+        "sha256": "6e47b0a0362fb941d828fd94c6ea50f2ec54cce3d081fc96b93c3dbe9a68270b",
+        "bytes": 102563,
+        "scope": "Native a667 control versus accepted 4919; integrated 044 PDF bytes are identical to 4919."
+      },
+      {
+        "path": "layout-fidelity-native-20261009/nws-media-page2.png",
+        "sha256": "aaa3e71e2a0455c4bfc1b6219e037e5a517e56c3d0e0ebd1b470a3c83906eb87",
+        "bytes": 147360,
+        "scope": "Native a667 control versus accepted 4919; integrated 044 PDF bytes are identical to 4919."
+      }
+    ],
+    "integrationArtifactIdentity": {
+      "receiptSha256": "c68cbed49e917842a3ceebb694ce52091c4b8b9d385ec5f8d836f5e36af2cc2a",
+      "producerReceiptSha256": "3ea03faf4b49fb57319564938e7c8967dba0f42e0c203c091cd1170ea8ff94f5",
+      "sourceInputsVerified": 7,
+      "profiles": 23,
+      "produced": 20,
+      "failed": 3,
+      "pages": 151,
+      "allApiObservationsExact": true,
+      "allPdfsByteIdentical": true,
+      "outputs": [
+        {
+          "source": "wai",
+          "profile": "print-paged",
+          "bytes": 194391,
+          "sha256": "2cb8e0e3ef2df1e0054e264e103f5543a86e4e2b326ab526f8740bf849d95ace",
+          "pages": 4,
+          "byteIdentical": true
+        },
+        {
+          "source": "wai",
+          "profile": "screen-media-paged",
+          "bytes": 227413,
+          "sha256": "805bab27a0c7cf1519eb1661473c22e2ff043f75d7640541e15c70b551041ba8",
+          "pages": 4,
+          "byteIdentical": true
+        },
+        {
+          "source": "wai",
+          "profile": "screen-snapshot-paged",
+          "bytes": 188785,
+          "sha256": "e454a15b40c8d768cc522146e5c4058689b892a66316bb23becedbeb0afc4c67",
+          "pages": 3,
+          "byteIdentical": true
+        },
+        {
+          "source": "nist",
+          "profile": "print-paged",
+          "unchangedFailure": "OfficeIMO.Html.HtmlConversionException"
+        },
+        {
+          "source": "nist",
+          "profile": "screen-media-paged",
+          "unchangedFailure": "OfficeIMO.Html.HtmlConversionException"
+        },
+        {
+          "source": "nist",
+          "profile": "screen-snapshot-paged",
+          "unchangedFailure": "OfficeIMO.Html.HtmlConversionException"
+        },
+        {
+          "source": "nws",
+          "profile": "print-paged",
+          "bytes": 132255,
+          "sha256": "d112de212bceac7474d23109b377e013c2961875323b693e80f55e1c78481975",
+          "pages": 1,
+          "byteIdentical": true
+        },
+        {
+          "source": "nws",
+          "profile": "screen-media-paged",
+          "bytes": 205409,
+          "sha256": "19eb7407c29ab997eacb558f130e478dcfadcf531fccb5abc43705f350ac1382",
+          "pages": 3,
+          "byteIdentical": true
+        },
+        {
+          "source": "nws",
+          "profile": "screen-snapshot-paged",
+          "bytes": 193330,
+          "sha256": "9036688708a293d1d9f4d47668b99ddda498dfa664c7243dcd4522b22434bcef",
+          "pages": 2,
+          "byteIdentical": true
+        },
+        {
+          "source": "epa",
+          "profile": "print-paged",
+          "bytes": 161642,
+          "sha256": "bca05830c339ceb0d6ed5e1384d87574b770d43f4419d30af6f8ed511b1ca24d",
+          "pages": 4,
+          "byteIdentical": true
+        },
+        {
+          "source": "epa",
+          "profile": "screen-media-paged",
+          "bytes": 214564,
+          "sha256": "3a8d42868af39f6cfde10f3b398cad73e1070ffe5852510a3258ceefedbd0833",
+          "pages": 4,
+          "byteIdentical": true
+        },
+        {
+          "source": "epa",
+          "profile": "screen-snapshot-paged",
+          "bytes": 194691,
+          "sha256": "955a88e036d5468394fdbd7b729ed537e8b9797168b16a42e69a8f40e564ac8f",
+          "pages": 4,
+          "byteIdentical": true
+        },
+        {
+          "source": "reference",
+          "profile": "print-zero-margin",
+          "bytes": 1755512,
+          "sha256": "4bb618b2b251d4e21395aac011bb24921e3caf8facd85a1566d729f3a5be6cf4",
+          "pages": 9,
+          "byteIdentical": true
+        },
+        {
+          "source": "reference",
+          "profile": "print-paged",
+          "bytes": 1805542,
+          "sha256": "62165aaca7126f3ae3ffa3ee57d88ba07a5b60b928906c5ed9adcc99ad590af5",
+          "pages": 10,
+          "byteIdentical": true
+        },
+        {
+          "source": "reference",
+          "profile": "screen-media-paged",
+          "bytes": 1810152,
+          "sha256": "9472cf774ad3c79a9c680f2c17321a8f2887738dc5135111ee29fe5ccb09149e",
+          "pages": 12,
+          "byteIdentical": true
+        },
+        {
+          "source": "reference",
+          "profile": "screen-snapshot-paged",
+          "bytes": 1750269,
+          "sha256": "10569d6ea2bd9a8e35b5884d2173171646f851def7c4849aa01a03d536a907b4",
+          "pages": 8,
+          "byteIdentical": true
+        },
+        {
+          "source": "planetary",
+          "profile": "print-zero-margin",
+          "bytes": 2181942,
+          "sha256": "5e23eec674d9e6cc939d8e8c3d414c3d6e0750f6623fdbd89db5c8ed7ad4bb37",
+          "pages": 16,
+          "byteIdentical": true
+        },
+        {
+          "source": "planetary",
+          "profile": "print-paged",
+          "bytes": 2269246,
+          "sha256": "2b895a42136b215fb12e0a31d728abe35cef6dd5bbbb70e0a8f4d2297c829616",
+          "pages": 19,
+          "byteIdentical": true
+        },
+        {
+          "source": "planetary",
+          "profile": "screen-media-paged",
+          "bytes": 2257260,
+          "sha256": "2d8cd2be9b8350f3025ec4a0a7ce75b804df17bb075e1dc471f572f821ed9a0e",
+          "pages": 22,
+          "byteIdentical": true
+        },
+        {
+          "source": "planetary",
+          "profile": "screen-snapshot-paged",
+          "bytes": 2197033,
+          "sha256": "d78cc6394e1b7f7110cde5786317697ba5be0b164b090878bf654206680877df",
+          "pages": 14,
+          "byteIdentical": true
+        },
+        {
+          "source": "chesapeake",
+          "profile": "print-paged",
+          "bytes": 710159,
+          "sha256": "369d7a686ab24d6c0b4959920fd4950914f10cc3d122868f7b75fe923d5f3f4c",
+          "pages": 3,
+          "byteIdentical": true
+        },
+        {
+          "source": "chesapeake",
+          "profile": "screen-media-paged",
+          "bytes": 752788,
+          "sha256": "96b273436da76f73db53bbf2f627295d2766ca9734dff9558a1de2d58a568385",
+          "pages": 5,
+          "byteIdentical": true
+        },
+        {
+          "source": "chesapeake",
+          "profile": "screen-snapshot-paged",
+          "bytes": 740892,
+          "sha256": "764c41f6b44b0432d1b4055f05585ce9dbbd622ae2ce4421277be3a4f5f12328",
+          "pages": 4,
+          "byteIdentical": true
+        }
+      ],
+      "boundary": "Identical PDF bytes carry accepted independent extraction/native appearance proof forward; no second native rendering ran."
+    }
+  },
+  "h4ResourceProof": {
+    "beforeCommit": "a6672b2d34fdd876a1c82d66a4f4e25147b13eb2",
+    "afterCommit": "4919ceb22264173744d5016c4f06657ee06e589c",
+    "cases": 8,
+    "exports": 76,
+    "pdfs": 16,
+    "beforeBytes": 2671358,
+    "afterBytes": 2586534,
+    "byteDelta": -84824,
+    "byteIdenticalExports": 74,
+    "changedExports": [
+      {
+        "caseId": "nested-fragmentation-report",
+        "profile": "ScreenSnapshotPaged",
+        "encoder": "Pdf",
+        "pageNumber": null,
+        "pageCountBefore": 1,
+        "pageCountAfter": 1,
+        "bytesBefore": 8579,
+        "bytesAfter": 8459,
+        "byteDelta": -120,
+        "shaBefore": "ffaa8fe6291b659ba0a03f8f3e6371ed2f3ee3c518747c8db49db574c12bcd55",
+        "shaAfter": "c60e38fe6da80a67e2e844a1f8991c121971c48f63a1021e4303bbad3e3cf5a4"
+      },
+      {
+        "caseId": "columns-footnotes-brief",
+        "profile": "ScreenSnapshotPaged",
+        "encoder": "Pdf",
+        "pageNumber": null,
+        "pageCountBefore": 1,
+        "pageCountAfter": 1,
+        "bytesBefore": 200263,
+        "bytesAfter": 115559,
+        "byteDelta": -84704,
+        "shaBefore": "dc696f5327c45b1178445db73e660ad6db900b2f61b2d3dec6921115970075e5",
+        "shaAfter": "af045bc2bd897b5794288b2277291a2b8d19278dc44464520920410761bfa108"
+      }
+    ],
+    "all64PublicSceneWitnessesEqual": true,
+    "allPdfPageGeometryEqual": true,
+    "allLinkAnnotationsEqual": true,
+    "allImageResourceFactsEqual": true,
+    "allFontGraphAndFontFilesReachable": true,
+    "retainedFontProgramsAndDiagnosticsUnchanged": true,
+    "diagnosticBoundary": "Per-standard-font MissingToUnicode diagnostics are present before and after with no changes. Every embedded font program inspection has no diagnostics. This is not a blanket diagnostic-free claim.",
+    "nativePages": 22,
+    "nativePixelIdenticalPages": 22,
+    "nativeDpi": 96,
+    "exactWordGeometryAndOrderRetained": true,
+    "resourceReceiptSha256": "97797e8167b8ac5d8f195a55bc5a56c546a3f36f47a193e7bdf990e309cd55d7",
+    "nativeReceiptSha256": "ee52155060ee44a9cfdd4ad01f1b9a94c32a1770014de21bbdafed2c0ae3e1f6",
+    "integrationReceiptSha256": "6a2bd50cdb3b06065760e4942c97121419f84acb8f413aca0ce3216e32fd8238",
+    "integratedAll76ExportIdentitiesExact": true,
+    "integratedFingerprintSha256": "499307ccad4ae8db0f6de11901f08857702dc1f56dd6679cbb34ca4ce54763ca",
+    "boundary": "Local macOS ARM64 resource/native proof. Timing under shared-host contention is diagnostic and does not close platform budgets."
+  },
+  "priorHostedQualification": {
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37940552020",
+    "candidateCommit": "a542dea7dec970e821c6d27d74f575239d8e163e",
+    "controlCommit": "2d93ee3327a97e00eba8cace7dd6a44437693f70",
+    "result": "Linux/macOS/Windows correctness and nineteen-package consumers passed. Linux timing passed; macOS/Windows timing and Windows aggregate output bytes failed.",
+    "boundary": "This older run does not qualify the current merged source. No platform ceiling was raised."
+  },
+  "remainingAcceptance": [
+    "Current-source hosted platform/package qualification and unchanged timing/resource ceilings.",
+    "NIST archived-font U+2212 coverage; caller-supplied font controls are a distinct profile.",
+    "NWS alert/right-edge overflow, remaining navigation/month-tab typography and full appearance criteria.",
+    "EPA parallel/floated table repetition, snapshot slicing and broader resource/appearance criteria.",
+    "Reference footer typography/logo and broader native appearance; additional frozen-source criteria remain in Docs/ROADMAP.md.",
+    "Broader font/script/profile and assistive-technology reading order qualification."
+  ],
+  "qualificationBoundary": [
+    "The frozen sources and selected H4 cases establish bounded contracts, not arbitrary-website compatibility.",
+    "Synthetic font fixtures establish face selection and resource use, not physical bold/italic outline quality.",
+    "Native appearance, text/geometry, output resources, hosted packages/platforms and publication are separate evidence types.",
+    "No merge, package publication or release is claimed."
+  ],
+  "evidenceLocation": {
+    "task": "01a11a92-00a5-7873-aa1a-7bffe37b27b9",
+    "scratchRelative": "html-layout-unfamiliar",
+    "retained": "Compact manifests, exact runtime/PDF hashes, TRX/logs and decisive native artifacts. Disposable build/raster output is cleaned separately."
+  }
+}
