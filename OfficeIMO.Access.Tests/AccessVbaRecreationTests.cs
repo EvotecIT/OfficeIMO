@@ -86,5 +86,55 @@ namespace OfficeIMO.Access.Tests {
             Assert.Equal(survivor.NativeId, Assert.Single(saved.Catalog, x => x.NativeType == -32761).NativeId);
             Assert.Equal(OfficeVbaModuleKind.Class, saved.GetVbaProject().GetModule(original.Name).Kind);
         }
+
+        [Theory]
+        [InlineData("Application/objects-jet4.mdb", false)]
+        [InlineData("Application/objects-ace12.accdb", false)]
+        [InlineData("Application/objects-jet4.mdb", true)]
+        [InlineData("Application/objects-ace12.accdb", true)]
+        public void AcceptedByteIdenticalProjectRemembersIdentityAcrossRenameOrReplacement(string file, bool replace) {
+            using AccessDocument document = Load(file);
+            AccessCatalogEntry original = Assert.Single(document.Catalog, x => x.NativeType == -32761);
+            OfficeVbaProject accepted = OfficeVbaProject.Load(document.GetVbaProject().Write().GetBytes());
+            byte[] initial = Save(document); long revision = document.Revision;
+            using (document.BeginUpdate()) document.SetVbaProject(accepted);
+            Assert.Equal(revision, document.Revision); Assert.Equal(initial, Save(document)); Assert.False(document.IsModified);
+            OfficeVbaProject other = document.GetVbaProject();
+            if (replace) { other.DeleteModule(original.Name); other.AddModule(original.Name, "Public Const Replacement As Long = 105\r\n"); }
+            else other.RenameModule(original.Name, "InterveningName");
+            document.SetVbaProject(other);
+            byte[] before = Save(document); revision = document.Revision;
+            accepted.SetModuleSource(original.Name, "Public Const Accepted As Long = 106\r\n");
+            if (replace) {
+                Assert.Throws<InvalidOperationException>(() => document.SetVbaProject(accepted));
+                Assert.Equal(revision, document.Revision); Assert.Equal(before, Save(document));
+            } else {
+                document.SetVbaProject(accepted);
+                AccessCatalogEntry final = Assert.Single(document.Catalog, x => x.NativeType == -32761);
+                Assert.Equal(original.NativeId, final.NativeId); Assert.Equal(original.Id, final.Id);
+                Assert.Contains(document.ApplicationStreams, x => x.Path == "Modules/0/PropData");
+                using AccessDocument saved = AccessDocument.Load(new MemoryStream(Save(document)));
+                Assert.Equal(original.NativeId, Assert.Single(saved.Catalog, x => x.NativeType == -32761).NativeId);
+            }
+        }
+
+        [Theory]
+        [InlineData("Application/objects-jet4.mdb")]
+        [InlineData("Application/objects-ace12.accdb")]
+        public void NoOpAcceptedDuringRolledBackAdditionCannotRecreateItsDiscardedIdentity(string file) {
+            using AccessDocument document = Load(file); byte[] before = Save(document);
+            OfficeVbaProject accepted;
+            using (document.BeginUpdate()) {
+                OfficeVbaProject added = document.GetVbaProject(); added.AddModule("RolledBack", "Public Const Value As Long = 107\r\n");
+                document.SetVbaProject(added);
+                accepted = OfficeVbaProject.Load(document.GetVbaProject().Write().GetBytes());
+                long revision = document.Revision; byte[] staged = Save(document); document.SetVbaProject(accepted);
+                Assert.Equal(revision, document.Revision); Assert.Equal(staged, Save(document));
+            }
+            Assert.Equal(before, Save(document)); long rolledBackRevision = document.Revision;
+            accepted.SetModuleSource("RolledBack", "Public Const Value As Long = 108\r\n");
+            Assert.Throws<InvalidOperationException>(() => document.SetVbaProject(accepted));
+            Assert.Equal(rolledBackRevision, document.Revision); Assert.Equal(before, Save(document));
+        }
     }
 }

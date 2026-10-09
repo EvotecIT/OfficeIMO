@@ -42,7 +42,12 @@ namespace OfficeIMO.Access {
             const string prefix = "VBA/VBAProject/";
             AccessStorageStream[] original = ApplicationStreams.Where(x => x.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToArray();
             if (project.Modules.All(module => VbaModuleSourceName(module, appliedNames) != null)
-                && original.Length == compound.Streams.Count && original.All(x => compound.Streams.TryGetValue(x.Path.Substring(prefix.Length), out byte[]? value) && x.Payload.GetBytes().SequenceEqual(value))) return;
+                && original.Length == compound.Streams.Count && original.All(x => compound.Streams.TryGetValue(x.Path.Substring(prefix.Length), out byte[]? value) && x.Payload.GetBytes().SequenceEqual(value))) {
+                // Acceptance records the visible identities even when no native bytes change,
+                // just as GetVbaProject does. Identities discarded by rollback remain stale.
+                BindVbaModuleIdentities(project, Catalog.Items, undoable: false);
+                return;
+            }
             OfficeVbaProject current = original.Length == 0 ? OfficeVbaProject.Create(project.Name, project.CodePage)
                 : GetVbaProject(new OfficeVbaReadOptions { MaximumProjectBytes = options.MaximumProjectBytes, MaximumExpandedBytes = options.MaximumExpandedBytes }, cancellationToken);
             if (current.IsProtected || project.IsProtected) throw new InvalidOperationException("Access VBA editing does not bypass project protection.");
