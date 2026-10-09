@@ -44,6 +44,10 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
+                if (!paragraph.HasContent) {
+                    currentY += paragraph.Height + paragraph.SpaceAfter;
+                    continue;
+                }
                 // Keep the cell as the clipping boundary while paragraph leading controls flow.
                 double visibleHeight = Math.Max(0D, contentBottom - currentY);
                 bool clipped = visibleHeight + 0.001D < Math.Max(paragraph.Height, paragraph.PaintedHeight);
