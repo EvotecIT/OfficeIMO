@@ -419,7 +419,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
-                    dateSystem: DateSystem);
+                    dateSystem: DateSystem,
+                    omitBlankCells: true);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -473,7 +474,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
-                    dateSystem: DateSystem);
+                    dateSystem: DateSystem,
+                    omitBlankCells: true);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -527,7 +529,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
-                    dateSystem: DateSystem);
+                    dateSystem: DateSystem,
+                    omitBlankCells: true);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;

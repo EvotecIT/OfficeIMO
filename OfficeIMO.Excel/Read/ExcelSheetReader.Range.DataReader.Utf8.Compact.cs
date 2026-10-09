@@ -236,7 +236,7 @@ namespace OfficeIMO.Excel {
                 while (position < _length) {
                     if (position <= _length - 6
                         && _buffer![position + 1] == (byte)'/'
-                        && MatchesAscii(position, "</row>")) {
+                        && MatchesUtf8(position, "</row>"u8)) {
                         position += 6;
                         UpdateUsedBounds(rowIndex, previousColumn);
                         return true;
@@ -276,6 +276,7 @@ namespace OfficeIMO.Excel {
                         && !TryIndexCompactValueCell(
                             ref position,
                             cellIndex,
+                            kind,
                             out hasCachedValue,
                             out valueStart,
                             out valueLength)) {
@@ -315,6 +316,15 @@ namespace OfficeIMO.Excel {
 
                 int start = position;
                 int cursor = start;
+                if (TryReadCanonicalImplicitCellStartTag(
+                        ref position,
+                        ref nextColumn,
+                        out tag,
+                        out columnIndex,
+                        out kind,
+                        out styleIndex)) {
+                    return true;
+                }
                 if (cursor > _length - 7
                     || _buffer![cursor] != (byte)'<'
                     || _buffer[cursor + 1] != (byte)'c'
@@ -410,6 +420,7 @@ namespace OfficeIMO.Excel {
             private bool TryIndexCompactValueCell(
                 ref int position,
                 int cellIndex,
+                Utf8CellKind kind,
                 out bool hasCachedValue,
                 out int valueStart,
                 out int valueLength) {
@@ -417,11 +428,15 @@ namespace OfficeIMO.Excel {
                 valueStart = -1;
                 valueLength = -1;
                 int cursor = position;
-                if (MatchesAscii(cursor, "</c>")) {
+                if (MatchesUtf8(cursor, "</c>"u8)) {
                     position = cursor + 4;
                     return true;
                 }
-                if (!MatchesAscii(cursor, "<v>")) {
+                if (kind == Utf8CellKind.InlineString) {
+                    return TryIndexCanonicalInlineStringCell(
+                        ref position, cellIndex, out valueStart, out valueLength);
+                }
+                if (!MatchesUtf8(cursor, "<v>"u8)) {
                     return false;
                 }
 
@@ -431,7 +446,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
                 int valueEnd = contentStart + relativeEnd;
-                if (!MatchesAscii(valueEnd, "</v>") || !MatchesAscii(valueEnd + 4, "</c>")) {
+                if (!MatchesUtf8(valueEnd, "</v></c>"u8)) {
                     return false;
                 }
 
@@ -446,10 +461,12 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            private bool MatchesAscii(int start, string value) =>
+            // Static UTF-8 literals allow fixed-width comparisons of the canonical
+            // tags while retaining the bounds checks needed for truncated documents.
+            private bool MatchesUtf8(int start, ReadOnlySpan<byte> value) =>
                 start >= 0
                 && start <= _length - value.Length
-                && AsciiEquals(start, value.Length, value);
+                && _buffer!.AsSpan(start, value.Length).SequenceEqual(value);
         }
     }
 }

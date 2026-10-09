@@ -127,7 +127,8 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         CsvLoadOptions options,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
-        int initialRowIndex = -1)
+        int initialRowIndex = -1,
+        bool hasBufferedTextRow = false)
     {
         _columns = columns;
         _textRowSource = rows;
@@ -143,6 +144,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         _dateTimeFormats = dateTimeFormats;
         _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         _rowIndex = initialRowIndex;
+        _hasBufferedRow = hasBufferedTextRow;
         Delimiter = CsvParser.GetDelimiterChar(options);
         DelimiterText = CsvParser.GetDelimiterText(options);
         _useRawStringValues = CanUseRawStringValues(columns);

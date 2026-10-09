@@ -35,6 +35,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _firstColumn;
         private readonly int _firstDataRow;
         private readonly int _lastDataRow;
+        private readonly int _worksheetStartOffset;
+        private readonly int _worksheetLimitOffset;
         private int[]? _bufferedRowOffsets;
         private readonly int _bufferedWorksheetEndOffset;
         private readonly bool _usedIndexedDiscovery;
@@ -63,6 +65,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _cancellationToken = cancellationToken;
             _activeReadCancellationToken = cancellationToken;
+            _worksheetStartOffset = sheetOffset;
+            _worksheetLimitOffset = sheetEndOffset;
 
             int[]? bufferedRowOffsets = _bufferedBytes != null
                 ? ArrayPool<int>.Shared.Rent(ushort.MaxValue + 1)
@@ -260,6 +264,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     continue;
                 }
                 if (record.Type == (ushort)BiffRecordType.Eof) break;
+                if (record.Type == (ushort)BiffRecordType.Bof && record.Offset != _worksheetStartOffset) {
+                    SkipNestedChartSubstream(record, ref _position);
+                    continue;
+                }
 
                 if (!TryGetCellBounds(record, out int row, out int firstColumn, out _)) continue;
                 if (row < currentRow) continue;
@@ -304,6 +312,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     continue;
                 }
                 if (type == (ushort)BiffRecordType.Eof) break;
+                if (type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(new RecordSlice(type, recordOffset, payloadOffset, length), ref _position);
+                    continue;
+                }
 
                 if (!IsCellRecordType(type)) continue;
                 StoreBufferedCellRecord(
@@ -359,9 +371,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             bufferedWorksheetEndOffset = -1;
             headerValues = null;
 
-            while (TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
+            while (offset < _worksheetLimitOffset && TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
                 if (checkCancellation) {
                     CheckCancellation();
+                }
+                if (record.PayloadOffset + record.Length > _worksheetLimitOffset) {
+                    throw new InvalidDataException("An XLS worksheet record extends beyond its substream boundary.");
                 }
                 if (!sawBof) {
                     if (record.Type != (ushort)BiffRecordType.Bof || record.Length < 4) {
@@ -387,6 +402,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     sawEof = true;
                     bufferedWorksheetEndOffset = record.Offset;
                     break;
+                }
+                if (record.Type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(record, ref offset);
+                    continue;
                 }
                 if (!TryGetCellBounds(record, out int row, out int recordFirstColumn, out int recordLastColumn)) {
                     continue;

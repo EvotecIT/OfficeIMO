@@ -63,9 +63,9 @@ namespace OfficeIMO.Tests {
                 AssertNumericCell(dateRow2);
                 AssertRoundTripNumericText(new DateTime(2024, 1, 1).ToOADate(), dateRow2.CellValue!.Text);
 
-                var amountRow3 = GetCell("B3");
-                Assert.Equal(CellValues.String, amountRow3.DataType!.Value);
-                Assert.True(string.IsNullOrEmpty(amountRow3.CellValue?.Text));
+                var amountRow3 = cells.SingleOrDefault(cell => cell.CellReference == "B3");
+                Assert.Null(amountRow3?.DataType);
+                Assert.Null(amountRow3?.CellValue);
 
                 var dateRow3 = GetCell("C3");
                 AssertNumericCell(dateRow3);
@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
                 AssertNumericCell(amountRow4);
                 Assert.Equal(5.75.ToString(CultureInfo.InvariantCulture), amountRow4.CellValue!.Text);
 
-                var dateRow4 = GetCell("C4");
-                Assert.Equal(CellValues.String, dateRow4.DataType!.Value);
-                Assert.True(string.IsNullOrEmpty(dateRow4.CellValue?.Text));
+                var dateRow4 = cells.SingleOrDefault(cell => cell.CellReference == "C4");
+                Assert.Null(dateRow4?.DataType);
+                Assert.Null(dateRow4?.CellValue);
             }
 
             File.Delete(filePath);

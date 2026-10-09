@@ -1,0 +1,24 @@
+{
+  "task": "OfficeIMO final tabular evidence publication",
+  "updatedUtc": "2026-10-08T22:07:41.7154907Z",
+  "taskRoot": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane",
+  "outputRoot": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-deliverable",
+  "logicalBytesRemoved": 101336660,
+  "removedPath": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\extract-report-20261008",
+  "reason": "Task-created archive extraction duplicate, all1230 content hashes and lengths verified, no reparse points/Git metadata; verified absent after simple native PowerShell removal",
+  "retained": [
+    {
+      "path": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-deliverable",
+      "reason": "Copy-ready dated report, authoritative native tables, complete case/identity manifests and bounded archive/extraction proof; coordinator applies to comparison layer"
+    },
+    {
+      "path": "D:\\Dev\\Scratch\\officeimo-excelreader-benchmark-lane\\publication-preparation",
+      "bytes": 17580695,
+      "files": 113,
+      "reason": "Immutable original five drafts and completed qualification/history preparation"
+    }
+  ],
+  "nativeOriginalsRetained": true,
+  "bulkyFixtureBinaryCopiesCreated": 0,
+  "externalPublications": 0
+}

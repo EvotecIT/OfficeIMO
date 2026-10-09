@@ -16,13 +16,15 @@ namespace OfficeIMO.Core.Internal {
             private const int DirectoryEntrySize = 128;
             private const int MiniStreamCutoff = 4096;
             private const uint FreeSect = 0xffffffff;
+            private const uint NoStream = 0xffffffff;
             private const uint EndOfChain = 0xfffffffe;
             private const uint FatSect = 0xfffffffd;
             private const uint DifSect = 0xfffffffc;
 
             public static byte[] Write(Dictionary<string, byte[]> streams) {
                 var streamInfos = streams
-                    .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                    .OrderBy(kvp => kvp.Key.Length)
+                    .ThenBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
                     .Select(kvp => new StreamInfo(kvp.Key, kvp.Value))
                     .ToList();
 
@@ -193,16 +195,22 @@ namespace OfficeIMO.Core.Internal {
 
             private static byte[] BuildDirectory(List<StreamInfo> streams, int miniStreamSize, int miniStreamStart) {
                 using var output = new MemoryStream();
-                WriteDirectoryEntry(output, "Root Entry", 5, EndOfChain, EndOfChain, streams.Count > 0 ? 1u : EndOfChain, miniStreamSize > 0 ? (uint)miniStreamStart : EndOfChain, (ulong)miniStreamSize);
+                WriteDirectoryEntry(output, "Root Entry", 5, NoStream, NoStream, streams.Count > 0 ? 1u : NoStream, miniStreamSize > 0 ? (uint)miniStreamStart : EndOfChain, (ulong)miniStreamSize);
                 for (int i = 0; i < streams.Count; i++) {
-                    uint left = EndOfChain;
-                    uint right = i + 1 < streams.Count ? (uint)(i + 2) : EndOfChain;
-                    WriteDirectoryEntry(output, streams[i].Name, 2, left, right, EndOfChain, streams[i].StartSector, (ulong)streams[i].Data.Length);
+                    uint left = NoStream;
+                    uint right = i + 1 < streams.Count ? (uint)(i + 2) : NoStream;
+                    WriteDirectoryEntry(output, streams[i].Name, 2, left, right, NoStream, streams[i].StartSector, (ulong)streams[i].Data.Length);
                 }
 
                 int remainder = (int)(output.Length % SectorSize);
                 if (remainder != 0) {
-                    output.Write(new byte[SectorSize - remainder], 0, SectorSize - remainder);
+                    byte[] unused = new byte[SectorSize - remainder];
+                    for (int offset = 0; offset < unused.Length; offset += DirectoryEntrySize) {
+                        WriteUInt32(unused, offset + 68, NoStream);
+                        WriteUInt32(unused, offset + 72, NoStream);
+                        WriteUInt32(unused, offset + 76, NoStream);
+                    }
+                    output.Write(unused, 0, unused.Length);
                 }
 
                 return output.ToArray();
