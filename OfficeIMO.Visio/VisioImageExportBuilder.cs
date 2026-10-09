@@ -11,6 +11,9 @@ public sealed class VisioPageImageExportBuilder : OfficeImageExportBuilder<Visio
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioPageImageExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
 
+    /// <summary>Selects visible, printable, or all layer members for the preview.</summary>
+    public VisioPageImageExportBuilder LayerMode(VisioLayerRenderMode mode) { Options.LayerMode = mode; return this; }
+
     /// <summary>Includes or excludes built-in stencil artwork.</summary>
     public VisioPageImageExportBuilder IncludeStencilArtwork(bool include = true) { Options.RenderStencilArtwork = include; return this; }
 
@@ -41,6 +44,9 @@ public sealed class VisioDocumentImageExportBuilder : OfficeImageExportBuilder<V
 
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioDocumentImageExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
+
+    /// <summary>Selects visible, printable, or all layer members for the preview.</summary>
+    public VisioDocumentImageExportBuilder LayerMode(VisioLayerRenderMode mode) { Options.LayerMode = mode; return this; }
 
     /// <summary>Includes or excludes built-in stencil artwork.</summary>
     public VisioDocumentImageExportBuilder IncludeStencilArtwork(bool include = true) { Options.RenderStencilArtwork = include; return this; }
@@ -89,6 +95,9 @@ public sealed class VisioDocumentImageBatchExportBuilder : OfficeImageExportBatc
 
     /// <summary>Includes or excludes shape and connector text.</summary>
     public VisioDocumentImageBatchExportBuilder IncludeText(bool include = true) { Options.RenderText = include; return this; }
+
+    /// <summary>Selects visible, printable, or all layer members for the preview.</summary>
+    public VisioDocumentImageBatchExportBuilder LayerMode(VisioLayerRenderMode mode) { Options.LayerMode = mode; return this; }
 
     /// <summary>Includes or excludes built-in stencil artwork.</summary>
     public VisioDocumentImageBatchExportBuilder IncludeStencilArtwork(bool include = true) { Options.RenderStencilArtwork = include; return this; }

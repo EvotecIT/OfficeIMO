@@ -2,6 +2,18 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Workflows;
 
+// Carries an owning converter's evidence across the runner's structured failure boundary.
+internal sealed class WorkflowConversionFailureException : InvalidOperationException {
+    internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence, bool diagnosticsAdded = false)
+        : base(cause.Message, cause) {
+        Evidence = evidence;
+        DiagnosticsAdded = diagnosticsAdded;
+    }
+
+    internal OfficeWorkflowConversionEvidence Evidence { get; }
+    internal bool DiagnosticsAdded { get; }
+}
+
 /// <summary>Converts a captured input into a bounded output stream. Streams remain owned by the runner.</summary>
 /// <remarks>The delegate must honor cancellation and leave both streams open. Publication and output reopen validation belong to the runner.</remarks>
 public delegate OfficeWorkflowConversionEvidence OfficeWorkflowConverter(
@@ -76,6 +88,11 @@ public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
         ArgumentNullException.ThrowIfNull(report);
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten([report]);
         Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts ?? new Dictionary<string, string>(), StringComparer.Ordinal));
+    }
+
+    internal OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+        FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
+        Facts = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(facts, StringComparer.Ordinal));
     }
 
     /// <inheritdoc />

@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 internal sealed partial class ContentStreamBuilder {
     private double _textA = 1, _textB, _textC, _textD = 1, _textE, _textF, _lineE, _lineF;
     private double _textScale = 1, _textLeading, _textWordSpacing, _textCharacterSpacing;
-    private const double SyntheticObliqueShear = 1D / 3D;
+    // Shared with drawing ink measurement so clip bounds enclose the painted text matrix.
+    internal const double SyntheticObliqueShear = 1D / 3D;
     private bool _syntheticOblique, _hasTextMatrix;
     private bool _isolatedText;
     private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique)> _textStates = new();

@@ -15,10 +15,15 @@ namespace OfficeIMO.Visio {
             double maxWidth,
             double maxHeight,
             double rotateRadians,
-            bool drawLabelBackground) {
+            bool drawLabelBackground,
+            VisioRichTextProjection? richText = null) {
+            if (richText != null) {
+                DrawRichText(canvas, richText, centerX, centerY, style, maxWidth, maxHeight, rotateRadians, drawLabelBackground);
+                return;
+            }
             text = ResolveRasterDisplayText(text, style);
             double pointSize = style?.Size ?? defaultSize;
-            double pixelHeight = Math.Max(canvas.Supersampling * 7D, pointSize * canvas.Scale / 72D);
+            double pixelHeight = Math.Max(canvas.Supersampling * 7D, pointSize * canvas.Projection.PhysicalDensity / 72D);
             Color color = style?.Color ?? Color.FromRgb(17, 24, 39);
             string fontFamily = string.IsNullOrWhiteSpace(style?.FontFamily)
                 ? "Aptos, Calibri, Arial, sans-serif"

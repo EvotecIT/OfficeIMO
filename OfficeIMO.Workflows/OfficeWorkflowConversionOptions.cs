@@ -5,6 +5,8 @@ using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.OpenDocument.Odg.Pdf;
+using OfficeIMO.Visio.Pdf;
 using OfficeIMO.Xps;
 using System.Text.Json.Serialization;
 
@@ -27,6 +29,12 @@ public sealed class OfficeWorkflowConversionOptions {
     public MarkdownToPdfOptions? Markdown { get; set; }
     /// <summary>Existing RTF renderer settings.</summary>
     public RtfToPdfOptions? Rtf { get; set; }
+    /// <summary>Draw page projection and PDF settings for ODG/FODG input.</summary>
+    public OdgToPdfOptions? Draw { get; set; }
+    /// <summary>Cached diagram-page projection and PDF settings for VSDX, VDX and VTX input. Explicit settings require DiagramPages mode.</summary>
+    public VisioToPdfOptions? Visio { get; set; }
+    /// <summary>Rejects source or PDF-stage conversion losses for diagram-to-PDF routes before publication.</summary>
+    public bool RequireNoLoss { get; set; }
     /// <summary>Native XPS/OpenXPS semantic preservation and PDF output settings.</summary>
     public XpsToPdfOptions? Xps { get; set; }
     /// <summary>Literal-text settings, valid only for the TXT-to-PDF route.</summary>
@@ -58,6 +66,13 @@ public sealed class OfficeWorkflowConversionOptions {
         copy.Html = Html?.ClonePdf();
         copy.Markdown = Markdown?.Clone();
         copy.Rtf = Rtf?.Clone();
+        copy.Draw = Draw?.Clone();
+        if (Visio != null) copy.Visio = new VisioToPdfOptions {
+            Mode = Visio.Mode, SourceName = Visio.SourceName,
+            DrawingOptions = Visio.DrawingOptions?.Clone(), PdfOptions = Visio.PdfOptions?.Clone(),
+            // Semantic settings are rejected by workflow validation; preserve them for that check.
+            VisioOptions = Visio.VisioOptions, ProjectionOptions = Visio.ProjectionOptions
+        };
         copy.Xps = Xps?.Clone();
         return copy;
     }
@@ -80,6 +95,9 @@ public sealed class OfficeWorkflowConversionOptions {
         if (routeId != "html-pdf") copy.Html = null;
         if (routeId != "markdown-pdf") copy.Markdown = null;
         if (routeId != "rtf-pdf") copy.Rtf = null;
+        if (routeId != "odg-pdf") copy.Draw = null;
+        if (routeId != "visio-pdf") copy.Visio = null;
+        if (routeId is not "odg-pdf" and not "visio-pdf") copy.RequireNoLoss = false;
         if (routeId != "xps-pdf") copy.Xps = null;
         if (routeId != "txt-pdf") copy.PlainText = null;
         if (routeId != "doc-pdf") copy.LegacyDocLossPolicy = OfficeConversionLossPolicy.Block;
@@ -100,10 +118,16 @@ public sealed class OfficeWorkflowConversionOptions {
         if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
             (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
             (copy.Html != null && route.Id != "html-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
-            (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Xps != null && route.Id != "xps-pdf"))
+            (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Draw != null && route.Id != "odg-pdf") ||
+            (copy.Visio != null && route.Id != "visio-pdf") || (copy.Xps != null && route.Id != "xps-pdf"))
             throw new ArgumentException("Renderer settings must match the selected conversion route.");
+        if (copy.Visio != null && (copy.Visio.Mode != VisioPdfProjectionMode.DiagramPages ||
+            copy.Visio.VisioOptions != null || copy.Visio.ProjectionOptions != null))
+            throw new ArgumentException("Visio workflow conversion requires DiagramPages settings.");
         if (copy.Html?.ResourceResolver != null)
             throw new ArgumentException("Workflow HTML resources use the scoped source resolver. Use the native HTML adapter for runtime custom resolvers.");
+        if (copy.RequireNoLoss && route.Id is not "odg-pdf" and not "visio-pdf")
+            throw new ArgumentException("Lossless diagram acceptance requires a diagram-to-PDF route.");
         if (copy.PlainText != null && route.Id != "txt-pdf") throw new ArgumentException("Plain-text settings require TXT-to-PDF conversion.");
         if (copy.LegacyDocLossPolicy is not OfficeConversionLossPolicy.Block and not OfficeConversionLossPolicy.Allow ||
             (route.Id != "doc-pdf" && copy.LegacyDocLossPolicy != OfficeConversionLossPolicy.Block))
@@ -131,7 +155,7 @@ public sealed class OfficeWorkflowConversionOptions {
     }
 
     internal PdfOptions? GetOutputPdfOptions() => Word?.PdfOptions ?? Excel?.PdfOptions ?? PowerPoint?.PdfOptions
-        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? Rtf?.PdfOptions ?? PlainText?.PdfOptions ?? Xps?.PdfOptions;
+        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? Rtf?.PdfOptions ?? Draw?.PdfOptions ?? Visio?.PdfOptions ?? PlainText?.PdfOptions ?? Xps?.PdfOptions;
 
     internal PdfReadOptions? CreateReadOptions() => string.IsNullOrWhiteSpace(PageRanges) ? null
         : new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) };

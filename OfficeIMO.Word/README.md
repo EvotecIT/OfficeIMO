@@ -458,8 +458,37 @@ content binding with CMS signature, caller-controlled certificate-chain,
 revocation, and RFC 3161 timestamp policy. Set
 `ValidateWithWindowsSipWhenAvailable` only when a registered Microsoft Office
 SIP should provide an additional differential check. Microsoft Office, SignTool,
-and `offclearsig.exe` are not runtime dependencies. OfficeIMO does not execute
-VBA or edit VBA source modules.
+and `offclearsig.exe` are not runtime dependencies. OfficeIMO does not execute VBA.
+
+### VBA source editing
+
+`ReadVbaProject()` returns a detached [native VBA model](../OfficeIMO.Core/README.md#native-vba-projects),
+or `null` when the document has no project. Apply edits explicitly:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("automation.docm");
+OfficeVbaProject project = document.ReadVbaProject()!;
+project.SetModuleSource("Helpers",
+    "Public Function Value() As Long\r\nValue = 73\r\nEnd Function\r\n");
+document.SetVbaProject(project);
+document.Save("updated.docm");
+```
+
+To create a project without a seed file, use `OfficeVbaProject.Create()`, add
+standard/class modules, and pass it to `SetVbaProject`. Word supplies the required
+`ThisDocument` identity and supplementary VBA data when absent. Existing
+supplementary data and opaque designer content are preserved. Document classes
+from another Office host are rejected. Source editing adds no runtime dependency.
+
+Changes to a signed VBA project require
+`new OfficeVbaWriteOptions { AllowSignatureRemoval = true }`; unchanged projects
+retain signatures. Re-sign after editing. `Macros` reports logical directory
+names for valid projects, and `RemoveMacro` uses the shared native editor for
+standard/class modules. Host document/designer removal and protected-project
+mutation are rejected.
 
 ### Content controls
 

@@ -43,25 +43,38 @@ internal static class PdfTextString {
         return PdfDocEncoding.Decode(bytes, cancellationToken);
     }
 
-    public static byte[] Encode(string value) {
+    public static byte[] Encode(string value, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(value)) {
             return Array.Empty<byte>();
         }
 
-        if (PdfDocEncoding.CanEncode(value)) {
-            return PdfDocEncoding.Encode(value);
+        if (CanEncodeAsAscii(value, cancellationToken)) {
+            return PdfEncoding.Latin1GetBytesCancellable(value, cancellationToken);
         }
 
         var result = new byte[2 + (value.Length * 2)];
         result[0] = 0xFE;
         result[1] = 0xFF;
         for (int i = 0; i < value.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char ch = value[i];
             result[2 + (i * 2)] = (byte)(ch >> 8);
             result[3 + (i * 2)] = (byte)(ch & 0xFF);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
+    }
+
+    /// <summary>Uses compact bytes only where ASCII and PDFDocEncoding agree; other semantic text uses BOM-prefixed UTF-16BE.</summary>
+    internal static bool CanEncodeAsAscii(string value, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        for (int i = 0; i < value.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[i] < ' ' || value[i] > '~') return false;
+        }
+        return true;
     }
 
     public static string DecodeHex(string raw) {

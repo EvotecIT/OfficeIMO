@@ -64,6 +64,7 @@
     "OfficeIMO.MarkdownRenderer.IntelligenceX": "3.4.X",
     "OfficeIMO.MarkdownRenderer.Wpf": "3.4.X",
     "OfficeIMO.OpenDocument": "3.4.X",
+    "OfficeIMO.OpenDocument.Odg.Pdf": "3.4.X",
     "OfficeIMO.OpenDocument.Odp.Pdf": "3.4.X",
     "OfficeIMO.OpenDocument.Ods.Pdf": "3.4.X",
     "OfficeIMO.OpenDocument.Odt.Pdf": "3.4.X",

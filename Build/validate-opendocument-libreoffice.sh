@@ -34,10 +34,10 @@ while IFS= read -r -d '' source_path; do
   }
   unzip -tq "$output_path" >/dev/null
   output_count=$((output_count + 1))
-done < <(find "$artifact_dir" -type f \( -name '*.odt' -o -name '*.ods' -o -name '*.odp' \) -print0)
+done < <(find "$artifact_dir" -type f \( -name '*.odt' -o -name '*.ods' -o -name '*.odp' -o -name '*.odg' \) -print0)
 
 test "$source_count" -gt 0 || {
-  echo "No ODT, ODS, or ODP packages were found in '$artifact_dir'."
+  echo "No ODT, ODS, ODP, or ODG packages were found in '$artifact_dir'."
   exit 1
 }
 test "$source_count" -eq "$output_count"

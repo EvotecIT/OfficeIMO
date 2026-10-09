@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.NotNull(loaded.Pages[0].FindShapeById("api-copy-2"));
             Assert.NotNull(loaded.Pages[0].FindShapeById("db-copy"));
-            Assert.Contains(loaded.Pages[0].Connectors, current => current.Label == "SQL" && current.From.Id == "api-copy-2" && current.To.Id == "db-copy");
+            Assert.Contains(loaded.Pages[0].Connectors, current => current.Label == "SQL" && current.From?.Id == "api-copy-2" && current.To?.Id == "db-copy");
         }
 
         [Fact]
@@ -239,13 +239,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Yes", page.FindShapeById("api-copy")!.GetShapeDataValue("Copied"));
             Assert.Equal("API Copy", page.FindShapeById("api-copy")!.Text);
             Assert.Equal("Database Copy", page.FindShapeById("db-copy")!.Text);
-            Assert.Contains(page.Connectors, connector => connector.Label == "SQL" && connector.From.Id == "api-copy" && connector.To.Id == "db-copy");
-            Assert.Contains(page.Connectors, connector => connector.Label == "copied route" && connector.From.Id == "api-copy" && connector.To.Id == "db-copy");
+            Assert.Contains(page.Connectors, connector => connector.Label == "SQL" && connector.From?.Id == "api-copy" && connector.To?.Id == "db-copy");
+            Assert.Contains(page.Connectors, connector => connector.Label == "copied route" && connector.From?.Id == "api-copy" && connector.To?.Id == "db-copy");
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioPage loadedPage = Assert.Single(loaded.Pages);
             Assert.Equal("Yes", loadedPage.FindShapeById("api-copy")!.GetShapeDataValue("Copied"));
-            Assert.Contains(loadedPage.Connectors, connector => connector.Label == "copied route" && connector.From.Id == "api-copy" && connector.To.Id == "db-copy");
+            Assert.Contains(loadedPage.Connectors, connector => connector.Label == "copied route" && connector.From?.Id == "api-copy" && connector.To?.Id == "db-copy");
         }
 
         [Fact]

@@ -250,7 +250,11 @@ broader scripts or reproducible font selection.
 
 Drawing text preserves numeric font descriptors when the matching faces are registered in
 `PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
-font program. Drawing strokes support native linear and radial gradient shading through their
+font program. Foreground text and inherited underline/strikethrough paint use `OfficeColor.A`;
+an explicit decoration color uses its own alpha. Foreground transparency preserves logical text,
+placement and run backgrounds. Fully transparent glyphs remain searchable in the PDF.
+
+Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
@@ -1158,12 +1162,26 @@ bounded by `MaxFormResourceTraversals`.
 For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
 was not declared and retains an explicit or inherited authored `Normal` value.
 
-Named composite font encodings such as `UniJIS-UCS2-H` require a usable `ToUnicode`
-map covering the shown character codes for text extraction and redaction search.
-If shown text lacks that mapping,
+The predefined horizontal composite encodings `UniJIS-UCS2-H`, `UniGB-UCS2-H`,
+`UniCNS-UCS2-H` and `UniKS-UCS2-H` use bundled Adobe character maps for text
+extraction and redaction search when the font has no `ToUnicode` map. The font's
+Adobe character collection must match the encoding. Widths are read by the mapped
+CID, so precise removal preserves neighboring text positions. Mapping data is
+loaded locally and lazily; no external executable or download is required. See
+[third-party notices](THIRD-PARTY-NOTICES.md) for source and license information.
+
+Managed previews of unembedded Adobe CJK faces use installed script-capable
+substitutes when available. No replacement fonts are bundled. Rendering retains
+the font-substitution diagnostic: readable text does not establish identical
+outlines, regional glyph forms or appearance. Supply matching fonts during
+`ToDrawing()` projection when a controlled rendering profile is required.
+
+An explicit `ToUnicode` map takes precedence and must cover every shown code;
+an incomplete advertised map is refused. Other named encodings, including vertical
+and half-width variants, require a usable `ToUnicode` map. If shown text lacks a supported mapping,
 extraction throws `NotSupportedException` and redaction planning reports an error
 instead of interpreting the character codes as WinAnsi text. Supply a PDF with
-an explicit Unicode map before using those text operations. Logical extraction
+a supported encoding or an explicit Unicode map before using those text operations. Logical extraction
 still uses explicit `ActualText` and excludes artifacts by default. Redaction
 review requires mappings for painted text even under `ActualText` or artifacts.
 Area-based redaction and image removal also reject a blocked inspection plan,
@@ -2403,6 +2421,7 @@ The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-s
 
 - `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
 - Source-format adapters map their document models onto the neutral `OfficeDocumentModel`; PDF projection remains owned by this package.
+- Neutral-model raster assets retain their aspect ratio and scale down to the configured page content area. Source diagnostics keep their severity and an explicit `lossKind` attribute (`None`, `Approximation`, `Omission` or `Failure`) in the PDF report; absent or invalid categories use the severity default, and errors remain failures.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 
 ## Repository validation

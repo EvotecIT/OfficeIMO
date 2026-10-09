@@ -1,4 +1,5 @@
 using System;
+using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
@@ -11,8 +12,13 @@ namespace OfficeIMO.Visio {
         private OfficeTextDecorationStyle? _strikethroughStyle;
         private VisioTextCapitalization? _capitalization;
         private OfficeTextBaseline? _baseline;
+        private string? _fontFamily;
         /// <summary>Font family name, such as Aptos or Calibri.</summary>
-        public string? FontFamily { get; set; }
+        public string? FontFamily {
+            get => _fontFamily;
+            set { _fontFamily = value; FontFamilyAssigned = true; }
+        }
+        internal bool FontFamilyAssigned { get; set; }
 
         /// <summary>Text color.</summary>
         public Color? Color { get; set; }
@@ -120,11 +126,27 @@ namespace OfficeIMO.Visio {
         /// <summary>Text block rotation angle in radians.</summary>
         public double? TextAngle { get; set; }
 
-        /// <summary>Text block background color.</summary>
-        public Color? BackgroundColor { get; set; }
+        private Color? _backgroundColor;
+        private double? _backgroundTransparency;
 
-        /// <summary>Text block background transparency, using Visio's 0-100 scale.</summary>
-        public double? BackgroundTransparency { get; set; }
+        /// <summary>Text block background color. A color with zero alpha explicitly disables the background.</summary>
+        public Color? BackgroundColor {
+            get => _backgroundColor;
+            set { _backgroundColor = value; NativeBackgroundColorCell = null; BackgroundColorAssigned = true; }
+        }
+
+        /// <summary>Text block background transparency as a percentage from 0 (opaque) to 100 (transparent).</summary>
+        public double? BackgroundTransparency {
+            get => _backgroundTransparency;
+            set { _backgroundTransparency = value; NativeBackgroundTransparencyCell = null; BackgroundTransparencyAssigned = true; }
+        }
+
+        // Explicit assignments, including the same value, replace native formulas and errors.
+        // Loader initialization and detached cloning restore source cells after assigning values.
+        internal XElement? NativeBackgroundColorCell { get; set; }
+        internal XElement? NativeBackgroundTransparencyCell { get; set; }
+        internal bool BackgroundColorAssigned { get; set; }
+        internal bool BackgroundTransparencyAssigned { get; set; }
 
         internal int? FontFaceId { get; set; }
 
@@ -156,8 +178,50 @@ namespace OfficeIMO.Visio {
                 TextAngle = TextAngle,
                 BackgroundColor = BackgroundColor,
                 BackgroundTransparency = BackgroundTransparency,
-                FontFaceId = FontFaceId
+                FontFaceId = FontFaceId,
+                FontFamilyAssigned = FontFamilyAssigned,
+                NativeBackgroundColorCell = NativeBackgroundColorCell == null ? null : new XElement(NativeBackgroundColorCell),
+                NativeBackgroundTransparencyCell = NativeBackgroundTransparencyCell == null ? null : new XElement(NativeBackgroundTransparencyCell),
+                BackgroundColorAssigned = BackgroundColorAssigned,
+                BackgroundTransparencyAssigned = BackgroundTransparencyAssigned
             };
+        }
+
+        /// <summary>Fills unspecified properties from a detached master style.</summary>
+        internal void InheritUnsetFrom(VisioTextStyle source, bool inheritCharacter = true, bool inheritParagraph = true) {
+            if (inheritCharacter) {
+                _fontFamily ??= source.FontFamily;
+                Color ??= source.Color;
+                Size ??= source.Size;
+                Bold ??= source.Bold;
+                Italic ??= source.Italic;
+                UnderlineStyle ??= source.UnderlineStyle;
+                StrikethroughStyle ??= source.StrikethroughStyle;
+                SmallCaps ??= source.SmallCaps;
+                Capitalization ??= source.Capitalization;
+                Baseline ??= source.Baseline;
+                FontFaceId ??= source.FontFaceId;
+            }
+            if (inheritParagraph) HorizontalAlignment ??= source.HorizontalAlignment;
+            VerticalAlignment ??= source.VerticalAlignment;
+            LeftMargin ??= source.LeftMargin;
+            RightMargin ??= source.RightMargin;
+            TopMargin ??= source.TopMargin;
+            BottomMargin ??= source.BottomMargin;
+            TextPinX ??= source.TextPinX;
+            TextPinY ??= source.TextPinY;
+            TextWidth ??= source.TextWidth;
+            TextHeight ??= source.TextHeight;
+            TextLocPinX ??= source.TextLocPinX;
+            TextLocPinY ??= source.TextLocPinY;
+            TextAngle ??= source.TextAngle;
+            _backgroundColor ??= source.BackgroundColor;
+            _backgroundTransparency ??= source.BackgroundTransparency;
+        }
+
+        internal void ScaleTextBlock(double x, double y) {
+            TextPinX *= x; TextPinY *= y; TextWidth *= x; TextHeight *= y;
+            TextLocPinX *= x; TextLocPinY *= y;
         }
 
         private static void ValidateNativeDecoration(OfficeTextDecorationStyle? style, string propertyName) {

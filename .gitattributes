@@ -150,6 +150,15 @@ OfficeIMO.TestAssets/OcrQuality/*.json -text
 # bytes and original whitespace across checkout platforms.
 OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
 
+# Legacy Visio producer inputs are hash-bound evidence, including line endings.
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vdx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vsx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vtx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*LICENSE.txt -text -whitespace
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.xml -text -whitespace
+OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodg -text
+OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodp -text
+
 # Captured benchmark packets retain exact member bytes inside verified archives.
 Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
 Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
@@ -157,3 +166,7 @@ Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff
 
 # Preserve the independent composite-font refusal fixture across checkout platforms.
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -text -diff
+
+# Predefined-font fixtures and pinned Adobe resources are byte-level evidence.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -diff
+OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace

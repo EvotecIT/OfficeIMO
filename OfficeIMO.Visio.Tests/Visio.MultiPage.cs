@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("C1", reloadedConnector.Id);
                 Assert.Equal(ConnectorKind.RightAngle, reloadedConnector.Kind);
                 Assert.Equal("Connector 1", reloadedConnector.Label);
-                Assert.Equal("1", reloadedConnector.From.Id);
-                Assert.Equal("2", reloadedConnector.To.Id);
+                Assert.Equal("1", reloadedConnector.From?.Id);
+                Assert.Equal("2", reloadedConnector.To?.Id);
 
                 VisioPage reloadedSecondPage = reloaded.Pages[1];
                 Assert.Equal(0.75, reloadedSecondPage.ViewScale, 5);

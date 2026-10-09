@@ -35,6 +35,12 @@ public sealed partial class OfficeRasterCanvas {
             if (TryGetResolvedColorTextContours(text!, font, 0D, origin, size, null, null, OfficeColor.Black, out List<OfficeColorGlyphContours> layers)) {
                 foreach (OfficeColorGlyphContours layer in layers) Include(layer.Contours);
             }
+        } else {
+            var bounds = MeasureStrokeTextBounds(text!, 0D, -size * .84D, size,
+                (style & OfficeFontStyle.Bold) != 0, (style & OfficeFontStyle.Italic) != 0);
+            if (bounds.HasInk) {
+                top = Math.Min(top, bounds.Top); bottom = Math.Max(bottom, bounds.Bottom);
+            }
         }
         return Store();
 

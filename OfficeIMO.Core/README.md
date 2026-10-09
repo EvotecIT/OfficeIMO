@@ -17,6 +17,80 @@ For bounded image sequences, format discovery, resize planning, shared text opti
 dotnet add package OfficeIMO.Core
 ```
 
+## Native VBA projects
+
+`OfficeVbaProject` in the `OfficeIMO` namespace reads and writes the MS-OVBA
+compound project used by Office documents. It uses the existing managed compound
+storage and signature-binding infrastructure. Source editing requires no Python,
+Office installation, COM automation, or additional runtime package.
+
+```csharp
+using OfficeIMO;
+
+var project = OfficeVbaProject.Create("Automation");
+project.AddModule("Helpers",
+    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
+project.AddRegisteredReference("Office",
+    new Guid("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52"), 2, 8);
+File.WriteAllBytes("vbaProject.bin", project.Write().GetBytes());
+
+var loaded = OfficeVbaProject.Load(File.ReadAllBytes("vbaProject.bin"));
+loaded.ExportSources("automation-source"); // Destination must be new.
+// Edit the numbered .bas/.cls files; vba-project.xml retains logical identities.
+loaded.ImportSources("automation-source");
+loaded.RenameModule("Helpers", "Tools");
+File.WriteAllBytes("edited-project.bin", loaded.Write().GetBytes());
+```
+
+`Modules` exposes logical names, persistence kinds, and source including persisted
+`Attribute` lines. `SetModuleSource`, `AddModule`, `RenameModule`, `DeleteModule`,
+`AddRegisteredReference`, and `RemoveReference` operate on a detached model.
+Module and reference lookup is case-insensitive. Renaming and reference removal
+do not rewrite statements that use the old names or types; callers update those
+statements explicitly. Adding a reference writes its identity without installing
+or resolving a type library.
+
+| Operation | Contract |
+| --- | --- |
+| Read | Bounded directory, reference, standard/class, document, and designer-source decoding. Unsupported directory records fail explicitly. |
+| Create | Template-free project, standard modules, ordinary classes, and explicit registered references. Document adapters own host identities. |
+| Edit | Replace source; rename/delete standard and ordinary class modules. Document/designer source retains its existing identity and opaque design. |
+| Preserve | An unchanged write returns the exact original bytes. Edits retain unrelated streams, storage metadata, reference records, and untouched token-compressed module stream bytes. Existing raw source chunks are normalized without changing the source or its stream prefix. |
+| Import/export | UTF-8 `.bas`/`.cls` source with an XML manifest. Import validates the entire batch before changing the model; omitted modules remain present. |
+| Protection | Protected projects are readable and support unchanged writes. Mutation is rejected; protection is never bypassed or removed. |
+| Signatures | The containing document adapter rejects a changed signed project unless `AllowSignatureRemoval` is explicit. Re-sign after editing, before signing the whole package. |
+
+Modules with source changes are rewritten without compiled prefixes. Writes clear
+project compilation state and `__SRP_` caches so Office rebuilds them. Source uses
+CRLF and the project's code page with strict character checks. Windows-1250 and
+Windows-1252 are built in; other code pages must be available in the application's runtime or its
+already registered encoding provider. The writer uses token-compressed chunks
+and adapts their length for incompressible source, preserving the source bytes
+without inserting padding. Reading existing raw chunks and unchanged-byte
+preservation remain supported.
+
+Input/output compound bytes and aggregate expanded directory/source each default
+to 64 MiB. Configure `OfficeVbaReadOptions` and `OfficeVbaWriteOptions` for a
+different bounded workload. New module identifiers are ASCII VBA identifiers up
+to 31 characters; existing Unicode module identities remain readable.
+
+Document adapters retain a bounded recovery snapshot of the existing VBA payload
+and child parts while applying an update. `OfficeVbaWriteOptions.MaximumRecoveryBytes`
+controls that separate limit, which defaults to 64 MiB; `MaximumProjectBytes`
+continues to bound the new output, so a smaller replacement can replace a larger
+existing project. Media data-part references in that VBA subgraph are rejected
+before mutation. Recoverable storage failures restore the prior payload and
+child parts, including Word's final named-module removal. If the backing storage
+also prevents restoration or cleanup, the adapter throws
+an `AggregateException` containing both failures; discard that document instance.
+
+Word, Excel, and PowerPoint expose `ReadVbaProject()` and
+`SetVbaProject(OfficeVbaProject, ...)` over this same model. See their package
+READMEs for document usage. This API edits source and preserves existing form
+designers; it does not compile or execute VBA, create form designers, or provide
+an Access database carrier.
+
 ## Mathematical drawing
 
 `OfficeMathRenderer` renders the owned equation model using caller-supplied fonts.
@@ -112,6 +186,11 @@ drawing.AddText("Monthly report", 12, 12, 216, 56,
 Face matching follows CSS ordering within the requested family. Missing faces use the available
 matching face and existing fallback policy. Simulated bold paints its combined outline once,
 preserving the requested opacity.
+
+Raster font selection checks glyph coverage before using its default font. When no selected font
+can paint the text, the managed stroke fallback keeps basic text and common list markers visible:
+`•`, `◆`, `■`, `□`, `❖`, `➢` and `✔`. Other unsupported characters use a placeholder. Register a font
+with the required glyphs when the document needs broader script coverage or exact typography.
 
 ## Prepare scanned images
 
@@ -884,6 +963,88 @@ if (report.HasIssues) {
     }
 }
 ```
+
+### Render paragraphs with independent formatting
+
+`AddRichTextParagraphs` keeps paragraph alignment, margins, indentation and line spacing in one text frame. SVG, raster and PDF measure the paragraphs at render time with the drawing's configured fonts.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var drawing = new OfficeDrawing(300, 160).AddRichTextParagraphs(new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Invoice ", 16, OfficeColor.Black),
+        new OfficeRichTextRun("approved", 16, OfficeColor.Parse("#167A36"), bold: true)
+    }, OfficeTextAlignment.Center, lineHeight: 24),
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Ready for payment", 12, OfficeColor.Black)
+    }, margins: new OfficeTextPadding(8, 6, 8, 0), lineHeightFactor: 1.4)
+}, 10, 10, 280, 140, padding: new OfficeTextPadding(6, 6, 6, 6));
+```
+
+Absolute `lineHeight` applies to every visual line; `lineHeightFactor` scales each line's text extent. Choose one or leave both unset for the shared default. Hard line breaks continue the paragraph's indentation; a new paragraph restarts it. Adjacent vertical margins are added. The method snapshots caller collections and rejects inputs beyond 100,000 UTF-16 characters or 4,096 runs, counting paragraph separators. Layout omits paragraphs whose horizontal margins consume the frame, then continues with later paragraphs. Lines beyond the frame height are omitted; condensed line spacing can let glyph ink extend outside the line box. It does not infer native document auto-sizing.
+
+The overload with `OfficeTextAreaAlignment` positions the whole paragraph block independently of paragraph alignment. `FullWidth` preserves the default frame width. `Left`, `Center` and `Right` use the widest measured line, including paragraph margins, and anchor that intrinsic area inside the padded frame. Shorter lines keep their paragraph alignment within it. Wrapping is measured once at the authored frame width; anchoring retains those line breaks. With `wrapText: false`, an oversized centered or right area can extend beyond either side of the frame.
+
+```csharp
+var anchored = new OfficeDrawing(300, 100).AddRichTextParagraphs(new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Longer heading\nShort", 12, OfficeColor.Black)
+    }, OfficeTextAlignment.Right)
+}, 10, 10, 280, 80, OfficeTextAreaAlignment.Center, wrapText: false,
+    padding: new OfficeTextPadding(12, 4, 9, 4));
+```
+
+Use `OfficeTextParagraphLabel` to style and position a list label independently of its body:
+
+```csharp
+var label = OfficeTextParagraphLabel.InBox(
+    new OfficeRichTextRun("1.", 12, OfficeColor.Black),
+    position: 0, minimumWidth: 24, alignment: OfficeTextAlignment.Right,
+    minimumDistance: 4);
+var item = new OfficeRichTextParagraph(
+    new[] { new OfficeRichTextRun("A body that can wrap", 12, OfficeColor.Black) },
+    label, margins: new OfficeTextPadding(24, 0, 0, 0));
+```
+
+`InBox` expands a minimum-width label box when necessary. `AtPosition` aligns at an anchor and follows the label with a declared text position, one measured space, or no separator. Labels appear once on the first line, including items with empty body text, and contribute to automatic line height and shared character/run limits. Wrapped body text uses the paragraph's continuation indentation. A label that exceeds the content rectangle's right edge or right margin is omitted as a whole and marks the layout as clipped; logical text and body insets remain intact. Positions are measured from the text frame's content rectangle before render scaling; native tab-stop selection is the caller's responsibility.
+
+Use `WithTabStops` to position tabbed fields with the same measurements in SVG, raster and PDF:
+
+```csharp
+var prices = new OfficeRichTextParagraph(new[] {
+    new OfficeRichTextRun("Item\t123.45", 12, OfficeColor.Black)
+}).WithTabStops(new OfficeTextTabStops(new[] {
+    new OfficeTextTabStop(180, OfficeTextTabAlignment.Character, ".").WithLeader(".")
+}, defaultInterval: 36));
+```
+
+Stops support left, center, right and character alignment. Field measurement extends to the next tab or hard break across styled runs; an absent delimiter aligns the field's end. An aligned field that would overlap preceding content consumes its stop with zero advance. Default stops repeat on the interval grid beyond the last explicit stop. Positions are relative to the paragraph's inner left margin; `origin` changes that reference point. Leading and consecutive tabs advance normally, and hard breaks reset the line position.
+
+Tabbed lines keep their fixed grid by default. Use `WithParagraphAlignment()` on the tab settings to move each tabbed line as a whole with the paragraph's center or right alignment; `AlignWithParagraph` reports this choice. Field alignment within the line is preserved, and tabbed lines are never justified. Pass `false` to restore the fixed grid. Plain lines retain paragraph alignment with either setting.
+
+Soft wraps use continuation indentation; a tab beyond the frame marks layout as clipped and retains the following text without an unbounded gap. Paragraphs without tab settings retain legacy space expansion. Settings snapshot at most 256 unique stops and survive scaling, scene cloning and tinting; logical text retains the tab characters.
+
+`WithLeader` returns an independent stop that repeats one non-control Unicode scalar in its measured gap. Pass `null` to remove it; whitespace leaves a blank gap. Leader paint uses the tab run's font and formatting, measures the complete repeated run, and retains the following field's anchor. Scaling and frame fitting retain the leader. A text-frame layout generates at most 100,000 UTF-16 characters of leader paint across all paragraphs; exhausting that budget marks clipping while retaining spacing and body text. Frame fitting does not shrink body text merely because leader paint reaches this limit. The logical model contains the original tabs; SVG, raster and PDF paint the generated glyphs.
+
+Use `WithLeaderStyle` for separate textual formatting:
+
+```csharp
+var styledStop = new OfficeTextTabStop(180).WithLeader(".").WithLeaderStyle(
+    new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5, color: OfficeColor.Blue, italic: true));
+```
+
+Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSizePoints` overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
+
+Use `WithLineLeader` for vector paint that adds no characters to extracted text:
+
+```csharp
+var ruledStop = new OfficeTextTabStop(180).WithLineLeader(
+    new OfficeTextTabLineLeader(OfficeTextTabLineLeaderStyle.DotDash,
+        doubleLine: true, widthPoints: 0.75, color: OfficeColor.Blue));
+```
+
+Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `widthPoints` follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
 
 Affine effect groups contribute their transformed child bounds, not the dimensions
 of their temporary rendering buffers. Empty groups do not create overflow findings.

@@ -6,6 +6,7 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeRichTextSegment {
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }
+    internal OfficeTextTabLineLeaderPaint? TabLinePaint { get; set; }
     internal OfficeFontStyle FontStyle => (Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
         | (Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
 

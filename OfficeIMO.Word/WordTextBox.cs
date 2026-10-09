@@ -412,32 +412,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Width of the text box
+        /// Gets or sets the width of an anchored or inline text box in EMUs.
         /// </summary>
         public Int64 Width {
-            get => _anchorExtent?.Cx?.Value ?? 0L;
+            get => (_anchorExtent ?? _inline?.Extent)?.Cx?.Value ?? 0L;
             set {
-                var anchor = _anchor;
-                if (anchor == null) {
-                    return;
-                }
-
-                EnsureAnchorExtent(anchor, cx: value, cy: 0L).Cx = value;
+                Extent? extent = GetOrCreateDrawingExtent();
+                if (extent != null) extent.Cx = value;
             }
         }
 
         /// <summary>
-        /// Height of the text box
+        /// Gets or sets the height of an anchored or inline text box in EMUs.
         /// </summary>
         public Int64 Height {
-            get => _anchorExtent?.Cy?.Value ?? 0L;
+            get => (_anchorExtent ?? _inline?.Extent)?.Cy?.Value ?? 0L;
             set {
-                var anchor = _anchor;
-                if (anchor == null) {
-                    return;
-                }
-
-                EnsureAnchorExtent(anchor, cx: 0L, cy: value).Cy = value;
+                Extent? extent = GetOrCreateDrawingExtent();
+                if (extent != null) extent.Cy = value;
             }
         }
 
@@ -647,6 +639,12 @@ namespace OfficeIMO.Word {
                 return _vmlTextBox.Descendants<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>().FirstOrDefault();
             }
 
+            return null;
+        }
+
+        private Extent? GetOrCreateDrawingExtent() {
+            if (_anchor is Anchor anchor) return EnsureAnchorExtent(anchor, 0L, 0L);
+            if (_inline is Inline inline) return inline.Extent ??= new Extent { Cx = 0L, Cy = 0L };
             return null;
         }
 

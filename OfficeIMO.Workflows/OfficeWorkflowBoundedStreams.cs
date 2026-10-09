@@ -87,7 +87,7 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
         if (value > _maximumBytes) throw CreateLimitException();
     }
 
-    private InvalidOperationException CreateLimitException() => new(
+    private InvalidOperationException CreateLimitException() => OfficeWorkflowOutputLimitErrors.Create(
         $"Generated artifact exceeded the configured {_maximumBytes:N0}-byte output limit while it was being serialized.");
 }
 
@@ -189,6 +189,6 @@ internal sealed class OfficeWorkflowBoundedWriteStream : Stream {
         if (value > _maximumBytes) throw CreateLimitException();
     }
 
-    private InvalidOperationException CreateLimitException() => new(
+    private InvalidOperationException CreateLimitException() => OfficeWorkflowOutputLimitErrors.Create(
         $"Generated artifact exceeded the configured {_maximumBytes:N0}-byte output limit while it was being serialized.");
 }
