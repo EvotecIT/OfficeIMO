@@ -16,6 +16,10 @@ namespace OfficeIMO.Excel {
             ClearTabularReplacementValueMetadata(cell);
             cell.CellValue = null;
             cell.DataType = null;
+            // An imported missing value still occupies its tabular coordinate.
+            // The explicit default format keeps native blank-cell writers from
+            // treating it as an incidental unstyled stub left by ClearRange.
+            cell.StyleIndex ??= 0U;
         }
 
         /// <summary>
