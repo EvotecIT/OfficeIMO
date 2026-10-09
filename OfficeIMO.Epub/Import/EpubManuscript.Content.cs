@@ -10,7 +10,7 @@ public static partial class EpubManuscript {
     }, StringComparer.OrdinalIgnoreCase);
 
     private static XElement? ConvertElement(IElement source, List<OfficeConversionFidelityDiagnostic> diagnostics,
-        HtmlConversionDocument manuscript, HashSet<string> anchorIds, CancellationToken token) {
+        HtmlConversionDocument manuscript, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         string name = source.LocalName;
         if (name == "input" && string.Equals(source.GetAttribute("type"), "checkbox", StringComparison.OrdinalIgnoreCase) && source.HasAttribute("disabled"))
@@ -53,7 +53,7 @@ public static partial class EpubManuscript {
         foreach (INode node in source.ChildNodes) {
             token.ThrowIfCancellationRequested();
             if (node is IElement child) {
-                XElement? converted = ConvertElement(child, diagnostics, manuscript, anchorIds, token);
+                XElement? converted = ConvertElement(child, diagnostics, manuscript, token);
                 if (converted != null) element.Add(converted);
             } else if (node is IText text) {
                 XmlConvert.VerifyXmlChars(text.Data);
@@ -61,20 +61,6 @@ public static partial class EpubManuscript {
             }
         }
         NormalizeLegacyHtml(element, diagnostics);
-        // HTML 4 named anchors are common in compiled help and older manuals. EPUB
-        // navigation addresses XML IDs; keep both destinations when id and name differ.
-        if (name == "a" && element.Attribute("name") is XAttribute namedAnchor) {
-            string anchor = namedAnchor.Value;
-            namedAnchor.Remove();
-            if (anchor.Length != 0 && (string?)element.Attribute("id") != anchor) {
-                if (!anchorIds.Add(anchor)) {
-                    AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", "A legacy named anchor collides with an existing destination; its alias was omitted.", anchor, OfficeConversionLossKind.Failure);
-                }
-                else if (element.Attribute("id") == null) element.SetAttributeValue("id", anchor);
-                else
-                    element.AddFirst(new XElement(Xhtml + "span", new XAttribute("id", anchor)));
-            }
-        }
         if (name == "img" && element.Attribute("alt") == null) {
             string role = source.GetAttribute("role")?.Trim() ?? string.Empty;
             string accessibleName = HtmlAccessibilitySemantics.GetImageAccessibleName(source);
@@ -84,5 +70,27 @@ public static partial class EpubManuscript {
             else AddDiagnostic(diagnostics, "EPUB_IMPORT_IMAGE_ALT_MISSING", "The source image needs alternative text or an explicit decorative role. Repair the source and import it again.", source.GetAttribute("src"), OfficeConversionLossKind.Failure);
         }
         return element;
+    }
+
+    private static void PreserveLegacyNamedAnchors(XElement body, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        // Reserve only destinations retained in the converted body, including
+        // IDs after named anchors. Omitted controls and head elements cannot collide.
+        var anchorIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement element in body.DescendantsAndSelf()) {
+            token.ThrowIfCancellationRequested();
+            string? id = (string?)element.Attribute("id");
+            if (!string.IsNullOrEmpty(id)) anchorIds.Add(id!);
+        }
+        foreach (XElement element in body.Descendants(Xhtml + "a")) {
+            token.ThrowIfCancellationRequested();
+            if (element.Attribute("name") is not XAttribute namedAnchor) continue;
+            string anchor = namedAnchor.Value;
+            namedAnchor.Remove();
+            if (anchor.Length == 0 || (string?)element.Attribute("id") == anchor) continue;
+            if (!anchorIds.Add(anchor))
+                AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", "A legacy named anchor collides with an existing destination; its alias was omitted.", anchor, OfficeConversionLossKind.Failure);
+            else if (element.Attribute("id") == null) element.SetAttributeValue("id", anchor);
+            else element.AddFirst(new XElement(Xhtml + "span", new XAttribute("id", anchor)));
+        }
     }
 }

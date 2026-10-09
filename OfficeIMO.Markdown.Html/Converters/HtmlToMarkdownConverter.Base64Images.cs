@@ -76,8 +76,13 @@ internal sealed partial class HtmlToMarkdownConverter {
                 stream.Write(bytes, 0, bytes.Length);
                 cancellationToken.ThrowIfCancellationRequested();
                 return candidate;
-            } catch (OperationCanceledException) {
-                if (created) File.Delete(candidate);
+            } catch (OperationCanceledException cancelled) {
+                if (created) {
+                    try { File.Delete(candidate); }
+                    catch (Exception cleanupError) when (cleanupError is IOException || cleanupError is UnauthorizedAccessException) {
+                        throw new OperationCanceledException("HTML conversion was cancelled, and its decoded image could not be removed.", cleanupError, cancelled.CancellationToken);
+                    }
+                }
                 throw;
             } catch (IOException) when (!created && File.Exists(candidate)) {
                 continue;

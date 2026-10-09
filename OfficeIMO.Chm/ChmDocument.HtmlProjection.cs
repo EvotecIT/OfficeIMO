@@ -45,9 +45,9 @@ public sealed partial class ChmDocument {
                 }
                 string? imageMap = element.GetAttribute("usemap");
                 if (imageMap != null && imageMap.StartsWith("#", StringComparison.Ordinal)) element.SetAttribute("usemap", "#" + prefix + "-" + imageMap.Substring(1));
-                RewriteSvgReferences(element, prefix, topic.Path, anchors);
+                RewriteSvgReferences(element, prefix, topic.Path, anchors, configured, ref embeddedBytes, diagnostics, cancellationToken);
                 string? href = element.GetAttribute("href");
-                if (href != null && (element.LocalName == "a" || element.LocalName == "area")) {
+                if (href != null && element.NamespaceUri != "http://www.w3.org/2000/svg" && (element.LocalName == "a" || element.LocalName == "area")) {
                     string? rewritten = RewriteBookLink(href, topic.Path, anchors);
                     if (rewritten != null) element.SetAttribute("href", rewritten);
                     else if (Uri.TryCreate(href, UriKind.Absolute, out Uri? missing) && missing.Scheme == "chm") {
