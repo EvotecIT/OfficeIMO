@@ -992,14 +992,17 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlRenderBoxStyle? parent,
         HtmlRenderBoxStyle style,
         bool includeAttributes) {
-        string cssWidth = computed.GetValue("width");
+        string cssWidth = ResolveTableInternalDimension(computed.GetValue("width"), style);
         IElement dimensionSource = includeAttributes ? ResolveDimensionAttributeSource(element) : element;
         string? attributeWidth = includeAttributes ? dimensionSource.GetAttribute("width") : null;
         style.ExplicitWidth = ReadLength(cssWidth, attributeWidth, reference, fontSize);
         style.ExplicitWidthUsesPercentage = (cssWidth?.IndexOf('%') ?? -1) >= 0
             || (attributeWidth?.IndexOf('%') ?? -1) >= 0;
         double? parentContentHeight = ResolveDefiniteContentHeight(parent);
-        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? dimensionSource.GetAttribute("height") : null, parentContentHeight, fontSize);
+        string cssHeight = ResolveTableInternalDimension(computed.GetValue("height"), style);
+        string? attributeHeight = includeAttributes ? dimensionSource.GetAttribute("height") : null;
+        style.ExplicitHeight = ReadVerticalLength(cssHeight, attributeHeight, parentContentHeight, fontSize);
+        CaptureTablePercentageHeight(cssHeight, attributeHeight, style);
         string cssMinWidth = computed.GetValue("min-width");
         style.MinWidth = ReadLength(cssMinWidth, null, reference, fontSize);
         style.MinWidthWithIndefiniteReference = cssMinWidth.IndexOf('%') >= 0

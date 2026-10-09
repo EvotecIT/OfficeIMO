@@ -216,13 +216,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
+                    bool finishedTableFooter = false;
                     if (repeatTrailing) {
                         AddTranslatedVisuals(visuals, trailingGroup!.Visuals, pageGeometry.Margins.Left, y, block);
                         y += trailingHeight;
-                        if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) blockOffset = trailingGroup.SourceEndsAt;
+                        if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) {
+                            blockOffset = trailingGroup.SourceEndsAt;
+                            finishedTableFooter = true;
+                        }
                     }
 
                     if (blockOffset < block.Height - 0.0001D) {
+                        // A wrapper can contain content after the completed table.
+                        // Let that content use the space after its final footer.
+                        if (finishedTableFooter
+                            && ResolveForcedBreakAt(block.ForcedBreaks, blockOffset) == HtmlPageBreakTarget.None
+                            && string.Equals(ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName), currentPageName, StringComparison.Ordinal)
+                            && y < ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - 0.0001D) continue;
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
                         string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
                         ExtendPagedBodyBackgroundThroughFragmentSlack(block, pageGeometry, visuals, y);

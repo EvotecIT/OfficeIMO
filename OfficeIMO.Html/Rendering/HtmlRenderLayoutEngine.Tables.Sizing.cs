@@ -9,9 +9,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         Math.Max(Math.Max(style.LineHeight, inline.Height) + style.VerticalInsets,
             (style.ExplicitHeight ?? 0D) + (style.BorderBox ? 0D : style.VerticalInsets));
 
-    private static void ApplyTableMinimumHeight(IReadOnlyList<TableRowLayout> rows, HtmlRenderBoxStyle style,
+    private void ApplyTableMinimumHeight(IReadOnlyList<TableRowLayout> rows, HtmlRenderBoxStyle style,
         double spacing) {
         if (rows.Count == 0 || !style.ExplicitHeight.HasValue) return;
+        if (ApplyTablePercentageHeights(rows, style, spacing)) return;
         double naturalHeight = style.VerticalInsets + rows.Sum(row => row.Height) + spacing * (rows.Count + 1);
         double extra = Math.Max(0D, ResolveTableMinimumHeight(style) - naturalHeight) / rows.Count;
         foreach (TableRowLayout row in rows) row.Height += extra;

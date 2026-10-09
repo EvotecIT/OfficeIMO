@@ -138,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             TableFormattingRow row = rows[rowIndex];
             IElement? rowGroupElement = row.GroupElement;
             HtmlRenderBoxStyle? rowGroupStyle = row.GroupStyle;
-            HtmlRenderBoxStyle rowStyle = row.Style;
+            HtmlRenderBoxStyle rowStyle = PrepareTablePercentageHeight(row.Style, style);
             var cellLayouts = new List<TableCellLayout>();
             int column = 0;
             double rowHeight = Math.Max(0D, rowStyle.ExplicitHeight ?? 0D);
@@ -152,6 +152,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, cellOuterWidth);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                if (rowSpan == 1) cellStyle = PrepareTablePercentageHeight(cellStyle, style);
+                else if (style.ExplicitHeight.HasValue && cellStyle.TablePercentageHeight.Length > 0) {
+                    ReportTablePercentageHeightFallback(cell.Element, cellStyle, "percentage rowspan height");
+                }
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
                 HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, cellStyle, depth + 1, style.BorderCollapse != "collapse");
