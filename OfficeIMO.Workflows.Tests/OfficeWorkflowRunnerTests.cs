@@ -970,6 +970,38 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(sanitization.HealthReport.Verified);
     }
 
+    [Theory]
+    [InlineData("CustomSans", "BT /F1 18 Tf 20 80 Td (Hello) Tj ET")]
+    [InlineData("Helvetica", "q UnknownPaint Q")]
+    public async Task IncompleteRenderingDoesNotReportAConfirmedDifference(string font, string content) {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "incomplete.pdf");
+        string gallery = System.IO.Path.Combine(scope.Path, "incomplete-comparison.html");
+        await File.WriteAllTextAsync(input, string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + " >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }), System.Text.Encoding.ASCII);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = input,
+            ComparisonPath = input,
+            OutputPath = gallery,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.False(result.HealthReport!.Verified);
+        Assert.Equal("0", result.HealthReport.Metrics["differentPages"]);
+        Assert.Equal("1", result.HealthReport.Metrics["incompletePages"]);
+        Assert.Contains("comparison is incomplete", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("1 incomplete page", await File.ReadAllTextAsync(gallery), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task ComparisonAcceptsIndependentPasswordsForEncryptedInputs() {
         using var scope = new TestDirectory();

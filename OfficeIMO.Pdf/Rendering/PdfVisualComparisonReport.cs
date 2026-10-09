@@ -24,6 +24,12 @@ public sealed class PdfVisualComparisonReport {
     /// <summary>True when all compared pages have complete managed renderings that satisfy thresholds and no structural differences remain.</summary>
     public bool IsMatch => StructuralDifferences.Count == 0 && Pages.All(static page => page.IsMatch);
 
+    /// <summary>Pages with complete managed renderings that fail the configured visual thresholds.</summary>
+    public int DifferentPageCount => Pages.Count(static page => !page.IsMatch && !page.HasIncompleteRendering);
+    /// <summary>Pages whose managed rendering is incomplete, so their pixels cannot establish a visual match or difference.</summary>
+    public int IncompletePageCount => Pages.Count(static page => page.HasIncompleteRendering);
+    internal bool HasDifferences => StructuralDifferences.Count > 0 || DifferentPageCount > 0;
+
     /// <summary>Builds a self-contained HTML human-review gallery with expected, actual, and highlighted diff images.</summary>
     public string ToHtmlGallery(string? title = null) =>
         ToHtmlGallery(title, long.MaxValue, CancellationToken.None);
@@ -38,24 +44,30 @@ public sealed class PdfVisualComparisonReport {
         html.Append("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>");
         html.AppendHtmlEncoded(heading);
         html.Append("</title><style>").Append(GalleryStyles).Append("</style></head><body><main>");
-        int differing = Pages.Count(static page => !page.IsMatch);
+        int differing = DifferentPageCount;
+        int incomplete = IncompletePageCount;
+        int matching = Pages.Count(static page => page.IsMatch);
         html.Append("<header><p class=\"eyebrow\">PDF visual comparison</p><h1>");
         html.AppendHtmlEncoded(heading);
-        html.Append("</h1><p class=\"summary\"><span class=\"badge ").Append(IsMatch ? "ok\">Match" : "bad\">Different").Append("</span>")
+        html.Append("</h1><p class=\"summary\"><span class=\"badge ").Append(IsMatch ? "ok\">Match" : HasDifferences ? "bad\">Different" : "warn\">Incomplete").Append("</span>")
             .Append(Pages.Count.ToString(CultureInfo.InvariantCulture)).Append(Pages.Count == 1 ? " page compared" : " pages compared")
-            .Append(" · ").Append((Pages.Count - differing).ToString(CultureInfo.InvariantCulture))
-            .Append(Pages.Count - differing == 1 ? " visual match · " : " visual matches · ")
+            .Append(" · ").Append(matching.ToString(CultureInfo.InvariantCulture))
+            .Append(matching == 1 ? " visual match · " : " visual matches · ")
             .Append(differing.ToString(CultureInfo.InvariantCulture)).Append(differing == 1 ? " visual difference" : " visual differences");
         if (StructuralDifferences.Count > 0) {
             html.Append(" · ").Append(StructuralDifferences.Count.ToString(CultureInfo.InvariantCulture))
                 .Append(StructuralDifferences.Count == 1 ? " structural difference" : " structural differences");
+        }
+        if (incomplete > 0) {
+            html.Append(" · ").Append(incomplete.ToString(CultureInfo.InvariantCulture))
+                .Append(incomplete == 1 ? " incomplete page" : " incomplete pages");
         }
         html.Append("</p>");
         if (differing > 0) {
             html.Append("<p class=\"jump\">Go to ");
             int listed = 0;
             foreach (PdfVisualPageComparison page in Pages) {
-                if (page.IsMatch) continue;
+                if (page.IsMatch || page.HasIncompleteRendering) continue;
                 if (listed == 20) { html.Append(" …"); break; }
                 cancellationToken.ThrowIfCancellationRequested();
                 string number = page.PageNumber.ToString(CultureInfo.InvariantCulture);
@@ -76,13 +88,12 @@ public sealed class PdfVisualComparisonReport {
         }
         foreach (PdfVisualPageComparison page in Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            html.Append("<section id=\"page-").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("\" class=\"page").Append(page.IsMatch ? "\">" : " differs\">").Append("<div class=\"page-head\"><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
+            html.Append("<section id=\"page-").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("\" class=\"page").Append(page.IsMatch ? "\">" : page.HasIncompleteRendering ? " incomplete\">" : " differs\">").Append("<div class=\"page-head\"><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
             if (page.ActualPageNumber != page.PageNumber) html.Append(" vs. ").Append(page.ActualPageNumber.ToString(CultureInfo.InvariantCulture));
-            html.Append("</h2><span class=\"badge ").Append(page.IsMatch ? "ok\">Match" : "bad\">Differs").Append("</span><p>")
+            html.Append("</h2><span class=\"badge ").Append(page.IsMatch ? "ok\">Match" : page.HasIncompleteRendering ? "warn\">Incomplete" : "bad\">Differs").Append("</span><p>")
                 .Append(page.DifferentPixels.ToString("N0", CultureInfo.InvariantCulture)).Append(" changed pixels · ")
                 .Append((page.DifferenceRatio * 100D).ToString("0.###", CultureInfo.InvariantCulture)).Append("% of the page</p></div>");
-            if (PdfRenderCapabilities.HasIncompleteVisualProjection(page.ExpectedCapabilityDiagnostics) ||
-                PdfRenderCapabilities.HasIncompleteVisualProjection(page.ActualCapabilityDiagnostics)) {
+            if (page.HasIncompleteRendering) {
                 html.Append("<p class=\"note\">Managed rendering is incomplete; these pixel images alone cannot prove a match.</p>");
             }
             html.Append("<div class=\"grid\">");
@@ -106,9 +117,11 @@ public sealed class PdfVisualComparisonReport {
         ".summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;color:var(--muted)}" +
         ".badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}" +
         ".badge.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}" +
+        ".badge.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}" +
         ".alert,.page{margin:0 0 14px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--card)}" +
         ".alert{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}.alert ul{margin:8px 0 0;padding-left:20px}" +
         ".page.differs{border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}" +
+        ".page.incomplete{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}" +
         ".page-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:12px}.page-head p{flex-basis:100%;margin:0;font-size:13px;color:var(--muted)}" +
         ".note{margin:0 0 12px;font-size:13px;color:var(--warn)}" +
         ".jump{margin:10px 0 0;font-size:14px;color:var(--muted)}.jump a{margin-right:4px;padding:2px 9px;border-radius:999px;color:var(--bad);text-decoration:none;font-weight:600;background:color-mix(in srgb,var(--bad) 12%,transparent)}" +
@@ -209,6 +222,9 @@ public sealed class PdfVisualComparisonReport {
 
 /// <summary>One rendered page comparison and its human-review artifacts.</summary>
 public sealed class PdfVisualPageComparison {
+    internal bool HasIncompleteRendering =>
+        PdfRenderCapabilities.HasIncompleteVisualProjection(ExpectedCapabilityDiagnostics) ||
+        PdfRenderCapabilities.HasIncompleteVisualProjection(ActualCapabilityDiagnostics);
     private readonly System.Collections.BitArray _changedPixels;
     private readonly byte[] _expectedPng;
     private readonly byte[] _actualPng;

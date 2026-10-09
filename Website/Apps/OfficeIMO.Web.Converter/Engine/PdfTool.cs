@@ -166,9 +166,14 @@ internal static class PdfTool {
         string structural = details.TryGetValue("structuralDifferences", out string? differences) ? differences : "0";
         facts.Add(new ToolFact("Pages compared", pages));
         facts.Add(new ToolFact("Structure differences", structural, structural == "0" ? null : ToolTone.Warn));
+        bool hasDifferences = details.TryGetValue("hasDifferences", out string? hasChanges) && bool.TryParse(hasChanges, out bool changed) && changed;
+        string incomplete = details.TryGetValue("incompletePages", out string? incompleteCount) ? incompleteCount : "0";
+        if (incomplete != "0") facts.Add(new ToolFact("Incomplete pages", incomplete, ToolTone.Warn));
         return match
             ? new ToolVerdict(ToolTone.Good, "The PDFs look the same", $"All {pages} compared pages match.")
-            : new ToolVerdict(ToolTone.Warn, "The PDFs are different", "The comparison below highlights what changed on each page.");
+            : hasDifferences
+                ? new ToolVerdict(ToolTone.Warn, "The PDFs are different", incomplete == "0" ? "The comparison below highlights what changed on each page." : "Differences were found, and some pages could not be rendered completely. Review the gallery and its limitations.")
+                : new ToolVerdict(ToolTone.Warn, "The comparison is incomplete", "Some content could not be rendered faithfully. The gallery cannot establish whether the PDFs look the same.");
     }
 
     private static string PagesSuffix(int? pages) => pages is int count ? " · " + ToolFormat.Count(count, "page") : string.Empty;

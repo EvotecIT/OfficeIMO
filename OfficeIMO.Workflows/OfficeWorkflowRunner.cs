@@ -261,12 +261,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             actualReadOptions: request.ComparisonPdfLoadOptions);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["pagesCompared"] = comparison.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["differentPages"] = comparison.Pages.Count(page => !page.IsMatch).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["differentPages"] = comparison.DifferentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["incompletePages"] = comparison.IncompletePageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["structuralDifferences"] = comparison.StructuralDifferences.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
         string summary = comparison.IsMatch
             ? "The PDFs match within the managed structural and visual thresholds."
-            : "The PDFs differ; review the structural findings and visual comparison gallery.";
+            : comparison.HasDifferences
+                ? "The PDFs differ; review the structural findings and visual comparison gallery."
+                : "The comparison is incomplete; review the rendering limitations in the gallery.";
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Compare,
             before,

@@ -6,6 +6,30 @@ namespace OfficeIMO.Web.Converter.Tests;
 
 /// <summary>Runs the engine's tool handlers in-process, the same way engine-worker.js calls them in the browser.</summary>
 public sealed class EngineToolTests {
+    [Theory]
+    [InlineData("BT /F1 18 Tf 20 80 Td (Hello) Tj ET")]
+    [InlineData("q UnknownPaint Q")]
+    public void IncompletePdfComparisonDoesNotClaimIdenticalFilesDiffer(string content) {
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /CustomSans /Encoding /WinAnsiEncoding >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
+        var session = new ToolSession();
+        session.Stage(0, pdf, "expected.pdf");
+        session.Stage(1, pdf, "actual.pdf");
+
+        ToolResultDocument result = PdfTool.Run(session, "compare", "run", Options());
+
+        Assert.True(result.Ok);
+        Assert.Equal("The comparison is incomplete", result.Verdict.Title);
+        Assert.Contains(result.Facts, fact => fact.Label == "Incomplete pages" && fact.Value == "1");
+        Assert.Contains("1 incomplete page", System.Text.Encoding.UTF8.GetString(session.Artifact(0)), StringComparison.Ordinal);
+    }
+
     private static byte[] Sample(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", name));
 
     private static ToolOptions Options(params (string Key, string Value)[] values) =>
