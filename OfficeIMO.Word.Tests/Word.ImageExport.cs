@@ -4090,6 +4090,8 @@ namespace OfficeIMO.Tests {
                 int rowNumber = rowIndex + 1;
                 table.Rows[rowIndex].Height = 480;
                 table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Column table row " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+                // Keep the fixture on one line when the host substitutes the default font.
+                table.Rows[rowIndex].Cells[0].Paragraphs[0].SetFontSize(8);
             }
 
             var options = new WordImageExportOptions { BackgroundColor = OfficeColor.White };
@@ -5005,8 +5007,8 @@ namespace OfficeIMO.Tests {
             section.PageSettings.Width = (UInt32Value)5000U;
             section.PageSettings.Height = (UInt32Value)3000U;
             section.SetMargins(WordMargin.Narrow);
-            document.AddParagraph("Lead paragraph before partial table one");
-            document.AddParagraph("Lead paragraph before partial table two");
+            document.AddParagraph("Lead paragraph before partial table one").SetFontSize(8);
+            document.AddParagraph("Lead paragraph before partial table two").SetFontSize(8);
             WordTable table = document.AddTable(2, 1);
             table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 3600;
@@ -5018,6 +5020,9 @@ namespace OfficeIMO.Tests {
             table.Rows[1]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Partial table row 01";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Partial table row 02";
+            // The pagination boundary is the fixed row height, not platform-dependent text wrapping.
+            table.Rows[0].Cells[0].Paragraphs[0].SetFontSize(8);
+            table.Rows[1].Cells[0].Paragraphs[0].SetFontSize(8);
 
             WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
