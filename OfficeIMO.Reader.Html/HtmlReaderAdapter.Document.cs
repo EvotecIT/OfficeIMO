@@ -212,16 +212,16 @@ internal static partial class HtmlReaderAdapter {
             if (asset != null) {
                 assetIndex++;
                 projection.Assets.Add(asset);
-                projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
+                projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, htmlOptions, asset.SourceObjectId));
             } else if (!HasHtmlImageSourceCandidate(node)
                 && !string.IsNullOrWhiteSpace(node.AccessibleName)) {
                 string anchor = "html-image-visual-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
-                projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "image", anchor), null, null));
+                projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "image", anchor), null, null, htmlOptions));
             }
         } else if (node.Kind == HtmlLogicalNodeKind.Media &&
             !string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
             string anchor = "html-media-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
-            projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null));
+            projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null, htmlOptions));
         }
         if (node.Kind == HtmlLogicalNodeKind.FormControl &&
             !string.Equals(node.Name, "option", StringComparison.OrdinalIgnoreCase)) {
@@ -382,18 +382,19 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static string ResolveHtmlImageSource(HtmlLogicalNode node, HtmlToMarkdownOptions options) {
+        HtmlUrlPolicy policy = options.ResourceUrlPolicy ?? options.UrlPolicy;
         foreach (string attribute in new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
             if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, options.UrlPolicy);
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, policy);
             if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
         }
         foreach (string attribute in new[] { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" }) {
             if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
-            string resolved = HtmlImageSourceResolver.ResolveUrlFromSrcSet(value, options.BaseUri, options.UrlPolicy);
+            string resolved = HtmlImageSourceResolver.ResolveUrlFromSrcSet(value, options.BaseUri, policy);
             if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
         }
         return node.Attributes.TryGetValue("src", out string? source)
-            ? HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.UrlPolicy)
+            ? HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, policy)
             : string.Empty;
     }
 
@@ -415,12 +416,15 @@ internal static partial class HtmlReaderAdapter {
         ReaderLocation location,
         string? payloadHash,
         string? mediaType,
+        HtmlToMarkdownOptions options,
         string? sourceOverride = null) {
-        node.Attributes.TryGetValue("src", out string? source);
+        string source = node.Attributes.TryGetValue("src", out string? candidate)
+            ? HtmlUrlPolicyEvaluator.ResolveUrl(candidate, options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy)
+            : string.Empty;
         HtmlLogicalNode? mediaSource = null;
         if (string.IsNullOrWhiteSpace(source) && node.Kind == HtmlLogicalNodeKind.Media) {
-            mediaSource = FindHtmlMediaSource(node);
-            mediaSource?.Attributes.TryGetValue("src", out source);
+            mediaSource = FindHtmlMediaSource(node, options);
+            if (mediaSource != null) source = HtmlUrlPolicyEvaluator.ResolveUrl(mediaSource.Attributes["src"], options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy);
         }
         if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride;
         node.Attributes.TryGetValue("alt", out string? altText);
@@ -431,13 +435,13 @@ internal static partial class HtmlReaderAdapter {
             mediaType = sourceType;
         }
         string content = altText ?? title ?? GetHtmlNodeText(node);
-        if (string.IsNullOrWhiteSpace(content)) content = source ?? node.Name;
+        if (string.IsNullOrWhiteSpace(content)) content = string.IsNullOrWhiteSpace(source) ? node.Name : source;
         return new ReaderVisual {
             Kind = node.Kind == HtmlLogicalNodeKind.Image ? "image" : "media",
             Language = node.Name,
             Content = content,
             PayloadHash = payloadHash,
-            SourceName = source,
+            SourceName = string.IsNullOrWhiteSpace(source) ? null : source,
             MimeType = mediaType,
             PlacementCount = 1,
             Location = new ReaderLocation {
@@ -449,15 +453,15 @@ internal static partial class HtmlReaderAdapter {
         };
     }
 
-    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node) {
+    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node, HtmlToMarkdownOptions options) {
         foreach (HtmlLogicalNode child in node.Children) {
             if (child.Kind == HtmlLogicalNodeKind.Media
                 && string.Equals(child.Name, "source", StringComparison.OrdinalIgnoreCase)
                 && child.Attributes.TryGetValue("src", out string? source)
-                && !string.IsNullOrWhiteSpace(source)) {
+                && !string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy))) {
                 return child;
             }
-            HtmlLogicalNode? descendant = FindHtmlMediaSource(child);
+            HtmlLogicalNode? descendant = FindHtmlMediaSource(child, options);
             if (descendant != null) return descendant;
         }
         return null;

@@ -33,6 +33,8 @@ public sealed partial class ChmDocument {
             foreach (HtmlElement element in normalized.QuerySelectorAll("*")) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++nodes > configured.MaxHtmlNodes) throw ChmBinary.Error("CONVERSION_LIMIT", "The combined book exceeds MaxHtmlNodes.");
+                if (element.LocalName == "style" || (element.LocalName == "link" &&
+                    element.GetAttribute("rel")?.IndexOf("stylesheet", StringComparison.OrdinalIgnoreCase) >= 0)) styles = true;
                 foreach (string attribute in new[] { "id", "name" }) {
                     if (attribute == "name" && element.LocalName != "a" && element.LocalName != "map") continue;
                     string? attributeValue = element.GetAttribute(attribute);
@@ -81,20 +83,7 @@ public sealed partial class ChmDocument {
                 container.AppendChild(copy);
             }
             // Topic headings own book/chapter boundaries. Demote authored headings one level.
-            bool demotedHeadings = false;
-            foreach (HtmlElement headingElement in section.QuerySelectorAll("h1,h2,h3,h4,h5")) {
-                if (ReferenceEquals(headingElement, heading)) continue;
-                cancellationToken.ThrowIfCancellationRequested();
-                demotedHeadings = true;
-                HtmlElement replacement = output.CreateElement("h" + (headingElement.LocalName[1] - '0' + 1).ToString(CultureInfo.InvariantCulture));
-                foreach (HtmlAttribute attribute in headingElement.Attributes) replacement.SetAttribute(attribute.Name, attribute.Value);
-                foreach (HtmlNode child in headingElement.ChildNodes.ToArray()) replacement.AppendChild(child);
-                HtmlNode parent = headingElement.Parent!;
-                HtmlNode[] siblings = parent.ChildNodes.ToArray();
-                foreach (HtmlNode sibling in siblings) sibling.Remove();
-                foreach (HtmlNode sibling in siblings) parent.AppendChild(ReferenceEquals(sibling, headingElement) ? replacement : sibling);
-            }
-            if (demotedHeadings) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_HEADING_LEVELS",
+            if (DemoteTopicHeadings(output, section, heading, cancellationToken)) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_HEADING_LEVELS",
                 "Authored headings are demoted one level beneath the topic heading. Heading element selectors in retained CSS are not rewritten.",
                 OfficeConversionLossKind.Approximation, "OfficeIMO.Chm", topic.Path));
             output.Body!.AppendChild(section);
@@ -114,6 +103,38 @@ public sealed partial class ChmDocument {
         EnforceOutput(Encoding.UTF8.GetByteCount(value.SourceHtml), configured);
         cancellationToken.ThrowIfCancellationRequested();
         return new ChmConversionResult<HtmlConversionDocument>(value, new ChmConversionReport(topics.Select(item => item.Path), diagnostics));
+    }
+
+    private static bool DemoteTopicHeadings(HtmlDocument output, HtmlElement section, HtmlElement topicHeading, CancellationToken token) {
+        var parents = section.QuerySelectorAll("h1,h2,h3,h4,h5")
+            .Where(element => element.NamespaceUri == "http://www.w3.org/1999/xhtml" && !ReferenceEquals(element, topicHeading))
+            .GroupBy(element => element.Parent!).ToArray();
+        // Descendant parents are processed before ancestors so nested content is retained.
+        foreach (var group in parents.Reverse()) {
+            token.ThrowIfCancellationRequested();
+            var replacements = new Dictionary<HtmlNode, HtmlElement>();
+            foreach (HtmlElement authored in group) {
+                token.ThrowIfCancellationRequested();
+                HtmlElement replacement = output.CreateElement("h" + (authored.LocalName[1] - '0' + 1).ToString(CultureInfo.InvariantCulture));
+                foreach (HtmlAttribute attribute in authored.Attributes) replacement.SetAttribute(attribute);
+                HtmlNode[] children = authored.ChildNodes.ToArray();
+                authored.TextContent = string.Empty;
+                foreach (HtmlNode child in children) {
+                    token.ThrowIfCancellationRequested();
+                    replacement.AppendChild(child);
+                }
+                replacements.Add(authored, replacement);
+            }
+            HtmlNode parent = group.Key;
+            HtmlNode[] siblings = parent.ChildNodes.ToArray();
+            // Clearing detaches in one pass; per-heading Remove would repeatedly shift the list.
+            parent.TextContent = string.Empty;
+            foreach (HtmlNode sibling in siblings) {
+                token.ThrowIfCancellationRequested();
+                parent.AppendChild(replacements.TryGetValue(sibling, out HtmlElement? replacement) ? replacement : sibling);
+            }
+        }
+        return parents.Length != 0;
     }
 
     private string? RewriteBookLink(string href, string sourcePath, Dictionary<string, string> anchors) {

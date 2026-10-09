@@ -45,7 +45,10 @@ public static class ChmEpubConverterExtensions {
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
         var targets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var anchorTargets = new Dictionary<string, string>(StringComparer.Ordinal);
-        var paths = projection.Document.QuerySelectorAll("section[data-chm-topic]")
+        // Only direct book sections are generated topic boundaries. Retained authored
+        // sections may use the same annotation and must not supply navigation ownership.
+        var paths = projection.Document.Body!.Children.Where(section => section.NamespaceUri == "http://www.w3.org/1999/xhtml" &&
+                section.LocalName == "section" && section.HasAttribute("data-chm-topic"))
             .ToDictionary(section => section.GetAttribute("id")!, section => section.GetAttribute("data-chm-topic")!, StringComparer.Ordinal);
         foreach (var item in publication.Manifest.Where(item => item.MediaType == "application/xhtml+xml")) {
             token.ThrowIfCancellationRequested();
