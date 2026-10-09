@@ -18,6 +18,11 @@ string? arrow = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmar
 string? generatedMapping = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkGeneratedMapping").Value;
 BenchmarkInput.WriteDescription();
 
+if (args.Length > 0 && args[0] == "--measure-shared-memory") {
+    await SharedStringMemoryEvidence.RunAsync(args[1..]);
+    return;
+}
+
 if (args is ["--validate-bdn"]) {
     int typeCount = 0, methodCount = 0, caseCount = 0, errorCount = 0;
     foreach (Type type in Assembly.GetExecutingAssembly().GetTypes().Where(type =>

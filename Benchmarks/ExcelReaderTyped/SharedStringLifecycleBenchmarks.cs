@@ -139,7 +139,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _ => throw new ArgumentOutOfRangeException(nameof(_format)),
         };
 
-        private static byte[] Store(byte[] source) {
+        /// <summary>Rewrites every ZIP part without compression, preserving its inflated payload.</summary>
+        internal static byte[] Store(byte[] source) {
             using MemoryStream sourceStream = new MemoryStream(source, writable: false);
             using ZipArchive sourcePackage = new ZipArchive(sourceStream, ZipArchiveMode.Read);
             using MemoryStream output = new MemoryStream();
@@ -153,7 +154,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return output.ToArray();
         }
 
-        private static void ValidateInflatedParts(byte[] deflated, byte[] stored) {
+        /// <summary>Checks both package CRCs and byte-identical inflated parts in a stored variant.</summary>
+        internal static void ValidateInflatedParts(byte[] deflated, byte[] stored) {
             using MemoryStream originalStream = new MemoryStream(deflated, writable: false);
             using MemoryStream storedStream = new MemoryStream(stored, writable: false);
             using ZipArchive originalPackage = new ZipArchive(originalStream, ZipArchiveMode.Read);

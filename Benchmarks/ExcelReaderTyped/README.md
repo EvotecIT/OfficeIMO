@@ -573,6 +573,33 @@ ZIP CRCs, and every workbook field. Initialization policies differ between
 libraries, so first-row results are lifecycle costs. Do not subtract independent
 means and present the result as a measured worksheet-only stage.
 
+`--measure-shared-memory <Stored|Deflated> <Materialized|Utf8>` records GC-retained
+managed bytes and the current process working set before opening, after the first
+header, after the complete scan with the reader alive, and after disposal. It
+defaults to 65,536 data rows; `OFFICEIMO_STRING_BENCHMARK_ROWS` accepts exactly one
+count for this command. Run each storage/text policy in a fresh process:
+
+```powershell
+dotnet build -c Release -p:OfficeIMOBenchmarkNewApis=true ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Stored Materialized
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Stored Utf8
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Deflated Materialized
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Deflated Utf8
+```
+
+The saved-assembly and package selectors also apply. The command generates and
+qualifies the ZIP package before the baseline without opening an OfficeIMO reader.
+It then verifies every header and field, native numeric/date types, raw schema,
+row order/count and single-sheet result before emitting JSON. Utf8 validates each
+borrowed span against owned expected bytes before advancing, without materializing
+text through `GetValue`. Full collections happen only at the four snapshot stages.
+Reports identify source/selected fixture hashes and the loaded OfficeIMO assembly.
+Managed deltas include pool and static-cache retention and validation effects.
+Process working-set values and lifetime peaks include fixture generation, package
+qualification and JIT; they do not isolate a reader peak or report allocation totals.
+Unavailable .NET peaks appear as `null`. On macOS, prefix each fresh `dotnet`
+invocation with `/usr/bin/time -l` to capture the process lifetime maximum RSS.
+
 The upstream `IndexParse_Utf8Parser` and `IndexParse_DigitLoop` methods compare
 standalone integer parsers over pre-extracted SST index buffers. They do not call
 a workbook reader and have no OfficeIMO workbook counterpart.
