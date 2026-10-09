@@ -65,10 +65,10 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     public void Character_ranges_preserve_Unicode_format_resets_and_paragraphs_in_saved_PowerPoint() {
         var document = IWorkKeynoteDocument.Create();
         document.AddSlide().AddRichText(new[] {
-            new IWorkKeynoteTextRun("Bold 😀", "Arial", 32, "003366", bold: true, italic: true,
+            new IWorkTextRunData("Bold 😀", "Arial", 32, "003366", bold: true, italic: true,
                 underline: true, strikethrough: true),
-            new IWorkKeynoteTextRun(" plain", "Arial", 24),
-            new IWorkKeynoteTextRun("\r\nItalic", "Times New Roman", 30, "008000", italic: true)
+            new IWorkTextRunData(" plain", "Arial", 24),
+            new IWorkTextRunData("\r\nItalic", "Times New Roman", 30, "008000", italic: true)
         }, 60, 80, 840, 200);
         byte[] bytes = document.SaveBytes();
         var source = IWorkSourceDocument.Open(new MemoryStream(bytes));
@@ -115,7 +115,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     [Fact]
     public void Added_runs_are_immutable_snapshots_and_empty_ranges_do_not_create_native_offsets() {
         var document = IWorkKeynoteDocument.Create();
-        var input = new List<IWorkKeynoteTextRun> {
+        var input = new List<IWorkTextRunData> {
             new("", "Times New Roman", 80, "FF0000", bold: true), new("visible"), new("")
         };
         IWorkKeynoteTextBox box = document.AddSlide().AddRichText(input, 0, 0, 400, 100);
@@ -123,7 +123,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.Single(box.Runs);
         Assert.Equal("visible", box.Text);
         Assert.Equal("Arial", box.FontName);
-        Assert.Throws<NotSupportedException>(() => ((IList<IWorkKeynoteTextRun>)box.Runs).Clear());
+        Assert.Throws<NotSupportedException>(() => ((IList<IWorkTextRunData>)box.Runs).Clear());
         IWorkTextRun run = Assert.Single(IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes()))
             .ReadKeynote().Slides[0].TextBoxes[0].Content.Paragraphs[0].Runs);
         Assert.Equal("visible", run.Text);
@@ -131,7 +131,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
 
         var blank = IWorkKeynoteDocument.Create();
         IWorkKeynoteTextBox blankBox = blank.AddSlide().AddRichText(new[] {
-            new IWorkKeynoteTextRun("", "Times New Roman", 20), new IWorkKeynoteTextRun("")
+            new IWorkTextRunData("", "Times New Roman", 20), new IWorkTextRunData("")
         }, 0, 0, 400, 100);
         Assert.Single(blankBox.Runs);
         Assert.Equal("Times New Roman", blankBox.FontName);
@@ -149,7 +149,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         var plain = IWorkKeynoteDocument.Create();
         plain.AddSlide().AddText("text", 0, 0, 400, 100);
         var styled = IWorkKeynoteDocument.Create();
-        styled.AddSlide().AddRichText(new[] { new IWorkKeynoteTextRun("text", bold: decoration == "bold",
+        styled.AddSlide().AddRichText(new[] { new IWorkTextRunData("text", bold: decoration == "bold",
             italic: decoration == "italic", underline: decoration == "underline", strikethrough: decoration == "strike") },
             0, 0, 400, 100);
         byte[] plainBytes = plain.SaveBytes(), styledBytes = styled.SaveBytes();
@@ -160,7 +160,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     [Fact]
     public void Character_run_budget_preserves_existing_destinations_before_native_encoding() {
         var document = IWorkKeynoteDocument.Create();
-        document.AddSlide().AddRichText(new[] { new IWorkKeynoteTextRun("one"), new IWorkKeynoteTextRun("two", bold: true) },
+        document.AddSlide().AddRichText(new[] { new IWorkTextRunData("one"), new IWorkTextRunData("two", bold: true) },
             0, 0, 400, 100);
         document.AddSlide().AddText("three", 0, 0, 400, 100);
         var limits = new IWorkKeynoteWriteOptions { MaximumTextRuns = 2 };
@@ -184,9 +184,9 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     public void Invalid_run_collections_fail_without_adding_a_text_box() {
         var slide = IWorkKeynoteDocument.Create().AddSlide();
         Assert.Throws<ArgumentNullException>(() => slide.AddRichText(null!, 0, 0, 400, 100));
-        Assert.Throws<ArgumentException>(() => slide.AddRichText(Array.Empty<IWorkKeynoteTextRun>(), 0, 0, 400, 100));
-        Assert.Throws<ArgumentException>(() => slide.AddRichText(new IWorkKeynoteTextRun[] { null! }, 0, 0, 400, 100));
-        Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddRichText(new[] { new IWorkKeynoteTextRun("text") }, 900, 0, 400, 100));
+        Assert.Throws<ArgumentException>(() => slide.AddRichText(Array.Empty<IWorkTextRunData>(), 0, 0, 400, 100));
+        Assert.Throws<ArgumentException>(() => slide.AddRichText(new IWorkTextRunData[] { null! }, 0, 0, 400, 100));
+        Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddRichText(new[] { new IWorkTextRunData("text") }, 900, 0, 400, 100));
         Assert.Empty(slide.TextBoxes);
     }
 
@@ -202,20 +202,20 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     private static IWorkKeynoteDocument RichExample() {
         var document = IWorkKeynoteDocument.Create();
         document.AddSlide().AddRichText(new[] {
-            new IWorkKeynoteTextRun("Plain ", "Helvetica Neue"),
-            new IWorkKeynoteTextRun("bold", "Helvetica Neue", bold: true),
-            new IWorkKeynoteTextRun(" ", "Helvetica Neue"),
-            new IWorkKeynoteTextRun("italic", "Helvetica Neue", italic: true),
-            new IWorkKeynoteTextRun(" ", "Helvetica Neue"),
-            new IWorkKeynoteTextRun("underlined", "Helvetica Neue", underline: true),
-            new IWorkKeynoteTextRun(".", "Helvetica Neue")
+            new IWorkTextRunData("Plain ", "Helvetica Neue"),
+            new IWorkTextRunData("bold", "Helvetica Neue", bold: true),
+            new IWorkTextRunData(" ", "Helvetica Neue"),
+            new IWorkTextRunData("italic", "Helvetica Neue", italic: true),
+            new IWorkTextRunData(" ", "Helvetica Neue"),
+            new IWorkTextRunData("underlined", "Helvetica Neue", underline: true),
+            new IWorkTextRunData(".", "Helvetica Neue")
         }, 60, 100, 840, 150);
         document.AddSlide("E6F2FF").AddRichText(new[] {
-            new IWorkKeynoteTextRun("Bold 😀", "Arial", 32, "003366", bold: true, italic: true,
+            new IWorkTextRunData("Bold 😀", "Arial", 32, "003366", bold: true, italic: true,
                 underline: true, strikethrough: true),
-            new IWorkKeynoteTextRun(" plain", "Arial", 24),
-            new IWorkKeynoteTextRun("\r\nItalic", "Times New Roman", 30, "008000", italic: true),
-            new IWorkKeynoteTextRun("\nZażółć — café", "Arial", 24, "660066")
+            new IWorkTextRunData(" plain", "Arial", 24),
+            new IWorkTextRunData("\r\nItalic", "Times New Roman", 30, "008000", italic: true),
+            new IWorkTextRunData("\nZażółć — café", "Arial", 24, "660066")
         }, 60, 80, 840, 250);
         document.AddSlide();
         return document;

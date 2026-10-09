@@ -44,7 +44,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             Add(id, 6005, P().UInt(1, catalog.Item2).UInt(2, 1));
             store.Reference(catalog.Item1, id);
         }
-        var model = P().String(1, IWorkKeynoteIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture)).Text)
+        var model = P().String(1, IWorkCreationIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture)).Text)
             .Reference(3, tableStyleId).Message(4, store).UInt(6, (uint)table.RowCount).UInt(7, (uint)table.ColumnCount)
             .String(8, table.Name).UInt(9, 0).UInt(10, 0).UInt(11, 0).Bool(12, false).Bool(13, false)
             .Double(16, table.Geometry.HeightPoints / table.RowCount).Double(17, table.Geometry.WidthPoints / table.ColumnCount)

@@ -1,6 +1,6 @@
 # iWork reader corpus
 
-These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote fixtures qualify the bounded creation model.
+These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote and Pages fixtures qualify their bounded creation models.
 
 | Folder | Upstream | Revision | Producer evidence | License |
 |---|---|---|---|---|
@@ -13,6 +13,18 @@ These package fixtures prove the bounded Pages, Numbers, and Keynote reader agai
 The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-PARTY-NOTICES.md`. Fixture provenance and expected semantic assertions live beside the executable corpus tests in `OfficeIMO.IWork.Tests`.
 
 The parameterized independent-corpus output check converts all 12 fixtures listed by `IWorkCorpusTests.Corpus` to editable DOCX, XLSX or PPTX, saves and reopens the result, and validates the destination Open XML schema. It explicitly accepts partial reconstruction and normalizes worksheet names. This gate catches invalid destination packages; separate semantic tests establish supported content. Passing it does not qualify native application rendering, pagination or complete document fidelity.
+
+## Native Pages body creation
+
+The [Pages creation manifest](native-exports/pages-created-v15.4.json) pins a template-free OfficeIMO body document, its native Pages 15.4 edit/save/close/reopen, and PDF/DOCX exports. `IWorkPagesWritingTests.Example()` reproduces the frozen 83-paragraph input with Arial and Times New Roman, independent character decorations, explicit plain resets, a blank paragraph, Polish text and a non-BMP emoji. The original graph, native-saved edit, all two PDF pages and reference DOCX are newly authored MIT fixtures; no seed archive or standalone font is distributed.
+
+`pages-created-graph-v15.4.json` records pinned-schema independent decoding of all 189 objects and their declared references. It includes the six required empty header/footer storages, even though headers/footers are hidden. Missing these objects can permit initial open but produce an unreadable package after native save. Reproduce the graph with:
+
+```text
+python Build/IWork/verify-pages-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.pages --descriptor <pages-descriptor.pb> --out <graph.json>
+```
+
+The manifest identifies the schema revision, descriptor hash and isolated numbers-parser version. Native Pages/PDF retain the rich styling after the text edit. Apple's DOCX export agrees with the complete authored content and page dimensions/margins but changes selected font runs and bold/italic overrides; native DOCX typography is not qualified as equivalent. Strict OfficeIMO DOCX separately preserves source run properties and includes the empty paragraph projected from the final LF. Other native versions, fonts, scripts, pagination contexts and broader authored objects remain open.
 
 ## Native default paragraph layout
 

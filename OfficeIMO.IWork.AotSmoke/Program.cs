@@ -74,6 +74,7 @@ foreach (var (name, hash) in fixtures) {
 Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
     + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
 NativeKeynoteWriterSmoke.Run();
+NativePagesWriterSmoke.Run();
 
 static void Require(bool condition, string message) {
     if (!condition) throw new InvalidOperationException(message);

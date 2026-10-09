@@ -1,14 +1,14 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>An immutable character run in a newly created native Keynote text box.</summary>
-public sealed class IWorkKeynoteTextRun {
+/// <summary>An immutable character run for template-free native iWork creation.</summary>
+public sealed class IWorkTextRunData {
     /// <summary>Creates a run with one font, size, opaque sRGB color and character decoration.</summary>
     /// <remarks>CR and CRLF normalize to LF. Native font availability and wrapping depend on the application.</remarks>
-    public IWorkKeynoteTextRun(string text, string fontName = "Arial", float fontSizePoints = 32,
+    public IWorkTextRunData(string text, string fontName = "Arial", float fontSizePoints = 32,
         string color = "000000", bool bold = false, bool italic = false, bool underline = false, bool strikethrough = false)
         : this(text, fontName, fontSizePoints, IWorkCreationValidation.ParseColor(color), bold, italic, underline, strikethrough) { }
 
-    internal IWorkKeynoteTextRun(string text, string fontName, float fontSizePoints, IWorkColor color,
+    internal IWorkTextRunData(string text, string fontName, float fontSizePoints, IWorkColor color,
         bool bold = false, bool italic = false, bool underline = false, bool strikethrough = false) {
         Text = IWorkCreationValidation.NormalizeText(text);
         IWorkCreationValidation.ValidateFontName(fontName);

@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Shared native iWork character runs
+
+Replace `IWorkKeynoteTextRun` with `IWorkTextRunData` when calling `AddRichText` or constructing native Keynote text runs. The immutable run contract and defaults are unchanged. The same type supplies runs to `IWorkPagesDocument.AddRichParagraph`; use an explicit 12-point size for ordinary Pages body text because the shared run constructor retains Keynote's 32-point default. `AddParagraph` defaults to 12 points.
+
 ## PowerPoint font resets and iWork table roles
 
 Setting `Bold = false` or `Italic = false` on a PowerPoint run, text box or table cell writes an explicit regular-font override. It overrides inherited formatting after save/reopen; it no longer removes the declaration and exposes a parent's bold or italic setting.

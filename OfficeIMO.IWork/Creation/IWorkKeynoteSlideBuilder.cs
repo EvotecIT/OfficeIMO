@@ -65,7 +65,7 @@ public sealed class IWorkKeynoteSlideBuilder {
     /// <summary>Adds a left-aligned rich-text box with zero padding and immutable character runs.</summary>
     /// <remarks>Runs are copied when added. Empty runs have no visible range and are discarded unless the entire box is blank.
     /// Dimensions are in points and must lie within the canvas. This method does not measure or fit text.</remarks>
-    public IWorkKeynoteTextBox AddRichText(IEnumerable<IWorkKeynoteTextRun> runs, float leftPoints, float topPoints,
+    public IWorkKeynoteTextBox AddRichText(IEnumerable<IWorkTextRunData> runs, float leftPoints, float topPoints,
         float widthPoints, float heightPoints) {
         var box = new IWorkKeynoteTextBox(runs, leftPoints, topPoints, widthPoints, heightPoints);
         return AddBox(box, leftPoints, topPoints, widthPoints, heightPoints);

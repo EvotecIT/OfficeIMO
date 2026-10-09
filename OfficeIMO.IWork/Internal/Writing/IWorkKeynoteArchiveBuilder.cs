@@ -21,7 +21,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         _modelHash = modelHash;
     }
 
-    internal string DocumentIdentifier => IWorkKeynoteIdentity.Create(_modelHash, "document").Text;
+    internal string DocumentIdentifier => IWorkCreationIdentity.Create(_modelHash, "document").Text;
     private IWorkProtoWriter P() => new(_limits.MaximumPackageBytes, _cancellationToken);
     private ulong Allocate() {
         // Apple reserves 71/72 for document/support metadata during unarchiving.
@@ -71,7 +71,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
                 Add(frameId, 2011, Frame(slideId, frameStyleId, storageId, box.Geometry));
                 var characters = new List<(int Offset, ulong Style)> { (0, characterId) };
                 int offset = box.Runs[0].Text.Length;
-                foreach (IWorkKeynoteTextRun run in box.Runs.Skip(1)) {
+                foreach (IWorkTextRunData run in box.Runs.Skip(1)) {
                     ulong runStyle = Allocate();
                     AddCharacterStyle(runStyle, CharacterProperties(run));
                     characters.Add((offset, runStyle));
@@ -109,22 +109,8 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             IWorkSnappy.EncodeIwa(metadataBytes, _limits.MaximumPackageBytes, _cancellationToken));
     }
 
-    private byte[] Archive(IEnumerable<(ulong Id, uint Type, IWorkProtoWriter Message)> records) {
-        var output = P();
-        foreach (var record in records) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            byte[] payload = record.Message.ToArray();
-            var info = P().UInt(1, record.Type).UInt(3, (ulong)payload.Length);
-            Version(info, 2, 1, 0, 5);
-            foreach (ulong reference in record.Message.References) info.UInt(5, reference);
-            foreach (ulong reference in record.Message.DataReferences) info.UInt(6, reference);
-            byte[] header = P().UInt(1, record.Id).Message(2, info).ToArray();
-            output.AppendLength(header.Length);
-            output.Append(header);
-            output.Append(payload);
-        }
-        return output.ToArray();
-    }
+    private byte[] Archive(IEnumerable<(ulong Id, uint Type, IWorkProtoWriter Message)> records) =>
+        IWorkNativeArchiveWriter.Encode(records, _limits.MaximumPackageBytes, _cancellationToken);
 
     private static void Version(IWorkProtoWriter message, int field, params uint[] values) {
         foreach (uint value in values) message.UInt(field, value);
@@ -139,10 +125,10 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         P().String(1, "Transition").String(2, "none").Double(3, 1).Double(5, 0).Bool(6, false).UInt(11, 1).Bool(16, false)));
 
     private IWorkProtoWriter Node(ulong slideId, string role) {
-        var templateId = IWorkKeynoteIdentity.Create(_modelHash, "blank-layout");
+        var templateId = IWorkCreationIdentity.Create(_modelHash, "blank-layout");
         return P().Reference(2, slideId).Bool(4, false).Bool(6, false).Bool(7, false).Bool(8, false)
             .Bool(18, false).Bool(28, false).UInt(21, 1).Bool(14, true).UInt(26, uint.MaxValue).UInt(27, uint.MaxValue)
-            .String(11, IWorkKeynoteIdentity.Create(_modelHash, role).Text)
+            .String(11, IWorkCreationIdentity.Create(_modelHash, role).Text)
             .Message(29, P().UInt(1, templateId.Lower).UInt(2, templateId.Upper));
     }
 

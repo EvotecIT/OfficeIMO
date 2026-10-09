@@ -94,7 +94,7 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Apple iWork
 
-The [iWork support matrix](officeimo.iwork-support-matrix.md) owns current reading, editable conversion, native Keynote creation, and qualification boundaries. Its [ownership map](officeimo.iwork-support-matrix.md#supporting-library-owners) identifies the related libraries. Keep the bounded source reader and native creation codecs in `OfficeIMO.IWork`, with opt-in adapters to the existing Word, Excel, and PowerPoint owners. Loaded-source editing is a separate lifecycle contract. This plan uses the existing dependency graph; it does not adopt another runtime conversion engine.
+The [iWork support matrix](officeimo.iwork-support-matrix.md) owns current reading, editable conversion, native Keynote/Pages creation, and qualification boundaries. Its [ownership map](officeimo.iwork-support-matrix.md#supporting-library-owners) identifies the related libraries. Keep the bounded source reader and native creation codecs in `OfficeIMO.IWork`, with opt-in adapters to the existing Word, Excel, and PowerPoint owners. Loaded-source editing is a separate lifecycle contract. This plan uses the existing dependency graph; it does not adopt another runtime conversion engine.
 
 ### Delivery order
 
@@ -181,7 +181,7 @@ Completion evidence: representative independent-producer workloads pass defined 
 Owner: separate generation and editing codecs within `OfficeIMO.IWork`, reusing `OfficeIMO.Core` package safety, loss reporting and atomic publication. Import adapters and host wrappers do not become native writers.
 
 - [ ] Extend the [qualified native Keynote text, PNG/JPEG and scalar-table creation slice](officeimo.iwork-support-matrix.md#native-keynote-creation) with richer table formatting and broader media/layout. Qualify additional producer versions, installed/fallback fonts, text scripts and layout combinations through independent decoding, Apple reopen/edit/export and rendered comparisons. Qualify additional runtime architectures and establish portable operation-level resource evidence.
-- [ ] Implement template-free native Pages creation as a bounded vertical slice: document/page settings, paragraphs and runs, followed by qualified lists, tables and images. Prove deterministic packages, independent graph decoding, resource/cancellation behavior and Apple open/edit/save/export before broadening the model.
+- [ ] Extend the [qualified native Pages body-document creation slice](officeimo.iwork-support-matrix.md#native-pages-creation) with lists, tables, images, custom headers/footers and additional section layouts. Pair each extension with independent decoding, bounded operations and Apple open/edit/save/export; qualify more versions, fonts, scripts and pagination contexts.
 - [ ] Implement template-free native Numbers creation as a separate bounded slice: sheets, tables, typed cells and dimensions, followed by qualified formulas, formats and comments. Prove formula caches and post-edit recalculation independently, alongside deterministic packages, resource/cancellation bounds and Apple open/edit/save/export.
 - [ ] Add edited-source save-back only after defining each format's supported edits, unknown-record/resource retention and operation-level loss policy. Qualify unchanged save, supported mutations, identity/reference consistency, package integrity and native reopen. Reject or require explicit acceptance for unsupported edits; creation and OOXML export do not establish preservation of a loaded native document.
 

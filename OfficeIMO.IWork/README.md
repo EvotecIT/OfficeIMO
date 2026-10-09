@@ -1,6 +1,6 @@
-# OfficeIMO.IWork - Apple iWork readers and native Keynote creation for .NET
+# OfficeIMO.IWork - Apple iWork reading and native creation for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations and Pages body documents without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 ## Reference from a source checkout
 
@@ -25,9 +25,9 @@ var slide = presentation.AddSlide("E6F2FF");
 slide.AddText("Zażółć gęślą jaźń\nA😀B — café", 60, 100, 840, 260,
     fontName: "Arial", fontSizePoints: 40, color: "003366");
 slide.AddRichText(new[] {
-    new IWorkKeynoteTextRun("Bold ", bold: true),
-    new IWorkKeynoteTextRun("then plain"),
-    new IWorkKeynoteTextRun(" and underlined", underline: true)
+    new IWorkTextRunData("Bold ", bold: true),
+    new IWorkTextRunData("then plain"),
+    new IWorkTextRunData(" and underlined", underline: true)
 }, 60, 400, 840, 80);
 presentation.AddSlide(); // blank white slide
 var imageSlide = presentation.AddSlide();
@@ -54,7 +54,29 @@ Each axis supports 1–256 cells. Tables use equal row heights and column widths
 
 `IWorkKeynoteWriteOptions` limits slides, total text boxes and retained character runs, UTF-16 text length, image count, combined encoded/RGBA image bytes and package/intermediate archive size. Image limits count each instance, including repeated payloads; Core image validation also bounds each input. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
 
-The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges. The [image reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies PNG alpha, JPEG stretching, stacking and accessibility descriptions, with native PPTX/PDF exports and an image edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, image transformations, broader table formatting, transitions, builds and editing loaded packages remain outside this evidence. Native Pages and Numbers writing is unsupported.
+The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges. The [image reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies PNG alpha, JPEG stretching, stacking and accessibility descriptions, with native PPTX/PDF exports and an image edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, image transformations, broader table formatting, transitions, builds and editing loaded packages remain outside this evidence. Native Numbers writing is unsupported.
+
+## Create a native Pages body document
+
+```csharp
+using OfficeIMO.IWork;
+
+var document = IWorkPagesDocument.Create(); // US Letter, 72-point body margins
+// Pass width/height and four margins to Create for a different page layout.
+document.AddParagraph("Project report", fontSizePoints: 24);
+document.AddRichParagraph(new[] {
+    new IWorkTextRunData("Bold 😀", "Arial", 16, "003366", bold: true),
+    new IWorkTextRunData(" then plain", "Arial", 12)
+});
+document.AddParagraph(""); // editable blank paragraph
+document.Save("report.pages");
+```
+
+The writer creates its own native document, section, theme, style and text-storage graph. Page dimensions and body margins use points; wider pages carry landscape orientation. Each call adds one left-aligned, single-spaced paragraph with no list. Rich paragraphs snapshot immutable `IWorkTextRunData` runs. Plain runs explicitly clear decoration, and empty paragraphs retain their font metrics. Runs cannot contain line breaks or other control characters; invalid UTF-16 is rejected. Create separate paragraphs for separate lines. The receiving application flows the body over pages using its installed fonts; the writer does not measure pagination or embed fonts.
+
+`IWorkPagesWriteOptions` bounds paragraphs, retained runs, UTF-16 body characters including terminators, and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
+
+The [Pages creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.json) records independent decoding of the complete graph and native Pages 15.4 open, edit, save, close/reopen and PDF/DOCX export. Both PDF pages are inspected. Native Pages/PDF and strict saved OfficeIMO DOCX retain the recorded rich formatting. Apple's DOCX export agrees on text and page settings but changes selected font runs and bold/italic overrides; equivalent DOCX typography is outside that reference. Lists, tables, images, custom headers/footers, additional section layouts and editing loaded native sources are unsupported by this creation model.
 
 ## Read and inspect a source
 

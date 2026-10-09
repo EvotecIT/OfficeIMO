@@ -5,14 +5,16 @@ using System.Text;
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Derives stable UUIDv5 names from the complete normalized model, separating document, theme, layout and slide identities.</summary>
-internal static class IWorkKeynoteIdentity {
+internal static class IWorkCreationIdentity {
     private static readonly byte[] UrlNamespace = { 0x6b, 0xa7, 0xb8, 0x11, 0x9d, 0xad, 0x11, 0xd1,
         0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8 };
 
-    internal static (string Text, ulong Lower, ulong Upper) Create(byte[] modelHash, string role) {
+    internal static (string Text, ulong Lower, ulong Upper) Create(byte[] modelHash, string role, IWorkDocumentKind kind = IWorkDocumentKind.Keynote) {
         var hex = new StringBuilder(64);
         foreach (byte value in modelHash) hex.Append(value.ToString("x2", CultureInfo.InvariantCulture));
-        byte[] name = Encoding.UTF8.GetBytes("https://github.com/EvotecIT/OfficeIMO/keynote/" + hex + "/" + role);
+        string format = kind switch { IWorkDocumentKind.Pages => "pages", IWorkDocumentKind.Numbers => "numbers",
+            IWorkDocumentKind.Keynote => "keynote", _ => throw new ArgumentOutOfRangeException(nameof(kind)) };
+        byte[] name = Encoding.UTF8.GetBytes("https://github.com/EvotecIT/OfficeIMO/" + format + "/" + hex + "/" + role);
         var input = new byte[UrlNamespace.Length + name.Length];
         Buffer.BlockCopy(UrlNamespace, 0, input, 0, UrlNamespace.Length);
         Buffer.BlockCopy(name, 0, input, UrlNamespace.Length, name.Length);

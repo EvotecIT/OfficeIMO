@@ -18,7 +18,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
     }
 
     private void AddTextStyles(ulong characterId, ulong paragraphId, ulong frameId, string fontName,
-        float fontSize, IWorkColor color, IWorkKeynoteTextRun? firstRun = null) {
+        float fontSize, IWorkColor color, IWorkTextRunData? firstRun = null) {
         // Modern Keynote renders tsd_fill; font_color remains its legacy color mirror.
         var character = P().Float(3, fontSize).String(5, fontName).Message(7, Color(color))
             .Message(46, P().Message(1, Color(color)));
@@ -33,7 +33,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         Add(frameId, 2025, P().Message(1, shape).Message(11, textProperties).UInt(10, 7));
     }
 
-    private IWorkProtoWriter CharacterProperties(IWorkKeynoteTextRun run) =>
+    private IWorkProtoWriter CharacterProperties(IWorkTextRunData run) =>
         P().Bool(1, run.Bold).Bool(2, run.Italic).Float(3, run.FontSizePoints).String(5, run.FontName)
             .Message(7, Color(run.Color)).Bool(11, run.Underline).Bool(12, run.Strikethrough)
             .Message(46, P().Message(1, Color(run.Color)));
@@ -53,19 +53,9 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         var theme = P().Reference(4, StylesheetId).String(3, "OfficeIMO")
             .Message(100, drawingPresets).Message(110, textPresets);
         AddTableThemePresets(theme);
-        // Keynote's color-preset UI addresses a 30-slot palette. Generate our own palette, including the no-fill slot.
-        foreach (float grey in new[] { 1f, .8f, .6f, .3f, 0f }) theme.Message(10, PaletteColor(grey, grey, grey, 1));
-        theme.Message(10, PaletteColor(0, 0, 0, 0));
-        foreach (var rgb in new[] { (0f, .5f, 1f), (0f, .8f, .5f), (.5f, .8f, 0f),
-                     (1f, .8f, 0f), (1f, .2f, .2f), (.6f, .2f, 1f) }) {
-            foreach (float scale in new[] { 1f, .8f, .6f, .4f }) {
-                theme.Message(10, PaletteColor(rgb.Item1 * scale, rgb.Item2 * scale, rgb.Item3 * scale, 1));
-            }
-        }
-        Add(ThemeId, 10, P().Message(1, theme).String(3, IWorkKeynoteIdentity.Create(_modelHash, "theme").Text)
+        IWorkNativeThemeWriter.AddColorPresets(theme, _limits.MaximumPackageBytes, _cancellationToken);
+        Add(ThemeId, 10, P().Message(1, theme).String(3, IWorkCreationIdentity.Create(_modelHash, "theme").Text)
             .Reference(2, BlankNodeId).Reference(5, BlankNodeId).Reference(6, BlankNodeId).Bool(7, false));
     }
 
-    private IWorkProtoWriter PaletteColor(float r, float g, float b, float alpha) =>
-        P().UInt(1, 1).Float(3, r).Float(4, g).Float(5, b).Float(6, alpha).UInt(12, 1);
 }

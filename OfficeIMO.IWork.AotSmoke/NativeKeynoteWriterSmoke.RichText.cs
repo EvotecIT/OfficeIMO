@@ -9,20 +9,20 @@ internal static partial class NativeKeynoteWriterSmoke {
     private static void RunRichText() {
         var document = IWorkKeynoteDocument.Create();
         document.AddSlide().AddRichText(new[] {
-            new IWorkKeynoteTextRun("Plain ", "Helvetica Neue"),
-            new IWorkKeynoteTextRun("bold", "Helvetica Neue", bold: true),
-            new IWorkKeynoteTextRun(" ", "Helvetica Neue"),
-            new IWorkKeynoteTextRun("italic", "Helvetica Neue", italic: true),
-            new IWorkKeynoteTextRun(" ", "Helvetica Neue"),
-            new IWorkKeynoteTextRun("underlined", "Helvetica Neue", underline: true),
-            new IWorkKeynoteTextRun(".", "Helvetica Neue")
+            new IWorkTextRunData("Plain ", "Helvetica Neue"),
+            new IWorkTextRunData("bold", "Helvetica Neue", bold: true),
+            new IWorkTextRunData(" ", "Helvetica Neue"),
+            new IWorkTextRunData("italic", "Helvetica Neue", italic: true),
+            new IWorkTextRunData(" ", "Helvetica Neue"),
+            new IWorkTextRunData("underlined", "Helvetica Neue", underline: true),
+            new IWorkTextRunData(".", "Helvetica Neue")
         }, 60, 100, 840, 150);
         document.AddSlide("E6F2FF").AddRichText(new[] {
-            new IWorkKeynoteTextRun("Bold 😀", "Arial", 32, "003366", bold: true, italic: true,
+            new IWorkTextRunData("Bold 😀", "Arial", 32, "003366", bold: true, italic: true,
                 underline: true, strikethrough: true),
-            new IWorkKeynoteTextRun(" plain", "Arial", 24),
-            new IWorkKeynoteTextRun("\r\nItalic", "Times New Roman", 30, "008000", italic: true),
-            new IWorkKeynoteTextRun("\nZażółć — café", "Arial", 24, "660066")
+            new IWorkTextRunData(" plain", "Arial", 24),
+            new IWorkTextRunData("\r\nItalic", "Times New Roman", 30, "008000", italic: true),
+            new IWorkTextRunData("\nZażółć — café", "Arial", 24, "660066")
         }, 60, 80, 840, 250);
         document.AddSlide();
         byte[] bytes = document.SaveBytes();

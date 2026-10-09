@@ -103,8 +103,8 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Extended semantic projections: rich Pages content/layout/images/tables; sparse typed Numbers cells/formulas/merges/table metadata; and positioned Keynote rich text/images/tables/notes
 - [x] Opt-in `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, and `OfficeIMO.PowerPoint.IWork` adapters with editable reconstruction versus visual fallback reports
 - [x] Independently sourced corpus evidence across Pages 14.1/14.5, Numbers 11.1–15.1 histories, and Keynote 8.1/14.5/15.2.1
-- [x] Template-free native Keynote creation with static slides, opaque sRGB backgrounds and positioned plain text; independent decoding and fixture-specific Keynote 15.4 reopen/export/edit evidence
-- [x] Loaded sources remain read-only; native Pages/Numbers writing and edited-package save-back are unsupported
+- [x] Template-free native Keynote slides with rich text, PNG/JPEG images and scalar tables; native Pages body documents with page settings and rich paragraphs; independent decoding and fixture-specific Apple reopen/export/edit evidence
+- [x] Loaded sources remain read-only; native Numbers writing and edited-package save-back are unsupported
 
 _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are first-party implementations. Word, Excel, and PowerPoint remain independent unless an iWork adapter is installed explicitly.
 
