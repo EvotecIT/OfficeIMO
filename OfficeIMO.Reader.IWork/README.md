@@ -4,10 +4,14 @@
 
 Mapped source diagnostics retain the source fidelity category in `Attributes["lossKind"]` (`None`, `Approximation`, `Omission`, `Failure`, or `Unassessed`), alongside available `entryPath` and `recordIdentifier` attributes. Severity remains separate from fidelity; callers do not need to infer loss categories from diagnostic codes.
 
-## Install
+## Reference from a source checkout
 
-```powershell
-dotnet add package OfficeIMO.Reader.IWork
+For source-based development, reference the handler from the same checkout as the other OfficeIMO projects:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../OfficeIMO.Reader.IWork/OfficeIMO.Reader.IWork.csproj" />
+</ItemGroup>
 ```
 
 ## Read a document
@@ -69,4 +73,4 @@ Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License
 
 ## Native compilation
 
-The [bounded NativeAOT scenario](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) exercises this handler on macOS arm64 under .NET 8 and 10, including structured extraction, source diagnostics, JSON transport, cancellation and input limits. The scenario preserves current reconstruction limits; it does not qualify destination conversion, appearance or Apple sandbox/device acceptance.
+The [bounded NativeAOT scenario](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) exercises this handler on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10, including structured extraction, root comments, source diagnostics, JSON transport, cancellation and input limits. A separate scenario covers destination conversion and native Keynote creation. These checks preserve current reconstruction limits; they do not qualify complete appearance, portable fonts or Apple sandbox/device acceptance.
