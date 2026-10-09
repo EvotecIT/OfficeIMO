@@ -1,4 +1,5 @@
 using OfficeIMO.Adf;
+using DBAClientX.Dbf;
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.Confluence;
 using OfficeIMO.CSV;
@@ -165,6 +166,13 @@ internal static class ConversionApiCompileContract {
         _ = ConfluenceContentConverter.ToHtml(confluencePage);
         _ = ExcelDocumentCsvExtensions.ToExcelDocument(csv);
         _ = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
+        using (var dbf = DbfDataReader.Open(source))
+        using (var csvOutput = new StringWriter()) {
+            CsvDocument.WriteDataReader(csvOutput, dbf);
+        }
+        using (var dbf = DbfDataReader.Open(source)) {
+            _ = ExcelDocument.WriteDataReader(stream, dbf);
+        }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);

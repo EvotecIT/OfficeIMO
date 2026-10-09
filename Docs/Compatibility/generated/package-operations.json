@@ -773,6 +773,20 @@
       "limitation":""
     },
     {
+      "id":"conversion:dbf-csv",
+      "packageId":"OfficeIMO.CSV",
+      "formatId":"DBF/xBase",
+      "targetFormatId":"CSV",
+      "capabilityId":"dbf-csv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DbfDataReader.Open(path), then CsvDocument.WriteDataReader(writer, reader, options)",
+      "evidence":"Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dbf"],
+      "limitation":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."
+    },
+    {
       "id":"conversion:confluence-html",
       "packageId":"OfficeIMO.Confluence",
       "formatId":"Confluence",
@@ -2843,6 +2857,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
       "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+    },
+    {
+      "id":"conversion:dbf-xlsx",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"DBF/xBase",
+      "targetFormatId":"XLSX",
+      "capabilityId":"dbf-xlsx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)",
+      "evidence":"Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dbf"],
+      "limitation":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."
     },
     {
       "id":"protection:vba-signature:excel:create",

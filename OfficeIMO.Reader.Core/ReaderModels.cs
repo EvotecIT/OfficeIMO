@@ -114,7 +114,9 @@ public enum ReaderInputKind {
     /// </summary>
     IWork = 25,
     /// <summary>Native XPS or OpenXPS fixed-page package.</summary>
-    Xps = 26
+    Xps = 26,
+    /// <summary>DBF/xBase table.</summary>
+    Dbf = 27
 }
 
 /// <summary>

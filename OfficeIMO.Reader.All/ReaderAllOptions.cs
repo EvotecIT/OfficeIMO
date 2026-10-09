@@ -22,6 +22,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets CSV and TSV adapter options.</summary>
     public Csv.CsvReadOptions? Csv { get; set; }
 
+    /// <summary>Gets or sets DBF/xBase adapter options. Memo sidecar reads are disabled by default.</summary>
+    public Dbf.ReaderDbfOptions? Dbf { get; set; }
+
     /// <summary>Gets or sets DocBook adapter options.</summary>
     public DocBook.ReaderDocBookOptions? DocBook { get; set; }
 

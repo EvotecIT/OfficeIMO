@@ -695,7 +695,7 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
   - [ ] Establish a provenance-recorded cross-producer corpus for every structured spreadsheet profile, including malformed/truncated records, formula-bomb limits, code pages, workbook bounds, active content, and external links; add semantic, reopen, and rendered conversion evidence for XLSX, ODS, CSV, HTML, and PDF before promoting each profile beyond its documented maturity.
 - [ ] Add HWP binary and HWPX readers with safe text, structure, metadata, embedded-resource, and security inspection plus DOCX, ODT, HTML, Markdown, PDF, and plain-text conversion. Keep binary HWP read/convert-only; consider bounded HWPX authoring later only when schema-version and producer-interoperability evidence justify it.
 - [ ] Add unencrypted MOBI and AZW-family inspection and conversion only for versions with a legally and technically supportable fixture corpus. Extract metadata, navigation, text, and safe resources into the shared ebook/Reader model; report unsupported layouts and encryption; and do not implement DRM removal or source-format writing.
-- [ ] Integrate DBF/xBase through a thin `OfficeIMO.Reader.Dbf` adapter and conversion routes only after the canonical codec and tabular streaming contracts exist in DbaClientX. OfficeIMO may map rows to CSV, Excel, HTML, PDF, and Reader results, but must not own another DBF parser, memo codec, code-page engine, or database writer.
+- [ ] Widen the [DbaClientX-backed DBF/xBase integration](../OfficeIMO.Reader.Dbf/README.md) with native dBASE/FoxPro application acceptance and independent fixtures for Visual FoxPro `31`/`32`, broader memo/field profiles and code pages. Qualify any additional HTML/PDF projections through the existing table/rendering owners; keep DBF parsing, memo handling and typed streaming in DbaClientX.
 
 ### Future integration decisions
 
@@ -704,7 +704,7 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
 ### Admission and sequencing
 
 - [ ] Extend the generated capability and conversion catalogs so every additional format declares `FullProduct`, `ReadConvert`, `SalvageRead`, or `IntentionalBoundary`, together with versions/profiles, security behavior, preservation guarantees, fixture provenance, and route maturity.
-- [ ] Deliver the remaining expansion wave in ownership order: the DbaClientX-backed DBF adapter; bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
+- [ ] Deliver the remaining expansion wave in ownership order: bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
 - [ ] Require hostile-input limits, path and stream parity, cancellation where applicable, reopen or independent-reader evidence, deterministic-loss reporting, and license/provenance review before publishing any new format package. A file-extension detector or text scraper alone does not qualify as format support.
 
 ## Completion rule

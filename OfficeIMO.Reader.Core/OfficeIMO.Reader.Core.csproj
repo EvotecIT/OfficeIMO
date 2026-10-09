@@ -37,6 +37,15 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v11.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v11.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v11.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v11.schema.json</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundDocumentDetector.cs" Link="Internal\Compound\OfficeCompoundDocumentDetector.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFile.cs" Link="Internal\Compound\OfficeCompoundFile.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileEntry.cs" Link="Internal\Compound\OfficeCompoundFileEntry.cs" />

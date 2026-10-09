@@ -11,6 +11,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.asciidoc",
         "officeimo.reader.calendar",
         "officeimo.reader.csv",
+        "officeimo.reader.dbf",
         "officeimo.reader.docbook",
         "officeimo.reader.email",
         "officeimo.reader.email.address-book",

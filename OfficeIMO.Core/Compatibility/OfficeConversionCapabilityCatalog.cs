@@ -424,6 +424,8 @@ public static class OfficeConversionCapabilityCatalog {
         Route("confluence-html", "Confluence", "HTML", OfficeConversionInputKind.ObjectModel, new[] { ".adf", ".json" }, ".html", "OfficeIMO.Confluence", "ConfluenceContentConverter.ToHtml(page)", "Project a materialized Confluence page body to HTML with fidelity diagnostics.", OfficeConversionFidelityKind.Semantic, "ConfluenceContentConversionResult<string>"),
         Route("csv-xlsx", "CSV", "XLSX", OfficeConversionInputKind.File, new[] { ".csv", ".tsv" }, ".xlsx", "OfficeIMO.Excel.Csv", "CsvDocument.Load(stream).ToExcelDocument(options)", "Import delimited values into an editable workbook.", OfficeConversionFidelityKind.Editable, "ExcelDocument"),
         Route("xlsx-csv", "XLSX", "CSV", OfficeConversionInputKind.File, new[] { ".xlsx" }, ".csv", "OfficeIMO.Excel.Csv", "ExcelDocument.Load(stream).Sheets[0].ToCsv(options)", "Export a worksheet used range as delimited values.", OfficeConversionFidelityKind.Semantic, "string"),
+        Route("dbf-csv", "DBF/xBase", "CSV", OfficeConversionInputKind.File, new[] { ".dbf" }, ".csv", "OfficeIMO.CSV", "DbfDataReader.Open(path), then CsvDocument.WriteDataReader(writer, reader, options)", "Export typed DBF rows and supported memos through DBAClientX.Dbf; binary values become Base64.", OfficeConversionFidelityKind.Semantic, "void"),
+        Route("dbf-xlsx", "DBF/xBase", "XLSX", OfficeConversionInputKind.File, new[] { ".dbf" }, ".xlsx", "OfficeIMO.Excel", "DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)", "Create a workbook from typed DBF rows and supported memos through DBAClientX.Dbf.", OfficeConversionFidelityKind.Editable, "ExcelDataSetImportResult"),
         Route("officemarkup-docx", "OfficeIMO Markup", "DOCX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".docx", "OfficeIMO.Markup.Word", "OfficeMarkupParser.Parse(markup, options).Document.ToWordDocumentResult(exportOptions)", "Render document-profile OfficeIMO Markup into an editable Word document.", OfficeConversionFidelityKind.Editable, "OfficeMarkupConversionResult<WordDocument>"),
         Route("officemarkup-xlsx", "OfficeIMO Markup", "XLSX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".xlsx", "OfficeIMO.Markup.Excel", "OfficeMarkupParser.Parse(markup, options).Document.ToExcelDocumentResult(exportOptions)", "Render workbook-profile OfficeIMO Markup into an editable Excel workbook.", OfficeConversionFidelityKind.Editable, "OfficeMarkupConversionResult<ExcelDocument>"),
         Route("officemarkup-pptx", "OfficeIMO Markup", "PPTX", OfficeConversionInputKind.Text, new[] { ".omd", ".office.md" }, ".pptx", "OfficeIMO.Markup.PowerPoint", "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointPresentationResult(exportOptions)", "Render presentation-profile OfficeIMO Markup into an editable PowerPoint presentation.", OfficeConversionFidelityKind.Editable, "OfficeMarkupPowerPointConversionResult"),
@@ -616,6 +618,10 @@ public static class OfficeConversionCapabilityCatalog {
         if (source is "Markdown" or "AsciiDoc" or "LaTeX" || target is "Markdown" or "AsciiDoc" or "LaTeX") {
             return (OfficeConversionTextFormattingKind.SyntaxSubset,
                 "Preserves only emphasis, strike, script, and inline styling represented by the supported source and destination syntax profiles; arbitrary family, size, color, casing metadata, and underline variants are not portable.");
+        }
+        if (source == "DBF/xBase") {
+            return (OfficeConversionTextFormattingKind.DataOnly,
+                "DBF carries typed table values, not document typography or layout; binary values become Base64, and DBF indexes, deletion flags and native schema metadata are not exported.");
         }
         if (source == "CSV" || target == "CSV") {
             return (OfficeConversionTextFormattingKind.DataOnly,
