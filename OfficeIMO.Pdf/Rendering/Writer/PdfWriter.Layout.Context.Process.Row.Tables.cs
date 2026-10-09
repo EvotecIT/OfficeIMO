@@ -405,7 +405,8 @@ internal static partial class PdfWriter {
                         bool topRight = cellTouchesTop && cellTouchesRight;
                         bool bottomRight = cellTouchesBottom && cellTouchesRight;
                         bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                        StringBuilder borderOutput = HasPairedCellBorder(cellBorder) ? pairedBorders ??= new StringBuilder() : sb;
+                        StringBuilder borderOutput = HasPairedCellBorder(cellBorder) || table.SpanFlow.HasDeferredFills(tableStyle)
+                            ? pairedBorders ??= new StringBuilder() : sb;
                         if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                             DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
                                 GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
@@ -438,19 +439,27 @@ internal static partial class PdfWriter {
         int rowIndex = state.Line;
         int rowStartLine = state.Subline;
         while (rowIndex < tbColumn.Rows.Count) {
+            double maximumSpanRowHeight = Math.Max(0D, maxContentHeight -
+                GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) -
+                (HasRepeatableHeader() && rowIndex >= table.HeaderRowCount ? repeatHeaderHeight : 0D));
+            double spanRowRemainder = MeasureTableSpanRemainderHeight(table.SpanFlow, tableStyle,
+                table.PreparedRows, table.ColumnWidths, columnGap, rowIndex, subtractAdmittedHeight: true);
+            if (rowIndex == tbColumn.Rows.Count - 1 && spanRowRemainder > .001D &&
+                spanRowRemainder <= maximumSpanRowHeight + .001D)
+                maximumSpanRowHeight = Math.Max(0D, maximumSpanRowHeight - closingPadding);
             ReserveTableSpanRemainder(table.SpanFlow, tableStyle, table.PreparedRows, table.ColumnWidths, columnGap,
-                rowIndex, Math.Max(0D, maxContentHeight - GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) -
-                    (HasRepeatableHeader() && rowIndex >= table.HeaderRowCount ? repeatHeaderHeight : 0D)));
+                rowIndex, maximumSpanRowHeight);
             if (table.PendingSpanTailRow == rowIndex) {
                 double minimum = MeasureTableSpanRemainderHeight(table.SpanFlow, tableStyle, table.PreparedRows,
-                    table.ColumnWidths, columnGap, rowIndex, firstLineOnly: true);
+                    table.ColumnWidths, columnGap, rowIndex,
+                    minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight));
                 if (HasRepeatableHeader() && AtContinuationPageTop() && repeatHeaderHeight + minimum <= state.Remaining + .001D)
                     for (int header = 0; header < table.RepeatHeaderRowCount; header++)
                         DrawColumnTableRow(header, true, suppressCellObjects: true);
                 double available = state.Remaining;
                 double required = MeasureTableSpanRemainderHeight(table.SpanFlow, tableStyle,
                     table.PreparedRows, table.ColumnWidths, columnGap, rowIndex);
-                if (rowIndex == tbColumn.Rows.Count - 1 && required + closingPadding <= available + .001D)
+                if (rowIndex == tbColumn.Rows.Count - 1 && required <= available + .001D)
                     available -= closingPadding;
                 if (available < minimum - .001D) {
                     if (state.Consumed <= .001D)
@@ -543,7 +552,8 @@ internal static partial class PdfWriter {
                 AtContinuationPageTop() &&
                 repeatHeaderHeight + placementHeight <= state.Remaining + 0.001;
             double neededForNextRow = placementHeight + (StartsTableViewportRowGroup(viewportRowGroups, rowIndex) ? 0D : GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap)) + (repeatHeaderBeforeRow ? repeatHeaderHeight : 0);
-            if (rowIndex == tbColumn.Rows.Count - 1) neededForNextRow += closingPadding;
+            if (rowIndex == tbColumn.Rows.Count - 1 && spanRowRemainder <= rowHeight + .001D)
+                neededForNextRow += closingPadding;
             if (rowHeight > state.Remaining + 0.001 && state.Consumed > 0 && CanSplitColumnTableRowIntoRemainingSpace(rowIndex)) {
                 int take = Math.Min(table.RowLineCounts[rowIndex], GetColumnTableRowSegmentLineCountThatFits(rowIndex, 0, state.Remaining));
                 DrawColumnTableRowSegment(rowIndex, renderAsHeader: false, 0, take);

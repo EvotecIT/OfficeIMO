@@ -5,6 +5,10 @@ internal static partial class PdfWriter {
     private sealed class TableSpanFlow {
         public List<TableSpanCellFlow> Cells { get; } = new();
         public List<TableSpanCellFlow> ActiveCells { get; } = new();
+
+        // A delayed opaque fill can overlap a border drawn for an earlier neighbor.
+        public bool HasDeferredFills(PdfTableStyle style) =>
+            style.CellFills?.Keys.Any(key => Contains(key.Item1, key.Item2)) == true;
         private readonly Dictionary<(int Row, int Column), TableSpanCellFlow> anchors = new();
         private readonly HashSet<int> coveredRows = new();
         private int nextCell;

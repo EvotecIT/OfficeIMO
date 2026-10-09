@@ -54,6 +54,35 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
+    public void LaterMergedFillPreservesEarlierExplicitNeighborBorder(bool inRow, bool mergedNeighbor) {
+        PdfTableStyle style = Style();
+        style.MinRowHeight = 30;
+        style.BorderColor = null;
+        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
+            Color = new PdfColor(.61, .21, .11), Width = 4,
+            Top = false, Bottom = false, Left = false, Right = true
+        } };
+        style.CellFills = new() { [(0, 1)] = new PdfColor(.71, .81, .61) };
+        PdfDocument document = PdfDocument.Create(Options(200));
+        AddTable(document, new[] {
+            new[] { mergedNeighbor ? PdfTableCell.Merge("Alpha", rowSpan: 2) : PdfTableCell.TextCell("Alpha"),
+                PdfTableCell.Merge("Beta", rowSpan: 3), PdfTableCell.TextCell("Ready") },
+            mergedNeighbor ? new[] { PdfTableCell.TextCell("Next") } :
+                new[] { PdfTableCell.TextCell("Middle"), PdfTableCell.TextCell("Next") },
+            new[] { PdfTableCell.TextCell("Tail"), PdfTableCell.TextCell("Done") }
+        }, style, inRow);
+        string raw = Encoding.ASCII.GetString(document.ToBytes());
+        int fill = raw.LastIndexOf("0.71 0.81 0.61 rg", StringComparison.Ordinal);
+        int border = raw.LastIndexOf("0.61 0.21 0.11 RG", StringComparison.Ordinal);
+        Assert.True(fill >= 0 && border > fill,
+            "A later opaque merged fill must preserve the neighboring explicit border's full width and color.");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
     public void MergedTailRespectsDisabledRowBreaks(bool inRow, bool perRow) {
         PdfTableStyle style = Style();
         style.AllowRowBreakAcrossPages = perRow;
@@ -91,10 +120,42 @@ public partial class PdfDocumentVisualQualityTests {
         foreach (string token in tokens) Assert.Single(words, word => word == token);
     }
 
+    [Fact]
+    public void MergedTailContinuationReservesItsKeptParagraphBeforeOptionalSpacing() {
+        string[] tallTokens = Enumerable.Range(1, 8).Select(n => $"Tall{n}").ToArray();
+        string[] keptTokens = Enumerable.Range(1, 4).Select(n => $"Kept{n}").ToArray();
+        PdfTextRun[] tall = { PdfTextRun.Normal(string.Join("\n", tallTokens)) };
+        PdfTextRun[] kept = { PdfTextRun.Normal(string.Join("\n", keptTokens)) };
+        PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tallTokens.Concat(keptTokens))) };
+        PdfTableCell anchor = new(runs, new[] {
+            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(60), widowControl: false),
+            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(18),
+                keepTogether: true, widowControl: false)
+        }, rowSpan: 3);
+        PdfTableStyle style = Style();
+        style.HeaderRowCount = 1;
+        style.RepeatHeaderRowCount = 1;
+        style.RowMinHeights = new() { 20, null, null, null };
+        style.PageContinuationSpacingBefore = 60;
+        PdfDocument document = PdfDocument.Create(Options(140));
+        AddTable(document, new[] {
+            new[] { PdfTableCell.TextCell("Header"), PdfTableCell.TextCell("Value") },
+            new[] { anchor, PdfTableCell.TextCell("Ready") },
+            new[] { PdfTableCell.TextCell("Next") },
+            new[] { PdfTableCell.TextCell("Done") }
+        }, style, false);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
+        foreach (string token in tallTokens.Concat(keptTokens))
+            Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == token);
+        Assert.Single(pdf.GetPages(), page => keptTokens.All(token => page.GetWords().Any(word => word.Text == token)));
+    }
+
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void MergedTailReservesContainerClosingPaddingOnlyOnItsLastFragment(bool inRow) {
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void MergedTailReservesContainerClosingPaddingOnlyOnItsLastFragment(bool inRow, bool repeatDecoration) {
         string[] tokens = Enumerable.Range(1, 8).Select(n => $"Tall{n}").ToArray();
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tokens) + "\nEnd") };
         PdfTextRun[] ending = { PdfTextRun.Normal("End") };
@@ -106,7 +167,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfDocument document = PdfDocument.Create(Options(160));
         document.Compose(builder => builder.Page(page => page.Content(content => content
             .Element(element => element.Style(new PdfPanelStyle {
-                PaddingX = 0, PaddingY = 20, SpacingBefore = 0, SpacingAfter = 0
+                PaddingX = 0, PaddingY = 20, SpacingBefore = 0, SpacingAfter = 0,
+                RepeatFragmentDecoration = repeatDecoration
             }).Content(inner => {
                 inner.Paragraph(p => p.Text("Prelude"), style: new PdfParagraphStyle {
                     FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(15),

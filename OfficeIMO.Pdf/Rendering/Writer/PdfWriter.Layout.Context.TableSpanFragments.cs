@@ -79,7 +79,8 @@ internal static partial class PdfWriter {
                 bool hasBorderOverride = style.CellBorders?.TryGetValue((row, cell.Column), out border) == true;
                 if (hasBorderOverride && HasRenderableCellBorder(border)) {
                     border = PrepareTableSpanFragmentBorder(border!, span, continuation, continues);
-                    StringBuilder output = HasPairedCellBorder(border) ? pairedBorders ??= new StringBuilder() : sb;
+                    StringBuilder output = HasPairedCellBorder(border) || flow.HasDeferredFills(style)
+                        ? pairedBorders ??= new StringBuilder() : sb;
                     if (rounded && !border.HasHiddenSegments)
                         DrawRoundedCellBorder(output, border, x, bottom, width, span.Height, cornerRadius,
                             style.BorderColor.HasValue ? style.BorderWidth : 0D, topLeft, topRight, bottomRight, bottomLeft,
@@ -150,7 +151,8 @@ internal static partial class PdfWriter {
                 .Select(span => Math.Max(0, rows.Lines[span.Row][span.Cell.Column].LineCount - span.ConsumedLines)).DefaultIfEmpty(0).Max();
 
         private static double MeasureTableSpanRemainderHeight(TableSpanFlow flow, PdfTableStyle style,
-            PreparedFlowTableRows rows, double[] widths, double columnGap, int rowIndex, bool firstLineOnly = false) {
+            PreparedFlowTableRows rows, double[] widths, double columnGap, int rowIndex,
+            double? minimumFragmentFrameHeight = null, bool subtractAdmittedHeight = false) {
             double height = 0D;
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.EndRow != rowIndex + 1) continue;
@@ -159,9 +161,24 @@ internal static partial class PdfWriter {
                 if (count == 0) continue;
                 double innerWidth = GetTableCellWidth(widths, span.Cell.Column, span.Cell.ColumnSpan, columnGap) -
                     GetTableCellPaddingLeft(style, span.Row, span.Cell.Column) - GetTableCellPaddingRight(style, span.Row, span.Cell.Column);
-                height = Math.Max(height, MeasureTableCellContentHeight(span.Cell, lines, span.ConsumedLines,
-                    firstLineOnly ? 1 : count, rows.Leadings[span.Row], innerWidth, includeObjects: false) +
-                    GetTableCellPaddingTop(style, span.Row, span.Cell.Column) + GetTableCellPaddingBottom(style, span.Row, span.Cell.Column));
+                if (minimumFragmentFrameHeight.HasValue) {
+                    double textHeight = Math.Max(0D, minimumFragmentFrameHeight.Value -
+                        GetTableCellPaddingTop(style, span.Row, span.Cell.Column) - GetTableCellPaddingBottom(style, span.Row, span.Cell.Column));
+                    int maximum = LimitTableCellLineCountToHeight(lines, span.ConsumedLines, count, rows.Leadings[span.Row], textHeight);
+                    // Use the same keep/widow boundary as admission. If no boundary fits
+                    // a fresh frame, retain its existing relaxation to a single line.
+                    count = 1;
+                    for (int candidate = 1; candidate <= maximum; candidate++) {
+                        if (!IsTableRowFragmentBoundaryAllowed(rows.Lines[span.Row], new[] { span.Cell },
+                            span.ConsumedLines, candidate, textHeight)) continue;
+                        count = candidate;
+                        break;
+                    }
+                }
+                double required = MeasureTableCellContentHeight(span.Cell, lines, span.ConsumedLines,
+                    count, rows.Leadings[span.Row], innerWidth, includeObjects: false) +
+                    GetTableCellPaddingTop(style, span.Row, span.Cell.Column) + GetTableCellPaddingBottom(style, span.Row, span.Cell.Column);
+                height = Math.Max(height, required - (subtractAdmittedHeight ? span.Height : 0D));
             }
             return height;
         }

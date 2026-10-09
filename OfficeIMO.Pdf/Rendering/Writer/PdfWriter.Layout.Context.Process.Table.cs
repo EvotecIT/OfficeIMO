@@ -464,7 +464,8 @@ internal static partial class PdfWriter {
                     y = PositionTableY(continuationPosition, Math.Min(maxContentHeight, continuationHeight));
                 }
                 double requiredHeight = continuingSpanTail
-                    ? MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex, firstLineOnly: true) +
+                    ? MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex,
+                        minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight)) +
                         (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)
                     : GetTableContinuationRequiredHeight(rowIndex, startLine, requireWholeRow);
                 ApplyTablePageContinuationSpacing(requiredHeight);
@@ -740,7 +741,8 @@ internal static partial class PdfWriter {
                             bool topRight = cellTouchesTop && cellTouchesRight;
                             bool bottomRight = cellTouchesBottom && cellTouchesRight;
                             bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                            StringBuilder borderOutput = HasPairedCellBorder(cellBorder) ? pairedBorders ??= new StringBuilder() : sb;
+                            StringBuilder borderOutput = HasPairedCellBorder(cellBorder) || spanFlow.HasDeferredFills(style)
+                                ? pairedBorders ??= new StringBuilder() : sb;
                             if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                                 DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
                                     GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
@@ -821,7 +823,7 @@ internal static partial class PdfWriter {
                     double available = Math.Max(0D, y - TableBottom());
                     double required = MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex);
                     double closing = rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D;
-                    if (required + closing <= available + .001D) available = Math.Max(0D, available - closing);
+                    if (required <= available + .001D) available = Math.Max(0D, available - closing);
                     double height = Math.Min(required, available);
                     DrawTableRowSegment(rowIndex, false, rowLineCounts[rowIndex], 0, continuedSpanHeight: height);
                     int next = GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex);
