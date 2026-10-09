@@ -49,8 +49,7 @@ internal sealed partial class WordPerfectReader {
         }
         if (fonts.Length % 86 != 0 || index >= fonts.Length / 86) throw new InvalidDataException("The WordPerfect 5 font index is outside its directory.");
         int entry = fonts.Offset + index * 86;
-        _fontSize = size ?? U16(_data, entry + (fonts.Type == 15 ? 47 : 22)) / 50d;
-        if (_fontSize <= 0) { _fontSize = null; Loss("WORDPERFECT_FONT_SIZE", "Formatting", "A source font has no positive point size."); }
+        FontSize(size ?? U16(_data, entry + (fonts.Type == 15 ? 47 : 22)) / 50d);
         if (!_packets.TryGetValue(7, out Packet? names)) { _font = null; return; }
         int offset = U16(_data, entry + 18);
         if (offset >= names.Length) throw new InvalidDataException("The WordPerfect 5 font name is outside its string pool.");

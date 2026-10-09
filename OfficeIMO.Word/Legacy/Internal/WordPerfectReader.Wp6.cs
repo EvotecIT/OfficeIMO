@@ -51,7 +51,7 @@ internal sealed partial class WordPerfectReader {
         foreach (Packet packet in _packets.Values.Where(packet => packet.Type == 0x25)) {
             if (packet.Children.Length != 1 || packet.Length < 2) throw new InvalidDataException("The WordPerfect initial-font packet is malformed.");
             _font = Font6(packet.Children[0]);
-            _fontSize = U16(_data, packet.Offset) / 50d;
+            FontSize(U16(_data, packet.Offset) / 50d);
         }
     }
 
@@ -216,8 +216,7 @@ internal sealed partial class WordPerfectReader {
             Need(3); _color = _data[data].ToString("X2") + _data[data + 1].ToString("X2") + _data[data + 2].ToString("X2");
         } else if (code == 0xd4 && (sub == 0x1a || sub == 0x1b)) {
             Need(8); if (ids.Length > 0 && ids[0] != 0) _font = Font6(ids[0]);
-            _fontSize = U16(_data, data + (sub == 0x1a ? 6 : 0)) / 50d;
-            if (_fontSize <= 0) throw new InvalidDataException("WordPerfect font size must be positive.");
+            FontSize(U16(_data, data + (sub == 0x1a ? 6 : 0)) / 50d);
         } else if (code == 0xd4 && sub == 0x2a) BeginTable();
         else if (code == 0xd4 && sub == 0x2b) { /* Ends the table definition, not the table. */ }
         else if (code == 0xd4 && sub == 0x2c) {

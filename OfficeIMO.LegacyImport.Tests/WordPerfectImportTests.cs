@@ -67,6 +67,43 @@ public sealed class WordPerfectImportTests {
     }
 
     [Theory]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    [InlineData(6, false)]
+    [InlineData(6, true)]
+    public void RejectsNotesInRunningStoriesAndNotes(int version, bool header) {
+        byte[] source;
+        if (version == 6) {
+            byte[] nested = Join(Function6(0xd7, 0, null, 2), Function6(0xd7, 1));
+            byte[] body = header ? Function6(0xd6, 0, new byte[] { 3 }, 1) : Join(Function6(0xd7, 0, null, 1), Function6(0xd7, 1));
+            source = Document6(body, (8, TextPacket(nested)), (8, TextPacket(Text("Nested note"))));
+        } else {
+            byte[] nested = Function5(0xd6, 0, Join(new byte[15], Text("Nested note")));
+            byte[] prefix = new byte[header ? 18 : 15]; if (header) prefix[7] = 1;
+            source = Document5(Function5(header ? (byte)0xd5 : (byte)0xd6, 0, Join(prefix, nested)));
+        }
+        Assert.Contains("Notes inside", Assert.Throws<InvalidDataException>(() => Import(source)).Message);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ZeroFontSizesUseTheDefaultAndReportFormattingLoss(bool initial) {
+        byte[] source;
+        if (initial) {
+            byte[] name = System.Text.Encoding.Unicode.GetBytes("Arial");
+            var descriptor = new byte[24 + name.Length]; Number(name.Length).CopyTo(descriptor, 22); name.CopyTo(descriptor, 24);
+            source = Document6(Text("Visible"), (0x25, Join(Number(1), Number(2), Number(0))), (0x55, descriptor));
+            source[512 + 14] = 1;
+        } else source = Document6(Join(Function6(0xd4, 0x1b, new byte[8]), Text("Visible")));
+        using var result = Import(source);
+        Assert.Equal("Visible", result.PlainText);
+        Assert.Null(Assert.Single(result.Content.Paragraphs[0].Runs).FontSizePoints);
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_FONT_SIZE");
+        Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
+    }
+
+    [Theory]
     [InlineData(5)]
     [InlineData(6)]
     public void ProjectsTableGridBetweenBodyParagraphs(int version) {

@@ -216,6 +216,7 @@ internal sealed partial class WordPerfectReader {
     }
 
     private void AddNote(LegacyWordNoteKind kind, List<LegacyWordParagraph> paragraphs) {
+        if (_story != null) throw new InvalidDataException("Notes inside WordPerfect running stories or notes are outside the qualified profile.");
         string text = string.Join("\n", paragraphs.Select(paragraph => paragraph.Text));
         _budget.Item();
         var note = new LegacyWordNote(kind, text) { IsAnchored = true };
@@ -223,6 +224,11 @@ internal sealed partial class WordPerfectReader {
         int index = _model.Notes.Count; _model.Notes.Add(note);
         _budget.Item();
         Paragraph().Runs.Add(new LegacyWordRun(string.Empty) { NoteIndex = index });
+    }
+
+    private void FontSize(double size) {
+        _fontSize = size > 0 ? size : (double?)null;
+        if (!_fontSize.HasValue) Loss("WORDPERFECT_FONT_SIZE", "Formatting", "A source font has no positive point size.");
     }
 
     private void SetStory(int slot, int occurrenceBits, List<LegacyWordParagraph> paragraphs) {
