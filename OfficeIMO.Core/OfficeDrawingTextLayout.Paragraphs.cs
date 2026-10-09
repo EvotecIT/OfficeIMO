@@ -188,9 +188,10 @@ internal static partial class OfficeDrawingTextLayout {
             OfficeTextPlacement.ResolveLeftFromAnchor(OfficeTextPlacement.ResolveAnchorX(0, lineWidth, alignment), line.Width, alignment);
         double offset = measured.Margins.Left + line.OffsetX + (tabbedLine && !paragraph.TabStops!.AlignWithParagraph ? 0 : alignmentOffset);
         if (alignment == OfficeTextAlignment.Justify) offset = measured.Margins.Left + line.OffsetX;
-        var placed = new OfficeRichTextLine(segments, lineHeight, offset) { SourceTextEnd = line.SourceTextEnd };
+        var placed = new OfficeRichTextLine(segments, lineHeight, offset) { SourceTextEnd = line.SourceTextEnd, CompletesSource = line.CompletesSource };
         OfficeRichTextLine result = index == 0 && measured.Label != null ? AddParagraphLabel(placed, measured.Label, lineHeight) : placed;
         result.SourceTextEnd = line.SourceTextEnd;
+        result.CompletesSource = line.CompletesSource;
         return result;
     }
 

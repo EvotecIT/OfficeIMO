@@ -397,8 +397,9 @@ public static partial class OfficeTextLayoutEngine {
             }
         }
 
-        if (!processingStopped && !AddRichTextLine(lines, builder)) {
-            clipped = true;
+        if (!processingStopped) {
+            if (!AddRichTextLine(lines, builder)) clipped = true;
+            else if (!inputTruncated) lines[lines.Count - 1].CompletesSource = true;
         }
         if (lines.Count == 0) {
             lines.Add(new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>()));
@@ -577,7 +578,7 @@ public static partial class OfficeTextLayoutEngine {
             lines[i] = new OfficeRichTextLine(
                 line.Segments,
                 ResolveRichTextLineHeight(line, lineHeightFactor, fallbackFontSize),
-                line.OffsetX) { SourceTextEnd = line.SourceTextEnd };
+                line.OffsetX) { SourceTextEnd = line.SourceTextEnd, CompletesSource = line.CompletesSource };
         }
     }
 

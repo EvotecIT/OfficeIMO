@@ -91,4 +91,29 @@ public sealed class DrawingRichTextFlowTests {
             Assert.Equal(50, Assert.Single(layout.Lines).Width, 6);
         }
     }
+
+    [Fact]
+    public void FlowKeepsOversizedGlyphForANextRegionThatCanContainIt() {
+        var paragraph = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("W", 10, OfficeColor.Black) });
+        var flow = new OfficeRichTextFlow(new[] { paragraph }, _ => { });
+        Assert.Empty(flow.Take(2, 12, Measure, default)); Assert.Equal(0, flow.CharacterPosition); Assert.True(flow.HasRemaining);
+        Assert.Equal("W", Text(flow.Take(10, 12, Measure, default))); Assert.False(flow.HasRemaining);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r")]
+    [InlineData("\r\n")]
+    public void TerminalHardBreakKeepsItsPendingEmptyLineAcrossRegions(string breakText) {
+        var paragraphs = new[] {
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("A" + breakText, 10, OfficeColor.Black) }),
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("B", 10, OfficeColor.Black) })
+        };
+        var flow = new OfficeRichTextFlow(paragraphs, _ => { });
+        Assert.Equal("A" + breakText, Text(flow.Take(100, 12, Measure, default)));
+        Assert.Equal(1 + breakText.Length, flow.CharacterPosition); Assert.True(flow.HasRemaining);
+        Assert.Equal(string.Empty, Text(flow.Take(100, 12, Measure, default)));
+        Assert.Equal(2 + breakText.Length, flow.CharacterPosition); Assert.True(flow.HasRemaining);
+        Assert.Equal("B", Text(flow.Take(100, 12, Measure, default))); Assert.False(flow.HasRemaining);
+    }
 }

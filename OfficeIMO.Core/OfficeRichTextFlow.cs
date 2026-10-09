@@ -43,12 +43,19 @@ internal sealed class OfficeRichTextFlow {
             OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { tail },
                 width, remainingHeight, measure, cancellationToken: cancellationToken);
             int consumed = 0;
-            foreach (OfficeRichTextLine line in layout.Lines) consumed = Math.Max(consumed, line.SourceTextEnd);
+            bool sourceEndVisible = false;
+            foreach (OfficeRichTextLine line in layout.Lines) {
+                // Ordinary drawing wrapping may force an indivisible glyph onto
+                // a narrow line. Flow must retain it for a region that can hold it.
+                if (line.OffsetX < -.000001D || line.OffsetX + line.Width > width - tail.Margins.Right + .000001D) break;
+                consumed = Math.Max(consumed, line.SourceTextEnd);
+                sourceEndVisible |= line.CompletesSource;
+            }
             consumed = Math.Min(consumed, length - _offset);
-            bool complete = consumed == length - _offset;
+            bool complete = consumed == length - _offset && sourceEndVisible;
             // An empty paragraph still consumes a printable line; outer margin
             // gaps alone do not establish that the empty line fitted.
-            if (consumed == 0 && (length != _offset || layout.Clipped || layout.Lines.Count == 0)) break;
+            if (consumed == 0 && !complete) break;
             visible.Add(Slice(source, _offset, consumed, complete));
             CharacterPosition = checked(CharacterPosition + consumed);
             _offset += consumed;
