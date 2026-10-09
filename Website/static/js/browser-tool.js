@@ -401,7 +401,11 @@
     var settled = state.result && state.result.ok && !state.stale && !state.busy;
     ui.run.className = 'bt-btn bt-btn--block' + (settled ? '' : ' bt-btn--primary');
     ui.run.disabled = state.busy || !complete || !!options.problem || !!(state.probe && state.probe.needsPassword && cfg.target !== 'unlock');
+    // Tools that run as soon as a file arrives have nothing to "check again" before the first file.
+    var waitingForFirstFile = !!cfg.auto && cfg.input !== 'text' && !complete;
+    ui.run.hidden = waitingForFirstFile;
     if (state.busy) return;
+    if (waitingForFirstFile) { setHint(''); return; }
     if (!complete) {
       if (cfg.input === 'pair') setHint(state.files.length === 1 ? 'Add the second PDF to compare.' : 'Add two PDFs to compare.');
       else if (cfg.input === 'files') setHint(state.files.length === 1 ? 'Add at least one more PDF.' : 'Add two or more PDFs.');

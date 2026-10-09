@@ -1256,4 +1256,4 @@
 .imo-cap-none { color: var(--imo-text-muted); opacity: .45; }
 .imo-cap-matrix tr[hidden], .imo-cap-empty[hidden] { display: none; }
 .imo-cap-empty { margin: 0; padding: 1rem; text-align: center; color: var(--imo-text-secondary); }
-.imo-capability-catalog .imo-section__eyebrow { margin-inline: 0; }
+@media (max-width: 600px) { .imo-cap-matrix tbody th { min-width: 132px; padding-inline: .6rem; } .imo-cap-matrix tbody th small { display: none; } .imo-cap-matrix td { min-width: 52px; } }

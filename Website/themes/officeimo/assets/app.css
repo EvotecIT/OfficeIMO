@@ -105,8 +105,10 @@ pre code{background:none;padding:0;color:inherit}
 .imo-section{padding:var(--imo-section-gap) 0}
 .imo-section__title{font-size:2rem;font-weight:800;margin-bottom:0.5rem;text-align:center;background:linear-gradient(135deg,var(--imo-text) 0%,var(--imo-text-secondary) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .imo-section__subtitle{font-size:1.05rem;color:var(--imo-text-secondary);text-align:center;max-width:600px;margin:0 auto}
-.imo-section__eyebrow{display:block;width:max-content;max-width:100%;margin:0 auto 0.85rem;padding:0.36rem 0.72rem;border-radius:999px;border:1px solid var(--imo-glass-border);background:rgba(255,255,255,0.02);color:var(--imo-text-secondary);font-size:0.74rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+.imo-section__eyebrow{display:inline-block;width:max-content;max-width:100%;margin:0 0 0.85rem;padding:0.36rem 0.72rem;border-radius:999px;border:1px solid var(--imo-glass-border);background:rgba(255,255,255,0.02);color:var(--imo-text-secondary);font-size:0.74rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
 [data-theme="light"] .imo-section__eyebrow{background:rgba(255,255,255,0.78);border-color:rgba(148,163,184,0.22);color:#475569}
+/* Eyebrows follow their section's alignment; above a centred section title they centre too. */
+.imo-section__eyebrow:has(+ .imo-section__title){display:block;margin-inline:auto}
 .imo-skip-link{position:absolute;top:-50px;left:0;background:var(--imo-accent);color:var(--imo-on-accent,#fff);padding:0.5rem 1rem;z-index:9999;font-weight:600;font-size:0.85rem}
 .imo-skip-link:focus{top:0}
 .imo-dot{display:inline-block;width:6px;height:6px;background:var(--imo-accent);border-radius:50%;box-shadow:0 0 8px var(--imo-accent-glow)}
@@ -424,7 +426,6 @@ pre code{background:none;padding:0;color:inherit}
 /* Document jobs (shortcodes/document-tasks): an accent per job, ways to do it coloured by surface like the format map. */
 .imo-document-tasks { padding-block: 3rem 2.5rem; }
 .imo-document-tasks__head { max-width: 760px; margin-bottom: 1.5rem; }
-.imo-document-tasks__head .imo-section__eyebrow { margin-inline: 0; }
 .imo-document-tasks__head h2 { margin: 0 0 .6rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
 .imo-document-tasks__head p:not(.imo-section__eyebrow) { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
 .imo-document-tasks__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
@@ -518,4 +519,19 @@ pre code{background:none;padding:0;color:inherit}
   .imo-corpus-cases, .imo-corpus-run { grid-template-columns: minmax(0, 1fr); }
   .imo-corpus-ops li { grid-template-columns: minmax(0, 1fr) auto; }
   .imo-corpus-ops li > i { grid-column: 1 / -1; grid-row: 2; }
+}
+/* Prose tables scroll sideways inside their frame on narrow screens (site.js initTableScroll). */
+.imo-table-scroll { max-width: 100%; margin: 1.5rem 0; overflow-x: auto; border-radius: var(--imo-radius-lg); overscroll-behavior-x: contain; }
+.imo-table-scroll > table { margin: 0; }
+.imo-table-scroll:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .imo-table-scroll:has(> .imo-table--stack) { overflow: visible; }
+  .imo-prose table.imo-table--stack, .imo-prose table.imo-table--stack tbody, .imo-prose table.imo-table--stack tr, .imo-prose table.imo-table--stack td { display: block; width: 100%; }
+  .imo-prose table.imo-table--stack { background: none; border: 0; backdrop-filter: none; }
+  .imo-prose table.imo-table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .imo-prose table.imo-table--stack tr { margin: 0 0 10px; padding: 10px 14px; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
+  .imo-prose table.imo-table--stack td { padding: 5px 0; border: 0; }
+  .imo-prose table.imo-table--stack td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--imo-text-muted); }
+  .imo-prose table.imo-table--stack td:first-child { font-weight: 700; color: var(--imo-text); }
+  .imo-prose table.imo-table--stack td:first-child::before { display: none; }
 }

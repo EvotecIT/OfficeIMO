@@ -31,7 +31,6 @@
 
 /* ---- Heading ---- */
 .imo-fmap__head { max-width: 760px; margin-bottom: 20px; }
-.imo-fmap__head .imo-section__eyebrow { margin-inline: 0; }
 .imo-fmap__head h2 { font-family: var(--imo-font-display); font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem); line-height: 1.15; margin: 0 0 10px; color: var(--imo-text); }
 .imo-fmap__head h2 span { color: var(--imo-text-secondary); }
 .imo-fmap__head p { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }

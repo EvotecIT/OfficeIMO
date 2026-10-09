@@ -298,6 +298,8 @@ body.imo-body { overflow-x: clip; }
 @media(max-width:900px) { .imo-browser-tools__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .imo-browser-tools__toolbar { position:static; align-items:stretch; flex-direction:column; gap:14px; margin-inline:0; padding-inline:0; background:none; -webkit-backdrop-filter:none; backdrop-filter:none; } }
 @media(max-width:600px) { .imo-browser-tools { padding-block:32px 48px; } .imo-browser-tools__grid { grid-template-columns:minmax(0,1fr); } .imo-browser-tools__trust { gap:10px 14px; font-size:.84rem; } }
 @media(max-width:360px) { .imo-browser-tools__trust { grid-template-columns:minmax(0,1fr); } }
+/* Phones: tool cards become compact rows (chips + title, one-line summary, arrow) so 26 tools fit in a short scroll. */
+@media(max-width:600px) { .imo-browser-tools__grid { gap:8px; } .imo-browser-tools__card { flex-direction:row; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:12px 40px 12px 14px; } .imo-browser-tools__card:hover { transform:none; } .imo-browser-tools__card strong { flex:1 1 auto; font-size:1rem; } .imo-browser-tools__desc { flex-basis:100%; -webkit-line-clamp:1; line-clamp:1; font-size:12.5px; } .imo-browser-tools__open { position:absolute; top:50%; right:14px; margin:0; padding:0; font-size:0; transform:translateY(-50%); } .imo-browser-tools__open span { font-size:18px; } .imo-browser-tools__glyph { width:26px; height:26px; } }
 @media(prefers-reduced-motion:reduce) { .imo-browser-tools__card, .imo-browser-tools__open span { transition:none; } .imo-browser-tools__card:hover { transform:none; } }
 
 @media (max-width: 1199px) {
@@ -853,7 +855,6 @@ body.imo-body::after {
 /* "Use OfficeIMO another way" (partials/sections/surface-switcher): the other surfaces, coloured like the home page cards. */
 .imo-switcher { padding-block: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 3vw, 2.5rem); }
 .imo-switcher__head { margin-bottom: 1.1rem; }
-.imo-switcher__head .imo-section__eyebrow { margin-inline: 0; }
 .imo-switcher__head h2 { margin: 0; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); }
 .imo-switcher__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
 .imo-switcher__card {

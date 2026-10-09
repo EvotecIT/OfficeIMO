@@ -897,7 +897,32 @@
     });
   }
 
+  // Prose tables keep their full width on wide screens and scroll sideways on phones instead of being clipped.
+  function initTableScroll() {
+    Array.prototype.forEach.call(document.querySelectorAll(".imo-prose table"), function (table) {
+      var parent = table.parentElement;
+      if (!parent || parent.classList.contains("imo-table-scroll") || /(auto|scroll)/.test(getComputedStyle(parent).overflowX)) return;
+      var wrap = document.createElement("div");
+      wrap.className = "imo-table-scroll";
+      wrap.setAttribute("tabindex", "0");
+      wrap.setAttribute("role", "region");
+      var caption = table.querySelector("caption") || table.querySelector("th");
+      wrap.setAttribute("aria-label", caption ? "Table: " + caption.textContent.trim().slice(0, 60) : "Table");
+      parent.insertBefore(wrap, table);
+      wrap.appendChild(table);
+      // Tables with three to five columns stack into labelled cards on phones (CSS uses data-label).
+      var headers = table.tHead ? Array.prototype.map.call(table.tHead.rows[0].cells, function (th) { return th.textContent.trim(); }) : [];
+      if (headers.length >= 3 && headers.length <= 5 && table.tBodies.length) {
+        table.classList.add("imo-table--stack");
+        Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
+          Array.prototype.forEach.call(row.cells, function (cell, i) { if (headers[i]) cell.setAttribute("data-label", headers[i]); });
+        });
+      }
+    });
+  }
+
   function init() {
+    initTableScroll();
     initFeatureLists();
     initSectionCards();
     initFaqFilter();

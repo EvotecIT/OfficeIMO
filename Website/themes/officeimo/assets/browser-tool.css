@@ -292,7 +292,12 @@ label.bt-item__body { cursor: pointer; }
 @media (max-width: 560px) {
   .bt-main { padding-block: 16px 48px; }
   .bt-shell { padding-inline: 16px; }
-  .bt-steps { grid-template-columns: 1fr; }
+  /* Steps stay side by side as compact numbered tiles. */
+  .bt-steps { gap: 6px; }
+  .bt-steps li { flex-direction: column; justify-content: center; gap: 4px; padding: 8px 4px; text-align: center; font-size: 11.5px; line-height: 1.25; }
+  .bt-steps li span { white-space: normal; }
+  /* Before there is a result, the empty placeholder only repeats "What to expect" below. */
+  .bt-output:has([data-bt-empty]) { display: none; }
   .bt-local { white-space: normal; }
   .bt-panel { padding: 16px; }
   .bt-preview--pair { grid-template-columns: 1fr 1fr; }
