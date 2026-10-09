@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         /// <summary>Prepares table cell text for the current frame, optionally retaining an unfinished row's cursor.</summary>
         private PreparedFlowTableRows PrepareFlowTableRows(TableBlock table, PdfTableStyle style, int columns,
             double[] columnWidths, double columnGap, double rowGap, int headerCount, int footerStart,
-            PreparedFlowTableRows? previous = null, int continuingRow = -1, int consumedLines = 0, double? fallbackFontSize = null) {
+            PreparedFlowTableRows? previous = null, int continuingRow = -1, int consumedLines = 0, double? fallbackFontSize = null, TableSpanFlow? spanFlow = null) {
             var result = new PreparedFlowTableRows(table.Rows.Count);
             var textLayouts = new TableTextLayoutReuse(currentOpts);
             for (int row = 0; row < table.Rows.Count; row++) {
@@ -33,8 +33,12 @@ internal static partial class PdfWriter {
                     double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
                     double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) -
                         GetTableCellPaddingLeft(style, row, cell.Column) - GetTableCellPaddingRight(style, row, cell.Column));
-                    TableCellTextLayout lines = continued
-                        ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], consumedLines, innerWidth, font, size, leading,
+                    bool mergedCursor = spanFlow?.Contains(row, cell.Column) == true;
+                    int spanConsumed = mergedCursor ? spanFlow!.GetConsumedLines(row, cell.Column) : 0;
+                    bool continueCell = previous != null && (mergedCursor ? spanConsumed > 0 : continued);
+                    int cellConsumed = mergedCursor ? spanConsumed : consumedLines;
+                    TableCellTextLayout lines = continueCell
+                        ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], cellConsumed, innerWidth, font, size, leading,
                             currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum)
                         : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
@@ -47,25 +51,12 @@ internal static partial class PdfWriter {
                 }
                 result.LineCounts[row] = maxLines;
                 result.Heights[row] = ResolveTableRowHeight(style, row, maxHeight);
+                result.IntrinsicHeights[row] = result.Heights[row];
             }
             ApplyTableRowSpanHeights(table, style, columns, columnWidths, result.Lines, result.Heights, result.Leadings, columnGap, rowGap);
             return result;
         }
 
-        private sealed class PreparedFlowTableRows {
-            public PreparedFlowTableRows(int rows) {
-                Lines = new TableCellTextLayout[rows][];
-                LineCounts = new int[rows]; Heights = new double[rows]; Leadings = new double[rows];
-                Sizes = new double[rows]; Bold = new bool[rows];
-                RunFontSizeScales = new double[rows];
-            }
-            public TableCellTextLayout[][] Lines { get; }
-            public int[] LineCounts { get; }
-            public double[] Heights { get; }
-            public double[] Leadings { get; }
-            public double[] Sizes { get; }
-            public double[] RunFontSizeScales { get; }
-            public bool[] Bold { get; }
-        }
+
     }
 }
