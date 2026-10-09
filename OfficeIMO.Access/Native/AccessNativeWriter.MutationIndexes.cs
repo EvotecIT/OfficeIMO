@@ -36,13 +36,14 @@ namespace OfficeIMO.Access {
                     object?[] values = row.Values; bool nullKey = index.Columns.All(c => values[c] == null);
                     if ((index.Flags & 8) != 0 && index.Columns.Any(c => values[c] == null)) throw new InvalidDataException("A native required index cannot contain null fields.");
                     if ((index.Flags & 2) != 0 && nullKey) continue;
-                    byte[] key = Key(shape, index, values);
+                    byte[] key = Key(shape, index, values, bytes => ReserveMutationMetadata(database, bytes));
                     if (unique.Add(Convert.ToBase64String(key))) { if (!oldKeys.Contains(Convert.ToBase64String(key))) addedUnique++; }
                     else if ((index.Flags & 1) != 0 && !nullKey) throw new InvalidDataException("Native application rows violate a unique index.");
+                    ReserveMutationMetadata(database, key.Length + 4);
                     byte[] entry = new byte[key.Length + 4]; Buffer.BlockCopy(key, 0, entry, 0, key.Length);
                     BigEndian(entry, key.Length, row.Id); entries.Add(entry);
                 }
-                entries.Sort(CompareBytes); WriteIndexEntries(shape, index, entries);
+                entries.Sort(CompareBytes); WriteIndexEntries(shape, index, entries, bytes => ReserveMutationMetadata(database, bytes));
                 byte[] owned = UsageMap(database.OwnedPages(native.OwnedPages, _cancellation).Concat(index.Pages).Distinct());
                 int mapPage = Allocate(); _pages[mapPage] = DataPage(0, new[] { owned });
                 ReplaceDefinitionPointer(database, table.DefinitionPage, native.PhysicalDefinitionOffset + 34, checked((uint)mapPage << 8));
