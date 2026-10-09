@@ -16,6 +16,8 @@ internal sealed partial class ChmNavigationReader {
     private readonly CancellationToken _token;
     private readonly List<(string Title, string Target)> _topics = new List<(string, string)>();
     private int _itemCount;
+    private int _referenceCount;
+    private long _characters;
     internal Dictionary<string, string> TopicTitles { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     internal ChmNavigationReader(ChmDocument book, ChmReadOptions options, Encoding encoding, CancellationToken token) {
         _book = book; _options = options; _encoding = encoding; _token = token;
@@ -42,6 +44,7 @@ internal sealed partial class ChmNavigationReader {
         _itemCount++; return new Item();
     }
     private ChmLink Link(string target, string sourcePath, string? title = null) {
+        ReserveReference();
         if (target.Length > _options.MaxPathLength) throw ChmBinary.Error("NAVIGATION_LIMIT", "A navigation reference exceeds MaxPathLength.");
         string? path = ChmPaths.Resolve(target, sourcePath, _options.MaxPathLength);
         string suffix = string.Empty;
@@ -50,8 +53,21 @@ internal sealed partial class ChmNavigationReader {
         string value = path == null ? target : path + suffix;
         if (path == null) _book.Diagnostic("CHM_EXTERNAL_NAVIGATION", "An external, merged-help, or unsafe navigation target is retained without loading it.", target);
         else if (_book.FindEntry(path) == null) _book.Diagnostic("CHM_TOPIC_MISSING", "A navigation target does not exist in this archive.", value);
-        return new ChmLink(value, title);
+        return new ChmLink(NavigationText(value), title == null ? null : NavigationText(title));
     }
+
+    private void ReserveReference() {
+        if (_referenceCount >= _options.MaxNavigationReferences)
+            throw ChmBinary.Error("NAVIGATION_LIMIT", "The navigation exceeds MaxNavigationReferences.");
+        _referenceCount++;
+    }
+    private string NavigationText(string value) {
+        if (value.Length > _options.MaxNavigationCharacters - _characters)
+            throw ChmBinary.Error("NAVIGATION_LIMIT", "The navigation exceeds MaxNavigationCharacters.");
+        _characters += value.Length;
+        return value;
+    }
+    private string SeeAlsoReference(string value) { ReserveReference(); return NavigationText(value); }
 
     private IReadOnlyList<ChmNavigationItem> ReadSitemap(string? declaredPath, string extension) {
         ChmEntry? entry = string.IsNullOrWhiteSpace(declaredPath) ? null : _book.FindEntry(declaredPath!);
@@ -80,9 +96,9 @@ internal sealed partial class ChmNavigationReader {
                         _token.ThrowIfCancellationRequested();
                         string? name = parameter.GetAttribute("name"), value = parameter.GetAttribute("value");
                         if (string.IsNullOrEmpty(value)) continue;
-                        if (string.Equals(name, "Name", StringComparison.OrdinalIgnoreCase)) { if (item.Name.Length == 0) item.Name = value!; pendingTitle = value; }
+                        if (string.Equals(name, "Name", StringComparison.OrdinalIgnoreCase)) { if (item.Name.Length == 0) item.Name = NavigationText(value!); pendingTitle = value; }
                         else if (string.Equals(name, "Local", StringComparison.OrdinalIgnoreCase)) item.Links.Add(Link(value!, entry.Path, pendingTitle));
-                        else if (string.Equals(name, "See Also", StringComparison.OrdinalIgnoreCase)) item.SeeAlso.Add(value!);
+                        else if (string.Equals(name, "See Also", StringComparison.OrdinalIgnoreCase)) item.SeeAlso.Add(SeeAlsoReference(value!));
                         else if (string.Equals(name, "Merge", StringComparison.OrdinalIgnoreCase)) item.Links.Add(Link(value!, entry.Path));
                     }
                     output.Add(item); last = item;
@@ -106,15 +122,15 @@ internal sealed partial class ChmNavigationReader {
         for (int position = 0; position < records.Length; position += 16) {
             _token.ThrowIfCancellationRequested();
             uint titleOffset = ChmBinary.U32(records, position + 4);
-            string title = titleOffset == uint.MaxValue ? string.Empty : ChmBinary.CString(names, ChmBinary.Index(titleOffset), _encoding, _options.MaxPathLength);
+            string title = titleOffset == uint.MaxValue ? string.Empty : NavigationText(ChmBinary.CString(names, ChmBinary.Index(titleOffset), _encoding, _options.MaxPathLength));
             int location = ChmBinary.Index(ChmBinary.U32(records, position + 8));
             ChmBinary.Range(locations, location, 12);
             int referenceOffset = ChmBinary.Index(ChmBinary.U32(locations, location + 8));
             ChmBinary.Range(references, referenceOffset, 9);
-            string target = ChmBinary.CString(references, referenceOffset + 8, _encoding, _options.MaxPathLength);
+            string target = NavigationText(ChmBinary.CString(references, referenceOffset + 8, _encoding, _options.MaxPathLength));
             _topics.Add((title, target));
             string? path = ChmPaths.Resolve(target, "/", _options.MaxPathLength);
-            if (path != null && !TopicTitles.ContainsKey(path) && title.Length > 0) TopicTitles.Add(path, title);
+            if (path != null && !TopicTitles.ContainsKey(path) && title.Length > 0) TopicTitles.Add(NavigationText(path), title);
         }
     }
     private (string Title, string Target) Topic(uint index) {

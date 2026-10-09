@@ -16,6 +16,10 @@ public sealed class ChmReadOptions {
     public int MaxPathLength { get; set; } = 4096;
     /// <summary>Maximum contents and index items combined, and maximum compiled topic-table records.</summary>
     public int MaxNavigationItems { get; set; } = 100_000;
+    /// <summary>Maximum contents/index links and See Also references combined. Repeated targets count separately.</summary>
+    public int MaxNavigationReferences { get; set; } = 100_000;
+    /// <summary>Maximum total characters in compiled topic metadata, navigation names, link targets/titles and See Also values. Repeated values count separately.</summary>
+    public long MaxNavigationCharacters { get; set; } = 16L * 1024 * 1024;
     /// <summary>Maximum contents or index nesting depth, from 1 through 512.</summary>
     public int MaxNavigationDepth { get; set; } = 128;
     /// <summary>Maximum nodes in one parsed sitemap or topic.</summary>
@@ -43,6 +47,8 @@ public sealed class ChmReadOptions {
         if (MaxEntryBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxEntryBytes));
         if (MaxPathLength < 1) throw new ArgumentOutOfRangeException(nameof(MaxPathLength));
         if (MaxNavigationItems < 1) throw new ArgumentOutOfRangeException(nameof(MaxNavigationItems));
+        if (MaxNavigationReferences < 1) throw new ArgumentOutOfRangeException(nameof(MaxNavigationReferences));
+        if (MaxNavigationCharacters < 1 || MaxNavigationCharacters > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxNavigationCharacters));
         if (MaxNavigationDepth < 1 || MaxNavigationDepth > 512) throw new ArgumentOutOfRangeException(nameof(MaxNavigationDepth));
         if (MaxHtmlNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxHtmlNodes));
         if (MaxHtmlDepth < 1 || MaxHtmlDepth > 512) throw new ArgumentOutOfRangeException(nameof(MaxHtmlDepth));

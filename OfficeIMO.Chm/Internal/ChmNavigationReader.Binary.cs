@@ -20,10 +20,10 @@ internal sealed partial class ChmNavigationReader {
             Item item = NewItem(current.Depth);
             uint properties = ChmBinary.U32(data, current.Offset + 4), value = ChmBinary.U32(data, current.Offset + 8);
             if ((properties & 8) != 0) {
-                var topic = Topic(value); item.Name = topic.Title; item.Links.Add(Link(topic.Target, "/", topic.Title));
+                var topic = Topic(value); item.Name = NavigationText(topic.Title); item.Links.Add(Link(topic.Target, "/", topic.Title));
             } else {
                 if (names == null) throw ChmBinary.Error("CONTENTS", "Compiled contents headings require #STRINGS.");
-                item.Name = ChmBinary.CString(names, ChmBinary.Index(value), _encoding, _options.MaxPathLength);
+                item.Name = NavigationText(ChmBinary.CString(names, ChmBinary.Index(value), _encoding, _options.MaxPathLength));
             }
             current.Output.Add(item);
             int sibling = ChmBinary.Index(ChmBinary.U32(data, current.Offset + 16));
@@ -61,11 +61,13 @@ internal sealed partial class ChmNavigationReader {
                 int seeAlso = ChmBinary.U16(data, position), depth = ChmBinary.U16(data, position + 2);
                 uint charIndex = ChmBinary.U32(data, position + 4), pairs = ChmBinary.U32(data, position + 12);
                 position += 16;
-                if (depth > parents.Count || charIndex > fullName.Length || pairs > _options.MaxNavigationItems)
-                    throw ChmBinary.Error("INDEX", "The keyword depth, name offset, or target count is invalid.");
+                if (depth > parents.Count || charIndex > fullName.Length)
+                    throw ChmBinary.Error("INDEX", "The keyword depth or name offset is invalid.");
+                if (seeAlso == 0 && pairs > _options.MaxNavigationReferences - _referenceCount)
+                    throw ChmBinary.Error("NAVIGATION_LIMIT", "The navigation exceeds MaxNavigationReferences.");
                 Item item = NewItem(depth + 1);
-                item.Name = fullName.Substring((int)charIndex).TrimStart(' ', ',');
-                if (seeAlso == 2) item.SeeAlso.Add(ReadWideString(data, ref position, end));
+                item.Name = NavigationText(fullName.Substring((int)charIndex).TrimStart(' ', ','));
+                if (seeAlso == 2) item.SeeAlso.Add(SeeAlsoReference(ReadWideString(data, ref position, end)));
                 else if (seeAlso == 0) {
                     for (uint pair = 0; pair < pairs; pair++) {
                         _token.ThrowIfCancellationRequested(); Require(4);

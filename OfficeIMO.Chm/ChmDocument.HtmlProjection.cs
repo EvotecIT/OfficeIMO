@@ -66,10 +66,15 @@ public sealed partial class ChmDocument {
             }
             HtmlElement section = output.CreateElement("section"); section.SetAttribute("id", prefix);
             section.SetAttribute("data-chm-topic", topic.Path);
-            HtmlElement heading = output.CreateElement("h1"); heading.TextContent = topic.Title; section.AppendChild(heading);
+            PreserveTopicLanguage(output, section, normalized, topic == topics[0]);
+            HtmlElement container = PreserveTopicContainer(output, section, normalized.DocumentElement, topic.Path, diagnostics, ref nodes, configured);
+            container = PreserveTopicContainer(output, container, normalized.Body, topic.Path, diagnostics, ref nodes, configured);
+            if (nodes > configured.MaxHtmlNodes - 2) throw ChmBinary.Error("CONVERSION_LIMIT", "The combined book exceeds MaxHtmlNodes.");
+            nodes += 2;
+            HtmlElement heading = output.CreateElement("h1"); heading.TextContent = topic.Title; container.AppendChild(heading);
             foreach (HtmlNode node in normalized.Body?.ChildNodes ?? Array.Empty<HtmlNode>()) {
                 HtmlNode copy = output.ImportNode(node, cancellationToken: cancellationToken);
-                section.AppendChild(copy);
+                container.AppendChild(copy);
             }
             // Topic headings own book/chapter boundaries. Demote authored headings one level.
             foreach (HtmlElement headingElement in section.QuerySelectorAll("h1,h2,h3,h4,h5")) {

@@ -50,7 +50,9 @@ Topic selection retains book order and rejects unknown or non-topic paths. `Requ
 
 ## Bounds and ownership
 
-Default read limits are 128 MiB input, 256 MiB expanded LZX data, 32 MiB per entry, 100,000 entries/navigation items, and bounded HTML/tree depth. Limits reject the operation rather than returning a truncated book. `ChmReadException.Code` identifies malformed or unsupported archives and exhausted limits. Cancellation is cooperative during reads, directory/navigation parsing, decompression, and conversion.
+Default read limits are 128 MiB input, 256 MiB expanded LZX data, 32 MiB per entry, 100,000 entries/navigation items, 100,000 combined navigation references, 16 Mi characters of navigation text, and bounded HTML/tree depth. Repeated targets and compiled-table strings count against the aggregate budgets. Limits reject the operation rather than returning a truncated book. `ChmReadException.Code` identifies malformed or unsupported archives and exhausted limits. Cancellation is cooperative during reads, directory/navigation parsing, decompression, and conversion.
+
+Linked books retain each topic's language, reading direction, and inert container attributes. The first selected topic supplies the book's primary language; the help-book locale supplies a language when the topic has no declaration. EPUB callers can override the publication language with `EpubManuscriptOptions.Language`.
 
 `ChmTopic.ToHtmlDocument()` exposes the existing inert HTML model. `ConfigureRenderOptions(options, topic.Path)` supplies a virtual `chm://archive/` base and an archive-only resource resolver. It replaces an existing resolver; remote images, fonts, stylesheets, and files are never loaded by CHM conversion.
 
