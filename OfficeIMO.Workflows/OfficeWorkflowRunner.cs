@@ -247,8 +247,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] actual = ReadInput(request.ComparisonPath!, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions, cancellationToken);
         PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions, cancellationToken);
-        int selectedExpectedCount = request.ComparisonExpectedPages?.Resolve(before.PageCount, 100).Count ?? before.PageCount;
-        int selectedActualCount = request.ComparisonActualPages?.Resolve(after.PageCount, 100).Count ?? after.PageCount;
+        // Diagnostic snapshots may represent read failures or valid zero-page catalogs.
+        // Let the comparison reader enforce admission before interpreting either selector.
+        int expectedPageCount = before.CanRead && before.PageCount > 0 ? before.PageCount
+            : PdfReadDocument.Open(expected, request.PdfLoadOptions, cancellationToken).Pages.Count;
+        int actualPageCount = after.CanRead && after.PageCount > 0 ? after.PageCount
+            : PdfReadDocument.Open(actual, request.ComparisonPdfLoadOptions, cancellationToken).Pages.Count;
+        int selectedExpectedCount = request.ComparisonExpectedPages?.Resolve(expectedPageCount, 100).Count ?? expectedPageCount;
+        int selectedActualCount = request.ComparisonActualPages?.Resolve(actualPageCount, 100).Count ?? actualPageCount;
         var comparisonOptions = new PdfVisualComparisonOptions {
             ExpectedPages = request.ComparisonExpectedPages,
             ActualPages = request.ComparisonActualPages,
