@@ -984,6 +984,7 @@
   <data name="Redaction.FindMarks" xml:space="preserve"><value>Rechercher et ajouter des marques</value></data>
   <data name="Redaction.Marks" xml:space="preserve"><value>Marques de caviardage en attente</value></data>
   <data name="Redaction.Include" xml:space="preserve"><value>Inclure la page</value></data>
+  <data name="Redaction.IncludePage" xml:space="preserve"><value>Inclure la page {0} : {1}</value></data>
   <data name="Redaction.Reason" xml:space="preserve"><value>Motif du caviardage</value></data>
   <data name="Redaction.RemoveMark" xml:space="preserve"><value>Retirer la marque sélectionnée</value></data>
   <data name="Redaction.ReviewImpact" xml:space="preserve"><value>Examiner les marques sélectionnées</value></data>

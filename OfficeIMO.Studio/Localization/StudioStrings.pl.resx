@@ -2928,6 +2928,9 @@
   <data name="Redaction.Include" xml:space="preserve">
     <value>Uwzględnij stronę</value>
   </data>
+  <data name="Redaction.IncludePage" xml:space="preserve">
+    <value>Uwzględnij stronę {0}: {1}</value>
+  </data>
   <data name="Redaction.Reason" xml:space="preserve">
     <value>Powód usunięcia treści</value>
   </data>

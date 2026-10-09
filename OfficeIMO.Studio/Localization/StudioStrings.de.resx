@@ -2928,6 +2928,9 @@
   <data name="Redaction.Include" xml:space="preserve">
     <value>Seite einbeziehen</value>
   </data>
+  <data name="Redaction.IncludePage" xml:space="preserve">
+    <value>Seite {0} einbeziehen: {1}</value>
+  </data>
   <data name="Redaction.Reason" xml:space="preserve">
     <value>Grund für die Schwärzung</value>
   </data>
