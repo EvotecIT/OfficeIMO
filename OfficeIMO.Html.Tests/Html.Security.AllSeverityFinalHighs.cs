@@ -5,6 +5,27 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlAllSeverityFinalHighSecurityTests {
+    [Theory]
+    [InlineData("empty")]
+    [InlineData("cached-text")]
+    [InlineData("nested")]
+    public void TableIntrinsicInlineDescendantsConsumeTheLayoutOperationBudget(string content) {
+        string descendants = content switch {
+            "cached-text" => string.Concat(Enumerable.Repeat("<span>Cached</span>", 64)),
+            "nested" => string.Concat(Enumerable.Repeat("<span><span></span></span>", 32)),
+            _ => string.Concat(Enumerable.Repeat("<span></span>", 64))
+        };
+        string html = "<table><tr><td>" + descendants + "</td></tr></table>";
+        Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxLayoutOperations = 4096 }).Pages);
+
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxLayoutOperations = 8 }));
+
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, exception.Code);
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), exception.LimitSource);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
     [Fact]
     public void TableDescendantIntrinsicSizingConsumesTheLayoutOperationBudget() {
         var html = new StringBuilder("<table><tr><td>");

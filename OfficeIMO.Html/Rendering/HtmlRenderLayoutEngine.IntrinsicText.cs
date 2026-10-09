@@ -257,6 +257,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
+            CheckCancellation();
             if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
                 if (text.Data.Length > 0 && parentStyle.Font.Size > 0D) result.Add(new IntrinsicTextRun(text.Data, parentStyle));
@@ -264,6 +265,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (node is not IElement child || ShouldSkipElement(child)) continue;
             EnsureDepth(depth, child);
+            // Empty descendants and cached style/text measurements still cost
+            // traversal work before they contribute intrinsic content.
+            ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(child));
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             childStyle = PrepareButtonChildStyle(child, childStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
@@ -273,8 +277,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
                 && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
                 && childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
-                // Its width is measured separately, but it still separates text
-                // on either side into distinct block lines.
+                // Do not flatten nested table cells into surrounding text. A
+                // definite table contributes its declared outer box once.
+                result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
+                double width = ResolveBoxWidth(availableSize, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+                result.Add(IntrinsicTextRun.Replaced(width, childStyle));
                 result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }
