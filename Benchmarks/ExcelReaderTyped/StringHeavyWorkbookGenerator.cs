@@ -1,11 +1,11 @@
 // Adapted upstream generator at ca5b50f99e8ef57ab476f0a2bc8043558d58b28d.
 // Copyright (c) 2026 Gabriel Matte; MIT license in THIRD-PARTY-NOTICES.md.
-using System.Globalization;
-using System.Text;
 using ExcelReader.Core.Writer;
 using ExcelReader.Core.Writer.Xls;
 using ExcelReader.Core.Writer.Xlsb;
 using ExcelReader.Core.Writer.Xlsx;
+using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks
 {
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks
 
         public static byte[] BuildCsv(int rows)
         {
-            var sb = new StringBuilder(rows * 160);
+            StringBuilder sb = new StringBuilder(rows * 160);
             sb.Append("Code,Category,City,Company,PersonName,Email,Address,Description,Id,Amount,Date\n");
             for (int r = 1; r <= rows; r++)
             {
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks
             where TSheet : ISheetWriter<TRow>
             where TRow : IRowWriter
         {
-            await using var ms = new MemoryStream();
+            await using MemoryStream ms = new MemoryStream();
             await using (TWorkbook wb = create(ms))
             {
                 TSheet sheet = wb.AddSheet("S1");
