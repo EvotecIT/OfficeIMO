@@ -14,8 +14,7 @@ internal static class ImageConversionEvidence {
     internal static void Validate(TextWriter writer) {
         OfficeRasterImage pattern = ImageBenchmarkCorpus.CreatePattern(64, 48);
         var sourceOptions = new OfficeRasterEncodingOptions {
-            DpiX = 144D,
-            DpiY = 120D
+            Resolution = new OfficeImageResolution(144D, 120D)
         };
         var sources = new[] {
             new ConversionSource("PNG", OfficeRasterImageEncoder.Encode(pattern, OfficeImageExportFormat.Png, sourceOptions)),

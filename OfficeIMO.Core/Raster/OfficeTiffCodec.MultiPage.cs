@@ -14,7 +14,10 @@ public static partial class OfficeTiffCodec {
 
     /// <summary>Encodes bounded TIFF pages while observing cancellation during planning, compression, and copying.</summary>
     public static byte[] EncodePages(IReadOnlyList<OfficeRasterImage> pages,
-        OfficeTiffEncodeOptions? options, CancellationToken cancellationToken) {
+        OfficeTiffEncodeOptions? options, CancellationToken cancellationToken) => EncodePages(pages, options, cancellationToken, OfficeRasterGuards.MaximumEncodedBytes, 0L);
+
+    internal static byte[] EncodePages(IReadOnlyList<OfficeRasterImage> pages,
+        OfficeTiffEncodeOptions? options, CancellationToken cancellationToken, long maximumEncodedBytes, long additionallyRetainedBytes) {
         if (pages == null) throw new ArgumentNullException(nameof(pages));
         if (pages.Count < 1 || pages.Count > 1024) throw new ArgumentOutOfRangeException(nameof(pages));
         cancellationToken.ThrowIfCancellationRequested();
@@ -34,7 +37,7 @@ public static partial class OfficeTiffCodec {
         int entryCount = BaseEntryCount - (effective.WriteResolution ? 0 : 3) + (UsesHorizontalPredictor(effective) ? 1 : 0);
         int ifdBlockLength = 2 + entryCount * 12 + 4 + 8 + (effective.WriteResolution ? 16 : 0);
         long headerLength = checked(8L + (long)pages.Count * ifdBlockLength);
-        long sourceBytes = checked(totalPixels * 4L);
+        long sourceBytes = checked(totalPixels * 4L + additionallyRetainedBytes + pages.Count * 64L);
         var strips = new byte[pages.Count][];
         long stripBytes = 0;
         long retainedStripBytes = 0;
@@ -48,7 +51,7 @@ public static partial class OfficeTiffCodec {
             byte[] strip = EncodeTiffStrip(pages[index], effective, cancellationToken);
             strips[index] = strip;
             stripBytes = checked(stripBytes + strip.Length);
-            if (headerLength + stripBytes > OfficeRasterGuards.MaximumEncodedBytes) {
+            if (headerLength + stripBytes > maximumEncodedBytes) {
                 throw new ArgumentException("The multi-page TIFF exceeds the encoded-size limit.", nameof(pages));
             }
             if (!ReferenceEquals(strip, pages[index].PixelBuffer)) {

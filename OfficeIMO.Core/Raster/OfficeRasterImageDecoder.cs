@@ -16,7 +16,7 @@ public static partial class OfficeRasterImageDecoder {
     /// <summary>
     /// Human-readable summary of raster formats currently decoded by the managed renderer.
     /// </summary>
-    public const string SupportedFormatDescription = "PNG and APNG frames, JPEG, bounded classic TIFF pages, unsigned eight/sixteen-bit and finite fixed/floating-point gray/RGB JPEG XR, uncompressed BMP, explicitly selected GIF frames, lossless VP8L WebP, lossy VP8 WebP image bytes with optional raw or compressed alpha, and bounded 8/10-bit YUV420 or monochrome AVIF still items with optional straight alpha";
+    public const string SupportedFormatDescription = "PNG and APNG frames, JPEG, bounded classic TIFF pages, unsigned eight/sixteen-bit and finite fixed/floating-point gray/RGB JPEG XR, uncompressed BMP, explicitly selected GIF frames, lossless VP8L WebP, lossy VP8 WebP image bytes with optional raw or compressed alpha, bounded 8/10-bit YUV420 or monochrome AVIF still items with optional straight alpha, bounded PNG/DIB icon entries, portable bitmap/graymap/pixmap, and the managed TGA subset";
 
     /// <summary>
     /// Attempts to decode image bytes into an RGBA raster buffer supported by dependency-free export.
@@ -91,7 +91,9 @@ public static partial class OfficeRasterImageDecoder {
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (bytes == null || bytes.Length == 0 || bytes.Length > effective.MaximumEncodedBytes) {
             info = new OfficeRasterDecodeInfo(OfficeImageFormat.Unknown, 0, effective.FrameIndex, succeeded: false,
-                diagnostic: "Raster image bytes are empty or exceed the configured encoded-size limit.");
+                diagnostic: "Raster image bytes are empty or exceed the configured encoded-size limit.") {
+                Failure = bytes != null && bytes.Length > effective.MaximumEncodedBytes ? OfficeRasterDecodeFailure.EncodedLimit : OfficeRasterDecodeFailure.InvalidOrUnsupported
+            };
             return false;
         }
         if (!OfficeRasterContainerInspector.TryInspectForDecode(
@@ -106,7 +108,7 @@ public static partial class OfficeRasterImageDecoder {
         int frameCount = container.Count;
         if (effective.FrameIndex >= frameCount) {
             info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, false,
-                "The requested frame or page index is outside the container.", container);
+                "The requested frame or page index is outside the container.", container) { Failure = OfficeRasterDecodeFailure.FrameSelectionOutOfRange };
             return false;
         }
         bool carriesAnimationSemantics = frameCount > 1 || container.IsAnimated;
@@ -116,7 +118,7 @@ public static partial class OfficeRasterImageDecoder {
                 container.IsMultiPage
                     ? "Multi-page TIFF input was rejected by the configured frame-loss policy."
                     : "Animated input was rejected by the configured frame-loss policy.",
-                container);
+                container) { Failure = OfficeRasterDecodeFailure.FramePolicyRejected };
             return false;
         }
 
@@ -156,6 +158,7 @@ public static partial class OfficeRasterImageDecoder {
                 ? "The selected TIFF page was decoded; remaining pages were not retained in the static raster result."
                 : decoded ? null : "The requested TIFF page could not be decoded.";
             info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container) { UsedCallerCodec = callerDecoded };
+            SetOrientationEvidence(bytes, effective, info);
             return decoded;
         }
 
@@ -203,10 +206,20 @@ public static partial class OfficeRasterImageDecoder {
         if (!success) image = null;
         info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, success,
             success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container) { UsedCallerCodec = usedCallerCodec };
+        SetOrientationEvidence(bytes, effective, info);
         return success;
     }
 
     private static bool IsDecodedImageWithinLimit(OfficeRasterImage? image, long maximumPixels) =>
         image != null && IsWithinPixelLimit(image.Width, image.Height, maximumPixels);
+
+    private static void SetOrientationEvidence(byte[] bytes, OfficeRasterDecodeOptions options, OfficeRasterDecodeInfo info) {
+        OfficeImageOrientation orientation = OfficeImageOrientation.Normal;
+        if (info.Format == OfficeImageFormat.Tiff) orientation = info.SelectedFrame?.Orientation ?? OfficeImageOrientation.Normal;
+        else if (info.Format == OfficeImageFormat.Jpeg) OfficeImageOrientationNormalizer.TryRead(bytes, options.CancellationToken, out orientation);
+        info.SourceOrientation = orientation;
+        info.OrientationNormalized = info.Succeeded && !info.UsedCallerCodec && options.ApplyExifOrientation &&
+            !(info.Format == OfficeImageFormat.Tiff && options.IgnoreTiffOrientation) && orientation != OfficeImageOrientation.Normal;
+    }
 
 }

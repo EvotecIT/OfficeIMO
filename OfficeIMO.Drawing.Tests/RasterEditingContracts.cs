@@ -72,8 +72,9 @@ public sealed class RasterEditingContracts {
         var layout = OfficeRasterText.Measure("one two three four", 14, "Arial", 35);
         Assert.True(layout.Lines.Count > 1);
         var image = new OfficeRasterImage(100, 70, OfficeColor.White);
-        OfficeRasterText.Draw(image, "one two three four", 20, 15, 35, 25, OfficeColor.Black, 14, "Arial", wrap: true, clip: true,
-            shadowColor: OfficeColor.Red, shadowOffsetX: 4, shadowOffsetY: 3, outlineColor: OfficeColor.Blue, outlineWidth: 2);
+        OfficeRasterText.Draw(image, "one two three four", 20, 15, 35, 25, OfficeColor.Black,
+            new OfficeRasterTextOptions { FontSize = 14, FontFamily = "Arial", Wrap = true, Clip = true,
+                ShadowColor = OfficeColor.Red, ShadowOffsetX = 4, ShadowOffsetY = 3, OutlineColor = OfficeColor.Blue, OutlineWidth = 2 });
         bool ink = false;
         for (int y = 0; y < image.Height; y++) {
             for (int x = 0; x < image.Width; x++) {
@@ -89,8 +90,9 @@ public sealed class RasterEditingContracts {
         var plain = new OfficeRasterImage(140, 60, OfficeColor.White);
         var effects = plain.Clone();
         OfficeRasterText.Draw(plain, "Office", 10, 10, 110, 30, OfficeColor.Black, 20, "Arial");
-        OfficeRasterText.Draw(effects, "Office", 10, 10, 110, 30, OfficeColor.Black, 20, "Arial",
-            shadowColor: OfficeColor.Red, shadowOffsetX: 5, shadowOffsetY: 5, outlineColor: OfficeColor.Blue, outlineWidth: 2);
+        OfficeRasterText.Draw(effects, "Office", 10, 10, 110, 30, OfficeColor.Black,
+            new OfficeRasterTextOptions { FontSize = 20, FontFamily = "Arial",
+                ShadowColor = OfficeColor.Red, ShadowOffsetX = 5, ShadowOffsetY = 5, OutlineColor = OfficeColor.Blue, OutlineWidth = 2 });
         int plainInk = 0, effectsInk = 0, red = 0, blue = 0;
         for (int y = 0; y < plain.Height; y++) {
             for (int x = 0; x < plain.Width; x++) {

@@ -9,7 +9,7 @@ The assembly was previously named `OfficeIMO.Drawing`. Drawing became the origin
 
 The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation. The lossy VP8 encoder is adapted from CodeGlyphX under Apache-2.0 and retains its source notices. Both implementations run inside Core without a CodeGlyphX runtime dependency. The [third-party notices](THIRD-PARTY-NOTICES.md) identify the incorporated code and its license files.
 
-For bounded image sequences, filtering, text drawing, comparison, and visual fingerprints, see [managed raster workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.core-raster-workflows.md). The examples use owned image types and document stream ownership, orientation, and cancellation.
+For bounded image sequences, format discovery, resize planning, shared text options, metadata-aware encoding, comparison, and visual fingerprints, see [managed raster workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.core-raster-workflows.md). The examples use owned image types and document buffer and stream ownership, orientation, cancellation, and metadata omissions.
 
 ## Install
 

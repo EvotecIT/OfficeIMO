@@ -1,5 +1,17 @@
 # Upgrading OfficeIMO
 
+## Shared raster workflow contracts
+
+`OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.
+
+Use `OfficeRasterDecodeOptions.FrameLossPolicy` and `OfficeRasterFrameLossPolicy` in place of `AnimationPolicy` and `OfficeRasterAnimationPolicy`. The policy describes discarded TIFF pages and icon entries as well as animation frames. `DecodeFrames` returns complete supported sequences; `Decode` selects one frame or page. Throwing and best-effort entry points share the same decoder and limits.
+
+Raster text effects move from the long positional `OfficeRasterText.Draw` overload to `OfficeRasterTextOptions`. Pass the same options to `Measure` and `Draw` for consistent font, style, language, shaping, and wrapping. The short plain-text primitives retain their distinct convenience role.
+
+The raster constructor now enforces the existing 50-million-pixel limit before allocation. `GetPixels` applies the same source-plus-copy managed-storage limit as `Clone`; applications retaining a large decoded image may need a smaller result before making another complete copy. Pixel setters retain clipping behavior. Canvas drawing onto its own image samples a guarded snapshot of the original pixels.
+
+`OfficeRasterResizeOptions` and an immutable `OfficeRasterResizePlan` replace consumer-owned aspect, crop, and temporary-memory calculations. Contain rounds midpoint ties away from zero within the requested bounds; Cover rounds upward and center-crops, with an odd extra pixel removed from the right or bottom. Percentage frame resizing retains floor rounding with a one-pixel minimum. See [managed raster workflows](Docs/officeimo.core-raster-workflows.md) for examples and metadata-omission evidence.
+
 ## Word VBA module identities and removal
 
 `WordDocument.Macros` returns logical names from the VBA directory when a complete

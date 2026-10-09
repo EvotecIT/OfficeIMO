@@ -91,9 +91,13 @@ public sealed class TiffResolutionPreservationTests {
     [InlineData(0.000000000001)]
     [InlineData(4294967296D)]
     public void UnrepresentableAuthoredRationalDensityFailsBeforeOutput(double density) {
-        var metadata = OfficeImageMetadata.Read(MakeTiff(false, 3)); metadata.HorizontalResolution = density;
-        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageMetadata.Apply(MakeTiff(false, 3), metadata));
-        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageMetadata.Apply(OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1)), metadata));
+        var metadata = OfficeImageMetadata.Read(MakeTiff(false, 3));
+        Assert.Throws<ArgumentOutOfRangeException>(() => metadata.HorizontalResolution = density);
+        // Metadata without Exif density fields can retain a native value until a
+        // destination requiring unsigned rationals validates its carrier.
+        var carrierAuthored = new OfficeImageMetadata { Resolution = new OfficeImageResolution(density, density) };
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageMetadata.Apply(MakeTiff(false, 3), carrierAuthored));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImageMetadata.Apply(OfficeWebpCodec.Encode(new OfficeRasterImage(1, 1)), carrierAuthored));
         using var stream = new MemoryStream();
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeTiffCodec.EncodeTo(new OfficeRasterImage(1, 1), stream, new OfficeTiffEncodeOptions { Resolution = new OfficeImageResolution(density, density) }));
         Assert.Equal(0, stream.Length);

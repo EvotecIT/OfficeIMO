@@ -54,12 +54,7 @@ public static partial class OfficeRasterFilters {
     private static void ValidateSource(OfficeRasterImage source, long additionalBytes = 0L, long operationsPerPixel = 1L) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         long pixels = OfficeRasterGuards.EnsureOutputPixels(source.Width, source.Height, "Raster filtering dimensions exceed the managed image limit.");
-        if (additionalBytes < 0L || additionalBytes > OfficeRasterGuards.MaximumDecodedBytes - pixels * 8L - 64L * 1024L) {
-            throw new ArgumentException("Raster filtering working set exceeds the managed image limit.", nameof(source));
-        }
-        if (operationsPerPixel <= 0L || pixels > MaximumOperations / operationsPerPixel) {
-            throw new ArgumentException("Raster filtering exceeds the bounded operation count.", nameof(source));
-        }
+        ValidateFilterLimits(pixels, checked(additionalBytes + FixedFilteringWorkingBytes), operationsPerPixel);
     }
 
     private static void ValidateAmount(double value, string name, double minimum = 0D, double maximum = 100D) {

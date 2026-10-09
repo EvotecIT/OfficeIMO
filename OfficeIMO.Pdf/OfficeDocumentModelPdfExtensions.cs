@@ -32,7 +32,12 @@ public static class OfficeDocumentModelPdfExtensions {
         PdfDocument document = PdfDocument.Create(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
-        rasterDecodeOptions.CancellationToken = cancellationToken;
+        rasterDecodeOptions.MaximumDecodedPixels = Math.Min(
+            rasterDecodeOptions.MaximumDecodedPixels, OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels);
+        using var rasterCancellation = rasterDecodeOptions.CancellationToken.CanBeCanceled
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(rasterDecodeOptions.CancellationToken, cancellationToken)
+            : null;
+        rasterDecodeOptions.CancellationToken = rasterCancellation?.Token ?? cancellationToken;
         var identities = new ProjectionIdentitySet();
         AssetProjectionSummary assetSummary = default;
 
@@ -234,11 +239,9 @@ public static class OfficeDocumentModelPdfExtensions {
             return true;
         }
 
-        if (!identified ||
-            !OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
-                identifiedInfo,
-                OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
-                out _)) return false;
+        // The shared decoder applies the captured pixel ceiling to the selected frame/page.
+        // The first TIFF page can have different dimensions and cannot preflight that selection.
+        if (!identified) return false;
 
         bool converted = OfficeImagePngConverter.TryConvertToPng(
             sourceBytes,
@@ -252,7 +255,7 @@ public static class OfficeDocumentModelPdfExtensions {
                     sourceLabel,
                     "Frame " + decodeInfo.SelectedFrameIndex + " of " + decodeInfo.FrameCount + " was embedded as a static image; remaining animation frames were not retained."));
             } else {
-                string code = rasterDecodeOptions.AnimationPolicy == OfficeRasterAnimationPolicy.RejectAnimated
+                string code = rasterDecodeOptions.FrameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames
                     ? "pdf-projection-asset-animation-rejected"
                     : "pdf-projection-asset-animation-not-supported";
                 report.Add(Warning(code, sourceLabel, decodeInfo.Diagnostic ?? "The animated raster asset could not be represented as a static PDF image."));
@@ -261,7 +264,7 @@ public static class OfficeDocumentModelPdfExtensions {
         if (!converted || !OfficeImagePdfCompatibility.TryValidate(normalizedPng, out OfficeImageInfo? normalizedInfo, out _)) return false;
 
         imageBytes = normalizedPng;
-        imageInfo = identified ? identifiedInfo : normalizedInfo;
+        imageInfo = normalizedInfo;
         return true;
     }
 
@@ -377,7 +380,11 @@ public static class OfficeDocumentModelPdfExtensions {
             if (severity != PdfConversionWarningSeverity.Error &&
                 diagnostic.Attributes.TryGetValue("lossKind", out string? value) &&
                 Enum.TryParse(value, out OfficeConversionLossKind sourceLoss) &&
-                sourceLoss >= OfficeConversionLossKind.None && sourceLoss <= OfficeConversionLossKind.Failure) {
+#if NET8_0_OR_GREATER
+                Enum.IsDefined(sourceLoss)) {
+#else
+                Enum.IsDefined(typeof(OfficeConversionLossKind), sourceLoss)) {
+#endif
                 lossKind = sourceLoss;
             }
             report.Add(new PdfConversionWarning(
