@@ -80,6 +80,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">

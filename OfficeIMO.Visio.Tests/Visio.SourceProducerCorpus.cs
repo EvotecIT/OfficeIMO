@@ -13,7 +13,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class VisioSourceProducerCorpusTests {
-    private static string CorpusDirectory => Path.Combine(GetRepositoryRoot(),
+    private static string CorpusDirectory => Path.Combine(RepositoryTestPaths.Find(),
         "Assets", "VisioTemplates");
 
     public static IEnumerable<object[]> CorpusArtifacts() {
@@ -377,16 +377,6 @@ public sealed class VisioSourceProducerCorpusTests {
                     cell.Name.LocalName == "Cell" &&
                     (string?)cell.Attribute("N") == "BeginX"));
         Assert.Equal(expectedCount, count);
-    }
-
-    private static string GetRepositoryRoot() {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")))
-                return directory.FullName;
-            directory = directory.Parent;
-        }
-        return RepositoryTestPaths.Find();
     }
 
     private sealed class VisioSourceCorpusManifest {

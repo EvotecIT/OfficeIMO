@@ -5,44 +5,12 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     public static partial class VisioConnectorRoutingExtensions {
-        private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
-            if (connectionPoint != null) {
-                (x, y) = GetPagePoint(shape, connectionPoint.X, connectionPoint.Y);
-                return;
-            }
-
-            VisioShapeBounds shapeBounds = GetPageShapeBounds(shape);
-            VisioShapeBounds otherBounds = GetPageShapeBounds(other);
-            double left = shapeBounds.Left;
-            double bottom = shapeBounds.Bottom;
-            double right = shapeBounds.Right;
-            double top = shapeBounds.Top;
-            double otherLeft = otherBounds.Left;
-            double otherBottom = otherBounds.Bottom;
-            double otherRight = otherBounds.Right;
-            double otherTop = otherBounds.Top;
-            double cx = (left + right) / 2D;
-            double cy = (bottom + top) / 2D;
-            double otherCx = (otherLeft + otherRight) / 2D;
-            double otherCy = (otherBottom + otherTop) / 2D;
-            double dx = otherCx - cx;
-            double dy = otherCy - cy;
-
-            if (Math.Abs(dx) >= Math.Abs(dy)) {
-                x = dx >= 0 ? right : left;
-                y = cy;
-            } else {
-                x = cx;
-                y = dy >= 0 ? top : bottom;
-            }
-        }
 
         private static IReadOnlyList<VisioConnector> OrderConnectorsForPageRouting(IReadOnlyList<VisioConnector> connectors, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
             List<ConnectorRoutingWorkItem> workItems = new();
             int index = 0;
             foreach (VisioConnector connector in connectors) {
-                ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-                ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+                VisioConnectorEndpoints.Resolve(connector, out double startX, out double startY, out double endX, out double endY);
                 IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
                     ? ExpandRoutingObstacles(obstacles)
                     : obstacles;
@@ -67,8 +35,7 @@ namespace OfficeIMO.Visio {
             int intersections = 0;
             double length = 0D;
             foreach (VisioConnector connector in connectors) {
-                ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-                ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+                VisioConnectorEndpoints.Resolve(connector, out double startX, out double startY, out double endX, out double endY);
                 IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
                     ? ExpandRoutingObstacles(obstacles)
                     : obstacles;
@@ -83,8 +50,8 @@ namespace OfficeIMO.Visio {
 
         private static List<VisioShapeBounds> GetRoutingObstacleBounds(VisioConnector connector, IEnumerable<VisioShape> obstacles, double padding, VisioConnectorRoutingOptions options) {
             List<VisioShapeBounds> bounds = new();
-            VisioShapeBounds fromBounds = GetPageShapeBounds(connector.From);
-            VisioShapeBounds toBounds = GetPageShapeBounds(connector.To);
+            VisioShapeBounds fromBounds = VisioConnectorEndpoints.Bounds(connector, true);
+            VisioShapeBounds toBounds = VisioConnectorEndpoints.Bounds(connector, false);
             foreach (VisioShape obstacle in obstacles) {
                 if (IsEndpointRelated(obstacle, connector.From) ||
                     IsEndpointRelated(obstacle, connector.To)) {
@@ -135,7 +102,8 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static bool IsEndpointRelated(VisioShape obstacle, VisioShape endpoint) {
+        private static bool IsEndpointRelated(VisioShape obstacle, VisioShape? endpoint) {
+            if (endpoint == null) return false;
             return ReferenceEquals(obstacle, endpoint) ||
                    IsAncestorOf(obstacle, endpoint) ||
                    IsAncestorOf(endpoint, obstacle);
@@ -151,103 +119,19 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static VisioShapeBounds GetPageShapeBounds(VisioShape shape) {
-            (double x1, double y1) = GetPagePoint(shape, 0, 0);
-            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
-            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
-            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
-            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
-            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
-            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
-            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
-            return new VisioShapeBounds(left, bottom, right, top);
-        }
-
-        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
-        }
+        private static VisioShapeBounds GetPageShapeBounds(VisioShape shape) => shape.GetPageShapeBounds();
 
         private static IEnumerable<RouteCandidate> EnumerateOrthogonalRouteCandidates(double startX, double startY, double endX, double endY, double step, int maxLanes) {
-            VisioConnectorRouteStyle primary = Math.Abs(endX - startX) >= Math.Abs(endY - startY)
-                ? VisioConnectorRouteStyle.VerticalThenHorizontal
-                : VisioConnectorRouteStyle.HorizontalThenVertical;
-            VisioConnectorRouteStyle secondary = primary == VisioConnectorRouteStyle.VerticalThenHorizontal
-                ? VisioConnectorRouteStyle.HorizontalThenVertical
-                : VisioConnectorRouteStyle.VerticalThenHorizontal;
-
-            foreach (double offset in EnumerateLaneOffsets(step, maxLanes)) {
-                yield return CreateOrthogonalRouteCandidate(startX, startY, endX, endY, primary, offset);
-                yield return CreateOrthogonalRouteCandidate(startX, startY, endX, endY, secondary, offset);
-            }
-
-            double[] offsets = EnumerateLaneOffsets(step, maxLanes).ToArray();
-            foreach (double xOffset in offsets) {
-                foreach (double yOffset in offsets) {
-                    if (Math.Abs(xOffset) < 1e-9 && Math.Abs(yOffset) < 1e-9) {
-                        continue;
-                    }
-
-                    yield return CreateDoglegRouteCandidate(startX, startY, endX, endY, xOffset, yOffset, true);
-                    yield return CreateDoglegRouteCandidate(startX, startY, endX, endY, xOffset, yOffset, false);
-                }
-            }
-        }
-
-        private static IEnumerable<double> EnumerateLaneOffsets(double step, int maxLanes) {
-            double resolvedStep = step > 0D ? step : 0.15D;
-            yield return 0D;
-            for (int lane = 1; lane <= maxLanes; lane++) {
-                double offset = lane * resolvedStep;
-                yield return offset;
-                yield return -offset;
-            }
+            foreach (OfficePoint[] points in OfficeGeometry.EnumerateOrthogonalConnectorRoutes(new OfficePoint(startX, startY), new OfficePoint(endX, endY), step, maxLanes))
+                yield return new RouteCandidate(points.Select(point => new RoutePoint(point.X, point.Y)).ToArray());
         }
 
         private static RouteCandidate CreateOrthogonalRouteCandidate(double startX, double startY, double endX, double endY, VisioConnectorRouteStyle style, double offset) {
-            VisioConnectorRouteStyle resolvedStyle = style == VisioConnectorRouteStyle.Auto
+            bool horizontalFirst = style == VisioConnectorRouteStyle.Auto
                 ? Math.Abs(endX - startX) >= Math.Abs(endY - startY)
-                    ? VisioConnectorRouteStyle.HorizontalThenVertical
-                    : VisioConnectorRouteStyle.VerticalThenHorizontal
-                : style;
-
-            if (resolvedStyle == VisioConnectorRouteStyle.HorizontalThenVertical) {
-                double laneX = ((startX + endX) / 2D) + offset;
-                return new RouteCandidate(
-                    new RoutePoint(startX, startY),
-                    new RoutePoint(laneX, startY),
-                    new RoutePoint(laneX, endY),
-                    new RoutePoint(endX, endY));
-            }
-
-            double laneY = ((startY + endY) / 2D) + offset;
-            return new RouteCandidate(
-                new RoutePoint(startX, startY),
-                new RoutePoint(startX, laneY),
-                new RoutePoint(endX, laneY),
-                new RoutePoint(endX, endY));
-        }
-
-        private static RouteCandidate CreateDoglegRouteCandidate(double startX, double startY, double endX, double endY, double xOffset, double yOffset, bool horizontalEscapeFirst) {
-            double laneX = ((startX + endX) / 2D) + xOffset;
-            double laneY = ((startY + endY) / 2D) + yOffset;
-            if (horizontalEscapeFirst) {
-                return new RouteCandidate(
-                    new RoutePoint(startX, startY),
-                    new RoutePoint(laneX, startY),
-                    new RoutePoint(laneX, laneY),
-                    new RoutePoint(endX, laneY),
-                    new RoutePoint(endX, endY));
-            }
-
-            return new RouteCandidate(
-                new RoutePoint(startX, startY),
-                new RoutePoint(startX, laneY),
-                new RoutePoint(laneX, laneY),
-                new RoutePoint(laneX, endY),
-                new RoutePoint(endX, endY));
+                : style == VisioConnectorRouteStyle.HorizontalThenVertical;
+            var points = OfficeGeometry.CreateOrthogonalConnectorRoute(new OfficePoint(startX, startY), new OfficePoint(endX, endY), horizontalFirst, offset);
+            return new RouteCandidate(points.Select(point => new RoutePoint(point.X, point.Y)).ToArray());
         }
 
         private static RouteScore ScoreRoute(RouteCandidate candidate, IReadOnlyList<VisioShapeBounds> obstacles, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
@@ -279,17 +163,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static List<RoutePoint> GetConnectorPath(VisioConnector connector, double startX, double startY, double endX, double endY) {
-            List<(double X, double Y)> waypoints = connector.Waypoints
-                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
-                .ToList();
-
-            return OfficeGeometry.BuildConnectorPolyline(
-                    (startX, startY),
-                    (endX, endY),
-                    waypoints,
-                    connector.Kind == ConnectorKind.RightAngle)
-                .Select(point => new RoutePoint(point.X, point.Y))
-                .ToList();
+            return VisioConnectorGeometry.GetPoints(connector).Select(p => new RoutePoint(p.X, p.Y)).ToList();
         }
 
         private static List<IReadOnlyList<RoutePoint>> GetConnectorReferencePaths(VisioConnector connector, IEnumerable<VisioConnector>? referenceConnectors) {
@@ -303,8 +177,7 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                ResolveEndpoint(reference.From, reference.To, reference.FromConnectionPoint, out double startX, out double startY);
-                ResolveEndpoint(reference.To, reference.From, reference.ToConnectionPoint, out double endX, out double endY);
+                VisioConnectorEndpoints.Resolve(reference, out double startX, out double startY, out double endX, out double endY);
                 List<RoutePoint> path = GetConnectorPath(reference, startX, startY, endX, endY);
                 if (path.Count > 1) {
                     paths.Add(path);
@@ -345,8 +218,7 @@ namespace OfficeIMO.Visio {
         private static int CountPageConnectorCrossings(IReadOnlyList<VisioConnector> connectors) {
             List<IReadOnlyList<RoutePoint>> paths = new();
             foreach (VisioConnector connector in connectors) {
-                ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-                ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+                VisioConnectorEndpoints.Resolve(connector, out double startX, out double startY, out double endX, out double endY);
                 paths.Add(GetConnectorPath(connector, startX, startY, endX, endY));
             }
 

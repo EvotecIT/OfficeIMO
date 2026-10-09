@@ -134,6 +134,10 @@ public partial class Word {
             item._paragraph.ParagraphProperties = (W.ParagraphProperties)template._paragraph.ParagraphProperties!.CloneNode(true);
             item._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
         }
+        // A plain numbered peer must not switch the whole mixed story to a
+        // renderer that drops its surrounding text or page field.
+        story.AddParagraph("PLAIN-PEER")._paragraph.ParagraphProperties =
+            (W.ParagraphProperties)template._paragraph.ParagraphProperties!.CloneNode(true);
         template._paragraph.Remove();
         document.AddParagraph("Body");
         using var pdf = OpenJoinedParagraphPdf(document);

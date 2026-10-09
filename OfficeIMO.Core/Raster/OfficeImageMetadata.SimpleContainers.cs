@@ -18,17 +18,16 @@ public sealed partial class OfficeImageMetadata {
             false, token, out _, out byte[]? xmp, out byte[]? icc, readOnly: true);
         metadata.XmpProfile = xmp;
         metadata.IccProfile = icc;
-        metadata.ResolutionUnits = OfficeImageResolutionUnit.AspectRatio;
-        metadata.HorizontalResolution = input[12] == 0 ? 1D : (input[12] + 15D) / 64D;
-        metadata.VerticalResolution = 1D;
+        metadata._resolution = new OfficeImageResolution(input[12] == 0 ? 1D : (input[12] + 15D) / 64D, 1D, OfficeImageResolutionUnit.AspectRatio);
     }
 
     private static byte[] RewriteGif(byte[] input, OfficeImageMetadata? metadata, OfficeImageMetadataProfileKinds replace,
-        CancellationToken token, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
+        CancellationToken token, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L, bool writeDensity = true) {
         if (metadata != null && (metadata.HasExifProfile || metadata._iptc != null)) throw new NotSupportedException("GIF application metadata supports XMP and ICC profiles; Exif and IPTC IIM profiles have no standard carrier.");
         byte[] output = OfficeProvenanceGif.RewriteMetadataProfiles(input, metadata?._xmp, metadata?._icc,
             replace, metadata != null, token, out present, out _, out _, additionallyRetainedBytes: additionallyRetainedBytes);
-        if (metadata != null) {
+        if (metadata != null && !writeDensity) output[12] = 0;
+        if (metadata != null && writeDensity) {
             if (metadata.ResolutionUnits != OfficeImageResolutionUnit.AspectRatio) throw new NotSupportedException("GIF has no physical-density carrier. Use an aspect-ratio resolution or PrepareForEncoding for GIF output.");
             double ratio = metadata.HorizontalResolution / metadata.VerticalResolution;
             if (ratio != 1D || input[12] != 0) {
@@ -47,15 +46,13 @@ public sealed partial class OfficeImageMetadata {
             int x = unchecked((int)OfficeExifProfileCodec.Read(input, 38, 4, true));
             int y = unchecked((int)OfficeExifProfileCodec.Read(input, 42, 4, true));
             if (x > 0 && y > 0) {
-                metadata.HorizontalResolution = x;
-                metadata.VerticalResolution = y;
-                metadata.ResolutionUnits = OfficeImageResolutionUnit.PixelsPerMeter;
+                metadata._resolution = new OfficeImageResolution(x, y, OfficeImageResolutionUnit.PixelsPerMeter);
             }
         }
         if (layout.ProfileLength != 0 && layout.EmbeddedProfile) metadata.IccProfile = Slice(input, layout.ProfileOffset, layout.ProfileLength);
     }
 
-    private static byte[] RewriteBmp(byte[] input, OfficeImageMetadata? metadata, OfficeImageMetadataProfileKinds replace, CancellationToken token, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L) {
+    private static byte[] RewriteBmp(byte[] input, OfficeImageMetadata? metadata, OfficeImageMetadataProfileKinds replace, CancellationToken token, out OfficeImageMetadataProfileKinds present, long additionallyRetainedBytes = 0L, bool writeDensity = true) {
         present = OfficeImageMetadataProfileKinds.None;
         if (!OfficeBmpStructureValidator.TryValidate(input, token, out OfficeBmpStructureValidator.Layout layout, checked(additionallyRetainedBytes + (metadata?.RetainedProfileBytes ?? 0L)))) throw new FormatException("The BMP storage is malformed, incomplete, or exceeds the working-set limit.");
         if (metadata != null && (metadata.HasExifProfile || metadata._xmp != null || metadata._iptc != null)) throw new NotSupportedException("BMP supports ICC color profiles and density; Exif, XMP, and IPTC IIM profiles have no standard BMP carrier.");
@@ -74,7 +71,7 @@ public sealed partial class OfficeImageMetadata {
         if (metadata == null) return output;
         if (header < 40 || header > 124) throw new NotSupportedException("BMP metadata replacement requires a Windows bitmap header.");
         double scale = metadata.ResolutionUnits == OfficeImageResolutionUnit.PixelsPerInch ? 1D / 0.0254D : metadata.ResolutionUnits == OfficeImageResolutionUnit.PixelsPerCentimeter ? 100D : 1D;
-        if (metadata.ResolutionUnits == OfficeImageResolutionUnit.AspectRatio) {
+        if (!writeDensity || metadata.ResolutionUnits == OfficeImageResolutionUnit.AspectRatio) {
             OfficeExifProfileCodec.Write(output, 38, 0, 4, true);
             OfficeExifProfileCodec.Write(output, 42, 0, 4, true);
         } else {

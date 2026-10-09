@@ -53,8 +53,10 @@ public sealed class PdfProjectionOptions {
     public PdfProjectionAssetPolicy AssetPolicy { get; set; } = PdfProjectionAssetPolicy.EmbedSupportedImages;
 
     /// <summary>
-    /// Shared Drawing frame-selection and animation-loss policy used when raster assets require normalization.
-    /// The converter snapshots this value. A null value uses the Drawing defaults.
+    /// Shared raster decode settings used when assets require normalization.
+    /// The converter snapshots all settings and observes their cancellation token together with the projection token.
+    /// Normalization uses the smaller of the caller pixel limit and the shared PDF transcode ceiling.
+    /// A null value uses the shared decoder defaults.
     /// </summary>
     public OfficeIMO.Drawing.OfficeRasterDecodeOptions? RasterDecodeOptions { get; set; } = new OfficeIMO.Drawing.OfficeRasterDecodeOptions();
 
@@ -73,15 +75,12 @@ public sealed class PdfProjectionOptions {
         if (LinkPolicy < PdfProjectionLinkPolicy.PreserveUriLinks || LinkPolicy > PdfProjectionLinkPolicy.Omit) throw new ArgumentOutOfRangeException(nameof(LinkPolicy));
         if (FormPolicy < PdfProjectionFormPolicy.RenderCurrentValues || FormPolicy > PdfProjectionFormPolicy.Omit) throw new ArgumentOutOfRangeException(nameof(FormPolicy));
         if (RasterDecodeOptions != null &&
-            RasterDecodeOptions.AnimationPolicy != OfficeIMO.Drawing.OfficeRasterAnimationPolicy.UseSelectedFrame &&
-            RasterDecodeOptions.AnimationPolicy != OfficeIMO.Drawing.OfficeRasterAnimationPolicy.RejectAnimated) {
+            RasterDecodeOptions.FrameLossPolicy != OfficeIMO.Drawing.OfficeRasterFrameLossPolicy.UseSelectedFrame &&
+            RasterDecodeOptions.FrameLossPolicy != OfficeIMO.Drawing.OfficeRasterFrameLossPolicy.RejectMultipleFrames) {
             throw new ArgumentOutOfRangeException(nameof(RasterDecodeOptions));
         }
     }
 
     internal OfficeIMO.Drawing.OfficeRasterDecodeOptions SnapshotRasterDecodeOptions() =>
-        new OfficeIMO.Drawing.OfficeRasterDecodeOptions {
-            FrameIndex = RasterDecodeOptions?.FrameIndex ?? 0,
-            AnimationPolicy = RasterDecodeOptions?.AnimationPolicy ?? OfficeIMO.Drawing.OfficeRasterAnimationPolicy.UseSelectedFrame
-        };
+        RasterDecodeOptions?.Clone() ?? new OfficeIMO.Drawing.OfficeRasterDecodeOptions();
 }

@@ -292,7 +292,7 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveTableX(PdfAlign align, PdfTableStyle style, double containerLeft, double containerWidth, double tableWidth) {
-        double frameLeft = containerLeft + style.LeftIndent;
+        double frameLeft = containerLeft + style.LeftIndent + style.HorizontalOffset;
         double frameWidth = ResolveTableFrameWidth(style, containerWidth);
         if (align == PdfAlign.Center) {
             return frameLeft + Math.Max(0, (frameWidth - tableWidth) / 2);

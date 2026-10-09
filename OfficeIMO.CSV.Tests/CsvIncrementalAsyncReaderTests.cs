@@ -463,13 +463,15 @@ public class CsvIncrementalAsyncReaderTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
     }
 
-    private sealed class AsyncInput : Stream
+    internal sealed class AsyncInput : Stream
     {
         private readonly byte[] _bytes;
         private readonly int _chunk;
         private readonly bool _block;
         private int _position;
         private bool _disposed;
+        internal int BytesRead => _position;
+        internal int AsyncReads { get; private set; }
         internal TaskCompletionSource Blocked { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal AsyncInput(byte[] bytes, int chunk, bool blockAtEnd = false) { _bytes = bytes; _chunk = chunk; _block = blockAtEnd; }
         public override bool CanRead => !_disposed;
@@ -480,6 +482,7 @@ public class CsvIncrementalAsyncReaderTests
         public override int Read(byte[] buffer, int offset, int count) => throw new InvalidOperationException("Synchronous input is forbidden.");
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token)
         {
+            AsyncReads++;
             token.ThrowIfCancellationRequested();
             if (_position == _bytes.Length && _block)
             {

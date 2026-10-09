@@ -39,6 +39,34 @@ public sealed class DrawingFontOpticalSizeTests {
     }
 
     [Fact]
+    public void SuccessiveRasterMetricScopesRetainTheirOwnOpticalMeasurementsAndInk() {
+        OfficeRasterCanvas Canvas() => new(new OfficeRasterImage(1, 1), fonts: Fonts(null));
+        OfficeRasterCanvas reused = Canvas();
+        double originalWidth = reused.MeasureText(Text, 24D, "Probe", OfficeFontStyle.Regular);
+        var originalInk = reused.MeasureTextLineInkBounds(Text, 24D, "Probe", OfficeFontStyle.Regular);
+        var originalPaint = reused.MeasureTextPaintBounds("Ágj", 24D, "Probe", OfficeFontStyle.Regular);
+        using (reused.PushFontMetricScale(2D)) {
+            OfficeRasterCanvas reference = Canvas();
+            using (reference.PushFontMetricScale(2D)) {
+                double expectedWidth = reference.MeasureText(Text, 24D, "Probe", OfficeFontStyle.Regular);
+                var expectedInk = reference.MeasureTextLineInkBounds(Text, 24D, "Probe", OfficeFontStyle.Regular);
+                var expectedPaint = reference.MeasureTextPaintBounds("Ágj", 24D, "Probe", OfficeFontStyle.Regular);
+                Assert.NotEqual(originalWidth, expectedWidth);
+                Assert.NotEqual(originalInk, expectedInk);
+                Assert.NotEqual((originalPaint.Top, originalPaint.Bottom), (expectedPaint.Top, expectedPaint.Bottom));
+                Assert.Equal(expectedWidth, reused.MeasureText(Text, 24D, "Probe", OfficeFontStyle.Regular));
+                Assert.Equal(expectedInk, reused.MeasureTextLineInkBounds(Text, 24D, "Probe", OfficeFontStyle.Regular));
+                var actualPaint = reused.MeasureTextPaintBounds("Ágj", 24D, "Probe", OfficeFontStyle.Regular);
+                Assert.Equal((expectedPaint.Top, expectedPaint.Bottom), (actualPaint.Top, actualPaint.Bottom));
+            }
+        }
+        Assert.Equal(originalWidth, reused.MeasureText(Text, 24D, "Probe", OfficeFontStyle.Regular));
+        Assert.Equal(originalInk, reused.MeasureTextLineInkBounds(Text, 24D, "Probe", OfficeFontStyle.Regular));
+        var restoredPaint = reused.MeasureTextPaintBounds("Ágj", 24D, "Probe", OfficeFontStyle.Regular);
+        Assert.Equal((originalPaint.Top, originalPaint.Bottom), (restoredPaint.Top, restoredPaint.Bottom));
+    }
+
+    [Fact]
     public void ProviderOwnedTrueTypeProgramKeepsItsSelectedInstance() {
         IOfficeFontProgram program = Assert.Single(Fonts(null).Faces).Program;
         var fonts = new OfficeFontFaceCollection { FontProgramProvider = new FixedProvider(program) };

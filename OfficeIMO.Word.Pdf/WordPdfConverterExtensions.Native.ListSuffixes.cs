@@ -4,9 +4,14 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private static bool IgnoresNativeNumberingIndentStop(WordParagraph paragraph) =>
+            !UsesModernNativeWordLayout(paragraph._document)
+            && paragraph._document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop;
+
         private static double ResolveNativeListTabBodyPosition(WordParagraph paragraph,
             double markerEnd, double textIndent, NativeDocumentDefaults nativeDefaults) {
-            if (markerEnd <= textIndent + 0.01D) return textIndent;
+            double? indentStop = !IgnoresNativeNumberingIndentStop(paragraph) && markerEnd <= textIndent + 0.01D
+                ? textIndent : null;
             var stops = new Dictionary<int, WordTabStop>();
             W.Tabs? levelTabs = WordDocumentTraversal.GetListInfo(paragraph)?.LevelTabStops;
             if (levelTabs != null) {
@@ -19,8 +24,9 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTabStop tabStop in stops.Values.Where(tab => IsNativeRenderableTextTabStop(tab.Alignment))
                 .OrderBy(tab => tab.Position)) {
                 double position = tabStop.Position / 20D;
-                if (position > markerEnd + 0.01D) return position;
+                if (position > markerEnd + 0.01D) return indentStop.HasValue ? Math.Min(position, indentStop.Value) : position;
             }
+            if (indentStop.HasValue) return indentStop.Value;
             double interval = nativeDefaults.DefaultTabStopWidth ?? 36D;
             return (Math.Floor(markerEnd / interval) + 1D) * interval;
         }
@@ -41,7 +47,17 @@ namespace OfficeIMO.Word.Pdf {
             double markerStart = paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
             double bodyPosition = ResolveNativeListTabBodyPosition(paragraph, markerStart + markerWidth,
                 paragraphStyle.LeftIndent, nativeDefaults);
-            return Math.Max(width, bodyPosition - markerStart);
+            return Math.Max(0D, bodyPosition - markerStart);
+        }
+
+        private static bool HasNativeIndependentListTabAdvance(WordParagraph paragraph, string marker,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+            var paragraphStyle = new PdfCore.PdfParagraphStyle();
+            ApplyNativeInlineListIndent(paragraph, paragraphStyle);
+            ApplyNativeInlineListMarkerAlignment(paragraph, marker, paragraphStyle, nativeDefaults, nativeFontMap);
+            double advance = ResolveNativeInlineListMarkerColumnWidth(paragraph, marker, paragraphStyle,
+                nativeDefaults, nativeFontMap);
+            return Math.Abs(advance - Math.Max(0D, -paragraphStyle.FirstLineIndent)) > 0.01D;
         }
 
         // Word emits the numbering space in Arial at the marker's size,
@@ -49,20 +65,28 @@ namespace OfficeIMO.Word.Pdf {
         private static double ResolveNativeListSpaceSuffixWidth(WordParagraph paragraph,
             NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
             NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
+            PdfCore.PdfTextRun space = CreateNativeListSpaceSuffixTextRun(paragraph, nativeDefaults, nativeFontMap,
+                out double fontSize, out NativeTextSpacing spacing, tableRunStyleDefaults);
+            return Math.Max(0D, nativeFontMap?.MeasureText(space)
+                ?? EstimateNativeListMarkerWidth(" ", fontSize, spacing));
+        }
+
+        private static PdfCore.PdfTextRun CreateNativeListSpaceSuffixTextRun(WordParagraph paragraph,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap,
+            out double fontSize, out NativeTextSpacing spacing,
+            NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph,
                 tableRunStyleDefaults: tableRunStyleDefaults, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
-            double fontSize = info?.MarkerFontSize ?? style.FontSize ?? nativeDefaults.FontSize;
-            NativeTextSpacing spacing = info.HasValue
+            fontSize = info?.MarkerFontSize ?? style.FontSize ?? nativeDefaults.FontSize;
+            spacing = info.HasValue
                 ? ResolveNativeListMarkerTextSpacing(info.Value, style.ListMarkerTextSpacing) : style.ListMarkerTextSpacing;
             PdfCore.PdfStandardFont font = TryResolveNativeMappedFont("Arial", nativeFontMap, out var mappedFont)
                 ? mappedFont : PdfCore.PdfStandardFont.Helvetica;
             string? family = nativeFontMap?.TryGetNamedFontFamily("Arial", out string? namedFamily) == true
                 ? namedFamily : null;
-            PdfCore.PdfTextRun space = spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
+            return spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
                 fontSize: fontSize, font: font, fontFamily: family));
-            return Math.Max(0D, nativeFontMap?.MeasureText(space)
-                ?? EstimateNativeListMarkerWidth(" ", fontSize, spacing));
         }
     }
 }

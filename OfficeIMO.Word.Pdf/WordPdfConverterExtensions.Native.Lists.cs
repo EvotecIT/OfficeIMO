@@ -92,6 +92,12 @@ namespace OfficeIMO.Word.Pdf {
             // The paragraph path retains that per-item position instead of a shared column.
             if (info.Value.LevelSuffix is WordListLevelSuffix.Space or WordListLevelSuffix.Nothing) return false;
 
+            // Numbering tabs may place the first line before or after the
+            // continuation indent. Paragraphs preserve both positions;
+            // list blocks expose one shared text column.
+            if (IgnoresNativeNumberingIndentStop(paragraph) ||
+                HasNativeIndependentListTabAdvance(paragraph, marker.Marker, nativeDefaults, nativeFontMap)) return false;
+
             // The inline paragraph path carries marker run typography. List blocks
             // expose a uniform marker font but do not carry width or tracking.
             NativeResolvedTextStyle paragraphTextStyle = ResolveNativeTextRunStyle(paragraph,
@@ -303,8 +309,11 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle,
                 nativeFontMap, includeSuffix: false);
-            if (nativeFontMap.MeasureText(markerRun) is { } width)
+            if (nativeFontMap.MeasureText(markerRun) is { } width) {
+                if (info.Value.LevelSuffix == WordListLevelSuffix.Space)
+                    width += ResolveNativeListSpaceSuffixWidth(paragraph, nativeDefaults, nativeFontMap);
                 style.FirstLineIndent -= GetNativeMarkerAnchorShift(info.Value, width);
+            }
         }
 
         private static PdfCore.PdfTextRun CreateNativeListMarkerTextRun(

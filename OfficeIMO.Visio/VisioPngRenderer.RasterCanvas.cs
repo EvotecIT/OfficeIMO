@@ -27,7 +27,6 @@ namespace OfficeIMO.Visio {
                 string? diagnosticSource,
                 System.Threading.CancellationToken cancellationToken) {
                 Supersampling = supersampling;
-                Scale = supersampling;
                 _target = new OfficeRasterRenderTarget(width, height, supersampling, background);
                 _canvas = new OfficeRasterCanvas(
                     _target,
@@ -40,7 +39,7 @@ namespace OfficeIMO.Visio {
                     cancellationToken);
             }
 
-            internal double Scale { get; set; }
+            internal VisioRenderProjection Projection { get; set; }
 
             internal int Supersampling { get; }
 
@@ -141,11 +140,26 @@ namespace OfficeIMO.Visio {
                 return _target.ResolveRgba();
             }
 
+            internal void DrawRichText(OfficeRichTextBlockLayout layout, double left, double top, double width, double height,
+                OfficeTextAlignment alignment, OfficeTextVerticalAlignment verticalAlignment,
+                double rotationRadians, double rotationCenterX, double rotationCenterY) =>
+                OfficeTextBlockRenderer.DrawRasterRichTextBlock(_canvas, layout, left, top, width, height,
+                    alignment, verticalAlignment, RadiansToCanvasDegrees(rotationRadians), rotationCenterX, rotationCenterY,
+                    centerLineInLineHeight: false);
+
+            internal void DrawRichTextBackground(OfficeTextBlockBackgroundBounds bounds, Color color,
+                double rotationRadians, double rotationCenterX, double rotationCenterY) {
+                if (Math.Abs(rotationRadians) <= 0.000001D)
+                    _canvas.FillRectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height, color);
+                else _canvas.FillPolygon(bounds.GetRotatedCorners(RadiansToCanvasDegrees(rotationRadians), rotationCenterX, rotationCenterY), color);
+            }
+
             internal void FillRectangle(double x, double y, double width, double height, Color color) {
                 _canvas.FillRectangle(x, y, width, height, color);
             }
 
-            private static double RadiansToCanvasDegrees(double radians) => -OfficeGeometry.RadiansToDegrees(radians);
+            // Callers already converted native upward-Y angles to clockwise raster radians.
+            private static double RadiansToCanvasDegrees(double radians) => OfficeGeometry.RadiansToDegrees(radians);
 
         }
     }

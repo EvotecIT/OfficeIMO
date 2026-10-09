@@ -205,6 +205,10 @@ namespace OfficeIMO.Word.Pdf {
 
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
             ApplyNativeUnspacedTableRowMargins(table, layout, style);
+            // An explicit PDF table style retains its presentation placement.
+            // Source compatibility geometry applies to the Word-owned style path.
+            if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
+                ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
@@ -300,6 +304,13 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
             style.CellVerticalPaddingFromBorderInterior = !usesConfiguredDefaultStyle && style.CellSpacing <= 0D;
+            if (style.CellVerticalPaddingFromBorderInterior && style.Position == null && style.ConsumesVerticalFlow &&
+                nativeDefaults.RunningContentContext == null) {
+                style.BorderFrame = new PdfCore.PdfTableBorderFrame { ReserveCellBorderOutsets = true };
+                // Container continuation already reserves the border's actual
+                // outward paint and repeats source headers without a synthetic gap.
+                style.PageContinuationSpacingBefore = 0D;
+            }
             ApplyNativeTableRowOptions(table, style);
             SuppressNativeTableRoleBoundariesCrossedByRowSpans(style, layout);
             return style;

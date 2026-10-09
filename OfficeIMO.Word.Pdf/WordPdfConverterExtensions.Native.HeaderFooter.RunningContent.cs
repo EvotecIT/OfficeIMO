@@ -13,20 +13,48 @@ public static partial class WordPdfConverterExtensions {
             .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
                 .Any(item => item.IsField && item.Text == "{sectionpages}")));
 
-    private static bool UsesNativeRunningHeader(WordSection section) =>
-        RequiresNativeRunningStory(section.Header?.Default) ||
-        (section.DifferentFirstPage && RequiresNativeRunningStory(section.Header?.First)) ||
-        (section.DocumentOddEvenSettingEnabled && RequiresNativeRunningStory(section.Header?.Even));
+    private static bool UsesNativeRunningHeader(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options,
+        section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
+        section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null);
 
-    private static bool UsesNativeRunningFooter(WordSection section) =>
-        RequiresNativeRunningStory(section.Footer?.Default) ||
-        (section.DifferentFirstPage && RequiresNativeRunningStory(section.Footer?.First)) ||
-        (section.DocumentOddEvenSettingEnabled && RequiresNativeRunningStory(section.Footer?.Even));
+    private static bool UsesNativeRunningFooter(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options,
+        section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
+        section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
+
+    private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, params WordHeaderFooter?[] variants) {
+        if (variants.Any(RequiresNativeRunningStory)) return true;
+        bool hasNumberedParagraph = false;
+        PdfCore.PageMargins margins = GetNativeMargins(section, options, (0D, 0D));
+        double width = GetNativePageSize(section, options).Width - margins.Left - margins.Right;
+        foreach (WordHeaderFooter? story in variants) {
+            if (story == null) continue;
+            // Admission switches all active variants. Preserve the source-order
+            // text-box path until flow can retain its mixed and nested content.
+            if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
+            foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
+                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+                var paragraph = new WordParagraph(story.Document, source);
+                WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+                hasNumberedParagraph |= info?.MarkerVisible == true;
+                var style = CreateNativeParagraphStyle(paragraph);
+                if (info.HasValue) ApplyNativeInlineListIndent(paragraph, style);
+                // Keep the established bounded simple-story export for indents
+                // that cannot leave both paragraph-flow text frames positive.
+                // Admission switches every paragraph in every active variant.
+                double textWidth = width - style.LeftIndent - style.RightIndent;
+                double firstLineWidth = textWidth - style.FirstLineIndent;
+                if (textWidth <= 0D || firstLineWidth <= 0D ||
+                    double.IsNaN(textWidth) || double.IsInfinity(textWidth) ||
+                    double.IsNaN(firstLineWidth) || double.IsInfinity(firstLineWidth)) return false;
+            }
+        }
+        return hasNumberedParagraph;
+    }
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordToPdfOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults) {
-        if (UsesNativeRunningHeader(section)) {
+        if (UsesNativeRunningHeader(section, options)) {
             double distance = section.Margins.HeaderDistance / 20D;
             page.Header(header => {
                 header.Content(CreateNativeRunningStory(section.Header?.Default, section, options, fontMap, listMarkers, defaults, false), distance);
@@ -36,7 +64,7 @@ public static partial class WordPdfConverterExtensions {
                     header.EvenPagesContent(CreateNativeRunningStory(section.Header?.Even, section, options, fontMap, listMarkers, defaults, false), distance);
             });
         }
-        if (UsesNativeRunningFooter(section)) {
+        if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
                 footer.Content(CreateNativeRunningStory(section.Footer?.Default, section, options, fontMap, listMarkers, defaults, true), distance);
@@ -52,6 +80,13 @@ public static partial class WordPdfConverterExtensions {
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter) {
         IReadOnlyList<WordElement> elements = story == null ? Array.Empty<WordElement>() : CollapseNativeParagraphElements(story.Elements);
+        // Running callbacks are evaluated while the PDF is written, after the
+        // operation report is captured. Discover approximation diagnostics now.
+        if (story != null)
+            foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
+                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
+                RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
+                    "header/footer paragraph");
         bool addPageNumber = isFooter && options?.IncludePageNumbers == true &&
             (story == null || GetNativeHeaderFooterText(story, listMarkers, fontMap, options)?.HasPageTokens != true);
         return context => content => {

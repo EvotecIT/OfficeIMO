@@ -73,8 +73,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         OfficeRasterImage image = CreateSampleImage();
         var options = new OfficeTiffEncodeOptions {
             Compression = compression,
-            DpiX = 144D,
-            DpiY = 120D
+            Resolution = new OfficeImageResolution(144D, 120D)
         };
         byte[] expected = OfficeTiffCodec.Encode(image, options);
         using var actual = new MemoryStream();
@@ -421,7 +420,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
                 OfficeTiffCodec.EncodeTo(image, destination, options.Tiff);
                 break;
             case OfficeImageExportFormat.Webp:
-                OfficeWebpCodec.EncodeTo(image, destination, options.DpiX, options.DpiY);
+                OfficeWebpCodec.EncodeTo(image, destination, options.Resolution!.PhysicalDpiX!.Value, options.Resolution!.PhysicalDpiY!.Value);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
@@ -443,7 +442,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
                 OfficeTiffCodec.EncodeTo(image, destination, options.Tiff);
                 break;
             case OfficeImageExportFormat.Webp:
-                OfficeWebpCodec.EncodeTo(image, destination, options.DpiX, options.DpiY);
+                OfficeWebpCodec.EncodeTo(image, destination, options.Resolution!.PhysicalDpiX!.Value, options.Resolution!.PhysicalDpiY!.Value);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
@@ -468,8 +467,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
     };
 
     private static OfficeRasterEncodingOptions CreateOptions() => new() {
-        DpiX = 144D,
-        DpiY = 120D,
+        Resolution = new OfficeImageResolution(144D, 120D),
         Png = new OfficePngEncodeOptions {
             Compression = OfficePngCompression.Optimal
         },

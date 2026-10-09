@@ -93,7 +93,7 @@ public sealed class PublicImageMetadataTests {
         Assert.Equal(80D, synchronized.HorizontalResolution);
         Assert.Equal(80D, Assert.IsType<OfficeRational>(synchronized.GetExifValue(OfficeExifTag.XResolution)!.Value).ToDouble());
         Assert.Equal(70D, Assert.IsType<OfficeRational>(synchronized.GetExifValue(OfficeExifTag.YResolution)!.Value).ToDouble());
-        Assert.Equal((ushort)3, synchronized.GetExifValue(OfficeExifTag.ResolutionUnit)!.Value);
+        Assert.Equal((ushort)2, synchronized.GetExifValue(OfficeExifTag.ResolutionUnit)!.Value);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public sealed class PublicImageMetadataTests {
         var generic = new OfficeRasterEncodingOptions { Tiff = options };
         OfficeImageMetadata routed = OfficeImageMetadata.Read(OfficeRasterImageEncoder.Encode(pages[0], OfficeImageExportFormat.Tiff, generic));
         Assert.Equal(unit, routed.ResolutionUnits); Assert.Equal(x, routed.HorizontalResolution);
-        generic.DpiX = 144; generic.DpiY = 120;
+        generic.Resolution = new OfficeImageResolution(144D, 120D);
         OfficeImageMetadata overridden = OfficeImageMetadata.Read(OfficeRasterImageEncoder.Encode(pages[0], OfficeImageExportFormat.Tiff, generic));
         Assert.Equal(OfficeImageResolutionUnit.PixelsPerInch, overridden.ResolutionUnits); Assert.Equal(144D, overridden.HorizontalResolution); Assert.Equal(120D, overridden.VerticalResolution);
     }

@@ -49,9 +49,9 @@ public sealed class TiffDensityConfirmationTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void OneAuthoredSharedDpiAxisOverridesNativeUnitsWithoutValidatingTheOtherDerivedAxisAsLegacyDpi(bool vertical) {
+    public void ExplicitSharedResolutionRetainsAnUnchangedAxisInPhysicalUnits(bool vertical) {
         var options = new OfficeRasterEncodingOptions { Tiff = new OfficeTiffEncodeOptions { Resolution = new OfficeImageResolution(0.000001, 0.000001, OfficeImageResolutionUnit.PixelsPerCentimeter) } };
-        if (vertical) options.DpiY = 120D; else options.DpiX = 144D;
+        options.Resolution = new OfficeImageResolution(vertical ? 0.00000254 : 144D, vertical ? 120D : 0.00000254);
         foreach (byte[] output in EncodeAll(options)) {
             var metadata = OfficeImageMetadata.Read(output);
             Assert.Equal(OfficeImageResolutionUnit.PixelsPerInch, metadata.ResolutionUnits);
@@ -61,14 +61,14 @@ public sealed class TiffDensityConfirmationTests {
     }
 
     [Fact]
-    public void TwoSharedDpiAssignmentsTakePrecedenceAndRemainBoundedByLegacyDpiRules() {
-        var options = new OfficeRasterEncodingOptions { DpiX = 144, DpiY = 120, Tiff = new OfficeTiffEncodeOptions { Resolution = new OfficeImageResolution(0.000001, 0.000001) } };
+    public void SharedNativeResolutionTakesPrecedenceAndRetainsRationalStorageBounds() {
+        var options = new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(144, 120), Tiff = new OfficeTiffEncodeOptions { Resolution = new OfficeImageResolution(0.000001, 0.000001) } };
         foreach (byte[] output in EncodeAll(options)) {
             var metadata = OfficeImageMetadata.Read(output);
             Assert.Equal(144D, metadata.HorizontalResolution); Assert.Equal(120D, metadata.VerticalResolution);
         }
-        foreach (double value in new[] { 0.000001, 1000001D }) {
-            options.DpiX = value;
+        foreach (double value in new[] { 0.000000000001, 4294967296D }) {
+            options.Resolution = new OfficeImageResolution(value, 120D);
             AssertRejectedByAllRoutes(options);
         }
     }

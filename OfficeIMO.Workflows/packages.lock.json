@@ -172,6 +172,14 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.opendocument.odg.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.OpenDocument": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
@@ -243,6 +251,14 @@
         "dependencies": {
           "OfficeIMO.Core": "[3.4.4, )",
           "System.IO.Packaging": "[10.0.8, )"
+        }
+      },
+      "officeimo.visio.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Visio": "[3.4.4, )"
         }
       },
       "officeimo.word": {
@@ -467,6 +483,14 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.opendocument.odg.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.OpenDocument": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
@@ -538,6 +562,14 @@
         "dependencies": {
           "OfficeIMO.Core": "[3.4.4, )",
           "System.IO.Packaging": "[10.0.8, )"
+        }
+      },
+      "officeimo.visio.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Visio": "[3.4.4, )"
         }
       },
       "officeimo.word": {

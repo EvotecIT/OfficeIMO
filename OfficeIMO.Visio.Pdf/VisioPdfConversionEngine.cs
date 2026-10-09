@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Visio.Pdf;
 
-internal static class VisioPdfConversionEngine {
+internal static partial class VisioPdfConversionEngine {
     internal static PdfCore.PdfDocumentConversionResult Convert(
         VisioDocument document,
         VisioToPdfOptions? options,
@@ -12,6 +12,8 @@ internal static class VisioPdfConversionEngine {
         VisioToPdfOptions operation = options ?? new VisioToPdfOptions();
         operation.Validate();
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (operation.Mode == VisioPdfProjectionMode.DiagramPages) return ConvertDiagramPages(document, operation, cancellationToken);
 
         OfficeDocumentModel normalized = document.ToOfficeDocumentModel(
             operation.SourceName,

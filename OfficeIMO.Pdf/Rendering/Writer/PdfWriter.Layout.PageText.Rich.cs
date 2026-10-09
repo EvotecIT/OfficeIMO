@@ -210,6 +210,9 @@ internal static partial class PdfWriter {
         }
 
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+            // Round joins keep every zigzag tip inside the amplitude plus half
+            // stroke width used by page and drawing paint-bound measurements.
+            content.LineJoin(1);
             double step = Math.Max(width * 5D, 2D);
             double amplitude = Math.Max(width * 1.5D, 0.75D);
             content.MoveTo(x1, y);

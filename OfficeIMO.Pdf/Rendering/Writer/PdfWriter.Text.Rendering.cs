@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
@@ -223,6 +223,11 @@ internal static partial class PdfWriter {
             AppendArtifactEnd(sb, markedContentId.HasValue);
         }
 
+        // Drawing foreground alpha belongs to glyph paint, independently of run
+        // backgrounds and the decoration paint emitted after the text object.
+        if (foregroundGraphicsState != null) {
+            new ContentStreamBuilder(sb).SaveState().GraphicsState(foregroundGraphicsState);
+        }
         AppendMarkedContentBegin(sb, structureType, markedContentId);
         bool textMarkedContentOpen = markedContentId.HasValue;
         int? textStructElementIndex = FindStructElementIndex(structurePage, markedContentId, structureType);
@@ -513,7 +518,14 @@ internal static partial class PdfWriter {
         if (textMarkedContentOpen) {
             AppendMarkedContentEnd(sb, markedContentId);
         }
+        if (foregroundGraphicsState != null) {
+            new ContentStreamBuilder(sb).RestoreState();
+        }
 
+        bool hasDecorationState = decorationGraphicsState != null && (underlines != null || strikes != null);
+        if (hasDecorationState) {
+            new ContentStreamBuilder(sb).SaveState().GraphicsState(decorationGraphicsState!);
+        }
         if (underlines != null) {
             foreach (var ul in underlines) {
                 AppendArtifactBegin(sb, markedContentId.HasValue);
@@ -528,6 +540,9 @@ internal static partial class PdfWriter {
                 AppendPageTextDecorationLine(sb, st.X1, st.X2, st.Y, 0.5D, st.Color, st.Style);
                 AppendArtifactEnd(sb, markedContentId.HasValue);
             }
+        }
+        if (hasDecorationState) {
+            new ContentStreamBuilder(sb).RestoreState();
         }
 
         // A picture can overlap later text after the cell turns its text axes.

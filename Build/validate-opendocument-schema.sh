@@ -30,7 +30,7 @@ test "$(checksum "$schema_dir/OpenDocument-v1.4-manifest-schema.rng")" = "$manif
 test "$(checksum "$schema_dir/OpenDocument-v1.3-schema.rng")" = "$schema13_sha"
 test "$(checksum "$schema_dir/OpenDocument-v1.3-manifest-schema.rng")" = "$manifest13_sha"
 
-for package in "$artifact_dir"/*.odt "$artifact_dir"/*.ods "$artifact_dir"/*.odp; do
+for package in "$artifact_dir"/*.odt "$artifact_dir"/*.ods "$artifact_dir"/*.odp "$artifact_dir"/*.odg; do
   extract_dir="$schema_dir/$(basename "$package")"
   rm -rf "$extract_dir"
   mkdir -p "$extract_dir"
@@ -51,6 +51,6 @@ for package in "$artifact_dir"/*.odt "$artifact_dir"/*.ods "$artifact_dir"/*.odp
   xmllint --noout --relaxng "$manifest_schema" "$extract_dir/META-INF/manifest.xml"
 done
 
-for flat in "$artifact_dir"/*.fodt "$artifact_dir"/*.fods "$artifact_dir"/*.fodp; do
+for flat in "$artifact_dir"/*.fodt "$artifact_dir"/*.fods "$artifact_dir"/*.fodp "$artifact_dir"/*.fodg; do
   xmllint --noout --relaxng "$schema_dir/OpenDocument-v1.4-schema.rng" "$flat"
 done

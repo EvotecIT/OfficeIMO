@@ -181,9 +181,12 @@ namespace OfficeIMO.Word.Pdf {
                 style.PreserveWidth = true;
             }
 
+            // tblInd applies only to left-aligned tables. A floating coordinate
+            // remains a placement coordinate even in the column fallback path.
             double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
-                GetNativeTableLeftIndent(properties?.TableIndentation) ??
-                tableStyleDefaults.LeftIndent;
+                (MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)) == PdfCore.PdfAlign.Left
+                    ? GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent
+                    : null);
             if (leftIndent.HasValue) {
                 style.LeftIndent = leftIndent.Value;
             }

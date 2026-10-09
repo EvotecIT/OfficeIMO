@@ -157,10 +157,20 @@ namespace OfficeIMO.Visio {
                 context.ReportUnsupportedFeature();
             }
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "clipPath", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "mask", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "marker", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "pattern", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "linearGradient", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "radialGradient", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "filter", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "symbol", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "title", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "metadata", StringComparison.OrdinalIgnoreCase)) {
+                // Definitions remain available by id, but their children do not paint here.
+                // Referenced symbols render through RenderSymbolUse instead.
                 return false;
             }
 

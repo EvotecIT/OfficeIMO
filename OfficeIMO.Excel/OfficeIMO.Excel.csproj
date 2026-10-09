@@ -37,6 +37,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\OfficeIMO.SharedSource\IO\PooledUtf8TextWriter*.cs" Link="SharedSource\IO\%(Filename)%(Extension)" />
+        <Using Include="OfficeIMO.SharedSource.IO" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" />
@@ -49,6 +51,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
     </ItemGroup>
 
     <ItemGroup

@@ -12,7 +12,7 @@ public sealed class DrawingBmpEncodingBoundsTests {
     public void BmpRoutesPreserveStraightAlphaAndBottomUpPixels(int width, int height) {
         OfficeRasterImage image = Pattern(width, height);
         byte[] before = image.GetPixels();
-        var options = new OfficeRasterEncodingOptions { DpiX = 144D, DpiY = 120D };
+        var options = new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(144D, 120D )};
         byte[] encoded = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Bmp, options);
         using var stream = new MemoryStream();
         OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Bmp, stream, options, encoded.Length, CancellationToken.None);
@@ -41,7 +41,7 @@ public sealed class DrawingBmpEncodingBoundsTests {
     [InlineData(double.MaxValue, int.MaxValue)]
     public void BmpDensityUsesPositiveSignedPixelsPerMeter(double dpi, int expected) {
         byte[] encoded = OfficeRasterImageEncoder.Encode(Pattern(2, 1), OfficeImageExportFormat.Bmp,
-            new OfficeRasterEncodingOptions { DpiX = dpi, DpiY = dpi });
+            new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(dpi, dpi )});
         Assert.Equal(expected, BitConverter.ToInt32(encoded, 38));
         Assert.Equal(expected, BitConverter.ToInt32(encoded, 42));
     }
@@ -58,7 +58,7 @@ public sealed class DrawingBmpEncodingBoundsTests {
         using var stream = new MemoryStream();
         stream.WriteByte(0xAB);
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeRasterImageEncoder.EncodeTo(image,
-            OfficeImageExportFormat.Bmp, stream, new OfficeRasterEncodingOptions { DpiX = 96D, DpiY = invalid }));
+            OfficeImageExportFormat.Bmp, stream, new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(96D, invalid )}));
         Assert.Equal(new byte[] { 0xAB }, stream.ToArray());
         Assert.Equal(1L, stream.Position);
         Assert.Equal(before, image.GetPixels());
@@ -68,7 +68,7 @@ public sealed class DrawingBmpEncodingBoundsTests {
     [Fact]
     public void SuppressedBmpDensityDoesNotRequireDpiValues() {
         byte[] encoded = OfficeRasterImageEncoder.Encode(Pattern(1, 1), OfficeImageExportFormat.Bmp,
-            new OfficeRasterEncodingOptions { WriteResolutionMetadata = false, DpiX = double.NaN, DpiY = -1D });
+            new OfficeRasterEncodingOptions { WriteResolutionMetadata = false });
         Assert.Equal(0, BitConverter.ToInt32(encoded, 38));
         Assert.Equal(0, BitConverter.ToInt32(encoded, 42));
     }

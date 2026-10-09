@@ -5,8 +5,6 @@ using System.IO;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeTrueTypeFont {
-    private static readonly Dictionary<string, StyledFontFamilyResolution> StyledFontFamilyCache = new(StringComparer.OrdinalIgnoreCase);
-
     // Windows abbreviates the file names of a family's faces, so they cannot be found by family name.
     // Each entry lists the regular, bold, italic and bold-italic files.
     private static readonly Dictionary<string, string?[]> WindowsStyledFontFiles = new(StringComparer.Ordinal) {
@@ -23,114 +21,18 @@ public sealed partial class OfficeTrueTypeFont {
         ["trebuchetms"] = new[] { "trebuc.ttf", "trebucbd.ttf", "trebucit.ttf", "trebucbi.ttf" }
     };
 
-    /// <summary>
-    /// Loads the installed face of the first resolvable family in a font-family list that carries the requested
-    /// bold and italic style, such as Arial Bold for a bold Arial request.
-    /// </summary>
-    /// <param name="fontFamily">CSS/Office-style font-family fallback list.</param>
-    /// <param name="style">Requested style; only bold and italic select a face.</param>
-    /// <param name="resolvedStyle">The requested bold and italic bits the returned face provides; the caller simulates the rest.</param>
-    /// <returns>The styled face, the family's regular face when it has no styled face, or <see langword="null"/>.</returns>
-    internal static OfficeTrueTypeFont? TryLoadFontFamily(string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
-        OfficeFontStyle requested = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
-        resolvedStyle = OfficeFontStyle.Regular;
-        if (requested == OfficeFontStyle.Regular || string.IsNullOrEmpty(fontFamily)) {
-            return TryLoadFontFamily(fontFamily);
-        }
+    /// <summary>Resolves legacy style flags through the canonical numeric installed-face matcher.</summary>
+    internal static OfficeTrueTypeFont? TryLoadFontFamily(string? fontFamily, OfficeFontStyle style,
+        out OfficeFontStyle resolvedStyle) => TryLoadFontFamilyForText(
+            fontFamily, OfficeFontFaceDescriptor.FromStyle(style), null, out resolvedStyle);
 
-        string cacheKey = NormalizeFontFamilyCacheKey(fontFamily) + "#" + ((int)requested).ToString(System.Globalization.CultureInfo.InvariantCulture);
-        StyledFontFamilyResolution resolved;
-        bool cached;
-        lock (FontCacheLock) {
-            cached = StyledFontFamilyCache.TryGetValue(cacheKey, out resolved);
-        }
-
-        if (!cached) {
-            resolved = ResolveStyledFontFamily(fontFamily!, requested);
-            lock (FontCacheLock) {
-                if (StyledFontFamilyCache.Count >= MaxFontCacheEntries) StyledFontFamilyCache.Clear();
-                StyledFontFamilyCache[cacheKey] = resolved;
-            }
-        }
-
-        if (resolved.Font != null) {
-            resolvedStyle = resolved.Style;
-            return resolved.Font;
-        }
-
-        return TryLoadFontFamily(fontFamily);
-    }
-
-    /// <summary>Resolves an installed face that covers the actual text before accepting a styled or fallback face.</summary>
+    /// <summary>Resolves a covered installed face using the same ordering as numeric rendering.</summary>
     internal static OfficeTrueTypeFont? TryLoadFontFamilyForText(string? fontFamily, OfficeFontStyle style,
-        string? text, out OfficeFontStyle resolvedStyle) {
-        resolvedStyle = OfficeFontStyle.Regular;
-        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(fontFamily))
-            return TryLoadFontFamily(fontFamily, style, out resolvedStyle);
+        string? text, out OfficeFontStyle resolvedStyle) => TryLoadFontFamilyForText(
+            fontFamily, OfficeFontFaceDescriptor.FromStyle(style), text, out resolvedStyle);
 
-        foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
-            OfficeTrueTypeFont? styled = TryLoadFontFamily(family, style, out OfficeFontStyle faceStyle);
-            OfficeFontStyle requested = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
-            bool styledCoversText = styled != null && styled.HasGlyphs(text!);
-            if (styledCoversText && faceStyle == requested) {
-                resolvedStyle = faceStyle;
-                return styled;
-            }
-            // The cached installed-face lookup already covers ASCII families. A missing named face
-            // need not rescan every font file for each ordinary text run; script-specific faces still
-            // receive the full coverage search below.
-            if (IsAsciiText(text!)) {
-                if (styledCoversText) {
-                    resolvedStyle = faceStyle;
-                    return styled;
-                }
-                OfficeTrueTypeFont? regularAscii = TryLoadFontFamily(family);
-                if (regularAscii != null && regularAscii.HasGlyphs(text!)) return regularAscii;
-                continue;
-            }
-            if (requested != OfficeFontStyle.Regular) {
-                string key = NormalizeFontFamilyKey(family);
-                OfficeTrueTypeFont? partial = null;
-                foreach (string path in CandidateStyledFamilyPaths(key, requested)) {
-                    foreach (OfficeTrueTypeFont face in LoadFaces(path)) {
-                        OfficeFontStyle candidateStyle = face.FaceStyle;
-                        if (candidateStyle == OfficeFontStyle.Regular || (candidateStyle & ~requested) != 0 ||
-                            !face.HasFamilyKey(key) || !face.HasGlyphs(text!)) continue;
-                        if (candidateStyle == requested) {
-                            resolvedStyle = candidateStyle;
-                            return face;
-                        }
-                        partial ??= face;
-                    }
-                }
-                if (partial != null) {
-                    resolvedStyle = partial.FaceStyle;
-                    return partial;
-                }
-            }
-            if (styledCoversText && faceStyle != OfficeFontStyle.Regular) {
-                resolvedStyle = faceStyle;
-                return styled;
-            }
-            OfficeTrueTypeFont? regular = TryLoadFontFamily(family);
-            if (regular != null && regular.HasGlyphs(text!)) return regular;
-            string regularKey = NormalizeFontFamilyKey(family);
-            foreach (string path in CandidateFamilyPaths(family)) {
-                foreach (OfficeTrueTypeFont face in LoadFaces(path)) {
-                    if (face.FaceStyle == OfficeFontStyle.Regular && face.HasFamilyKey(regularKey) && face.HasGlyphs(text!))
-                        return face;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static bool IsAsciiText(string text) {
-        for (int index = 0; index < text.Length; index++) {
-            if (text[index] > 0x7F) return false;
-        }
-        return true;
-    }
+    /// <summary>Checks declared family names without treating a platform substitute as the authored family.</summary>
+    internal bool MatchesFamilyName(string family) => HasFamilyKey(NormalizeFontFamilyKey(family));
 
     /// <summary>Gets the bold and italic style the face declares in its <c>head</c> table.</summary>
     internal OfficeFontStyle FaceStyle {
@@ -142,39 +44,6 @@ public sealed partial class OfficeTrueTypeFont {
             if ((macStyle & 2) != 0) style |= OfficeFontStyle.Italic;
             return style;
         }
-    }
-
-    private static StyledFontFamilyResolution ResolveStyledFontFamily(string fontFamily, OfficeFontStyle requested) {
-        foreach (string family in ExpandFontFamilyFallbacks(fontFamily)) {
-            string key = NormalizeFontFamilyKey(family);
-            OfficeTrueTypeFont? partial = null;
-            foreach (string path in CandidateStyledFamilyPaths(key, requested)) {
-                foreach (OfficeTrueTypeFont face in LoadFaces(path)) {
-                    OfficeFontStyle faceStyle = face.FaceStyle;
-                    // A face must not add a style that was not requested, such as bold italic for bold.
-                    if (faceStyle == OfficeFontStyle.Regular || (faceStyle & ~requested) != 0) continue;
-                    if (!face.HasFamilyKey(key) || !face.HasGlyphs("OfficeIMO 0123456789")) continue;
-                    if (faceStyle == requested) return new StyledFontFamilyResolution(face, faceStyle);
-                    partial ??= face;
-                }
-            }
-
-            if (partial != null) return new StyledFontFamilyResolution(partial, partial.FaceStyle);
-            // The first installed family wins; its regular face is used with a simulated style.
-            if (HasInstalledFace(family)) break;
-        }
-
-        return new StyledFontFamilyResolution(null, OfficeFontStyle.Regular);
-    }
-
-    private static bool HasInstalledFace(string family) {
-        foreach (string path in CandidateFamilyPaths(family)) {
-            foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
-                if (font.HasFamilyKey(NormalizeFontFamilyKey(family)) && font.HasGlyphs("OfficeIMO 0123456789")) return true;
-            }
-        }
-
-        return false;
     }
 
     private static IEnumerable<string> CandidateStyledFamilyPaths(string key, OfficeFontStyle requested) {
@@ -191,6 +60,7 @@ public sealed partial class OfficeTrueTypeFont {
 
         // Other platforms name faces after the family ("Arial Bold.ttf", "LiberationSans-Bold.ttf") or
         // keep them in one collection ("Helvetica.ttc").
+        foreach (string path in CandidateKnownFamilyPaths(key)) yield return path;
         foreach (string path in CandidateFontDirectoryPaths(key)) {
             yield return path;
         }
@@ -268,14 +138,4 @@ public sealed partial class OfficeTrueTypeFont {
         return false;
     }
 
-    private readonly struct StyledFontFamilyResolution {
-        public StyledFontFamilyResolution(OfficeTrueTypeFont? font, OfficeFontStyle style) {
-            Font = font;
-            Style = style;
-        }
-
-        public OfficeTrueTypeFont? Font { get; }
-
-        public OfficeFontStyle Style { get; }
-    }
 }

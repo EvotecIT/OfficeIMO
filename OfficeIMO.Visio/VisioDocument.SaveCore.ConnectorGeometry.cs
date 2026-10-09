@@ -13,56 +13,29 @@ namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
         private static void WriteConnectorGeometry(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
-            bool hasExplicitWaypoints = connector.Waypoints.Count > 0;
-            if (!hasExplicitWaypoints && WritePreservedGeometrySections(writer, connector.PreservedGeometrySections)) {
-                return;
-            }
+            VisioShape shape = VisioConnectorGeometry.CreateShape(connector);
+            WritePreservedGeometrySections(writer, shape.PreservedGeometrySections);
+        }
 
-            if (connector.Kind == ConnectorKind.Dynamic && !hasExplicitWaypoints) {
-                return;
-            }
+        private static readonly string[] ConnectorTransformCells = { "PinX", "PinY", "Width", "Height", "LocPinX", "LocPinY", "Angle", "FlipX", "FlipY" };
 
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Geometry");
-            writer.WriteAttributeString("IX", "0");
-
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "MoveTo");
-            WriteCell(writer, ns, "X", startX);
-            WriteCell(writer, ns, "Y", startY);
-            writer.WriteEndElement();
-
-            if (hasExplicitWaypoints) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    writer.WriteStartElement("Row", ns);
-                    writer.WriteAttributeString("T", "LineTo");
-                    WriteCell(writer, ns, "X", waypoint.X);
-                    WriteCell(writer, ns, "Y", waypoint.Y);
-                    writer.WriteEndElement();
-                }
-            } else {
-                switch (connector.Kind) {
-                    case ConnectorKind.RightAngle:
-                        writer.WriteStartElement("Row", ns);
-                        writer.WriteAttributeString("T", "LineTo");
-                        WriteCell(writer, ns, "X", startX);
-                        WriteCell(writer, ns, "Y", endY);
-                        writer.WriteEndElement();
-                        break;
-                    case ConnectorKind.Curved:
-                    case ConnectorKind.Straight:
-                    default:
-                        break;
+        private static void WriteConnectorTransform(XmlWriter writer, string ns, VisioConnector connector, string? cellName = null, XElement? original = null) {
+            VisioShape shape = VisioConnectorGeometry.CreateShape(connector);
+            bool native = connector.NativeGeometry?.AppliesTo(connector) == true;
+            double[] values = { shape.PinX, shape.PinY, shape.Width, shape.Height, shape.LocPinX, shape.LocPinY, shape.Angle,
+                native && connector.NativeGeometry!.FlipX ? 1 : 0, native && connector.NativeGeometry!.FlipY ? 1 : 0 };
+            for (int i = 0; i < ConnectorTransformCells.Length; i++) {
+                string name = ConnectorTransformCells[i];
+                if (cellName != null && name != cellName) continue;
+                if (original == null) WriteCell(writer, ns, name, values[i]);
+                else {
+                    XElement cell = new(original);
+                    if (!double.TryParse((string?)cell.Attribute("V"), NumberStyles.Float, CultureInfo.InvariantCulture, out double before) || Math.Abs(before - values[i]) > 1e-10)
+                        cell.Attribute("F")?.Remove();
+                    cell.SetAttributeValue("V", ToVisioString(values[i]));
+                    cell.WriteTo(writer);
                 }
             }
-
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "LineTo");
-            WriteCell(writer, ns, "X", endX);
-            WriteCell(writer, ns, "Y", endY);
-            writer.WriteEndElement();
-
-            writer.WriteEndElement();
         }
 
         private static void WritePreservedConnectAttributes(XmlWriter writer, IEnumerable<XAttribute> preservedAttributes) {
@@ -80,6 +53,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, string> persistedIds,
             VisioConnector connector,
             VisioConnectorEndpointScope endpointScope) {
+            if ((endpointScope == VisioConnectorEndpointScope.Start ? connector.From : connector.To) == null) return;
             IEnumerable<XAttribute> preservedAttributes = endpointScope == VisioConnectorEndpointScope.Start
                 ? connector.PreservedBeginConnectAttributes
                 : connector.PreservedEndConnectAttributes;
@@ -108,11 +82,11 @@ namespace OfficeIMO.Visio {
                 (fromSheetName, GetPersistedId(persistedIds, connector.Id)),
                 (fromCellName, endpointScope == VisioConnectorEndpointScope.Start ? "BeginX" : "EndX"),
                 (toSheetName, endpointScope == VisioConnectorEndpointScope.Start
-                    ? GetPersistedId(persistedIds, connector.From.Id)
-                    : GetPersistedId(persistedIds, connector.To.Id)),
+                    ? GetPersistedId(persistedIds, connector.From!.Id)
+                    : GetPersistedId(persistedIds, connector.To!.Id)),
                 (toCellName, endpointScope == VisioConnectorEndpointScope.Start
-                    ? GetConnectionCell(connector.From, connector.FromConnectionPoint, connector.PreservedFromConnectionCell)
-                    : GetConnectionCell(connector.To, connector.ToConnectionPoint, connector.PreservedToConnectionCell))
+                    ? GetConnectionCell(connector.From!, connector.FromConnectionPoint, connector.PreservedFromConnectionCell)
+                    : GetConnectionCell(connector.To!, connector.ToConnectionPoint, connector.PreservedToConnectionCell))
             };
             Dictionary<XName, string> standardAttributes = standardAttributeList.ToDictionary(attribute => attribute.Name, attribute => attribute.Value);
 

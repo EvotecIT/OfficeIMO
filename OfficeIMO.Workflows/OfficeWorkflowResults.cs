@@ -149,7 +149,7 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
     public PdfHealthReport? HealthReport { get; }
     /// <summary>Signature evidence for the prepared output. For unconfirmed publication this does not prove destination contents.</summary>
     public OfficeIMO.Pdf.PdfSignatureValidationReport? SignatureReport { get; }
-    /// <summary>Typed fidelity and source evidence from an opt-in converter, including for an unconfirmed provider publication.</summary>
+    /// <summary>Typed fidelity and source evidence when supplied by the owning converter, including for an unconfirmed provider publication.</summary>
     public OfficeWorkflowConversionEvidence? ConversionEvidence { get; }
     /// <summary>True only for successfully completed requests.</summary>
     public bool Succeeded => Status == OfficeWorkflowStatus.Completed;

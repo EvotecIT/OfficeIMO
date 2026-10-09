@@ -38,6 +38,7 @@ public static class OdsPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try { return source.ToPdfDocumentResult(conversionOptions, pdfOptions, cancellationToken).SaveResult(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
+        catch (OdfConversionLossException ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex, ex.Report); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex); }
     }
 
@@ -46,6 +47,7 @@ public static class OdsPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try { return source.ToPdfDocumentResult(conversionOptions, pdfOptions, cancellationToken).SaveResult(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
+        catch (OdfConversionLossException ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex, ex.Report); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }
 
@@ -66,6 +68,7 @@ public static class OdsPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try { return await source.ToPdfDocumentResult(conversionOptions, pdfOptions, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (OdfConversionLossException ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex, ex.Report); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex); }
     }
 
@@ -74,6 +77,7 @@ public static class OdsPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try { return await source.ToPdfDocumentResult(conversionOptions, pdfOptions, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (OdfConversionLossException ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex, ex.Report); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }
 

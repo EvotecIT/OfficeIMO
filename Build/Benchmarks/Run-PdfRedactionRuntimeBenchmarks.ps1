@@ -3,6 +3,8 @@ param(
     [string] $OutputRoot = (Join-Path $PSScriptRoot '../../Ignore/Benchmarks/PdfRedactionRuntime'),
     [string] $ModulePath = 'PSPublishModule',
     [ValidateRange(1, 500)] [int[]] $Pages = @(1, 25, 100),
+    [string] $InputPath = '',
+    [string] $Pattern = 'private account [0-9]{3}',
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,
     [ValidateRange(1, 100)] [int] $IterationCount = 5,
     [ValidateRange(0, 1000)] [int] $MemorySamplingIntervalMilliseconds = 0,
@@ -14,7 +16,7 @@ $BinaryRoot = (Resolve-Path -LiteralPath $BinaryRoot).Path
 [void] [Reflection.Assembly]::LoadFrom((Join-Path $BinaryRoot 'OfficeIMO.Pdf.dll'))
 Import-Module $ModulePath -ErrorAction Stop
 $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'pdf-redaction-runtime.benchmark.ps1') `
-    -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Pages = $Pages } `
+    -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Pages = $Pages; InputPath = $InputPath; Pattern = $Pattern } `
     -WarmupCount $WarmupCount -IterationCount $IterationCount `
     -MemorySamplingIntervalMilliseconds $MemorySamplingIntervalMilliseconds `
     -RunMode $(if ($MemorySamplingIntervalMilliseconds -gt 0) { "memory-$MemorySamplingIntervalMilliseconds-ms" } else { 'standard' }) -Plan:$Plan

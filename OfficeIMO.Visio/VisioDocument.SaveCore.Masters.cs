@@ -54,23 +54,6 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private VisioMaster? ResolveEffectiveMaster(VisioShape shape) {
-            if (shape.Master != null) {
-                return shape.Master;
-            }
-
-            if (!UseMastersByDefault) {
-                return null;
-            }
-
-            string shapeNameU = shape.NameU?.Trim() ?? string.Empty;
-            if (shapeNameU.Length == 0) {
-                return null;
-            }
-
-            return TryEnsureBuiltinMaster(shapeNameU, out VisioMaster? master) ? master : null;
-        }
-
         private static VisioMaster GetMastersRootMetadataSource(IReadOnlyList<PackageMasterEntry> masters) {
             foreach (PackageMasterEntry entry in masters) {
                 if (entry.Master.PreservedMastersRootAttributes.Count > 0 ||
@@ -189,7 +172,30 @@ namespace OfficeIMO.Visio {
             WriteRectangleGeometry(writer, ns, width, height);
         }
 
+        private static void WriteMasterCatalogAttributes(XmlWriter writer, VisioMaster master, string packageId, BuiltinMasterDefinition? definition) {
+            var defaults = new XElement("Master",
+                new XAttribute("ID", packageId), new XAttribute("NameU", master.NameU), new XAttribute("Name", master.NameU),
+                new XAttribute("IsCustomNameU", "1"), new XAttribute("IsCustomName", "1"),
+                new XAttribute("Prompt", definition?.Prompt ?? "Drag onto the page."),
+                new XAttribute("IconSize", "1"), new XAttribute("AlignName", "2"),
+                new XAttribute("MatchByName", definition?.MatchByName == true ? "1" : "0"),
+                new XAttribute("IconUpdate", definition?.IconUpdate == false ? "0" : "1"),
+                new XAttribute("UniqueID", definition?.UniqueId ?? Guid.Empty.ToString("B").ToUpperInvariant()),
+                new XAttribute("BaseID", definition?.BaseId ?? Guid.Empty.ToString("B").ToUpperInvariant()),
+                new XAttribute("PatternFlags", "0"), new XAttribute("Hidden", "0"),
+                new XAttribute("MasterType", definition?.MasterType ?? 2));
+            foreach (XAttribute attribute in master.PreservedMasterAttributes)
+                defaults.SetAttributeValue(attribute.Name, attribute.Value);
+            WritePreservedAttributes(writer, defaults.Attributes());
+        }
+
         private static void WriteMasterPageSheet(XmlWriter writer, string ns, VisioMaster master, BuiltinMasterDefinition? definition) {
+            if (master.LoadedPageSheetXml != null) {
+                // A loaded master's scale and page settings are source data, not authoring defaults.
+                var content = new XDocument(new XElement(XName.Get("MasterContents", ns), new XElement(master.LoadedPageSheetXml)));
+                MergeRawMasterMetadata(content, master).Root!.Element(XName.Get("PageSheet", ns))!.WriteTo(writer);
+                return;
+            }
             writer.WriteStartElement("PageSheet", ns);
             writer.WriteAttributeString("LineStyle", "0");
             writer.WriteAttributeString("FillStyle", "0");
@@ -364,24 +370,23 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteMasterCharacterSection(XmlWriter writer, string ns) {
-            writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Character");
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("IX", "0");
-            WriteCell(writer, ns, "Size", 0.1388888888888889, "PT", null);
-            writer.WriteEndElement();
-            writer.WriteEndElement();
+        private static void WriteMasterCharacterSection(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
+            VisioTextStyle effectiveStyle = textStyle?.Clone() ?? new VisioTextStyle();
+            effectiveStyle.Size ??= 10;
+            WriteCharSection(writer, ns, effectiveStyle);
         }
 
-        private static void WriteDefaultTextBlock(XmlWriter writer, string ns, double width, double height) {
-            WriteCell(writer, ns, "TxtPinX", width / 2.0, "MM", "Width*0.5");
-            WriteCell(writer, ns, "TxtPinY", height / 2.0, "MM", "Height*0.5");
-            WriteCell(writer, ns, "TxtWidth", width * 0.875, "MM", "Width*0.875");
-            WriteCell(writer, ns, "TxtHeight", height * 0.75, "MM", "Height*0.75");
-            WriteCell(writer, ns, "TxtLocPinX", width * 0.4375, "MM", "TxtWidth*0.5");
-            WriteCell(writer, ns, "TxtLocPinY", height * 0.375, "MM", "TxtHeight*0.5");
-            WriteCell(writer, ns, "TxtAngle", 0);
+        private static void WriteDefaultTextBlock(XmlWriter writer, string ns, double width, double height, VisioTextStyle? textStyle) {
+            // Emit defaults only for unassigned cells; the canonical text writer emits
+            // modeled overrides once. Local pin defaults follow the effective frame size.
+            VisioTextStyle effective = ResolveSimpleMasterTextFrameStyle(width, height, textStyle);
+            if (textStyle?.TextPinX == null) WriteCell(writer, ns, "TxtPinX", effective.TextPinX!.Value, "MM", "Width*0.5");
+            if (textStyle?.TextPinY == null) WriteCell(writer, ns, "TxtPinY", effective.TextPinY!.Value, "MM", "Height*0.5");
+            if (textStyle?.TextWidth == null) WriteCell(writer, ns, "TxtWidth", effective.TextWidth!.Value, "MM", "Width*0.875");
+            if (textStyle?.TextHeight == null) WriteCell(writer, ns, "TxtHeight", effective.TextHeight!.Value, "MM", "Height*0.75");
+            if (textStyle?.TextLocPinX == null) WriteCell(writer, ns, "TxtLocPinX", effective.TextLocPinX!.Value, "MM", "TxtWidth*0.5");
+            if (textStyle?.TextLocPinY == null) WriteCell(writer, ns, "TxtLocPinY", effective.TextLocPinY!.Value, "MM", "TxtHeight*0.5");
+            if (textStyle?.TextAngle == null) WriteCell(writer, ns, "TxtAngle", effective.TextAngle!.Value);
         }
 
         private static void WriteConnectorControlSection(XmlWriter writer, string ns, double height) {

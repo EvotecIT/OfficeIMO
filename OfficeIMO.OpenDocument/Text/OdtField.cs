@@ -73,25 +73,12 @@ public sealed class OdtField {
     internal XElement Element => _element;
 
     internal static bool TryGetKind(XName name, out OdtFieldKind kind) {
-        if (name == OdfNamespaces.Text + "page-number") kind = OdtFieldKind.PageNumber;
-        else if (name == OdfNamespaces.Text + "page-count") kind = OdtFieldKind.PageCount;
-        else if (name == OdfNamespaces.Text + "date") kind = OdtFieldKind.Date;
-        else if (name == OdfNamespaces.Text + "time") kind = OdtFieldKind.Time;
-        else { kind = default; return false; }
-        return true;
+        bool found = OdfTextField.TryGetKind(name, out OdfTextFieldKind nativeKind);
+        kind = (OdtFieldKind)nativeKind; return found;
     }
 
     internal static XElement CreateElement(OdtFieldKind kind, string? displayText) {
-        XName name = kind switch {
-            OdtFieldKind.PageNumber => OdfNamespaces.Text + "page-number",
-            OdtFieldKind.PageCount => OdfNamespaces.Text + "page-count",
-            OdtFieldKind.Date => OdfNamespaces.Text + "date",
-            OdtFieldKind.Time => OdfNamespaces.Text + "time",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind))
-        };
-        var element = new XElement(name);
-        element.Value = displayText ?? string.Empty;
-        return element;
+        return OdfTextField.Create((OdfTextFieldKind)kind, displayText);
     }
     private XElement EnsureMaterialized() {
         if (_materializeForEdit != null) {

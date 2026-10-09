@@ -576,7 +576,7 @@ public class PdfDocumentImageValidationTests {
         byte[] tiff = OfficeRasterImageEncoder.Encode(
             image,
             OfficeImageExportFormat.Tiff,
-            new OfficeRasterEncodingOptions { DpiX = 144, DpiY = 120 });
+            new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(144, 120) });
 
         Assert.True(PdfDocument.TryPrepareImageBytes(
             tiff,

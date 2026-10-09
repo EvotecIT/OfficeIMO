@@ -1,11 +1,41 @@
 namespace OfficeIMO.OpenDocument;
 
 public abstract partial class OdfDocument {
+    private static XElement MergeFlatAutomaticStyles(XElement? content, XElement? styles) {
+        XElement merged = MergeContainers(OdfNamespaces.Office + "automatic-styles", content, styles);
+        // Keep merged style definitions together before page layouts for interoperable validation.
+        XElement[] layouts = merged.Elements(OdfNamespaces.Style + "page-layout").ToArray();
+        foreach (XElement layout in layouts) { layout.Remove(); merged.Add(layout); }
+        return merged;
+    }
+
     private static XDocument PrepareFlatStyleScopes(XDocument content, XDocument sourceStyles) {
         var styles = new XDocument(sourceStyles);
+        RenameCommonCollisions();
         RenameCollisions(OdfNamespaces.Office + "font-face-decls", fonts: true);
         RenameCollisions(OdfNamespaces.Office + "automatic-styles", fonts: false);
         return styles;
+
+        // Flattening merges two automatic scopes. Neither scope may then shadow
+        // a common definition that was visible only from the other source part.
+        void RenameCommonCollisions() {
+            var commonKeys = new HashSet<string>((styles.Root?.Element(OdfNamespaces.Office + "styles")?.Elements() ?? Enumerable.Empty<XElement>())
+                .Where(element => element.Attribute(OdfNamespaces.Style + "name") != null).Select(element => DefinitionKey(element, false)), StringComparer.Ordinal);
+            var names = new HashSet<string>(new[] { content, styles }.SelectMany(part => part.Descendants().Attributes(OdfNamespaces.Style + "name"))
+                .Select(attribute => attribute.Value), StringComparer.Ordinal);
+            foreach (XDocument part in new[] { content, styles }) {
+                var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (XElement definition in part.Root?.Element(OdfNamespaces.Office + "automatic-styles")?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    string key = DefinitionKey(definition, false);
+                    if (!commonKeys.Contains(key)) continue;
+                    string name = (string)definition.Attribute(OdfNamespaces.Style + "name")!;
+                    int suffix = 1; string replacement;
+                    do { replacement = name + "_flatCommon" + suffix++.ToString(CultureInfo.InvariantCulture); } while (!names.Add(replacement));
+                    definition.SetAttributeValue(OdfNamespaces.Style + "name", replacement); replacements[key] = replacement;
+                }
+                RewriteReferences(part, replacements, false);
+            }
+        }
 
         void RenameCollisions(XName containerName, bool fonts) {
             XElement? target = styles.Root?.Element(containerName);
@@ -17,6 +47,8 @@ public abstract partial class OdfDocument {
                 ?? new Dictionary<string, XElement>(StringComparer.Ordinal);
             var names = new HashSet<string>(contentDefinitions.Values.Select(element =>
                 (string)element.Attribute(OdfNamespaces.Style + "name")!), StringComparer.Ordinal);
+            foreach (XAttribute commonName in styles.Root!.Element(OdfNamespaces.Office + "styles")?.DescendantsAndSelf().Attributes(OdfNamespaces.Style + "name") ?? Enumerable.Empty<XAttribute>())
+                names.Add(commonName.Value);
             foreach (XElement element in target.Elements()) {
                 string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
                 if (name != null) names.Add(name);
@@ -34,7 +66,10 @@ public abstract partial class OdfDocument {
                 replacements[key] = replacement;
                 element.SetAttributeValue(OdfNamespaces.Style + "name", replacement);
             }
-            foreach (XElement container in styles.Root!.Elements()) {
+            RewriteReferences(styles, replacements, fonts);
+        }
+        void RewriteReferences(XDocument part, Dictionary<string, string> replacements, bool fonts) {
+            foreach (XElement container in part.Root!.Elements()) {
                 foreach (XAttribute attribute in container.DescendantsAndSelf().Attributes()) {
                     string? kind = fonts ? (IsFontReference(attribute.Name) ? "font" : null) : ReferenceKind(attribute);
                     if (kind == null) continue;
@@ -70,11 +105,17 @@ public abstract partial class OdfDocument {
         XElement owner = attribute.Parent!;
         string local = name.LocalName;
         if (name.Namespace == OdfNamespaces.Style) {
+            if (local == "leader-text-style") {
+                XElement? definition = owner.Ancestors().FirstOrDefault(element =>
+                    element.Name == OdfNamespaces.Style + "style" || element.Name == OdfNamespaces.Style + "default-style");
+                // Automatic styles can bind automatic text styles, but common/default
+                // styles retain common-only bindings when automatic scopes are merged.
+                return definition?.Parent?.Name == OdfNamespaces.Office + "styles" ? null : "family:text";
+            }
             if (local == "data-style-name" || local == "percentage-data-style-name") return "data";
             if (local == "list-style-name") return "list";
             if (local == "page-layout-name") return (OdfNamespaces.Style + "page-layout").ToString();
             if (local == "style-name" && owner.Name == OdfNamespaces.Style + "drop-cap") return "family:text";
-            if (local == "apply-style-name" && owner.Ancestors().Any(element => element.Name.Namespace == OdfNamespaces.Number)) return "data";
             // Parent, next and conditional style-map targets refer to common styles.
             return null;
         }

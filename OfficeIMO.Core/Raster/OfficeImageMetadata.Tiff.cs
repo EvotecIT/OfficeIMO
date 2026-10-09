@@ -43,9 +43,9 @@ public sealed partial class OfficeImageMetadata {
         }
         if (preserveDensity) {
             GetExifResolution(metadata, out double x, out double y, out ushort unit);
-            target[OfficeExifTag.XResolution] = TiffResolutionValue(OfficeExifTag.XResolution, x);
-            target[OfficeExifTag.YResolution] = TiffResolutionValue(OfficeExifTag.YResolution, y);
-            target[OfficeExifTag.ResolutionUnit] = new OfficeExifValue(OfficeExifTag.ResolutionUnit, unit);
+            if (!metadata._removed.Contains(OfficeExifTag.XResolution)) target[OfficeExifTag.XResolution] = TiffResolutionValue(OfficeExifTag.XResolution, x);
+            if (!metadata._removed.Contains(OfficeExifTag.YResolution)) target[OfficeExifTag.YResolution] = TiffResolutionValue(OfficeExifTag.YResolution, y);
+            if (!metadata._removed.Contains(OfficeExifTag.ResolutionUnit)) target[OfficeExifTag.ResolutionUnit] = new OfficeExifValue(OfficeExifTag.ResolutionUnit, unit);
         }
         AddProfile(700, OfficeExifDataType.Byte, metadata._xmp);
         AddProfile(34675, OfficeExifDataType.Undefined, metadata._icc);

@@ -6,9 +6,10 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
-    /// Connects two shapes together.
+    /// Connects attached shapes or free page points.
     /// </summary>
-    public class VisioConnector {
+    public partial class VisioConnector {
+        internal List<VisioForeignResource> ForeignResources { get; } = new();
         internal readonly struct PreservedShapeChildEntry {
             public PreservedShapeChildEntry(XElement rawElement) {
                 RawElement = new XElement(rawElement);
@@ -40,8 +41,8 @@ namespace OfficeIMO.Visio {
         /// <param name="to">Shape at which the connector ends.</param>
         public VisioConnector(string id, VisioShape from, VisioShape to) {
             Id = id;
-            From = from;
-            To = to;
+            From = from ?? throw new ArgumentNullException(nameof(from));
+            To = to ?? throw new ArgumentNullException(nameof(to));
             LineColor = Color.Black;
             LineWeight = 0.0138889;
             LinePattern = 1; // Solid line
@@ -53,28 +54,34 @@ namespace OfficeIMO.Visio {
         public string Id { get; internal set; }
 
         internal string? PersistedId { get; set; }
+        internal VisioNativeCellMetadata? NativeCellMetadata { get; set; }
+        internal VisioNativeStyleReferences? NativeStyleReferences { get; set; }
 
         internal bool PreserveDynamicConnectorMaster { get; set; }
 
         /// <summary>
-        /// Shape from which the connector starts.
+        /// Attached source shape, or null when the start is a free page point.
         /// </summary>
-        public VisioShape From { get; internal set; }
+        public VisioShape? From { get; internal set; }
 
         /// <summary>
-        /// Shape at which the connector ends.
+        /// Attached target shape, or null when the end is a free page point.
         /// </summary>
-        public VisioShape To { get; internal set; }
+        public VisioShape? To { get; internal set; }
 
-        /// <summary>
-        /// Connection point on the starting shape.
-        /// </summary>
-        public VisioConnectionPoint? FromConnectionPoint { get; set; }
+        private VisioConnectionPoint? _fromConnectionPoint;
+        /// <summary>Connection point on the starting shape. Setting null selects automatic attachment.</summary>
+        public VisioConnectionPoint? FromConnectionPoint {
+            get => _fromConnectionPoint;
+            set { ClearEndpointPreservation(true); _fromConnectionPoint = value; }
+        }
 
-        /// <summary>
-        /// Connection point on the ending shape.
-        /// </summary>
-        public VisioConnectionPoint? ToConnectionPoint { get; set; }
+        private VisioConnectionPoint? _toConnectionPoint;
+        /// <summary>Connection point on the ending shape. Setting null selects automatic attachment.</summary>
+        public VisioConnectionPoint? ToConnectionPoint {
+            get => _toConnectionPoint;
+            set { ClearEndpointPreservation(false); _toConnectionPoint = value; }
+        }
 
         /// <summary>
         /// Gets or sets the kind of connector.
@@ -178,6 +185,8 @@ namespace OfficeIMO.Visio {
         public VisioConnectorRerouteBehavior? RerouteBehavior { get; set; }
 
         internal IList<int> LayerIndexes { get; } = new List<int>();
+
+        internal VisioLayerMembership? NativeLayerMembership { get; set; }
         
         /// <summary>
         /// Line color of the connector.
@@ -231,6 +240,10 @@ namespace OfficeIMO.Visio {
         internal bool HasModeledCharSection { get; set; }
 
         internal bool HasModeledParaSection { get; set; }
+
+        internal VisioTextSectionSource? CharacterSectionSource { get; set; }
+
+        internal VisioTextSectionSource? ParagraphSectionSource { get; set; }
 
         internal bool HasAutomaticId { get; }
 
@@ -336,10 +349,7 @@ namespace OfficeIMO.Visio {
             }
 
             row.Value = value ?? string.Empty;
-            row.ValueFormula = null;
-            if (row.PreservedKnownCells.TryGetValue("Value", out XElement? valueCell)) {
-                valueCell.Attribute("F")?.Remove();
-            }
+            row.ClearValueFormula();
 
             if (label != null) row.Label = label;
             if (type.HasValue) row.Type = type.Value;
@@ -406,6 +416,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static string GetNextId(VisioShape from, VisioShape to) {
+            if (from == null) throw new ArgumentNullException(nameof(from));
+            if (to == null) throw new ArgumentNullException(nameof(to));
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
             int toId = int.TryParse(to.Id, out int ti) ? ti : 0;
             int newId = Math.Max(fromId, toId) + 1;

@@ -20,13 +20,14 @@ namespace OfficeIMO.Visio {
                                (shape.GetUserCellValue(VisioSemanticUserCells.StencilName) ?? string.Empty) + " " +
                                (shape.GetUserCellValue(VisioSemanticUserCells.StencilCategory) ?? string.Empty) + " " +
                                (shape.GetUserCellValue(VisioSemanticUserCells.StencilAliases) ?? string.Empty) + " " +
-                               (shape.GetUserCellValue(VisioSemanticUserCells.StencilTags) ?? string.Empty) + " " +
-                               (shape.MasterNameU ?? shape.NameU ?? string.Empty)).ToLowerInvariant();
+                               (shape.GetUserCellValue(VisioSemanticUserCells.StencilTags) ?? string.Empty)).ToLowerInvariant();
 
             if (string.IsNullOrWhiteSpace(metadata)) {
                 return null;
             }
 
+            // A native shape name is not an opt-in to decorative OfficeIMO stencil artwork.
+            metadata += " " + (shape.MasterNameU ?? shape.NameU ?? string.Empty).ToLowerInvariant();
             HashSet<string> tokens = Tokenize(metadata);
             if (ContainsAny(tokens, "person", "user", "actor", "client", "customer", "principal")) return "person";
             if (ContainsAny(tokens, "database", "sql", "data", "lake", "warehouse", "storage", "catalog", "audit", "document", "record")) return "data";
