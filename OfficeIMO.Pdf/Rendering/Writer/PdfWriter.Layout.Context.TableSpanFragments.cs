@@ -161,24 +161,29 @@ internal static partial class PdfWriter {
                 if (count == 0) continue;
                 double innerWidth = GetTableCellWidth(widths, span.Cell.Column, span.Cell.ColumnSpan, columnGap) -
                     GetTableCellPaddingLeft(style, span.Row, span.Cell.Column) - GetTableCellPaddingRight(style, span.Row, span.Cell.Column);
+                double minimumRelaxationHeight = 0D;
                 if (minimumFragmentFrameHeight.HasValue) {
                     double textHeight = Math.Max(0D, minimumFragmentFrameHeight.Value -
                         GetTableCellPaddingTop(style, span.Row, span.Cell.Column) - GetTableCellPaddingBottom(style, span.Row, span.Cell.Column));
                     int maximum = LimitTableCellLineCountToHeight(lines, span.ConsumedLines, count, rows.Leadings[span.Row], textHeight);
-                    // Use the same keep/widow boundary as admission. If no boundary fits
-                    // a fresh frame, retain its existing relaxation to a single line.
+                    // Admission relaxes an impossible paragraph boundary only in a full
+                    // fresh frame. Optional spacing must leave that entire frame available.
                     count = 1;
+                    bool boundaryFound = false;
                     for (int candidate = 1; candidate <= maximum; candidate++) {
                         if (!IsTableRowFragmentBoundaryAllowed(rows.Lines[span.Row], new[] { span.Cell },
                             span.ConsumedLines, candidate, textHeight)) continue;
                         count = candidate;
+                        boundaryFound = true;
                         break;
                     }
+                    if (!boundaryFound && maximum > 0) minimumRelaxationHeight = minimumFragmentFrameHeight.Value;
                 }
                 double required = MeasureTableCellContentHeight(span.Cell, lines, span.ConsumedLines,
                     count, rows.Leadings[span.Row], innerWidth, includeObjects: false) +
                     GetTableCellPaddingTop(style, span.Row, span.Cell.Column) + GetTableCellPaddingBottom(style, span.Row, span.Cell.Column);
-                height = Math.Max(height, required - (subtractAdmittedHeight ? span.Height : 0D));
+                height = Math.Max(height, Math.Max(required, minimumRelaxationHeight) -
+                    (subtractAdmittedHeight ? span.Height : 0D));
             }
             return height;
         }

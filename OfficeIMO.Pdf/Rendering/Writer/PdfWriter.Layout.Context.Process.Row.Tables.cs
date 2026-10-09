@@ -452,7 +452,8 @@ internal static partial class PdfWriter {
             if (table.PendingSpanTailRow == rowIndex) {
                 double minimum = MeasureTableSpanRemainderHeight(table.SpanFlow, tableStyle, table.PreparedRows,
                     table.ColumnWidths, columnGap, rowIndex,
-                    minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight));
+                    minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight -
+                        (rowIndex == tbColumn.Rows.Count - 1 ? closingPadding : 0D)));
                 if (HasRepeatableHeader() && AtContinuationPageTop() && repeatHeaderHeight + minimum <= state.Remaining + .001D)
                     for (int header = 0; header < table.RepeatHeaderRowCount; header++)
                         DrawColumnTableRow(header, true, suppressCellObjects: true);

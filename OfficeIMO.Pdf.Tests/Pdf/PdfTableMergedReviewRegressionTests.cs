@@ -1,6 +1,7 @@
 using OfficeIMO.Pdf;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
@@ -120,17 +121,21 @@ public partial class PdfDocumentVisualQualityTests {
         foreach (string token in tokens) Assert.Single(words, word => word == token);
     }
 
-    [Fact]
-    public void MergedTailContinuationReservesItsKeptParagraphBeforeOptionalSpacing() {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void MergedTailContinuationReservesItsParagraphBoundaryBeforeOptionalSpacing(bool oversizedWidowParagraph, bool inClosingPanelRow) {
         string[] tallTokens = Enumerable.Range(1, 8).Select(n => $"Tall{n}").ToArray();
-        string[] keptTokens = Enumerable.Range(1, 4).Select(n => $"Kept{n}").ToArray();
+        string[] keptTokens = Enumerable.Range(1, oversizedWidowParagraph ? 3 : 4).Select(n => $"Kept{n}").ToArray();
         PdfTextRun[] tall = { PdfTextRun.Normal(string.Join("\n", tallTokens)) };
         PdfTextRun[] kept = { PdfTextRun.Normal(string.Join("\n", keptTokens)) };
         PdfTextRun[] runs = { PdfTextRun.Normal(string.Join("\n", tallTokens.Concat(keptTokens))) };
         PdfTableCell anchor = new(runs, new[] {
-            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(60), widowControl: false),
-            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(18),
-                keepTogether: true, widowControl: false)
+            new PdfTableCellParagraph(tall, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(inClosingPanelRow ? 80 : 60), widowControl: false),
+            new PdfTableCellParagraph(kept, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(oversizedWidowParagraph ? 30 : 18),
+                keepTogether: !oversizedWidowParagraph, widowControl: oversizedWidowParagraph)
         }, rowSpan: 3);
         PdfTableStyle style = Style();
         style.HeaderRowCount = 1;
@@ -138,16 +143,27 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowMinHeights = new() { 20, null, null, null };
         style.PageContinuationSpacingBefore = 60;
         PdfDocument document = PdfDocument.Create(Options(140));
-        AddTable(document, new[] {
+        PdfTableCell[][] rows = {
             new[] { PdfTableCell.TextCell("Header"), PdfTableCell.TextCell("Value") },
             new[] { anchor, PdfTableCell.TextCell("Ready") },
             new[] { PdfTableCell.TextCell("Next") },
             new[] { PdfTableCell.TextCell("Done") }
-        }, style, false);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
+        };
+        if (inClosingPanelRow) {
+            document.Compose(builder => builder.Page(page => page.Content(content => content
+                .Element(element => element.Style(new PdfPanelStyle {
+                    PaddingX = 0, PaddingY = 20, SpacingBefore = 0, SpacingAfter = 0,
+                    RepeatFragmentDecoration = false
+                }).Content(inner => inner.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))))));
+        } else AddTable(document, rows, style, false);
+        using CancellationTokenSource cancellation = new(TimeSpan.FromSeconds(5));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes(cancellation.Token));
         foreach (string token in tallTokens.Concat(keptTokens))
             Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == token);
-        Assert.Single(pdf.GetPages(), page => keptTokens.All(token => page.GetWords().Any(word => word.Text == token)));
+        // Closing padding makes this paragraph taller than the final usable frame,
+        // so its keep rule may relax there while every line must still be preserved.
+        if (!oversizedWidowParagraph && !inClosingPanelRow)
+            Assert.Single(pdf.GetPages(), page => keptTokens.All(token => page.GetWords().Any(word => word.Text == token)));
     }
 
     [Theory]

@@ -465,7 +465,8 @@ internal static partial class PdfWriter {
                 }
                 double requiredHeight = continuingSpanTail
                     ? MeasureTableSpanRemainderHeight(spanFlow, style, preparedRows, colPixel, colGapPx, rowIndex,
-                        minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight)) +
+                        minimumFragmentFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight -
+                            (rowIndex == tb.Rows.Count - 1 ? GetClosingTextPadding(style.SpacingAfter) : 0D))) +
                         (hasRepeatableHeader && rowIndex >= headerRowCount ? repeatHeaderHeight : 0D)
                     : GetTableContinuationRequiredHeight(rowIndex, startLine, requireWholeRow);
                 ApplyTablePageContinuationSpacing(requiredHeight);
