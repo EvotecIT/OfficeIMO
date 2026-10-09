@@ -30,7 +30,7 @@ public sealed partial class StudioMobileApplicationTests {
                 var window = new Window { Content = view, Width = 1366, Height = 1024 };
                 try {
                     window.Show(); Layout(window);
-                    Click(window, view, host.ActiveDocument.Commands["Open"], requireHitTarget: true);
+                    await ClickAsync(window, view, host.ActiveDocument.Commands["Open"]);
                     await host.ActiveDocument.OpenCommand.ExecutionTask!;
                     Assert.False(host.ActiveDocument.HasDocument);
                     Capture(window, "organizer-empty-host");
@@ -44,7 +44,7 @@ public sealed partial class StudioMobileApplicationTests {
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
                     while (document.OrganizerPages.Any(page => page.IsLoading)) await Task.Delay(10, timeout.Token);
                     Layout(window); Capture(window, "organizer-independent-pages");
-                    Click(window, view, document.MoveSelectedUpCommand, requireHitTarget: true);
+                    await ClickAsync(window, view, document.MoveSelectedUpCommand);
                     await document.MoveSelectedUpCommand.ExecutionTask!;
                     Assert.True(document.IsDirty);
                     await document.SaveCommand.ExecuteAsync(null);

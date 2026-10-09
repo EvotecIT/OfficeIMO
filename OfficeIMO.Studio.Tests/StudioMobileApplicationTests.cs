@@ -133,8 +133,15 @@ public sealed partial class StudioMobileApplicationTests {
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static void Click(Window window, Control scope, System.Windows.Input.ICommand command, bool requireHitTarget = false) =>
-        Click(window, scope.GetVisualDescendants().OfType<Button>().First(button => ReferenceEquals(button.Command, command) && button.IsEffectivelyVisible), requireHitTarget);
+    private static void Click(Window window, Control scope, System.Windows.Input.ICommand command) =>
+        Click(window, scope.GetVisualDescendants().OfType<Button>().First(button => ReferenceEquals(button.Command, command) && button.IsEffectivelyVisible));
+
+    private static async Task ClickAsync(Window window, Control scope, System.Windows.Input.ICommand command) {
+        var button = scope.GetVisualDescendants().OfType<Button>().First(button => ReferenceEquals(button.Command, command) && button.IsEffectivelyVisible);
+        Assert.True(button.IsEffectivelyEnabled);
+        await StudioHeadlessInput.WaitForTargetAsync(window, button, () => Layout(window));
+        Click(window, button, requireHitTarget: true);
+    }
 
     private static void Click(Window window, Button button, bool requireHitTarget = false) {
         Assert.True(button.IsEffectivelyEnabled);

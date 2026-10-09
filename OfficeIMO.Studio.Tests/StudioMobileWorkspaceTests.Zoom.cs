@@ -27,7 +27,7 @@ public sealed partial class StudioMobileWorkspaceTests {
             Point origin = PagePoint(canvas, scroll);
             Assert.True(new Rect(scroll.Bounds.Size).Contains(origin));
             Capture(window, $"pinch-before-{width}");
-            // Multiple updates and finger release can happen before the next layout.
+            // Headless touch input pumps rendering between each contact update.
             Pinch(window, scroll, origin, 1.5);
             Layout(window, width, height);
             Layout(window, width, height);
@@ -201,6 +201,12 @@ public sealed partial class StudioMobileWorkspaceTests {
                     Layout(window, width, height);
                     await controller.Document.SelectedPage!.EnsureRenderedAsync();
                     Layout(window, width, height);
+                    var navigation = view.FindControl<SplitView>("ApplicationNavigation")!;
+                    var pane = navigation.GetVisualDescendants().OfType<Control>().Single(control => control.Name == "PART_PaneRoot");
+                    var scroll = view.FindControl<ScrollViewer>("PageScroll")!;
+                    await StudioHeadlessInput.WaitForTargetAsync(window, scroll, () => Layout(window, width, height),
+                        () => navigation.DisplayMode != SplitViewDisplayMode.Inline || !navigation.IsPaneOpen ||
+                            pane.Bounds.Width == navigation.OpenPaneLength);
                     await action(window, view, controller);
                 } finally { window.Close(); }
                 return true;
