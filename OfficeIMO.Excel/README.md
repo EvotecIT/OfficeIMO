@@ -313,6 +313,19 @@ replace it with XML count attributes or a partial shared-string table load.
 See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 for the first-row and full-scan evidence boundaries.
 
+The XML streaming fallback completes a row before returning a cell value, so
+scalar and bulk getters agree when cell coordinates recur or arrive out of order.
+`ExcelReadOptions.MaxXmlDataReaderBufferedCharacters` bounds this materialization
+to 32 Mi characters per physical row by default. Out-of-order rows retained
+together share one aggregate allowance. Raw values, formula text, inline text,
+and resolved strings count conservatively, including replaced cell records.
+XML preparation also bounds text read to validate shared-string indices and
+shared-formula followers before returning a reader.
+An over-limit read throws `InvalidDataException`; close that reader before
+opening a new one with a larger limit for trusted input. Indexed UTF-8 and
+SDK worksheet-chunk caches retain their existing limits. This character allowance is
+not a total memory budget and does not bound objects created by a custom converter.
+
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:
 

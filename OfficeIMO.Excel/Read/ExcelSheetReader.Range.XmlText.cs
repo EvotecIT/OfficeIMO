@@ -136,7 +136,8 @@ namespace OfficeIMO.Excel {
             return TryParseSharedStringIndex(rawText, out index);
         }
 
-        private static string ReadXmlInlineString(XmlReader inlineReader) {
+        private static string ReadXmlInlineString(XmlReader inlineReader, XmlDataReaderTextBudget? textBudget = null) {
+            if (textBudget != null) return textBudget.ReadInlineString(inlineReader);
             if (inlineReader.IsEmptyElement) {
                 // Cell readers resume on the current node after this helper returns.
                 // Advance past <is/> so they cannot repeatedly consume the same element.

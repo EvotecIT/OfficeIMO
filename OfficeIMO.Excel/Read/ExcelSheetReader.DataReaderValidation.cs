@@ -56,6 +56,11 @@ namespace OfficeIMO.Excel {
             Stream stream,
             CancellationToken ct) {
             using var reader = OpenWorksheetXmlReader(stream);
+            // Qualification reads index/follower text before constructing the XML
+            // row cache. Bound those strings too, so preflight cannot bypass the
+            // streaming reader's protection with a padded index or formula.
+            var textBudget = new XmlDataReaderTextBudget(_opt.MaxXmlDataReaderBufferedCharacters,
+                ct.ThrowIfCancellationRequested);
             // Table-backed dimensions can intentionally include empty cells.
             // Otherwise reuse this complete validation scan to discover actual bounds.
             var bounds = _usedRangeA1 == null && (!_hasSdkWorksheetPart || !_wsPart.TableDefinitionParts.Any())
@@ -70,6 +75,7 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested();
                 XmlNodeType nodeType = reader.NodeType;
                 string localName = reader.LocalName;
+                if (nodeType == XmlNodeType.Element && localName == "row") textBudget.Reset();
                 if (nodeType != XmlNodeType.Element || localName != "c") {
                     if (bounds != null) {
                         bool spreadsheetElement = reader.NamespaceURI == SpreadsheetNamespace
@@ -170,7 +176,7 @@ namespace OfficeIMO.Excel {
                         if (sharedStringCell) {
                             sharedStringReference = reader.IsEmptyElement
                                 ? string.Empty
-                                : ReadSimpleElementText(reader, ct, reference);
+                                : ReadSimpleElementText(reader, ct, reference, textBudget);
                         }
                         continue;
                     }
@@ -186,7 +192,7 @@ namespace OfficeIMO.Excel {
                     bool isFollower = reader.IsEmptyElement;
                     if (!isFollower) {
                         isFollower = string.IsNullOrWhiteSpace(
-                            ReadSimpleElementText(reader, ct, reference));
+                            ReadSimpleElementText(reader, ct, reference, textBudget));
                     }
                     sharedFollower |= isFollower;
                 }
@@ -221,11 +227,20 @@ namespace OfficeIMO.Excel {
         private static string ReadSimpleElementText(
             XmlReader reader,
             CancellationToken ct,
-            XmlCoordinateReference cellReference) {
+            XmlCoordinateReference cellReference,
+            XmlDataReaderTextBudget textBudget) {
             int elementDepth = reader.Depth;
             string elementName = reader.LocalName;
             string elementNamespace = reader.NamespaceURI;
-            string value = reader.ReadString();
+            string value;
+            try {
+                value = textBudget.ReadElementText(reader, advancePastEnd: false);
+            } catch (XmlException exception) {
+                // Keep a malformed text-only value as a hard validation failure;
+                // falling back to the SDK DOM would undo the bounded read.
+                throw new InvalidDataException(
+                    $"Worksheet cell {cellReference.ToString()} element '{elementName}' must contain only text.", exception);
+            }
             ct.ThrowIfCancellationRequested();
             if (reader.NodeType != XmlNodeType.EndElement
                 || reader.Depth != elementDepth

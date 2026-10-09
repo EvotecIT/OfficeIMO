@@ -2827,6 +2827,17 @@ reports the actual delimiter used, including one selected by detection.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
+XML streaming Excel data readers also enforce `MaxXmlDataReaderBufferedCharacters`
+(32 Mi characters by default) while completing a physical row, or across all
+buffered out-of-order rows. Decoded raw, formula and inline text plus resolved
+strings count conservatively, including duplicate records. If intentionally
+larger trusted rows exceed this limit, close the failed reader and reopen with
+a higher value. After a limit failure, that range reader's `Read` and value
+getters continue throwing `InvalidDataException` until it is closed. XML
+preparation also bounds text used to validate shared-string indices and shared
+formula followers. Indexed UTF-8 and SDK worksheet-chunk caches keep their
+existing limits.
+
 The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 
 ### PDF conversion and import
