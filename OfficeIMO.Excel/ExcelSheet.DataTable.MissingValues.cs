@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -19,7 +20,20 @@ namespace OfficeIMO.Excel {
             // An imported missing value still occupies its tabular coordinate.
             // The explicit default format keeps native blank-cell writers from
             // treating it as an incidental unstyled stub left by ClearRange.
-            cell.StyleIndex ??= 0U;
+            cell.StyleIndex ??= GetMissingTabularCellStyleIndex();
+        }
+
+        private uint GetMissingTabularCellStyleIndex() {
+            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            if (stylesheet.CellFormats == null || !stylesheet.CellFormats.Elements<CellFormat>().Any()) {
+                // The explicit native presence marker is also a style reference
+                // in XLSX, so its default cell format must exist before saving.
+                EnsureDefaultStylePrimitives(stylesheet);
+                SaveStylesheet(stylesPart);
+            }
+            return 0U;
         }
 
         /// <summary>

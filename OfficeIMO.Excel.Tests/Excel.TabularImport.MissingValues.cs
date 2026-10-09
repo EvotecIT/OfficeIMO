@@ -110,6 +110,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
+            if (format == ExcelFileFormat.Xlsx && standardWriter) AssertMissingTabularDefaultStyles(package, "B2", "B3");
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
             for (int id = 1; id <= 3; id++) {
                 Assert.True(reader.Read());
@@ -118,6 +119,47 @@ namespace OfficeIMO.Tests {
                 if (id == 3) Assert.Equal(string.Empty, reader.GetString(1));
             }
             Assert.False(reader.Read());
+        }
+
+        [Theory]
+        [InlineData(ExcelExecutionMode.Sequential)]
+        [InlineData(ExcelExecutionMode.Parallel)]
+        public void TabularImport_MissingOverwriteRegistersDefaultStyleForStandardXlsx(ExcelExecutionMode mode) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Previous");
+            DataTable table = new DataTable();
+            table.Columns.Add("Missing", typeof(string));
+            table.Columns.Add("AlsoMissing", typeof(string));
+            table.Columns.Add("Empty", typeof(string));
+            table.Rows.Add(DBNull.Value, DBNull.Value, string.Empty);
+
+            sheet.InsertDataTable(table, includeHeaders: false, mode: mode);
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = true });
+
+            AssertMissingTabularDefaultStyles(package, "A1", "B1");
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            Assert.Equal(3, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.True(reader.IsDBNull(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.False(reader.IsDBNull(2));
+            Assert.Equal(string.Empty, reader.GetString(2));
+            Assert.False(reader.Read());
+        }
+
+        private static void AssertMissingTabularDefaultStyles(byte[] package, params string[] references) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
+            WorkbookPart workbook = spreadsheet.WorkbookPart!;
+            CellFormats formats = workbook.WorkbookStylesPart!.Stylesheet!.CellFormats!;
+            Assert.NotEmpty(formats.Elements<CellFormat>());
+            Dictionary<string, Cell> cells = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            foreach (string reference in references) {
+                Cell missing = cells[reference];
+                Assert.Equal(0U, missing.StyleIndex!.Value);
+                Assert.Null(missing.CellValue);
+                Assert.Null(missing.DataType);
+            }
         }
 
         [Theory]

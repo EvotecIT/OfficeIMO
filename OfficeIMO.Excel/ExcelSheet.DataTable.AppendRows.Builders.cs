@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
             bool preserveMissingValues = true) {
             if (preserveMissingValues && (value == null || value == DBNull.Value)) {
                 // Retain intentional missing coordinates without adding a custom style.
-                return new Cell { CellReference = cellReference, StyleIndex = 0U };
+                return new Cell { CellReference = cellReference, StyleIndex = GetMissingTabularCellStyleIndex() };
             }
 
             var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKind, useDirectStringCells, ref sharedStringIndexes);
