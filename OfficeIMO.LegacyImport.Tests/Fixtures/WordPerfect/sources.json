@@ -1,0 +1,56 @@
+[
+  {
+    "file": "WP5.wp",
+    "source": "https://raw.githubusercontent.com/LibreOffice/core/51ce606db19b1b9f1274f0968a52ccd264081059/writerperfect/qa/unit/data/writer/libwpd/pass/WP5.wp",
+    "repository": "LibreOffice/core",
+    "commit": "51ce606db19b1b9f1274f0968a52ccd264081059",
+    "sha256": "0012f0f2088d31238f81353b01fbc8f1cb7600d623172d5ab3895a59a2bbe8b6",
+    "license": "MPL-2.0",
+    "role": "independent upstream document fixture"
+  },
+  {
+    "file": "WP6.wpd",
+    "source": "https://raw.githubusercontent.com/LibreOffice/core/51ce606db19b1b9f1274f0968a52ccd264081059/writerperfect/qa/unit/data/writer/libwpd/pass/WP6.wpd",
+    "repository": "LibreOffice/core",
+    "commit": "51ce606db19b1b9f1274f0968a52ccd264081059",
+    "sha256": "d5fde49f38d0dd73c65c0d19cb132defcc037dc09c8c405a2dfbaba457d65150",
+    "license": "MPL-2.0",
+    "role": "independent upstream document fixture"
+  },
+  {
+    "file": "testWordPerfect.wpd",
+    "source": "https://raw.githubusercontent.com/apache/tika/a4384e9d49a17fd3011c83820125d6bae00cee6e/tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-miscoffice-module/src/test/resources/test-documents/testWordPerfect.wpd",
+    "repository": "apache/tika",
+    "commit": "a4384e9d49a17fd3011c83820125d6bae00cee6e",
+    "sha256": "45ec5771e60fc55c07f398ddec80e9463f3cd7b80bfadacf93743dcfcef866e7",
+    "license": "Apache-2.0",
+    "role": "independent upstream document fixture"
+  },
+  {
+    "file": "testWordPerfect_5_0.wp",
+    "source": "https://raw.githubusercontent.com/apache/tika/a4384e9d49a17fd3011c83820125d6bae00cee6e/tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-miscoffice-module/src/test/resources/test-documents/testWordPerfect_5_0.wp",
+    "repository": "apache/tika",
+    "commit": "a4384e9d49a17fd3011c83820125d6bae00cee6e",
+    "sha256": "4cb383585f11af90a2f1c3f8e8f0244020e2008224effce981446577234273c1",
+    "license": "Apache-2.0",
+    "role": "independent upstream document fixture"
+  },
+  {
+    "file": "testWordPerfect_5_1.wp",
+    "source": "https://raw.githubusercontent.com/apache/tika/a4384e9d49a17fd3011c83820125d6bae00cee6e/tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-miscoffice-module/src/test/resources/test-documents/testWordPerfect_5_1.wp",
+    "repository": "apache/tika",
+    "commit": "a4384e9d49a17fd3011c83820125d6bae00cee6e",
+    "sha256": "c5b3c18d2c1ba2c99c2fbb1aababcbee15b744f2539605927e589c3c7eeb6bdc",
+    "license": "Apache-2.0",
+    "role": "independent upstream document fixture"
+  },
+  {
+    "file": "WPG1.wpg",
+    "source": "https://raw.githubusercontent.com/LibreOffice/core/51ce606db19b1b9f1274f0968a52ccd264081059/writerperfect/qa/unit/data/draw/libwpg/pass/WPG1.wpg",
+    "repository": "LibreOffice/core",
+    "commit": "51ce606db19b1b9f1274f0968a52ccd264081059",
+    "sha256": "10dbb1c7b6c81e87c69a971bc39ec5a7773e128812d2fc71d7b620d51d885dc3",
+    "license": "MPL-2.0",
+    "role": "independent upstream WPG1 polygon fixture"
+  }
+]

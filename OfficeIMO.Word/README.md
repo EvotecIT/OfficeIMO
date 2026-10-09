@@ -568,8 +568,11 @@ using OfficeIMO.Word.Legacy;
 
 using LegacyWordImportResult imported = LegacyWordImporter.Import("archive.wpd");
 Console.WriteLine(imported.Report.Quality);
-foreach (LegacyWordParagraphContent paragraph in imported.Content.Paragraphs) {
-    Console.WriteLine($"{paragraph.StyleName}: {paragraph.Text}");
+foreach (LegacyWordSectionContent section in imported.Content.Sections) {
+    foreach (LegacyWordBlockContent block in section.Blocks) {
+        if (block is LegacyWordParagraphContent paragraph) Console.WriteLine(paragraph.Text);
+        if (block is LegacyWordTableContent table) Console.WriteLine($"Table: {table.Rows.Count} rows");
+    }
 }
 foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
     Console.WriteLine($"{finding.Code}: {finding.Message}");
@@ -578,7 +581,7 @@ foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
 imported.Value.Save("archive.docx");
 ```
 
-The importer never saves back to these source formats, executes macros or embedded code, activates embedded objects, or resolves external links. Each result identifies structured or salvage recovery and reports feature-level loss. The source-oriented `Content` retains paragraphs, formatted runs, notes, and inert resource references beside the projected `WordDocument`; existing Word converter packages can export that document to ODT, HTML, Markdown, or PDF.
+The importer never saves back to these source formats, executes macros or embedded code, activates embedded objects, or resolves external links. Each result identifies structured or salvage recovery and reports feature-level loss. The source-oriented `Content.Sections` retains ordered paragraphs and tables, page geometry, and running stories beside the projected `WordDocument`. Formatted runs expose anchored notes through `NoteIndex` and qualified graphics through `Image`; existing Word converter packages can export the document to ODT, HTML, Markdown, or PDF.
 
 #### Profile coverage
 
@@ -587,13 +590,17 @@ The importer never saves back to these source formats, executes macros or embedd
 | WordStar 3-7 character streams | Structured | hard and soft returns, paragraphs, common inline formatting, page breaks, selected dot commands, bounded notes/comments, paragraph-style names, and inert graphics references | printer/font/color/style-library sequences and unrecognized dot commands are reported; text-marker lists are identified as inferred |
 | Ami Pro SAM 4 | Structured | style definitions, paragraphs, basic character styles, fonts, RGB color, alignment, spacing, page-break and keep properties, and source style names | the current structured profile is ASCII-only; code pages, frames, equations, images, tables, and additional inline tags remain open |
 | Weak WordStar or non-SAM4 Ami Pro input with an explicit hint | Salvage | bounded text and paragraphs | a hint selects the family but does not upgrade weak input to structured quality |
-| WordPerfect 5/6 | Salvage | bounded document-area text, paragraphs, offsets, and active-content marker inventory | prefix packets, formatting codes, notes, tables, graphics, and layout are not yet semantically decoded |
+| WordPerfect 5.x records | Structured | prefix directories and fonts, paragraph and character records, basic formatting, rectangular tables and widths, anchored footnotes/endnotes, headers/footers, page breaks and explicit geometry | merged/nested tables and tables inside running stories are rejected; source style libraries, fields, advanced cell formatting, and graphics are reported as loss |
+| WordPerfect 6.x records | Structured | typed prefix packets and fonts, paragraphs, basic formatting and RGB color, rectangular tables and widths, anchored notes, headers/footers, page breaks and explicit geometry; basic cached WPG1 vectors as inline PNG images | merged/nested tables are rejected; style libraries, lists, fields, other WPG profiles, and floating box layout are reported as loss; WPG1 lines, polylines, polygons, rectangles and unrotated ellipses use solid fills/strokes and an explicit palette or the first sixteen default colors |
+| Weak or other WordPerfect profiles | Salvage | bounded document-area text, paragraphs, offsets, and active-content marker inventory | weak input does not gain structured quality from its extension or a format hint |
 | Lotus Word Pro LWP | Salvage | bounded text plus compound-content safety inventory | document zones, styles, notes, tables, graphics, and layout are not yet reconstructed |
 | Microsoft Works word 2-8 | Salvage | bounded text and paragraphs plus compound-content safety inventory where applicable | formatting, fields, notes, tables, images, and layout are not yet reconstructed |
 | Microsoft Write WRI | Salvage | bounded text and paragraph runs | formatting runs, objects, headers, footers, and layout are not yet reconstructed |
 | Microsoft Word for DOS 4-6 | Salvage | bounded text and paragraphs | formatting, annotations, objects, and layout are not yet reconstructed |
 
 `Structured` means the input passed the documented profile grammar, not that conversion is lossless. Inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow. Detection combines stable signatures and validated grammar with an optional source name; resource limits and cancellation apply before and during parsing.
+
+WordPerfect 5 and 6 use separate record grammars. Encrypted documents and malformed record gates, references, or table grids fail import. Deleted WordPerfect 6 undo text is excluded. Basic WPG1 vectors are rasterized at 96 DPI; `Image.GetSourceBytes()` and `Image.GetPngBytes()` return independent copies. `Limits.MaxResourceBytes` bounds graphics bytes and `Limits.MaxImagePixels` bounds total generated pixels across body and referenced stories. The five attributed WordPerfect fixtures and WPG1 fixture in `OfficeIMO.LegacyImport.Tests/Fixtures/WordPerfect` provide independent source evidence; specification-built tests cover tables, notes, malformed input, and shared budgets. Complete source-format preservation and pixel-identical layout are outside these profiles.
 
 ### Protection
 
