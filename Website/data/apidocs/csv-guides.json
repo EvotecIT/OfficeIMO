@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Read and write CSV data",
+    "url": "/docs/csv/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.CSV.CsvDocument"
+    ]
+  }
+]

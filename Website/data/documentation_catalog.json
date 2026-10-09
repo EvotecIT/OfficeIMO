@@ -9,7 +9,7 @@
     "validationProjectCount": 52,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54048
+    "conceptualWordCount": 54049
   },
   "categories": [
     {
@@ -376,7 +376,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 909,
+      "sourceFileCount": 974,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -1182,7 +1182,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1354,
+      "sourceFileCount": 1366,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1288,7 +1288,7 @@
       "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
       "sourceFileCount": 189,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/project/",
       "apiUrl": "/api/project/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
     },
@@ -1832,7 +1832,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 757,
+      "sourceFileCount": 761,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1910,7 +1910,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 85,
+      "sourceFileCount": 86,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",

@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Create plans and calculate schedules",
+    "url": "/docs/project/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.Project.ProjectDocument"
+    ]
+  }
+]
