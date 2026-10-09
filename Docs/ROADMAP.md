@@ -708,7 +708,7 @@ thin consumers. Native `.pub` authoring is outside the read-and-convert product.
 - [ ] Extend native shape geometry, group transforms, non-solid fills, individual table styling, picture effects and background/master inheritance with precise per-feature loss reporting.
 - [ ] Qualify later Publisher producers and native Publisher PDF/SVG comparisons across brochures, newsletters, labels, custom page sizes and multilingual fonts. Keep producer fixtures, independent-reader evidence and pixel fidelity distinct.
 - [ ] Add separately qualified Publisher 97/98 and 2000 native decoders without routing them through text salvage or weakening current resource limits.
-- [ ] Integrate the existing codec through thin Reader, workflow and host routes, carrying source recovery losses into every downstream artifact and keeping native active content inert.
+- [ ] Integrate the existing codec through thin Reader and remaining host routes, carrying source recovery losses into every downstream artifact and keeping native active content inert.
 
 ### Future integration decisions
 

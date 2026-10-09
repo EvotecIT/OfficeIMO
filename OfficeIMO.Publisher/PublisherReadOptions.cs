@@ -17,7 +17,8 @@ public sealed class PublisherReadOptions {
     /// <summary>Maximum pixels accepted from an application image codec.</summary>
     public long MaximumRasterPixels { get; set; } = 8_000_000;
 
-    internal PublisherReadOptions Snapshot() {
+    /// <summary>Creates a validated independent options copy. A supplied application image codec remains shared.</summary>
+    public PublisherReadOptions Clone() {
         if (Limits == null) throw new ArgumentNullException(nameof(Limits));
         Limits.Validate();
         if (MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(MaximumPages));

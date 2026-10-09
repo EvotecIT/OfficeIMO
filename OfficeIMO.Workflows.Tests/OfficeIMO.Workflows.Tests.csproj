@@ -15,6 +15,7 @@
     <Compile Include="../OfficeIMO.TestAssets/ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf" Link="Fixtures/SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Drawing.Tests/TestAssets/RobotoFlex.ttf" Link="Fixtures/RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Publisher.Tests/Fixtures/*.pub" Link="Fixtures/Publisher/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />

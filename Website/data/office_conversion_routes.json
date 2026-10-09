@@ -1582,6 +1582,26 @@
       "agentDiscoverable":true
     },
     {
+      "id":"publisher-pdf",
+      "source":"Publisher",
+      "target":"PDF",
+      "inputKind":"File",
+      "sourceExtensions":[ ".pub" ],
+      "targetExtension":".pdf",
+      "packageId":"OfficeIMO.Publisher.Pdf",
+      "api":"PublisherDocument.Load(stream, readOptions).ToPdfDocumentResult(pdfOptions)",
+      "description":"Recover native publication pages with searchable text and carry source and PDF fidelity diagnostics.",
+      "fidelity":"FixedLayout",
+      "textFormatting":"FixedLayoutAppearance",
+      "textFormattingContract":"Preserves supported font styling as fixed-layout PDF text and graphics; conversion diagnostics identify source semantics the managed renderer approximates or omits.",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
+      "knownLimitations":"Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified.",
+      "resultContract":"PdfDocumentConversionResult",
+      "browserAvailable":false,
+      "agentDiscoverable":true
+    },
+    {
       "id":"email-eml-msg",
       "source":"EML",
       "target":"MSG",

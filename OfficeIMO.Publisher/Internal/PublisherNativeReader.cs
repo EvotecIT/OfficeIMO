@@ -9,10 +9,8 @@ internal static class PublisherNativeReader {
         contents.Range(0, 4);
         if (contents.U8(0) != 0xE8 || contents.U8(1) != 0xAC || contents.U8(3) != 0)
             throw new InvalidDataException("The compound document is not a recognized Publisher publication.");
-        if (contents.U8(2) == 0x22) {
-            string profile = compound.Streams.ContainsKey("Quill/QuillSub/CONTENTS") ? "Publisher 2000" : "Publisher 97/98";
-            throw new NotSupportedException(profile + " uses an earlier native profile that this reader does not decode.");
-        }
+        if (contents.U8(2) == 0x22)
+            throw new NotSupportedException("The earlier Publisher 97/98 or 2000 Contents generation is not decoded. Its shared signature does not establish the exact producer release.");
         if (contents.U8(2) != 0x2C) throw new NotSupportedException("Unsupported Publisher native version marker.");
         PublisherContents publication = new PublisherContentsReader(contents, context).Read();
         PublisherQuillText text = new PublisherQuillTextReader(Required(compound, "Quill/QuillSub/CONTENTS"), context).Read(publication.Palette);

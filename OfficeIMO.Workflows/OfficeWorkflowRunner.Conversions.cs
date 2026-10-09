@@ -85,6 +85,11 @@ public sealed partial class OfficeWorkflowRunner {
         bool hasLoss = false;
         OfficeWorkflowConversionEvidence? evidence = null;
         switch (route.Id) {
+            case "publisher-pdf": {
+                (bytes, evidence) = ConvertPublisher(request, input, settings, diagnostics, cancellationToken);
+                hasLoss = evidence.HasLoss;
+                break;
+            }
             case "visio-pdf": {
                 (bytes, evidence) = ConvertVisio(request, input, settings, diagnostics, cancellationToken);
                 hasLoss = evidence.HasLoss;

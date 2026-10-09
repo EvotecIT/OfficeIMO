@@ -10,8 +10,7 @@ the optional PDF package consumes that scene without another native decoder.
 | Profile | Read behavior | Evidence boundary |
 | --- | --- | --- |
 | Publisher 2002-and-later Contents/Quill/OfficeArt generation (`E8 AC 2C 00`) | Bounded structured decoding and positioned reconstruction | Apache POI Simple, Sample and Sample_2010 publications; brochure and newsletter corpus fixtures |
-| Publisher 2000 compound generation (`E8 AC 22 00` with Quill) | Explicit unsupported-profile exception | Apache POI Sample2000 fixture |
-| Publisher 97/98 generation | Explicit unsupported-profile exception | Apache POI Sample98 fixture |
+| Earlier Contents generation (`E8 AC 22 00`) | Explicit unsupported-profile exception; the shared signature and Quill presence do not identify the exact 97/98 or 2000 release | Apache POI Sample2000 and Sample98 fixtures |
 | Encrypted, damaged or other publication generations | No decryption or salvage fallback | Required streams, lengths, references and encodings are validated; unknown versions are rejected |
 
 The generation signature does not establish qualification for every Publisher
@@ -33,6 +32,11 @@ they are not produced by an OfficeIMO writer.
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; recoloring and other picture effects are unassessed |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
+
+`OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
+file batches and document previews. Source recovery diagnostics survive output
+publication and checkpoint reuse. Strict acceptance and resource-limit failures
+preserve existing destinations.
 
 Source object counts measure recovered descriptors and distinct projected
 objects. They do not measure pixel fidelity or prove that all content of an
