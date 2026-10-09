@@ -267,6 +267,16 @@ python Build/IWork/extract-numbers-functions.py OfficeIMO.TestAssets/Documents/I
 
 The fractional random cases returned zero in this native import and remain outside local evaluation qualification. Random caches are snapshots. Native error cells have no XLSX error cache, so this evidence does not qualify error-code equivalence. Saved/reopened conversions retain the expressions and diagnosed caches; fresh shared-owner evaluation and edits to referenced inputs are tested separately. The PDF is a native reference, not a qualification of complete layout, implicit intersection, dynamic spills or other producer versions.
 
+## Fractional random bounds
+
+`native-exports/numbers-fractional-bounds-v14.5.json` records 16 cache-free expressions imported, evaluated and saved by Numbers 14.5, with its XLSX export and a separate native Excel 16.113.3 recalculation. The intake is OfficeIMO-authored; the results come from the native applications. Artifact hashes, function nodes, typed caches, screenshots and producer versions are retained. Reproduce the manifest with numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-numbers-functions.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-fractional-bounds-v14.5.json --profile fractional-random
+```
+
+Seven nonempty integer intervals agree across the native applications and fresh OfficeIMO evaluation. Empty integer intervals expose a compatibility limit: Numbers returns zero, while Excel can return the rounded lower bound. OfficeIMO retains those formulas and caches without local evaluation. Native Numbers errors for reversed bounds have no exported error cache; fresh Excel evaluation returns `#NUM!`. Random sequences, full appearance and additional producer versions remain unqualified.
+
 ## Base user-hidden columns
 
 `numbers-parser/user-hidden-columns.json` describes six hidden columns across three tables in the unchanged `numbers-parser/cross-table-formulas.numbers` package. Its pinned upstream revision and MIT notice above apply. Build metadata records Numbers `M14.3-7042.0.76-4` and the Blank 11.2 template. Independent numbers-parser 4.19.0 schemas resolve selected UUIDs through nonidentity column permutations and verify their inverse vectors, zero legacy hidden counts and empty hidden cells. Reproduce the manifest:
