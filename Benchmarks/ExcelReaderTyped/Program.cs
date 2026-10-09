@@ -23,6 +23,19 @@ if (args.Length > 0 && args[0] == "--measure-shared-memory") {
     return;
 }
 
+if (args.Length > 0 && args[0] == "--validate-native-written") {
+    if (args.Length != 3 || !int.TryParse(args[2], System.Globalization.NumberStyles.None,
+        System.Globalization.CultureInfo.InvariantCulture, out int rowCount) || rowCount is < 1 or > 1_000_000)
+        throw new ArgumentException("Usage: --validate-native-written <fixture.xlsb|fixture.xls> <dataRows>, with dataRows between 1 and 1000000.");
+    ExcelFileFormat format = Path.GetExtension(args[1]).ToLowerInvariant() switch {
+        ".xlsb" => ExcelFileFormat.Xlsb,
+        ".xls" => ExcelFileFormat.Xls,
+        _ => throw new ArgumentException("Native written-fixture qualification supports .xlsb and .xls files."),
+    };
+    NativeWrittenWorkbookValidation.Validate(File.ReadAllBytes(args[1]), rowCount, format, "External");
+    return;
+}
+
 if (args is ["--validate-bdn"]) {
     int typeCount = 0, methodCount = 0, caseCount = 0, errorCount = 0;
     foreach (Type type in Assembly.GetExecutingAssembly().GetTypes().Where(type =>

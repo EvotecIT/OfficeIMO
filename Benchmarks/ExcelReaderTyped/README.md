@@ -349,9 +349,15 @@ existing explicit output directory before qualification. Setup retains the
 validated XLS/XLSB packages there; ordinary benchmark runs retain only compact
 structure and size descriptions.
 
+`--validate-native-written <fixture.xlsb|fixture.xls> <dataRows>` rechecks a native
+fixture after an external application saves it, using the same full-field and
+package checks and both independent readers. The file must preserve the typed
+fixture's `Name`, `Id`, `Date`, `Value` headers, values, order and native types.
+
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-write-records
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --validate-write-utf8
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-native-written ./native-output.xlsb 50000
 ```
 
 ## Optional CSV and Arrow builds
