@@ -110,7 +110,8 @@ public sealed partial class ChmDocument {
             .Where(element => element.NamespaceUri == "http://www.w3.org/1999/xhtml" && !ReferenceEquals(element, topicHeading))
             .GroupBy(element => element.Parent!).ToArray();
         // Descendant parents are processed before ancestors so nested content is retained.
-        foreach (var group in parents.Reverse()) {
+        for (int index = parents.Length - 1; index >= 0; index--) {
+            var group = parents[index];
             token.ThrowIfCancellationRequested();
             var replacements = new Dictionary<HtmlNode, HtmlElement>();
             foreach (HtmlElement authored in group) {
