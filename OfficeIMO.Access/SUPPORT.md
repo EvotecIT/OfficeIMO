@@ -64,7 +64,7 @@ The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysA
 
 | Content | Qualified interpretation | Preserve-only boundary |
 | --- | --- | --- |
-| Forms and reports | ACE designer version 21 property trees, native sections/control kinds, Name/Caption, record/control/row sources, explicit size properties and Click bindings | Jet compact version 19, unknown node/property semantics and delta merging; missing defaults are not invented |
+| Forms and reports | ACE designer version 21 property trees, native sections/control kinds, Name/Caption, record/control/row sources, explicit size properties and Open, Click and AfterUpdate bindings | Jet compact version 19, unknown node/property semantics and delta merging; missing defaults are not invented |
 | Action macros | Independently observed 76-byte single `StopMacro` definition, standalone and embedded | Other actions/argument layouts retain exact streams; action macros are distinct from VBA |
 | Table data macros | MR2 wide-property map, qualified Access XML namespace, event/name and top-level statement names; exact XML retained with DTD/resolver disabled | No action execution, expression evaluation or editing |
 | Resources | `MSysResources` identity/type/name metadata and attachment access through the existing reader | No automatic theme unpacking, rendering or OLE activation |

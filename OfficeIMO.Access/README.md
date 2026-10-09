@@ -114,7 +114,7 @@ foreach (AccessVbaReferenceInfo reference in source.VbaProject.References)
     Console.WriteLine($"{reference.Name}: {reference.LibraryId}");
 ```
 
-ACE version-21 designers expose qualified sections, controls, sources and Click bindings. Jet version-19 designers and unsupported properties retain exact bytes. Standalone and embedded `StopMacro` definitions, table data-macro XML and resource metadata have separate APIs. Stored VBA references are inventoried without resolving libraries; implicit built-in references are outside this inventory. Missing compiled-source text stays unavailable.
+ACE version-21 designers expose qualified sections, controls, sources and Open, Click and AfterUpdate bindings. Jet version-19 designers and unsupported properties retain exact bytes. Standalone and embedded `StopMacro` definitions, table data-macro XML and resource metadata have separate APIs. Stored VBA references are inventoried without resolving libraries; implicit built-in references are outside this inventory. Missing compiled-source text stays unavailable.
 
 `ApplicationStreams` retains storage paths and exact payloads, `Dependencies` contains observed references with explicit unresolved entries, and `ChangeJournal` records model mutations and rolls them back with the edit scope. Dependency inspection is partial; it does not parse arbitrary SQL or VBA. Set `DecodeApplicationObjects = false` when only the table catalog is needed.
 
