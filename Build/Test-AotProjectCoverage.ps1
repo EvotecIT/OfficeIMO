@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Reader.Dbf'
+        classification = 'managed-cross-platform'
+        evidence = 'DBF ingestion is qualified through managed .NET 8 and 10 extraction and CSV/XLSX conversion tests; the DBAClientX.Dbf owner and Reader adapter are not rooted in a NativeAOT qualification host.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.OpenDocument.Odg.Pdf'
         classification = 'managed-cross-platform'
         evidence = 'The Draw PDF bridge is qualified through managed conversion tests and packed .NET consumers; no complete-bridge NativeAOT qualification is claimed.'

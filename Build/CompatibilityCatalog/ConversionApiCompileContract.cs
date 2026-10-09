@@ -166,11 +166,11 @@ internal static class ConversionApiCompileContract {
         _ = ConfluenceContentConverter.ToHtml(confluencePage);
         _ = ExcelDocumentCsvExtensions.ToExcelDocument(csv);
         _ = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
-        using (var dbf = DbfDataReader.Open(source))
-        using (var csvOutput = new StringWriter()) {
+        using (DbfDataReader dbf = DbfDataReader.Open(source))
+        using (StringWriter csvOutput = new StringWriter()) {
             CsvDocument.WriteDataReader(csvOutput, dbf);
         }
-        using (var dbf = DbfDataReader.Open(source)) {
+        using (DbfDataReader dbf = DbfDataReader.Open(source)) {
             _ = ExcelDocument.WriteDataReader(stream, dbf);
         }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
