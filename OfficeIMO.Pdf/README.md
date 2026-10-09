@@ -259,6 +259,10 @@ shared outlines, including caps, joins, dashes, opacity, clipping, and affine tr
 Line and open-path end markers retain their stroke brush, opacity, transform and
 clip. Triangle, stealth, diamond and oval ends paint filled geometry; open-arrow
 ends paint an outline.
+Running headers and footers report `HeaderFooterPageBoundsClipped` when shape or
+marker paint extends beyond the physical page after applying the actual clip.
+`HeaderFooterPaintBoundsUnmeasured` records unassessed page clipping when contour
+inspection exceeds its work limit.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
 uses the existing bounded CMYK sampling path with the gradient's interpolation

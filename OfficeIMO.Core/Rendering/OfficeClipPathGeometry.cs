@@ -28,7 +28,8 @@ internal static class OfficeClipPathGeometry {
                 IReadOnlyList<OfficeFlattenedPathContour> flattened = OfficePathFlattener.Flatten(clipPath.Commands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
                 List<IReadOnlyList<OfficePoint>> contours = new List<IReadOnlyList<OfficePoint>>();
                 for (int i = 0; i < flattened.Count; i++) {
-                    if (flattened[i].Closed && flattened[i].Points.Count >= 3) {
+                    // Filled clipping subpaths implicitly close their final edge.
+                    if (flattened[i].Points.Count >= 3) {
                         contours.Add(transformContour(flattened[i].Points));
                     }
                 }

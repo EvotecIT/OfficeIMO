@@ -56,7 +56,7 @@ public sealed class DrawingRadialShapeTransformTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ReflectedGradientMarkersKeepEndpointColors(bool path) {
+    public void ReflectedGradientMarkersKeepSourceGradientCoordinates(bool path) {
         var drawing = new OfficeDrawing(150, 100);
         var shape = path ? OfficeShape.Path(80, 50, OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(80, 50))
             : OfficeShape.Line(0, 0, 80, 50);
@@ -67,8 +67,14 @@ public sealed class DrawingRadialShapeTransformTests {
         shape.Transform = new OfficeTransform(-1, 0, 0, 1, 100, 0);
         drawing.AddShape(shape, 10, 20);
         var image = OfficeDrawingRasterRenderer.Render(drawing);
-        Assert.Equal(OfficeColor.Red, image.GetPixel(109, 20));
-        Assert.Equal(OfficeColor.Blue, image.GetPixel(30, 69));
+        foreach (var pixel in new[] { (X: 109, Y: 20), (X: 30, Y: 69) }) {
+            var local = shape.Transform.Value.Invert().TransformPoint(new OfficePoint(pixel.X + .5 - 10, pixel.Y + .5 - 20));
+            double ratio = local.X / 80;
+            OfficeColor color = image.GetPixel(pixel.X, pixel.Y);
+            Assert.Equal(255, color.A);
+            Assert.InRange(Math.Abs(color.R - 255 * (1 - ratio)), 0, 2);
+            Assert.InRange(Math.Abs(color.B - 255 * ratio), 0, 2);
+        }
     }
     [Theory]
     [InlineData(false, false, false)]

@@ -159,10 +159,10 @@ public static partial class OfficeDrawingSvgExporter {
                     string? strokeGradientId = null;
                     if (drawingShape.Shape.StrokeRadialGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        AppendRadialPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeRadialGradient, drawingShape, cancellationToken);
+                        AppendStrokeRadialPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeRadialGradient, drawingShape, cancellationToken);
                     } else if (drawingShape.Shape.StrokeGradient != null) {
                         strokeGradientId = idPrefix + "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
-                        sb.AppendLinearGradientDefinition(strokeGradientId, drawingShape.Shape.StrokeGradient);
+                        AppendStrokeLinearPaintDefinition(sb, strokeGradientId, drawingShape.Shape.StrokeGradient, drawingShape);
                     }
 
                     string? shapeClipPathId = null;
