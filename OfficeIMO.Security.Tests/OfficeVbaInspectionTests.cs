@@ -44,20 +44,20 @@ namespace OfficeIMO.Security.Tests {
             Assert.Contains("byte limit", result.Modules[1].Limitation);
         }
 
-        [Fact]
-        public void RepeatedMalformedReferencesRespectBothAllowancesAndRetainLaterSource() {
-            byte[] directory = Directory("Broken", "Broken", "Broken", "Later");
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RepeatedModuleDeclarationsKeepTheProjectInventoryInert(bool expandsBeforeFailure) {
+            byte[] directory = Directory("Broken", "Broken", "Later");
             Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
                 ["VBA/dir"] = Literal(directory),
-                ["VBA/Broken"] = MalformedAfterExpansion(32),
+                ["VBA/Broken"] = expandsBeforeFailure ? MalformedAfterExpansion(32) : new byte[1024],
                 ["VBA/Later"] = Literal(Encoding.ASCII.GetBytes("OK"))
             };
             OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 64);
-            Assert.Equal(4, result.Modules.Count);
-            for (int index = 0; index < 3; index++) Assert.Null(result.Modules[index].Source);
-            Assert.Contains("encoded input byte limit", result.Modules[1].Limitation);
-            Assert.Contains("encoded input byte limit", result.Modules[2].Limitation);
-            Assert.Equal("OK", result.Modules[3].Source);
+            Assert.Contains("repeats a module name or stream identity", result.Limitation);
+            Assert.Empty(result.Modules);
+            Assert.Null(result.Name);
         }
 
         [Fact]
@@ -94,26 +94,11 @@ namespace OfficeIMO.Security.Tests {
             Assert.Equal("Project", result.Name); Assert.Equal(65001, result.CodePage);
             Assert.Equal(2, result.Modules.Count);
             Assert.Equal("Broken", result.Modules[0].Name); Assert.Equal("Broken", result.Modules[0].StreamName);
-            Assert.Null(result.Modules[0].Source); Assert.Contains("declared code page", result.Modules[0].Limitation);
+            Assert.Null(result.Modules[0].Source); Assert.Contains("code page", result.Modules[0].Limitation);
             Assert.Equal("Zażółć", result.Modules[1].Source); Assert.Null(result.Modules[1].Limitation);
             OfficeVbaInspection bounded = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
             Assert.Equal(2, bounded.Modules.Count);
             Assert.Null(bounded.Modules[1].Source); Assert.Contains("byte limit", bounded.Modules[1].Limitation);
-        }
-
-        [Fact]
-        public void ImmediateMalformedReferencesCannotReuseTheEncodedInputAllowance() {
-            byte[] directory = Directory("Broken", "Broken", "Later");
-            Dictionary<string, byte[]> streams = new Dictionary<string, byte[]> {
-                ["VBA/dir"] = Literal(directory),
-                ["VBA/Broken"] = new byte[1024], // Invalid signature; no bytes expand.
-                ["VBA/Later"] = Literal(Encoding.ASCII.GetBytes("OK"))
-            };
-            OfficeVbaInspection result = OfficeVbaProjectInspector.Inspect(streams, directory.Length + 2);
-            Assert.Null(result.Limitation); Assert.Equal(3, result.Modules.Count);
-            Assert.Null(result.Modules[0].Source); Assert.Contains("signature", result.Modules[0].Limitation);
-            Assert.Null(result.Modules[1].Source); Assert.Contains("encoded input byte limit", result.Modules[1].Limitation);
-            Assert.Equal("OK", result.Modules[2].Source);
         }
 
         private static byte[] Directory(params string[] names) => Directory(1252, names);
