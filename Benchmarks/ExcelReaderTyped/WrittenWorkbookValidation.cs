@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ExcelReader.Core.Parser;
 using ExcelReader.Core.Reader.Xlsx;
 using Sylvan.Data.Excel;
@@ -47,13 +49,18 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 + $"checksum={TypedWorkbookFixture.ExpectedChecksum(rowCount)}, independentReaders=ExcelReader+Sylvan.");
         }
 
-        /// <summary>Checks a saved fixture's data row count without opening a measured reader or populating its caches.</summary>
+        /// <summary>Checks a saved fixture's first worksheet data row count without opening a measured reader or populating its caches.</summary>
         internal static void ValidateSavedXlsxRowCount(byte[] bytes, int expectedDataRows, string fixturePath) {
             using MemoryStream stream = new MemoryStream(bytes, writable: false);
-            using ZipArchive package = new ZipArchive(stream, ZipArchiveMode.Read);
-            ZipArchiveEntry worksheet = package.GetEntry(Worksheet)
-                ?? throw new InvalidDataException($"Saved XLSX fixture '{fixturePath}' is missing '{Worksheet}'.");
-            using XmlReader reader = CreateReader(worksheet.Open());
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+            WorkbookPart workbook = document.WorkbookPart
+                ?? throw new InvalidDataException($"Saved XLSX fixture '{fixturePath}' is missing its workbook part.");
+            // Resolve workbook order through package relationships without loading worksheet or SST data.
+            WorksheetPart worksheet = workbook.Workbook?.Sheets?.Elements<Sheet>()
+                .Select(sheet => sheet.Id?.Value is string id ? workbook.GetPartById(id) : null)
+                .OfType<WorksheetPart>().FirstOrDefault()
+                ?? throw new InvalidDataException($"Saved XLSX fixture '{fixturePath}' is missing its first worksheet.");
+            using XmlReader reader = CreateReader(worksheet.GetStream(FileMode.Open, FileAccess.Read));
             long worksheetRows = 0;
             while (reader.Read()) {
                 if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row"
