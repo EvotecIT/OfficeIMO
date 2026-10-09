@@ -91,10 +91,13 @@ internal sealed class OfficeRichTextFlow {
             position = next;
         }
         if (runs.Count == 0 && source.Runs.Count > 0) {
-            OfficeRichTextRun run = source.Runs[0];
-            runs.Add(new OfficeRichTextRun(string.Empty, run.FontSize, run.Color, run.Bold, run.Italic,
-                run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor,
-                run.UnderlineStyle, run.StrikethroughStyle, run.Baseline));
+            // Shared layout measures an empty source line with the paragraph's
+            // maximum effective run size. Keep its style set when only the
+            // trailing blank line remains, including already consumed runs.
+            foreach (OfficeRichTextRun run in source.Runs)
+                runs.Add(new OfficeRichTextRun(string.Empty, run.FontSize, run.Color, run.Bold, run.Italic,
+                    run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor,
+                    run.UnderlineStyle, run.StrikethroughStyle, run.Baseline));
         }
         var margins = new OfficeTextPadding(source.Margins.Left, start == 0 ? source.Margins.Top : 0,
             source.Margins.Right, complete ? source.Margins.Bottom : 0);

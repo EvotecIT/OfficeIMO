@@ -116,4 +116,28 @@ public sealed class DrawingRichTextFlowTests {
         Assert.Equal(2 + breakText.Length, flow.CharacterPosition); Assert.True(flow.HasRemaining);
         Assert.Equal("B", Text(flow.Take(100, 12, Measure, default))); Assert.False(flow.HasRemaining);
     }
+
+    [Theory]
+    [InlineData(10, 20, 12)]
+    [InlineData(20, 10, 24)]
+    public void PendingEmptyLineRetainsTheOriginalMixedRunHeight(double firstSize, double breakSize, double firstHeight) {
+        var paragraphs = new[] {
+            new OfficeRichTextParagraph(new[] {
+                new OfficeRichTextRun("A", firstSize, OfficeColor.Black),
+                new OfficeRichTextRun("\n", breakSize, OfficeColor.Black)
+            }),
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("B", 10, OfficeColor.Black) })
+        };
+        var flow = new OfficeRichTextFlow(paragraphs, _ => { });
+        Assert.Equal("A\n", Text(flow.Take(100, firstHeight, Measure, default)));
+        Assert.Equal(2, flow.CharacterPosition);
+        Assert.Empty(flow.Take(100, 12, Measure, default));
+        Assert.Equal(2, flow.CharacterPosition); Assert.True(flow.HasRemaining);
+        IReadOnlyList<OfficeRichTextParagraph> blank = flow.Take(100, 24, Measure, default);
+        Assert.Equal(string.Empty, Text(blank)); Assert.Single(blank);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(blank, 100, 24, Measure);
+        Assert.Equal(24, Assert.Single(layout.Lines).LineHeight);
+        Assert.Equal(3, flow.CharacterPosition);
+        Assert.Equal("B", Text(flow.Take(100, 12, Measure, default))); Assert.False(flow.HasRemaining);
+    }
 }
