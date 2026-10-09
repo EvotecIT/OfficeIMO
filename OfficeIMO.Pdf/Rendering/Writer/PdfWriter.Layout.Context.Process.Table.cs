@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
                 colPixel[0],
                 colPixel[colPixel.Length - 1]);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
-            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth);
+            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth) + style.HorizontalOffset;
 
             double TableBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginBottom;
             double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
@@ -258,7 +258,7 @@ internal static partial class PdfWriter {
                 if (style.Position is { } position) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(position, tableWidth);
+                    xOrigin = PositionTableX(position, tableWidth) + style.HorizontalOffset;
                     y = PositionTableY(position, Math.Min(maxContentHeight, tableContentHeight));
                 }
             }
@@ -446,7 +446,7 @@ internal static partial class PdfWriter {
                 if (style.Position is { } continuationPosition) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(continuationPosition, tableWidth);
+                    xOrigin = PositionTableX(continuationPosition, tableWidth) + style.HorizontalOffset;
                     double continuationHeight = remainingRowHeights[rowIndex];
                     if (startLine > 0)
                         continuationHeight += MeasureTableRowSegmentHeight(rowIndex, startLine, rowLineCounts[rowIndex] - startLine, suppressCellObjects: false) - rowHeights[rowIndex];
