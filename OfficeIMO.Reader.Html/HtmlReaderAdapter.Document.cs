@@ -426,7 +426,7 @@ internal static partial class HtmlReaderAdapter {
             mediaSource = FindHtmlMediaSource(node, options);
             if (mediaSource != null) source = HtmlUrlPolicyEvaluator.ResolveUrl(mediaSource.Attributes["src"], options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy);
         }
-        if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride;
+        if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride!;
         node.Attributes.TryGetValue("alt", out string? altText);
         if (!string.IsNullOrWhiteSpace(node.AccessibleName)) altText = node.AccessibleName;
         node.Attributes.TryGetValue("title", out string? title);

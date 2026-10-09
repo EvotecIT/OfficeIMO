@@ -9,7 +9,7 @@
     "validationProjectCount": 52,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54276
+    "conceptualWordCount": 54279
   },
   "categories": [
     {
@@ -210,10 +210,10 @@
       "name": "OfficeIMO.Access",
       "packageId": "OfficeIMO.Access",
       "category": "Specialized components",
-      "description": "Portable native Access MDB/ACCDB reading, application inspection, unchanged preservation and seed-free database creation with explicit operation assessment.",
+      "description": "Portable native Access MDB/ACCDB reading, application inspection, VBA editing, unchanged preservation and seed-free table database creation with explicit operation assessment.",
       "kind": "package",
       "projectPath": "OfficeIMO.Access/OfficeIMO.Access.csproj",
-      "sourceFileCount": 46,
+      "sourceFileCount": 65,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
