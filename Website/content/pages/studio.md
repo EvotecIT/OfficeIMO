@@ -40,7 +40,7 @@ Open any screenshot at full size to inspect the workspace. For immediate use wit
 <div class="imo-platforms">
   <a class="imo-platform" href="/downloads/#studio-downloads"><b>Windows</b><span>Signed MSI installer or portable ZIP</span><small>x64 and Arm64 · .NET runtime included</small></a>
   <a class="imo-platform" href="/downloads/#studio-linux-downloads"><b>Linux</b><span>Debian package or portable ZIP</span><small>x64 and Arm64 · .NET runtime included</small></a>
-  <a class="imo-platform" href="https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme"><b>macOS</b><span>Build from source with the guide</span><small>Mac App Store version on the way</small></a>
+  <a class="imo-platform" href="https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme"><b>macOS</b><span>Build from source with the guide</span><small>Requirements and run instructions</small></a>
 </div>
 
 Windows and Linux x64 installation and launch were verified for the initial direct release. Arm64 packages are available, with installation and runtime testing on matching hardware still pending. Release notes and checksums are linked beside the current downloads.

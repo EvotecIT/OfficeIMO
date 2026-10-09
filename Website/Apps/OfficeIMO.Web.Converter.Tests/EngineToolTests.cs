@@ -234,4 +234,14 @@ public sealed class EngineToolTests {
         Assert.Equal("pages 2 and 5", ToolFormat.Pages([5, 2, 5]));
         Assert.Equal("pages 1, 2 and 3", ToolFormat.Pages([3, 1, 2]));
     }
+
+    [Theory]
+    [InlineData("1e2")]
+    [InlineData("1.5")]
+    [InlineData("")]
+    public void ExplicitMalformedNumericOptionsNeverSilentlyUseDefaults(string value) {
+        Assert.Throws<ArgumentException>(() => Options(("perFile", value)).Number("perFile", 1));
+        Assert.Equal(1, Options().Number("perFile", 1));
+        Assert.Equal(100, Options(("perFile", "100")).Number("perFile", 1));
+    }
 }

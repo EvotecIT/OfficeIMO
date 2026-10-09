@@ -38,7 +38,7 @@ const fetchAsset = (uri, integrity) => counted(fetch(uri, integrity ? { integrit
 function prefetchWanted() {
   for (const asset of lazyAssets) {
     const logical = asset.virtualPath || asset.name;
-    if (!wanted.has(logical) || prefetched.has(asset.name)) continue;
+    if (!wanted.has(logical) || loaded.has(logical) || prefetched.has(asset.name)) continue;
     prefetched.set(asset.name, fetchAsset(new URL("./_framework/" + asset.name, import.meta.url).href, asset.integrity || asset.hash));
   }
 }

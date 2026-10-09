@@ -91,8 +91,13 @@ internal sealed class ToolOptions(Dictionary<string, string> values) {
     internal bool Flag(string key) =>
         values.TryGetValue(key, out string? value) && (value == "true" || value == "on" || value == "1");
 
-    internal int Number(string key, int fallback) =>
-        values.TryGetValue(key, out string? value) && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) ? number : fallback;
+    internal int Number(string key, int fallback) {
+        if (!values.TryGetValue(key, out string? value)) return fallback;
+        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int number)) {
+            throw new ArgumentException($"The '{key}' option must be a whole number.", key);
+        }
+        return number;
+    }
 
     internal IReadOnlySet<string> List(string key) =>
         Text(key).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.Ordinal);

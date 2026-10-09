@@ -4,7 +4,8 @@
   function create(options) {
     var host = options.host, mode = options.mode, name = options.name, count = options.count;
     var el = options.element, engine = options.engine, form = options.form;
-    var objectUrl = options.objectUrl, plural = options.plural;
+    var plural = options.plural;
+    var thumbnailUrls = [];
     var generation = options.generation;
     var disposed = false;
     var selected = {};
@@ -39,7 +40,8 @@
         if (!buffer || !buffer.byteLength) return;
         var img = el('img');
         img.alt = '';
-        img.src = objectUrl(new Blob([buffer], { type: 'image/png' }));
+        img.src = URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
+        thumbnailUrls.push(img.src);
         thumb.sheet.innerHTML = '';
         thumb.sheet.appendChild(img);
       }).catch(function () { if (!disposed) thumb.sheet.textContent = 'Preview unavailable'; });
@@ -190,7 +192,13 @@
     return {
       count: count,
       generation: generation,
-      dispose: function () { disposed = true; if (observer) observer.disconnect(); if (form) form.removeEventListener('change', rotationChanged); },
+      dispose: function () {
+        disposed = true;
+        if (observer) observer.disconnect();
+        if (form) form.removeEventListener('change', rotationChanged);
+        thumbnailUrls.forEach(function (url) { URL.revokeObjectURL(url); });
+        thumbnailUrls = [];
+      },
       name: name,
       value: function () {
         if (selectionProblem) return { value: '', problem: selectionProblem };

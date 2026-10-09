@@ -12,7 +12,7 @@ public sealed class HtmlCredentialSummaryTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public async Task FileWorkflowRetainsDirectAndNestedCredentialSummaries(bool image, bool srcdoc) {
-        byte[] png = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "fixtures", "unsigned-credential-12-actions.png"));
+        byte[] png = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "unsigned-credential-12-actions.png"));
         string html = image
             ? "<html><body><img src=\"data:image/png;base64," + Convert.ToBase64String(png) + "\"></body></html>"
             : "<html><head><script type=\"application/c2pa\">" + Convert.ToBase64String(ManifestPayload(png)) + "</script></head><body></body></html>";

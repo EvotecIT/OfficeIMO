@@ -41,17 +41,18 @@ internal static partial class OfficeC2paManifestStore {
 
         Dictionary<object, object?>? claim = null;
         var actions = new List<OfficeC2paAction>();
+        bool declaresGenerativeAi = false;
         var ingredients = new List<string>();
         string? signedBy = null, issuer = null;
-        var softwareAgents = new List<string>();
+        var claimGenerators = new List<string>();
 
         TryOpenSuperbox(data, activeOffset, activeLength, out _, out _, out int child, out int manifestEnd);
-        var assertionBoxes = new List<(string Label, string Type, int Offset, int Length)>();
+        var assertionStores = new List<(int Offset, int End)>();
         while (child < manifestEnd) {
             if (!TryReadBox(data, child, manifestEnd - child, out _, out ulong childLength, out string childType) || childLength > int.MaxValue) break;
             if (childType == "jumb" && TryOpenSuperbox(data, child, (int)childLength, out byte[] uuid, out _, out int content, out int contentEnd)) {
                 if (SameUuid(uuid, AssertionStoreUuid)) {
-                    CollectAssertions(data, content, contentEnd, assertionBoxes);
+                    assertionStores.Add((content, contentEnd));
                 } else if (SameUuid(uuid, ClaimUuid) && TryReadContent(data, content, contentEnd, out string claimType, out int claimOffset, out int claimLength) &&
                     claimType == "cbor" && OfficeCborReader.TryDecode(data, claimOffset, claimLength, out object? claimValue)) {
                     claim = claimValue as Dictionary<object, object?>;
@@ -65,27 +66,21 @@ internal static partial class OfficeC2paManifestStore {
 
         if (claim == null) return null;
         HashSet<string> claimedAssertions = ClaimedAssertions(claim, activeLabel!);
+        var assertionBoxes = new List<(string Label, string Type, int Offset, int Length)>();
+        foreach ((int content, int contentEnd) in assertionStores) CollectAssertions(data, content, contentEnd, claimedAssertions, assertionBoxes);
         string? generator = null;
         if (claim != null) {
             generator = Text(Get(claim, "claim_generator"));
             object? info = Get(claim, "claim_generator_info");
-            if (info is Dictionary<object, object?> single) softwareAgents.Add(Agent(single) ?? string.Empty);
-            if (info is List<object?> many) foreach (object? entry in many) softwareAgents.Add(Agent(entry) ?? string.Empty);
-            if (softwareAgents.Count > 0 && !string.IsNullOrEmpty(softwareAgents[0])) generator = softwareAgents[0];
+            if (info is Dictionary<object, object?> single) claimGenerators.Add(Agent(single) ?? string.Empty);
+            if (info is List<object?> many) foreach (object? entry in many) claimGenerators.Add(Agent(entry) ?? string.Empty);
+            if (claimGenerators.Count > 0 && !string.IsNullOrEmpty(claimGenerators[0])) generator = claimGenerators[0];
         }
 
         foreach ((string label, string type, int boxOffset, int boxLength) in assertionBoxes) {
             if (!claimedAssertions.Contains(label) || type != "cbor" || !OfficeCborReader.TryDecode(data, boxOffset, boxLength, out object? value) || value is not Dictionary<object, object?> assertion) continue;
             if (BaseLabel(label) == "c2pa.actions") {
-                if (Get(assertion, "actions") is not List<object?> list) continue;
-                foreach (object? entry in list) {
-                    if (actions.Count >= MaximumDescribedActions || entry is not Dictionary<object, object?> action) continue;
-                    string? name = Text(Get(action, "action"));
-                    if (string.IsNullOrEmpty(name)) continue;
-                    string? agent = Agent(Get(action, "softwareAgent"));
-                    if (agent == null && Get(action, "softwareAgentIndex") is long index && index >= 0 && index < softwareAgents.Count) agent = softwareAgents[(int)index];
-                    actions.Add(new OfficeC2paAction(name!, agent, Text(Get(action, "digitalSourceType")), Text(Get(action, "when"))));
-                }
+                DescribeActions(assertion, label, actions, ref declaresGenerativeAi);
             } else if (BaseLabel(label) == "c2pa.ingredient" && ingredients.Count < MaximumDescribedIngredients) {
                 string? title = Text(Get(assertion, "dc:title")) ?? Text(Get(assertion, "title"));
                 if (!string.IsNullOrWhiteSpace(title)) ingredients.Add(title!);
@@ -101,7 +96,8 @@ internal static partial class OfficeC2paManifestStore {
             ingredients,
             signedBy,
             issuer,
-            manifestCount);
+            manifestCount,
+            declaresGenerativeAi);
     }
 
     // A store may contain assertions which the active claim does not claim. Reading them as
@@ -123,10 +119,11 @@ internal static partial class OfficeC2paManifestStore {
         return labels; // Hash membership is read here; integrity and signature verification are separate operations.
     }
 
-    private static void CollectAssertions(byte[] data, int cursor, int end, List<(string, string, int, int)> boxes) {
-        while (cursor < end && boxes.Count < 256) {
+    private static void CollectAssertions(byte[] data, int cursor, int end, HashSet<string> claimed, List<(string, string, int, int)> boxes) {
+        while (cursor < end) {
             if (!TryReadBox(data, cursor, end - cursor, out _, out ulong length, out string type) || length > int.MaxValue) return;
             if (type == "jumb" && TryOpenSuperbox(data, cursor, (int)length, out _, out string label, out int content, out int contentEnd) &&
+                claimed.Contains(label) && BaseLabel(label) is "c2pa.actions" or "c2pa.ingredient" &&
                 TryReadContent(data, content, contentEnd, out string contentType, out int payloadOffset, out int payloadLength)) {
                 boxes.Add((label, contentType, payloadOffset, payloadLength));
             }

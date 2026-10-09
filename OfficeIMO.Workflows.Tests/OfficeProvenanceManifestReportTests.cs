@@ -6,7 +6,7 @@ namespace OfficeIMO.Workflows.Tests;
 public sealed class OfficeProvenanceManifestReportTests {
     [Fact]
     public void EmbeddedImageCredentialRetainsItsSummaryAndPackageLocation() {
-        byte[] png = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "fixtures", "unsigned-credential-12-actions.png"));
+        byte[] png = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "unsigned-credential-12-actions.png"));
         using var output = new MemoryStream();
         using (var zip = new System.IO.Compression.ZipArchive(output, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true)) {
             foreach (var part in new[] {
@@ -30,7 +30,7 @@ public sealed class OfficeProvenanceManifestReportTests {
     public void CanonicalReportsRetainCredentialActionsBeyondTheCompactPreview() {
         // Synthetic unsigned C2PA fixture: 12 referenced actions and certificate-name fields,
         // with deliberately unverifiable hashes and signature bytes.
-        byte[] input = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "fixtures", "unsigned-credential-12-actions.png"));
+        byte[] input = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "unsigned-credential-12-actions.png"));
         OfficeProvenanceReport report = OfficeProvenanceBufferWorkflow.Inspect(input, "image.png");
         OfficeProvenanceWorkflowResult result = OfficeProvenanceReportSerializer.FromBuffer("image.png", input, report);
         using var json = JsonDocument.Parse(OfficeProvenanceReportSerializer.Serialize(result));

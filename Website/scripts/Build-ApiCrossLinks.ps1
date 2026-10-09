@@ -128,6 +128,7 @@ function Resolve-Type([string] $short, [string[]] $usings, [string] $contextPack
     if ($byUsing.Count -eq 1) { return $byUsing[0] }
     $byPackage = @($candidates | Where-Object Package -eq $contextPackage)
     if ($byPackage.Count -eq 1) { return $byPackage[0] }
+    if ($contextPackage) { return $null }
     $distinctive = $short -cmatch '^[A-Z][a-z0-9]+(?:[A-Z][A-Za-z0-9]*)+$' -and $short.Length -ge 8
     if ($candidates.Count -eq 1 -and $distinctive) { return $candidates[0] }
     $null
@@ -208,7 +209,9 @@ foreach ($collection in $collections) {
         if ($parsed.Meta.draft -eq 'true' -or -not $parsed.Meta.title) { continue }
         $route = Get-Route $file.FullName $inputRoot $collection.Output $parsed.Meta
         $contextPackage = $null
-        foreach ($docsHome in $packageByDocsHome.Keys) { if ($route.StartsWith($docsHome)) { $contextPackage = $packageByDocsHome[$docsHome] } }
+        foreach ($docsHome in $packageByDocsHome.Keys | Sort-Object Length -Descending) {
+            if ($route.StartsWith($docsHome)) { $contextPackage = $packageByDocsHome[$docsHome]; break }
+        }
         $mentions = Get-PageMentions $parsed.Body $contextPackage
         if ($mentions.Count -eq 0) { continue }
         $pages.Add([pscustomobject]@{ Route = $route; Title = $parsed.Meta.title; Summary = Get-Summary $parsed.Meta.description; Kind = 'guide'; Mentions = $mentions })
@@ -273,7 +276,10 @@ $manifestRoot = Join-Path $websiteRoot 'data/apidocs/related'
 $stepManifests = @{}
 foreach ($step in $apiSteps) {
     $package = $step.baseUrl.Split('/')[2]
-    if (-not $targetsByPackage.ContainsKey($package)) { continue }
+    $relative = "./data/apidocs/related/$package.json"
+    $configured = @($step.relatedContentManifests) + @($step.relatedContentManifest)
+    # Keep configured derived manifests readable when no guide references remain.
+    if (-not $targetsByPackage.ContainsKey($package) -and $configured -notcontains $relative) { continue }
     $curated = @{}
     foreach ($path in @($step.relatedContentManifests) + @($step.relatedContentManifest) | Where-Object { $_ -and $_ -notlike './data/apidocs/related/*' }) {
         foreach ($entry in @(Get-Content -LiteralPath (Join-Path $websiteRoot $path) -Raw | ConvertFrom-Json)) {
@@ -290,8 +296,7 @@ foreach ($step in $apiSteps) {
         $entry.targets = $targets
         '  ' + ($entry | ConvertTo-Json -Compress -Depth 4)
     }
-    if (-not $entries) { continue }
-    $relative = "./data/apidocs/related/$package.json"
+    if (-not $entries -and $configured -notcontains $relative) { continue }
     $stepManifests[$step.id] = $relative
     $expected[(Join-Path $manifestRoot "$package.json")] = "[`n" + (@($entries) -join ",`n") + "`n]`n"
 }

@@ -12,6 +12,7 @@ namespace OfficeIMO.Provenance;
 /// and content binding are not checked. Use a verification provider before treating them as proof.
 /// </remarks>
 public sealed class OfficeC2paManifestSummary {
+    private readonly bool _declaresGenerativeAi;
     /// <summary>Creates a manifest summary.</summary>
     public OfficeC2paManifestSummary(
         string? label,
@@ -22,7 +23,11 @@ public sealed class OfficeC2paManifestSummary {
         IReadOnlyList<string>? ingredients,
         string? signedBy,
         string? certificateIssuer,
-        int manifestCount) {
+        int manifestCount) : this(label, claimGenerator, title, format, actions, ingredients, signedBy, certificateIssuer, manifestCount, false) { }
+
+    internal OfficeC2paManifestSummary(string? label, string? claimGenerator, string? title, string? format,
+        IReadOnlyList<OfficeC2paAction>? actions, IReadOnlyList<string>? ingredients, string? signedBy,
+        string? certificateIssuer, int manifestCount, bool declaresGenerativeAi) {
         Label = label;
         ClaimGenerator = claimGenerator;
         Title = title;
@@ -32,6 +37,7 @@ public sealed class OfficeC2paManifestSummary {
         SignedBy = signedBy;
         CertificateIssuer = certificateIssuer;
         ManifestCount = manifestCount;
+        _declaresGenerativeAi = declaresGenerativeAi;
     }
 
     /// <summary>Gets the active manifest label, usually a URN.</summary>
@@ -42,7 +48,7 @@ public sealed class OfficeC2paManifestSummary {
     public string? Title { get; }
     /// <summary>Gets the media type recorded in the claim.</summary>
     public string? Format { get; }
-    /// <summary>Gets the actions recorded by the active manifest, in order.</summary>
+    /// <summary>Gets the recorded action details included in this summary, in order. Parsed stores include at most 64 actions.</summary>
     public IReadOnlyList<OfficeC2paAction> Actions { get; }
     /// <summary>Gets the titles of ingredients (source assets) recorded by the active manifest.</summary>
     public IReadOnlyList<string> Ingredients { get; }
@@ -56,6 +62,7 @@ public sealed class OfficeC2paManifestSummary {
     /// <summary>Gets whether any recorded action declares content produced by a trained generative model.</summary>
     public bool DeclaresGenerativeAi {
         get {
+            if (_declaresGenerativeAi) return true;
             foreach (OfficeC2paAction action in Actions) {
                 if (action.DigitalSourceKind is OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia
                     or OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia) return true;

@@ -429,6 +429,13 @@
         if (!field.name || field.name.indexOf('__confirm') > 0) continue;
         if ((field.type === 'radio' || field.type === 'checkbox') && !field.checked) continue;
         options[field.name] = field.value;
+        if (field.type === 'number') {
+          var number = Number(field.value);
+          if (!/^\d+$/.test(field.value) || !Number.isSafeInteger(number) || !field.validity.valid ||
+              (field.min !== '' && number < Number(field.min)) || (field.max !== '' && number > Number(field.max))) {
+            problem = problem || 'Enter a whole number' + (field.min !== '' && field.max !== '' ? ' from ' + field.min + ' to ' + field.max : '') + ' for “' + labelFor(field) + '”.';
+          }
+        }
         if (field.hasAttribute('data-required') && !field.value.trim()) problem = problem || 'Fill in “' + labelFor(field) + '”.';
       }
       var confirms = ui.form.querySelectorAll('[data-confirms]');
@@ -453,7 +460,7 @@
   }
 
   function inputComplete() {
-    if (cfg.input === 'text') return (state.text || '').trim().length > 0 || state.textFromFile;
+    if (cfg.input === 'text') return (cfg.kind === 'text' ? (state.text || '').length : (state.text || '').trim().length) > 0 || state.textFromFile;
     return state.files.length >= Math.max(cfg.min, 1) && (cfg.max === 0 || state.files.length <= cfg.max);
   }
 
@@ -521,7 +528,7 @@
     state.grid = window.OfficeIMOBrowserPages.create({
       host: ui.pages, mode: ui.pages.getAttribute('data-bt-pages'), name: ui.pages.getAttribute('data-option'), count: count,
       generation: state.inputGeneration, currentGeneration: function () { return state.inputGeneration; },
-      element: el, engine: engine, form: ui.form, objectUrl: objectUrl, plural: plural,
+      element: el, engine: engine, form: ui.form, plural: plural,
       changed: function () { markStale(); updateRunButton(); }
     });
   }
@@ -1205,7 +1212,9 @@
   }
   if (ui.run) ui.run.addEventListener('click', function () { run(cfg.find || cfg.action); });
 
-  window.addEventListener('pagehide', function (event) { if (!event.persisted) revokeUrls(); });
+  window.addEventListener('pagehide', function (event) {
+    if (!event.persisted) { revokeUrls(); if (state.grid) state.grid.dispose(); }
+  });
 
   // The originating tab keeps the bytes in memory until this tab receives them.
   if (window.OfficeIMOBrowserHandoff) {

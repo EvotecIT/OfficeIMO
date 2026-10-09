@@ -21,7 +21,7 @@ public sealed class ProvenanceWorkbenchTests {
             services.Preferences.Update(current => current with { Theme = width >= 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "credential.png");
-            File.Copy(Path.Combine(AppContext.BaseDirectory, "fixtures", "unsigned-credential-12-actions.png"), source);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "unsigned-credential-12-actions.png"), source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             model.ShowProvenanceCommand.Execute(null);
             var workspace = model.ProvenanceWorkbench;
