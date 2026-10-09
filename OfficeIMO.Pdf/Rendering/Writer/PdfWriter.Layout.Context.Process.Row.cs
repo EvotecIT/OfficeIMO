@@ -444,6 +444,8 @@ internal static partial class PdfWriter {
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
                                 GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingPadding);
+                            // A merged-cell tail can advance within the same physical row and line cursor.
+                            if (state.Consumed > consumed + .001D) anyColumnAdvanced = true;
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
                             (yCol, remain, consumed) = (state.Y, state.Remaining, state.Consumed);
                             if (!completed) break;
