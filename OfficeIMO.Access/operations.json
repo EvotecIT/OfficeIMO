@@ -49,7 +49,7 @@
     {
       "operation": "native.edit",
       "supported": false,
-      "boundary": "Existing native documents remain immutable; row/schema/application edits require separate codecs."
+      "boundary": "General native row/schema editing is unqualified. VBA source and ordinary-module persistence use the separate vba.edit contract."
     },
     {
       "operation": "native.convert",
@@ -64,12 +64,17 @@
     {
       "operation": "application.objects.write",
       "supported": false,
-      "boundary": "No native form/report/macro/module writer is qualified."
+      "boundary": "Form/report creation, designer changes and macro authoring are unqualified. Existing code-behind source uses vba.edit."
     },
     {
       "operation": "vba.inspect",
       "supported": true,
       "boundary": "Access Jet compound storage and ACE hierarchy adapt to shared Core MS-OVBA parsing. Module source and stored references are decoded when available; compiled/unknown streams remain exact. Built-in references and signature validation are outside this contract."
+    },
+    {
+      "operation": "vba.edit",
+      "supported": true,
+      "boundary": "Detached shared Core project editing and explicit native Jet4/ACE12/14 persistence. Qualified unsigned/unprotected storage supports ordinary module source/add/remove/rename and existing form/report source; native host bindings, catalog identities and unrelated pages remain preserved. First projects require an existing qualified native application. Unknown storage/permission/index/signature layouts reject mutation."
     },
     {
       "operation": "protection.inspect",

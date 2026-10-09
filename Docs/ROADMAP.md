@@ -8,7 +8,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## VBA host integration
 
-- [ ] Connect the Access carrier to the [shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects) after native database storage is available. Keep database reading/writing in the Access owner, preserve database-specific module identities, and qualify source edits against Access-produced files.
+- [ ] Extend [Access VBA persistence](../OfficeIMO.Access/SUPPORT.md#native-vba-persistence) to create qualified form/report code-behind and author inert event bindings, with native Access/VBE and unrelated-designer preservation proof.
 
 ## OfficeIMO JavaScript
 

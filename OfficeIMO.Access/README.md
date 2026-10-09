@@ -1,6 +1,6 @@
 # OfficeIMO.Access
 
-OfficeIMO.Access reads native Jet 4 MDB and ACE ACCDB files, inspects their application objects and VBA, preserves unchanged files, and creates fresh Jet 4/ACE 12 databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
+OfficeIMO.Access reads native Jet 4 MDB and ACE ACCDB files, inspects application objects, edits qualified native VBA projects, preserves unchanged files, and creates fresh Jet 4/ACE 12 table databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
 
 The library runs on .NET without Microsoft Access, DAO, OLE DB or a database provider. It references OfficeIMO.Core for shared document contracts and binary primitives. File inspection never executes SQL, VBA, macros, calculated expressions or linked-table connections.
 
@@ -97,7 +97,7 @@ Ordinary linked-table views and the `MSysObjects.Connect` reader redact credenti
 
 Loading snapshots the bounded file into memory and closes its file handle. Table selection limits user-schema decoding, while required system metadata is still decoded. User rows and large fields are not materialized into the document model. Limits cover input bytes, pages, catalog objects, total metadata bytes, value bytes, rows traversed and chain depth. Cancellation reaches loading, page traversal and payload reads; in-memory reader async methods complete synchronously.
 
-Caller-owned streams stay open. Seekable input is read from the start and its position is restored on success and failure. `ValidateSourceIdentity()` detects changes to a loaded path. Native documents are immutable. Keep the document open while using readers, streams, structured values or attachments; disposing it invalidates those views.
+Caller-owned streams stay open. Seekable input is read from the start and its position is restored on success and failure. `ValidateSourceIdentity()` detects changes to a loaded path. Native row and schema editing remain unavailable; VBA uses the explicit workflow below. Keep the document open while using readers, streams, structured values or attachments; disposing it invalidates those views.
 
 ## Inspect application objects and VBA
 
@@ -117,6 +117,33 @@ foreach (AccessVbaReferenceInfo reference in source.VbaProject.References)
 ACE version-21 designers expose qualified sections, controls, sources and Click bindings. Jet version-19 designers and unsupported properties retain exact bytes. Standalone and embedded `StopMacro` definitions, table data-macro XML and resource metadata have separate APIs. Stored VBA references are inventoried without resolving libraries; implicit built-in references are outside this inventory. Missing compiled-source text stays unavailable.
 
 `ApplicationStreams` retains storage paths and exact payloads, `Dependencies` contains observed references with explicit unresolved entries, and `ChangeJournal` records model mutations and rolls them back with the edit scope. Dependency inspection is partial; it does not parse arbitrary SQL or VBA. Set `DecodeApplicationObjects = false` when only the table catalog is needed.
+
+## Edit native VBA
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Access;
+
+using AccessDocument database = AccessDocument.Load("application.accdb");
+OfficeVbaProject project = database.GetVbaProject();
+project.SetModuleSource("BusinessLogic",
+    "Option Explicit\r\nPublic Function IsReady() As Boolean\r\n IsReady = True\r\nEnd Function\r\n");
+project.AddModule("Utilities", "Public Const RetryCount As Long = 3\r\n");
+database.SetVbaProject(project);
+database.Save("edited.accdb");
+```
+
+`GetVbaProject` returns a detached shared Core model. Its edits become database changes only after `SetVbaProject`; persistence requires `Save`. Standard and standalone class modules support source replacement, addition, removal and rename. An existing native application without VBA accepts a project from `OfficeVbaProject.Create`. Missing or opaque source and unsupported storage layouts fail before database mutation.
+
+The executable public workflow is `dotnet run --project OfficeIMO.Access.Verification -- --edit-vba OfficeIMO.Access.Tests/Fixtures <new-output-folder>`. On a Windows machine with Access installed, `OfficeIMO.Access.Verification/Test-NativeVbaEditing.ps1 -OutputRoot <output-folder>` independently reopens and compiles those synthetic outputs with macros disabled.
+
+Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. Host module rename/removal, adding new code-behind, and designer/event-binding changes are unqualified.
+
+Native editing is qualified for unprotected Jet 4 and ACE 12/14 application storage. Module catalog IDs, storage slots, permission records and unrelated application payloads remain preserved. Unknown permission/index/signature carriers reject editing; signature validation and signed-project authoring are unavailable. The default `MaximumRecoveryBytes` is 64 MiB. Old unreachable pages remain allocated; this operation does not compact the database.
+
+Close readers before applying a project. Update scopes roll back staged VBA, inventory and catalog changes together. Saving over the retained source with an explicit replacement policy uses a guarded atomic commit; an external change during staging is preserved and causes the save to fail.
+
+Detached module identities survive intervening applications of other detached projects. Applying a module whose native identity was deleted fails before mutation, even if a new module now uses its old name; reload the current project before continuing that edit.
 
 ## Create a native database
 
@@ -155,6 +182,6 @@ source.Save("archive.mdb");
 
 Same-profile preservation copies the immutable loaded snapshot byte for byte, including opaque application, compiled, signed and protected content. It does not validate signatures or decode protected content. `ValidateSourceIdentity` runs before saving a loaded path. Path output uses an atomic staged commit and defaults to `FailIfExists`; pass `FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace` to replace a destination. Caller streams remain open; seekable output is rewound and truncated. Unsupported output and pre-cancellation leave the destination untouched; arbitrary stream I/O failures cannot provide file-style rollback.
 
-`AssessSave` returns an immutable report tied to the document identity and revision and checks creation limits before destination I/O. It names known profile losses for complex fields, rich text, calculated fields, Large Number and Date/Time Extended. Existing-file editing, profile conversion, authored queries/application objects and protection/signature operations remain unsupported. Allowing conversion loss does not enable an unavailable codec. Persistence is explicit; `SaveOnDispose` is unavailable.
+`AssessSave` returns an immutable report tied to the document identity and revision and checks native output limits before destination I/O. It names known profile losses for complex fields, rich text, calculated fields, Large Number and Date/Time Extended. General native row/schema editing, profile conversion, authored queries/designers/macros and protection/signature operations remain unsupported. Allowing conversion loss does not enable an unavailable codec. Persistence is explicit; `SaveOnDispose` is unavailable.
 
-See [support and independent evidence](SUPPORT.md), the [generated operation matrix](CAPABILITIES.md), and the [product roadmap](../Docs/ROADMAP.md#microsoft-access-document-library).
+See [support and independent evidence](SUPPORT.md), the [generated operation matrix](CAPABILITIES.md), and [remaining VBA host integration](../Docs/ROADMAP.md#vba-host-integration).
