@@ -97,7 +97,8 @@ public sealed partial class ChmDocument {
         conversion.UseBodyContentsOnly = false;
         conversion.Limits.MaxInputCharacters = checked((int)Math.Min(configured.MaxOutputBytes, int.MaxValue));
         conversion.Limits.MaxHtmlNodes = configured.MaxHtmlNodes;
-        conversion.Limits.MaxHtmlDepth = checked(_options.MaxHtmlDepth + 2);
+        // The book section and retained html/body wrappers can add three levels.
+        conversion.Limits.MaxHtmlDepth = checked(_options.MaxHtmlDepth + 3);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlConversionDocument value = HtmlConversionDocument.FromDocument(output, conversion);
         EnforceOutput(Encoding.UTF8.GetByteCount(value.SourceHtml), configured);

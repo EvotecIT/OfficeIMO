@@ -5,6 +5,17 @@ namespace OfficeIMO.Chm.Tests;
 
 public sealed class TopicLanguageTests {
     [Fact]
+    public void ATopicAtItsConfiguredDepthLimitStillConvertsWithBothContainerWrappers() {
+        ChmDocument book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
+            ["/topic.html"] = ChmFixture.Html("<html lang='ar'><head><meta charset='utf-8'></head><body dir='rtl'><p>Text</p></body></html>")
+        }), new ChmReadOptions { MaxHtmlDepth = 3 });
+        var projected = book.ToHtmlDocumentResult().RequireValue();
+        Assert.Equal("Text", projected.CreateDocumentForConversion().QuerySelector("p")!.TextContent);
+        Assert.Contains("Text", book.ToMarkdownResult().RequireValue());
+        Assert.True(book.ToEpubPublicationResult().Succeeded);
+    }
+
+    [Fact]
     public void TopicLanguageDirectionAndContainerAnchorsSurviveHtmlAndEpub() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
             ["/a.html"] = ChmFixture.Html("<html lang='ar' dir='rtl' class='arabic' id='root'><head><meta charset='utf-8'></head>" +
