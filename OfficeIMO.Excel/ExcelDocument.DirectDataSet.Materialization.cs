@@ -249,7 +249,8 @@ namespace OfficeIMO.Excel {
                         tableRange = sheet.TryInsertTabularRowSourceForDeferredMaterialization(
                             sheetModel.Table,
                             includeHeaders: sheetModel.IncludeHeaders,
-                            ct: cancellationToken)
+                            ct: cancellationToken,
+                            preserveMissingValues: sheetModel.OmitBlankCells)
                             ? sheetModel.Range
                             : string.Empty;
                     } else {
@@ -259,12 +260,13 @@ namespace OfficeIMO.Excel {
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter,
-                            ct: cancellationToken);
+                            ct: cancellationToken,
+                            preserveMissingValues: sheetModel.OmitBlankCells);
                     }
 
                     if (tableRange.Length == 0) {
                         tableRange = sheet.InsertDataTableAsTable(
-                            sheetModel.Table.ToDataTable(),
+                            sheetModel.Table.ToDataTable(preserveMissingValues: sheetModel.OmitBlankCells),
                             includeHeaders: sheetModel.IncludeHeaders,
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
@@ -285,9 +287,10 @@ namespace OfficeIMO.Excel {
                     if (!sheet.TryInsertTabularRowSourceForDeferredMaterialization(
                         sheetModel.Table,
                         includeHeaders: sheetModel.IncludeHeaders,
-                        ct: cancellationToken)) {
+                        ct: cancellationToken,
+                        preserveMissingValues: sheetModel.OmitBlankCells)) {
                         sheet.InsertDataTable(
-                            sheetModel.Table.ToDataTable(),
+                            sheetModel.Table.ToDataTable(preserveMissingValues: sheetModel.OmitBlankCells),
                             includeHeaders: sheetModel.IncludeHeaders,
                             ct: cancellationToken);
                     }

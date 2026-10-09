@@ -190,6 +190,10 @@ namespace OfficeIMO.Excel {
                     value = default;
                     return false;
                 }
+                if (TryGetUnloadedInt32(ordinal, out int integer)) {
+                    value = integer;
+                    return true;
+                }
                 if (!_currentValueLoaded[ordinal] && _utf8Source != null && !_owner._opt.NumericAsDecimal) {
                     _utf8Source.ReadValue(
                         ordinal + _utf8SourceOrdinalOffset,
@@ -231,6 +235,7 @@ namespace OfficeIMO.Excel {
                     value = default;
                     return false;
                 }
+                if (TryGetUnloadedNumber(ordinal, out value)) return true;
                 if (!_currentValueLoaded[ordinal] && _utf8Source != null && !_owner._opt.NumericAsDecimal) {
                     _utf8Source.ReadValue(
                         ordinal + _utf8SourceOrdinalOffset,
@@ -272,6 +277,7 @@ namespace OfficeIMO.Excel {
                     value = default;
                     return false;
                 }
+                if (TryGetUnloadedDateTime(ordinal, out value)) return true;
                 if (!_currentValueLoaded[ordinal] && _utf8Source != null) {
                     _utf8Source.ReadValue(
                         ordinal + _utf8SourceOrdinalOffset,
@@ -398,8 +404,8 @@ namespace OfficeIMO.Excel {
 
                 ThrowIfReadCancellationRequested();
                 if (_utf8Source != null) {
+                    bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow, _ct, _activeReadCancellationToken);
                     Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
-                    bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow);
                     row = hasPhysicalRow ? _currentValues : _blankRow;
                     _currentRow = row;
                     _currentRowIsBlank = !hasPhysicalRow;

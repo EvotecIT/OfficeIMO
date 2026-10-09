@@ -249,7 +249,8 @@ namespace OfficeIMO.Tests {
             var source = new ExcelDirectTabularSource(
                 table.TableName,
                 new EmptyRowMutationSource(rowCount, columnCount),
-                includeHeaders: false);
+                includeHeaders: false,
+                preserveMissingValues: true);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => LegacyXlsWriter.TryWriteDirectTabularWorkbook(
