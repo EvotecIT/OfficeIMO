@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         private sealed partial class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
             private readonly ExcelSheetReader _owner;
             private readonly Stream _stream = Stream.Null;
-            private readonly XmlReader _reader = null!;
+            private XmlReader _reader = null!;
             private readonly XmlDataReaderTextBudget? _xmlTextBudget;
             private readonly ExcelUtf8RangeRowSource? _utf8Source;
             private readonly int _utf8SourceOrdinalOffset;
@@ -144,7 +144,7 @@ namespace OfficeIMO.Excel {
                 } catch {
                     ReleaseCurrentValueReferences();
                     ReleaseBufferedValueReferences();
-                    _reader?.Dispose();
+                    ReleaseXmlReader();
                     _stream.Dispose();
                     _utf8Source?.Dispose();
                     throw;
@@ -372,7 +372,7 @@ namespace OfficeIMO.Excel {
                 _currentCellPresence = null;
                 _bufferedCellPresence?.Clear();
                 _utf8Source?.Dispose();
-                _reader?.Dispose();
+                ReleaseXmlReader();
                 if (!ReferenceEquals(_stream, Stream.Null)) {
                     _stream.Dispose();
                 }

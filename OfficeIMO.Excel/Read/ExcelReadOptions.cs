@@ -122,7 +122,7 @@ namespace OfficeIMO.Excel {
         public long MaxDataReaderBufferedCells { get; set; } = 1_000_000L;
 
         /// <summary>
-        /// Maximum characters materialized during XML data-reader preparation or
+        /// Maximum decoded characters charged during XML data-reader preparation or
         /// streaming in one physical row, or across all buffered out-of-order rows.
         /// Default: 32 Mi characters.
         /// </summary>
@@ -130,7 +130,9 @@ namespace OfficeIMO.Excel {
         /// Raw values, formula text, inline text, and resolved string values count
         /// conservatively, including replaced cell records. Exceeding this limit throws
         /// <see cref="InvalidDataException"/> and makes that range reader unusable until closed.
-        /// This is not a total memory limit. Indexed UTF-8 and SDK worksheet-chunk
+        /// This is not a total memory limit: the framework XML parser can buffer an
+        /// individual CDATA or attribute node before these characters are charged.
+        /// Indexed UTF-8 and SDK worksheet-chunk
         /// caches retain their existing limits; objects created by a custom converter
         /// are not bounded by this option.
         /// </remarks>

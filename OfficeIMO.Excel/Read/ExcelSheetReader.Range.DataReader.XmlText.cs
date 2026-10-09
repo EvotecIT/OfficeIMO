@@ -112,6 +112,8 @@ namespace OfficeIMO.Excel {
             private void AppendCurrentText(XmlReader reader, ref string? first, ref StringBuilder? builder) {
                 int read;
                 while ((read = reader.ReadValueChunk(_characters, 0, _characters.Length)) != 0) {
+                    // XmlReader can already buffer a CDATA/attribute node, but
+                    // OfficeIMO never copies its complete value before charging.
                     // Never request Value/ReadContentAsString before this check: those
                     // APIs can first allocate the complete decompressed text node.
                     Charge(read);

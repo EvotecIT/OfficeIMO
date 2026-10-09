@@ -73,6 +73,8 @@ namespace OfficeIMO.Excel {
                     _currentCellPresence = null;
                     _currentRowActive = false;
                     _currentRowFinished = true;
+                    ReleaseXmlReader();
+                    _stream.Dispose();
                     throw;
                 }
             }
@@ -99,6 +101,14 @@ namespace OfficeIMO.Excel {
                     _bufferedRows.Clear();
                 }
                 _bufferedCellPresence?.Clear();
+            }
+
+            private void ReleaseXmlReader() {
+                // Disposing XmlReader alone can retain its CDATA strings and
+                // builder storage. Failed/closed readers must drop that root.
+                XmlReader? reader = _reader;
+                _reader = null!;
+                reader?.Dispose();
             }
         }
     }

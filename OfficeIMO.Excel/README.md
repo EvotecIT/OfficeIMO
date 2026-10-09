@@ -324,7 +324,9 @@ shared-formula followers before returning a reader.
 An over-limit read throws `InvalidDataException`; close that reader before
 opening a new one with a larger limit for trusted input. Indexed UTF-8 and
 SDK worksheet-chunk caches retain their existing limits. This character allowance is
-not a total memory budget and does not bound objects created by a custom converter.
+not a total memory budget: the framework XML parser can buffer an individual
+CDATA or attribute node before it is charged. It also does not bound objects
+created by a custom converter.
 
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:
