@@ -65,9 +65,10 @@ def verify(path, descriptor):
 
     with ZipFile(path) as package:
         graph = records(package)
-        objects, text_colors = [], []
+        objects, text_colors, decoded = [], [], {}
         for identifier, (kind, payload, header) in graph.items():
             message = decode(SCHEMAS[kind], payload)
+            decoded[identifier] = message
             refs = references(message)
             if kind == 10:
                 theme = fields(fields(payload)[1][0])
@@ -88,6 +89,38 @@ def verify(path, descriptor):
                 assert message.HasField('name') != message.HasField('template_slide')
             if kind == 2001:
                 assert all(fields(payload).get(number) for number in (6, 14, 24))
+        text_runs = []
+        for identifier, (kind, _, _) in graph.items():
+            if kind != 2001:
+                continue
+            storage = decoded[identifier]
+            text = storage.text if isinstance(storage.text, str) else ''.join(storage.text)
+            utf16_length = len(text.encode('utf-16-le')) // 2
+            boundaries, offset = {0}, 0
+            for character in text:
+                offset += len(character.encode('utf-16-le')) // 2
+                boundaries.add(offset)
+            ranges = list(storage.table_char_style.entries)
+            assert ranges and ranges[0].character_index == 0
+            positions = [entry.character_index for entry in ranges]
+            assert positions == sorted(set(positions))
+            assert all(position in boundaries and position < utf16_length for position in positions)
+            encoded_text = text.encode('utf-16-le')
+            for index, entry in enumerate(ranges):
+                assert entry.HasField('object')
+                style_id = entry.object.identifier
+                assert graph[style_id][0] == 2021
+                character = decoded[style_id].char_properties
+                # Each rich range describes a complete formatting snapshot. Explicit
+                # false values must survive so a later plain run clears decoration.
+                if len(ranges) > 1:
+                    assert all(character.HasField(name) for name in ('bold', 'italic', 'underline', 'strikethru'))
+                end = positions[index + 1] if index + 1 < len(ranges) else utf16_length
+                text_runs.append({'storage': identifier, 'start': entry.character_index, 'end': end,
+                    'text': encoded_text[entry.character_index * 2:end * 2].decode('utf-16-le'),
+                    'style': style_id, 'font': character.font_name, 'size': character.font_size,
+                    'bold': character.bold, 'italic': character.italic,
+                    'underline': int(character.underline), 'strikethrough': int(character.strikethru)})
         names = package.namelist()
         assert names == sorted(names) and len(names) == 5
         assert all(item.compress_type == 0 and item.date_time == (1980, 1, 1, 0, 0, 0)
@@ -100,7 +133,8 @@ def verify(path, descriptor):
         'bytes': path.stat().st_size, 'descriptor_sha256': hashlib.sha256(descriptor_bytes).hexdigest(),
         'numbers_parser_version': version('numbers-parser'), 'required_fields_complete': True,
         'reference_graph_complete': True, 'deterministic_zip_profile': True,
-        'records': len(objects), 'objects': objects, 'modern_text_colors': text_colors}
+        'character_ranges_complete': True, 'records': len(objects), 'objects': objects,
+        'modern_text_colors': text_colors, 'native_text_runs': text_runs}
 
 
 def main():
@@ -112,7 +146,7 @@ def main():
     assert version('numbers-parser') == '4.19.0'
     result = verify(args.package, args.descriptor)
     args.output.write_text(json.dumps(result, indent=2) + '\n')
-    print({key: value for key, value in result.items() if key not in ('objects', 'modern_text_colors')})
+    print({key: value for key, value in result.items() if key not in ('objects', 'modern_text_colors', 'native_text_runs')})
 
 
 if __name__ == '__main__':

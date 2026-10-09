@@ -24,6 +24,20 @@ public sealed class IWorkKeynoteSlideBuilder {
         float heightPoints, string fontName = "Arial", float fontSizePoints = 32, string color = "000000") {
         var box = new IWorkKeynoteTextBox(text, leftPoints, topPoints, widthPoints, heightPoints,
             fontName, fontSizePoints, IWorkKeynoteTextBox.ParseColor(color));
+        return AddBox(box, leftPoints, topPoints, widthPoints, heightPoints);
+    }
+
+    /// <summary>Adds a left-aligned rich-text box with zero padding and immutable character runs.</summary>
+    /// <remarks>Runs are copied when added. Empty runs have no visible range and are discarded unless the entire box is blank.
+    /// Dimensions are in points and must lie within the canvas. This method does not measure or fit text.</remarks>
+    public IWorkKeynoteTextBox AddRichText(IEnumerable<IWorkKeynoteTextRun> runs, float leftPoints, float topPoints,
+        float widthPoints, float heightPoints) {
+        var box = new IWorkKeynoteTextBox(runs, leftPoints, topPoints, widthPoints, heightPoints);
+        return AddBox(box, leftPoints, topPoints, widthPoints, heightPoints);
+    }
+
+    private IWorkKeynoteTextBox AddBox(IWorkKeynoteTextBox box, float leftPoints, float topPoints,
+        float widthPoints, float heightPoints) {
         if (leftPoints < 0 || topPoints < 0 || (double)leftPoints + widthPoints > _canvas.WidthPoints ||
             (double)topPoints + heightPoints > _canvas.HeightPoints) {
             throw new ArgumentOutOfRangeException(nameof(leftPoints), "The text box must lie within the slide canvas.");

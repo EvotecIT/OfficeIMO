@@ -4,7 +4,7 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Creates native Keynote presentations containing positioned, uniformly styled text boxes.</summary>
+/// <summary>Creates native Keynote presentations containing positioned text boxes with character formatting.</summary>
 /// <remarks>This creation model does not modify loaded iWork packages. Instances are not thread safe.</remarks>
 public sealed class IWorkKeynoteDocument {
     private readonly List<IWorkKeynoteSlideBuilder> _slides = new();

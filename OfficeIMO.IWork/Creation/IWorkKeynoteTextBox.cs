@@ -8,39 +8,60 @@ public sealed class IWorkKeynoteTextBox {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     internal IWorkKeynoteTextBox(string text, float left, float top, float width, float height,
-        string fontName, float fontSize, IWorkColor color) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (fontName == null) throw new ArgumentNullException(nameof(fontName));
+        string fontName, float fontSize, IWorkColor color)
+        : this(new[] { new IWorkKeynoteTextRun(text, fontName, fontSize, color) }, left, top, width, height) { }
+
+    internal IWorkKeynoteTextBox(IEnumerable<IWorkKeynoteTextRun> runs, float left, float top, float width, float height) {
+        if (runs == null) throw new ArgumentNullException(nameof(runs));
         ValidateFinite(left, nameof(left));
         ValidateFinite(top, nameof(top));
         ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
-        ValidatePositive(fontSize, nameof(fontSize));
+        IWorkKeynoteTextRun[] input = runs.ToArray();
+        if (input.Length == 0 || input.Any(run => run == null))
+            throw new ArgumentException("At least one non-null character run is required.", nameof(runs));
+        // Empty ranges have no native character position. Keep one default run
+        // for a blank box, otherwise discard them without emitting duplicate offsets.
+        IWorkKeynoteTextRun[] retained = input.Where(run => run.Text.Length > 0).ToArray();
+        if (retained.Length == 0) retained = new[] { input[0] };
+        Runs = Array.AsReadOnly(retained);
+        Text = string.Concat(retained.Select(run => run.Text));
+        Geometry = new IWorkGeometry(left, top, width, height, 0);
+        FontName = retained[0].FontName;
+        FontSizePoints = retained[0].FontSizePoints;
+        Color = retained[0].Color;
+    }
+
+    internal static void ValidateFontName(string fontName) {
+        if (fontName == null) throw new ArgumentNullException(nameof(fontName));
         if (string.IsNullOrWhiteSpace(fontName) || fontName.Length > 128 || fontName.Any(char.IsControl)) {
             throw new ArgumentException("A font name of at most 128 characters without control characters is required.", nameof(fontName));
         }
-        Text = text.Replace("\r\n", "\n").Replace('\r', '\n');
-        if (Text.Any(character => char.IsControl(character) && character != '\n')) {
+        StrictUtf8.GetByteCount(fontName);
+    }
+
+    internal static string NormalizeText(string text) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        if (normalized.Any(character => char.IsControl(character) && character != '\n')) {
             throw new ArgumentException("Text supports line breaks but no other control characters.", nameof(text));
         }
         // Do not silently replace unpaired UTF-16 surrogates with a different glyph.
-        StrictUtf8.GetByteCount(Text);
-        StrictUtf8.GetByteCount(fontName);
-        Geometry = new IWorkGeometry(left, top, width, height, 0);
-        FontName = fontName;
-        FontSizePoints = fontSize;
-        Color = color;
+        StrictUtf8.GetByteCount(normalized);
+        return normalized;
     }
 
     /// <summary>Gets the text with normalized LF line breaks.</summary>
     public string Text { get; }
+    /// <summary>Gets the immutable character runs in text order.</summary>
+    public IReadOnlyList<IWorkKeynoteTextRun> Runs { get; }
     /// <summary>Gets the frame geometry in points.</summary>
     public IWorkGeometry Geometry { get; }
-    /// <summary>Gets the requested native font name.</summary>
+    /// <summary>Gets the first run's font, also used as the paragraph default.</summary>
     public string FontName { get; }
-    /// <summary>Gets the font size in points.</summary>
+    /// <summary>Gets the first run's font size, also used as the paragraph default.</summary>
     public float FontSizePoints { get; }
-    /// <summary>Gets the opaque sRGB text color.</summary>
+    /// <summary>Gets the first run's opaque sRGB color, also used as the paragraph default.</summary>
     public IWorkColor Color { get; }
 
     internal static void ValidateFinite(float value, string name) {

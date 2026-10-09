@@ -18,11 +18,11 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
     }
 
     private void AddTextStyles(ulong characterId, ulong paragraphId, ulong frameId, string fontName,
-        float fontSize, IWorkColor color) {
+        float fontSize, IWorkColor color, IWorkKeynoteTextRun? firstRun = null) {
         // Modern Keynote renders tsd_fill; font_color remains its legacy color mirror.
         var character = P().Float(3, fontSize).String(5, fontName).Message(7, Color(color))
             .Message(46, P().Message(1, Color(color)));
-        Add(characterId, 2021, P().Message(1, Style(characterId, "OfficeIMO Text")).Message(11, character).UInt(10, 3));
+        AddCharacterStyle(characterId, firstRun == null ? character : CharacterProperties(firstRun));
         var paragraph = P().UInt(1, 0).Reference(40, ListId).Message(13, P()).Message(25, P()).Float(4, 36);
         Add(paragraphId, 2022, P().Message(1, Style(paragraphId, "OfficeIMO Paragraph"))
             .Message(11, character).Message(12, paragraph).UInt(10, 8));
@@ -32,6 +32,14 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             .Message(6, P().Float(1, 0).Float(2, 0).Float(3, 0).Float(4, 0)).UInt(7, 0).Bool(11, false).Reference(10, paragraphId);
         Add(frameId, 2025, P().Message(1, shape).Message(11, textProperties).UInt(10, 7));
     }
+
+    private IWorkProtoWriter CharacterProperties(IWorkKeynoteTextRun run) =>
+        P().Bool(1, run.Bold).Bool(2, run.Italic).Float(3, run.FontSizePoints).String(5, run.FontName)
+            .Message(7, Color(run.Color)).Bool(11, run.Underline).Bool(12, run.Strikethrough)
+            .Message(46, P().Message(1, Color(run.Color)));
+
+    private void AddCharacterStyle(ulong id, IWorkProtoWriter character) =>
+        Add(id, 2021, P().Message(1, Style(id, "OfficeIMO Text")).Message(11, character).UInt(10, 3));
 
     private void AddBackground(ulong id, IWorkColor color) =>
         Add(id, 9, P().Message(1, Style(id, "OfficeIMO Slide")).Message(11, P().Message(1, P().Message(1, Color(color)))).UInt(10, 1));

@@ -14,7 +14,7 @@ internal static class IWorkKeynotePackageWriter {
         if (document.Slides.Count > limits.MaximumSlides) throw new InvalidDataException("The native Keynote slide limit was exceeded.");
         IWorkKeynoteSlideBuilder[] input = document.Slides.ToArray();
         var slides = new List<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteTextBox[] Boxes)>(input.Length);
-        long totalBoxes = 0, totalCharacters = 0;
+        long totalBoxes = 0, totalCharacters = 0, totalRuns = 0;
         foreach (IWorkKeynoteSlideBuilder slide in input) {
             cancellationToken.ThrowIfCancellationRequested();
             totalBoxes += slide.TextBoxes.Count;
@@ -22,6 +22,8 @@ internal static class IWorkKeynotePackageWriter {
             IWorkKeynoteTextBox[] boxes = slide.TextBoxes.ToArray();
             foreach (IWorkKeynoteTextBox box in boxes) {
                 cancellationToken.ThrowIfCancellationRequested();
+                totalRuns += box.Runs.Count;
+                if (totalRuns > limits.MaximumTextRuns) throw new InvalidDataException("The native Keynote character-run limit was exceeded.");
                 totalCharacters += box.Text.Length;
                 if (totalCharacters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
             }
@@ -58,9 +60,16 @@ internal static class IWorkKeynotePackageWriter {
         foreach (var slide in slides) {
             var row = P().String(1, slide.Slide.BackgroundColor.RgbHex);
             foreach (IWorkKeynoteTextBox box in slide.Boxes) {
-                row.Message(2, P().String(1, box.Text).String(2, box.FontName).Float(3, box.FontSizePoints).String(4, box.Color.RgbHex)
+                var textBox = P().String(1, box.Text).String(2, box.FontName).Float(3, box.FontSizePoints).String(4, box.Color.RgbHex)
                     .Float(5, (float)box.Geometry.LeftPoints).Float(6, (float)box.Geometry.TopPoints)
-                    .Float(7, (float)box.Geometry.WidthPoints).Float(8, (float)box.Geometry.HeightPoints));
+                    .Float(7, (float)box.Geometry.WidthPoints).Float(8, (float)box.Geometry.HeightPoints);
+                if (box.Runs.Count > 1 || box.Runs[0].HasDecoration) {
+                    foreach (IWorkKeynoteTextRun run in box.Runs) {
+                        textBox.Message(9, P().String(1, run.Text).String(2, run.FontName).Float(3, run.FontSizePoints)
+                            .String(4, run.Color.RgbHex).Bool(5, run.Bold).Bool(6, run.Italic).Bool(7, run.Underline).Bool(8, run.Strikethrough));
+                    }
+                }
+                row.Message(2, textBox);
             }
             input.Message(3, row);
         }

@@ -24,16 +24,21 @@ var presentation = IWorkKeynoteDocument.Create(); // 960 × 540 points
 var slide = presentation.AddSlide("E6F2FF");
 slide.AddText("Zażółć gęślą jaźń\nA😀B — café", 60, 100, 840, 260,
     fontName: "Arial", fontSizePoints: 40, color: "003366");
+slide.AddRichText(new[] {
+    new IWorkKeynoteTextRun("Bold ", bold: true),
+    new IWorkKeynoteTextRun("then plain"),
+    new IWorkKeynoteTextRun(" and underlined", underline: true)
+}, 60, 400, 840, 80);
 presentation.AddSlide(); // blank white slide
 presentation.Save("created.key"); // rejects an existing destination
 byte[] package = presentation.SaveBytes();
 ```
 
-The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. Text boxes have one font, size and opaque color throughout, left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
+The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. `AddText` uses one font, size and opaque color throughout. `AddRichText` copies immutable runs with independent fonts, sizes, colors, bold, italic, single underline and single strikethrough. Plain runs clear earlier decoration. Empty ranges are discarded unless the entire box is blank; `Runs` exposes the retained snapshot. Text boxes use left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
 
-`IWorkKeynoteWriteOptions` limits slides, total text boxes, UTF-16 text length and package/intermediate archive size. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
+`IWorkKeynoteWriteOptions` limits slides, total text boxes and retained character runs, UTF-16 text length and package/intermediate archive size. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
 
-The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. This qualifies that fixture and font environment. Other native versions, rich runs, images, tables, transitions, builds and editing loaded packages remain outside the creation contract. Native Pages and Numbers writing is unsupported.
+The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges, with native PPTX/PDF exports and another edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, images, tables, transitions, builds and editing loaded packages remain outside this evidence. Native Pages and Numbers writing is unsupported.
 
 ## Read and inspect a source
 

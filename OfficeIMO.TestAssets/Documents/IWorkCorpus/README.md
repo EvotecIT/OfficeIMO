@@ -400,6 +400,18 @@ Compile `KNArchives.proto` and `TSPArchiveMessages.proto` from the manifest's pi
 python Build/IWork/verify-keynote-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.key <descriptor.pb> <evidence.json>
 ```
 
+## Native Keynote rich-run creation evidence
+
+`native-exports/keynote-created-rich-v15.4.json` pins the template-free three-slide creation model in `IWorkKeynoteRichTextWritingTests`, its Keynote 15.4 PPTX/PDF exports, all-slide rasters and the package saved after editing the plain run `plain` to `reset`. These newly authored assets use the repository MIT license. The two text boxes exercise Helvetica Neue, Arial and Times New Roman, 24/30/32-point sizes, opaque colors, bold/italic/single underline/single strikethrough, explicit plain resets, LF paragraphs, Polish text and a non-BMP emoji. The third slide stays blank.
+
+Independent schema decoding checks all 41 created records, required fields, exact declared references, modern color mirrors and character boundaries in UTF-16. Plain rich ranges retain explicit false decoration values. The recorded native PPTX properties and saved/reopened OfficeIMO PPTX agree on complete text/run order, decoration, sizes and geometry; native font aliases and theme-backed Arial are recorded separately. Keynote opens without repair and preserves the native edit after save, close and reopen. Complete native PDF rasters were inspected; direct OfficeIMO PDF appearance remains a separate qualification route. No standalone fonts are distributed.
+
+Reproduce the created package through `RichExample` in the executable writing test, then use the existing pinned-schema verification command above. Extract the selected Apple-saved character tables and native PPTX properties with the isolated numbers-parser 4.19.0 environment:
+
+```sh
+python Build/IWork/extract-keynote-rich-runs.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-edited-v15.4.key OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.pptx <ranges.json>
+```
+
 ### Integer-function compatibility boundaries
 
 `numbers-parser/integer-function-boundaries.json` records two unchanged formulas in

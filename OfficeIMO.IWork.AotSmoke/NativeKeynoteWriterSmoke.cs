@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using OfficeIMO.IWork;
 
-internal static class NativeKeynoteWriterSmoke {
+internal static partial class NativeKeynoteWriterSmoke {
     // Exact bytes of the independently decoded, Apple-opened three-slide fixture.
     private const string AcceptedSha256 = "8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1";
 
@@ -59,6 +59,7 @@ internal static class NativeKeynoteWriterSmoke {
         Require(partial.CanWrite && partial.Length == 65_536,
             "NativeAOT copy cancellation closed the caller stream or continued beyond its first chunk.");
         Console.WriteLine($"PASS | native Keynote creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation");
+        RunRichText();
     }
 
     private static IWorkKeynoteDocument CreateAcceptedModel() {

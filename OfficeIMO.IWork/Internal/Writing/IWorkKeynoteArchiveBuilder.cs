@@ -49,9 +49,19 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
                 _cancellationToken.ThrowIfCancellationRequested();
                 ulong characterId = Allocate(), paragraphId = Allocate(), frameStyleId = Allocate();
                 ulong frameId = Allocate(), storageId = Allocate();
-                AddTextStyles(characterId, paragraphId, frameStyleId, box.FontName, box.FontSizePoints, box.Color);
+                bool rich = box.Runs.Count > 1 || box.Runs[0].HasDecoration;
+                AddTextStyles(characterId, paragraphId, frameStyleId, box.FontName, box.FontSizePoints, box.Color,
+                    rich ? box.Runs[0] : null);
                 Add(frameId, 2011, Frame(slideId, frameStyleId, storageId, box.Geometry));
-                Add(storageId, 2001, Storage(paragraphId, characterId, box.Text));
+                var characters = new List<(int Offset, ulong Style)> { (0, characterId) };
+                int offset = box.Runs[0].Text.Length;
+                foreach (IWorkKeynoteTextRun run in box.Runs.Skip(1)) {
+                    ulong runStyle = Allocate();
+                    AddCharacterStyle(runStyle, CharacterProperties(run));
+                    characters.Add((offset, runStyle));
+                    offset = checked(offset + run.Text.Length);
+                }
+                Add(storageId, 2001, Storage(paragraphId, characters, box.Text));
                 slide.Reference(7, frameId).Reference(42, frameId);
             }
             Add(slideId, 5, slide);
@@ -131,9 +141,12 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         return P().Message(1, shape).Reference(2, storageId).Reference(4, storageId).Bool(6, true);
     }
 
-    private IWorkProtoWriter Storage(ulong paragraphId, ulong characterId, string text) {
+    private IWorkProtoWriter Storage(ulong paragraphId, IReadOnlyList<(int Offset, ulong Style)> characters, string text) {
         var storage = P().UInt(1, 3).Reference(2, StylesheetId).String(3, text + "\n").Bool(10, true);
-        storage.Message(5, Attribute(paragraphId)).Message(8, Attribute(characterId)).Message(7, Attribute(ListId));
+        var characterTable = P();
+        foreach (var character in characters)
+            characterTable.Message(1, P().UInt(1, (ulong)character.Offset).Reference(2, character.Style));
+        storage.Message(5, Attribute(paragraphId)).Message(8, characterTable).Message(7, Attribute(ListId));
         // These tables are necessary for native paragraph editing and export, even with no lists or bidi overrides.
         foreach (int field in new[] { 6, 14, 24 }) storage.Message(field, P().Message(1, P().UInt(1, 0).UInt(2, 0).UInt(3, 0)));
         storage.Message(28, P().Message(1, P().UInt(1, 0)));
