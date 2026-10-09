@@ -38,9 +38,10 @@ then validates the actual supported generation.
 Every source story appears once in native story order, including text that
 overflows its printable frames. Paragraph blocks preserve source characters and
 carry a story anchor, paragraph index and logical order that survives canonical
-traversal and JSON transport. Native bullet labels remain separate
+traversal, JSON transport and semantic PDF projection. Native bullet labels remain separate
 markers; Markdown uses an ordinary list marker and escapes literal source
-punctuation. Long paragraphs split into bounded chunks without discarding text
+punctuation. Character references preserve indentation without turning source
+paragraphs into Markdown code blocks. Long paragraphs split into bounded chunks without discarding text
 or separating a UTF-16 surrogate pair.
 
 `Pages` describes recovered physical pages and their dimensions. Paragraphs and

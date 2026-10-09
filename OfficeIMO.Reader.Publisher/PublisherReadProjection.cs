@@ -89,8 +89,9 @@ internal sealed class PublisherReadProjection {
                 Id = id, Kind = marker == null ? "paragraph" : "list-item", Text = text, Marker = marker,
                 Location = blockLocation
             });
-            // Leave room for a list marker and paragraph separator after punctuation escaping.
-            int maximum = Math.Max(1, (_settings.MaxChars - 3) / 2);
+            // Leave room for a list marker and paragraph separator after literal escaping,
+            // including character references that preserve source indentation.
+            int maximum = Math.Max(1, (_settings.MaxChars - 3) / ReaderMarkdownEscaping.MaximumExpansion);
             IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(text, maximum);
             if (parts.Count == 0) parts = new[] { string.Empty };
             for (int part = 0; part < parts.Count; part++) {

@@ -211,6 +211,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
     };
 
     private static CoreLocation MapLocation(ReaderLocation location) => new CoreLocation {
+        LogicalOrder = location.LogicalOrder,
         Path = location.Path,
         BlockIndex = location.BlockIndex,
         SourceBlockIndex = location.SourceBlockIndex,

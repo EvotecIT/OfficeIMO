@@ -26,6 +26,7 @@ public static class OfficeDocumentModelIdentity {
         if (page == null) throw new ArgumentNullException(nameof(page));
         OfficeDocumentModelLocation source = page.Location;
         var fallback = new OfficeDocumentModelLocation {
+            LogicalOrder = source.LogicalOrder,
             Path = source.Path,
             BlockIndex = source.BlockIndex,
             SourceBlockIndex = source.SourceBlockIndex,
@@ -96,6 +97,7 @@ public static class OfficeDocumentModelIdentity {
         OfficeDocumentModelLocation? location,
         params string?[] values) where T : class {
         bool hasLocation = location != null && (
+            location.LogicalOrder.HasValue ||
             !string.IsNullOrWhiteSpace(location.Path) ||
             !string.IsNullOrWhiteSpace(location.Sheet) ||
             location.Page.HasValue ||
@@ -130,6 +132,11 @@ public static class OfficeDocumentModelIdentity {
         Append(builder, (location?.SourceBlockIndex ?? fallback?.SourceBlockIndex)?.ToString(CultureInfo.InvariantCulture));
         Append(builder, (location?.StartLine ?? fallback?.StartLine)?.ToString(CultureInfo.InvariantCulture));
         Append(builder, (location?.TableIndex ?? fallbackTableIndex ?? fallback?.TableIndex)?.ToString(CultureInfo.InvariantCulture));
+        long? logicalOrder = location?.LogicalOrder ?? fallback?.LogicalOrder;
+        if (logicalOrder.HasValue) {
+            Append(builder, "logical-order");
+            Append(builder, logicalOrder.Value.ToString(CultureInfo.InvariantCulture));
+        }
     }
 
     private static string? Prefer(string? value, string? fallback) =>

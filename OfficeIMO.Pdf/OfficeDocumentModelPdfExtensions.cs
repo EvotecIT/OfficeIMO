@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Loss-aware PDF projection over the neutral document model.</summary>
-public static class OfficeDocumentModelPdfExtensions {
+public static partial class OfficeDocumentModelPdfExtensions {
     private const string ConverterName = "OfficeIMO.Pdf";
 
     /// <summary>
@@ -44,7 +44,10 @@ public static class OfficeDocumentModelPdfExtensions {
         if (!string.IsNullOrWhiteSpace(source.Source.Title)) document.H1(source.Source.Title!);
         if (options.IncludeMetadata) ComposeMetadata(document, source.Metadata);
 
-        if (source.Pages.Count > 0) {
+        if (options.PagePolicy == PdfProjectionPagePolicy.ContinuousFlow && HasExplicitReadingOrder(source)) {
+            assetSummary = ComposeReadingOrderedContent(document, source, identities, options, rasterDecodeOptions,
+                !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase), report, cancellationToken);
+        } else if (source.Pages.Count > 0) {
             for (int index = 0; index < source.Pages.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeDocumentModelPage page = source.Pages[index];
@@ -140,7 +143,8 @@ public static class OfficeDocumentModelPdfExtensions {
             items.Add(ProjectionContentItem.ForBlock(block, blockIndex));
         }
 
-        foreach (ProjectionContentItem item in items.OrderBy(static item => item.Position).ThenBy(static item => item.InsertionIndex)) {
+        foreach (ProjectionContentItem item in items.OrderBy(static item => item.LogicalOrder ?? long.MaxValue)
+            .ThenBy(static item => item.Position).ThenBy(static item => item.InsertionIndex)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (item.Block != null) ComposeBlock(document, item.Block);
             else ComposeTable(document, item.Table!, item.TableIndex, report, sourceLabel);
@@ -290,6 +294,8 @@ public static class OfficeDocumentModelPdfExtensions {
     private static bool TableMatchesBlock(OfficeDocumentModelTable table, OfficeDocumentModelBlock block) {
         OfficeDocumentModelLocation? tableLocation = table.Location;
         OfficeDocumentModelLocation? blockLocation = block.Location;
+        if (tableLocation?.LogicalOrder.HasValue == true && blockLocation?.LogicalOrder.HasValue == true &&
+            tableLocation.LogicalOrder != blockLocation.LogicalOrder) return false;
         string? tableAnchor = tableLocation?.BlockAnchor;
         if (!string.IsNullOrWhiteSpace(tableAnchor) &&
             (string.Equals(tableAnchor, block.Id, StringComparison.Ordinal) ||
@@ -474,11 +480,13 @@ public static class OfficeDocumentModelPdfExtensions {
             OfficeDocumentModelTable? table,
             int tableIndex,
             OfficeDocumentModelLocation? location,
-            int insertionIndex) {
+            int insertionIndex,
+            OfficeDocumentModelLocation? fallbackLocation = null) {
             Block = block;
             Table = table;
             TableIndex = tableIndex;
             Position = GetPosition(location);
+            LogicalOrder = location?.LogicalOrder ?? fallbackLocation?.LogicalOrder;
             InsertionIndex = insertionIndex;
         }
 
@@ -486,6 +494,7 @@ public static class OfficeDocumentModelPdfExtensions {
         internal OfficeDocumentModelTable? Table { get; }
         internal int TableIndex { get; }
         internal int Position { get; }
+        internal long? LogicalOrder { get; }
         internal int InsertionIndex { get; }
 
         internal static ProjectionContentItem ForBlock(OfficeDocumentModelBlock block, int insertionIndex) =>
@@ -496,7 +505,7 @@ public static class OfficeDocumentModelPdfExtensions {
             int tableIndex,
             OfficeDocumentModelLocation? correlatedLocation,
             int insertionIndex) =>
-            new ProjectionContentItem(null, table, tableIndex, correlatedLocation ?? table.Location, insertionIndex);
+            new ProjectionContentItem(null, table, tableIndex, correlatedLocation ?? table.Location, insertionIndex, table.Location);
 
         private static int GetPosition(OfficeDocumentModelLocation? location) =>
             location?.SourceBlockIndex
