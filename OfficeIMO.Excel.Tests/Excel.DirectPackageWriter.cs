@@ -86,9 +86,17 @@ namespace OfficeIMO.Excel.Tests {
             Assert.Equal("Zażółć", GetDirectCellText(cells["B2"]));
             Assert.Equal("東京", GetDirectCellText(cells["C2"]));
             Assert.Equal("A&B < " + emoji + "\r\nnext\rreturn", GetDirectCellText(cells["H2"]));
-            Assert.Equal(string.Empty, GetDirectCellText(cells["B3"]));
+            Assert.False(cells.ContainsKey("B3"));
             Assert.Equal("München", GetDirectCellText(cells["C3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(output.ToArray());
+            Assert.True(reader.Read());
+            Assert.Equal("Zażółć", reader.GetString(1));
+            Assert.True(reader.Read());
+            Assert.True(reader.IsDBNull(1));
+            Assert.Equal("München", reader.GetString(2));
+            Assert.False(reader.Read());
 
             output.Position = 0;
             using var reopened = ExcelDocument.Load(output);

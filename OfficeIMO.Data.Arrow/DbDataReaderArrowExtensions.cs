@@ -30,8 +30,9 @@ public static partial class DbDataReaderArrowExtensions {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
         Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        bool[]? columnNullability = effectiveOptions.ValidateAndSnapshotColumnNullability(reader.FieldCount);
         ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
-        Schema schema = CreateSchema(reader, columns);
+        Schema schema = CreateSchema(reader, columns, columnNullability);
         IDataReaderFastValueSource? fastValueSource =
             (reader as IDataReaderFastValueSource)?.FastValueSource;
 
@@ -72,8 +73,9 @@ public static partial class DbDataReaderArrowExtensions {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
         Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        bool[]? columnNullability = effectiveOptions.ValidateAndSnapshotColumnNullability(reader.FieldCount);
         ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
-        Schema schema = CreateSchema(reader, columns);
+        Schema schema = CreateSchema(reader, columns, columnNullability);
         IDataReaderFastValueSource? fastValueSource =
             (reader as IDataReaderFastValueSource)?.FastValueSource;
 
@@ -116,10 +118,15 @@ public static partial class DbDataReaderArrowExtensions {
         return columns;
     }
 
-    private static Schema CreateSchema(DbDataReader reader, ArrowColumnFactory[] columns) {
+    private static Schema CreateSchema(
+        DbDataReader reader,
+        ArrowColumnFactory[] columns,
+        IReadOnlyList<bool>? columnNullability) {
         var fields = new Field[columns.Length];
         for (int ordinal = 0; ordinal < fields.Length; ordinal++) {
-            fields[ordinal] = new Field(reader.GetName(ordinal), columns[ordinal].ArrowType, nullable: true);
+            fields[ordinal] = new Field(
+                reader.GetName(ordinal), columns[ordinal].ArrowType,
+                nullable: columnNullability?[ordinal] ?? true);
         }
         return new Schema(fields, metadata: null);
     }
@@ -161,6 +168,11 @@ public static partial class DbDataReaderArrowExtensions {
             for (int ordinal = 0; ordinal < arrays.Length; ordinal++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 arrays[ordinal] = builders[ordinal].Build();
+                Field field = schema.GetFieldByIndex(ordinal);
+                if (!field.IsNullable && arrays[ordinal].NullCount != 0) {
+                    throw new InvalidDataException(
+                        $"Required Arrow column '{field.Name}' at ordinal {ordinal} contains null values.");
+                }
                 cancellationToken.ThrowIfCancellationRequested();
             }
             batch = new RecordBatch(schema, arrays, rowCount);

@@ -233,7 +233,11 @@ public sealed partial class CsvDocument
         }
 
         long startPosition = stream.Position;
-        if (!CanUseSinglePassFileDataReader(options, readerOptions))
+        if (!CanUseSinglePassFileDataReader(options, readerOptions)
+#if NET8_0_OR_GREATER
+            && !CanUseStreamSpanDataReader(options, readerOptions)
+#endif
+            )
         {
             return CreateBufferedDataReaderFromCurrentPosition(stream, startPosition, options, readerOptions);
         }
@@ -241,6 +245,24 @@ public sealed partial class CsvDocument
 #if NET8_0_OR_GREATER
         if (CanUseStreamSpanDataReader(options, readerOptions))
         {
+            if (CanUseUtf8StreamDataReader(options))
+            {
+                Stream utf8Stream = CsvFile.OpenReadStream(stream, options, leaveOpen: true);
+                if (CsvParser.CsvUtf8StreamDataReaderRowSource.TryCreate(utf8Stream, options, out var utf8Rows))
+                {
+                    if (TryCreateStreamSpanDataReader(utf8Rows!, options, readerOptions, out CsvDataReader? utf8DataReader))
+                    {
+                        return CsvParallelDataReader.Apply(utf8DataReader!, readerOptions);
+                    }
+                }
+                else
+                {
+                    utf8Stream.Dispose();
+                }
+
+                stream.Position = startPosition;
+            }
+
             var spanReader = CsvFile.OpenTextReader(stream, options, leaveOpen: true, StreamingDataReaderFileBufferSize);
             if (TryCreateStreamSpanDataReader(spanReader, options, readerOptions, out CsvDataReader? dataReader))
             {
@@ -483,7 +505,12 @@ public sealed partial class CsvDocument
     private static bool CanUseStreamSpanDataReader(
         CsvLoadOptions options,
         CsvDataReaderOptions readerOptions) =>
-        CanUseSinglePassFileDataReader(options, readerOptions)
+        (CanUseSinglePassFileDataReader(options, readerOptions)
+            || (options.Mode == CsvLoadMode.Stream
+                && !options.HasHeaderRow
+                && options.Header is null
+                && options.SkipInitialRecords == 0
+                && !options.DetectDelimiter))
         && readerOptions.Schema is null
         && !readerOptions.InferSchema
         && options.StaticColumns is null
@@ -525,6 +552,21 @@ public sealed partial class CsvDocument
             {
                 rows.Dispose();
                 dataReader = CreateEmptyDataReader(readerOptions, options);
+                return true;
+            }
+
+            if (!options.HasHeaderRow)
+            {
+                IReadOnlyList<string> generatedHeader = GenerateDefaultHeader(rows.FieldCount);
+                rows.SetSourceColumnCount(generatedHeader.Count);
+                dataReader = new CsvDataReader(
+                    CreateDataReaderColumns(generatedHeader, readerOptions),
+                    rows,
+                    generatedHeader.Count,
+                    options,
+                    options.Culture,
+                    options.DateTimeFormats,
+                    hasBufferedTextRow: true);
                 return true;
             }
 
@@ -720,76 +762,7 @@ public sealed partial class CsvDocument
 #endif
 
         CsvLoadOptions inferenceOptions = _streamingSource!.Options.Clone();
-        var rows = _streamingSource.ReadReusableRows(inferenceOptions).GetEnumerator();
-        try
-        {
-            var sampledRows = new List<object?[]>(Math.Min(schemaSampleSize, 4096));
-            var schema = InferSchema(
-                rows,
-                schemaSampleSize,
-                sampledRows,
-                cloneSampledRows: true,
-                cancellationToken: cancellationToken,
-                operationCancellationOptions: inferenceOptions);
-            var columns = CreateDataReaderColumns(_header, schema);
-            var rowOwner = new CsvStreamingDataReaderRowOwner(rows);
-            return new CsvDataReader(
-                columns,
-                EnumerateSampledThenRemainingRows(sampledRows, rowOwner),
-                _culture,
-                _dateTimeFormats,
-                CsvParser.GetDelimiterChar(_streamingSource.Options),
-                _streamingSource.Options.MappingErrorValuePolicy,
-                rowOwner: rowOwner,
-                operationCancellationOptions: inferenceOptions);
-        }
-        catch
-        {
-            rows.Dispose();
-            throw;
-        }
-    }
-
-    private static IEnumerable<object?[]> EnumerateSampledThenRemainingRows(
-        IReadOnlyList<object?[]> sampledRows,
-        CsvStreamingDataReaderRowOwner remainingRows)
-    {
-        try
-        {
-            for (var i = 0; i < sampledRows.Count; i++)
-            {
-                yield return sampledRows[i];
-            }
-
-            while (remainingRows.MoveNext())
-            {
-                yield return remainingRows.Current;
-            }
-        }
-        finally
-        {
-            remainingRows.Dispose();
-        }
-    }
-
-    private sealed class CsvStreamingDataReaderRowOwner : IDisposable
-    {
-        private IEnumerator<object?[]>? _rows;
-
-        internal CsvStreamingDataReaderRowOwner(IEnumerator<object?[]> rows)
-        {
-            _rows = rows;
-        }
-
-        internal object?[] Current => _rows!.Current;
-
-        internal bool MoveNext() => _rows?.MoveNext() == true;
-
-        public void Dispose()
-        {
-            _rows?.Dispose();
-            _rows = null;
-        }
+        return CreateStreamingStringInferredDataReader(schemaSampleSize, inferenceOptions, cancellationToken);
     }
 
     private sealed class CsvFileDataReaderRowOwner : IDisposable

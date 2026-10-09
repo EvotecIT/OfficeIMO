@@ -911,7 +911,7 @@ internal static partial class CsvWriter
 
                 WriteEscaped(buffer, nullText, delimiter, quoteMode, forceQuote);
             }
-            else if (quoteMode == CsvQuoteMode.Always || forceQuote)
+            else if (quoteMode != CsvQuoteMode.Never && (quoteMode == CsvQuoteMode.Always || forceQuote))
             {
                 buffer.Append("\"\"");
             }

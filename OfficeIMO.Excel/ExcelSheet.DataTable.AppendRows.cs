@@ -159,7 +159,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        internal bool TryInsertTabularRowSourceForDeferredMaterialization(IExcelSheetTabularRowSource source, int startRow = 1, int startColumn = 1, bool includeHeaders = true, CancellationToken ct = default) {
+        internal bool TryInsertTabularRowSourceForDeferredMaterialization(IExcelSheetTabularRowSource source, int startRow = 1, int startColumn = 1, bool includeHeaders = true, CancellationToken ct = default, bool preserveMissingValues = true) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
@@ -180,11 +180,11 @@ namespace OfficeIMO.Excel {
                 try { lck = _excelDocument.EnsureLock(); } catch { lck = null; }
             }
 
-            Locking.ExecuteWrite(lck, () => applied = TryInsertTabularRowSourceByAppendingRowsCore(source, startRow, startColumn, includeHeaders, ct));
+            Locking.ExecuteWrite(lck, () => applied = TryInsertTabularRowSourceByAppendingRowsCore(source, startRow, startColumn, includeHeaders, ct, preserveMissingValues));
             return applied;
         }
 
-        private bool TryInsertTabularRowSourceByAppendingRowsCore(IExcelSheetTabularRowSource source, int startRow, int startColumn, bool includeHeaders, CancellationToken ct) {
+        private bool TryInsertTabularRowSourceByAppendingRowsCore(IExcelSheetTabularRowSource source, int startRow, int startColumn, bool includeHeaders, CancellationToken ct, bool preserveMissingValues) {
             var sheetData = GetOrCreateSheetData();
             int minExistingRow = int.MaxValue;
             int minExistingColumn = int.MaxValue;
@@ -297,15 +297,15 @@ namespace OfficeIMO.Excel {
 
                     Row valueRow;
                     if (flatValues != null && !canCancel) {
-                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
+                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, preserveMissingValues);
                     } else if (flatValues != null) {
-                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct, preserveMissingValues);
                     } else if (source.TryGetBufferedRow(sourceRowIndex, out var rowValues) && rowValues != null && !canCancel) {
-                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
+                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, preserveMissingValues);
                     } else if (rowValues != null) {
-                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct, preserveMissingValues);
                     } else {
-                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, source, sourceRowIndex, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                        valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, source, sourceRowIndex, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct, preserveMissingValues);
                     }
 
                     if (pendingRows != null) {

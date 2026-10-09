@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                if (source!.SelectRow(r1)) {
+                if (source!.SelectRow(r1, ct, ct)) {
                     var headerValues = new object?[cols];
                     for (int columnOffset = 0; columnOffset < cols; columnOffset++) {
                         source.ReadValue(columnOffset, XmlDataReaderTargetKind.None,
@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel {
             for (int rowIndex = r1 + 1; rowIndex <= r2; rowIndex++) {
                 if (canCancel && ((rowIndex - r1) & 1023) == 0) ct.ThrowIfCancellationRequested();
                 var target = new T();
-                if (source.SelectRow(rowIndex)) {
+                if (source.SelectRow(rowIndex, ct, ct)) {
                     for (int columnOffset = 0; columnOffset < bindings.Length; columnOffset++) {
                         TypedPropertyBinding<T>? binding = bindings[columnOffset];
                         if (binding != null) ReadUtf8ValueIntoTypedObject(source, columnOffset, binding, target);

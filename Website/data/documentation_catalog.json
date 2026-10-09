@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 279,
-    "productionComponentCount": 139,
-    "testProjectCount": 54,
-    "benchmarkProjectCount": 35,
+    "projectCount": 282,
+    "productionComponentCount": 140,
+    "testProjectCount": 55,
+    "benchmarkProjectCount": 36,
     "validationProjectCount": 52,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54105
+    "conceptualWordCount": 54134
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 30,
+      "componentCount": 31,
       "componentIndexes": [
         86,
         87,
@@ -45,7 +45,8 @@
         112,
         113,
         114,
-        115
+        115,
+        116
       ]
     },
     {
@@ -68,8 +69,8 @@
         72,
         73,
         74,
-        124,
-        125
+        125,
+        126
       ]
     },
     {
@@ -88,8 +89,8 @@
         64,
         65,
         85,
-        119,
-        138
+        120,
+        139
       ]
     },
     {
@@ -119,14 +120,14 @@
         81,
         82,
         83,
-        126,
         127,
         128,
         129,
         130,
         131,
         132,
-        133
+        133,
+        134
       ]
     },
     {
@@ -155,9 +156,9 @@
         53,
         76,
         77,
-        116,
         117,
-        118
+        118,
+        119
       ]
     },
     {
@@ -189,14 +190,14 @@
         62,
         75,
         84,
-        120,
         121,
         122,
         123,
-        134,
+        124,
         135,
         136,
-        137
+        137,
+        138
       ]
     }
   ],
@@ -377,7 +378,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1007,
+      "sourceFileCount": 1035,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -390,8 +391,8 @@
       "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "sourceFileCount": 91,
-      "referencingTestProjectCount": 3,
+      "sourceFileCount": 104,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
@@ -533,8 +534,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1094,
-      "referencingTestProjectCount": 11,
+      "sourceFileCount": 1123,
+      "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
@@ -1196,7 +1197,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1367,
+      "sourceFileCount": 1379,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1222,7 +1223,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 473,
+      "sourceFileCount": 474,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -1370,6 +1371,19 @@
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv"
+    },
+    {
+      "name": "OfficeIMO.Reader.Dbf",
+      "packageId": "OfficeIMO.Reader.Dbf",
+      "category": "Extraction and ingestion",
+      "description": "DBF/xBase table ingestion backed by the canonical DbaClientX codec.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Dbf/OfficeIMO.Reader.Dbf.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Dbf"
     },
     {
       "name": "OfficeIMO.Reader.DocBook",
@@ -1846,7 +1860,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 761,
+      "sourceFileCount": 768,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1924,7 +1938,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 86,
+      "sourceFileCount": 88,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",
@@ -1950,7 +1964,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 200,
+      "sourceFileCount": 201,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",

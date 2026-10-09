@@ -374,7 +374,8 @@ namespace OfficeIMO.Excel {
                 includeHeaders: false,
                 range,
                 useCellValueNumberFormats: true,
-                replacingPendingDirectCellValues: true);
+                replacingPendingDirectCellValues: true,
+                preserveMissingValues: false);
             if (registered) {
                 _pendingCellValueDirectSaveBuffer = null;
                 _excelDocument.ClearPendingDirectCellValueSheet(this);
