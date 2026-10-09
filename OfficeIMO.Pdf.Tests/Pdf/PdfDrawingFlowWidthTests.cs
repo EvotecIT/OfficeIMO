@@ -57,6 +57,26 @@ public sealed class PdfDrawingFlowWidthTests {
         Assert.Equal(image.Height, link.Height, 2);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TallDrawingCanFitTheNarrowerSequentialColumn(bool keepWithNext) {
+        var document = PdfDocument.Create(Options(460, 300));
+        PdfDrawingStyle style = Constrained();
+        style.KeepWithNext = keepWithNext;
+        document.Content.Columns(content => {
+            content.Drawing(ImageDrawing(400, 800), style: style, linkUri: ObjectLink);
+            content.Paragraph(p => p.Text("Caption"), style: Paragraph());
+        }, UnequalColumns());
+        byte[] bytes = document.ToBytes();
+        PdfImagePlacement image = Assert.Single(PdfDocument.Load(bytes).Images.Placements());
+        Assert.Equal(1, image.PageNumber);
+        Assert.Equal(340, image.X, 2);
+        Assert.Equal(100, image.Width, 2);
+        Assert.Equal(200, image.Height, 2);
+        Assert.Equal(100, Assert.Single(PdfInspector.Inspect(bytes).GetLinkAnnotationsByUri(ObjectLink)).Width, 2);
+    }
+
     [Fact]
     public void KeptRowUsesConstrainedDrawingHeightForMeasurementAndPlacement() {
         var document = PdfDocument.Create(Options(260, 220));

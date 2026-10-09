@@ -5,10 +5,25 @@ internal static partial class PdfWriter {
         /// <summary>Includes later column widths without discarding the current container's horizontal padding.</summary>
         private double GetMaximumFixedFlowWidth(double containerWidth) {
             if (activeColumnFlow is not { } scope) return containerWidth;
-            double maximum = scope.Widths.Max();
+            return ResolveFixedFlowWidth(scope.Widths.Max(), containerWidth);
+        }
+
+        /// <summary>Finds the narrowest usable fit while preserving resumed-container padding.</summary>
+        private double GetMinimumFixedFlowWidth(double containerWidth) {
+            double minimum = containerWidth;
+            if (activeColumnFlow is not { } scope) return minimum;
+            foreach (double columnWidth in scope.Widths) {
+                double available = ResolveFixedFlowWidth(columnWidth, containerWidth);
+                if (available > 0D) minimum = Math.Min(minimum, available);
+            }
+            return minimum;
+        }
+
+        private double ResolveFixedFlowWidth(double frameWidth, double containerWidth) {
+            if (activeColumnFlow is not { } scope) return containerWidth;
             for (int index = scope.ContainerDepth; index < activeContainerScopes.Count; index++)
-                maximum = ResolveContainerFrame(activeContainerScopes[index].Container, activeContainerScopes[index].Style, 0D, maximum).ContentWidth;
-            return maximum - Math.Max(0D, width - containerWidth);
+                frameWidth = ResolveContainerFrame(activeContainerScopes[index].Container, activeContainerScopes[index].Style, 0D, frameWidth).ContentWidth;
+            return frameWidth - Math.Max(0D, width - containerWidth);
         }
 
         /// <summary>Rebinds the content width after a column or physical-page transition, including resumed containers.</summary>

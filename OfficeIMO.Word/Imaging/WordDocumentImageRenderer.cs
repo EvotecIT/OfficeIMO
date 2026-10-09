@@ -810,6 +810,7 @@ namespace OfficeIMO.Word {
 
             int targetPageIndex = Math.Max(0, pageIndex);
             int firstPageInSection = 0;
+            int lastRenderableSectionFirstPage = 0;
             for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
                 int sectionPages = sectionIndex < sectionPageCounts.Count
                     ? sectionPageCounts[sectionIndex]
@@ -817,6 +818,8 @@ namespace OfficeIMO.Word {
                 if (sectionPages <= 0) {
                     continue;
                 }
+
+                lastRenderableSectionFirstPage = firstPageInSection;
 
                 if (targetPageIndex < firstPageInSection + sectionPages) {
                     return new WordImagePageContext(document.Sections[sectionIndex], sectionIndex, targetPageIndex - firstPageInSection);
@@ -826,7 +829,7 @@ namespace OfficeIMO.Word {
             }
 
             int lastSectionIndex = FindLastRenderableSectionIndex(document, sectionPageCounts);
-            return new WordImagePageContext(document.Sections[lastSectionIndex], lastSectionIndex, Math.Max(0, targetPageIndex - firstPageInSection));
+            return new WordImagePageContext(document.Sections[lastSectionIndex], lastSectionIndex, Math.Max(0, targetPageIndex - lastRenderableSectionFirstPage));
         }
 
         private static int FindLastRenderableSectionIndex(WordDocument document, IReadOnlyList<int> sectionPageCounts) {

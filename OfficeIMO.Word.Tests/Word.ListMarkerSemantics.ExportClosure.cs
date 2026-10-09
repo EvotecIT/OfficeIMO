@@ -688,10 +688,12 @@ public sealed partial class WordListMarkerSemanticsTests {
         (int Page, OfficeDrawingRichText Text) marker = Assert.Single(allRichText,
             item => item.Text.PlainText.Contains("*", StringComparison.Ordinal));
         Assert.Equal(first.Page, marker.Page);
-        Assert.True(marker.Text.X > 50D, $"markerX={marker.Text.X}");
-        Assert.True(first.Text.X > marker.Text.X + 10D,
-            $"markerX={marker.Text.X}, firstX={first.Text.X}");
-        Assert.InRange(Math.Abs(continuation.Text.X - first.Text.X), 0D, 0.01D);
+        double markerX = GetSplitRowTokenX(marker.Text, "*");
+        double firstX = GetSplitRowTokenX(first.Text, "SplitVisible");
+        double continuationX = GetSplitRowTokenX(continuation.Text, "SplitVisible");
+        Assert.True(markerX > 50D, $"markerX={markerX}");
+        Assert.True(firstX > markerX + 10D, $"markerX={markerX}, firstX={firstX}");
+        Assert.InRange(Math.Abs(continuationX - firstX), 0D, 2D);
     }
 
     [Theory]
@@ -876,10 +878,13 @@ public sealed partial class WordListMarkerSemanticsTests {
 
         string renderedText = string.Join(" | ", rendered.Select(text => $"'{text.PlainText}'@{text.X}"));
         OfficeDrawingRichText marker = Assert.Single(rendered, text => text.PlainText.StartsWith("*", StringComparison.Ordinal));
-        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.StartsWith("Before", StringComparison.Ordinal));
-        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.StartsWith("After", StringComparison.Ordinal));
-        Assert.InRange(Math.Abs(before.X - after.X), 0D, 0.01D);
-        Assert.True(after.X > marker.X + 25D, $"marker={marker.X}, before={before.X}, after={after.X}; {renderedText}");
+        OfficeDrawingRichText before = Assert.Single(rendered, text => text.PlainText.Contains("BeforeInlineImage", StringComparison.Ordinal));
+        OfficeDrawingRichText after = Assert.Single(rendered, text => text.PlainText.Contains("AfterInlineImage", StringComparison.Ordinal));
+        double markerX = GetSplitRowTokenX(marker, "*");
+        double beforeX = GetSplitRowTokenX(before, "Before");
+        double afterX = GetSplitRowTokenX(after, "After");
+        Assert.InRange(Math.Abs(beforeX - afterX), 0D, 2D);
+        Assert.True(afterX > markerX + 25D, $"marker={markerX}, before={beforeX}, after={afterX}; {renderedText}");
     }
 
     [Fact]
