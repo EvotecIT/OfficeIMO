@@ -49,8 +49,10 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void Xlsb_DirectDates_PreserveMixedMissingValuesAndUnsupportedFallback() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Xlsb_DirectDates_PreserveMixedMissingValuesAndUnsupportedFallback(bool unsupportedValue) {
             DateTime date = new DateTime(2026, 10, 9, 6, 0, 0);
             Guid id = new Guid("3cd8c138-9492-4934-9529-a1f89f586f32");
             var table = new DataTable("Data");
@@ -59,13 +61,16 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(DBNull.Value);
             table.Rows.Add("");
             table.Rows.Add(42D);
-            table.Rows.Add(id);
+            if (unsupportedValue) table.Rows.Add(id);
             var dataSet = new DataSet();
             dataSet.Tables.Add(table);
             using ExcelDocument document = ExcelDocument.Create();
             document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
             using var destination = new MemoryStream();
             document.Save(destination, ExcelFileFormat.Xlsb);
+            if (!unsupportedValue) {
+                Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            }
 
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(destination.ToArray());
             Assert.True(reader.Read());
@@ -77,8 +82,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("", reader.GetString(0));
             Assert.True(reader.Read());
             Assert.Equal(42D, reader.GetDouble(0));
-            Assert.True(reader.Read());
-            Assert.Equal(id.ToString(), reader.GetString(0));
+            if (unsupportedValue) {
+                Assert.True(reader.Read());
+                Assert.Equal(id.ToString(), reader.GetString(0));
+            }
             Assert.False(reader.Read());
         }
 
