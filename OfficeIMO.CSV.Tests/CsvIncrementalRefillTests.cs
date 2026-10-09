@@ -51,7 +51,7 @@ public class CsvIncrementalRefillTests
             Assert.Equal(row, actual.GetInt32(0));
             for (int column = 0; column < expected.FieldCount; column++)
             {
-                Assert.Equal(expected.GetString(column), actual.GetString(column));
+                Assert.Equal(expected.GetValue(column), actual.GetValue(column));
                 Assert.Equal(expected.IsDBNull(column), actual.IsDBNull(column));
             }
             var position = (ICsvDataReaderPositionMetadata)actual;
