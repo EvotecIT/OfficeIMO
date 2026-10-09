@@ -128,10 +128,13 @@ public sealed partial class OfficeVbaProject {
         return AddDocumentModuleWithIdentity(name, source, "0" + baseClassId.ToString("B").ToUpperInvariant());
     }
 
-    internal OfficeVbaModule AddDocumentModuleWithIdentity(string name, string source, string baseIdentity) {
+    internal OfficeVbaModule AddDocumentModuleWithIdentity(string name, string source, string baseIdentity, bool documentClass = false) {
         string attributes = "Attribute VB_Base = \"" + baseIdentity + "\"\r\n"
-            + "Attribute VB_GlobalNameSpace = False\r\nAttribute VB_Creatable = False\r\nAttribute VB_PredeclaredId = True\r\nAttribute VB_Exposed = True\r\n";
-        return AddModuleCore(name, attributes + source, OfficeVbaModuleKind.Document);
+            + "Attribute VB_GlobalNameSpace = False\r\nAttribute VB_Creatable = " + (documentClass ? "True" : "False")
+            + "\r\nAttribute VB_PredeclaredId = True\r\nAttribute VB_Exposed = " + (documentClass ? "False" : "True") + "\r\n";
+        OfficeVbaModule module = AddModuleCore(name, attributes + source, OfficeVbaModuleKind.Document);
+        module.IsDocumentClass = documentClass;
+        return module;
     }
 
     private OfficeVbaModule AddModuleCore(string name, string source, OfficeVbaModuleKind kind) {
