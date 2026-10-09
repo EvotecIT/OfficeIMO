@@ -1,0 +1,786 @@
+{
+  "schema": "officeimo.html.css-table-border-clipping-qualification/v1",
+  "recordedUtc": "2026-10-09T22:44:00.390949+00:00",
+  "sourceCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+  "priorTableBorderCommit": "14778d08afc1746802f35aa689c26878a24d5504",
+  "sourceOwnerTrees": {
+    "OfficeIMO.Core": "ba6bdb557d570fe34aa6de73f7e7b21545c8fca3",
+    "OfficeIMO.Html.Core": "52813b71b89f2dba406f281ac2622624917a8eda",
+    "OfficeIMO.Html.AngleSharp": "7e1f46c329df040d2c2bd0c559e7b938bf80e26a",
+    "OfficeIMO.Html": "5b80450145661353f12ce3f6f9c542ea51be2482",
+    "OfficeIMO.Html.Pdf": "7e1525a23592fbb2bce795970737547d43c2cdcf",
+    "OfficeIMO.Mhtml": "50a4a1d06360614bfad22cd705418a397675dbfc",
+    "OfficeIMO.Mhtml.Pdf": "f260be4c80b287db7a53ff92c52ffcdcebfdb664",
+    "OfficeIMO.Pdf": "41a0d6e6af15f23615070461267ee25ce152d3c6",
+    "OfficeIMO.Rtf": "6ab98277e958ae5907acfaec2cad4763040882c1",
+    "OfficeIMO.Email": "a19fec8d829fc7eb7ab07bf127841f5678bcdf02"
+  },
+  "scope": "Computed CSS table formatting, contained border paint, legacy rectangular clipping, transformed containing blocks and point-navigation ownership across bounded report/corpus profiles. General H10 appearance, resource/performance and provider-release gates remain separate.",
+  "contracts": [
+    "Computed CSS table boxes and anonymous rows/cells preserve sourceDOM, selectors, inheritance, links and semantic identity.",
+    "Native and CSS table layout reuse intrinsic columns, cell content, border conflicts and fragmentation owners.",
+    "The first source header/footer groups repeat; later groups remain once in ordinary source order.",
+    "Used border boxes retain border/padding minima, including specialized controls. CSS border paint stays inside the used box; outlines keep their outward contour.",
+    "Authored applicable clip:rect(...) clips paint and rectangular anchor coverage without deleting incoming fragment destinations. Empty clips and zero-scale effects produce no area-bearing links or annotations.",
+    "Fixed and absolute children use the nearest supported transformed ancestor padding box; only viewport-fixed children repeat across print/screen-media pages.",
+    "Named destinations and outlines map cumulative canvas transforms; heading metadata uses the painted coordinate. Page-owned destinations survive stitching, and vertical slices assign point navigation by Y independently of horizontal paint bounds."
+  ],
+  "earlierOwnerProof": {
+    "sourceCommit": "14778d08afc1746802f35aa689c26878a24d5504",
+    "focused": {
+      "tableAffected": 27,
+      "tableAndFlex": 362,
+      "borderAndAdjacent": 252,
+      "allPassed": true
+    },
+    "review": {
+      "table": "Four reported P2 findings and specialized collapsed-cell paint invariant fixed and targeted-confirmed.",
+      "border": "Two P2 findings and specialized-control size sibling fixed and targeted-confirmed.",
+      "boundary": "One full pass and one targeted confirmation for each owner; no unresolved findings within those packets. Subsequent EPA clipping defect is a separate required owner boundary."
+    },
+    "currentSourceQualification": "Current full framework suites and focused clipping/navigation cases cover interacting owners; earlier native fixtures remain owner-specific proof rather than new current artifacts."
+  },
+  "clippingAndPositioning": {
+    "boundedNativeSourceBase": "fb42f4ff67a473fa3e466f005c7ff40832e06dd2",
+    "dirtySourceBinding": "2d5e5de662d5405ddad9742876a3f983083ec39b650ebbc1de63954eb7f9315b",
+    "fixtureCount": 22,
+    "nativePdfPages": 28,
+    "browser": {
+      "owner": "HtmlTinkerX",
+      "version": "3.0.3",
+      "viewport": {
+        "width": 300,
+        "height": 200
+      },
+      "rows": [
+        {
+          "name": "transform-positioning",
+          "geometry": [
+            {
+              "$id": "1",
+              "tag": "A",
+              "x": 135,
+              "y": 60,
+              "width": 40,
+              "height": 20,
+              "position": "fixed",
+              "ancestorClip": "auto"
+            }
+          ],
+          "browserVersion": "153.0.8010.12"
+        },
+        {
+          "name": "transform-positioning-full-clip",
+          "geometry": [
+            {
+              "$id": "1",
+              "tag": "A",
+              "x": 135,
+              "y": 60,
+              "width": 40,
+              "height": 20,
+              "position": "fixed",
+              "ancestorClip": "rect(0px, 100px, 80px, 0px)"
+            }
+          ],
+          "browserVersion": "153.0.8010.12"
+        }
+      ],
+      "errors": [],
+      "sessionDisposed": true
+    },
+    "decisiveContracts": {
+      "transformedParent": "Unclipped and full-parent-clip both place and paint child CSS [135,60,175,80], 800 red pixels, PDF X [101.25,131.25] points.",
+      "independentBrowser": "Published HtmlTinkerX 3.0.3 / Chromium 153.0.8010.12 independently confirms both exact fixtures at (135,60,40,20), 800 red pixels; no console/page errors. ../transformed-browser/qualification.json and pixel-census.json.",
+      "nestedOwnTransform": "Nearest nested transform plus child transform and both rectangular clips paint CSS [156,70,186,90].",
+      "grid": "Authored fixed child whose containing block is transformed grid honors column/row placement at CSS [190,75,230,95].",
+      "intermediaryClip": "Fixed child retains the intervening absolute ancestor legacy clip; partial paints [135,60,165,80], empty paints zero and has no links.",
+      "pagination": "Print and ScreenMedia viewport-fixed control repeats on all three pages; locally fixed transformed-ancestor child stays on containing page 2. Snapshot preserves viewport-fixed control only on page 1.",
+      "equalUri": "Visible overflow image in a separately painted equal-URI anchor retains PDF annotation bounds; clip coverage uses only the actual intersected rectangle.",
+      "singular": "Zero-scale transformed subtree has zero paint/link area; outside annotations and named targets remain valid through strict public PDF validation."
+    },
+    "currentCommittedCoordinates": {
+      "headingOutlineCases": 14,
+      "nativePagesReusedByActualPdfEquality": 17,
+      "projectionCases": 8,
+      "projectionNativeInspection": {
+        "case": "case-3",
+        "renderer": "Poppler26.09 pdftoppm96dpi",
+        "image": "native-case-3.png",
+        "sha256": "39f5126e8b01d7abab4e1ec342a7db15ee527ca5e465599b0c8f3b01377a8cd6",
+        "observedByRoot": true,
+        "result": "Incoming Go link paints normally. The source-empty-clipped target has no red/text paint. Independent named destination array retains page1/X7.5/top-75."
+      },
+      "all10NavigationPrivateRuntimeHashesMatchCurrentProducer": true
+    },
+    "remainingBoundaries": [
+      "Whole html canvas transforms beyond the selected active layout root remain the pre-existing unqualified boundary; transformed body root is covered.",
+      "Independent browser comparison covers the two reproduced parent-transform fixtures; nested/grid/pagination siblings use focused tests and actual native artifacts."
+    ]
+  },
+  "independentReview": {
+    "table": "Four reported P2 findings and specialized collapsed-cell paint invariant fixed and targeted-confirmed.",
+    "border": "Two P2 findings and specialized-control size sibling fixed and targeted-confirmed.",
+    "clipping": "One full pass plus targeted confirmation consumed; three P2 defects repaired. Subsequent transformed containing-block, singular annotation and point-coordinate/page-owner failures were reproduced and repaired by the coordinator with sibling sweeps, focused tests and actual/native output. No additional full exact-SHA review loop.",
+    "currentPacketBoundary": "Frozen-page acceptance agent checked artifacts only; that is not an additional code-review pass."
+  },
+  "frozenSevenSources": {
+    "summary": {
+      "profiles": 23,
+      "successful": 20,
+      "failed": 3,
+      "pages": 151
+    },
+    "roles": {
+      "developmentRegressionSources": 6,
+      "predeclaredHeldout": "chesapeake"
+    },
+    "currentSourceCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+    "successorEquality": "All23 complete API observations/diagnostics, all20 PDF hashes and all151 full-page PNG hashes equal the independently checked1e943163 output. Native evidence reused only by actual output equality.",
+    "independentEvidence": {
+      "pdfs": 20,
+      "pages": 151,
+      "allPageGeometryExact": true,
+      "imageInvocationDataAndComposedMatricesExactProfiles": 20,
+      "imagePaintInvocations": 4926,
+      "textFontSizeAndMatricesExactWholeProfiles": 14,
+      "retainedTextFontSizeMatricesAndOrderExactProfiles": 20,
+      "allPageContactSheetsInspected": 20,
+      "contactSheetBodiesPixelIdentical": 16,
+      "pdfBytesIdentical": 12,
+      "currentLinkRectanglesInsideCropAndOrdered": 1460,
+      "namedDestinationKeysExact": true
+    },
+    "deltaClassifications": [
+      {
+        "profiles": [
+          "epa/print-paged",
+          "epa/screen-media-paged",
+          "epa/screen-snapshot-paged"
+        ],
+        "decision": "accepted-corpus-remediation",
+        "reason": "One unfocused authored visually-hidden skiplink uses an empty legacy clip; previous partial paint and both duplicated #main rectangles disappear. All retained text geometry/order and images stay exact. Absolute URL#main is the actual archive link; predecessor/current both have no named PDF destinations."
+      },
+      {
+        "profiles": [
+          "epa/screen-snapshot-paged"
+        ],
+        "decision": "accepted-redundant-annotation-reduction",
+        "reason": "Plain Writing source has one footer anchor. The removed page3 text rectangle is contained in retained same-target anchor rectangle; page4 rectangles and native paint remain unchanged."
+      },
+      {
+        "profiles": [
+          "nws/screen-snapshot-paged"
+        ],
+        "decision": "accepted-redundant-annotation-reduction",
+        "reason": "One authored NEWS navigation anchor loses its small duplicated text rectangle at the right crop edge. Three prior same-target anchor rectangles remain. Removed bottom sliver extends 0.2pt beyond retained rectangles; full native paint is unchanged, target and authored anchor hotspot remain. Source960px overflow is unchanged and is not qualified as fixed."
+      },
+      {
+        "profiles": [
+          "chesapeake/print-paged",
+          "chesapeake/screen-media-paged",
+          "chesapeake/screen-snapshot-paged"
+        ],
+        "decision": "accepted-heldout-clip-behavior-with-explicit-loss",
+        "reason": "All removed text is sr-only label/headings or their previously clipped prefixes: Search, Search National Ocean Service, Social twice, About NOS, More Resources. Empty rect(0px,0px,0px,0px) is authored in two stylesheets. Every retained text run keeps exact font/size/matrices/order; images and annotations stay exact. Print contact sheet loses3 tiny pixels, screen bodies unchanged. Media and Snapshot each gain one typed static-anchor fallback warning for label.sr-only; retain this positioning limitation."
+      }
+    ],
+    "diagnostics": {
+      "successfulReportsExact": 18,
+      "newLossRecords": [
+        {
+          "source": "chesapeake",
+          "profiles": [
+            "screen-media-paged",
+            "screen-snapshot-paged"
+          ],
+          "countPerProfile": 1,
+          "code": "HtmlRenderPositionStaticAnchorFallback",
+          "severity": "Warning",
+          "lossKind": "Approximation",
+          "consequence": "Automatic absolute-position inset uses containing-block start because static flow anchor unavailable. Source empty-clips this label; native body pixels remain unchanged. This positioning limitation remains reported.",
+          "sourceElement": "label.sr-only"
+        }
+      ],
+      "knownNistFailures": 3,
+      "nistFailureContract": "Same U+2212 WinAnsi/embedded glyph failures and no PDF. One snapshot diagnostic Structure address shifts17 to15; code, severity, loss and failure message remain unchanged.",
+      "noNewCorpusFailure": true
+    },
+    "limits": [
+      "No general clipping/navigation acceptance or full browser/runtime parity; only frozen source/profile effects.",
+      "Six sources are development regressions; Chesapeake is the only predeclared heldout.",
+      "All7 archive clip declarations inventoried; absence of a delta does not prove each CSS selector reached an applicable element.",
+      "Contact sheets and6 focused EPA native crops complement native text/image/annotation geometry; this is not browser-oracle acceptance for all151 pages.",
+      "Known source author960px NWS overflow and source-hidden Print behavior remain; no claim all right-crop issues fixed.",
+      "Three bare NIST font failures remain explicit.",
+      "This evidence pass ran no product builds/tests, source/Git mutation, hosted review or dependency changes."
+    ],
+    "generalNavigationHold": "The separately reproduced PrintPaged+Stitched failure is repaired and independently verified in8 public-API point-navigation fixtures; corpus equality alone did not close it."
+  },
+  "cdc": {
+    "sourceSha256": "879b46d271aaec2625e837fbaef1d900b317806fad268a661f731ffdcd4798c9",
+    "sourceBytes": 1127284,
+    "profiles": [
+      {
+        "profile": "PrintPaged",
+        "pages": 2,
+        "pdfSha256": "0a8c8298c46ac8440ca0cd39ad8fe19d280e356bff85cffa523c529cdf5f2569",
+        "pdfBytes": 452199,
+        "warningCounts": {
+          "HtmlPdfUnavailablePrivateUseGlyphOmitted": 1,
+          "HtmlRenderResourceUnavailable": 32,
+          "HtmlRenderFontFaceInvalid": 1,
+          "HtmlRenderFontFaceUnavailable": 22,
+          "HtmlRenderPositionStaticAnchorFallback": 2
+        },
+        "request": {
+          "ViewportWidth": 816,
+          "ViewportHeight": null,
+          "Margins": {
+            "Left": 48,
+            "Top": 48,
+            "Right": 48,
+            "Bottom": 48
+          },
+          "PageSize": {
+            "WidthInches": 8.267716535433072,
+            "HeightInches": 11.692913385826772
+          },
+          "HonorCssPageRules": true,
+          "AllowSystemFontEmbedding": true,
+          "AllowDocumentFontEmbedding": false
+        }
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "pages": 4,
+        "pdfSha256": "23ef74c9d361830923b4738659134eb26dd94f94b29f26406d9fe7dc9c351a22",
+        "pdfBytes": 500873,
+        "warningCounts": {
+          "HtmlPdfUnavailablePrivateUseGlyphOmitted": 17,
+          "HtmlRenderResourceUnavailable": 32,
+          "HtmlRenderFontFaceInvalid": 1,
+          "HtmlRenderFontFaceUnavailable": 22,
+          "HtmlRenderTransformValueUnsupported": 1,
+          "HtmlRenderBackgroundImageValueUnsupported": 1,
+          "HtmlRenderPositionStaticAnchorFallback": 1,
+          "HtmlRenderTextDecorationThicknessApproximated": 1,
+          "HtmlRenderPositioningModeUnsupported": 16
+        },
+        "request": {
+          "ViewportWidth": 816,
+          "ViewportHeight": 900,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          },
+          "PageSize": {
+            "WidthInches": 8.267716535433072,
+            "HeightInches": 11.692913385826772
+          },
+          "HonorCssPageRules": false,
+          "AllowSystemFontEmbedding": true,
+          "AllowDocumentFontEmbedding": false
+        }
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "pages": 5,
+        "pdfSha256": "816df070759ee6431b1ce7a618e3f2d2273b2e702a6640ff3c0c9733508a556b",
+        "pdfBytes": 502566,
+        "warningCounts": {
+          "HtmlPdfUnavailablePrivateUseGlyphOmitted": 17,
+          "HtmlRenderResourceUnavailable": 32,
+          "HtmlRenderFontFaceInvalid": 1,
+          "HtmlRenderFontFaceUnavailable": 22,
+          "HtmlRenderTransformValueUnsupported": 1,
+          "HtmlRenderBackgroundImageValueUnsupported": 1,
+          "HtmlRenderPositionStaticAnchorFallback": 1,
+          "HtmlRenderTextDecorationThicknessApproximated": 1,
+          "HtmlRenderPositioningModeUnsupported": 16
+        },
+        "request": {
+          "ViewportWidth": 816,
+          "ViewportHeight": 900,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          },
+          "PageSize": {
+            "WidthInches": 8.5,
+            "HeightInches": 9.375
+          },
+          "HonorCssPageRules": false,
+          "AllowSystemFontEmbedding": true,
+          "AllowDocumentFontEmbedding": false
+        }
+      }
+    ],
+    "nativeAndContentProof": {
+      "pages": [
+        2,
+        4,
+        5
+      ],
+      "all11NativePagesInspectedAtPredecessor": true,
+      "all14ListItemsFiveLabelsFiveDefinitionsOncePerProfile": true,
+      "all72TargetChecksPassedAtPredecessor": true,
+      "links": [
+        6,
+        47,
+        47
+      ],
+      "fontAndImageBytesUnchanged": true,
+      "sixContainedBorderBandsUnchanged": true
+    },
+    "currentOutputEquality": "All3 actual PDFs, profiles, raw text/links and entire conversion reports match1e943163 exactly. Existing all11-page native proof reused by equality.",
+    "separatorAppearance": "Thin pale separators can disappear in pdftoppm26.09.0 at72/96dpi. Paired old/current96dpi coverage identical[0,0,1,0,1];288dpi allpresent[2,2,3,2,3]. pdftocairo72dpi paints all6. Appearance criterion remainsopen.",
+    "heldCriteria": [
+      "OPEN: pdftoppm 72/96 dpi does not expose every thin pale separator. Geometry and higher-resolution/Cairo visibility do not close this residual.",
+      "No broader browser/font-resource/corpus claim; caller-default captured-font boundary persists."
+    ]
+  },
+  "h4": {
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "caseCount": 8,
+    "outputCount": 76,
+    "outputBytes": 2599906,
+    "fingerprintSha256": "92b077d1e966e4a4d5ea929878cea7201c164eb0404767249093bd8615dce1bf",
+    "allActualExportsVerified": 76,
+    "nativePdfCount": 16,
+    "nativePagesReused": 22,
+    "equalityBoundary": "All 76 actual output bytes and ordered metadata match the previously natively inspected output. Private worker timings are diagnostic and do not qualify budgets.",
+    "privateTimingBoundary": "Diagnostic captures do not qualify elapsed, allocation or peak-memory ceilings. Canonical current gate recorded separately.",
+    "canonicalBudget": {
+      "status": "Failed",
+      "source": {
+        "commit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+        "worktreeClean": true,
+        "corpusId": "officeimo-html-h4-advanced-held-out",
+        "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "caseCount": 8,
+        "outputsPerIteration": 76
+      },
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 27.0.1",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "frameworkDescription": ".NET 10.0.12",
+        "processorCount": 10
+      },
+      "ceiling": {
+        "osFamily": "macOS",
+        "coldProcessElapsedMilliseconds": 8000,
+        "warmIterationElapsedMilliseconds": 3000,
+        "coldManagedAllocatedBytes": 1250000000,
+        "warmManagedAllocatedBytes": 1100000000,
+        "peakWorkingSetBytes": 700000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "coldProcessElapsedMilliseconds": 14468.7352,
+      "warmIterationElapsedMilliseconds": [
+        3066.477,
+        2517.6655,
+        2649.8241
+      ],
+      "coldManagedAllocatedBytes": 1113235632,
+      "warmManagedAllocatedBytes": [
+        874740952,
+        874607480,
+        874630496
+      ],
+      "coldPeakWorkingSetBytes": 455294976,
+      "warmPeakWorkingSetBytes": 729350144,
+      "cancellation": {
+        "status": "Passed",
+        "elapsedMilliseconds": 2.1676,
+        "detail": "Cancellation propagated through the asynchronous resource boundary."
+      },
+      "failures": [
+        "cold process elapsed milliseconds 14468.7 exceeded ceiling 8000.0.",
+        "warm iteration 1 elapsed milliseconds 3066.5 exceeded ceiling 3000.0.",
+        "peak working-set bytes 729350144.0 exceeded ceiling 700000000.0."
+      ],
+      "coldWarmDeterministic": true,
+      "boundary": "Unchanged canonical gate on a shared macOS host with other .NET activity. No forced collection, ceiling widening, idle-host or causal code-performance claim."
+    }
+  },
+  "actualLoadedH4Owners": [
+    {
+      "name": "OfficeIMO.Core.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "0848d06f-8c1a-4fe1-bacc-d7d37e8028f1",
+      "sha256": "1ce93b791adf38c89e15c03dac19ca59970be820832c467b4dd827c3575d3721"
+    },
+    {
+      "name": "OfficeIMO.Email.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "3b59a104-c954-4bc6-a9ea-b4e48f6f90dc",
+      "sha256": "c4dca3cb304755f6040c63ae9ca91c4ce970e502e63598ab2feaa32120bda6de"
+    },
+    {
+      "name": "OfficeIMO.Html.AngleSharp.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "d70bf4ce-c00a-4161-b23e-0d0b46b0a313",
+      "sha256": "801ca380d5e432c675543f82565768d0b8b65a25b1d425c0928c469cd80ad72e"
+    },
+    {
+      "name": "OfficeIMO.Html.Core.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "da6e62fb-914c-4d0b-911e-17a1e9b82cc2",
+      "sha256": "86424a474e4555b8adc5dfd492bef7b589a1cbde4bcf1c6d345927d5330f4705"
+    },
+    {
+      "name": "OfficeIMO.Html.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "5c90f573-cd61-4996-b8cb-9c8a7b3085aa",
+      "sha256": "975e5bc5c060127ed9191a1e476eb4974bfcaf602e573dadacb4f47dbd07e9c5"
+    },
+    {
+      "name": "OfficeIMO.Html.Pdf.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "1c55c3fc-39ee-4f53-b8f0-b0eb571dca29",
+      "sha256": "c3de14c118d776b4a9ac74b8a755cccc6d2f23ac5c639d982cd77acb9ed4ffab"
+    },
+    {
+      "name": "OfficeIMO.Mhtml.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "f1ebcbfb-081d-4544-b560-c03ab3a603a1",
+      "sha256": "2b2536b87fb09051f28283bb649095ce1cc6e0262e16b63ee1833afb746f7ea5"
+    },
+    {
+      "name": "OfficeIMO.Mhtml.Pdf.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "3ec5aaca-c1b6-4bd9-b057-d8fab8a34588",
+      "sha256": "f238c87ab4c01b52bf6b6dfc6f192e632ec32be41848dec11ba39bc6f65879df"
+    },
+    {
+      "name": "OfficeIMO.Pdf.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "47ca9841-e51c-4e7d-8708-ad784b20e0f0",
+      "sha256": "8aefdb37d0ee914136b08360f0deaf9e53eeaa3a590c70a92fd2695549948f15"
+    },
+    {
+      "name": "OfficeIMO.Rtf.dll",
+      "informationalVersion": "3.4.4+0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "moduleVersionId": "b9d3b377-f49d-467a-920d-7492c56f9a20",
+      "sha256": "08dfb72e1cc14325c643dec9f9798d8e0ae5378aae1cf7f470ce71c3ba29a3ba"
+    }
+  ],
+  "privatePackages": {
+    "sourceCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+    "command": "Build/Test-HtmlPackages.ps1 -Version 3.3.0 -ArtifactsPath packages-0e9bdc8b",
+    "exitCode": 0,
+    "packages": [
+      {
+        "name": "OfficeIMO.Core.3.3.0.nupkg",
+        "bytes": 8067811,
+        "sha256": "f01c655b0b8ab385aa4f9cccb502f803d95562f9671334b4fd90ee887e84e82e",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Email.3.3.0.nupkg",
+        "bytes": 3033726,
+        "sha256": "6c9932353eddb0a8ed9cc0d16e068ef5f92ebafee4f02c869cc1c07ab82eaf40",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Excel.3.3.0.nupkg",
+        "bytes": 9200755,
+        "sha256": "f4d1c19d597f927d61574803f375f4cb994995a3947f7b532f0292e797c319a6",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Excel.Html.3.3.0.nupkg",
+        "bytes": 248540,
+        "sha256": "1733fda062a5e281db1162165c13055bb7aa831f90a654e0e21680a2187936f6",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Html.3.3.0.nupkg",
+        "bytes": 3805408,
+        "sha256": "54740469e4c18a5819c3a98eb4bec7844211b43799b30c79b9e11f3de2763823",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.3.3.0.nupkg",
+        "bytes": 103764,
+        "sha256": "08d09363698e4dccd50235e6c3b280f2f78f4330e2b1cd5824d9a13fe5ca0944",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.3.3.0.nupkg",
+        "bytes": 321783,
+        "sha256": "ff6cebadee742faa0352d825438e39927ad7f096acc7c88d32b22f6a29d88fbb",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.3.3.0.nupkg",
+        "bytes": 527229,
+        "sha256": "0a82b6da7bf1fe2464112028daa1eb10c1372ba2e663de6437680a128c1c9903",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Html.Rtf.3.3.0.nupkg",
+        "bytes": 415294,
+        "sha256": "abdd4154798880379a8b7e3f9be0f97623699d2abd80b64b4d28dcca33a943fe",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Markdown.3.3.0.nupkg",
+        "bytes": 2288062,
+        "sha256": "e3ef422511612c97e0a7e8d6ee49155a34a30656c030bac367fb8aa448cd50f8",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Markdown.Html.3.3.0.nupkg",
+        "bytes": 213245,
+        "sha256": "1aa63d079deaf44815e4e3b32632b0c182b3fde360a8d1a26db47a6f86bedff6",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.3.3.0.nupkg",
+        "bytes": 113687,
+        "sha256": "aac4d0e1d7e5e3b12ecd408cb78d4ab49237c133259bb7c400743cb9d6fc3cb8",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.Pdf.3.3.0.nupkg",
+        "bytes": 42706,
+        "sha256": "ee26f03d8a884a0d9e8bb3a974c3b14bad49e37b613407124fd6083d961d4603",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Pdf.3.3.0.nupkg",
+        "bytes": 12515822,
+        "sha256": "11a66779a02236a7b4430ba5d6d65cab7c97dba611cb4204c9c71fe75db81ca1",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.3.3.0.nupkg",
+        "bytes": 4437322,
+        "sha256": "d70bf808920a27252119e8d451d733e23890f71dc0777e899b10e847858e48da",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.Html.3.3.0.nupkg",
+        "bytes": 290595,
+        "sha256": "b45da1252018b5f62004d7891037142a329c76de1459bd8b1756f4f1e9760546",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Rtf.3.3.0.nupkg",
+        "bytes": 1019023,
+        "sha256": "f31efb1ccb2c540ddb03f9596cc6c1927d4a710932bbf89be6646d3b6135f4e0",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Word.3.3.0.nupkg",
+        "bytes": 6664584,
+        "sha256": "c51caebb68a742142634428856211854326282a2418b00d3fc686b14ed5481c5",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      },
+      {
+        "name": "OfficeIMO.Word.Html.3.3.0.nupkg",
+        "bytes": 823134,
+        "sha256": "060f2033d1515fd37b3b23e29256e9e99b7bc2bf97ca84127470fe07245c166f",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "repositoryCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+      }
+    ],
+    "publicConsumers": 2,
+    "executedFrameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "runtimeVersions": [
+      "8.0.23",
+      "10.0.12"
+    ],
+    "compiledFrameworks": [
+      "netstandard2.0",
+      "net472",
+      "net8.0",
+      "net10.0"
+    ],
+    "boundary": "Private unsigned 3.3.0 feed with isolated restore. Not a published release; net472 compile/package proof is not native .NET Framework execution on this macOS host."
+  },
+  "platformBoundary": {
+    "completedPriorSource": "14778d08afc1746802f35aa689c26878a24d5504",
+    "priorRun": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37986640787",
+    "currentRun": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37999809961",
+    "currentControl": "14778d08afc1746802f35aa689c26878a24d5504",
+    "statusAtDispatch": "queued",
+    "limit": "The prior three-platform receipt is not current0e9bd qualification; current run must settle independently. Paired timing observations do not establish causality.",
+    "currentQualificationState": "Pending; future platform results must be recorded against exact source separately."
+  },
+  "receiptHashes": {
+    "producer-0e9bdc8b-freeze-receipt.json": "c176d849fa359eeb9180fd7d1b04d45e31f0642c8e585fae13ce031eeda1b599",
+    "successor-0e9bdc8b/seven-source-qualification.json": "e3fca5c9f63e2d37ec6ebb5c3ca2fe45b01a3801ca7a3ce4662d3813d94d8037",
+    "successor-0e9bdc8b/capture-reuse-binding.json": "4bb600af15a4b49952162d704ba67779c5b2b1f63f09d716b6372afacf545563",
+    "seven-source-qualification.json": "72a4a80d693cf3a7fb92fda6c5d4438a04481c1b0e38461af6457c4a9b19317f",
+    "cdc-regression/current-0e9bdc8b/successor-rebind.json": "c47a91e7ad5841885458b6b68b574617d4d5cd927967872c017a00da7ca08e48",
+    "outline-coordinate-final/after-0e9bdc8b/qualification.json": "864e7930a5536af8c78e6c549ed82f8239b920942550acb7df8e016ea39c6b2b",
+    "navigation-projection/after-0e9bdc8b/qualification.json": "de198987480ab09d51c172938b62a63529d6d0762328a8144a2132d7d22641b5",
+    "h4-capture/current-0e9bdc8b/output-comparison.json": "eea2a3d45a9c5df5a1c1ae833fa894179b88079edd01e5c2f0334c3f4c047708",
+    "packages-0e9bdc8b/qualification.json": "01fd085798b0818a78db9e9e8f628b02aa06b45c27e420528d3ef8e5ba62c689",
+    "transformed-browser/qualification.json": "178785613e1c0aef02e72f1b17c1282ff82c7a6487e5ec27338d90f866410c5a",
+    "review-reproduction/positioning-qualification.json": "f8a414e2834a8b603af618072332dacc93601aa01b6e6b2d03f3ab9106e60443",
+    "h4-budget-0e9bdc8b/html-static-budget.json": "15d513ffa30390d21f75f0f0180bb273b97574b4c2cc9127da6f22aa95f075d6",
+    "h4-budget-host-context.json": "90926e495cca09724962f79016bc866534c65dd6d658722c96f2b87c6996dd76"
+  },
+  "localFrameworkQualification": {
+    "net8": {
+      "scope": "Full OfficeIMO.Html.Tests correctness, Category!=Performance",
+      "passed": 5694,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "92daf06367b7de536e98b13a3819c535a8cc748932363a1280f88087c20c5317",
+      "sourceCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+    },
+    "net10": {
+      "scope": "Full OfficeIMO.Html.Tests correctness, Category!=Performance",
+      "passed": 5694,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "32900cb8e71084a050982a11fcce6729bf6ccd4c0613773ff047539229b810e9",
+      "sourceCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903"
+    },
+    "pdfNet10": {
+      "scope": "Full OfficeIMO.Pdf.Tests correctness, Category!=Performance",
+      "passed": 9934,
+      "failed": 0,
+      "skipped": 0,
+      "sourceCommit": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "trxSha256": "e36d1eab7e6ab9f914a262bd9ff6e7ef0c3e72c498a489f6b14964b819da392d"
+    }
+  },
+  "remainingAcceptance": [
+    "Current Windows/Linux/macOS correctness/package/nativeNET472 and unchanged timing/resource gate must settle.",
+    "CDC low-resolution thin pale separators, wider footer/font/resource appearance and remaining profile costs remain open.",
+    "NWS authored960px narrow-viewport overflow, navigation/month tabs and typography remain open.",
+    "Three bare NIST missingU+2212 font failures remain explicit; caller font controls require separate qualification.",
+    "Whole html canvas transform and complete CSS table intrinsic/height/baseline/compression/fragmented-collapsed-border behavior remain bounded contracts.",
+    "Manual tagged reading order, wider unfamiliar-page/browser/runtime parity and editable target/native acceptance remain separate.",
+    "Provider release adoption depends on published qualified packages; this slice retains existing effective providers."
+  ]
+}
