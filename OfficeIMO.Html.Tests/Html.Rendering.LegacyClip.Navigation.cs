@@ -53,14 +53,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData(HtmlRenderIntentProfile.PrintPaged, true, 0D, 1)]
-    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 0D, 1)]
-    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 150D, 3)]
-    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, true, 150D, 1)]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, true, 0D, 1, 10D)]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, true, 150D, 1, 10D)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 0D, 1, 10D)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 150D, 3, 10D)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, true, 150D, 1, 10D)]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, true, 0D, 1, -20D)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 0D, 1, -20D)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, true, 0D, 1, -20D)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 0D, 1, 310D)]
     public void HtmlLegacyClip_ProjectionPreservesClippedTargetsOnTheirTransformedPage(
-        HtmlRenderIntentProfile profile, bool stitched, double shift, int expectedPage) {
+        HtmlRenderIntentProfile profile, bool stitched, double shift, int expectedPage, double left) {
         string html = "<style>html,body{height:300px;margin:0}</style><a href='#target'>Go</a>"
-            + "<div style='position:absolute;left:10px;top:50px;width:40px;height:30px;clip:rect(0,0,0,0);"
+            + "<div style='position:absolute;left:" + left.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + "px;top:50px;width:40px;height:30px;clip:rect(0,0,0,0);"
             + "transform:translateY(" + shift.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "px);transform-origin:0 0'><div id='target'>Hidden</div></div>";
         var options = new HtmlToPdfOptions {
@@ -76,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(new[] { "html-fragment:target" }, info.LinkDestinationNames);
         Assert.Equal(expectedPage, destination.PageNumber);
-        Assert.Equal(7.5D, destination.DestinationLeft!.Value, 6);
+        Assert.Equal(left * 0.75D, destination.DestinationLeft!.Value, 6);
         Assert.DoesNotContain("Hidden", PdfCore.PdfReadDocument.Open(pdf).ExtractText());
         double surfaceHeight = PdfCore.PdfReadDocument.Open(pdf).Pages[expectedPage - 1].GetPageSize().Height;
         double sourceY = 50D + shift - (stitched ? 0D : (expectedPage - 1) * 100D);
