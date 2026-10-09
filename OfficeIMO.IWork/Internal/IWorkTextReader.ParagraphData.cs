@@ -1,10 +1,9 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTextReader {
-    private static IReadOnlyList<AttributeBoundary> ReadListLevelTable(IWorkWireMessage storage,
-        int textLength, IWorkArchiveRecord owner, IWorkProjectionBudget projectionBudget,
+    private static IReadOnlyList<AttributeBoundary> ReadParagraphDataTable(IWorkWireMessage storage,
+        int field, int textLength, IWorkArchiveRecord owner, IWorkProjectionBudget projectionBudget,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
-        const int field = 6;
         if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
         string tablePath = field.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (storage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
@@ -78,8 +77,8 @@ internal static partial class IWorkTextReader {
                     IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
                 level = null;
             }
-            // Keep an invalid value as a boundary: carrying a preceding level through
-            // this declaration would silently assign its later paragraphs to that level.
+            // Keep an invalid value as a boundary so a rejected declaration cannot
+            // silently carry a preceding level or counter into later paragraphs.
             result.Add(new AttributeBoundary((int)rawIndex.Value, level, level.HasValue, entryIndex));
             ulong? unassessedValue = entry.GetUnsigned(3);
             if (entry.FieldCount(3) != 1 || entry.HasUnexpectedWireKind(3, IWorkWireKind.Varint)

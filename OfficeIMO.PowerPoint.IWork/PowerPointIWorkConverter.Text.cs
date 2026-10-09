@@ -76,7 +76,8 @@ public static partial class PowerPointIWorkConverter {
             else if (source.ListMarkerKind == IWorkListMarkerKind.Number
                 && TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
                          out int start)) {
-                if (startsAtSourceLabel) paragraph.SetNumbered(scheme, start);
+                if (startsAtSourceLabel || source.ListStartNumber.HasValue)
+                    paragraph.SetNumbered(scheme, source.ListNumber ?? start);
                 else paragraph.SetNumbered(scheme);
             } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
             if (source.ListFontName != null) paragraph.BulletFontName = source.ListFontName;

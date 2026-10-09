@@ -48,7 +48,8 @@ public static partial class WordIWorkConverter {
             return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
         if (!allowPartialEditableReconstruction && AllPagesText(projection)
-                .SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null)) {
+                .SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null
+                    && !CanApplyQualifiedListLayout(paragraph))) {
             return "Pages character-marker geometry has not been qualified for DOCX numbering.";
         }
         if (AllPagesText(projection).SelectMany(content => content.Paragraphs)
@@ -164,6 +165,18 @@ public static partial class WordIWorkConverter {
                 return "A Pages font size exceeds the DOCX measurement range or half-point precision.";
         }
         return null;
+    }
+
+    private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph) {
+        if (paragraph.ListLayout is not { } layout || !paragraph.ListNumber.HasValue
+            || paragraph.ListLevel != 0 || layout.MarkerScale != 1 || layout.MarkerIndentPoints != 0
+            || paragraph.Style.FirstLineIndentPoints.GetValueOrDefault() != 0
+            || paragraph.Style.LeftIndentPoints.GetValueOrDefault() != 0
+            || paragraph.Style.RightIndentPoints.GetValueOrDefault() != 0
+            || paragraph.Style.TextStyle.FontSizePoints is not double size
+            || !IsFinite(size) || size <= 0 || size != Math.Round(size)
+            || paragraph.Runs.Any(run => run.Style.FontSizePoints is double runSize && runSize != size)) return false;
+        return FitsSignedTwips(layout.TextIndentEm * size, allowRounding: true);
     }
 
     private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {

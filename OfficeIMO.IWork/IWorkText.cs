@@ -164,7 +164,8 @@ public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
         ulong? listIdentifier, int listLevel, string? listLabel,
         IWorkParagraphBreakKind breakKind, string? listFontName = null,
-        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text, IWorkListLayout? listLayout = null) {
+        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text, IWorkListLayout? listLayout = null,
+        int? listNumber = null, int? listStartNumber = null) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
         ListIdentifier = listIdentifier;
@@ -172,6 +173,8 @@ public sealed class IWorkTextParagraph {
         ListLabel = listLabel;
         ListFontName = listFontName;
         ListLayout = listLayout;
+        ListNumber = listNumber;
+        ListStartNumber = listStartNumber;
         ListMarkerKind = listLevel < 0 ? IWorkListMarkerKind.None : listMarkerKind;
         BreakKind = breakKind;
     }
@@ -187,6 +190,10 @@ public sealed class IWorkTextParagraph {
     /// <summary>Gets the source string label or the initial marker for a recovered numbering kind.
     /// A numbering marker describes its format, not a qualified paragraph counter or restart value.</summary>
     public string? ListLabel { get; }
+    /// <summary>Gets the qualified decimal counter for this paragraph, or null when its numbering is unqualified.</summary>
+    public int? ListNumber { get; }
+    /// <summary>Gets a qualified explicit decimal start or restart declared on this paragraph, or null for continuation or unqualified numbering.</summary>
+    public int? ListStartNumber { get; }
     /// <summary>Gets the explicit marker font, including inherited list-style formatting, or null when unspecified or cleared.</summary>
     public string? ListFontName { get; }
     /// <summary>Gets selected character-marker layout, or null when unspecified or unqualified.</summary>

@@ -262,6 +262,9 @@ public static partial class PowerPointIWorkConverter {
                     if (paragraph.ListLevel > 8) {
                         return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
                     }
+                    if (paragraph.ListNumber is < 1 or > 32_767) {
+                        return $"Keynote slide {slide.Index} contains a list counter outside the PPTX numbering range.";
+                    }
                     if (paragraph.ListLevel >= 0 && paragraph.ListLabel is { Length: > 0 } label
                         && (paragraph.ListMarkerKind == IWorkListMarkerKind.Number
                             ? !TryParseNumbering(label, out _, out _) : label.Length > 1)) {

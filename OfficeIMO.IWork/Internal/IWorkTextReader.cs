@@ -27,8 +27,14 @@ internal static partial class IWorkTextReader {
         }
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
             storage, projectionBudget, references, ref complete, static type => type == ParagraphStyleArchive);
-        IReadOnlyList<AttributeBoundary> listLevels = ReadListLevelTable(message, text.Length,
-            storage, projectionBudget, references, ref complete);
+        bool levelsComplete = true;
+        IReadOnlyList<AttributeBoundary> listLevels = ReadParagraphDataTable(message, 6, text.Length,
+            storage, projectionBudget, references, ref levelsComplete);
+        bool countersComplete = message.HasField(14);
+        IReadOnlyList<AttributeBoundary> listStarts = ReadParagraphDataTable(message, 14, text.Length,
+            storage, projectionBudget, references, ref countersComplete);
+        ValidateListStartBoundaries(listStarts, text, storage, references, ref countersComplete);
+        complete &= levelsComplete && (!message.HasField(14) || countersComplete);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
             storage, projectionBudget, references, ref complete, static type => type == ListStyleArchive);
         IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, text.Length,
@@ -43,6 +49,7 @@ internal static partial class IWorkTextReader {
         var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
         var inlineOffsets = new SortedSet<int>(inlineObjects.Keys);
         var paragraphs = new List<IWorkTextParagraph>();
+        var listCounter = new ParagraphListCounter();
         foreach (TextSpan paragraph in ParagraphSpans(text)) {
             projectionBudget.AddTextItem();
             ulong? paragraphStyleId = ObjectAt(paragraphStyles, paragraph.Start, carryMissing: true);
@@ -50,10 +57,16 @@ internal static partial class IWorkTextReader {
             IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
                 projectionBudget, paragraphStyleCache, tolerateStyleDepth, references, ref complete);
             projectionBudget.AddTextItems(paragraphStyle.TabStops?.Count ?? 0);
+            int? explicitListLevel = (int?)ObjectAt(listLevels, paragraph.Start, carryMissing: false);
             (int listLevel, string? listLabel, string? listFontName, IWorkListMarkerKind listMarkerKind, IWorkListLayout? listLayout) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
-                (int?)ObjectAt(listLevels, paragraph.Start, carryMissing: false),
+                explicitListLevel,
                 projectionBudget, listStyleCache, decodedListStyleCache, tolerateStyleDepth, references, ref complete);
+            bool qualifiedCounterProfile = levelsComplete && countersComplete && explicitListLevel == 0
+                && listStyleId.HasValue && decodedListStyleCache.TryGetValue(listStyleId.Value, out Cached<ListStyleData> counterStyle)
+                && counterStyle.IsComplete && HasQualifiedDecimalProfile(counterStyle.Value, listLevel);
+            (int? listNumber, int? listStartNumber) = listCounter.Resolve(listStarts, paragraph.Start,
+                listStyleId, listMarkerKind, qualifiedCounterProfile, storage, references, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             if (listFontName != null) projectionBudget.AddTextCharacters(listFontName.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
@@ -91,7 +104,8 @@ internal static partial class IWorkTextReader {
                 runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink, inlineObject));
             }
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
-                listLevel, listLabel, paragraph.BreakKind, listFontName, listMarkerKind, listLayout));
+                listLevel, listLabel, paragraph.BreakKind, listFontName, listMarkerKind, listLayout,
+                listNumber, listStartNumber));
         }
         return new IWorkTextContent(paragraphs, complete && textComplete, textComplete,
             hasInvalidSourceText, hasUnresolvedInlineObjects, isFormattingComplete: complete,

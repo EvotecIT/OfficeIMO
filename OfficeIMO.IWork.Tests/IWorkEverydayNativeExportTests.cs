@@ -7,7 +7,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.IWork.Tests;
 
-public sealed class IWorkEverydayNativeExportTests {
+public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Everyday_Pages_body_tables_and_section_text_match_independent_Apple_export() {
         VerifyManifest("pages-everyday-v15.4.json");

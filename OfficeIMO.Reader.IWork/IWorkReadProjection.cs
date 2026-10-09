@@ -5,6 +5,7 @@ namespace OfficeIMO.Reader.IWork;
 
 internal sealed partial class IWorkReadProjection {
     private const int MaximumMarkdownListLevel = 128;
+    private const int MaximumMarkdownListCounter = 999_999_999;
     private readonly OfficeDocumentReadResult _result;
     private readonly string _path;
     private readonly ReaderOptions _readerOptions;
@@ -20,6 +21,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
     private readonly List<OfficeDocumentMetadataEntry> _projectionMetadata = new();
     private bool _reportedMarkdownListDepthLimit;
+    private bool _reportedMarkdownListCounterLimit;
     private bool _reportedUnsupportedTextStyles;
     private bool _reportedUnsupportedLayoutBreaks;
     private bool _reportedTableBudgetExhausted;
@@ -219,7 +221,7 @@ internal sealed partial class IWorkReadProjection {
             AddBlock(page, paragraph.ListLevel >= 0 ? "list-item" : "paragraph",
                 string.Empty, paragraph.ListLevel >= 0 ? RichTextMarkdown(paragraph, _cancellationToken) : "\n",
                 paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
-                paragraph.ListLabel, sourceKind: sourceKind, region: region);
+                ReaderListLabel(paragraph), sourceKind: sourceKind, region: region);
             return;
         }
         bool heading = paragraph.ListLevel < 0 && sourceKind == "title";
@@ -228,7 +230,7 @@ internal sealed partial class IWorkReadProjection {
             sourceKind == "title" ? "heading" : "paragraph";
         ReaderLocation blockLocation = AddBlock(page, kind, text, markdown,
             paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
-            paragraph.ListLabel,
+            ReaderListLabel(paragraph),
             markdownPart: (offset, length) =>
                 (heading && offset == 0 ? "# " : string.Empty)
                 + RichTextMarkdown(paragraph, offset, length, _cancellationToken),
@@ -237,6 +239,15 @@ internal sealed partial class IWorkReadProjection {
     }
 
     private void ReportParagraphDetails(OfficeDocumentPage page, IWorkTextParagraph paragraph) {
+        if (paragraph.ListNumber > MaximumMarkdownListCounter && !_reportedMarkdownListCounterLimit) {
+            _reportedMarkdownListCounterLimit = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_LIST_COUNTER_LIMIT",
+                Message = "A native decimal counter exceeds Markdown's nine-digit marker range. Markdown uses an unordered marker; structured block markers and the iWork model retain the counter.",
+                Source = "OfficeIMO.Reader.IWork", Location = Location(page)
+            });
+        }
         if (!_reportedUnsupportedLayoutBreaks && paragraph.BreakKind is
             IWorkParagraphBreakKind.Page or IWorkParagraphBreakKind.Section
                 or IWorkParagraphBreakKind.Layout) {

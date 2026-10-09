@@ -50,9 +50,10 @@ internal static partial class IWorkTextReader {
         if (labelType == 3) {
             selectedLabel = level >= 0 && level < data.NumberTypes.Count
                 ? NumberMarker(data.NumberTypes[level]) : null;
-            // Number kind is recoverable; paragraph-level starts/continuations and
-            // tiered numbering are not yet qualified. Keep strict conversion gated.
-            resolvedCompletely = false;
+            // Counter recovery separately requires qualified paragraph metadata.
+            // Only the independently observed level-zero decimal, non-tiered profile
+            // has qualified starts and contiguous continuation semantics.
+            if (!HasQualifiedDecimalProfile(data, level)) resolvedCompletely = false;
         }
         if (labelType != 0 && selectedLabel == null) resolvedCompletely = false;
         (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout) result = labelType == 0
@@ -97,6 +98,19 @@ internal static partial class IWorkTextReader {
         }
         if (!numbersComplete) { evidence.Record(message, 15); complete = false; }
         else if (numbers.Count > 0) data.NumberTypes = numbers;
+
+        bool tieredComplete = !message.HasUnexpectedWireKind(25, IWorkWireKind.Varint, IWorkWireKind.Bytes);
+        IReadOnlyList<ulong> tiered = Array.Empty<ulong>();
+        if (tieredComplete) {
+            try {
+                tiered = message.GetRepeatedUnsigned(25, packed: true);
+                tieredComplete = tiered.All(value => value <= 1);
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+                tieredComplete = false;
+            }
+        }
+        if (!tieredComplete) { evidence.Record(message, 25); complete = false; }
+        else if (tiered.Count > 0) data.TieredNumbers = tiered;
 
         bool labelsComplete = !message.HasUnexpectedWireKind(16, IWorkWireKind.Bytes);
         var labels = new List<string>();
@@ -165,6 +179,10 @@ internal static partial class IWorkTextReader {
         _ => null
     };
 
+    private static bool HasQualifiedDecimalProfile(ListStyleData data, int level) =>
+        level == 0 && data.NumberTypes.Count > 0 && data.NumberTypes[0] == 0
+        && data.TieredNumbers.Count > 0 && data.TieredNumbers[0] == 0;
+
     private sealed class ListStyleData {
         internal string? Name;
         internal string? FontName;
@@ -172,6 +190,7 @@ internal static partial class IWorkTextReader {
         internal StylePropertyEvidence LabelEvidence;
         internal IReadOnlyList<ulong> LabelTypes = Array.Empty<ulong>();
         internal IReadOnlyList<ulong> NumberTypes = Array.Empty<ulong>();
+        internal IReadOnlyList<ulong> TieredNumbers = Array.Empty<ulong>();
         internal IReadOnlyList<string> Labels = Array.Empty<string>();
         internal IReadOnlyList<float> LeftIndents = Array.Empty<float>();
         internal IReadOnlyList<float> TextIndents = Array.Empty<float>();

@@ -51,7 +51,7 @@ This retains bounded recoverable editable content and reports incomplete details
 
 Under the partial policy, positioned tables become flowing editable Word tables and finite measurements are rounded to DOCX units. `IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED` and `IWORK_PAGES_DOCX_PRECISION` identify those approximations; original geometry remains on the source projection.
 
-Recovered character-list marker geometry remains on `IWorkTextParagraph.ListLayout`. Its DOCX placement and size require `AllowPartialEditableReconstruction = true` and produce `IWORK_PAGES_LIST_LAYOUT_APPROXIMATED`; strict conversion rejects this unqualified numbering layout.
+Qualified decimal list starts and restarts become separate DOCX numbering instances, preserving contiguous counters. `IWorkTextParagraph.ListLayout` retains source marker geometry. The level-zero decimal subset maps unscaled markers with uniform whole-point text size and zero additional paragraph/marker indents to DOCX hanging indentation; the [Pages reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-paragraph-list-v15.4.json) checks the native 393-twip offset in both paragraph and numbering-level properties. Pages 15.4 reopens this DOCX with matching paragraph/list placement; all extracted word bounds match Apple’s DOCX round trip for the recorded fixture. Other marker placement and size require `AllowPartialEditableReconstruction = true` and produce `IWORK_PAGES_LIST_LAYOUT_APPROXIMATED`; strict conversion rejects that unqualified layout.
 
 The path and stream convenience APIs accept cancellation after the options:
 

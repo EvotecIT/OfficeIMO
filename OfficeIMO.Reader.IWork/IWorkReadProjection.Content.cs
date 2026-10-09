@@ -344,12 +344,18 @@ internal sealed partial class IWorkReadProjection {
         }
         if (offset == 0 && paragraph.ListLevel >= 0) {
             string marker = paragraph.ListMarkerKind == IWorkListMarkerKind.Number
-                ? MarkdownListMarker(paragraph.ListLabel) : "-";
+                && !(paragraph.ListNumber > MaximumMarkdownListCounter)
+                ? MarkdownListMarker(ReaderListLabel(paragraph)) : "-";
             return new string(' ', Math.Min(paragraph.ListLevel, MaximumMarkdownListLevel) * 2)
                 + marker + " " + builder;
         }
         return builder.ToString();
     }
+
+    private static string? ReaderListLabel(IWorkTextParagraph paragraph) =>
+        paragraph.ListNumber.HasValue
+            ? paragraph.ListNumber.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."
+            : paragraph.ListLabel;
 
     private static string MarkdownListMarker(string? sourceLabel) {
         string label = sourceLabel?.Trim() ?? string.Empty;
