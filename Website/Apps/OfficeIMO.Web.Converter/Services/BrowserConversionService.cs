@@ -34,11 +34,24 @@ public sealed partial class BrowserConversionService {
         bool limitExcelRows,
         BrowserPdfProfile? profile = null,
         bool generateDebugOverlay = false,
-        PdfPowerPointImportMode pdfPowerPointMode = PdfPowerPointImportMode.EditableContent) {
+        PdfPowerPointImportMode pdfPowerPointMode = PdfPowerPointImportMode.EditableContent) =>
+        ConvertUpload(route, file, limitExcelRows, profile, generateDebugOverlay, BrowserPowerPointImportProfileCatalog.Find(pdfPowerPointMode).Id);
+
+    /// <summary>
+    /// Converts an uploaded file. Bridge assemblies such as OfficeIMO.PowerPoint.Pdf load on demand in the browser,
+    /// so this signature and everything shared between routes uses only the converter's own types.
+    /// </summary>
+    internal ConversionResult ConvertUpload(
+        ConversionRoute route,
+        SelectedDocument file,
+        bool limitExcelRows,
+        BrowserPdfProfile? profile,
+        bool generateDebugOverlay,
+        string? powerPointImportProfileId) {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentNullException.ThrowIfNull(file);
         if (string.Equals(route.Source, "PDF", StringComparison.OrdinalIgnoreCase)) {
-            return ConvertPdfFile(route, file, pdfPowerPointMode);
+            return ConvertPdfFile(route, file, powerPointImportProfileId);
         }
         BrowserPdfProfile effectiveProfile = profile ?? BrowserPdfProfileCatalog.Faithful;
         var stopwatch = Stopwatch.StartNew();

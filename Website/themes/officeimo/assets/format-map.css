@@ -1,0 +1,175 @@
+/* Format map (partials/sections/format-map.html, js/format-map.js): shared parts first, then the radial and list views. */
+
+/* ---- Family and surface colours, defined once for both views ---- */
+.imo-fam--documents { --fam: #2563eb; }
+.imo-fam--spreadsheets { --fam: #15803d; }
+.imo-fam--presentations { --fam: #c2410c; }
+.imo-fam--fixed { --fam: #b91c1c; }
+.imo-fam--images { --fam: #0e7490; }
+.imo-fam--books { --fam: #4d7c0f; }
+.imo-fam--email { --fam: #be185d; }
+.imo-fam--bibliography { --fam: #475569; }
+.imo-fam--markup { --fam: #7c3aed; }
+.imo-fam--web { --fam: #b45309; }
+.imo-fam--other { --fam: #64748b; }
+[data-theme="dark"] .imo-fam--documents { --fam: #7aa2ff; }
+[data-theme="dark"] .imo-fam--spreadsheets { --fam: #4ade80; }
+[data-theme="dark"] .imo-fam--presentations { --fam: #fb923c; }
+[data-theme="dark"] .imo-fam--fixed { --fam: #f87171; }
+[data-theme="dark"] .imo-fam--images { --fam: #5ed3e6; }
+[data-theme="dark"] .imo-fam--books { --fam: #a3e635; }
+[data-theme="dark"] .imo-fam--email { --fam: #f472b6; }
+[data-theme="dark"] .imo-fam--bibliography { --fam: #a5b1c6; }
+[data-theme="dark"] .imo-fam--markup { --fam: #c4a5ff; }
+[data-theme="dark"] .imo-fam--web { --fam: #fbbf24; }
+[data-theme="dark"] .imo-fam--other { --fam: #94a3b8; }
+
+.imo-fmap { --fmap-hl: var(--imo-p-browser); padding-block: 56px 24px; }
+.imo-fmap[data-active-surface="dotnet"] { --fmap-hl: var(--imo-p-dotnet); }
+.imo-fmap[data-active-surface="cli"] { --fmap-hl: var(--imo-p-cli); }
+.imo-fmap[data-active-surface="studio"] { --fmap-hl: var(--imo-p-studio); }
+
+/* ---- Heading ---- */
+.imo-fmap__head { max-width: 760px; margin-bottom: 20px; }
+.imo-fmap__head h2 { font-family: var(--imo-font-display); font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem); line-height: 1.15; margin: 0 0 10px; color: var(--imo-text); }
+.imo-fmap__head h2 span { color: var(--imo-text-secondary); }
+.imo-fmap__head p { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
+
+/* ---- Surface filter ---- */
+.imo-fmap__surfaces { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.imo-fmap__surface {
+  --s: var(--imo-accent);
+  display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--imo-border); background: var(--imo-surface); color: var(--imo-text);
+  font: inherit; font-size: var(--imo-font-size-sm); cursor: pointer;
+  transition: border-color var(--imo-duration) var(--imo-ease), background var(--imo-duration) var(--imo-ease);
+}
+.imo-fmap__surface i { width: 8px; height: 8px; border-radius: 50%; background: var(--s); }
+.imo-fmap__surface--dotnet { --s: var(--imo-p-dotnet); }
+.imo-fmap__surface--browser { --s: var(--imo-p-browser); }
+.imo-fmap__surface--cli { --s: var(--imo-p-cli); }
+.imo-fmap__surface--studio { --s: var(--imo-p-studio); }
+.imo-fmap__surface--powershell { --s: var(--imo-p-powershell); }
+.imo-fmap__surface--extension { --s: var(--imo-p-extension); }
+button.imo-fmap__surface:hover { border-color: var(--s); }
+.imo-fmap__surface.is-active { border-color: var(--s); background: color-mix(in srgb, var(--s) 14%, var(--imo-surface)); }
+.imo-fmap__count { color: var(--imo-text-muted); font-variant-numeric: tabular-nums; }
+.imo-fmap__count:not(:empty)::before { content: "· "; }
+.imo-fmap__surface.is-pending { cursor: default; color: var(--imo-text-muted); border-style: dashed; background: transparent; }
+.imo-fmap__surface.is-pending i { opacity: .5; }
+.imo-fmap__surface small { font-size: var(--imo-font-size-xs); }
+
+/* ---- Board and side panel (shared) ---- */
+.imo-fmap__board {
+  position: relative; display: grid; align-items: start;
+  border: 1px solid var(--imo-border); border-radius: var(--imo-radius-xl); background: var(--imo-bg-elevated); overflow: hidden;
+}
+.imo-fmap__side { position: relative; z-index: 1; display: grid; gap: 14px; align-content: start; padding: 20px; min-width: 0; }
+.imo-fmap__panel { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.imo-fmap__title { margin: 0; font-family: var(--imo-font-display); font-size: var(--imo-font-size-xl); color: var(--imo-text); display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.imo-fmap__title small { font-family: var(--imo-font-body); font-size: var(--imo-font-size-xs); font-weight: 500; color: var(--imo-text-muted); }
+.imo-fmap__hint { margin: 0; font-size: var(--imo-font-size-sm); color: var(--imo-text-secondary); line-height: 1.55; }
+.imo-fmap__label { font-size: var(--imo-font-size-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--imo-text-muted); }
+
+.imo-fmap__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.imo-fmap__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  padding: 8px 10px; border-radius: var(--imo-radius); border: 1px solid var(--imo-border); background: var(--imo-surface);
+}
+.imo-fmap__row.is-hl { border-color: color-mix(in srgb, var(--fmap-hl) 50%, var(--imo-border)); }
+.imo-fmap__path { padding: 8px; border-radius: var(--imo-radius-lg); background: var(--imo-bg-alt); }
+.imo-fmap__body { display: grid; min-width: 0; }
+.imo-fmap__body strong { font-size: var(--imo-font-size-sm); color: var(--imo-text); }
+.imo-fmap__pkg { font-family: var(--imo-font-mono); font-size: var(--imo-font-size-xs); color: var(--imo-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imo-fmap__badges { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.imo-fmap__badge { --s: var(--imo-text-secondary); font-size: 11px; line-height: 1; padding: 4px 6px; border-radius: 999px; color: var(--s); background: color-mix(in srgb, var(--s) 13%, transparent); }
+.imo-fmap__badge--dotnet { --s: var(--imo-p-dotnet); }
+.imo-fmap__badge--browser { --s: var(--imo-p-browser); }
+.imo-fmap__badge--cli { --s: var(--imo-p-cli); }
+.imo-fmap__badge--studio { --s: var(--imo-p-studio); }
+.imo-fmap__try { font-size: var(--imo-font-size-xs); font-weight: 600; color: var(--imo-p-browser); text-decoration: none; white-space: nowrap; }
+.imo-fmap__try::after { content: " →"; }
+.imo-fmap__try:hover { text-decoration: underline; }
+
+/* Format chips: the list view's formats, the radial view's phone layout, and the small ones in the panel. */
+.imo-fmap__formats { position: relative; z-index: 1; padding: 20px; min-width: 0; }
+.imo-fmap__family + .imo-fmap__family { margin-top: 12px; }
+.imo-fmap__family h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; font-size: var(--imo-font-size-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--imo-text-muted); }
+.imo-fmap__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fam); flex: none; }
+.imo-fmap__chips, .imo-fmap__minis { display: flex; flex-wrap: wrap; gap: 6px; }
+.imo-fmap__chip, .imo-fmap__mini {
+  font: inherit; font-size: var(--imo-font-size-sm); padding: 5px 10px; border-radius: var(--imo-radius-sm);
+  border: 1px solid var(--imo-border); background: var(--imo-surface); color: var(--imo-text); cursor: pointer;
+  transition: border-color var(--imo-duration) var(--imo-ease), background var(--imo-duration) var(--imo-ease);
+}
+.imo-fmap__mini { font-size: var(--imo-font-size-xs); padding: 4px 9px; border-radius: 999px; }
+.imo-fmap__chip:hover:not(:disabled), .imo-fmap__mini:hover { border-color: var(--fam); }
+.imo-fmap__chip.is-active { border-color: var(--fam); background: color-mix(in srgb, var(--fam) 18%, var(--imo-surface)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fam) 22%, transparent); }
+/* Opaque, so curves passing behind stay behind. */
+.imo-fmap__chip:disabled { cursor: default; color: color-mix(in srgb, var(--imo-text-muted) 70%, transparent); border-color: color-mix(in srgb, var(--imo-border) 60%, transparent); background: var(--imo-bg-elevated); }
+.imo-fmap :is(.imo-fmap__chip, .imo-fmap__mini, .imo-fmap__surface, .imo-fmap__legend button, select, .imo-fmap__try):focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+
+/* Lines, shared by both views. Highlighted ones run on the chosen surface (the browser when showing all). */
+.imo-fmap__edge { fill: none; stroke: var(--imo-border-strong); stroke-width: 1.1; opacity: .55; transition: opacity .15s, stroke-width .15s; }
+.imo-fmap__edge.is-hl { stroke: var(--fmap-hl); opacity: .8; stroke-width: 1.6; }
+.imo-fmap__edge.is-drawing { animation: imo-fmap-draw .6s var(--imo-ease) forwards; }
+@keyframes imo-fmap-draw { to { stroke-dashoffset: 0; } }
+
+/* ---- Radial view ---- */
+.imo-fmap--radial .imo-fmap__board { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); }
+.imo-fmap--radial .imo-fmap__formats { display: none; }
+.imo-fmap--radial .imo-fmap__side { border-left: 1px solid var(--imo-border); background: var(--imo-bg-alt); align-self: stretch; }
+.imo-fmap__canvas { padding: 12px; min-width: 0; }
+.imo-fmap__svg { display: block; width: 100%; height: auto; }
+.imo-fmap__svg.is-focus .imo-fmap__edge { opacity: .06; }
+.imo-fmap__svg.is-focus .imo-fmap__edge.is-out { opacity: .95; stroke-width: 2.2; }
+.imo-fmap__svg.is-focus .imo-fmap__edge:not(.is-hl).is-out { stroke: var(--imo-text-secondary); }
+.imo-fmap__svg.is-focus .imo-fmap__edge.is-in { opacity: .6; stroke-dasharray: 4 4; stroke: var(--imo-text-muted); stroke-width: 1.4; }
+.imo-fmap__svg.is-focus .imo-fmap__edge.is-on { opacity: 1; stroke-width: 3.6; stroke: var(--imo-accent); stroke-dasharray: none; }
+.imo-fmap__node circle { fill: var(--fam); stroke: var(--imo-bg-elevated); stroke-width: 2; cursor: pointer; }
+.imo-fmap__node text { font: 600 17px var(--imo-font-body); fill: var(--imo-text); cursor: pointer; }
+.imo-fmap__node.is-idle { opacity: .3; }
+.imo-fmap__node.is-idle circle, .imo-fmap__node.is-idle text { cursor: default; }
+.imo-fmap__svg.is-focus .imo-fmap__node { opacity: .28; }
+.imo-fmap__svg.is-focus .imo-fmap__node.is-hot { opacity: 1; }
+.imo-fmap__node.is-picked circle { stroke: var(--imo-text); stroke-width: 3; }
+.imo-fmap__node:focus { outline: none; }
+.imo-fmap__node:focus-visible circle { stroke: var(--imo-accent); stroke-width: 4; }
+.imo-fmap__fam { font: 700 13px var(--imo-font-body); letter-spacing: .1em; text-transform: uppercase; fill: var(--fam); }
+.imo-fmap__hub { font: 800 30px var(--imo-font-display); fill: var(--imo-text); }
+.imo-fmap__hubsub { font: 500 15px var(--imo-font-body); fill: var(--imo-text-muted); }
+.imo-fmap__pulse { fill: var(--fmap-hl); }
+.imo-fmap__pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.imo-fmap__pick label { display: grid; gap: 5px; font-size: var(--imo-font-size-xs); font-weight: 600; color: var(--imo-text-muted); }
+.imo-fmap__pick select { font: inherit; font-size: var(--imo-font-size-sm); font-weight: 400; padding: 8px 10px; border-radius: var(--imo-radius); border: 1px solid var(--imo-border); background: var(--imo-surface); color: var(--imo-text); min-width: 0; }
+.imo-fmap__legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 4px 8px 8px; }
+/* Long answers scroll inside the panel, so the board stays the height of the circle. */
+.imo-fmap--radial .imo-fmap__outs { max-height: 25rem; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; }
+.imo-fmap__legend button { display: inline-flex; gap: 6px; align-items: center; font: inherit; font-size: var(--imo-font-size-xs); padding: 5px 9px; border-radius: 999px; border: 1px solid var(--imo-border); background: transparent; color: var(--imo-text); cursor: pointer; }
+.imo-fmap__legend button[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+
+/* ---- List view ---- */
+.imo-fmap--list .imo-fmap__board { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: clamp(32px, 6vw, 96px); }
+.imo-fmap__wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; overflow: visible; pointer-events: none; }
+.imo-fmap__wires .imo-fmap__edge { opacity: .7; stroke: color-mix(in srgb, var(--imo-text-secondary) 60%, transparent); stroke-width: 1.4; }
+.imo-fmap__wires .imo-fmap__edge.is-hl { stroke: var(--fmap-hl); stroke-width: 2; opacity: 1; }
+
+/* ---- Narrow screens: both views become the chip list with the panel below ---- */
+@media (max-width: 860px) {
+  .imo-fmap--radial .imo-fmap__board, .imo-fmap--list .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
+  .imo-fmap--radial .imo-fmap__canvas, .imo-fmap--radial .imo-fmap__legend, .imo-fmap__wires { display: none; }
+  .imo-fmap--radial .imo-fmap__formats { display: block; }
+  .imo-fmap--radial .imo-fmap__side { border-left: 0; border-top: 1px solid var(--imo-border); }
+  .imo-fmap--list .imo-fmap__side { border-top: 1px solid var(--imo-border); }
+  .imo-fmap__formats, .imo-fmap__side { padding: 16px; }
+  .imo-fmap--radial .imo-fmap__outs { max-height: none; overflow: visible; }
+}
+@media (max-width: 520px) {
+  .imo-fmap__row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding: 7px 10px; }
+  .imo-fmap__pkg { display: none; }
+  .imo-fmap__try { grid-column: 2; grid-row: 1; }
+  .imo-fmap__badges { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .imo-fmap__edge.is-drawing { animation: none; }
+}

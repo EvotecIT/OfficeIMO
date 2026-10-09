@@ -19,7 +19,7 @@
       "summary": "Turn a Word document, workbook, or presentation into a downloadable PDF.",
       "guide": "/convert/word-to-pdf/",
       "paths": [
-        { "label": "Try DOCX in your browser", "url": "/convert/?route=docx-pdf" },
+        { "label": "Try DOCX in your browser", "url": "/browser/word-to-pdf/" },
         { "label": "CLI conversion", "url": "/tool/" },
         { "label": "All conversion guides", "url": "/convert/guides/" }
       ],

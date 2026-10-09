@@ -1,0 +1,74 @@
+{{~ # Format map. Set before including: fmap_view = "radial" (home) or "list" (browser tools); fmap_surface = default filter. ~}}
+{{~ map = data.format_map ~}}
+{{~ if map && map.routes && map.routes.size > 0 ~}}
+{{~ view = fmap_view ~}}{{~ if view != "list" ~}}{{~ view = "radial" ~}}{{~ end ~}}
+{{~ start_surface = fmap_surface ~}}{{~ if !start_surface ~}}{{~ start_surface = "all" ~}}{{~ end ~}}
+{{~ family_names = { documents: "Documents", spreadsheets: "Spreadsheets", presentations: "Presentations", fixed: "Fixed layout", images: "Images", books: "Notes and books", email: "Email", bibliography: "Bibliography", markup: "Markup and text", web: "Web and wiki", other: "Other" } ~}}
+<section class="imo-fmap imo-fmap--{{ view }} imo-container" id="format-map" aria-labelledby="fmap-title" data-format-map data-view="{{ view }}" data-surface="{{ start_surface }}">
+  <header class="imo-fmap__head">
+    <p class="imo-section__eyebrow">Format map</p>
+    {{~ if view == "list" ~}}
+    <h2 id="fmap-title">Where else can your file go?</h2>
+    <p>Pick a format to see what it converts to and where each conversion runs. The browser tools cover the routes marked Browser; the rest run in the .NET packages, the CLI or Studio.</p>
+    {{~ else ~}}
+    <h2 id="fmap-title">{{ map.formats.size }} formats, {{ map.routes.size }} conversions. <span>Run them where you work.</span></h2>
+    <p>Every dot is a format and every line a conversion. Hover or pick a format to light up its routes, then pick a second one to find the way between them.</p>
+    {{~ end ~}}
+  </header>
+
+  <div class="imo-fmap__surfaces" role="group" aria-label="Show conversions that run in">
+    <button type="button" class="imo-fmap__surface" data-surface="all" aria-pressed="false">All<span class="imo-fmap__count" data-count="all"></span></button>
+    {{~ for surface in data.surfaces.items ~}}
+    {{~ if surface.id == "dotnet" || surface.id == "browser" || surface.id == "cli" || surface.id == "studio" ~}}
+    <button type="button" class="imo-fmap__surface imo-fmap__surface--{{ surface.id }}" data-surface="{{ surface.id }}" data-name="{{ surface.name }}" aria-pressed="false"><i aria-hidden="true"></i>{{ surface.name }}<span class="imo-fmap__count" data-count="{{ surface.id }}"></span></button>
+    {{~ else ~}}
+    <span class="imo-fmap__surface imo-fmap__surface--{{ surface.id }} is-pending"><i aria-hidden="true"></i>{{ surface.name }}<small>{{ if surface.enabled }}not mapped yet{{ else }}planned{{ end }}</small></span>
+    {{~ end ~}}
+    {{~ end ~}}
+  </div>
+
+  <div class="imo-fmap__board">
+    {{~ if view == "radial" ~}}
+    <div class="imo-fmap__canvas">
+      <svg class="imo-fmap__svg" viewBox="0 0 1000 1000" role="img" aria-label="Circle of document formats joined by conversion routes. The format list and the From and To lists give the same information."></svg>
+      <div class="imo-fmap__legend" role="group" aria-label="Show or hide format families">
+        {{~ for family in map.families ~}}
+        {{~ if family != "other" ~}}
+        <button type="button" data-family="{{ family }}" aria-pressed="true"><i class="imo-fmap__dot imo-fam--{{ family }}" aria-hidden="true"></i>{{ family_names[family] }}</button>
+        {{~ end ~}}
+        {{~ end ~}}
+      </div>
+    </div>
+    {{~ end ~}}
+    <div class="imo-fmap__formats">
+      {{~ for family in map.families ~}}
+      {{~ members = [] ~}}
+      {{~ for format in map.formats ~}}{{~ if format.family == family ~}}{{~ members = array.add members format ~}}{{~ end ~}}{{~ end ~}}
+      {{~ if members.size > 0 ~}}
+      <div class="imo-fmap__family">
+        <h3><i class="imo-fmap__dot imo-fam--{{ family }}" aria-hidden="true"></i>{{ family_names[family] }}</h3>
+        <div class="imo-fmap__chips">
+          {{~ for format in members ~}}
+          <button type="button" class="imo-fmap__chip imo-fam--{{ family }}" data-format="{{ format.name }}" aria-pressed="false">{{ format.name }}</button>
+          {{~ end ~}}
+        </div>
+      </div>
+      {{~ end ~}}
+      {{~ end ~}}
+    </div>
+    {{~ if view == "list" ~}}
+    <svg class="imo-fmap__wires" aria-hidden="true" focusable="false"></svg>
+    {{~ end ~}}
+    <aside class="imo-fmap__side">
+      {{~ if view == "radial" ~}}
+      <div class="imo-fmap__pick">
+        <label><span>From</span><select data-pick="from"></select></label>
+        <label><span>To</span><select data-pick="to"></select></label>
+      </div>
+      {{~ end ~}}
+      <div class="imo-fmap__panel" aria-live="polite"></div>
+    </aside>
+  </div>
+  <script type="application/json" class="imo-fmap__data">{"families":{ {{~ for family in map.families ~}}"{{ family }}":"{{ family_names[family] }}"{{ if !for.last }},{{ end }}{{~ end ~}} },"formats":[{{~ for f in map.formats ~}}["{{ f.name }}","{{ f.family }}"]{{ if !for.last }},{{ end }}{{~ end ~}}],"routes":[{{~ for r in map.routes ~}}["{{ r.source }}","{{ r.target }}","{{ r.package }}","{{ r.surfaces | array.join " " }}","{{ r.fidelity }}","{{ r.support }}","{{ r.id }}"]{{ if !for.last }},{{ end }}{{~ end ~}}],"tools":{ {{~ first = true ~}}{{~ for tool in data.browser_tools.tools ~}}{{~ if tool.engine.kind == "convert" ~}}{{ if !first }},{{ end }}"{{ tool.engine.target }}":"/browser/{{ tool.id }}/"{{~ first = false ~}}{{~ end ~}}{{~ end ~}} }}</script>
+</section>
+{{~ end ~}}

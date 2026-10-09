@@ -450,19 +450,26 @@
     }, { passive: true });
   }
 
-  function initConverterFrame() {
-    var template = document.getElementById('browser-workspace-template');
-    if (!template) return;
+  function initBrowserToolDirectory() {
     var directory = document.querySelector('.imo-browser-tools');
+    if (!directory) return;
     var search = directory.querySelector('.imo-browser-tools__search');
     var input = search.querySelector('input');
     var countLabel = search.querySelector('[data-tool-count]');
     var cards = Array.from(directory.querySelectorAll('.imo-browser-tools__card'));
-    var frameShell = document.querySelector('.imo-converter-launch__frame-shell');
-    var frame = null;
-    var workspaceUrl = null;
     var pendingFile = null;
     search.hidden = false;
+
+    // Links from the previous single-page workspace (/convert/?route=docx-pdf) open the tool's own page.
+    var parameters = new URLSearchParams(window.location.search);
+    var legacyKey = null;
+    if (parameters.get('route')) legacyKey = 'route=' + parameters.get('route').toLowerCase();
+    else if ((parameters.get('workspace') || '').toLowerCase() === 'pdf') legacyKey = 'workspace=pdf&tool=' + (parameters.get('tool') || 'inspect').toLowerCase();
+    else if ((parameters.get('workspace') || '').toLowerCase() === 'provenance') legacyKey = 'workspace=provenance';
+    if (legacyKey) {
+      var legacyCard = cards.filter(function (card) { return (card.getAttribute('data-legacy') || '').split(' ').indexOf(legacyKey) >= 0; })[0];
+      if (legacyCard) { window.location.replace(legacyCard.href); return; }
+    }
 
     function fileExtension(name) {
       var dot = name.lastIndexOf('.');
@@ -494,141 +501,23 @@
     });
     filterTools();
 
-    function hasWorkspaceSelection(parameters) {
-      var workspace = (parameters.get('workspace') || '').toLowerCase();
-      return !!(parameters.get('route') || '').trim() || workspace === 'pdf' || workspace === 'provenance';
-    }
-
-    function syncTheme() {
-      try {
-        var frameRoot = frame && frame.contentDocument && frame.contentDocument.documentElement;
-        if (!frameRoot) return;
-        var theme = document.documentElement.getAttribute('data-theme') || 'light';
-        frameRoot.setAttribute('data-theme', theme);
-        frameRoot.style.colorScheme = theme;
-      } catch (error) {
-        // The standalone application retains its saved theme if hosted elsewhere.
-      }
-    }
-
-    function createFrame() {
-      frameShell.appendChild(template.content.cloneNode(true));
-      frame = frameShell.querySelector('iframe');
-      workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
-
-      window.addEventListener('message', function (event) {
-        if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
-            !event.data || event.data.type !== 'officeimo:workspace-selection') return;
-        var selection = event.data;
-        if (['workspace', 'route', 'tool'].some(function (key) {
-          return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
-        })) return;
-        if (selection.title != null && (typeof selection.title !== 'string' ||
-            selection.title.length > 160 || selection.title.trim().length === 0)) return;
-        var target = new URL(window.location.href);
-        ['workspace', 'route', 'tool'].forEach(function (key) {
-          var value = selection[key];
-          if (key === 'workspace' && value === 'convert') value = null;
-          if (value) target.searchParams.set(key, value);
-          else target.searchParams.delete(key);
-        });
-        if (target.href !== window.location.href) {
-          window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
-        }
-        if (selection.title) document.title = selection.title;
+    // Same one-entry IndexedDB hand-off the tool pages use; the tool page deletes it as soon as it reads it.
+    function handOff(file) {
+      return new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error('unavailable')); return; }
+        var request = indexedDB.open('officeimo-browser-tools', 1);
+        request.onupgradeneeded = function () { request.result.createObjectStore('handoff'); };
+        request.onerror = function () { reject(request.error); };
+        request.onsuccess = function () {
+          var db = request.result;
+          file.arrayBuffer().then(function (buffer) {
+            var tx = db.transaction('handoff', 'readwrite');
+            tx.objectStore('handoff').put({ name: file.name, type: file.type, buffer: buffer, created: Date.now() }, 'file');
+            tx.oncomplete = function () { db.close(); resolve(); };
+            tx.onerror = function () { db.close(); reject(tx.error); };
+          }, reject);
+        };
       });
-      frame.addEventListener('load', syncTheme);
-      new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    }
-
-    // The app owns route validation; the website forwards only its public selection keys.
-    function workspaceAddress(parameters) {
-      var address = new URL(workspaceUrl.href);
-      ['workspace', 'route', 'tool'].forEach(function (key) {
-        if (parameters.has(key)) address.searchParams.set(key, parameters.get(key));
-      });
-      return address.href;
-    }
-
-    // The app listens for selection messages only after its workspace has rendered.
-    function workspaceReady() {
-      try { return !!(frame.contentDocument && frame.contentDocument.querySelector('.ocx-workspace-content')); } catch (error) { return false; }
-    }
-
-    // Browsing the directory never creates a frame or starts the WebAssembly runtime.
-    function openWorkspace(parameters) {
-      directory.hidden = true;
-      frameShell.hidden = false;
-      showNotice('');
-      if (!frame) {
-        createFrame();
-        frame.src = workspaceAddress(parameters);
-        syncTheme();
-      } else if (!workspaceReady()) {
-        frame.src = workspaceAddress(parameters);
-      } else {
-        frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
-          workspace: parameters.get('workspace'), route: parameters.get('route'), tool: parameters.get('tool')
-        }, workspaceUrl.origin);
-      }
-      window.scrollTo(0, 0);
-    }
-
-    function showDirectory() {
-      frameShell.hidden = true;
-      directory.hidden = false;
-    }
-
-    var notice = null;
-    function showNotice(message) {
-      if (!notice) {
-        if (!message) return;
-        notice = document.createElement('p');
-        notice.className = 'imo-handoff-notice';
-        notice.setAttribute('role', 'status');
-        frameShell.insertBefore(notice, frameShell.firstChild);
-      }
-      notice.textContent = message;
-      notice.hidden = !message;
-    }
-
-    // Hands a file chosen on the directory to the tool's own input once the workspace renders it.
-    function deliverFile(file, card) {
-      var route = card.getAttribute('data-route');
-      var tool = card.getAttribute('data-pdf-tool');
-      var isText = card.getAttribute('data-input') === 'text';
-      var selector = route
-        ? (isText ? '.ocx-conversion-workspace[data-active-route="' + route + '"] .ocx-textarea' : '#conversion-file-input-' + route)
-        : tool ? '#pdf-file-input-' + tool : '#provenance-file-input';
-      var started = Date.now();
-      var tooLarge = file.name + ' is too long for this text tool. Paste a shorter section, or convert the file with another tool.';
-      (function attempt() {
-        var element = null;
-        try { element = frame.contentDocument && frame.contentDocument.querySelector(selector); } catch (error) { return; }
-        if (!element) {
-          if (frameShell.hidden) return;
-          if (Date.now() - started < 120000) setTimeout(attempt, 200);
-          else showNotice('The tool did not finish loading, so ' + file.name + ' was not opened. Choose the file again inside the tool.');
-          return;
-        }
-        var view = frame.contentWindow;
-        if (isText) {
-          // UTF-8 uses at most four bytes per character, so larger files cannot fit.
-          if (element.maxLength > 0 && file.size > element.maxLength * 4) { showNotice(tooLarge); return; }
-          file.text().then(function (text) {
-            if (element.maxLength > 0 && text.length > element.maxLength) { showNotice(tooLarge); return; }
-            element.value = text;
-            element.dispatchEvent(new view.Event('input', { bubbles: true }));
-          }, function () {
-            showNotice(file.name + ' could not be read. Choose it again inside the tool.');
-          });
-          return;
-        }
-        var transfer = new view.DataTransfer();
-        transfer.items.add(new view.File([file], file.name, { type: file.type, lastModified: file.lastModified }));
-        element.files = transfer.files;
-        element.dispatchEvent(new view.Event('change', { bubbles: true }));
-      })();
     }
 
     function initFileDrop(drop) {
@@ -672,7 +561,7 @@
 
       var dragDepth = 0;
       document.addEventListener('dragenter', function (event) {
-        if (!carriesFiles(event) || directory.hidden) return;
+        if (!carriesFiles(event)) return;
         dragDepth++;
         drop.classList.add('is-dragging');
       });
@@ -682,12 +571,12 @@
         if (!dragDepth) drop.classList.remove('is-dragging');
       });
       document.addEventListener('dragover', function (event) {
-        if (!carriesFiles(event) || directory.hidden) return;
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'copy';
       });
       document.addEventListener('drop', function (event) {
-        if (!carriesFiles(event) || directory.hidden) return;
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         dragDepth = 0;
         drop.classList.remove('is-dragging');
@@ -698,28 +587,18 @@
         card.addEventListener('click', function (event) {
           if (!pendingFile || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
-          var destination = new URL(card.href, window.location.href);
-          window.history.pushState(null, '', destination);
-          openWorkspace(destination.searchParams);
-          deliverFile(pendingFile, card);
+          var destination = card.href;
+          handOff(pendingFile).then(function () {
+            window.location.href = destination + (destination.indexOf('?') >= 0 ? '&' : '?') + 'from=previous';
+          }, function () {
+            window.location.href = destination;
+          });
         });
       });
     }
 
     var drop = directory.querySelector('[data-browser-drop]');
     if (drop) initFileDrop(drop);
-
-    window.addEventListener('popstate', function () {
-      var selection = new URLSearchParams(window.location.search);
-      if (!hasWorkspaceSelection(selection)) {
-        showDirectory();
-        return;
-      }
-      openWorkspace(selection);
-    });
-
-    var pageParameters = new URLSearchParams(window.location.search);
-    if (hasWorkspaceSelection(pageParameters)) openWorkspace(pageParameters);
   }
 
   function initDocsSidebar() {
@@ -867,7 +746,7 @@
     initCodeCopy();
     initTabs();
     initHeaderScroll();
-    initConverterFrame();
+    initBrowserToolDirectory();
     initDocsSidebar();
     initPrism();
   }

@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\provenance-demo.png" Link="samples\provenance-demo.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\business-summary.docx" Link="samples\business-summary.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\basic.xlsx"
           Link="samples\basic.xlsx"
           CopyToOutputDirectory="PreserveNewest" />
@@ -26,6 +27,7 @@
           Link="samples\conversion-proof.pptx"
           CopyToOutputDirectory="PreserveNewest" />
     <!-- Keep the positioned-text and dash regression fixture stable when gallery examples are regenerated. -->
+    <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\page-tools-sample.pdf" Link="samples\page-tools-sample.pdf" CopyToOutputDirectory="PreserveNewest" />
     <None Update="samples\showcase-dashboard.pdf"
           CopyToOutputDirectory="PreserveNewest" />
     <None Update="samples\view-only.pdf" CopyToOutputDirectory="PreserveNewest" />

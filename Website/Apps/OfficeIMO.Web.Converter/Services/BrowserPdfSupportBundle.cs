@@ -21,50 +21,39 @@ internal static class BrowserPdfSupportBundle {
             throw new InvalidOperationException("Support bundles are available for PDF conversion results.");
         }
 
-        byte[] summary = JsonSerializer.SerializeToUtf8Bytes(
-            new {
-                schemaVersion = "1",
-                privacy = new {
-                    includesDocumentContent = includeDocumentContent,
-                    defaultPolicy = "fingerprints-and-diagnostics-only"
-                },
-                source = new {
-                    extension = source.Extension,
-                    byteCount = source.Size,
-                    sha256 = Sha256(source.Bytes)
-                },
-                output = new {
-                    byteCount = result.Bytes.LongLength,
-                    sha256 = Sha256(result.Bytes),
-                    result.PageCount,
-                    tagged = PdfReadDocument.Open(result.Bytes).HasTaggedContent
-                },
-                profile = result.Profile is null
-                    ? null
-                    : new {
-                        id = result.Profile.Id,
-                        label = result.Profile.Label,
-                        description = result.Profile.Description
-                    },
-                engine = new {
-                    assembly = typeof(PdfDocument).Assembly.GetName().Name,
-                    version = typeof(PdfDocument).Assembly
-                        .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
-                        .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
-                        .Select(static attribute => attribute.InformationalVersion)
-                        .FirstOrDefault()
-                        ?? typeof(PdfDocument).Assembly.GetName().Version?.ToString()
-                        ?? "unknown",
-                    fontPackId = BrowserPortablePdfProfile.FontPackId,
-                    fontPackFingerprint = BrowserPortablePdfProfile.FontPackFingerprint
-                },
-                performance = new {
-                    result.ConversionMilliseconds,
-                    result.PeakRetainedMemoryBytes
-                },
-                warnings = result.StructuredWarnings
-            },
-            new JsonSerializerOptions { WriteIndented = true });
+        var document = new SupportSummaryDocument(
+            "1",
+            new SupportPrivacy(includeDocumentContent, "fingerprints-and-diagnostics-only"),
+            new SupportSource(source.Extension, source.Size, Sha256(source.Bytes)),
+            new SupportOutput(
+                result.Bytes.LongLength,
+                Sha256(result.Bytes),
+                result.PageCount,
+                PdfReadDocument.Open(result.Bytes).HasTaggedContent),
+            result.Profile is null
+                ? null
+                : new ManifestProfile(result.Profile.Id, result.Profile.Label, result.Profile.Description),
+            new SupportEngine(
+                typeof(PdfDocument).Assembly.GetName().Name,
+                typeof(PdfDocument).Assembly
+                    .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                    .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+                    .Select(static attribute => attribute.InformationalVersion)
+                    .FirstOrDefault()
+                    ?? typeof(PdfDocument).Assembly.GetName().Version?.ToString()
+                    ?? "unknown",
+                BrowserPortablePdfProfile.FontPackId,
+                BrowserPortablePdfProfile.FontPackFingerprint),
+            new SupportPerformance(result.ConversionMilliseconds, result.PeakRetainedMemoryBytes),
+            result.StructuredWarnings.Select(static warning => new SupportWarning(
+                warning.Code,
+                warning.Source,
+                warning.Message,
+                warning.Severity,
+                warning.Construct,
+                warning.PageNumber,
+                warning.CanChangePagination)).ToArray());
+        byte[] summary = JsonSerializer.SerializeToUtf8Bytes(document, BrowserReportJsonContext.Default.SupportSummaryDocument);
 
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {

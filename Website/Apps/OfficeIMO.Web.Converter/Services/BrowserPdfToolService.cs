@@ -44,7 +44,8 @@ internal sealed partial class BrowserPdfToolService {
             execution.Summary,
             execution.PageCount,
             request.Files.Sum(static file => file.Size),
-            execution.PreviewInBrowser);
+            execution.PreviewInBrowser,
+            execution.ReportDetails);
     }
 
     private static void ValidateRequest(PdfToolRequest request) {

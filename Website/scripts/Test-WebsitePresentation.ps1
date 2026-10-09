@@ -44,7 +44,7 @@ function Assert-ContainsLiteral {
 
 $siteRootPath = (Resolve-Path -LiteralPath $SiteRoot).Path
 $sourceRootPath = (Resolve-Path -LiteralPath $SourceRoot).Path
-foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
+foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
     if ($routeHtml -notmatch '<a\b[^>]*class="[^"]*\bimo-header__logo\b[^"]*"[^>]*href="/"') {
@@ -92,16 +92,17 @@ if ($compatibilityHtml -match 'imo-capability-card__version' -or
 $pdfHubHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'pdf\index.html')
 Assert-ContainsLiteral -Text $pdfHubHtml -Expected 'PDF tools for browsers and .NET' -Contract 'PDF workflow hub'
 
+$browserTools = (Get-Content -LiteralPath (Join-Path $sourceRootPath 'data\browser_tools.json') -Raw | ConvertFrom-Json).tools
 foreach ($operation in @($pdfWorkflowCatalog.operations)) {
     $operationHtml = Get-RequiredText -Path (Join-Path $siteRootPath "pdf\$($operation.slug)\index.html")
-    $expectedUrl = "$($pdfWorkflowCatalog.browserBaseUrl)$($operation.id)"
+    $expectedUrl = "/browser/$((@($browserTools | Where-Object { $_.engine.kind -eq 'pdf' -and $_.engine.target -eq $operation.id }))[0].id)/"
     Assert-ContainsLiteral -Text $operationHtml -Expected $expectedUrl -Contract "PDF operation handoff '$($operation.id)'"
     Assert-ContainsLiteral -Text $operationHtml -Expected '/css/product.css' -Contract "PDF operation styling '$($operation.id)'"
 }
 
 foreach ($conversion in @($pdfWorkflowCatalog.browserConversions)) {
     $conversionHtml = Get-RequiredText -Path (Join-Path $siteRootPath "convert\$($conversion.slug)\index.html")
-    $expectedUrl = "/convert/?workspace=convert&route=$($conversion.routeId)"
+    $expectedUrl = "/browser/$((@($browserTools | Where-Object { $_.engine.kind -eq 'convert' -and $_.engine.target -eq $conversion.routeId }))[0].id)/"
     Assert-ContainsLiteral -Text $conversionHtml -Expected $expectedUrl -Contract "PDF conversion handoff '$($conversion.routeId)'"
 }
 

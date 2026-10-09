@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if page.meta.seo_title }}{{ page.meta.seo_title }}{{ else }}{{ page.title }} | {{ site.name }}{{ end }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
+  <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
+  {{ head_html }}
+  {{ include "theme-init" }}
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+{{~ catalog = data.browser_tools ~}}
+{{~ tool = null ~}}{{~ for candidate in catalog.tools ~}}{{~ if candidate.id == page.meta.tool ~}}{{~ tool = candidate ~}}{{~ end ~}}{{~ end ~}}
+{{~ group = null ~}}{{~ for candidate in catalog.groups ~}}{{~ if tool && candidate.id == tool.group ~}}{{~ group = candidate ~}}{{~ end ~}}{{~ end ~}}
+  <link rel="modulepreload" href="{{ catalog.engineBase }}engine-worker.js" />
+</head>
+<body class="imo-body imo-body--browser-tool">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+  <main id="content" class="imo-main bt-main">
+{{~ if tool ~}}
+{{~ input = tool.input ~}}
+{{~ has_pages = false ~}}{{~ advanced_count = 0 ~}}
+{{~ for option in tool.options ~}}{{~ if option.type == "pages" ~}}{{~ has_pages = true ~}}{{~ end ~}}{{~ if option.advanced ~}}{{~ advanced_count = advanced_count + 1 ~}}{{~ end ~}}{{~ for choice in option.choices ~}}{{~ if choice.advanced ~}}{{~ advanced_count = advanced_count + 1 ~}}{{~ end ~}}{{~ end ~}}{{~ end ~}}
+{{~ add_label = "Add a file" ~}}
+{{~ if input.kind == "text" ~}}{{~ add_label = "Add your " + input.label ~}}{{~ else if input.kind == "files" ~}}{{~ add_label = "Add your PDFs" ~}}{{~ else if input.kind == "pair" ~}}{{~ add_label = "Add both PDFs" ~}}{{~ end ~}}
+{{~ middle_label = "Run the tool" ~}}
+{{~ if tool.engine.commit || tool.engine.find ~}}{{~ middle_label = "Review what's found" ~}}{{~ else if tool.options.size > 0 ~}}{{~ middle_label = "Choose options" ~}}{{~ else if input.auto ~}}{{~ middle_label = "Review the result" ~}}{{~ end ~}}
+{{~ slots = "" ~}}{{~ if input.slots ~}}{{~ slots = input.slots | array.join "|" ~}}{{~ end ~}}
+{{~ sample_options = [] ~}}{{~ if input.sampleOptions ~}}{{~ for key in (object.keys input.sampleOptions) ~}}{{~ sample_options = array.add sample_options (key + "=" + input.sampleOptions[key]) ~}}{{~ end ~}}{{~ end ~}}
+    <div class="bt-shell">
+      <nav class="bt-crumbs" aria-label="Breadcrumb">
+        <a href="/convert/">Browser tools</a>
+        {{~ if group ~}}<span aria-hidden="true">/</span><a href="/convert/#browser-{{ group.id }}">{{ group.title | html.escape }}</a>{{~ end ~}}
+      </nav>
+      <header class="bt-head">
+        <div class="bt-head__copy">
+          <h1>{{ tool.title | html.escape }}</h1>
+          <p>{{ tool.summary | html.escape }}</p>
+        </div>
+        <p class="bt-local" data-bt-engine-status>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span data-bt-engine-text>Runs in this tab · nothing is uploaded</span>
+        </p>
+      </header>
+
+      <ol class="bt-steps" data-bt-steps aria-label="Steps">
+        <li class="is-now" data-step="1"><span>{{ add_label | html.escape }}</span></li>
+        <li data-step="2"><span>{{ middle_label | html.escape }}</span></li>
+        <li data-step="3"><span>Download the result</span></li>
+      </ol>
+
+      <section class="bt-tool" aria-label="{{ tool.title | html.escape }}"
+        data-browser-tool="{{ tool.id }}"
+        data-engine-base="{{ catalog.engineBase }}"
+        data-kind="{{ tool.engine.kind }}"
+        data-target="{{ tool.engine.target }}"
+        data-action="{{ tool.engine.action }}"
+        data-commit="{{ tool.engine.commit }}"
+        data-find="{{ tool.engine.find }}"
+        data-confirm="{{ tool.engine.confirm }}"
+        data-assemblies="{{ tool.engine.assemblies | array.join "," }}"
+        data-input="{{ input.kind }}"
+        data-accept="{{ input.accept }}"
+        data-label="{{ input.label | html.escape }}"
+        data-min="{{ input.min }}"
+        data-max="{{ input.max }}"
+        data-auto="{{ input.auto }}"
+        data-live="{{ input.live }}"
+        data-sample="{{ input.sample }}"
+        data-sample-name="{{ input.sampleName }}"
+        data-sample-second="{{ input.sampleSecond }}"
+        data-sample-second-name="{{ input.sampleSecondName }}"
+        data-sample-note="{{ input.sampleNote | html.escape }}"
+        data-sample-options="{{ sample_options | array.join "|" | html.escape }}"
+        data-slots="{{ slots | html.escape }}"
+        data-run-label="{{ tool.run.label | html.escape }}"
+        data-confirm-label="{{ tool.run.confirmLabel | html.escape }}"
+        data-busy="{{ tool.run.busy | array.join "|" | html.escape }}">
+        <div class="bt-grid">
+          <div class="bt-panel bt-input">
+{{~ if input.kind == "text" ~}}
+            <div class="bt-editor">
+              <div class="bt-editor__bar">
+                <label for="bt-text">{{ input.label | html.escape }}</label>
+                <span class="bt-editor__actions">
+                  <label class="bt-link bt-file-link">Open a file<input id="bt-file" class="bt-visually-hidden" type="file" accept="{{ input.accept }}" data-bt-file-input /></label>
+                  <button type="button" class="bt-link" data-bt-reset-text>Use the example</button>
+                </span>
+              </div>
+              <textarea id="bt-text" class="bt-textarea" spellcheck="false" maxlength="500000" data-bt-text data-sample="{{ input.sampleText | html.escape }}">{{ input.sampleText | html.escape }}</textarea>
+              <p class="bt-hint">{{ if input.live }}The result updates as you type.{{ else }}Example text is filled in. Replace it with your own.{{ end }}</p>
+            </div>
+{{~ else ~}}
+            <div class="bt-drop" data-bt-drop>
+              <input id="bt-file" class="bt-visually-hidden" type="file" accept="{{ input.accept }}" {{ if input.kind == "files" || input.kind == "pair" }}multiple{{ end }} data-bt-file-input />
+              <label class="bt-drop__target" for="bt-file">
+                <svg class="bt-drop__icon" viewBox="0 0 32 32" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 4H8a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V11Z"/><path d="M19 4v7h7M16 24v-9m-4 4 4-4 4 4"/></svg>
+                <strong>{{ if input.kind == "files" }}Drop your PDFs here{{ else if input.kind == "pair" }}Drop two PDFs here{{ else }}Drop your {{ input.label | html.escape }} here{{ end }}</strong>
+                <small>{{ input.accept | string.replace "," ", " | string.upcase | string.replace "." "" }} · up to 25 MB{{ if input.max }} · up to {{ input.max }} files{{ end }}</small>
+                <span class="bt-btn bt-btn--primary" data-bt-choose>Choose {{ if input.kind == "files" || input.kind == "pair" }}files{{ else }}a file{{ end }}</span>
+              </label>
+              {{~ if input.sample ~}}<button type="button" class="bt-link" data-bt-sample>Or try it with our sample {{ if input.kind == "pair" || input.kind == "files" }}files{{ else }}file{{ end }}</button>{{~ end ~}}
+            </div>
+            <ul class="bt-files" data-bt-files hidden></ul>
+{{~ end ~}}
+{{~ if tool.options.size > 0 ~}}
+            <form class="bt-options" data-bt-options novalidate>
+{{~ for option in tool.options ~}}
+{{~ if !option.advanced ~}}
+{{~ if option.type == "choice" ~}}
+              <fieldset class="bt-choice" data-option="{{ option.id }}">
+                <legend>{{ option.label | html.escape }}</legend>
+{{~ for choice in option.choices ~}}{{~ if !choice.advanced ~}}
+                <label class="bt-choice__item"><input type="radio" name="{{ option.id }}" value="{{ choice.value }}" {{ if choice.value == option.default }}checked{{ end }} /><span><b>{{ choice.label | html.escape }}</b>{{ if choice.hint }}<small>{{ choice.hint | html.escape }}</small>{{ end }}</span></label>
+{{~ end ~}}{{~ end ~}}
+              </fieldset>
+{{~ else if option.type == "number" ~}}
+              <label class="bt-field"><span>{{ option.label | html.escape }}</span><input type="number" name="{{ option.id }}" value="{{ option.default }}" min="{{ option.min }}" max="{{ option.max }}" inputmode="numeric" /></label>
+{{~ else if option.type == "text" ~}}
+              <label class="bt-field"><span>{{ option.label | html.escape }}</span><input type="text" name="{{ option.id }}" placeholder="{{ option.placeholder | html.escape }}" autocomplete="off" {{ if option.required }}data-required{{ end }} /></label>
+{{~ else if option.type == "password" ~}}
+              <label class="bt-field"><span>{{ option.label | html.escape }}</span><span class="bt-password"><input type="password" name="{{ option.id }}" autocomplete="new-password" {{ if option.required }}data-required{{ end }} /><button type="button" class="bt-link" data-bt-reveal>Show</button></span>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</label>
+{{~ if option.confirm ~}}
+              <label class="bt-field"><span>Type it again</span><input type="password" name="{{ option.id }}__confirm" autocomplete="new-password" data-confirms="{{ option.id }}" /></label>
+{{~ end ~}}
+{{~ else if option.type == "pages" ~}}
+              <div class="bt-pages" data-bt-pages="{{ option.mode }}" data-option="{{ option.id }}">
+                <p class="bt-pages__label">{{ option.label | html.escape }}</p>
+                <p class="bt-hint" data-bt-pages-empty>Add a PDF to see its pages here.</p>
+              </div>
+{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
+{{~ if advanced_count > 0 ~}}
+              <details class="bt-advanced">
+                <summary>More options</summary>
+{{~ for option in tool.options ~}}
+{{~ if option.type == "choice" ~}}{{~ for choice in option.choices ~}}{{~ if choice.advanced ~}}
+                <label class="bt-choice__item bt-choice__item--extra"><input type="radio" name="{{ option.id }}" value="{{ choice.value }}" /><span><b>{{ option.label | html.escape }}: {{ choice.label | html.escape }}</b>{{ if choice.hint }}<small>{{ choice.hint | html.escape }}</small>{{ end }}</span></label>
+{{~ end ~}}{{~ end ~}}{{~ end ~}}
+{{~ if option.advanced ~}}
+{{~ if option.type == "flag" ~}}
+                <label class="bt-check"><input type="checkbox" name="{{ option.id }}" value="true" /><span><b>{{ option.label | html.escape }}</b>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</span></label>
+{{~ else if option.type == "password" ~}}
+                <label class="bt-field"><span>{{ option.label | html.escape }}</span><span class="bt-password"><input type="password" name="{{ option.id }}" autocomplete="new-password" /><button type="button" class="bt-link" data-bt-reveal>Show</button></span>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</label>
+{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
+              </details>
+{{~ end ~}}
+            </form>
+{{~ end ~}}
+            <div class="bt-action">
+              <button type="button" class="bt-btn bt-btn--primary bt-btn--block" data-bt-run disabled>{{ tool.run.label | html.escape }}</button>
+              <p class="bt-hint" data-bt-hint role="status">{{ if input.kind == "text" }}Ready when you are.{{ else }}Add a file to start.{{ end }}</p>
+            </div>
+          </div>
+
+          <div class="bt-panel bt-output" data-bt-output aria-live="polite">
+            <div class="bt-empty" data-bt-empty>
+              <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="5" width="25" height="35" rx="4"/><path d="M15 14h13M15 20h9"/><circle cx="32" cy="32" r="9"/><path d="m28.5 32 2.5 2.5 4.5-5"/></svg>
+              <h2>Your result will appear here</h2>
+              <p>{{ tool.expect | html.escape }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <ul class="bt-next-source" data-bt-next hidden>
+{{~ for next_id in tool.next ~}}{{~ for candidate in catalog.tools ~}}{{~ if candidate.id == next_id ~}}
+        <li><a href="/browser/{{ candidate.id }}/" data-accept="{{ candidate.input.accept }}" data-input="{{ candidate.input.kind }}">{{ candidate.title | html.escape }}</a></li>
+{{~ end ~}}{{~ end ~}}{{~ end ~}}
+      </ul>
+
+      <section class="bt-about" aria-label="About this tool">
+        <div>
+          <h2>What to expect</h2>
+          <p>{{ tool.expect | html.escape }}</p>
+          <a href="{{ tool.guide }}">Read the guide</a>
+        </div>
+        <div>
+          <h2>Use it in your own code</h2>
+          <p>The same engine is the <a href="https://www.nuget.org/packages/{{ tool.package }}"><code>{{ tool.package }}</code></a> package for .NET. Run it on a server, in a script, or in your app, without Microsoft Office.</p>
+          <pre class="bt-code"><code>dotnet add package {{ tool.package }}</code></pre>
+        </div>
+        <div>
+          <h2>What happens to your file</h2>
+          <p>OfficeIMO runs inside this browser tab as WebAssembly. Your file is read here, never uploaded, stored or logged. Close the tab and it's gone.</p>
+          <a href="/convert/">See all browser tools</a>
+        </div>
+      </section>
+{{ content }}
+    </div>
+    <noscript><div class="bt-shell"><p>This tool needs JavaScript to run in your browser. You can still read the <a href="{{ tool.guide }}">guide</a>.</p></div></noscript>
+{{~ else ~}}
+    <div class="bt-shell"><h1>Tool not found</h1><p>This browser tool isn't in the catalog. <a href="/convert/">See all browser tools</a>.</p></div>
+{{~ end ~}}
+  </main>
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

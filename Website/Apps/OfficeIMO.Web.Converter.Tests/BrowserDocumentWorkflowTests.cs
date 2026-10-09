@@ -1,7 +1,4 @@
 using OfficeIMO.Provenance;
-using OfficeIMO.Web.Converter.Components;
-using OfficeIMO.Web.Converter.Models;
-using OfficeIMO.Web.Converter.Services;
 using OfficeIMO.Workflows;
 using Xunit;
 
@@ -14,50 +11,7 @@ public sealed class BrowserDocumentWorkflowTests {
         Assert.All(OfficeProvenanceWorkflowCatalog.BrowserCapabilities, capability => {
             Assert.True(capability.BrowserAvailable);
             Assert.False(string.IsNullOrWhiteSpace(capability.BrowserLabel));
-            Assert.Contains(capability.BrowserLabel!, ProvenanceWorkbench.BrowserFormatSummary, StringComparison.Ordinal);
         });
-        Assert.DoesNotContain("ISO", ProvenanceWorkbench.BrowserFormatSummary, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void WebsiteFileDropOffersProvenanceForTheQualifiedBrowserExtensions() {
-        string? directory = AppContext.BaseDirectory;
-        string? template = null;
-        while (directory is not null && template is null) {
-            string candidate = Path.Combine(directory, "themes", "officeimo", "partials", "shortcodes", "browser-tools.html");
-            if (System.IO.File.Exists(candidate)) template = candidate;
-            directory = Path.GetDirectoryName(directory);
-        }
-        Assert.NotNull(template);
-
-        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
-            System.IO.File.ReadAllText(template!), @"provenance_extensions = \[(?<list>[^\]]*)\]");
-        Assert.True(match.Success, "browser-tools.html must declare provenance_extensions.");
-        string[] declared = match.Groups["list"].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(value => value.Trim('"'))
-            .ToArray();
-        Assert.Equal(OfficeProvenanceWorkflowCatalog.BrowserExtensions, declared);
-    }
-
-    [Fact]
-    public void SessionChainsResultsAndRestoresOriginalSelection() {
-        var session = new BrowserDocumentSession();
-        var first = File("first.pdf", [1, 2]); var second = File("second.pdf", [3]);
-        session.Open([first, second]);
-        session.SelectCurrent([second, first]);
-        int revision = session.Revision;
-        session.SetResult([4, 5], "merged.pdf", revision);
-        session.UseResult();
-        Assert.Equal("merged.pdf", Assert.Single(session.Current).Name);
-        session.SetResult([9], "stale.pdf", revision);
-        Assert.Null(session.LatestResult);
-        session.RestoreOriginals();
-        Assert.Equal(new[] { "first.pdf", "second.pdf" }, session.Current.Select(file => file.Name));
-        session.SetResult([0], "pages.zip", session.Revision);
-        Assert.Null(session.LatestResult);
-        session.Clear();
-        Assert.Empty(session.Current); Assert.Empty(session.Originals);
     }
 
     [Fact]
@@ -90,5 +44,4 @@ public sealed class BrowserDocumentWorkflowTests {
         }
         return output.ToArray();
     }
-    private static SelectedDocument File(string name, byte[] bytes) => new(name, Path.GetExtension(name), "PDF", bytes.Length, bytes);
 }

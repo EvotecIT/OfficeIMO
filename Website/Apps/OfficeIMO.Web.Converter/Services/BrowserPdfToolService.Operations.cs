@@ -43,16 +43,17 @@ internal sealed partial class BrowserPdfToolService {
         string summary = pageCount.HasValue
             ? $"Inspected {pageCount.Value} PDF page{(pageCount.Value == 1 ? string.Empty : "s")}."
             : "Created a bounded PDF preflight report.";
-        byte[] inspection = JsonSerializer.SerializeToUtf8Bytes(new {
-            schemaVersion = 1,
-            tool = request.Tool.Id,
-            engine = "OfficeIMO.Pdf",
-            browserLocal = true,
-            source = new { fileName = file.Name, bytes = file.Bytes.LongLength },
-            summary,
-            details,
-            messages = messages.Select(static message => new { title = message.Title, message = message.Message })
-        }, new JsonSerializerOptions { WriteIndented = true });
+        byte[] inspection = JsonSerializer.SerializeToUtf8Bytes(
+            new PdfInspectionDocument(
+                1,
+                request.Tool.Id,
+                "OfficeIMO.Pdf",
+                BrowserLocal: true,
+                new PdfInspectionSource(file.Name, file.Bytes.LongLength),
+                summary,
+                details,
+                messages.Select(static message => new PdfInspectionMessage(message.Title, message.Message)).ToArray()),
+            BrowserReportJsonContext.Default.PdfInspectionDocument);
         return new PdfToolExecution(
             new BrowserConversionArtifact(inspection, OutputName(file, "inspection", ".json"), "application/json"),
             summary,

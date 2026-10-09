@@ -46,7 +46,7 @@ Complex source formats do not map perfectly to PDF in every case. Conversion res
 
 ## Try real PDF workflows in the browser
 
-The [browser document workspace](/convert/?workspace=pdf&tool=inspect) runs a focused set of `OfficeIMO.Pdf` operations through WebAssembly. Files stay in the current tab, and every successful operation produces a downloadable artifact plus a JSON report with input and output fingerprints.
+The [browser document workspace](/browser/inspect-pdf/) runs a focused set of `OfficeIMO.Pdf` operations through WebAssembly. Files stay in the current tab, and every successful operation produces a downloadable artifact plus a JSON report with input and output fingerprints.
 
 | Browser task | Result |
 |---|---|
@@ -57,7 +57,7 @@ The [browser document workspace](/convert/?workspace=pdf&tool=inspect) runs a fo
 | [Redact](/pdf/redact/) | Literal text removal followed by checks of extracted text, encoded strings, and decoded streams |
 | [Compare](/pdf/compare/) | A self-contained visual gallery with expected, actual, and highlighted page differences |
 
-[Browse every PDF workflow](/pdf/), [open PDF tools](/convert/?workspace=pdf&tool=inspect), or download the [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) used by the built-in samples.
+[Browse every PDF workflow](/pdf/), [open PDF tools](/browser/inspect-pdf/), or download the [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) used by the built-in samples.
 
 ## Convert PDF content into editable formats
 
