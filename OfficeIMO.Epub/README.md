@@ -304,6 +304,11 @@ definition lists become unordered lists and trailing terms receive empty descrip
 These translations report approximations,
 and unsupported legacy values report omissions.
 
+XHTML and MathML `xml:id` destinations become `id` attributes before chapter planning.
+SVG destinations receive matching `id` attributes for fragment links.
+An XML identifier that conflicts with an existing ID reports a failure and
+keeps the existing destination.
+
 ```csharp
 using OfficeIMO.Epub;
 using OfficeIMO.Html;

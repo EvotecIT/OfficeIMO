@@ -4,8 +4,24 @@ namespace OfficeIMO.Epub;
 
 public static partial class EpubManuscript {
     private static void NormalizeLegacyHtml(XElement element, List<OfficeConversionFidelityDiagnostic> diagnostics) {
-        if (element.Name.Namespace != Xhtml) return;
         string name = element.Name.LocalName;
+        bool xhtml = element.Name.Namespace == Xhtml;
+        bool svg = element.Name.NamespaceName == "http://www.w3.org/2000/svg";
+        bool supportedNamespace = xhtml || svg ||
+            element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML";
+        // Reading-system fragment lookup uses id. SVG may keep a matching
+        // xml:id; EPUB XHTML and MathML do not permit that redundant attribute.
+        if (supportedNamespace && element.Attribute(XNamespace.Xml + "id") is XAttribute xmlId) {
+            string? id = (string?)element.Attribute("id");
+            bool conflicting = !string.IsNullOrEmpty(id) && id != xmlId.Value;
+            if (string.IsNullOrEmpty(id)) element.SetAttributeValue("id", xmlId.Value);
+            AddDiagnostic(diagnostics, conflicting ? "EPUB_IMPORT_ID_REFERENCE_INVALID" : "EPUB_IMPORT_XML_ID_NORMALIZED",
+                conflicting ? "An XML identifier conflicts with its existing destination; the XML alias was omitted."
+                    : "An XML identifier was represented as an id destination.",
+                name + "@xml:id", conflicting ? OfficeConversionLossKind.Failure : OfficeConversionLossKind.None);
+            if (!svg || conflicting) xmlId.Remove();
+        }
+        if (!xhtml) return;
         if (name is "table" or "tr" or "td" or "th" or "div" or "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "hr") {
             Translate("align", value => Alignment(name, value));
         }

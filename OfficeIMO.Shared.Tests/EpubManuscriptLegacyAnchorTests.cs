@@ -13,7 +13,8 @@ namespace OfficeIMO.Shared.Tests {
             var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Manual</title><h1>Manual</h1>" + body));
             Assert.False(result.Succeeded);
             Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ID_REFERENCE_INVALID");
-            Assert.Single(result.Publication.GetContentXml("chapter-1").Descendants().Attributes(XNamespace.Xml + "id"), attribute => attribute.Value == "legacy");
+            Assert.Single(result.Publication.GetContentXml("chapter-1").Descendants().Attributes("id"), attribute => attribute.Value == "legacy");
+            Assert.Empty(result.Publication.GetContentXml("chapter-1").Descendants().Attributes(XNamespace.Xml + "id"));
             Assert.NotEmpty(result.Publication.Write().RequireValue());
         }
 
@@ -23,6 +24,8 @@ namespace OfficeIMO.Shared.Tests {
         public void AnAnchorMayRetainItsOwnXmlId(string anchor) {
             var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Manual</title><h1>Manual</h1><a href='#legacy'>Go</a>" + anchor));
             Assert.True(result.Succeeded);
+            Assert.Single(result.Publication.GetContentXml("chapter-1").Descendants().Attributes("id"), attribute => attribute.Value == "legacy");
+            Assert.Empty(result.Publication.GetContentXml("chapter-1").Descendants().Attributes(XNamespace.Xml + "id"));
             Assert.NotEmpty(result.Publication.Write().RequireValue());
         }
 
@@ -33,7 +36,8 @@ namespace OfficeIMO.Shared.Tests {
             Assert.True(result.Succeeded);
             XDocument chapter = result.Publication.GetContentXml("chapter-1");
             Assert.Single(chapter.Descendants().Attributes("id"), attribute => attribute.Value == "legacy");
-            Assert.Single(chapter.Descendants().Attributes(XNamespace.Xml + "id"), attribute => attribute.Value == "modern");
+            Assert.Single(chapter.Descendants().Attributes("id"), attribute => attribute.Value == "modern");
+            Assert.Empty(chapter.Descendants().Attributes(XNamespace.Xml + "id"));
             Assert.NotEmpty(result.Publication.Write().RequireValue());
         }
 
@@ -44,6 +48,33 @@ namespace OfficeIMO.Shared.Tests {
             var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Manual</title><h1>One</h1><a href='#target'>Go</a>" + heading + "<p xml:id='target'>Target</p>"));
             Assert.True(result.Succeeded);
             Assert.Equal(expected, (string?)Assert.Single(result.Publication.GetContentXml("chapter-1").Descendants(XName.Get("a", "http://www.w3.org/1999/xhtml"))).Attribute("href"));
+            Assert.Single(result.Publication.GetContentXml(heading.Length == 0 ? "chapter-1" : "chapter-2").Descendants().Attributes("id"), attribute => attribute.Value == "target");
+            Assert.NotEmpty(result.Publication.Write().RequireValue());
+        }
+
+        [Theory]
+        [InlineData("<p id='primary' xml:id='alias'>Target</p>")]
+        [InlineData("<svg xmlns='http://www.w3.org/2000/svg' id='primary' xml:id='alias' viewBox='0 0 10 10'><rect width='10' height='10'/></svg>")]
+        public void ConflictingIdentifiersKeepPrimaryDestinationAndReportOmittedAlias(string target) {
+            var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Manual</title><h1>Manual</h1>" +
+                "<a href='#primary'>Go</a>" + target));
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ID_REFERENCE_INVALID");
+            Assert.Single(result.Publication.GetContentXml("chapter-1").Descendants().Attributes("id"), attribute => attribute.Value == "primary");
+            Assert.Empty(result.Publication.GetContentXml("chapter-1").Descendants().Attributes(XNamespace.Xml + "id"));
+            Assert.NotEmpty(result.Publication.Write().RequireValue());
+        }
+
+        [Theory]
+        [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xml:id='diagram' viewBox='0 0 10 10'><rect width='10' height='10'/></svg>", "http://www.w3.org/2000/svg", "svg", true)]
+        [InlineData("<math xmlns='http://www.w3.org/1998/Math/MathML' xml:id='diagram'><mi>x</mi></math>", "http://www.w3.org/1998/Math/MathML", "math", false)]
+        public void ForeignXmlIdentifiersReceiveFragmentDestinations(string markup, string ns, string name, bool retainsXmlId) {
+            var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Manual</title><h1>Manual</h1>" +
+                "<a href='#diagram'>Go</a>" + markup));
+            Assert.True(result.Succeeded);
+            XElement target = Assert.Single(result.Publication.GetContentXml("chapter-1").Descendants(XName.Get(name, ns)));
+            Assert.Equal(retainsXmlId ? "diagram" : null, (string?)target.Attribute(XNamespace.Xml + "id"));
+            Assert.Equal("diagram", (string?)target.Attribute("id"));
             Assert.NotEmpty(result.Publication.Write().RequireValue());
         }
 
