@@ -1,5 +1,18 @@
 # Upgrading OfficeIMO
 
+## Word VBA module identities and removal
+
+`WordDocument.Macros` returns logical names from the VBA directory when a complete
+project is present. Applications that previously used compound stream names
+must use those logical names. `RemoveMacro` rejects protected-project mutation,
+host document/designer deletion and edits to signed VBA projects. For a signed
+project, delete the selected standard/class module through `ReadVbaProject()`
+and apply it with `SetVbaProject(project, new OfficeVbaWriteOptions {
+AllowSignatureRemoval = true })` to explicitly remove invalidated signatures.
+Use the typed `ReadVbaProject()` and
+`SetVbaProject(...)` workflow for explicit source changes and signature policy;
+use `RemoveMacros()` only when removing the entire project is intended.
+
 ## PDF named composite font mappings
 
 Text extraction throws `NotSupportedException` when shown text uses a named

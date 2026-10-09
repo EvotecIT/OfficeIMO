@@ -17,6 +17,80 @@ For bounded image sequences, filtering, text drawing, comparison, and visual fin
 dotnet add package OfficeIMO.Core
 ```
 
+## Native VBA projects
+
+`OfficeVbaProject` in the `OfficeIMO` namespace reads and writes the MS-OVBA
+compound project used by Office documents. It uses the existing managed compound
+storage and signature-binding infrastructure. Source editing requires no Python,
+Office installation, COM automation, or additional runtime package.
+
+```csharp
+using OfficeIMO;
+
+var project = OfficeVbaProject.Create("Automation");
+project.AddModule("Helpers",
+    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
+project.AddRegisteredReference("Office",
+    new Guid("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52"), 2, 8);
+File.WriteAllBytes("vbaProject.bin", project.Write().GetBytes());
+
+var loaded = OfficeVbaProject.Load(File.ReadAllBytes("vbaProject.bin"));
+loaded.ExportSources("automation-source"); // Destination must be new.
+// Edit the numbered .bas/.cls files; vba-project.xml retains logical identities.
+loaded.ImportSources("automation-source");
+loaded.RenameModule("Helpers", "Tools");
+File.WriteAllBytes("edited-project.bin", loaded.Write().GetBytes());
+```
+
+`Modules` exposes logical names, persistence kinds, and source including persisted
+`Attribute` lines. `SetModuleSource`, `AddModule`, `RenameModule`, `DeleteModule`,
+`AddRegisteredReference`, and `RemoveReference` operate on a detached model.
+Module and reference lookup is case-insensitive. Renaming and reference removal
+do not rewrite statements that use the old names or types; callers update those
+statements explicitly. Adding a reference writes its identity without installing
+or resolving a type library.
+
+| Operation | Contract |
+| --- | --- |
+| Read | Bounded directory, reference, standard/class, document, and designer-source decoding. Unsupported directory records fail explicitly. |
+| Create | Template-free project, standard modules, ordinary classes, and explicit registered references. Document adapters own host identities. |
+| Edit | Replace source; rename/delete standard and ordinary class modules. Document/designer source retains its existing identity and opaque design. |
+| Preserve | An unchanged write returns the exact original bytes. Edits retain unrelated streams, storage metadata, reference records, and untouched token-compressed module stream bytes. Existing raw source chunks are normalized without changing the source or its stream prefix. |
+| Import/export | UTF-8 `.bas`/`.cls` source with an XML manifest. Import validates the entire batch before changing the model; omitted modules remain present. |
+| Protection | Protected projects are readable and support unchanged writes. Mutation is rejected; protection is never bypassed or removed. |
+| Signatures | The containing document adapter rejects a changed signed project unless `AllowSignatureRemoval` is explicit. Re-sign after editing, before signing the whole package. |
+
+Modules with source changes are rewritten without compiled prefixes. Writes clear
+project compilation state and `__SRP_` caches so Office rebuilds them. Source uses
+CRLF and the project's code page with strict character checks. Windows-1252 is
+built in; other code pages must be available in the application's runtime or its
+already registered encoding provider. The writer uses token-compressed chunks
+and adapts their length for incompressible source, preserving the source bytes
+without inserting padding. Reading existing raw chunks and unchanged-byte
+preservation remain supported.
+
+Input/output compound bytes and aggregate expanded directory/source each default
+to 64 MiB. Configure `OfficeVbaReadOptions` and `OfficeVbaWriteOptions` for a
+different bounded workload. New module identifiers are ASCII VBA identifiers up
+to 31 characters; existing Unicode module identities remain readable.
+
+Document adapters retain a bounded recovery snapshot of the existing VBA payload
+and child parts while applying an update. `OfficeVbaWriteOptions.MaximumRecoveryBytes`
+controls that separate limit, which defaults to 64 MiB; `MaximumProjectBytes`
+continues to bound the new output, so a smaller replacement can replace a larger
+existing project. Media data-part references in that VBA subgraph are rejected
+before mutation. Recoverable storage failures restore the prior payload and
+child parts, including Word's final named-module removal. If the backing storage
+also prevents restoration or cleanup, the adapter throws
+an `AggregateException` containing both failures; discard that document instance.
+
+Word, Excel, and PowerPoint expose `ReadVbaProject()` and
+`SetVbaProject(OfficeVbaProject, ...)` over this same model. See their package
+READMEs for document usage. This API edits source and preserves existing form
+designers; it does not compile or execute VBA, create form designers, or provide
+an Access database carrier.
+
 ## Mathematical drawing
 
 `OfficeMathRenderer` renders the owned equation model using caller-supplied fonts.

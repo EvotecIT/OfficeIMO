@@ -6,6 +6,10 @@ An item belongs here when it has a clear product outcome and an owning package. 
 
 Deliberately bounded compatibility contracts are not backlog by themselves. A preserved or rejected profile with a documented diagnostic becomes roadmap work only when the repository adopts a concrete supported shape and evidence plan for it.
 
+## VBA host integration
+
+- [ ] Connect the Access carrier to the [shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects) after native database storage is available. Keep database reading/writing in the Access owner, preserve database-specific module identities, and qualify source edits against Access-produced files.
+
 ## OfficeIMO JavaScript
 
 | Open milestone | Content and acceptance | Consumers |

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using OfficeIMO.Security;
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Reads reusable, non-executing metadata from an Office VBA compound project.</summary>
@@ -20,11 +19,11 @@ namespace OfficeIMO.Core.Internal {
                 cancellationToken.ThrowIfCancellationRequested();
                 encodedRemaining += stream.Length;
             }
-            if (!OfficeVbaProjectCanonicalizer.TryDecompress(compressed, ref remaining, out byte[] directory, out string detail, cancellationToken)
-                || !OfficeVbaProjectCanonicalizer.DirectoryModel.TryParse(directory, maximumExpandedBytes, out OfficeVbaProjectCanonicalizer.DirectoryModel? model, out detail) || model == null)
+            if (!OfficeVbaCompression.TryDecompress(compressed, ref remaining, out byte[] directory, out string detail, cancellationToken)
+                || !OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, maximumExpandedBytes, out OfficeVbaDirectoryCodec.DirectoryModel? model, out detail, includeSignatureTranscripts: false) || model == null)
                 return new OfficeVbaInspection(detail);
-            List<OfficeVbaModule> modules = new List<OfficeVbaModule>();
-            foreach (OfficeVbaProjectCanonicalizer.ModuleModel module in model.Modules) {
+            List<OfficeVbaModuleInspection> modules = new List<OfficeVbaModuleInspection>();
+            foreach (OfficeVbaDirectoryCodec.ModuleModel module in model.Modules) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string name = module.UnicodeName.Length > 0 ? new UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
                     : Decode(module.AnsiName, model.CodePage);
@@ -37,18 +36,18 @@ namespace OfficeIMO.Core.Internal {
                     // Charge each attempt before copying, including immediate failures and repeated declarations.
                     encodedRemaining -= bytes.Length - module.TextOffset;
                     byte[] container = new byte[bytes.Length - module.TextOffset]; Array.Copy(bytes, module.TextOffset, container, 0, container.Length);
-                    if (!OfficeVbaProjectCanonicalizer.TryDecompress(container, ref remaining, out byte[] expanded, out detail, cancellationToken)) limitation = detail;
+                    if (!OfficeVbaCompression.TryDecompress(container, ref remaining, out byte[] expanded, out detail, cancellationToken)) limitation = detail;
                     else {
                         try { source = Decode(expanded, model.CodePage); }
                         catch (NotSupportedException) { limitation = "The module source code page is not supported; its stream remains opaque."; }
                         catch (DecoderFallbackException) { limitation = "The module source is not valid for its declared code page; its stream remains opaque."; }
                     }
                 }
-                modules.Add(new OfficeVbaModule(name, module.StreamName, module.TypeId == 0x0021, module.TextOffset,
+                modules.Add(new OfficeVbaModuleInspection(name, module.StreamName, module.TypeId == 0x0021, module.TextOffset,
                     module.ReadOnlyRecord != null, module.PrivateRecord != null, source, limitation));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeVbaReference[] references = model.References.Select(reference => new OfficeVbaReference(
+            OfficeVbaReferenceInspection[] references = model.References.Select(reference => new OfficeVbaReferenceInspection(
                 new UnicodeEncoding(false, false, true).GetString(reference.UnicodeName), reference.Kind,
                 Decode(reference.LibId, model.CodePage))).ToArray();
             return new OfficeVbaInspection(Decode(model.ProjectName, model.CodePage), model.CodePage, modules.ToArray(), references);
@@ -71,13 +70,33 @@ namespace OfficeIMO.Core.Internal {
                 return Array.Empty<string>();
             }
 
+            if (TryReadDirectory(compoundFile, out OfficeVbaDirectoryCodec.DirectoryModel? model)) {
+                try {
+                    return model!.Modules.Select(module => module.UnicodeName.Length > 0
+                        ? new System.Text.UnicodeEncoding(false, false, true).GetString(module.UnicodeName)
+                        : OfficeVbaText.Decode(module.AnsiName, model.CodePage))
+                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray();
+                } catch (System.Text.DecoderFallbackException) { }
+                catch (NotSupportedException) { }
+            }
+
             return compoundFile.Entries
                 .Where(static entry => entry.IsStream && !entry.IsFallback)
-                .Where(entry => IsImmediateVbaStream(entry.Path) && !InfrastructureStreams.Contains(entry.Name))
+                .Where(entry => IsImmediateVbaStream(entry.Path) && !InfrastructureStreams.Contains(entry.Name)
+                    && !entry.Name.StartsWith("__SRP_", StringComparison.OrdinalIgnoreCase))
                 .Select(static entry => entry.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+        }
+
+        /// <summary>Checks directory structure before choosing metadata-based or opaque stream operations.</summary>
+        internal static bool TryReadDirectory(OfficeCompoundFile compoundFile, out OfficeVbaDirectoryCodec.DirectoryModel? model) {
+            model = null;
+            return compoundFile.Streams.TryGetValue("VBA/dir", out byte[]? compressed)
+                && OfficeVbaCompression.TryDecompress(compressed, 64 * 1024 * 1024, out byte[] directory, out _)
+                && OfficeVbaDirectoryCodec.DirectoryModel.TryParse(directory, 64 * 1024 * 1024, out model, out _, includeSignatureTranscripts: false)
+                && model != null;
         }
 
         private static bool IsImmediateVbaStream(string path) {

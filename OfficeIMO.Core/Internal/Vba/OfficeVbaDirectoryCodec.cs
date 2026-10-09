@@ -1,31 +1,43 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
-namespace OfficeIMO.Security;
+namespace OfficeIMO.Core.Internal;
 
-internal static partial class OfficeVbaProjectCanonicalizer {
+/// <summary>One directory decoder for VBA source editing and signature-binding transcripts.</summary>
+internal static class OfficeVbaDirectoryCodec {
     internal sealed class DirectoryModel {
-        internal ushort CodePage;
+        internal byte[] SerializedPrefix = Array.Empty<byte>();
+        internal int CodePage;
         internal byte[] V3Prefix = Array.Empty<byte>();
         internal byte[] ProjectModulesHeader = Array.Empty<byte>();
         internal byte[] ProjectName = Array.Empty<byte>();
         internal byte[] ProjectConstants = Array.Empty<byte>();
         internal byte[] ProjectCookieHeader = Array.Empty<byte>();
+        internal byte[] SerializedCookie = Array.Empty<byte>();
         internal byte[] TerminatorRecord = Array.Empty<byte>();
         internal readonly List<ReferenceModel> References = new();
         internal readonly List<ModuleModel> Modules = new();
 
         internal static bool TryParse(byte[] bytes, int maximumBytes,
-            out DirectoryModel? model, out string detail) {
+            out DirectoryModel? model, out string detail, bool includeSignatureTranscripts = true) {
             model = null;
             var reader = new DirectoryReader(bytes);
             var parsed = new DirectoryModel();
-            var v3 = new BoundedBuffer(maximumBytes);
+            var v3 = new BoundedBuffer(maximumBytes, includeSignatureTranscripts);
             if (!reader.TryReadSized(0x0001, out _, out byte[] sysKindHeader, includeData: false)
-                || !reader.TryReadSized(0x0002, out _, out byte[] lcidRecord, includeData: true)
-                || !v3.TryAppend(sysKindHeader) || !v3.TryAppend(lcidRecord)) {
+                || !v3.TryAppend(sysKindHeader)) {
                 detail = "The VBA directory has invalid project system or locale records.";
+                return false;
+            }
+            // Modern Office inserts PROJECTCOMPATVERSION before the locale records.
+            if (reader.PeekId == 0x004a && (!reader.TryReadSized(0x004a, out byte[] compatibility, out _, includeData: true) || compatibility.Length != 4)) {
+                detail = "The VBA directory has an invalid compatibility-version record.";
+                return false;
+            }
+            if (!reader.TryReadSized(0x0002, out _, out byte[] lcidRecord, includeData: true) || !v3.TryAppend(lcidRecord)) {
+                detail = "The VBA directory has an invalid locale record.";
                 return false;
             }
             if (reader.PeekId == 0x0014) {
@@ -36,7 +48,6 @@ internal static partial class OfficeVbaProjectCanonicalizer {
                 }
             }
             if (!reader.TryReadSized(0x0003, out byte[] codePage, out byte[] codePageHeader, false)
-                || codePage.Length != 2
                 || !reader.TryReadSized(0x0004, out parsed.ProjectName, out byte[] projectNameRecord, true)
                 || !reader.TryReadSized(0x0005, out _, out byte[] docStringHeader, false)
                 || !reader.TryReadSized(0x0040, out _, out byte[] docStringUnicodeHeader, false)
@@ -45,24 +56,35 @@ internal static partial class OfficeVbaProjectCanonicalizer {
                 || !reader.TryReadSized(0x0007, out _, out byte[] helpContextHeader, false)
                 || !reader.TryReadSized(0x0008, out _, out byte[] libFlagsRecord, true)
                 || !reader.TryReadProjectVersion(out byte[] versionRecord)
-                || !reader.TryReadSized(0x000C, out parsed.ProjectConstants, out byte[] constantsRecord, true)
-                || !reader.TryReadSized(0x003C, out _, out byte[] constantsUnicodeRecord, true)
                 || !v3.TryAppend(codePageHeader) || !v3.TryAppend(projectNameRecord)
                 || !v3.TryAppend(docStringHeader) || !v3.TryAppend(docStringUnicodeHeader)
                 || !v3.TryAppend(helpFileHeader) || !v3.TryAppend(helpFileUnicodeHeader)
                 || !v3.TryAppend(helpContextHeader) || !v3.TryAppend(libFlagsRecord)
-                || !v3.TryAppend(versionRecord) || !v3.TryAppend(constantsRecord)
-                || !v3.TryAppend(constantsUnicodeRecord)) {
+                || !v3.TryAppend(versionRecord)) {
                 detail = "The VBA directory has invalid project metadata records.";
                 return false;
             }
+            if (codePage.Length != 2) {
+                detail = "The VBA project code page record must contain two bytes.";
+                return false;
+            }
             parsed.CodePage = ReadUInt16(codePage, 0);
+            reader.CodePage = parsed.CodePage;
+            if (reader.PeekId == 0x000c && (!reader.TryReadSized(0x000c, out parsed.ProjectConstants, out byte[] constantsRecord, true)
+                || !reader.TryReadSized(0x003c, out _, out byte[] constantsUnicodeRecord, true)
+                || !v3.TryAppend(constantsRecord) || !v3.TryAppend(constantsUnicodeRecord))) {
+                detail = "The VBA directory has invalid conditional-compilation constants.";
+                return false;
+            }
+            parsed.SerializedPrefix = reader.GetBytes(0, reader.Position);
             while (reader.PeekId != 0x000F) {
+                int referenceStart = reader.Position;
                 byte[] nameRecord = Array.Empty<byte>();
-                byte[] referenceName = Array.Empty<byte>();
+                byte[] ansiName = Array.Empty<byte>();
+                byte[] unicodeName = Array.Empty<byte>();
                 if (reader.PeekId == 0x0016) {
-                    if (!reader.TryReadSized(0x0016, out _, out byte[] nameAnsi, true)
-                        || !reader.TryReadSized(0x003E, out referenceName, out byte[] nameUnicode, true)) {
+                    if (!reader.TryReadSized(0x0016, out ansiName, out byte[] nameAnsi, true)
+                        || !reader.TryReadSized(0x003E, out unicodeName, out byte[] nameUnicode, true)) {
                         detail = "The VBA directory has an invalid reference-name record.";
                         return false;
                     }
@@ -74,7 +96,9 @@ internal static partial class OfficeVbaProjectCanonicalizer {
                         " at byte " + reader.Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".";
                     return false;
                 }
-                reference.UnicodeName = referenceName;
+                reference.Serialized = reader.GetBytes(referenceStart, reader.Position - referenceStart);
+                reference.AnsiName = ansiName;
+                reference.UnicodeName = unicodeName;
                 parsed.References.Add(reference);
                 if (!v3.TryAppend(reference.V3Normalized)) {
                     detail = "The VBA V3 reference transcript exceeds the configured byte limit.";
@@ -83,10 +107,11 @@ internal static partial class OfficeVbaProjectCanonicalizer {
             }
             if (!reader.TryReadSized(0x000F, out byte[] moduleCountBytes, out parsed.ProjectModulesHeader, false)
                 || moduleCountBytes.Length != 2
-                || !reader.TryReadSized(0x0013, out _, out parsed.ProjectCookieHeader, false)) {
+                || !reader.TryReadSized(0x0013, out byte[] cookie, out parsed.ProjectCookieHeader, false) || cookie.Length != 2) {
                 detail = "The VBA directory has invalid module-count or project-cookie records.";
                 return false;
             }
+            parsed.SerializedCookie = Concat(parsed.ProjectCookieHeader, cookie);
             parsed.V3Prefix = v3.ToArray();
             int moduleCount = moduleCountBytes[0] | moduleCountBytes[1] << 8;
             if (moduleCount > 4096) {
@@ -111,6 +136,7 @@ internal static partial class OfficeVbaProjectCanonicalizer {
     }
 
     internal sealed class ModuleModel {
+        internal byte[] Serialized = Array.Empty<byte>();
         internal byte[] AnsiName = Array.Empty<byte>();
         internal byte[] UnicodeName = Array.Empty<byte>();
         internal string StreamName = string.Empty;
@@ -123,9 +149,11 @@ internal static partial class OfficeVbaProjectCanonicalizer {
     }
 
     internal sealed class ReferenceModel {
+        internal byte[] AnsiName = Array.Empty<byte>();
         internal byte[] UnicodeName = Array.Empty<byte>();
-        internal byte[] LibId = Array.Empty<byte>();
         internal ushort Kind;
+        internal byte[] LibId = Array.Empty<byte>();
+        internal byte[] Serialized = Array.Empty<byte>();
         internal byte[] LegacyNormalized = Array.Empty<byte>();
         internal byte[] V3Normalized = Array.Empty<byte>();
         internal byte[] Normalize() => LegacyNormalized;
@@ -135,8 +163,16 @@ internal static partial class OfficeVbaProjectCanonicalizer {
         private readonly byte[] _bytes;
         private int _position;
         internal DirectoryReader(byte[] bytes) => _bytes = bytes;
-        internal bool AtEnd => _position == _bytes.Length;
+        internal int CodePage { get; set; } = 1252;
+        internal bool AtEnd {
+            get {
+                // The standard raw final compression chunk may contain zero padding after the terminator.
+                for (int index = _position; index < _bytes.Length; index++) if (_bytes[index] != 0) return false;
+                return true;
+            }
+        }
         internal int Position => _position;
+        internal byte[] GetBytes(int offset, int count) => Slice(_bytes, offset, count);
         internal ushort PeekId => _position + 2 <= _bytes.Length ? ReadUInt16(_bytes, _position) : ushort.MaxValue;
 
         internal bool TryReadSized(ushort expectedId, out byte[] data, out byte[] header, bool includeData) {
@@ -234,6 +270,7 @@ internal static partial class OfficeVbaProjectCanonicalizer {
 
         internal bool TryReadModule(out ModuleModel? model) {
             model = null;
+            int start = _position;
             if (!TryReadSized(0x0019, out byte[] ansiName, out _, false)) return false;
             byte[] unicodeName = Array.Empty<byte>();
             if (PeekId == 0x0047 && !TryReadSized(0x0047, out unicodeName, out _, false)) return false;
@@ -259,6 +296,7 @@ internal static partial class OfficeVbaProjectCanonicalizer {
             uint textOffset = ReadUInt32(textOffsetBytes, 0);
             if (textOffset > int.MaxValue) return false;
             model = new ModuleModel {
+                Serialized = Slice(_bytes, start, _position - start),
                 AnsiName = ansiName,
                 UnicodeName = unicodeName,
                 StreamName = streamName,
@@ -315,4 +353,32 @@ internal static partial class OfficeVbaProjectCanonicalizer {
         }
     }
 
+    private sealed class BoundedBuffer {
+        private readonly int _maximum;
+        private readonly bool _enabled;
+        private readonly MemoryStream _stream = new();
+        internal BoundedBuffer(int maximum, bool enabled = true) { _maximum = maximum; _enabled = enabled; }
+        internal bool TryAppend(byte[] bytes) {
+            if (!_enabled) return true;
+            if (bytes.Length > _maximum - _stream.Length) return false;
+            _stream.Write(bytes, 0, bytes.Length);
+            return true;
+        }
+        internal bool TryAppendByte(byte value) {
+            if (_stream.Length >= _maximum) return false;
+            _stream.WriteByte(value);
+            return true;
+        }
+        internal byte[] ToArray() => _stream.ToArray();
+    }
+
+    private static byte[] Slice(byte[] bytes, int offset, int count) { var result = new byte[count]; Buffer.BlockCopy(bytes, offset, result, 0, count); return result; }
+    private static ushort ReadUInt16(byte[] bytes, int offset) => (ushort)(bytes[offset] | bytes[offset + 1] << 8);
+    private static uint ReadUInt32(byte[] bytes, int offset) => (uint)(bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24);
+    private static byte[] UInt16Bytes(ushort value) => new byte[] { (byte)value, (byte)(value >> 8) };
+    private static byte[] UInt32Bytes(uint value) => new byte[] { (byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24) };
+    private static byte[] Concat(params byte[][] values) { using var result = new MemoryStream(); foreach (byte[] value in values) result.Write(value, 0, value.Length); return result.ToArray(); }
+    private static byte[] WidenBytes(byte[] bytes) { var result = new byte[bytes.Length * 2]; for (int index = 0; index < bytes.Length; index++) result[index * 2] = bytes[index]; return result; }
+    private static byte[] CopyUntilNull(byte[] bytes) { int count = Array.IndexOf(bytes, (byte)0); return count < 0 ? bytes : Slice(bytes, 0, count); }
+    private static bool TryReadUInt16(byte[] bytes, ref int position, out ushort value) { value = 0; if (position < 0 || position > bytes.Length - 2) return false; value = ReadUInt16(bytes, position); position += 2; return true; }
 }

@@ -1478,6 +1478,40 @@ static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
+## VBA source editing
+
+`ReadVbaProject()` and `SetVbaProject(OfficeVbaProject, ...)` use the
+[shared native VBA model](../OfficeIMO.Core/README.md#native-vba-projects).
+They read/edit source without executing it or requiring Office, Python, or a new
+runtime dependency:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+var project = OfficeVbaProject.Create("Automation");
+project.AddModule("Helpers",
+    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+using var document = ExcelDocument.Create("automation.xlsm");
+document.AddWorksheet("Data");
+document.SetVbaProject(project);
+document.Save();
+```
+
+For an existing workbook, load it, call `ReadVbaProject()`, edit the detached
+project, and apply it with `SetVbaProject`. Workbook document modules retain their
+base-class identity and must match an existing workbook code name. Worksheet and
+chart-sheet modules must match exactly one existing sheet code name and host type;
+the display name is not used to infer a binding. Foreign document classes are rejected.
+Save in a macro-enabled Open XML format. Source and reference edits preserve unrelated
+workbook parts and follow the shared model's preservation policy.
+
+Changing a signed VBA project fails by default. Pass
+`new OfficeVbaWriteOptions { AllowSignatureRemoval = true }` to remove invalidated
+VBA signatures explicitly, then re-sign the edited project. An unchanged project
+keeps its original bytes and signatures. This source API does not edit the VBA
+carrier in binary `.xls` or `.xlsb` files.
+
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.xlsx` package mechanics. Microsoft BCL/JSON compatibility packages are used on older targets.
