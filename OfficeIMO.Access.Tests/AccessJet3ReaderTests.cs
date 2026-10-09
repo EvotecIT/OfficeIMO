@@ -116,6 +116,12 @@ namespace OfficeIMO.Access.Tests {
             byte[] bytes = File.ReadAllBytes(Fixture(file));
             using AccessDocument document = AccessDocument.Load(new MemoryStream(bytes));
             Assert.Throws<NotSupportedException>(() => document.Tables.Add("NewTable"));
+            Assert.False(document.Capabilities.Single(capability => capability.Operation == "vba.edit").IsSupported);
+            Assert.False(document.Capabilities.Single(capability => capability.Operation == "application.events.write").IsSupported);
+            Assert.Throws<NotSupportedException>(() => document.GetVbaProject());
+            OfficeVbaProject project = OfficeVbaProject.Create("Jet3Unavailable");
+            Assert.Throws<NotSupportedException>(() => document.SetVbaProject(project));
+            Assert.Equal(0, document.Revision);
             using var output = new MemoryStream(); document.Save(output); Assert.Equal(bytes, output.ToArray());
             output.Position = 0;
             using AccessDocument reopened = AccessDocument.Load(output); Assert.Equal(document.Tables.Select(t => t.Name), reopened.Tables.Select(t => t.Name));

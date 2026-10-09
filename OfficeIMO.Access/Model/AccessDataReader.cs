@@ -12,7 +12,7 @@ namespace OfficeIMO.Access {
         private bool _closed;
         internal AccessDataReader(AccessTable table, CancellationToken cancellation, IAccessRowCursor? cursor = null) {
             _table = table; _cancellation = cancellation; table.Document.AcquireReader();
-            try { _cursor = cursor ?? (table.NativeTable == null ? new AccessModeledRowCursor(table) : new AccessNativeRowCursor(table.NativeTable, cancellation)); }
+            try { AccessNativeTable? source = table.Document.ResolveNativeReadTable(table.NativeTable, cancellation); _cursor = cursor ?? (source == null ? new AccessModeledRowCursor(table) : new AccessNativeRowCursor(source, cancellation)); }
             catch { table.Document.ReleaseReader(); throw; }
         }
         private void Check() {

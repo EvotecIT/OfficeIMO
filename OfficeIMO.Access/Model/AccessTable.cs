@@ -57,7 +57,7 @@ namespace OfficeIMO.Access {
         /// <summary>Typed index definitions.</summary>
         public AccessIndexCollection Indexes { get; }
         /// <summary>Number of modeled rows, without reading any native table.</summary>
-        public long RowCount { get { EnsureAttached(); if (IsLinked) throw new NotSupportedException("Linked-table row counts require a separately authorized provider; targets are never resolved by the document codec."); return NativeTable?.RowCount ?? Rows.Count; } }
+        public long RowCount { get { EnsureAttached(); if (IsLinked) throw new NotSupportedException("Linked-table row counts require a separately authorized provider; targets are never resolved by the document codec."); return Document.ResolveNativeReadTable(NativeTable)?.RowCount ?? Rows.Count; } }
         /// <summary>Whether this is a system or hidden table kept outside the user-table collection.</summary>
         public bool IsSystem { get; internal set; }
         /// <summary>Whether this definition refers to an external table whose target is never opened.</summary>

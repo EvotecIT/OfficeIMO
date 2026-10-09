@@ -15,6 +15,7 @@ namespace OfficeIMO.Access {
         internal int TableLogicalIndexes => TableColumnCount + 2;
         internal int TablePhysicalIndexes => TableColumnCount + 6;
         internal int TableOwnedPages => IsJet3 ? 35 : 55;
+        internal int TableFreePages => TableOwnedPages + 4;
         internal int IndexStatisticsSize => IsJet3 ? 8 : 12;
         internal int ColumnSize => IsJet3 ? 18 : 25;
         internal int ColumnNumber => IsJet3 ? 1 : 5;
@@ -22,8 +23,10 @@ namespace OfficeIMO.Access {
         internal int ColumnFlags => IsJet3 ? 13 : 15;
         internal int ColumnFixedOffset => IsJet3 ? 14 : 21;
         internal int ColumnLength => IsJet3 ? 16 : 23;
+        internal int ColumnSortOrder => IsJet3 ? 9 : 11;
         internal int PhysicalIndexSize => IsJet3 ? 39 : 52;
         internal int PhysicalIndexColumns => IsJet3 ? 0 : 4;
+        internal int PhysicalIndexOwnedPages => PhysicalIndexColumns + 30;
         internal int PhysicalIndexRoot => IsJet3 ? 34 : 38;
         internal int PhysicalIndexFlags => IsJet3 ? 38 : 46;
         internal int LogicalIndexSize => IsJet3 ? 20 : 28;

@@ -55,6 +55,7 @@ namespace OfficeIMO.Access {
             }
         }
         internal AccessNativeRow Current => _visible && _current != null ? _current : throw new InvalidOperationException("Call Read before accessing a current row.");
+        internal uint CurrentPointer { get { _ = Current; return checked(((uint)_page << 8) | (uint)_slot); } }
         public bool IsSpecified(int ordinal) { Current.ValidateOrdinal(ordinal); return true; }
         public bool IsNull(int ordinal) => Current.IsNull(ordinal);
         public Stream OpenBinary(int ordinal, CancellationToken cancellation) => Current.OpenBinary(ordinal, cancellation);
@@ -115,6 +116,31 @@ namespace OfficeIMO.Access {
         }
         internal void ValidateOrdinal(int ordinal) { if ((uint)ordinal >= (uint)_table.Columns.Count) throw new IndexOutOfRangeException(); }
         internal byte[] NativeBytes() { _table.Database.AccountMetadata(_data.Length); return _data.ToArray(); }
+        /// <summary>Replaces one non-null field while retaining other field bytes, the null mask and offset identities.</summary>
+        internal byte[] ReplacePayload(AccessNativeColumn column, byte[] replacement) {
+            if (!Present(column)) throw new NotSupportedException("Native payload replacement requires an existing non-null field.");
+            OfficeByteView previous = Payload(column);
+            if (!column.Variable) {
+                if (previous.Length != replacement.Length) throw new NotSupportedException("A fixed binary replacement must retain its native width.");
+                byte[] fixedRow = _data.ToArray();
+                Buffer.BlockCopy(replacement, 0, fixedRow, checked(2 + column.FixedOffset), replacement.Length);
+                return fixedRow;
+            }
+            int start = U16(_data, _data.Length - _nullBytes - 4 - column.VariableIndex * 2);
+            int delta = checked(replacement.Length - previous.Length), length = checked(_data.Length + delta);
+            if (length > 4060) throw new NotSupportedException("Native payload replacement exceeds the row capacity.");
+            byte[] output = new byte[length];
+            for (int i = 0; i < start; i++) output[i] = _data[i];
+            Buffer.BlockCopy(replacement, 0, output, start, replacement.Length);
+            for (int i = start + previous.Length; i < _data.Length; i++) output[i + delta] = _data[i];
+            for (int i = column.VariableIndex + 1; i <= _variableCount; i++) {
+                int position = length - _nullBytes - 4 - i * 2;
+                int value = checked(U16(output, position) + delta);
+                if (value < 2 || value > ushort.MaxValue) throw new InvalidDataException("Native payload replacement produces an invalid offset.");
+                output[position] = (byte)value; output[position + 1] = (byte)(value >> 8);
+            }
+            return output;
+        }
         internal bool IsNull(int ordinal) {
             ValidateOrdinal(ordinal); AccessNativeColumn column = _table.Columns[ordinal];
             return column.Type != 1 && !Present(column);

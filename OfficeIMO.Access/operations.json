@@ -49,7 +49,7 @@
     {
       "operation": "native.edit",
       "supported": false,
-      "boundary": "Existing native documents remain immutable; row/schema/application edits require separate codecs."
+      "boundary": "General native row/schema editing is unqualified. VBA source and ordinary-module persistence use the separate vba.edit contract."
     },
     {
       "operation": "native.convert",
@@ -64,12 +64,22 @@
     {
       "operation": "application.objects.write",
       "supported": false,
-      "boundary": "No native form/report/macro/module writer is qualified."
+      "boundary": "Form/report object creation, general designer changes and macro authoring are unqualified. Code-behind uses vba.edit; selected inert event edits use application.events.write."
+    },
+    {
+      "operation": "application.events.write",
+      "supported": true,
+      "boundary": "ACE expanded version-21 form/report Open, label/text-box/combo-box Click and text-box/combo-box AfterUpdate binding/clearing without execution. Replacing Click removes its associated embedded macro. Jet version-19, nonempty deltas and other control/event layouts reject edits."
     },
     {
       "operation": "vba.inspect",
       "supported": true,
       "boundary": "Access Jet4 compound storage and ACE hierarchy adapt to shared Core MS-OVBA parsing. Jet3 VBA storage remains unqualified. Module source and stored references are decoded when available; compiled/unknown streams remain exact. Built-in references and signature validation are outside this contract."
+    },
+    {
+      "operation": "vba.edit",
+      "supported": true,
+      "boundary": "Detached shared Core project editing and explicit native Jet4/ACE12/14 persistence. Qualified unsigned/unprotected storage supports ordinary module source/add/remove/rename and new/existing code-behind on existing forms/reports; retained host bindings, catalog identities and unrelated pages remain preserved. First projects require an existing qualified native application. Unknown storage/permission/index/signature layouts reject mutation."
     },
     {
       "operation": "protection.inspect",

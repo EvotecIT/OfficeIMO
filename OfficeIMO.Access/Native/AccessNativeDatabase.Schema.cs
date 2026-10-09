@@ -11,7 +11,7 @@ namespace OfficeIMO.Access {
             cancellation.ThrowIfCancellationRequested();
             OfficeByteView data = DefinitionBytes(pageNumber, cancellation); int columns = U16(data, Layout.TableColumnCount), logicalCount = I32(data, Layout.TableLogicalIndexes), physicalCount = I32(data, Layout.TablePhysicalIndexes);
             if (columns > 255 || logicalCount < 0 || logicalCount > 256 || physicalCount < 0 || physicalCount > logicalCount) throw new InvalidDataException("Native Access table definition counts are invalid.");
-            AccessNativeTable table = new AccessNativeTable(this, pageNumber, name) { RowCount = U32(data, Layout.TableRowCount), MaxColumns = U16(data, Layout.TableMaxColumns), MaxVariableColumns = U16(data, Layout.TableMaxVariableColumns), OwnedPages = U32(data, Layout.TableOwnedPages) };
+            AccessNativeTable table = new AccessNativeTable(this, pageNumber, name) { RowCount = U32(data, Layout.TableRowCount), MaxColumns = U16(data, Layout.TableMaxColumns), MaxVariableColumns = U16(data, Layout.TableMaxVariableColumns), OwnedPages = U32(data, Layout.TableOwnedPages), FreePages = U32(data, Layout.TableFreePages) };
             if (table.MaxColumns < columns || table.MaxColumns > 8192 || table.MaxVariableColumns > table.MaxColumns) throw new InvalidDataException("Native Access table column allocation is invalid.");
             int columnStart = checked(Layout.TableHeaderSize + physicalCount * Layout.IndexStatisticsSize); int position = checked(columnStart + columns * Layout.ColumnSize);
             for (int i = 0; i < columns; i++) {
@@ -19,7 +19,8 @@ namespace OfficeIMO.Access {
                 AccessNativeColumn column = new AccessNativeColumn { Name = NativeName(data, ref position), Type = block[0], Number = U16(block, Layout.ColumnNumber), VariableIndex = U16(block, Layout.ColumnVariableIndex),
                     Flags = block[Layout.ColumnFlags], ExtraFlags = Layout.IsJet3 ? (byte)0 : block[16], FixedOffset = U16(block, Layout.ColumnFixedOffset), Size = U16(block, Layout.ColumnLength), Precision = block[11], Scale = block[12],
                     CodePage = Layout.IsJet3 && (block[0] == 10 || block[0] == 12) ? U16(block, 11) : 0,
-                    ComplexId = _document.Format == AccessFileFormat.Accdb && block[0] == 18 ? I32(block, 11) : 0 };
+                    ComplexId = _document.Format == AccessFileFormat.Accdb && block[0] == 18 ? I32(block, 11) : 0,
+                    SortOrder = U16(block, Layout.ColumnSortOrder), SortVersion = Layout.IsJet3 ? (byte)0 : block[14] };
                 column.RedactConnection = StringComparer.OrdinalIgnoreCase.Equals(name, "MSysObjects") && StringComparer.OrdinalIgnoreCase.Equals(column.Name, "Connect");
                 if (column.Number >= table.MaxColumns || column.Variable && column.VariableIndex >= table.MaxVariableColumns) throw new InvalidDataException("Native Access field coordinates exceed the declared row schema.");
                 if (table.Columns.Any(x => x.Number == column.Number || StringComparer.OrdinalIgnoreCase.Equals(x.Name, column.Name))) throw new InvalidDataException("Native Access fields have duplicate numbers or ambiguous names.");
@@ -38,17 +39,30 @@ namespace OfficeIMO.Access {
                 }
                 int rootPage = I32(block, Layout.PhysicalIndexRoot); byte pageType = Page(rootPage)[0];
                 if (pageType != 3 && pageType != 4) throw new InvalidDataException("Native Access index root has an invalid page type.");
-                physical.Add(new AccessNativeIndex { Columns = fields.ToArray(), Descending = descending.ToArray(), RootPage = rootPage, Flags = block[Layout.PhysicalIndexFlags] });
+                physical.Add(new AccessNativeIndex { Columns = fields.ToArray(), Descending = descending.ToArray(), RootPage = rootPage, Flags = block[Layout.PhysicalIndexFlags],
+                    PhysicalDefinitionOffset = position - Layout.PhysicalIndexSize, UniqueCountOffset = Layout.TableHeaderSize + i * Layout.IndexStatisticsSize + 4, OwnedPages = U32(block, Layout.PhysicalIndexOwnedPages) });
             }
             for (int i = 0; i < logicalCount; i++) {
                 OfficeByteView block = Slice(data, position, Layout.LogicalIndexSize); position = checked(position + Layout.LogicalIndexSize); int physicalNumber = I32(block, Layout.LogicalIndexPhysical);
                 if (physicalNumber < 0 || physicalNumber >= physical.Count) throw new InvalidDataException("Native Access logical index refers to an unavailable physical index.");
                 AccessNativeIndex definition = physical[physicalNumber];
                 table.Indexes.Add(new AccessNativeIndex { Columns = definition.Columns, Descending = definition.Descending, Flags = definition.Flags, RootPage = definition.RootPage,
+                    PhysicalDefinitionOffset = definition.PhysicalDefinitionOffset, UniqueCountOffset = definition.UniqueCountOffset, OwnedPages = definition.OwnedPages,
                     Number = I32(block, Layout.LogicalIndexNumber), Type = block[Layout.LogicalIndexType], RelatedIndex = I32(block, Layout.LogicalIndexRelated), RelatedTable = I32(block, Layout.LogicalIndexTable), CascadeUpdates = (block[Layout.LogicalIndexCascade] & 1) != 0, CascadeDeletes = (block[Layout.LogicalIndexCascade + 1] & 1) != 0 });
             }
             foreach (AccessNativeIndex index in table.Indexes) index.Name = NativeName(data, ref position);
             if (table.Indexes.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != table.Indexes.Count) throw new InvalidDataException("Native Access index names are ambiguous.");
+            while (position <= data.Length - 10 && I16(data, position) >= 0) {
+                AccessNativeColumn? column = table.Columns.SingleOrDefault(x => x.Number == I16(data, position));
+                if (column != null && (column.Type == 11 || column.Type == 12)) {
+                    if (column.LongMapDefinitionOffset != 0) column.AmbiguousLongMaps = true;
+                    else {
+                        column.LongMapDefinitionOffset = position + 2;
+                        column.OwnedLongPages = U32(data, position + 2); column.FreeLongPages = U32(data, position + 6);
+                    }
+                }
+                position += 10;
+            }
             _definitions.Add(pageNumber, table); return table;
         }
         private OfficeByteView DefinitionBytes(int pageNumber, CancellationToken cancellation) {

@@ -3,7 +3,7 @@ using System.Collections;
 namespace OfficeIMO.Access {
     /// <summary>An object identity belongs to a document and survives update rollback for pre-existing objects.</summary>
     public abstract class AccessNamedObject {
-        internal AccessNamedObject(AccessDocument document, string name) { Document = document; Name = ValidateName(name); }
+        internal AccessNamedObject(AccessDocument document, string name, Guid? identity = null) { Document = document; Name = ValidateName(name); Id = identity ?? Guid.NewGuid(); }
         internal AccessDocument Document { get; }
         internal bool Attached = true;
         internal void EnsureAttached() {
@@ -15,7 +15,7 @@ namespace OfficeIMO.Access {
             return name;
         }
         /// <summary>Stable model identity; it is separate from native page numbers and names.</summary>
-        public Guid Id { get; } = Guid.NewGuid();
+        public Guid Id { get; }
         /// <summary>Containing document identity.</summary>
         public Guid DocumentId => Document.Id;
         /// <summary>Object name. Rename semantics are introduced with qualified reference updates.</summary>
