@@ -21,7 +21,9 @@ public sealed partial class DocumentWorkspaceView : UserControl {
 
     public DocumentWorkspaceView() {
         InitializeComponent();
+        IndependentPanes.ReaderFocusRequested += (_, _) => FocusActiveIndependentPane();
         InitializeOrganizerInput();
+        InitializeAnnotationSelectionInput();
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => {
             if (_document is not null) {
@@ -144,6 +146,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         // Comparing needs the width for two documents; the properties pane returns when the comparison closes.
         if (_document?.IsComparisonOpen == true) { SetPanes(NavigationPane.IsVisible && _compactLayout != true, false); return; }
         StudioDocumentMode mode = _document?.DocumentMode ?? StudioDocumentMode.View;
+        if (Panes?.IsSplit == true && mode == StudioDocumentMode.View) { SetPanes(false, false); return; }
         // Reading keeps the document details open on wide windows so switching to a task mode does not refit the page.
         bool inspector = mode is not StudioDocumentMode.Pages && (mode != StudioDocumentMode.View || _compactLayout != true);
         bool navigation = mode == StudioDocumentMode.Pages || _compactLayout != true;
@@ -175,7 +178,12 @@ public sealed partial class DocumentWorkspaceView : UserControl {
             if (NavigationTabs.SelectedIndex != 0) NavigationTabs.SelectedIndex = 0;
         }
         Grid.SetColumnSpan(NavigationPane, pagesGrid ? 2 : 1);
-        ReaderCanvas.IsVisible = !pagesGrid && _document?.HasDocument == true;
+        bool independent = Panes?.IsSplit == true && _document?.IsComparisonOpen != true;
+        // Pages mode expands the organizer through the reader column. Its hidden readers
+        // must not leave an opaque, hit-testable host over organizer thumbnails and actions.
+        ReaderHost.IsVisible = !pagesGrid && _document?.HasDocument == true;
+        ReaderCanvas.IsVisible = !independent && !pagesGrid && _document?.HasDocument == true;
+        IndependentPanes.IsVisible = independent && !pagesGrid && _document?.HasDocument == true;
         NavigationToggle.IsEnabled = !pagesGrid;
         UpdateOrganizerActionBar();
         NavigationPane.IsVisible = navigation;

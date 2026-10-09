@@ -48,7 +48,11 @@ public sealed partial class OfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
             if (directory is null) {
                 string parent = Path.GetDirectoryName(output)!;
+                if (hostGuard is IOfficeWorkflowStagingGuard stagingGuard)
+                    await stagingGuard.EnsureStagingDirectoryAllowedAsync(parent, cancellationToken).ConfigureAwait(false);
                 Directory.CreateDirectory(parent);
+                if (hostGuard is IOfficeWorkflowStagingGuard createdGuard)
+                    await createdGuard.EnsureStagingDirectoryAllowedAsync(parent, cancellationToken).ConfigureAwait(false);
                 staging = Path.Combine(parent, ".officeimo-split." + Guid.NewGuid().ToString("N") + ".tmp");
                 Directory.CreateDirectory(staging);
             } else staging = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-split-");

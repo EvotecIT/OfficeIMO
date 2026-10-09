@@ -34,6 +34,46 @@ dotnet tool uninstall --global OfficeIMO.Tool
 
 `server.json` describes the local STDIO server as `io.github.evotecit/officeimo`, backed by the `OfficeIMO.Tool` NuGet package. Clients supply `OFFICEIMO_MCP_ALLOWED_ROOTS` and launch `dotnet dnx OfficeIMO.Tool@<package-version> mcp serve --stdio` with .NET SDK 10.0.100 or later. The registry entry exposes the same bounded operations as the [agent plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools).
 
+## PDF copies and searchable scans
+
+Create a separate PDF, split folder, or searchable scan with an explicit destination:
+
+```text
+officeimo pdf extract report.pdf --pages last,1-3 --output selected.pdf
+officeimo pdf split report.pdf --pages-per-document 10 --output report-parts
+officeimo pdf decrypt protected.pdf --password-env PDF_OWNER_PASSWORD --output clear.pdf
+officeimo pdf flatten report.pdf --output raster.pdf --acknowledge-raster-output --dpi 150
+officeimo pdf optimize report.pdf --output optimized.pdf
+officeimo pdf sanitize report.pdf --output sanitized.pdf
+officeimo pdf providers --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll
+officeimo pdf ocr scan.pdf --output searchable.pdf --ocr-provider tesseract-cli --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll --ocr-language eng
+```
+
+Page selections retain order and repeated pages and support expressions such as
+`last,1-3`, `odd`, and `all,!2`. The selected pages are resolved against the captured
+input. Existing files or folders require `--force`; a source or folder containing
+it cannot be the destination. Decryption requires the owner password in the named
+environment variable. Other protected-document operations retain the PDF engine's
+permission and signature policy.
+
+Flattening copies rendered appearances. Native text, forms, links, signatures,
+and attachments are omitted, so `--acknowledge-raster-output` is required.
+The managed renderer's fidelity limits still apply. Searchable OCR adds a text
+layer to the source pages; confidence does not certify recognition accuracy.
+
+The tool includes no OCR executable or model. Supply a trusted optional provider
+deployment with its managed dependencies. `OfficeIMO.Ocr.Tesseract` registers
+`tesseract-cli` and uses a separately installed Tesseract executable. Repeated
+`--ocr-option key=value` entries configure the provider; executable/model paths
+are chosen by the invoking host. See the [Tesseract provider options](../OfficeIMO.Ocr.Tesseract/README.md#optional-provider-catalog).
+
+These commands emit bounded JSON containing status, artifact paths/counts/bytes,
+and diagnostic codes. Document text, recognized words, passwords and provider
+messages are excluded. Defaults limit selection to 100 pages or split parts,
+input to 256 MiB, output to 512 MiB, and raster work to 25 million pixels per page.
+Use the `--maximum-pages`, `--maximum-input-bytes`, `--maximum-output-bytes`, and
+`--maximum-pixels-per-page` options within the ranges listed by `officeimo pdf --help`.
+
 ## Invoice workflows
 
 Invoice commands return versioned JSON with separate model, mapping and standards
@@ -111,11 +151,16 @@ officeimo workflow printers
 officeimo workflow printers --paper-sources "Office printer"
 officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 `
   --pages-per-sheet 2 --copies 1 --duplex long
+officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
+  --scale custom --custom-scale 40 --alignment bottom-right --margin 18 `
+  --margin-left 24 --margin-right 24 --color grayscale
 ```
 
 Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](../OfficeIMO.Workflows/README.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
 
 Printer submission uses prepared raster sheets. The returned job identifier proves queue acceptance; physical delivery is unconfirmed. After an interrupted submission, check the queue before retrying. Windows file printers require `--output-file` naming a new local file. macOS/Linux delivery uses the existing CUPS service boundary and requires its command-line tools.
+
+Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` changes the prepared pixels; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
 
 ## Common workflows
 
@@ -376,8 +421,46 @@ The server exposes:
 - `officeimo_fetch`
 - `officeimo_convert`
 - `officeimo_capabilities`
+- `officeimo_pdf` — extract, decrypt, raster flatten, optimize, or sanitize into a separate PDF
+- `officeimo_pdf_split` — validated consecutive parts in an explicit destination folder
+- `officeimo_pdf_assemble` — ordered explicit PDF and raster-image files
+- `officeimo_pdf_export_pages` — selected page images in an explicit destination folder
+- `officeimo_pdf_ocr_providers` — provider ids registered by the server host
+- `officeimo_pdf_ocr` — searchable copy through a registered provider
+- `officeimo_pdf_print_plan` — bounded sheet geometry without printer submission
+- `officeimo_pdf_compare` — selected-page rendered comparison saved as a standalone HTML report
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
+
+PDF tools require explicit output paths within the same allowed-roots policy.
+Overwriting requires `overwrite=true`; flattening additionally requires
+`acknowledgeRasterOutput=true`. Reports honor `maxOutputCharacters`, sample at
+most 25 artifacts, and retain the total `artifactCount` when the sample is truncated.
+MCP assembly accepts PDF and raster image files; the CLI's `workflow assemble`
+owns heterogeneous Office, folder, and archive intake. Printer queue delivery
+is available through the explicit CLI print command, while MCP print planning
+has no device or queue side effect.
+The sheet planner accepts 1, 2, 4, 6 or 9 pages per sheet, custom scaling,
+individual point margins, nine-position alignment, source-page odd/even filters,
+and requested grayscale treatment. Its report includes clipped placement counts;
+it does not render sheets or confirm printer capabilities.
+
+The server accepts trusted startup OCR configuration:
+
+```text
+officeimo mcp serve --stdio --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll --ocr-option executable=/path/to/tesseract --ocr-option tessdata=/path/to/tessdata
+```
+
+Tool calls can select a registered provider, language, confidence and page selection.
+They cannot supply provider assemblies, executable/model paths or provider options.
+Configure only providers whose runtime and data-access behavior you authorize.
+
+Protected PDF tools read only environment-variable names explicitly admitted by
+the trusted host. No names are admitted by default. Start the server with repeated
+`--pdf-password-env PDF_OWNER_PASSWORD` options to admit selected names; then pass
+`passwordEnvironmentVariable="PDF_OWNER_PASSWORD"` in a PDF tool call. An unrelated
+process environment variable remains unavailable even when it contains valid PDF
+credentials. Password values stay out of tool arguments and reports.
 
 Use `officeimo agent inspect-email ./message.eml --max-output-characters 6000` or `officeimo_inspect_email`
 for the bounded mail-data and HTML safety report. EML/MSG/OFT/TNEF reports include body alternatives, charsets,
@@ -417,3 +500,29 @@ dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- 
 ```
 
 The CLI remains a thin surface over the owning OfficeIMO packages; reusable conversion and extraction behavior belongs in those packages rather than in command handlers.
+
+### Selected PDF comparison reports
+
+```sh
+officeimo workflow compare current.pdf revised.pdf --output review.html \
+  --expected-pages 120-124,last --actual-pages 121-125,last
+```
+
+Each selector uses original document page numbers and preserves order. Null or an
+omitted selector selects the whole corresponding document. The comparison admits
+at most 100 selected pages per side. Pages pair by selection position; extra
+selected pages are unmatched. The standalone HTML report includes page links,
+selected scope, document totals, render limitations and snapshot SHA-256 values.
+It reports rendered appearance, without semantic or moved-page detection.
+Existing reports require `--force`. `--password-env` and
+`--comparison-password-env` read independently selected password environment
+variables; credentials stay out of the report.
+
+For MCP, inspect both PDFs first and pass their returned `sourceId` values to
+`officeimo_pdf_compare` as `sourceId` and `comparisonSourceId`, with an explicit
+separate `outputPath` ending in `.html`. Optional `expectedPages` and `actualPages`
+use the same selectors. Source ids are rechecked before capture and publication;
+changed sources require inspecting again. Both sources and the output remain
+within the host's allowed roots. `overwrite` explicitly permits replacing an
+existing report. Password variable names must be admitted by the trusted server
+host. The response contains bounded artifact metadata, not the embedded gallery.
