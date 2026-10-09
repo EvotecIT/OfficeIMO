@@ -271,7 +271,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<IntrinsicTextRun> result,
         bool skipSizedNestedTables,
         bool includeDescendantInsets,
-        bool startsParagraph = true) {
+        bool startsParagraph = true, IEnumerable<INode>? sourceNodes = null, bool flattenInternalTableBoxes = false) {
+        if (parent.LocalName == "table") flattenInternalTableBoxes = parentStyle.Display == "inline";
         if (parentStyle.Display is "flex" or "inline-flex"
             && TryCollectFlexItems(parent, availableSize, parentStyle, depth, captureRunningElements: false,
                 out List<FlexItem> items, out _, registerOutOfFlowElements: false)) {
@@ -310,8 +311,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // they override text-indent. Blocks and atomic boxes measure their own
         // first formatted line; flex/grid containers contribute their items above.
         if (startsParagraph) result.Add(IntrinsicTextRun.ParagraphStart(parentStyle));
-        AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
-        foreach (INode node in parent.ChildNodes) {
+        if (sourceNodes == null) AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
+        foreach (INode node in sourceNodes ?? parent.ChildNodes) {
             CheckCancellation();
             if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
@@ -329,22 +330,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (includeDescendantInsets && !IsReplacedImageElement(child) && !IsFormControlElement(child.LocalName)) {
                 childStyle = _styleResolver.ResolveIntrinsicMeasurementStyle(child, childStyle);
             }
-            if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
-                && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
-                && childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
-                // Do not flatten nested table cells into surrounding text. A
-                // definite table contributes its declared outer box once.
-                result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
-                double width = ResolveBoxWidth(availableSize, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
-                result.Add(IntrinsicTextRun.Replaced(width, childStyle));
-                result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
+            if (childStyle.Display == "inline-table" || skipSizedNestedTables && childStyle.Display == "table") {
+                bool blockTable = childStyle.Display == "table";
+                if (blockTable) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
+                (double Minimum, double Maximum) widths = ResolveIntrinsicTableOuterWidths(child, childStyle, availableSize, depth + 1);
+                result.Add(IntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, childStyle));
+                if (blockTable) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }
             if (string.Equals(child.LocalName, "br", StringComparison.OrdinalIgnoreCase)) {
                 result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }
+            // A native table displayed inline retains its legacy inline text flow;
+            // its internal row and cell boxes cannot split the surrounding paragraph.
             bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
+                && !(flattenInternalTableBoxes && IsInternalTableDisplay(childStyle.Display))
                 && (!includeDescendantInsets || childStyle.FloatSide == "none");
             bool isReplacedChild = IsReplacedImageElement(child)
                 || (IsFormControlElement(child.LocalName.ToLowerInvariant()) && !UsesButtonChildLayout(child));
@@ -396,12 +397,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     : 0D;
                 if (leadingInset != 0D || trailingInset != 0D) result.Add(IntrinsicTextRun.InlineInset(leadingInset, childStyle));
                 AppendInFlowIntrinsicTextRuns(child, childStyle, availableSize, depth + 1, result,
-                    skipSizedNestedTables, includeDescendantInsets, startsParagraph: establishesLineBoundary);
+                    skipSizedNestedTables, includeDescendantInsets, startsParagraph: establishesLineBoundary,
+                    flattenInternalTableBoxes: flattenInternalTableBoxes);
                 if (leadingInset != 0D || trailingInset != 0D) result.Add(IntrinsicTextRun.InlineInset(trailingInset, childStyle, closing: true));
             }
             if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
         }
-        AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.After, parentStyle, availableSize, result);
+        if (sourceNodes == null) AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.After, parentStyle, availableSize, result);
     }
 
     private void AppendGeneratedIntrinsicText(

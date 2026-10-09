@@ -226,7 +226,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double minimum = style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             boxWidth = Math.Max(boxWidth, minimum);
         }
-        return Math.Max(1D, Math.Min(availableWidth, boxWidth));
+        return Math.Max(style.HorizontalInsets, Math.Max(1D, Math.Min(availableWidth, boxWidth)));
     }
 
     private static double ResolveFormControlBoxHeight(HtmlRenderBoxStyle style, double defaultContentHeight) {
@@ -242,7 +242,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double minimum = style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets);
             boxHeight = Math.Max(boxHeight, minimum);
         }
-        return Math.Max(1D, boxHeight);
+        return Math.Max(style.VerticalInsets, Math.Max(1D, boxHeight));
     }
 
     private bool TryCreateFormFieldVisual(

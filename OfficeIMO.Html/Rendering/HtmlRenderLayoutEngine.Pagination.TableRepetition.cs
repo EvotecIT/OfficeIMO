@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 paintEnd = sourceEnd;
                 foreach (HtmlRenderVisual visual in EnumeratePageFloatVisuals(block.Visuals)) {
                     ChargeLayoutOperation("table repetition painted extent");
-                    if (visual is HtmlRenderSemanticGroup table && table.Role == HtmlRenderSemanticGroupRole.Table
+                    if (visual is HtmlRenderSemanticGroup table && IsTableFormattingGroup(table)
                         && table.StructureElementKey == owner) {
                         paintEnd = LastAtomicParallelVisualBottom(new[] { table }, includePaintAndMetadata: true);
                         break;
@@ -64,16 +64,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return qualified;
     }
 
-    private static HtmlRenderSemanticGroup? RepeatedTable(IEnumerable<HtmlRenderVisual> visuals) =>
+    private HtmlRenderSemanticGroup? RepeatedTable(IEnumerable<HtmlRenderVisual> visuals) =>
         EnumeratePageFloatVisuals(visuals).OfType<HtmlRenderSemanticGroup>()
-            .FirstOrDefault(group => group.Role == HtmlRenderSemanticGroupRole.Table);
+            .FirstOrDefault(IsTableFormattingGroup);
 
     private bool HasForeignContentInTableFooterInterval(IEnumerable<HtmlRenderVisual> visuals,
         string owner, double start, double end, double verticalTranslation = 0D) {
         foreach (HtmlRenderVisual visual in visuals) {
             ChargeLayoutOperation("parallel table footer ownership");
             if (visual is HtmlRenderSemanticGroup table
-                && table.Role == HtmlRenderSemanticGroupRole.Table && table.StructureElementKey == owner) continue;
+                && IsTableFormattingGroup(table) && table.StructureElementKey == owner) continue;
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup group => group.Visuals,
                 HtmlRenderEffectGroup group => group.Visuals,

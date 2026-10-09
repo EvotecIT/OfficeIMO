@@ -170,9 +170,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return null;
     }
 
-    private static HtmlRenderBoxStyle CreateAnonymousFlexStyle(HtmlRenderBoxStyle parentStyle) => new HtmlRenderBoxStyle {
-        Display = "block",
+    private static HtmlRenderBoxStyle CreateAnonymousFlexStyle(HtmlRenderBoxStyle parentStyle) =>
+        CreateAnonymousBoxStyle(parentStyle, "block", parentStyle.SemanticRole == "form-control" ? "form-control" : "anonymous-flex-item");
+
+    /// <summary>Inherits resolved text and table formatting while leaving anonymous box geometry and paint at their initial values.</summary>
+    private static HtmlRenderBoxStyle CreateAnonymousBoxStyle(HtmlRenderBoxStyle parentStyle, string display, string semanticRole) => new HtmlRenderBoxStyle {
+        Display = display,
         Font = parentStyle.Font,
+        FontDescriptor = parentStyle.FontDescriptor,
+        PaintVisible = parentStyle.PaintVisible,
         UnderlineStyle = parentStyle.UnderlineStyle,
         StrikethroughStyle = parentStyle.StrikethroughStyle,
         OverlineStyle = parentStyle.OverlineStyle,
@@ -192,10 +198,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         LineHeight = parentStyle.LineHeight,
         PreserveWhitespace = parentStyle.PreserveWhitespace,
         TextTransform = parentStyle.TextTransform,
-        SemanticRole = parentStyle.SemanticRole == "form-control" ? "form-control" : "anonymous-flex-item",
+        SemanticRole = semanticRole,
         Orphans = parentStyle.Orphans,
         Widows = parentStyle.Widows,
-        PageName = parentStyle.PageName
+        PageName = parentStyle.PageName,
+        CharacterAdvance = parentStyle.CharacterAdvance,
+        LetterSpacing = parentStyle.LetterSpacing,
+        WordSpacing = parentStyle.WordSpacing,
+        TextIndent = parentStyle.TextIndent,
+        BreakSpaces = parentStyle.BreakSpaces,
+        PreventTextWrapping = parentStyle.PreventTextWrapping,
+        TabSize = parentStyle.TabSize,
+        TabSizeIsLength = parentStyle.TabSizeIsLength,
+        TextFeatureSettings = parentStyle.TextFeatureSettings,
+        FontPalette = parentStyle.FontPalette,
+        Direction = parentStyle.Direction,
+        WritingMode = parentStyle.WritingMode,
+        TextOrientation = parentStyle.TextOrientation,
+        RubyPosition = parentStyle.RubyPosition,
+        RubyAlign = parentStyle.RubyAlign,
+        OverflowWrap = parentStyle.OverflowWrap,
+        WordBreak = parentStyle.WordBreak,
+        Hyphens = parentStyle.Hyphens,
+        HyphenateCharacter = parentStyle.HyphenateCharacter,
+        HyphenateMinimumWordLength = parentStyle.HyphenateMinimumWordLength,
+        HyphenateMinimumPrefixLength = parentStyle.HyphenateMinimumPrefixLength,
+        HyphenateMinimumSuffixLength = parentStyle.HyphenateMinimumSuffixLength,
+        HyphenateLimitLines = parentStyle.HyphenateLimitLines,
+        HyphenateLimitLast = parentStyle.HyphenateLimitLast,
+        HyphenateLimitZone = parentStyle.HyphenateLimitZone,
+        TextShadows = parentStyle.TextShadows,
+        TextShadowLayerCount = parentStyle.TextShadowLayerCount,
+        UnsupportedTextShadow = parentStyle.UnsupportedTextShadow,
+        BorderCollapse = parentStyle.BorderCollapse,
+        BorderSpacingX = parentStyle.BorderSpacingX,
+        BorderSpacingY = parentStyle.BorderSpacingY,
+        CaptionSide = parentStyle.CaptionSide
     };
 
     private static HtmlRenderBoxStyle BlockifyFlexItemStyle(HtmlRenderBoxStyle style) {

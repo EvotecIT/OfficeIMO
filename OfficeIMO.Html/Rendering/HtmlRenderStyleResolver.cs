@@ -663,8 +663,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {
         string display = style.Display;
         if (display == "none" || display == "contents") return false;
-        if (display == "block" || display == "table" || display == "list-item" || display == "flex" || display == "grid" || display == "flow-root") return true;
-        if (display == "inline" || display == "inline-block" || display == "inline-flex" || display == "inline-grid") return false;
+        if (display == "block" || display == "table" || display is "table-row" or "table-cell" or "table-row-group" or "table-header-group" or "table-footer-group" || display == "list-item" || display == "flex" || display == "grid" || display == "flow-root") return true;
+        if (display == "inline" || display == "inline-table" || display == "inline-block" || display == "inline-flex" || display == "inline-grid") return false;
         return HtmlElementDisplay.IsDefaultBlockTag(element.TagName);
     }
 

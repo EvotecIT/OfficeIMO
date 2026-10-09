@@ -24,7 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        string? inheritedLink = generatedContentOwner == null ? null : ResolveAncestorLink(generatedContentOwner);
+        string? inheritedLink = formattingContainer == null ? null : ResolveAncestorLink(formattingContainer);
         if (generatedContentOwner != null) {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.Before, width, containingHeight, parentStyle, inheritedLink, 0D, 0D, runs);
         }
@@ -236,7 +236,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
-        ICollection<HtmlInlineRun> runs) {
+        ICollection<HtmlInlineRun> runs, bool flattenInternalTableBoxes = false) {
         CheckCancellation();
         ChargeLayoutOperation("inline node traversal");
         if (IsClosedDisclosureChild(node)) return;
@@ -278,13 +278,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (tag == "table") flattenInternalTableBoxes = style.Display == "inline";
+        bool isBlock = HtmlRenderStyleResolver.IsBlockElement(element, style)
+            && !(flattenInternalTableBoxes && IsInternalTableDisplay(style.Display));
         if (tag == "br") {
             runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
             return;
         }
         bool isPageFloat = TryGetPageFloatSide(element, style, out _);
         bool isColumnFloat = TryGetColumnEdgeFloatSide(element, style, out _, out _);
-        if (!HtmlRenderStyleResolver.IsBlockElement(element, style) && !isPageFloat && !isColumnFloat) {
+        if (!isBlock && !isPageFloat && !isColumnFloat) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (!isPageFloat && !isColumnFloat) ReportUnsupportedFloatValues(element, style);
@@ -329,7 +332,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         // Extracted figures own their destination at the moved box. A
         // rejected extraction retains the ordinary inline target in source flow.
-        if ((isPageFloat || isColumnFloat) && !HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+        if ((isPageFloat || isColumnFloat) && !isBlock) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (style.FloatSide != "none") {
@@ -339,7 +342,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+        if (IsInternalTableDisplay(style.Display) && !flattenInternalTableBoxes) ReportTableFormattingFallback(element, "orphan table boxes in an inline formatting context");
+
+        if (isBlock) {
             AssignLogicalTextOrders(runs);
             HtmlRenderFlowBlock block = LayoutElement(element, width, style, inheritedStyle, depth + 1);
             runs.Add(new HtmlInlineRun(block, style, link, HtmlRenderStyleResolver.DescribeSource(element),
@@ -392,6 +397,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-table") {
+            AssignLogicalTextOrders(runs);
+            HtmlRenderFlowBlock table = LayoutElement(element, width, style, inheritedStyle, depth + 1);
+            runs.Add(new HtmlInlineRun(table, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                inheritedPaintOffsetX, inheritedPaintOffsetY, element));
+            return;
+        }
         if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-block") {
             AssignLogicalTextOrders(runs);
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
@@ -453,7 +465,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         foreach (INode child in element.ChildNodes) {
-            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, targetRuns);
+            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, targetRuns, flattenInternalTableBoxes);
         }
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);

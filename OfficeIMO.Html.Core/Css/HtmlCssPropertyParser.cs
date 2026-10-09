@@ -10,7 +10,7 @@ namespace OfficeIMO.Html.Css;
 public static class HtmlCssPropertyParser {
     private static readonly HashSet<string> DisplayKeywords = Set(
         "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid",
-        "table", "table-caption", "table-column-group", "table-column", "table-header-group",
+        "table", "inline-table", "table-caption", "table-column-group", "table-column", "table-header-group",
         "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
     private static readonly HashSet<string> TextTransformKeywords = Set("none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana", "math-auto");
     private static readonly HashSet<string> VisibilityKeywords = Set("visible", "hidden", "collapse");

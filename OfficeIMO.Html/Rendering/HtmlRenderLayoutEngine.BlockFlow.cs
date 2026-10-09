@@ -58,7 +58,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue || emittedFloats != null
             ? inheritedFloats == null ? new List<HtmlFloatExclusion>() : new List<HtmlFloatExclusion>(inheritedFloats)
             : null;
-        foreach (INode node in nodes) {
+        foreach (TableFlowEntry entry in EnumerateTableFlowEntries(container, nodes, width, parentStyle)) {
+            if (entry.TableNodes != null) {
+                if (seekingContinuation && !entry.TableNodes.OfType<IElement>().Any(element => ReferenceEquals(element, continuationChild))) continue;
+                seekingContinuation = false;
+                double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth,
+                    pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                flowHeight += inlineHeight;
+                HtmlRenderBoxStyle tableStyle = CreateAnonymousBoxStyle(parentStyle, "table", "anonymous-table");
+                double tableY = flowHeight;
+                tableStyle = PlaceIndependentBlockBesideFloats(tableStyle, width, floatContext, ref tableY);
+                if (tableY > flowHeight) {
+                    blocks.Add(CreateFloatClearanceBlock(width, tableY - flowHeight));
+                    flowHeight = tableY;
+                }
+                TableFormattingStructure formatting = BuildTableFormattingStructure(container, width, tableStyle, depth, entry.TableNodes);
+                HtmlRenderFlowBlock tableBlock = LayoutTable(container, width, tableStyle, depth, continuationTarget, formatting);
+                blocks.Add(tableBlock);
+                flowHeight += tableBlock.Height;
+                if (continuationTarget != null && formatting.Rows.Any(row => row.Contains(continuationTarget))) {
+                    continuationTarget = null;
+                    continuationLogicalCharacters = 0;
+                }
+                adjoiningMargins.Clear();
+                continue;
+            }
+            INode node = entry.Node!;
             CheckCancellation();
             for (int index = (activeFloats?.Count ?? 0) - 1; index >= 0; index--) {
                 if (activeFloats![index].Bottom <= flowHeight + 0.0001D) activeFloats.RemoveAt(index);

@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<IElement> rows, IReadOnlyDictionary<IElement, HtmlRenderBoxStyle> rowStyles, IElement table, int columnCount, double contentWidth, double captionMinimumWidth, HtmlRenderBoxStyle tableStyle, int depth, out double usedWidth) {
+    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<TableFormattingRow> rows, IElement table, int columnCount, double contentWidth, double captionMinimumWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth, out double usedWidth) {
         if (tableStyle.TableLayout == "fixed") {
             var fixedWidths = new double[columnCount];
             ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, fixedWidths, fixedWidths);
@@ -12,21 +12,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return AllocateFixedColumnWidths(fixedWidths, contentWidth);
         }
 
-        var minimums = Enumerable.Repeat(1D, columnCount).ToArray();
-        var preferred = Enumerable.Repeat(1D, columnCount).ToArray();
-        var authoredWidths = new bool[columnCount];
+        ResolveAutoTableColumnContributions(rows, table, columnCount, contentWidth, tableStyle, depth, legacyBorderWidth,
+            out double[] minimums, out double[] preferred, out bool[] authoredWidths);
+        double minimumAllowed = tableStyle.MinWidth.HasValue
+            ? Math.Max(0.01D, tableStyle.MinWidth.Value - (tableStyle.BorderBox ? tableStyle.HorizontalInsets : 0D))
+            : 0.01D;
+        minimumAllowed = Math.Max(minimumAllowed, captionMinimumWidth);
+        usedWidth = tableStyle.ExplicitWidth.HasValue
+            ? contentWidth
+            : Math.Min(contentWidth, Math.Max(minimumAllowed, preferred.Sum()));
+        return AllocateAutoColumnWidths(minimums, preferred, authoredWidths, usedWidth);
+    }
+
+    /// <summary>Collects column constraints once for both table layout and non-paint intrinsic sizing.</summary>
+    private void ResolveAutoTableColumnContributions(IReadOnlyList<TableFormattingRow> rows, IElement table,
+        int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth, int legacyBorderWidth,
+        out double[] minimums, out double[] preferred, out bool[] authoredWidths) {
+        minimums = Enumerable.Repeat(1D, columnCount).ToArray();
+        preferred = Enumerable.Repeat(1D, columnCount).ToArray();
+        authoredWidths = new bool[columnCount];
         ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred, authoredWidths);
         var spanningCells = new List<(int Column, int Span, double Minimum, double Preferred)>();
         var occupancy = new int[columnCount];
-        int legacyBorderWidth = ReadLegacyTableBorderWidth(table);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
-            foreach (IElement cell in EnumerateVisibleTableCells(rows[rowIndex])) {
-                int requestedSpan = ReadSpan(cell.GetAttribute("colspan"), columnCount);
+            foreach (TableFormattingCell cell in rows[rowIndex].Cells) {
+                int requestedSpan = Math.Min(cell.ColumnSpan, columnCount);
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
-                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, rowStyles[rows[rowIndex]]);
+                HtmlRenderBoxStyle cellStyle = ResolveFormattingCellStyle(cell, contentWidth);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
                 if (span == 1 && cellStyle.ExplicitWidth.HasValue && !cellStyle.ExplicitWidthUsesPercentage) {
                     authoredWidths[column] = true;
@@ -38,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else {
                     spanningCells.Add((column, span, minimum, maximum));
                 }
-                int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
+                int rowSpan = ReadRowSpan(cell.RowSpan, rows, rowIndex);
                 for (int occupied = column; occupied < column + span; occupied++) occupancy[occupied] = Math.Max(occupancy[occupied], rowSpan);
                 column += span;
             }
@@ -46,18 +61,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         ApplyTableSpanningWidths(minimums, preferred, spanningCells,
             tableStyle.BorderCollapse == "collapse" ? 0D : tableStyle.BorderSpacingX);
-        double minimumAllowed = tableStyle.MinWidth.HasValue
-            ? Math.Max(0.01D, tableStyle.MinWidth.Value - (tableStyle.BorderBox ? tableStyle.HorizontalInsets : 0D))
-            : 0.01D;
-        minimumAllowed = Math.Max(minimumAllowed, captionMinimumWidth);
-        usedWidth = tableStyle.ExplicitWidth.HasValue
-            ? contentWidth
-            : Math.Min(contentWidth, Math.Max(minimumAllowed, preferred.Sum()));
-        return AllocateAutoColumnWidths(minimums, preferred, authoredWidths, usedWidth);
     }
 
-    private double MeasureTableCaptionMinimumWidth(IElement table, double containingWidth, HtmlRenderBoxStyle tableStyle) {
-        IElement? caption = table.Children.FirstOrDefault(child => string.Equals(child.TagName, "caption", StringComparison.OrdinalIgnoreCase));
+    /// <summary>Measures a table as one atomic box using source columns, without painting or feeding layout widths back into measurement.</summary>
+    private (double Minimum, double Maximum) ResolveIntrinsicTableOuterWidths(IElement table,
+        HtmlRenderBoxStyle style, double availableWidth, int depth) {
+        EnsureDepth(depth, table);
+        style = _styleResolver.ResolveIntrinsicMeasurementStyle(table, style);
+        if (!style.HasIntrinsicWidths && style.ExplicitWidth.HasValue && !style.ExplicitWidthUsesPercentage
+            && TryResolveDefiniteGridContribution(new FlexItem(table, style, 0), availableWidth, out double definite)) return (definite, definite);
+        TableFormattingStructure formatting = BuildTableFormattingStructure(table, availableWidth, style, depth);
+        int columnCount = Math.Max(DetermineColumnCount(formatting.Rows), DetermineDeclaredColumnCount(table));
+        double captionMinimum = Math.Max(0D, MeasureTableCaptionMinimumWidth(formatting.Caption, availableWidth, style) - style.HorizontalInsets);
+        double minimum = captionMinimum;
+        double maximum = captionMinimum;
+        if (columnCount > 0) {
+            int legacyBorderWidth = table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
+            ResolveAutoTableColumnContributions(formatting.Rows, table, columnCount, availableWidth, style, depth, legacyBorderWidth,
+                out double[] minimums, out double[] preferred, out _);
+            double spacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX * (columnCount + 1);
+            minimum = Math.Max(minimum, minimums.Sum() + spacing);
+            maximum = Math.Max(maximum, preferred.Sum() + spacing);
+        }
+        return style.HasIntrinsicWidths
+            ? ResolveOrdinaryIntrinsicContributions(style, minimum, maximum, availableWidth)
+            : (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
+    }
+
+    private double MeasureTableCaptionMinimumWidth(IElement? caption, double containingWidth, HtmlRenderBoxStyle tableStyle) {
         if (caption == null) return 0D;
         HtmlRenderBoxStyle captionStyle = _styleResolver.Resolve(caption, containingWidth, tableStyle);
         if (captionStyle.Display == "none") return 0D;
@@ -71,13 +102,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return minimum + captionStyle.MarginLeft + captionStyle.MarginRight;
     }
 
-    private void ApplyFirstRowAuthoredWidths(IReadOnlyList<IElement> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
+    private void ApplyFirstRowAuthoredWidths(IReadOnlyList<TableFormattingRow> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
         if (rows.Count == 0) return;
         int column = 0;
-        foreach (IElement cell in EnumerateVisibleTableCells(rows[0])) {
-            int span = Math.Min(ReadSpan(cell.GetAttribute("colspan"), widths.Length), widths.Length - column);
+        foreach (TableFormattingCell cell in rows[0].Cells) {
+            int span = Math.Min(cell.ColumnSpan, widths.Length - column);
             if (span <= 0) break;
-            HtmlRenderBoxStyle style = _styleResolver.Resolve(cell, contentWidth, tableStyle);
+            HtmlRenderBoxStyle style = ResolveFormattingCellStyle(cell, contentWidth);
             if (style.ExplicitWidth.HasValue) {
                 double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
                 ApplySpanningWidth(widths, column, span, authored);
@@ -108,10 +139,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
-        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(
-            new FlexItem(cell, style, 0), containingWidth, depth,
-            skipSizedNestedTables: true, includeDescendantInsets: true);
+    private void ResolveTableCellIntrinsicWidths(TableFormattingCell cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
+        if (cell.Nodes == null && IsSpecializedTableCell(cell.Element)) {
+            preferred = IsReplacedImageElement(cell.Element) || IsInputType(cell.Element, "image")
+                ? ResolveIntrinsicReplacedImageBoxWidth(cell.Element, style)
+                : ResolveFormControlIntrinsicOuterWidth(cell.Element, style, containingWidth);
+            minimum = style.ExplicitWidthUsesPercentage || style.MaxWidthUsesPercentage
+                ? ResolveCompressibleReplacedMinimumWidth(style) : preferred;
+            return;
+        }
+        IReadOnlyList<IntrinsicTextRun> runs;
+        if (cell.Nodes == null) {
+            runs = ResolveInFlowIntrinsicTextRuns(new FlexItem(cell.Element, style, 0), containingWidth, depth,
+                skipSizedNestedTables: true, includeDescendantInsets: true);
+        } else {
+            var rawRuns = new List<IntrinsicTextRun>();
+            AppendInFlowIntrinsicTextRuns(cell.Element, style, containingWidth, depth, rawRuns,
+                skipSizedNestedTables: true, includeDescendantInsets: true, sourceNodes: cell.Nodes);
+            runs = NormalizeIntrinsicTextRuns(rawRuns);
+        }
         double insets = style.HorizontalInsets;
         minimum = Math.Max(1D, MeasureMinContentRuns(runs) + insets);
         preferred = Math.Max(minimum, MeasureMaxContentRuns(runs) + insets);

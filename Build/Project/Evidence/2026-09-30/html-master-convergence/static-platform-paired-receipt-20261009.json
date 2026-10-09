@@ -1,0 +1,1286 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-10-09T19:47:54.458266+00:00",
+  "run": {
+    "id": 37967576798,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37967576798",
+    "status": "completed",
+    "conclusion": "failure",
+    "startedAt": "2026-10-09T17:37:23Z",
+    "updatedAt": "2026-10-09T19:17:28Z",
+    "event": "workflow_dispatch",
+    "headSha": "fe137c9f12a875a3f5a33ec496edaea13bf89e6a",
+    "headBranch": "feature/html-engine"
+  },
+  "scope": {
+    "candidateSource": "fe137c9f12a875a3f5a33ec496edaea13bf89e6a",
+    "priorSourceControl": "a542dea7dec970e821c6d27d74f575239d8e163e",
+    "equivalentProductionOwnerCheckpoint": "044477ee600e1075f5df5ec2a8da7407baaa8962",
+    "localCommittedHeadAtInspection": "0145318f61326bd3ae97033386d80538d0a4728f",
+    "ownerTreeReceipt": {
+      "044477ee600e1075f5df5ec2a8da7407baaa8962": {
+        "Build/HtmlStaticBudget": "adf42d0dfd648d7d4dff131fb733c9b3500c2310",
+        "Build/Test-HtmlPackages.ps1": "67ba6d61ebc26663efb2bf422cb37cc9e84d8cfa",
+        "OfficeIMO.Core": "ba6bdb557d570fe34aa6de73f7e7b21545c8fca3",
+        "OfficeIMO.Html.AngleSharp": "7e1f46c329df040d2c2bd0c559e7b938bf80e26a",
+        "OfficeIMO.Html.Core": "d70b80339a77314e20ff6ded548d2c743218ebc7",
+        "OfficeIMO.Html.Pdf": "88b3130515d409f70126fc40a67ee2391180ac14",
+        "OfficeIMO.Html": "36ccd6f8db60bf9706aceec75fe920a8909c268d",
+        "OfficeIMO.Pdf": "97a3b622d3f28249a29b8f0b149f3dcee25d2e4f",
+        "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out": "6f5222990ad1559695dcb93dcad34b719071e49f"
+      },
+      "fe137c9f12a875a3f5a33ec496edaea13bf89e6a": {
+        "Build/HtmlStaticBudget": "adf42d0dfd648d7d4dff131fb733c9b3500c2310",
+        "Build/Test-HtmlPackages.ps1": "67ba6d61ebc26663efb2bf422cb37cc9e84d8cfa",
+        "OfficeIMO.Core": "ba6bdb557d570fe34aa6de73f7e7b21545c8fca3",
+        "OfficeIMO.Html.AngleSharp": "7e1f46c329df040d2c2bd0c559e7b938bf80e26a",
+        "OfficeIMO.Html.Core": "d70b80339a77314e20ff6ded548d2c743218ebc7",
+        "OfficeIMO.Html.Pdf": "88b3130515d409f70126fc40a67ee2391180ac14",
+        "OfficeIMO.Html": "36ccd6f8db60bf9706aceec75fe920a8909c268d",
+        "OfficeIMO.Pdf": "97a3b622d3f28249a29b8f0b149f3dcee25d2e4f",
+        "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out": "6f5222990ad1559695dcb93dcad34b719071e49f"
+      },
+      "0145318f61326bd3ae97033386d80538d0a4728f": {
+        "Build/HtmlStaticBudget": "adf42d0dfd648d7d4dff131fb733c9b3500c2310",
+        "Build/Test-HtmlPackages.ps1": "67ba6d61ebc26663efb2bf422cb37cc9e84d8cfa",
+        "OfficeIMO.Core": "ba6bdb557d570fe34aa6de73f7e7b21545c8fca3",
+        "OfficeIMO.Html.AngleSharp": "7e1f46c329df040d2c2bd0c559e7b938bf80e26a",
+        "OfficeIMO.Html.Core": "d70b80339a77314e20ff6ded548d2c743218ebc7",
+        "OfficeIMO.Html.Pdf": "88b3130515d409f70126fc40a67ee2391180ac14",
+        "OfficeIMO.Html": "36ccd6f8db60bf9706aceec75fe920a8909c268d",
+        "OfficeIMO.Pdf": "97a3b622d3f28249a29b8f0b149f3dcee25d2e4f",
+        "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out": "6f5222990ad1559695dcb93dcad34b719071e49f"
+      }
+    },
+    "ownerTreesIdenticalAcrossCheckpoints": true,
+    "pendingUncommittedCssAndBorderChangesCovered": false,
+    "qualificationSuite": "html-static",
+    "h4CorpusId": "officeimo-html-h4-advanced-held-out",
+    "h4ManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "caseCount": 8,
+    "reportedOutputsPerIteration": 76,
+    "reportedColdIterations": 1,
+    "reportedWarmIterations": 3,
+    "workerWarmupIterationsExcludedFromReportedMetrics": 1
+  },
+  "assessment": {
+    "correctness": "Passed on all three candidate platforms at the recorded source; HTML net8/net10 and PDF net10 correctness suites, conditional installed-font lanes, and both packed consumers are green.",
+    "outputContracts": "Every pair retains the same ordered 76 output contracts. PNG/SVG output hashes are identical between candidate and prior-source control; only 4 Windows /2 Linux /2 macOS PDF hashes change, reducing candidate output totals on every platform. All candidate cold/warm fingerprints are identical within their host.",
+    "candidatePerformanceQualification": "Linux passes all configured ceilings. Windows and macOS fail elapsed-time ceilings only. Allocation, process-tree peak memory, output size, determinism and cancellation pass for every candidate.",
+    "priorSourceControl": "Windows and macOS reproduce cold/warm timing failures; Windows also reproduces 3,008,293 deterministic output bytes against 3,000,000. Linux control fails only cold timing (12,090.1022 ms versus 12,000).",
+    "regressionConclusion": "This run does not establish a new output-contract, deterministic artifact-size, allocation, peak-memory or cancellation defect. It records unresolved candidate Windows/macOS performance acceptance, with the same failure class present in control; it does not prove the host is solely responsible or that candidate timing cannot regress.",
+    "timingInferenceBoundary": "One sequential candidate-then-control pair per host, one reported cold iteration and three warmed iterations per process. No rotated order, independent repeated batches, per-case timing or CPU/power-domain evidence in these reports. Candidate macOS cold timing is 19,073.371 ms versus control 14,794.5962 ms; retain this observed difference without attributing it to code.",
+    "canonicalCodeBug": "No new canonical-owner code defect is established by these reports. The historical control artifact-size excess is absent in the candidate. Do not raise ceilings or weaken gates to turn the run green.",
+    "recommendedNextBoundedEvidence": "Keep failed optional timing qualification visible. If performance acceptance must be closed, gather a controlled profile and repeated equivalent corpus comparison with host/CPU metadata and rotated order through the canonical PowerForge benchmarking owner; keep deterministic output and API resource-limit proof separate.",
+    "conditionalFontEvidenceLimit": "InstalledMathFontRetainsOperationBoundsAndCancellationWhenAvailable has an early return when an installed math face cannot be added. Its reported 1/1 success does not independently prove the installed math path ran; the receipt has no chosen math-font identity. Report these checks as conditional.",
+    "currentHeadBoundary": "Production owner trees at fe137, 044477 and local committed 0145318 match. The active uncommitted CSS/table/border changes remain outside this run and require their own exact-candidate proof."
+  },
+  "platforms": [
+    {
+      "platform": "windows",
+      "jobId": 113945693047,
+      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37967576798/job/113945693047",
+      "jobConclusion": "failure",
+      "pairedEnvironment": {
+        "osFamily": "Windows",
+        "osDescription": "Microsoft Windows 10.0.26100",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "frameworkDescription": ".NET 10.0.12",
+        "machineName": "runnervmfi6oq",
+        "processorCount": 4
+      },
+      "identicalPairedCeilings": {
+        "osFamily": "Windows",
+        "coldProcessElapsedMilliseconds": 12000,
+        "warmIterationElapsedMilliseconds": 4000,
+        "coldManagedAllocatedBytes": 2500000000,
+        "warmManagedAllocatedBytes": 1200000000,
+        "peakWorkingSetBytes": 1500000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "budgets": {
+        "candidate": {
+          "source": {
+            "commit": "fe137c9f12a875a3f5a33ec496edaea13bf89e6a",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "reportPath": "windows-candidate-budget.json",
+          "reportSha256": "f59e364724cf444dcf03131cba3d7f62d9aed81c44c403b88bea0ea7e1d6ed66",
+          "status": "Failed",
+          "failures": [
+            "cold process elapsed milliseconds 14006.1 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 6302.8 exceeded ceiling 4000.0.",
+            "warm iteration 2 elapsed milliseconds 5543.8 exceeded ceiling 4000.0.",
+            "warm iteration 3 elapsed milliseconds 5117.7 exceeded ceiling 4000.0."
+          ],
+          "coldProcessElapsedMilliseconds": 14006.1003,
+          "coldIteration": {
+            "number": 1,
+            "elapsedMilliseconds": 13692.1587,
+            "managedAllocatedBytes": 2395994672,
+            "outputBytes": 2744330,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "691829c62965bbd096029a583f174a1c5a5e48c02088caf012c3881bc47c4260"
+          },
+          "warmIterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 6302.7645,
+              "managedAllocatedBytes": 990658056,
+              "outputBytes": 2744330,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "691829c62965bbd096029a583f174a1c5a5e48c02088caf012c3881bc47c4260"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 5543.8025,
+              "managedAllocatedBytes": 990201800,
+              "outputBytes": 2744330,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "691829c62965bbd096029a583f174a1c5a5e48c02088caf012c3881bc47c4260"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 5117.7171,
+              "managedAllocatedBytes": 990136576,
+              "outputBytes": 2744330,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "691829c62965bbd096029a583f174a1c5a5e48c02088caf012c3881bc47c4260"
+            }
+          ],
+          "peakWorkingSetBytes": 1441124352,
+          "coldMemorySampleCount": 857,
+          "warmMemorySampleCount": 1966,
+          "coldWarmFingerprintsIdentical": true,
+          "withinWorkerDeterministic": true,
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 7.1198,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failedTimeCounters": [
+            "cold process elapsed milliseconds 14006.1 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 6302.8 exceeded ceiling 4000.0.",
+            "warm iteration 2 elapsed milliseconds 5543.8 exceeded ceiling 4000.0.",
+            "warm iteration 3 elapsed milliseconds 5117.7 exceeded ceiling 4000.0."
+          ],
+          "failedOutputByteCounters": [],
+          "failedAllocationCounters": [],
+          "failedPeakMemoryCounters": []
+        },
+        "control": {
+          "source": {
+            "commit": "a542dea7dec970e821c6d27d74f575239d8e163e",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "reportPath": "windows-control-budget.json",
+          "reportSha256": "1a2a292f59a7c50840b26be9c4de03af5064deaa45025edaec0959ca9a39b8c6",
+          "status": "Failed",
+          "failures": [
+            "cold process elapsed milliseconds 13777.4 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 6097.0 exceeded ceiling 4000.0.",
+            "warm iteration 1 output bytes 3008293.0 exceeded ceiling 3000000.0.",
+            "warm iteration 2 elapsed milliseconds 5572.1 exceeded ceiling 4000.0.",
+            "warm iteration 2 output bytes 3008293.0 exceeded ceiling 3000000.0.",
+            "warm iteration 3 elapsed milliseconds 5240.8 exceeded ceiling 4000.0.",
+            "warm iteration 3 output bytes 3008293.0 exceeded ceiling 3000000.0.",
+            "cold output bytes 3008293.0 exceeded ceiling 3000000.0."
+          ],
+          "coldProcessElapsedMilliseconds": 13777.3991,
+          "coldIteration": {
+            "number": 1,
+            "elapsedMilliseconds": 13472.7894,
+            "managedAllocatedBytes": 2403931664,
+            "outputBytes": 3008293,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "150639d38f4e96834dfb9bd5471e12e3709c6237967f607c363df8b9b4030949"
+          },
+          "warmIterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 6096.9527,
+              "managedAllocatedBytes": 995488800,
+              "outputBytes": 3008293,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "150639d38f4e96834dfb9bd5471e12e3709c6237967f607c363df8b9b4030949"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 5572.1201,
+              "managedAllocatedBytes": 995094104,
+              "outputBytes": 3008293,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "150639d38f4e96834dfb9bd5471e12e3709c6237967f607c363df8b9b4030949"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 5240.7661,
+              "managedAllocatedBytes": 994948136,
+              "outputBytes": 3008293,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "150639d38f4e96834dfb9bd5471e12e3709c6237967f607c363df8b9b4030949"
+            }
+          ],
+          "peakWorkingSetBytes": 1350516736,
+          "coldMemorySampleCount": 861,
+          "warmMemorySampleCount": 1892,
+          "coldWarmFingerprintsIdentical": true,
+          "withinWorkerDeterministic": true,
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 7.2604,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failedTimeCounters": [
+            "cold process elapsed milliseconds 13777.4 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 6097.0 exceeded ceiling 4000.0.",
+            "warm iteration 2 elapsed milliseconds 5572.1 exceeded ceiling 4000.0.",
+            "warm iteration 3 elapsed milliseconds 5240.8 exceeded ceiling 4000.0."
+          ],
+          "failedOutputByteCounters": [
+            "warm iteration 1 output bytes 3008293.0 exceeded ceiling 3000000.0.",
+            "warm iteration 2 output bytes 3008293.0 exceeded ceiling 3000000.0.",
+            "warm iteration 3 output bytes 3008293.0 exceeded ceiling 3000000.0.",
+            "cold output bytes 3008293.0 exceeded ceiling 3000000.0."
+          ],
+          "failedAllocationCounters": [],
+          "failedPeakMemoryCounters": []
+        }
+      },
+      "sameOrdered76OutputContracts": true,
+      "candidateControlOutputDifference": {
+        "byCase": {
+          "subgrid-operations": {
+            "controlBytes": 138457,
+            "candidateBytes": 138457,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "nested-fragmentation-report": {
+            "controlBytes": 321899,
+            "candidateBytes": 321779,
+            "outputCount": 12,
+            "deltaBytes": -120
+          },
+          "columns-footnotes-brief": {
+            "controlBytes": 679023,
+            "candidateBytes": 591516,
+            "outputCount": 8,
+            "deltaBytes": -87507
+          },
+          "named-pages-brochure": {
+            "controlBytes": 167042,
+            "candidateBytes": 167042,
+            "outputCount": 12,
+            "deltaBytes": 0
+          },
+          "stacking-clipping-board": {
+            "controlBytes": 382413,
+            "candidateBytes": 382413,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "typography-specimen": {
+            "controlBytes": 889764,
+            "candidateBytes": 713428,
+            "outputCount": 8,
+            "deltaBytes": -176336
+          },
+          "professional-print-catalog": {
+            "controlBytes": 273895,
+            "candidateBytes": 273895,
+            "outputCount": 12,
+            "deltaBytes": 0
+          },
+          "legacy-portal": {
+            "controlBytes": 155800,
+            "candidateBytes": 155800,
+            "outputCount": 8,
+            "deltaBytes": 0
+          }
+        },
+        "byEncoder": {
+          "Pdf": {
+            "controlBytes": 1192509,
+            "candidateBytes": 928546,
+            "outputCount": 16,
+            "changedHashCount": 4,
+            "deltaBytes": -263963
+          },
+          "Png": {
+            "controlBytes": 1582912,
+            "candidateBytes": 1582912,
+            "outputCount": 30,
+            "changedHashCount": 0,
+            "deltaBytes": 0
+          },
+          "Svg": {
+            "controlBytes": 232872,
+            "candidateBytes": 232872,
+            "outputCount": 30,
+            "changedHashCount": 0,
+            "deltaBytes": 0
+          }
+        },
+        "changedOutputs": [
+          {
+            "caseId": "nested-fragmentation-report",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 8459,
+            "controlBytes": 8579,
+            "candidateSha256": "c60e38fe6da80a67e2e844a1f8991c121971c48f63a1021e4303bbad3e3cf5a4",
+            "controlSha256": "ffaa8fe6291b659ba0a03f8f3e6371ed2f3ee3c518747c8db49db574c12bcd55"
+          },
+          {
+            "caseId": "columns-footnotes-brief",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 150257,
+            "controlBytes": 237764,
+            "candidateSha256": "1fc6163fdfbac6e6170204926772a7ee77f51c3c7b52e8bb7976fdbc049d1fb7",
+            "controlSha256": "4ddcb4c97d7d2af17e25417657007ddea8fd2d0017e1d1f30e4da5db8afd9985"
+          },
+          {
+            "caseId": "typography-specimen",
+            "profile": "PrintPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 202457,
+            "controlBytes": 290625,
+            "candidateSha256": "a84913dc1c6c899620329f871e7514c3082d254d1bb6af20d36704dc8a063c42",
+            "controlSha256": "16e044cadce4621760d62e3dd7472af60dd1ca358123ad3954a657909c060843"
+          },
+          {
+            "caseId": "typography-specimen",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 202440,
+            "controlBytes": 290608,
+            "candidateSha256": "2f4a7984bbc62ece1f545cd724203274ac993058bc44a34ebff380405b2297e9",
+            "controlSha256": "47c37ffd3841adfb19f95249faefabb45f148e8951094ddc2338456da12fdc93"
+          }
+        ]
+      },
+      "correctnessTestCounters": {
+        "drawing-math-net10.0.trx": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "5a9d0b1c695df4cc9bfc6f163ab133935b4bce45fde9f4203c5084109f2d06db"
+        },
+        "html-net10.0.trx": {
+          "total": 5525,
+          "passed": 5525,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "72f01dea0ea343044043f9f654de14aef631c52825cdbe769107d9974414afc3"
+        },
+        "drawing-math-net8.0.trx": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "f9a95fcec5630140a709ad19a49fd303084a3ecd2f973904cd008de8c5d6ae51"
+        },
+        "html-net8.0.trx": {
+          "total": 5525,
+          "passed": 5525,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "dd44773f573b0a9f5ae11a449bc1cabbc2fc00836adb19fb166ba37f2b73115d"
+        },
+        "pdf-fonts-net10.0.trx": {
+          "total": 15,
+          "passed": 15,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "c25062715c3c520b262865df77546dbbf4ffd2fb376b599c1c30fe6cd64a89ba"
+        },
+        "pdf-fonts-net8.0.trx": {
+          "total": 15,
+          "passed": 15,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "57c0ca367a688de872d24556fabd0f0837f9b61aa77ff0457e83b97ab629a52d"
+        },
+        "pdf-net10.0.trx": {
+          "total": 9928,
+          "passed": 9928,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "4babb8730563150db221e2c7ea25c5f1f3e84c4737f3bf802b3ab0224ef3f45b"
+        }
+      },
+      "packedConsumers": {
+        "status": "Passed",
+        "localPackageVersion": "3.3.0",
+        "localPackagesCreated": 19,
+        "executedConsumerFrameworkLanes": 6,
+        "exactSuccessLogLines": [
+          {
+            "line": 1348,
+            "text": "2026-10-09T19:07:05.0871086Z OfficeIMO HTML document-only packed API smoke passed on .NET Framework 4.8.9345.0."
+          },
+          {
+            "line": 1349,
+            "text": "2026-10-09T19:07:07.7589138Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.31."
+          },
+          {
+            "line": 1350,
+            "text": "2026-10-09T19:07:10.0637418Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12."
+          },
+          {
+            "line": 1354,
+            "text": "2026-10-09T19:07:19.9356078Z OfficeIMO HTML packed API smoke passed on .NET Framework 4.8.9345.0."
+          },
+          {
+            "line": 1356,
+            "text": "2026-10-09T19:07:23.5549773Z OfficeIMO HTML packed API smoke passed on .NET 8.0.31."
+          },
+          {
+            "line": 1358,
+            "text": "2026-10-09T19:07:27.6501052Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+          }
+        ],
+        "completePublicFrameworksPacked": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "packagingScope": "Local qualification artifacts; no NuGet publication"
+      },
+      "independentPdfTextValidator": {
+        "executable": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+        "version": "pdftotext version 4.06 [www.xpdfreader.com]\r\nCopyright 1996-2025 Glyph & Cog, LLC"
+      },
+      "exactLogEvidenceFile": "windows-log-excerpts.json",
+      "completeLogSha256": "6b5ba25925a6c33e39d90a16b5c91787fa16d04b9921e5be2c9cc4f130ec863f"
+    },
+    {
+      "platform": "linux",
+      "jobId": 113945693538,
+      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37967576798/job/113945693538",
+      "jobConclusion": "failure",
+      "pairedEnvironment": {
+        "osFamily": "Linux",
+        "osDescription": "Ubuntu 24.04.5 LTS",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "frameworkDescription": ".NET 10.0.12",
+        "machineName": "runnervmmprz5",
+        "processorCount": 4
+      },
+      "identicalPairedCeilings": {
+        "osFamily": "Linux",
+        "coldProcessElapsedMilliseconds": 12000,
+        "warmIterationElapsedMilliseconds": 5000,
+        "coldManagedAllocatedBytes": 1100000000,
+        "warmManagedAllocatedBytes": 1000000000,
+        "peakWorkingSetBytes": 500000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "budgets": {
+        "candidate": {
+          "source": {
+            "commit": "fe137c9f12a875a3f5a33ec496edaea13bf89e6a",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "reportPath": "linux-candidate-budget.json",
+          "reportSha256": "71dc39a65b4132b48b66973509b4827b9edee380d46699550eb81ef7456a467b",
+          "status": "Passed",
+          "failures": [],
+          "coldProcessElapsedMilliseconds": 10602.1555,
+          "coldIteration": {
+            "number": 1,
+            "elapsedMilliseconds": 10452.9115,
+            "managedAllocatedBytes": 1002200920,
+            "outputBytes": 2860696,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "f9d76b4aae06a7dc8f41f377f048e428f028a5fed186afcb8e090a83b760008a"
+          },
+          "warmIterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 4806.5803,
+              "managedAllocatedBytes": 819565168,
+              "outputBytes": 2860696,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "f9d76b4aae06a7dc8f41f377f048e428f028a5fed186afcb8e090a83b760008a"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 4650.6028,
+              "managedAllocatedBytes": 819802496,
+              "outputBytes": 2860696,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "f9d76b4aae06a7dc8f41f377f048e428f028a5fed186afcb8e090a83b760008a"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 4515.6827,
+              "managedAllocatedBytes": 819651488,
+              "outputBytes": 2860696,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "f9d76b4aae06a7dc8f41f377f048e428f028a5fed186afcb8e090a83b760008a"
+            }
+          ],
+          "peakWorkingSetBytes": 373280768,
+          "coldMemorySampleCount": 790,
+          "warmMemorySampleCount": 1836,
+          "coldWarmFingerprintsIdentical": true,
+          "withinWorkerDeterministic": true,
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 6.3469,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failedTimeCounters": [],
+          "failedOutputByteCounters": [],
+          "failedAllocationCounters": [],
+          "failedPeakMemoryCounters": []
+        },
+        "control": {
+          "source": {
+            "commit": "a542dea7dec970e821c6d27d74f575239d8e163e",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "reportPath": "linux-control-budget.json",
+          "reportSha256": "3501e9a0d431d28142d830c1dc2c51063de1aa0ed06f70a0922163be0969cdbf",
+          "status": "Failed",
+          "failures": [
+            "cold process elapsed milliseconds 12090.1 exceeded ceiling 12000.0."
+          ],
+          "coldProcessElapsedMilliseconds": 12090.1022,
+          "coldIteration": {
+            "number": 1,
+            "elapsedMilliseconds": 11915.639,
+            "managedAllocatedBytes": 1003304464,
+            "outputBytes": 2928110,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "d5643d66ce7124ddf4761f4b5d2191dc3f12efdb3dbca3042644a32aa5607aa6"
+          },
+          "warmIterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 4557.7587,
+              "managedAllocatedBytes": 821022720,
+              "outputBytes": 2928110,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "d5643d66ce7124ddf4761f4b5d2191dc3f12efdb3dbca3042644a32aa5607aa6"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 4661.8801,
+              "managedAllocatedBytes": 821083688,
+              "outputBytes": 2928110,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "d5643d66ce7124ddf4761f4b5d2191dc3f12efdb3dbca3042644a32aa5607aa6"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 4456.396,
+              "managedAllocatedBytes": 820912016,
+              "outputBytes": 2928110,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "d5643d66ce7124ddf4761f4b5d2191dc3f12efdb3dbca3042644a32aa5607aa6"
+            }
+          ],
+          "peakWorkingSetBytes": 367988736,
+          "coldMemorySampleCount": 881,
+          "warmMemorySampleCount": 1794,
+          "coldWarmFingerprintsIdentical": true,
+          "withinWorkerDeterministic": true,
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 6.4891,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failedTimeCounters": [
+            "cold process elapsed milliseconds 12090.1 exceeded ceiling 12000.0."
+          ],
+          "failedOutputByteCounters": [],
+          "failedAllocationCounters": [],
+          "failedPeakMemoryCounters": []
+        }
+      },
+      "sameOrdered76OutputContracts": true,
+      "candidateControlOutputDifference": {
+        "byCase": {
+          "subgrid-operations": {
+            "controlBytes": 135525,
+            "candidateBytes": 135525,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "nested-fragmentation-report": {
+            "controlBytes": 319459,
+            "candidateBytes": 319339,
+            "outputCount": 12,
+            "deltaBytes": -120
+          },
+          "columns-footnotes-brief": {
+            "controlBytes": 530823,
+            "candidateBytes": 463529,
+            "outputCount": 8,
+            "deltaBytes": -67294
+          },
+          "named-pages-brochure": {
+            "controlBytes": 162919,
+            "candidateBytes": 162919,
+            "outputCount": 12,
+            "deltaBytes": 0
+          },
+          "stacking-clipping-board": {
+            "controlBytes": 380590,
+            "candidateBytes": 380590,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "typography-specimen": {
+            "controlBytes": 973200,
+            "candidateBytes": 973200,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "professional-print-catalog": {
+            "controlBytes": 269276,
+            "candidateBytes": 269276,
+            "outputCount": 12,
+            "deltaBytes": 0
+          },
+          "legacy-portal": {
+            "controlBytes": 156318,
+            "candidateBytes": 156318,
+            "outputCount": 8,
+            "deltaBytes": 0
+          }
+        },
+        "byEncoder": {
+          "Pdf": {
+            "controlBytes": 1130196,
+            "candidateBytes": 1062782,
+            "outputCount": 16,
+            "changedHashCount": 2,
+            "deltaBytes": -67414
+          },
+          "Png": {
+            "controlBytes": 1565042,
+            "candidateBytes": 1565042,
+            "outputCount": 30,
+            "changedHashCount": 0,
+            "deltaBytes": 0
+          },
+          "Svg": {
+            "controlBytes": 232872,
+            "candidateBytes": 232872,
+            "outputCount": 30,
+            "changedHashCount": 0,
+            "deltaBytes": 0
+          }
+        },
+        "changedOutputs": [
+          {
+            "caseId": "nested-fragmentation-report",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 8459,
+            "controlBytes": 8579,
+            "candidateSha256": "c60e38fe6da80a67e2e844a1f8991c121971c48f63a1021e4303bbad3e3cf5a4",
+            "controlSha256": "ffaa8fe6291b659ba0a03f8f3e6371ed2f3ee3c518747c8db49db574c12bcd55"
+          },
+          {
+            "caseId": "columns-footnotes-brief",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 86623,
+            "controlBytes": 153917,
+            "candidateSha256": "c0606b2478e462391466cda441fda78ae8196196384f27f8a379fe504ce93e80",
+            "controlSha256": "681bebca354b05f53da4adcd1db2ff3dda51f4e7e1ed0d563f679e2ab298f627"
+          }
+        ]
+      },
+      "correctnessTestCounters": {
+        "drawing-math-net10.0.trx": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "515300623275d71c2fcfa9dd96852fdae9e187164aa00c549abd0842ad285f56"
+        },
+        "html-net10.0.trx": {
+          "total": 5525,
+          "passed": 5525,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "daaa87597c4ca388f7b26346bf17429e79265940764a9f5258d4961a2f11bddd"
+        },
+        "drawing-math-net8.0.trx": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "ec93ca81b8de7268f859b01310b043b6e7ee7f86c9da17f6d7f2868ad743881f"
+        },
+        "html-net8.0.trx": {
+          "total": 5525,
+          "passed": 5525,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "c0092ad41a21b49e445a6e9fcd804526433f7e2ced7283edbf630e237659b00b"
+        },
+        "pdf-fonts-net10.0.trx": {
+          "total": 15,
+          "passed": 15,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "326f286a003a4b0ae8dbd250f92ca090f3a61eca5e39ac41d3c448501f7a02f8"
+        },
+        "pdf-fonts-net8.0.trx": {
+          "total": 15,
+          "passed": 15,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "30044a8ffc3a0c179471da89dac1ef0e5cc39aa85c1196a6d18b3907e2f184b5"
+        },
+        "pdf-net10.0.trx": {
+          "total": 9928,
+          "passed": 9928,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "b7d8e555dad5495f2177c51c159727b638cae25798ab255e15743f669fb9f385"
+        }
+      },
+      "packedConsumers": {
+        "status": "Passed",
+        "localPackageVersion": "3.3.0",
+        "localPackagesCreated": 19,
+        "executedConsumerFrameworkLanes": 4,
+        "exactSuccessLogLines": [
+          {
+            "line": 1498,
+            "text": "2026-10-09T19:07:48.3771720Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.31."
+          },
+          {
+            "line": 1499,
+            "text": "2026-10-09T19:07:50.1109134Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12."
+          },
+          {
+            "line": 1503,
+            "text": "2026-10-09T19:07:55.5744962Z OfficeIMO HTML packed API smoke passed on .NET 8.0.31."
+          },
+          {
+            "line": 1505,
+            "text": "2026-10-09T19:07:58.8203821Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+          }
+        ],
+        "completePublicFrameworksPacked": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "packagingScope": "Local qualification artifacts; no NuGet publication"
+      },
+      "independentPdfTextValidator": {
+        "executable": "/usr/bin/pdftotext",
+        "version": "pdftotext version 24.02.0\nCopyright 2005-2024 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+      },
+      "exactLogEvidenceFile": "linux-log-excerpts.json",
+      "completeLogSha256": "3abc5ea73e58cc1e116c5f919ced4f099b5cc7f2d09a3324e0d8344872477f7d"
+    },
+    {
+      "platform": "macos",
+      "jobId": 113945693504,
+      "jobUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37967576798/job/113945693504",
+      "jobConclusion": "failure",
+      "pairedEnvironment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 26.6.2",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "frameworkDescription": ".NET 10.0.12",
+        "machineName": "sjc22-bm213-0e07ec1d-2b00-48c0-8b95-b99039ed6822-8EADBA7F1FA3",
+        "processorCount": 3
+      },
+      "identicalPairedCeilings": {
+        "osFamily": "macOS",
+        "coldProcessElapsedMilliseconds": 8000,
+        "warmIterationElapsedMilliseconds": 3000,
+        "coldManagedAllocatedBytes": 1250000000,
+        "warmManagedAllocatedBytes": 1100000000,
+        "peakWorkingSetBytes": 700000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "budgets": {
+        "candidate": {
+          "source": {
+            "commit": "fe137c9f12a875a3f5a33ec496edaea13bf89e6a",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "reportPath": "macos-candidate-budget.json",
+          "reportSha256": "90e741a21d97d3e04529914c8c53f664e0568b4b60b9a71fff68fe20321acae2",
+          "status": "Failed",
+          "failures": [
+            "cold process elapsed milliseconds 19073.4 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 4374.9 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 3916.3 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4061.0 exceeded ceiling 3000.0."
+          ],
+          "coldProcessElapsedMilliseconds": 19073.371,
+          "coldIteration": {
+            "number": 1,
+            "elapsedMilliseconds": 18891.3384,
+            "managedAllocatedBytes": 1106796928,
+            "outputBytes": 2586534,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "499307ccad4ae8db0f6de11901f08857702dc1f56dd6679cbb34ca4ce54763ca"
+          },
+          "warmIterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 4374.8982,
+              "managedAllocatedBytes": 869660184,
+              "outputBytes": 2586534,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "499307ccad4ae8db0f6de11901f08857702dc1f56dd6679cbb34ca4ce54763ca"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 3916.3273,
+              "managedAllocatedBytes": 868481280,
+              "outputBytes": 2586534,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "499307ccad4ae8db0f6de11901f08857702dc1f56dd6679cbb34ca4ce54763ca"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 4060.9975,
+              "managedAllocatedBytes": 868212264,
+              "outputBytes": 2586534,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "499307ccad4ae8db0f6de11901f08857702dc1f56dd6679cbb34ca4ce54763ca"
+            }
+          ],
+          "peakWorkingSetBytes": 594952192,
+          "coldMemorySampleCount": 196,
+          "warmMemorySampleCount": 337,
+          "coldWarmFingerprintsIdentical": true,
+          "withinWorkerDeterministic": true,
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 3.1738,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failedTimeCounters": [
+            "cold process elapsed milliseconds 19073.4 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 4374.9 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 3916.3 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4061.0 exceeded ceiling 3000.0."
+          ],
+          "failedOutputByteCounters": [],
+          "failedAllocationCounters": [],
+          "failedPeakMemoryCounters": []
+        },
+        "control": {
+          "source": {
+            "commit": "a542dea7dec970e821c6d27d74f575239d8e163e",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "reportPath": "macos-control-budget.json",
+          "reportSha256": "7fd8289b898ac006eaaa23f6295b0d640958f6c063c01fefa9896fd4bc57b834",
+          "status": "Failed",
+          "failures": [
+            "cold process elapsed milliseconds 14794.6 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 4649.3 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 4784.4 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4621.9 exceeded ceiling 3000.0."
+          ],
+          "coldProcessElapsedMilliseconds": 14794.5962,
+          "coldIteration": {
+            "number": 1,
+            "elapsedMilliseconds": 14680.1231,
+            "managedAllocatedBytes": 1108587904,
+            "outputBytes": 2671358,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "2b20125c4aca1db26cc97cf807764c669bd458830428a0a8e8fa473095505a3a"
+          },
+          "warmIterations": [
+            {
+              "number": 1,
+              "elapsedMilliseconds": 4649.3248,
+              "managedAllocatedBytes": 870766736,
+              "outputBytes": 2671358,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "2b20125c4aca1db26cc97cf807764c669bd458830428a0a8e8fa473095505a3a"
+            },
+            {
+              "number": 2,
+              "elapsedMilliseconds": 4784.3746,
+              "managedAllocatedBytes": 869701176,
+              "outputBytes": 2671358,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "2b20125c4aca1db26cc97cf807764c669bd458830428a0a8e8fa473095505a3a"
+            },
+            {
+              "number": 3,
+              "elapsedMilliseconds": 4621.9047,
+              "managedAllocatedBytes": 869497872,
+              "outputBytes": 2671358,
+              "caseCount": 8,
+              "outputCount": 76,
+              "fingerprintSha256": "2b20125c4aca1db26cc97cf807764c669bd458830428a0a8e8fa473095505a3a"
+            }
+          ],
+          "peakWorkingSetBytes": 654950400,
+          "coldMemorySampleCount": 163,
+          "warmMemorySampleCount": 311,
+          "coldWarmFingerprintsIdentical": true,
+          "withinWorkerDeterministic": true,
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 2.7396,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failedTimeCounters": [
+            "cold process elapsed milliseconds 14794.6 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 4649.3 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 4784.4 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4621.9 exceeded ceiling 3000.0."
+          ],
+          "failedOutputByteCounters": [],
+          "failedAllocationCounters": [],
+          "failedPeakMemoryCounters": []
+        }
+      },
+      "sameOrdered76OutputContracts": true,
+      "candidateControlOutputDifference": {
+        "byCase": {
+          "subgrid-operations": {
+            "controlBytes": 138457,
+            "candidateBytes": 138457,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "nested-fragmentation-report": {
+            "controlBytes": 321899,
+            "candidateBytes": 321779,
+            "outputCount": 12,
+            "deltaBytes": -120
+          },
+          "columns-footnotes-brief": {
+            "controlBytes": 616838,
+            "candidateBytes": 532134,
+            "outputCount": 8,
+            "deltaBytes": -84704
+          },
+          "named-pages-brochure": {
+            "controlBytes": 167042,
+            "candidateBytes": 167042,
+            "outputCount": 12,
+            "deltaBytes": 0
+          },
+          "stacking-clipping-board": {
+            "controlBytes": 382413,
+            "candidateBytes": 382413,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "typography-specimen": {
+            "controlBytes": 615013,
+            "candidateBytes": 615013,
+            "outputCount": 8,
+            "deltaBytes": 0
+          },
+          "professional-print-catalog": {
+            "controlBytes": 273896,
+            "candidateBytes": 273896,
+            "outputCount": 12,
+            "deltaBytes": 0
+          },
+          "legacy-portal": {
+            "controlBytes": 155800,
+            "candidateBytes": 155800,
+            "outputCount": 8,
+            "deltaBytes": 0
+          }
+        },
+        "byEncoder": {
+          "Pdf": {
+            "controlBytes": 856613,
+            "candidateBytes": 771789,
+            "outputCount": 16,
+            "changedHashCount": 2,
+            "deltaBytes": -84824
+          },
+          "Png": {
+            "controlBytes": 1581873,
+            "candidateBytes": 1581873,
+            "outputCount": 30,
+            "changedHashCount": 0,
+            "deltaBytes": 0
+          },
+          "Svg": {
+            "controlBytes": 232872,
+            "candidateBytes": 232872,
+            "outputCount": 30,
+            "changedHashCount": 0,
+            "deltaBytes": 0
+          }
+        },
+        "changedOutputs": [
+          {
+            "caseId": "nested-fragmentation-report",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 8459,
+            "controlBytes": 8579,
+            "candidateSha256": "c60e38fe6da80a67e2e844a1f8991c121971c48f63a1021e4303bbad3e3cf5a4",
+            "controlSha256": "ffaa8fe6291b659ba0a03f8f3e6371ed2f3ee3c518747c8db49db574c12bcd55"
+          },
+          {
+            "caseId": "columns-footnotes-brief",
+            "profile": "ScreenSnapshotPaged",
+            "encoder": "Pdf",
+            "pageNumber": null,
+            "pageCount": 1,
+            "candidateBytes": 115559,
+            "controlBytes": 200263,
+            "candidateSha256": "af045bc2bd897b5794288b2277291a2b8d19278dc44464520920410761bfa108",
+            "controlSha256": "dc696f5327c45b1178445db73e660ad6db900b2f61b2d3dec6921115970075e5"
+          }
+        ]
+      },
+      "correctnessTestCounters": {
+        "drawing-math-net10.0.trx": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "079f715993805cf52a10b549ea103e967a1fe538734292877b107c4322ee1846"
+        },
+        "drawing-math-net8.0.trx": {
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "3acd142698c3cff416323c9a82d4d7aadf8d7d1c268a821d15232fdf483432b4"
+        },
+        "html-net10.0.trx": {
+          "total": 5525,
+          "passed": 5525,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "d8ccb8ddde7e8ba31840d7c1d97955bf5bb883ea0018e841855cc586da654f66"
+        },
+        "html-net8.0.trx": {
+          "total": 5525,
+          "passed": 5525,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "13a2d4e04a9a1fc5287904c17aa823874e0d7c5c498afa77bda31ea7dbb7f337"
+        },
+        "pdf-fonts-net10.0.trx": {
+          "total": 15,
+          "passed": 15,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "4b091f6bfeb561a4e6125d8aeebbcbc2d45703c2e754e268af05865e1673e049"
+        },
+        "pdf-fonts-net8.0.trx": {
+          "total": 15,
+          "passed": 15,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "12d85b15d115e170b5c40374ac39ad2d11eba38e25920a7ce63169838c929739"
+        },
+        "pdf-net10.0.trx": {
+          "total": 9928,
+          "passed": 9928,
+          "failed": 0,
+          "notExecuted": 0,
+          "trxSha256": "fb62733fc7c0e37da059a2f5c43993a10fd25980abd9a3e4305ab68314ee8109"
+        }
+      },
+      "packedConsumers": {
+        "status": "Passed",
+        "localPackageVersion": "3.3.0",
+        "localPackagesCreated": 19,
+        "executedConsumerFrameworkLanes": 4,
+        "exactSuccessLogLines": [
+          {
+            "line": 1393,
+            "text": "2026-10-09T19:14:20.8195070Z OfficeIMO HTML document-only packed API smoke passed on .NET 8.0.30."
+          },
+          {
+            "line": 1394,
+            "text": "2026-10-09T19:14:22.6510760Z OfficeIMO HTML document-only packed API smoke passed on .NET 10.0.12."
+          },
+          {
+            "line": 1398,
+            "text": "2026-10-09T19:14:29.0357960Z OfficeIMO HTML packed API smoke passed on .NET 8.0.30."
+          },
+          {
+            "line": 1400,
+            "text": "2026-10-09T19:14:31.6405150Z OfficeIMO HTML packed API smoke passed on .NET 10.0.12."
+          }
+        ],
+        "completePublicFrameworksPacked": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "packagingScope": "Local qualification artifacts; no NuGet publication"
+      },
+      "independentPdfTextValidator": {
+        "executable": "/opt/homebrew/bin/pdftotext",
+        "version": "pdftotext version 26.09.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+      },
+      "exactLogEvidenceFile": "macos-log-excerpts.json",
+      "completeLogSha256": "bbda53c1145a2900e99639797a24eb896f01698041fa3d74f63de775b0a8283a"
+    }
+  ],
+  "downloadedQualificationArtifacts": [
+    {
+      "id": 11638989602,
+      "name": "html-static-qualification-windows-latest",
+      "compressedBytes": 5657053,
+      "sha256": "f52c74c0173dc376906f05772599a1f1b8bf9687a8a79cf2165da69fa0b78e79",
+      "digestMatchesGitHub": true,
+      "selectiveReadOnlyExtraction": true,
+      "localArchiveRetention": "Removed after receipt verification; no package-origin archives downloaded"
+    },
+    {
+      "id": 11639588632,
+      "name": "html-static-qualification-ubuntu-latest",
+      "compressedBytes": 5660678,
+      "sha256": "09a40a2320749644fb006a4c98f53107272cfbf7e5e20b43fd82eb27db206f7d",
+      "digestMatchesGitHub": true,
+      "selectiveReadOnlyExtraction": true,
+      "localArchiveRetention": "Removed after receipt verification; no package-origin archives downloaded"
+    },
+    {
+      "id": 11640146321,
+      "name": "html-static-qualification-macos-latest",
+      "compressedBytes": 5669340,
+      "sha256": "aaf4c20406b22f51090e3b06946818bb042b60e18ebb9eed0292a7161af57144",
+      "digestMatchesGitHub": true,
+      "selectiveReadOnlyExtraction": true,
+      "localArchiveRetention": "Removed after receipt verification; no package-origin archives downloaded"
+    }
+  ],
+  "retainedReportHashes": [
+    {
+      "path": "linux-candidate-budget.json",
+      "sha256": "71dc39a65b4132b48b66973509b4827b9edee380d46699550eb81ef7456a467b",
+      "bytes": 97463,
+      "archiveEntry": "html-static-budget/html-static-budget.json"
+    },
+    {
+      "path": "linux-control-budget.json",
+      "sha256": "3501e9a0d431d28142d830c1dc2c51063de1aa0ed06f70a0922163be0969cdbf",
+      "bytes": 97542,
+      "archiveEntry": "html-static-control-budget/html-static-budget.json"
+    },
+    {
+      "path": "macos-candidate-budget.json",
+      "sha256": "90e741a21d97d3e04529914c8c53f664e0568b4b60b9a71fff68fe20321acae2",
+      "bytes": 97816,
+      "archiveEntry": "html-static-budget/html-static-budget.json"
+    },
+    {
+      "path": "macos-control-budget.json",
+      "sha256": "7fd8289b898ac006eaaa23f6295b0d640958f6c063c01fefa9896fd4bc57b834",
+      "bytes": 97817,
+      "archiveEntry": "html-static-control-budget/html-static-budget.json"
+    },
+    {
+      "path": "windows-candidate-budget.json",
+      "sha256": "f59e364724cf444dcf03131cba3d7f62d9aed81c44c403b88bea0ea7e1d6ed66",
+      "bytes": 100566,
+      "archiveEntry": "html-static-budget/html-static-budget.json"
+    },
+    {
+      "path": "windows-control-budget.json",
+      "sha256": "1a2a292f59a7c50840b26be9c4de03af5064deaa45025edaec0959ca9a39b8c6",
+      "bytes": 100859,
+      "archiveEntry": "html-static-control-budget/html-static-budget.json"
+    }
+  ],
+  "operationReceipt": {
+    "repositorySourceEdits": 0,
+    "gitMutations": 0,
+    "remoteMutations": 0,
+    "newWorkflowDispatches": 0,
+    "workflowRetries": 0,
+    "localBuildOrTestRuns": 0,
+    "downloadedPackageOriginArchives": 0
+  }
+}
