@@ -158,8 +158,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             OfficeWorkflowConversionEvidence? cancelledConversionEvidence = (error as WorkflowConversionCancellationException)?.Evidence
                 ?? artifact?.ConversionEvidence;
-            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false })
-                AddConversionDiagnostics(cancelledConversionEvidence!, diagnostics);
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelled)
+                AddConversionDiagnostics(cancelledConversionEvidence!, diagnostics, cancelled.ImportDiagnosticSources);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -185,8 +185,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence
                 ?? artifact?.ConversionEvidence;
-            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
-                AddConversionDiagnostics(failedConversionEvidence, diagnostics);
+            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false } failed)
+                AddConversionDiagnostics(failedConversionEvidence, diagnostics, failed.ImportDiagnosticSources);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "WorkflowFailed",
                 ex.Message,

@@ -174,7 +174,7 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelledConversion)
-                AddConversionDiagnostics(cancelledConversion.Evidence, diagnostics);
+                AddConversionDiagnostics(cancelledConversion.Evidence, diagnostics, cancelledConversion.ImportDiagnosticSources);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
@@ -201,7 +201,7 @@ public sealed partial class OfficeWorkflowRunner {
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
             if (ex is WorkflowConversionFailureException { DiagnosticsAdded: false } conversionFailure)
-                AddConversionDiagnostics(conversionFailure.Evidence, diagnostics);
+                AddConversionDiagnostics(conversionFailure.Evidence, diagnostics, conversionFailure.ImportDiagnosticSources);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PdfAssemblyFailed",
                 ex.Message,
