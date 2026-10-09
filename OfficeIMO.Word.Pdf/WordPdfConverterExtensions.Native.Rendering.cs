@@ -429,12 +429,12 @@ namespace OfficeIMO.Word.Pdf {
                         !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
                         ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
                             paragraphElement.Ancestors<W.TextBoxContent>().FirstOrDefault())) {
-                        if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline))
+                        if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline, options))
                             inlineImages[image._Image] = inline!;
                         return;
                     }
                     images ??= new List<PdfCore.PdfTableCellImage>();
-                    AddNativeTableCellImage(images, image);
+                    AddNativeTableCellImage(images, image, options);
                 }
                 foreach (WordImage image in EnumerateNativeParagraphImages(paragraph, options?.CancellationToken ?? default))
                     AddImage(image);
@@ -566,8 +566,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image) {
-            byte[] bytes = ImageEmbedder.GetImageBytes(image);
+        private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image, WordToPdfOptions? options) {
+            if (!TryGetNativeBodyImageBytes(image, options, "table cell image", out byte[] bytes)) return;
             if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out _)) {
                 return;
             }
