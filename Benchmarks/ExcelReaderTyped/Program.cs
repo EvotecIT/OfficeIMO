@@ -1,4 +1,3 @@
-using System.Reflection;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters.Json;
@@ -6,8 +5,9 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Validators;
 using OfficeIMO.Benchmarks;
-using OfficeIMO.Excel.ReaderComparison.Benchmarks;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.ReaderComparison.Benchmarks;
+using System.Reflection;
 
 AssemblyMetadataAttribute[] metadata = Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>().ToArray();
 string? packageVersion = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkPackageVersion").Value;
@@ -47,10 +47,10 @@ if (args is ["--validate-ado"]) {
 }
 
 if (args is ["--validate-cold"]) {
-    var reader = new ColdStartReadBenchmarks();
+    ColdStartReadBenchmarks reader = new ColdStartReadBenchmarks();
     await reader.SetupAsync();
     reader.Validate();
-    var writer = new ColdStartWriteBenchmarks();
+    ColdStartWriteBenchmarks writer = new ColdStartWriteBenchmarks();
     writer.Setup();
     await writer.ValidateAsync();
     Console.WriteLine("Validated cold-use contracts in this qualification process; measurements use fresh processes.");
@@ -124,17 +124,17 @@ if (args is ["--validate-arrow"]) {
     return;
 }
 if (args is ["--validate-write-arrow-strings"]) {
-    var workload = new ArrowStringWriterBenchmarks();
+    ArrowStringWriterBenchmarks workload = new ArrowStringWriterBenchmarks();
     try { workload.Setup(); } finally { workload.Cleanup(); }
     return;
 }
 #endif
 
 if (args is ["--validate"]) {
-    var matrix = new TypedReadBenchmarks();
+    TypedReadBenchmarks matrix = new TypedReadBenchmarks();
     foreach (int rows in matrix.RowCounts()) {
         foreach (string shape in matrix.Shapes()) {
-            var workload = new TypedReadBenchmarks { RowCount = rows, Shape = shape };
+            TypedReadBenchmarks workload = new TypedReadBenchmarks { RowCount = rows, Shape = shape };
             await workload.SetupAsync();
         }
         await new TypedXlsbReadBenchmarks { RowCount = rows }.SetupAsync();
@@ -143,7 +143,7 @@ if (args is ["--validate"]) {
 }
 
 if (args is ["--validate-raw"]) {
-    var matrix = new RawReadBenchmarks();
+    RawReadBenchmarks matrix = new RawReadBenchmarks();
     foreach (int rows in matrix.RowCounts()) {
         foreach (RawWorkbookFormat format in Enum.GetValues<RawWorkbookFormat>())
             await new RawReadBenchmarks { RowCount = rows, Format = format }.SetupAsync();
@@ -152,7 +152,7 @@ if (args is ["--validate-raw"]) {
 }
 
 if (args is ["--validate-async"]) {
-    var matrix = new TypedAsyncReadBenchmarks();
+    TypedAsyncReadBenchmarks matrix = new TypedAsyncReadBenchmarks();
     foreach (int rows in matrix.RowCounts()) {
         foreach (string shape in matrix.Shapes())
             await new TypedAsyncReadBenchmarks { RowCount = rows, Shape = shape }.SetupAsync();
@@ -164,7 +164,7 @@ if (args is ["--validate-async"]) {
 }
 
 if (args is ["--validate-write"]) {
-    var matrix = new WriterBenchmarks();
+    WriterBenchmarks matrix = new WriterBenchmarks();
     foreach (int rows in matrix.RowCounts()) await new WriterBenchmarks { RowCount = rows }.SetupAsync();
     return;
 }
@@ -195,7 +195,7 @@ if (args is ["--validate-write-records"]) {
 
 #if OFFICEIMO_BENCHMARK_NEW_APIS
 if (args is ["--validate-write-styled-rows"]) {
-    var workload = new StyledRowWriterBenchmarks();
+    StyledRowWriterBenchmarks workload = new StyledRowWriterBenchmarks();
     try { workload.Setup(); workload.SaveQualifiedArtifacts(); } finally { workload.Cleanup(); }
     return;
 }
@@ -224,7 +224,7 @@ if (args is ["--validate-stream-async"]) {
     return;
 }
 if (args is ["--validate-write-utf8"]) {
-    var workload = new Utf8WriterBenchmarks();
+    Utf8WriterBenchmarks workload = new Utf8WriterBenchmarks();
     try { workload.Setup(); } finally { workload.Cleanup(); }
     return;
 }
@@ -247,7 +247,7 @@ if (args is ["--validate-strings"]) {
 if (args.Length is 1 or 2 && args[0] == "--profile-officeimo-write") {
     int iterations = args.Length == 1 ? 500 : int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture);
     if (iterations is < 1 or > 100_000) throw new ArgumentOutOfRangeException(nameof(iterations));
-    var workload = new WriterBenchmarks();
+    WriterBenchmarks workload = new WriterBenchmarks();
     await workload.SetupAsync();
     for (int warmup = 0; warmup < 50; warmup++) workload.OfficeIMO();
     Console.WriteLine($"CPU profile workload: {iterations} complete OfficeIMO writes after 50 warmups.");
@@ -260,7 +260,7 @@ if (args.Length is 1 or 2 && args[0] == "--profile-officeimo-write") {
 if (args.Length is 1 or 2 && args[0] == "--profile-officeimo") {
     int iterations = args.Length == 1 ? 500 : int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture);
     if (iterations is < 1 or > 100_000) throw new ArgumentOutOfRangeException(nameof(iterations));
-    var workload = new TypedReadBenchmarks();
+    TypedReadBenchmarks workload = new TypedReadBenchmarks();
     await workload.SetupAsync();
     for (int warmup = 0; warmup < 50; warmup++) workload.OfficeIMOTyped();
     Console.WriteLine($"CPU profile workload: {iterations} complete OfficeIMO typed scans after 50 warmups.");
@@ -273,7 +273,7 @@ if (args.Length is 1 or 2 && args[0] == "--profile-officeimo") {
 
 // Preserve the explicit package choice in BDN's generated build; otherwise its
 // ProjectReference would silently compile the default source lane instead.
-var buildArguments = new List<Argument> { new MsBuildArgument("/p:UseSharedCompilation=false") };
+List<Argument> buildArguments = new List<Argument> { new MsBuildArgument("/p:UseSharedCompilation=false") };
 if (!string.IsNullOrEmpty(packageVersion))
     buildArguments.Add(new MsBuildArgument($"/p:OfficeIMOBenchmarkPackageVersion={packageVersion}"));
 if (!string.IsNullOrEmpty(assemblyDirectory)) {
@@ -289,7 +289,7 @@ if (string.Equals(csv, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkCsv=true"));
 if (string.Equals(arrow, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkArrow=true"));
-var benchmarkJob = Job.Default.WithArguments(buildArguments.ToArray());
+Job benchmarkJob = Job.Default.WithArguments(buildArguments.ToArray());
 string? affinityMask = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_AFFINITY_MASK");
 if (!string.IsNullOrEmpty(affinityMask)) {
     if (args.Any(argument => argument == "--affinity" || argument.StartsWith("--affinity=", StringComparison.Ordinal)))
@@ -299,7 +299,7 @@ if (!string.IsNullOrEmpty(affinityMask)) {
         throw new ArgumentException("OFFICEIMO_BENCHMARK_AFFINITY_MASK requires exactly one processor mask.");
     benchmarkJob = benchmarkJob.WithAffinity(masks[0]);
 }
-var config = ManualConfig.Create(DefaultConfig.Instance)
+ManualConfig config = ManualConfig.Create(DefaultConfig.Instance)
     .AddExporter(JsonExporter.Full)
     .AddJob(benchmarkJob.AsMutator());
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
