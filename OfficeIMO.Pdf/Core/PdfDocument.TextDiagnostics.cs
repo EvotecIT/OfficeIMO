@@ -13,7 +13,12 @@ public sealed partial class PdfDocument {
     public IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding() =>
         AnalyzeTextEncoding(System.Threading.CancellationToken.None);
 
-    private IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding(
+    /// <summary>Analyzes generated PDF text while honoring cancellation during document traversal.</summary>
+    /// <param name="cancellationToken">Token checked before preflight and while visiting generated content.</param>
+    /// <returns>Encoding diagnostics in generated document order.</returns>
+    /// <exception cref="OperationCanceledException">The supplied token is canceled.</exception>
+    /// <remarks>Opened byte-backed PDFs have no generated blocks and return an empty result after checking cancellation.</remarks>
+    public IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncoding(
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
@@ -21,8 +26,9 @@ public sealed partial class PdfDocument {
         }
 
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
-        AnalyzeOptionsText(_options, diagnostics);
+        AnalyzeOptionsText(_options, diagnostics, string.Empty, cancellationToken);
         AnalyzeBlocks(_blocks, _options, diagnostics, string.Empty, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return diagnostics.AsReadOnly();
     }
 
@@ -60,6 +66,7 @@ public sealed partial class PdfDocument {
         List<PdfTextEncodingDiagnostic> diagnostics,
         string location,
         System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfStandardFont defaultFont = PdfStandardFontMapper.GetFontFamily(options.DefaultFont);
         switch (block) {
             case RichParagraphBlock paragraph:
@@ -76,10 +83,10 @@ public sealed partial class PdfDocument {
                 }
                 break;
             case PdfListBlock list:
-                AnalyzeListItems(list.RichItems, list.Style ?? options.DefaultListStyleSnapshot, options, defaultFont, diagnostics, location, list.IsNumbered, list.StartingNumber);
+                AnalyzeListItems(list.RichItems, list.Style ?? options.DefaultListStyleSnapshot, options, defaultFont, diagnostics, location, list.IsNumbered, list.StartingNumber, cancellationToken);
                 break;
             case TableBlock table:
-                AnalyzeTable(table, options, defaultFont, diagnostics, "PdfTableCell", location);
+                AnalyzeTable(table, options, defaultFont, diagnostics, "PdfTableCell", location, cancellationToken);
                 break;
             case DeferredTableBlock table:
                 AnalyzeDeferredTable(table, options, defaultFont, diagnostics, location, cancellationToken);
@@ -88,32 +95,35 @@ public sealed partial class PdfDocument {
                 AddFormWidgetText(diagnostics, textField.Value, options, "PdfTextField", location, fieldName: textField.Name);
                 break;
             case ChoiceFieldBlock choiceField:
-                AnalyzeChoiceField(choiceField, options, diagnostics, location);
+                AnalyzeChoiceField(choiceField, options, diagnostics, location, cancellationToken);
                 break;
             case FreeTextAnnotationBlock freeText:
                 AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfFreeTextAnnotation", location);
                 break;
             case DrawingBlock drawing:
-                AnalyzeDrawing(drawing, options, defaultFont, diagnostics, location);
+                AnalyzeDrawing(drawing, options, defaultFont, diagnostics, location, cancellationToken);
                 break;
             case PdfCanvasBlock canvas:
-                AnalyzeCanvasItems(canvas.Items, options, defaultFont, diagnostics, location);
+                AnalyzeCanvasItems(canvas.Items, options, defaultFont, diagnostics, location, cancellationToken);
                 break;
             case RowBlock row:
                 for (int columnIndex = 0; columnIndex < row.Columns.Count; columnIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     AnalyzeBlocks(row.Columns[columnIndex].Blocks, options, diagnostics, AppendLocation(location, "Column[" + columnIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                 }
                 break;
             case PageBlock page:
-                AnalyzeOptionsText(page.Options, diagnostics, location);
+                AnalyzeOptionsText(page.Options, diagnostics, location, cancellationToken);
                 AnalyzeBlocks(page.Blocks, page.Options, diagnostics, location, cancellationToken);
                 break;
         }
     }
 
-    private static void AnalyzeListItems(IReadOnlyList<PdfListItem> items, PdfListStyle? style, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, bool numbered, int startNumber) {
+    private static void AnalyzeListItems(IReadOnlyList<PdfListItem> items, PdfListStyle? style, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, bool numbered, int startNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfStandardFont markerFont = PdfStandardFontMapper.GetFontFamily(style?.MarkerFont ?? defaultFont);
         for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfListItem item = items[itemIndex];
             string itemLocation = AppendLocation(locationPrefix, "PdfListItem[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]");
             string marker = item.Marker ??
@@ -133,16 +143,20 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AnalyzeTable(TableBlock table, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string source, string locationPrefix) {
+    private static void AnalyzeTable(TableBlock table, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string source, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         AnalyzeTableCaption(table, options, defaultFont, diagnostics, locationPrefix);
         for (int rowIndex = 0; rowIndex < table.Cells.Count; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfTableCell> row = table.Cells[rowIndex];
             for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfTableCell cell = row[cellIndex];
                 string cellLocation = AppendLocation(locationPrefix, source + "[" + rowIndex.ToString(CultureInfo.InvariantCulture) + "," + cellIndex.ToString(CultureInfo.InvariantCulture) + "]");
                 AddRuns(diagnostics, cell.Runs, options, defaultFont, source, cellLocation, rowIndex, cellIndex);
                 foreach (PdfTableCellFormField field in cell.FormFields) {
-                    AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex, cancellationToken);
                 }
             }
         }
@@ -155,6 +169,7 @@ public sealed partial class PdfDocument {
         List<PdfTextEncodingDiagnostic> diagnostics,
         string locationPrefix,
         System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string? caption = table.Style?.Caption;
         if (!string.IsNullOrWhiteSpace(caption)) {
             AddText(diagnostics, caption, options, defaultFont, "PdfTableCaption", AppendLocation(locationPrefix, "PdfTableCaption"));
@@ -164,11 +179,13 @@ public sealed partial class PdfDocument {
         foreach (PdfTableCell[] row in table.EnumerateRows()) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int cellIndex = 0; cellIndex < row.Length; cellIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfTableCell cell = row[cellIndex];
                 string cellLocation = AppendLocation(locationPrefix, "PdfTableCell[" + rowIndex.ToString(CultureInfo.InvariantCulture) + "," + cellIndex.ToString(CultureInfo.InvariantCulture) + "]");
                 AddRuns(diagnostics, cell.Runs, options, defaultFont, "PdfTableCell", cellLocation, rowIndex, cellIndex);
                 foreach (PdfTableCellFormField field in cell.FormFields) {
-                    AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex, cancellationToken);
                 }
             }
 
@@ -185,33 +202,41 @@ public sealed partial class PdfDocument {
         AddText(diagnostics, caption, options, defaultFont, "PdfTableCaption", AppendLocation(locationPrefix, "PdfTableCaption"));
     }
 
-    private static void AnalyzeChoiceField(ChoiceFieldBlock choiceField, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+    private static void AnalyzeChoiceField(ChoiceFieldBlock choiceField, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int optionIndex = 0; optionIndex < choiceField.Options.Count; optionIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddFormWidgetText(diagnostics, choiceField.Options[optionIndex], options, "PdfChoiceFieldOption", AppendLocation(locationPrefix, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: choiceField.Name);
         }
 
         for (int valueIndex = 0; valueIndex < choiceField.Values.Count; valueIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddFormWidgetText(diagnostics, choiceField.Values[valueIndex], options, "PdfChoiceFieldValue", AppendLocation(locationPrefix, "Value[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: choiceField.Name);
         }
     }
 
-    private static void AnalyzeTableFormField(PdfTableCellFormField field, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, int rowIndex, int cellIndex) {
+    private static void AnalyzeTableFormField(PdfTableCellFormField field, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, int rowIndex, int cellIndex, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (field.Kind == PdfTableCellFormFieldKind.Text) {
             AddFormWidgetText(diagnostics, field.Value, options, "PdfTableTextField", AppendLocation(locationPrefix, "PdfTableTextField"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
             return;
         }
 
         for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddFormWidgetText(diagnostics, field.Options[optionIndex], options, "PdfTableChoiceFieldOption", AppendLocation(locationPrefix, "PdfTableChoiceFieldOption[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
         }
 
         for (int valueIndex = 0; valueIndex < field.Values.Count; valueIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddFormWidgetText(diagnostics, field.Values[valueIndex], options, "PdfTableChoiceFieldValue", AppendLocation(locationPrefix, "PdfTableChoiceFieldValue[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
         }
     }
 
-    private static void AnalyzeDrawing(DrawingBlock drawing, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+    private static void AnalyzeDrawing(DrawingBlock drawing, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int elementIndex = 0; elementIndex < drawing.Drawing.Elements.Count; elementIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeDrawingElement element = drawing.Drawing.Elements[elementIndex];
             if (element is not OfficeDrawingText text || string.IsNullOrEmpty(text.Text)) {
                 continue;
@@ -236,8 +261,10 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AnalyzeCanvasItems(IReadOnlyList<PdfCanvasItem> items, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+    private static void AnalyzeCanvasItems(IReadOnlyList<PdfCanvasItem> items, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfCanvasItem item = items[itemIndex];
             switch (item) {
                 case PdfCanvasTextItem text:
@@ -250,46 +277,47 @@ public sealed partial class PdfDocument {
                     AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfCanvasFreeTextAnnotation", AppendLocation(locationPrefix, "PdfCanvasFreeTextAnnotation[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
                 case PdfCanvasFormFieldItem formField:
-                    AnalyzeCanvasFormField(formField, options, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFormField[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasFormField(formField, options, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFormField[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasTableItem table:
-                    AnalyzeTable(table.Block, options, defaultFont, diagnostics, "PdfCanvasTableCell", AppendLocation(locationPrefix, "PdfCanvasTable[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeTable(table.Block, options, defaultFont, diagnostics, "PdfCanvasTableCell", AppendLocation(locationPrefix, "PdfCanvasTable[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasClipItem clip:
-                    AnalyzeCanvasItems(clip.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasClip[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(clip.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasClip[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasEffectItem effect:
-                    AnalyzeCanvasItems(effect.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasEffect[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(effect.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasEffect[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasStructureItem structure:
-                    AnalyzeCanvasItems(structure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasStructure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(structure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasStructure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasActualTextItem actualText:
-                    AnalyzeCanvasItems(actualText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasActualText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(actualText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasActualText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasArtifactItem artifact:
-                    AnalyzeCanvasItems(artifact.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasArtifact[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(artifact.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasArtifact[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasFigureItem figure:
-                    AnalyzeCanvasItems(figure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFigure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(figure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFigure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasParagraphAnchorItem paragraphAnchor:
-                    AnalyzeCanvasItems(paragraphAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasParagraphAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(paragraphAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasParagraphAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasMarginAnchorItem marginAnchor:
-                    AnalyzeCanvasItems(marginAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasMarginAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(marginAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasMarginAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasBehindTextItem behindText:
-                    AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasBehindText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasBehindText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasDrawingItem drawing:
-                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
             }
         }
     }
 
-    private static void AnalyzeCanvasFormField(PdfCanvasFormFieldItem field, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string location) {
+    private static void AnalyzeCanvasFormField(PdfCanvasFormFieldItem field, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string location, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (field.Kind == PdfCanvasFormFieldKind.Text) {
             AddFormWidgetText(diagnostics, field.Value, options, "PdfCanvasTextField", location, fieldName: field.Name);
             return;
@@ -297,6 +325,7 @@ public sealed partial class PdfDocument {
         if (field.Kind != PdfCanvasFormFieldKind.Choice) return;
         if (field.ChoiceOptions.Count > 0) {
             for (int optionIndex = 0; optionIndex < field.ChoiceOptions.Count; optionIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfFormFieldOption option = field.ChoiceOptions[optionIndex];
                 string optionLocation = AppendLocation(location, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]");
                 AddFormWidgetText(diagnostics, option.ExportValue, options, "PdfCanvasChoiceFieldExportValue", AppendLocation(optionLocation, "ExportValue"), fieldName: field.Name);
@@ -304,23 +333,26 @@ public sealed partial class PdfDocument {
             }
         } else {
             for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 AddFormWidgetText(diagnostics, field.Options[optionIndex], options, "PdfCanvasChoiceFieldOption", AppendLocation(location, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);
             }
         }
         for (int valueIndex = 0; valueIndex < field.Values.Count; valueIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AddFormWidgetText(diagnostics, field.Values[valueIndex], options, "PdfCanvasChoiceFieldValue", AppendLocation(location, "Value[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: field.Name);
         }
     }
 
-    private static void AnalyzeOptionsText(PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix = "") {
+    private static void AnalyzeOptionsText(PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var seenPageText = new HashSet<string>(StringComparer.Ordinal);
         AnalyzeTextWatermark(options.TextWatermarkSnapshot, options, diagnostics, locationPrefix, "PdfTextWatermark");
         AnalyzeTextWatermark(options.FirstPageTextWatermarkSnapshot, options, diagnostics, locationPrefix, "PdfFirstPageTextWatermark");
         AnalyzeTextWatermark(options.EvenPageTextWatermarkSnapshot, options, diagnostics, locationPrefix, "PdfEvenPageTextWatermark");
 
-        AnalyzePageTextForVariant(options, pageNumber: 1, diagnostics, seenPageText, locationPrefix);
-        AnalyzePageTextForVariant(options, pageNumber: 2, diagnostics, seenPageText, locationPrefix);
-        AnalyzePageTextForVariant(options, pageNumber: 3, diagnostics, seenPageText, locationPrefix);
+        AnalyzePageTextForVariant(options, pageNumber: 1, diagnostics, seenPageText, locationPrefix, cancellationToken);
+        AnalyzePageTextForVariant(options, pageNumber: 2, diagnostics, seenPageText, locationPrefix, cancellationToken);
+        AnalyzePageTextForVariant(options, pageNumber: 3, diagnostics, seenPageText, locationPrefix, cancellationToken);
     }
 
     private static void AnalyzeTextWatermark(PdfTextWatermark? watermark, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, string source) {
@@ -332,30 +364,33 @@ public sealed partial class PdfDocument {
         AddText(diagnostics, watermark.Text, options, watermarkFont, source, AppendLocation(locationPrefix, source));
     }
 
-    private static void AnalyzePageTextForVariant(PdfOptions options, int pageNumber, List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, string locationPrefix) {
+    private static void AnalyzePageTextForVariant(PdfOptions options, int pageNumber, List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (options.HasHeaderTextContentForPage(pageNumber)) {
             string headerLocation = AppendLocation(locationPrefix, "PdfHeader[page=" + pageNumber.ToString(CultureInfo.InvariantCulture) + "]");
             AddPageText(diagnostics, seenPageText, options.GetHeaderFormatForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
-            AddSegments(diagnostics, seenPageText, options.GetHeaderSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
+            AddSegments(diagnostics, seenPageText, options.GetHeaderSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber, cancellationToken);
             AddZones(diagnostics, seenPageText, options.GetHeaderZonesForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
-            AddZoneSegments(diagnostics, seenPageText, options.GetHeaderZoneSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber);
+            AddZoneSegments(diagnostics, seenPageText, options.GetHeaderZoneSegmentsForPage(pageNumber), options, options.HeaderFont, options.HeaderFontFamily, "PdfHeader", headerLocation, pageNumber, cancellationToken);
         }
 
         if (options.HasFooterTextContentForPage(pageNumber)) {
             string footerLocation = AppendLocation(locationPrefix, "PdfFooter[page=" + pageNumber.ToString(CultureInfo.InvariantCulture) + "]");
             AddPageText(diagnostics, seenPageText, options.GetFooterFormatForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
-            AddSegments(diagnostics, seenPageText, options.GetFooterSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
+            AddSegments(diagnostics, seenPageText, options.GetFooterSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber, cancellationToken);
             AddZones(diagnostics, seenPageText, options.GetFooterZonesForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
-            AddZoneSegments(diagnostics, seenPageText, options.GetFooterZoneSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber);
+            AddZoneSegments(diagnostics, seenPageText, options.GetFooterZoneSegmentsForPage(pageNumber), options, options.FooterFont, options.FooterFontFamily, "PdfFooter", footerLocation, pageNumber, cancellationToken);
         }
     }
 
-    private static void AddSegments(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, IReadOnlyList<FooterSegment>? segments, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber) {
+    private static void AddSegments(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, IReadOnlyList<FooterSegment>? segments, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (segments is null) {
             return;
         }
 
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             FooterSegment? segment = segments[segmentIndex];
             if (segment is null) {
                 throw new ArgumentException(source + " segments cannot contain null entries.");
@@ -405,11 +440,12 @@ public sealed partial class PdfDocument {
         AddPageText(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber);
     }
 
-    private static void AddZoneSegments(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfPageTextZoneSegments? zones, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber) {
+    private static void AddZoneSegments(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfPageTextZoneSegments? zones, PdfOptions options, PdfStandardFont font, string? fontFamily, string source, string locationPrefix, int pageNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (zones == null) return;
-        AddSegments(diagnostics, seenPageText, zones.Left, options, font, fontFamily, source, AppendLocation(locationPrefix, "Left"), pageNumber);
-        AddSegments(diagnostics, seenPageText, zones.Center, options, font, fontFamily, source, AppendLocation(locationPrefix, "Center"), pageNumber);
-        AddSegments(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber);
+        AddSegments(diagnostics, seenPageText, zones.Left, options, font, fontFamily, source, AppendLocation(locationPrefix, "Left"), pageNumber, cancellationToken);
+        AddSegments(diagnostics, seenPageText, zones.Center, options, font, fontFamily, source, AppendLocation(locationPrefix, "Center"), pageNumber, cancellationToken);
+        AddSegments(diagnostics, seenPageText, zones.Right, options, font, fontFamily, source, AppendLocation(locationPrefix, "Right"), pageNumber, cancellationToken);
     }
 
     private static void AddText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, PdfStandardFont font, string source, string location, int? pageNumber = null, int? tableRowIndex = null, int? tableColumnIndex = null, string? fieldName = null) {
