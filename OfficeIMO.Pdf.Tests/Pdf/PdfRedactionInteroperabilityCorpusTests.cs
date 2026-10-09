@@ -8,7 +8,7 @@ public sealed class PdfRedactionInteroperabilityCorpusTests {
     [Theory]
     [InlineData("openpreserve-text-subset.pdf", CorpusOutcome.MutationBlocked)]
     [InlineData("openpreserve-pdfa1b-text.pdf", CorpusOutcome.Verified)]
-    [InlineData("verapdf-tounicode-pass-a.pdf", CorpusOutcome.VerificationBlocked)]
+    [InlineData("verapdf-tounicode-pass-a.pdf", CorpusOutcome.Verified)]
     [InlineData("verapdf-optional-content.pdf", CorpusOutcome.MutationBlocked)]
     public void PinnedIndependentProducerCorpusCapturesVerifiedAndFailClosedOutcomes(string fileName, CorpusOutcome expectedOutcome) {
         byte[] source = File.ReadAllBytes(Path.Combine(FixtureRoot, fileName));
@@ -51,13 +51,7 @@ public sealed class PdfRedactionInteroperabilityCorpusTests {
 
         Assert.DoesNotContain(target.Span.Text, PdfDocument.Load(result.Pdf).Reader.Text(), StringComparison.Ordinal);
         Assert.True(Assert.Single(result.Evidence.Verification.ExternalValidationResults).IsValid);
-        if (expectedOutcome == CorpusOutcome.Verified) {
-            Assert.True(result.Evidence.Verification.IsVerified, string.Join("; ", result.Evidence.Verification.Issues.Select(static issue => issue.Message)));
-        } else {
-            Assert.False(result.Evidence.Verification.IsVerified);
-            Assert.Contains(result.Evidence.Verification.Issues, static issue =>
-                issue.Feature == "RedactionPlanResidual" && issue.Marker.StartsWith("VectorPath@", StringComparison.Ordinal));
-        }
+        Assert.True(result.Evidence.Verification.IsVerified, string.Join("; ", result.Evidence.Verification.Issues.Select(static issue => issue.Message)));
     }
 
     private sealed class PdfPigTextAbsenceValidator : IPdfRedactionExternalValidator {
@@ -79,7 +73,6 @@ public sealed class PdfRedactionInteroperabilityCorpusTests {
 
     public enum CorpusOutcome {
         Verified,
-        MutationBlocked,
-        VerificationBlocked
+        MutationBlocked
     }
 }

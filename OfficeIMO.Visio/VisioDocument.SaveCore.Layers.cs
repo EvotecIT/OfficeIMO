@@ -73,10 +73,11 @@ namespace OfficeIMO.Visio {
         private static void WriteLayerSection(XmlWriter writer, string ns, IReadOnlyList<VisioLayer> layers) {
             writer.WriteStartElement("Section", ns);
             writer.WriteAttributeString("N", "Layer");
+            int[] rowIndexes = VisioLayerRowIndexes.Create(layers);
             for (int i = 0; i < layers.Count; i++) {
                 VisioLayer layer = layers[i];
                 writer.WriteStartElement("Row", ns);
-                writer.WriteAttributeString("IX", XmlConvert.ToString(i + 1));
+                writer.WriteAttributeString("IX", XmlConvert.ToString(rowIndexes[i]));
                 WritePreservedAttributes(writer, layer.PreservedRowAttributes);
                 WriteLayerCell(writer, ns, layer, "Name", layer.Name);
                 WriteLayerCell(writer, ns, layer, "Color", layer.Color);
@@ -119,7 +120,7 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteLayerMemberCell(XmlWriter writer, string ns, IEnumerable<string> layerNames, IReadOnlyDictionary<string, int> layerIndexes) {
+        private static void WriteLayerMemberCell(XmlWriter writer, string ns, IEnumerable<string> layerNames, IReadOnlyDictionary<string, int> layerIndexes, VisioLayerMembership? source = null) {
             List<int> memberIndexes = new();
             foreach (string layerName in layerNames) {
                 if (layerIndexes.TryGetValue(layerName, out int index)) {
@@ -127,22 +128,35 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            if (memberIndexes.Count == 0) {
+            if (source?.IsCurrent(layerNames, memberIndexes) == true) {
+                source.Cell.WriteTo(writer);
+                return;
+            }
+            if (memberIndexes.Count == 0 && (source == null || !source.HasBoundNames)) {
                 return;
             }
 
             string value = string.Join(";", memberIndexes.Distinct().OrderBy(index => index).Select(index => index.ToString(CultureInfo.InvariantCulture)));
-            WriteCellValue(writer, ns, "LayerMember", value);
+            if (source == null) WriteCellValue(writer, ns, "LayerMember", value);
+            else {
+                source.ReplaceProducerState();
+                var cell = new XElement(source.Cell);
+                cell.SetAttributeValue("V", value);
+                cell.Attribute("F")?.Remove();
+                cell.Attribute("E")?.Remove();
+                cell.Attribute("Err")?.Remove();
+                cell.WriteTo(writer);
+            }
         }
 
         private static void WriteMarginCells(XmlWriter writer, string ns, VisioPage page, bool useUnits) {
             if (useUnits || page.HasExplicitMargins && page.MarginUnit != VisioMeasurementUnit.Inches) {
                 VisioMeasurementUnit unit = page.HasExplicitMargins ? page.MarginUnit : page.DefaultUnit;
                 string unitCode = unit.ToVisioUnitCode();
-                WritePageCell(writer, ns, "PageLeftMargin", NormalizeMarginValue(page.LeftMargin.FromInches(unit)), unitCode);
-                WritePageCell(writer, ns, "PageRightMargin", NormalizeMarginValue(page.RightMargin.FromInches(unit)), unitCode);
-                WritePageCell(writer, ns, "PageTopMargin", NormalizeMarginValue(page.TopMargin.FromInches(unit)), unitCode);
-                WritePageCell(writer, ns, "PageBottomMargin", NormalizeMarginValue(page.BottomMargin.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "PageLeftMargin", page.LeftMargin, unitCode);
+                WritePageCell(writer, ns, "PageRightMargin", page.RightMargin, unitCode);
+                WritePageCell(writer, ns, "PageTopMargin", page.TopMargin, unitCode);
+                WritePageCell(writer, ns, "PageBottomMargin", page.BottomMargin, unitCode);
                 return;
             }
 
@@ -150,11 +164,6 @@ namespace OfficeIMO.Visio {
             WritePageCell(writer, ns, "PageRightMargin", page.RightMargin);
             WritePageCell(writer, ns, "PageTopMargin", page.TopMargin);
             WritePageCell(writer, ns, "PageBottomMargin", page.BottomMargin);
-        }
-
-        private static double NormalizeMarginValue(double value) {
-            double rounded = Math.Round(value, 12);
-            return Math.Abs(rounded) < 0.000000000001D ? 0D : rounded;
         }
 
         private static void WritePageLayoutRoutingCells(XmlWriter writer, string ns, VisioPage page) {
@@ -217,19 +226,19 @@ namespace OfficeIMO.Visio {
             VisioMeasurementUnit unit = page.LayoutGridUnit;
             string unitCode = unit.ToVisioUnitCode();
             if (page.LayoutBlockSizeX.HasValue) {
-                WritePageCell(writer, ns, "BlockSizeX", NormalizeMarginValue(page.LayoutBlockSizeX.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "BlockSizeX", page.LayoutBlockSizeX.Value, unitCode);
             }
 
             if (page.LayoutBlockSizeY.HasValue) {
-                WritePageCell(writer, ns, "BlockSizeY", NormalizeMarginValue(page.LayoutBlockSizeY.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "BlockSizeY", page.LayoutBlockSizeY.Value, unitCode);
             }
 
             if (page.LayoutAvenueSizeX.HasValue) {
-                WritePageCell(writer, ns, "AvenueSizeX", NormalizeMarginValue(page.LayoutAvenueSizeX.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "AvenueSizeX", page.LayoutAvenueSizeX.Value, unitCode);
             }
 
             if (page.LayoutAvenueSizeY.HasValue) {
-                WritePageCell(writer, ns, "AvenueSizeY", NormalizeMarginValue(page.LayoutAvenueSizeY.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "AvenueSizeY", page.LayoutAvenueSizeY.Value, unitCode);
             }
         }
 
@@ -241,19 +250,19 @@ namespace OfficeIMO.Visio {
             VisioMeasurementUnit unit = page.ConnectorSpacingUnit;
             string unitCode = unit.ToVisioUnitCode();
             if (page.LineToLineX.HasValue) {
-                WritePageCell(writer, ns, "LineToLineX", NormalizeMarginValue(page.LineToLineX.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "LineToLineX", page.LineToLineX.Value, unitCode);
             }
 
             if (page.LineToLineY.HasValue) {
-                WritePageCell(writer, ns, "LineToLineY", NormalizeMarginValue(page.LineToLineY.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "LineToLineY", page.LineToLineY.Value, unitCode);
             }
 
             if (page.LineToNodeX.HasValue) {
-                WritePageCell(writer, ns, "LineToNodeX", NormalizeMarginValue(page.LineToNodeX.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "LineToNodeX", page.LineToNodeX.Value, unitCode);
             }
 
             if (page.LineToNodeY.HasValue) {
-                WritePageCell(writer, ns, "LineToNodeY", NormalizeMarginValue(page.LineToNodeY.Value.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "LineToNodeY", page.LineToNodeY.Value, unitCode);
             }
         }
 
@@ -286,6 +295,7 @@ namespace OfficeIMO.Visio {
             "TxtHeight",
             "TxtLocPinX",
             "TxtLocPinY",
+            "TxtAngle",
             "LockWidth",
             "LockHeight",
             "LockAspect",
@@ -398,48 +408,7 @@ namespace OfficeIMO.Visio {
             "Angle"
         };
 
-        private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page, IReadOnlyDictionary<string, VisioMaster> effectiveMasters) {
-            Dictionary<string, string> map = new(StringComparer.Ordinal);
-            HashSet<int> usedIds = new();
-
-            void Reserve(string originalId) {
-                if (map.ContainsKey(originalId)) {
-                    return;
-                }
-
-                if (int.TryParse(originalId, out int numericId) && numericId >= 0 && usedIds.Add(numericId)) {
-                    map[originalId] = originalId;
-                    return;
-                }
-
-                int nextId = 1;
-                while (usedIds.Contains(nextId)) {
-                    nextId++;
-                }
-                usedIds.Add(nextId);
-                map[originalId] = nextId.ToString(CultureInfo.InvariantCulture);
-            }
-
-            void VisitShape(VisioShape shape) {
-                Reserve(shape.Id);
-                if (effectiveMasters.TryGetValue(shape.Id, out VisioMaster? master) &&
-                    master.IsPackageBacked && master.RawMasterContentXml != null) {
-                    ReserveRawMasterInstanceChildIds(shape, master, Reserve);
-                }
-
-                foreach (VisioShape child in shape.Children) {
-                    VisitShape(child);
-                }
-            }
-
-            foreach (VisioShape shape in page.Shapes) {
-                VisitShape(shape);
-            }
-            foreach (VisioConnector connector in page.Connectors) {
-                Reserve(connector.Id);
-            }
-
-            return map;
-        }
+        private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page, IReadOnlyDictionary<string, VisioMaster> effectiveMasters) =>
+            BuildPersistedIdMap(page.Shapes, page.Connectors, effectiveMasters);
     }
 }

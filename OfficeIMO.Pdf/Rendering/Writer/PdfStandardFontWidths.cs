@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 // </auto-generated>
 
 /// <summary>Advance widths of the Helvetica and Times core fonts, in 1/1000 em, keyed by Unicode.</summary>
-internal static class PdfStandardFontWidths {
+internal static partial class PdfStandardFontWidths {
     private static readonly char[] Characters = {
         '\u0020', '\u0021', '\u0022', '\u0023', '\u0024', '\u0025', '\u0026', '\u0027', '\u0028', '\u0029',
         '\u002A', '\u002B', '\u002C', '\u002D', '\u002E', '\u002F', '\u0030', '\u0031', '\u0032', '\u0033',

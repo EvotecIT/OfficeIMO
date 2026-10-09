@@ -20,7 +20,7 @@ namespace OfficeIMO.Visio {
 
         private static bool TryParseSimpleCharSection(VisioShape shape, XElement section, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById) {
             List<XElement> rows = section.Elements(ns + "Row").ToList();
-            if (rows.Count != 1) {
+            if (rows.Count != 1 || VisioNativeTextStyleResolver.HasDeletion(section)) {
                 return false;
             }
 
@@ -90,13 +90,16 @@ namespace OfficeIMO.Visio {
                         baseline = (OfficeIMO.Drawing.OfficeTextBaseline)positionValue;
                         break;
                     default:
-                        return false;
+                        // Additional native cells remain in the captured source row.
+                        // They do not prevent editing its supported text properties.
+                        break;
                 }
             }
 
             VisioTextStyle textStyle = EnsureTextStyle(shape);
             textStyle.FontFaceId = fontFaceId;
             textStyle.FontFamily = fontFamily;
+            textStyle.FontFamilyAssigned = false;
             textStyle.Color = color;
             textStyle.Size = size;
             textStyle.Bold = bold;
@@ -111,7 +114,7 @@ namespace OfficeIMO.Visio {
 
         private static bool TryParseSimpleParaSection(VisioShape shape, XElement section, XNamespace ns) {
             List<XElement> rows = section.Elements(ns + "Row").ToList();
-            if (rows.Count != 1) {
+            if (rows.Count != 1 || VisioNativeTextStyleResolver.HasDeletion(section)) {
                 return false;
             }
 
@@ -130,7 +133,7 @@ namespace OfficeIMO.Visio {
 
                         break;
                     default:
-                        return false;
+                        break;
                 }
             }
 
@@ -140,7 +143,7 @@ namespace OfficeIMO.Visio {
 
         private static bool TryParseSimpleConnectorCharSection(VisioConnector connector, XElement section, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById) {
             List<XElement> rows = section.Elements(ns + "Row").ToList();
-            if (rows.Count != 1) {
+            if (rows.Count != 1 || VisioNativeTextStyleResolver.HasDeletion(section)) {
                 return false;
             }
 
@@ -210,13 +213,14 @@ namespace OfficeIMO.Visio {
                         baseline = (OfficeIMO.Drawing.OfficeTextBaseline)positionValue;
                         break;
                     default:
-                        return false;
+                        break;
                 }
             }
 
             VisioTextStyle textStyle = EnsureConnectorTextStyle(connector);
             textStyle.FontFaceId = fontFaceId;
             textStyle.FontFamily = fontFamily;
+            textStyle.FontFamilyAssigned = false;
             textStyle.Color = color;
             textStyle.Size = size;
             textStyle.Bold = bold;
@@ -245,18 +249,14 @@ namespace OfficeIMO.Visio {
         }
 
         private static double ParseTextSizeCell(XElement cell) {
-            double size = ParseDouble(cell.Attribute("V")?.Value);
-            string? unit = cell.Attribute("U")?.Value;
-            if (string.Equals(unit, "PT", StringComparison.OrdinalIgnoreCase) && size <= 3D) {
-                return Math.Round(size * 72D, 10);
-            }
-
-            return size;
+            // V is in Visio's internal length unit (inches); U controls display units.
+            // The public text style expresses font sizes in points, including sizes above 216 pt.
+            return Math.Round(ParseDouble(cell.Attribute("V")?.Value) * 72D, 10);
         }
 
         private static bool TryParseSimpleConnectorParaSection(VisioConnector connector, XElement section, XNamespace ns) {
             List<XElement> rows = section.Elements(ns + "Row").ToList();
-            if (rows.Count != 1) {
+            if (rows.Count != 1 || VisioNativeTextStyleResolver.HasDeletion(section)) {
                 return false;
             }
 
@@ -275,7 +275,7 @@ namespace OfficeIMO.Visio {
 
                         break;
                     default:
-                        return false;
+                        break;
                 }
             }
 

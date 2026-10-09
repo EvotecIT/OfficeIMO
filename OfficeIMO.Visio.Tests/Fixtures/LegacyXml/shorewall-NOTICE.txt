@@ -1,0 +1,24 @@
+Netfilter legacy Visio drawing
+
+Original author: Tom Eastep (Thomas M. Eastep).
+Copyright (c) 2003, 2005 Thomas M. Eastep.
+
+This unmodified drawing is the editable source of the Netfilter diagram in
+Shorewall's Netfilter Overview documentation. That documentation is licensed
+under the GNU Free Documentation License, Version 1.2 or any later version,
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A full copy of the license accompanies this fixture in shorewall-GFDL-1.2.txt.
+
+Source revision: 6b5889177b3ee998961022cd4ec2e585c8810aba
+Source path: docs/images/Netfilter.vdx
+Source URL: https://github.com/Whissi/shorewall/blob/6b5889177b3ee998961022cd4ec2e585c8810aba/docs/images/Netfilter.vdx
+SHA-256: a0d1e32ffe67aef1f1787efb19e68b5ca534ab7694913c5e924ec9a670692dfa
+
+The original licensing declaration is preserved in shorewall-NetfilterOverview.xml;
+the same revision's complete documentation license is in shorewall-GnuCopyright.xml.
+The VDX itself has no separate license header. Attribution and the grant
+above follow the documentation's notice, matching diagram/source title and
+author, and the documentation-source license classification.
+
+This notice applies to the third-party drawing. It does not change the
+license of OfficeIMO source code.

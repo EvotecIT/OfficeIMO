@@ -34,6 +34,8 @@ internal sealed class PdfStringObj : PdfObject {
     public string Value { get; }
     public bool UseTextStringEncoding { get; }
     public byte[] RawBytes { get; }
+    /// <summary>Byte-constructed and parsed strings retain their payload without re-encoding the decoded view.</summary>
+    internal bool PreserveRawBytes { get; }
     internal int? EncodedTokenLength { get; }
 
     public PdfStringObj(string value, bool useTextStringEncoding = false) {
@@ -49,6 +51,7 @@ internal sealed class PdfStringObj : PdfObject {
         bool useTextStringEncoding = false,
         int? encodedTokenLength = null) {
         RawBytes = (byte[])rawBytes.Clone();
+        PreserveRawBytes = true;
         Value = PdfTextString.Decode(rawBytes);
         UseTextStringEncoding = useTextStringEncoding;
         EncodedTokenLength = encodedTokenLength;
@@ -71,6 +74,7 @@ internal sealed class PdfStringObj : PdfObject {
         bool useTextStringEncoding,
         int? encodedTokenLength) {
         RawBytes = ownedRawBytes;
+        PreserveRawBytes = true;
         Value = decodedValue;
         UseTextStringEncoding = useTextStringEncoding;
         EncodedTokenLength = encodedTokenLength;

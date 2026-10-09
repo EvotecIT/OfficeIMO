@@ -55,7 +55,11 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder LineWidth(double width) {
+    public ContentStreamBuilder LineWidth(double width, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(PdfNumberFormatter.Precise(width)).Append(" w\n");
+            return this;
+        }
         _sb.Append(F(width)).Append(" w\n");
         return this;
     }
@@ -119,7 +123,11 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder MoveTo(double x, double y) {
+    public ContentStreamBuilder MoveTo(double x, double y, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(PdfNumberFormatter.Precise(x)).Append(' ').Append(PdfNumberFormatter.Precise(y)).Append(" m");
+            return this;
+        }
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(" m");
         return this;
     }
@@ -129,7 +137,11 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder LineTo(double x, double y) {
+    public ContentStreamBuilder LineTo(double x, double y, bool preciseCoordinates = false) {
+        if (preciseCoordinates) {
+            _sb.Append(' ').Append(PdfNumberFormatter.Precise(x)).Append(' ').Append(PdfNumberFormatter.Precise(y)).Append(" l");
+            return this;
+        }
         _sb.Append(' ').Append(F(x)).Append(' ').Append(F(y)).Append(" l");
         return this;
     }

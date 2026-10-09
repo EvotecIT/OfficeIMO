@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "purpose": "Independent-producer redaction regression inputs; generated synthetic documents",
+  "producerVersions": {
+    "ReportLab": "4.4.9",
+    "pypdf": "6.10.0",
+    "PyMuPDF": "1.28.2",
+    "fontTools": "4.66.1"
+  },
+  "runtimeDependencies": "None; fixture tools are isolated validation tools",
+  "documentLicense": "MIT",
+  "fontLicenses": {
+    "Carlito": "SIL Open Font License 1.1; source Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+    "SourceSerif4": "SIL Open Font License 1.1; source OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf"
+  },
+  "cases": [
+    {
+      "id": "importedcarlito-rotation-0",
+      "file": "importedcarlito-rotation-0.pdf",
+      "features": [
+        "imported-truetype",
+        "two-pages",
+        "rotation-0"
+      ],
+      "operation": "search",
+      "pattern": "private account 123",
+      "retained": [
+        "Before",
+        "after page"
+      ],
+      "sha256": "945cc4aa87865ed508985e55a5f3c1923b2de4eb5a2c36f6a6a0afdb6e52bc65",
+      "producer": "ReportLab+pypdf"
+    },
+    {
+      "id": "embedded-cff-rotation-0",
+      "file": "embedded-cff-rotation-0.pdf",
+      "features": [
+        "imported-cff",
+        "two-pages",
+        "rotation-0"
+      ],
+      "operation": "search",
+      "pattern": "private account 123",
+      "retained": [
+        "Before",
+        "after page"
+      ],
+      "sha256": "87ac36fe31bc39ca9d1202ab8903d79b1c7ffa40b88bacbf42ff0c8757c7fa2c",
+      "producer": "PyMuPDF 1.28.2"
+    },
+    {
+      "id": "outline-text-and-ink",
+      "file": "outline-text-and-ink.pdf",
+      "features": [
+        "outlined-text",
+        "ink-annotation",
+        "bookmark"
+      ],
+      "operation": "area",
+      "pattern": "private account 123",
+      "retained": [
+        "Before",
+        "after page"
+      ],
+      "sha256": "5cca4a738c1e73ed7b9e2531bab53e9aa402b0845a22bc4b448d35b1bd689c09",
+      "producer": "ReportLab+pypdf",
+      "area": {
+        "page": 1,
+        "x": 70,
+        "y": 598,
+        "width": 150.388671875,
+        "height": 26
+      }
+    },
+    {
+      "id": "imported-truetype-and-ink",
+      "file": "imported-truetype-and-ink.pdf",
+      "features": [
+        "imported-truetype",
+        "ink-annotation",
+        "bookmark"
+      ],
+      "operation": "search",
+      "pattern": "private account 123",
+      "retained": [
+        "Before",
+        "after page"
+      ],
+      "sha256": "f8968479ff217f5f350bb47f956acba0ab29f51247cfdbca7f86594d43ee4cda",
+      "producer": "PyMuPDF 1.28.2"
+    }
+  ]
+}

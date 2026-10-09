@@ -355,15 +355,11 @@ internal static partial class PdfTextEditor {
         return new TextLayoutEngine.TextLine(NormalPosition(ordered[0]), start, BaselinePosition(last) + Math.Abs(last.Advance), string.Empty, ordered.ToList());
     }
 
-    private static double BaselinePosition(PdfTextSpan span) {
-        double radians = span.RotationDegrees * Math.PI / 180D;
-        return (Math.Cos(radians) * span.X) + (Math.Sin(radians) * span.Y);
-    }
+    private static double BaselinePosition(PdfTextSpan span) =>
+        new PdfTextBaselineCoordinates(span.RotationDegrees).Along(span);
 
-    private static double NormalPosition(PdfTextSpan span) {
-        double radians = span.RotationDegrees * Math.PI / 180D;
-        return (-Math.Sin(radians) * span.X) + (Math.Cos(radians) * span.Y);
-    }
+    private static double NormalPosition(PdfTextSpan span) =>
+        new PdfTextBaselineCoordinates(span.RotationDegrees).Normal(span);
 
     private static bool HasWordBoundaries(string text, int start, int length) {
         bool left = start == 0 || !IsWordCharacter(text, start - 1);

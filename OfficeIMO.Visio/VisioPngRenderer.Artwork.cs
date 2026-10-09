@@ -23,13 +23,13 @@ namespace OfficeIMO.Visio {
                 ? shape.Height / 2D
                 : shape.Height - Math.Min(shape.Height * 0.28D, iconSize * 0.72D);
             (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
-            (double x, double y) = ToRaster(page, cx, cy, canvas.Scale);
-            double size = iconSize * canvas.Scale;
+            (double x, double y) = ToRaster(page, cx, cy, canvas.Projection);
+            double size = iconSize * canvas.Projection.GeometryDensity;
             Color color = VisioStencilArtwork.ResolveColor(shape, 155);
             double stroke = Math.Max(canvas.Supersampling, size * 0.045D);
             double rasterRotation = ToRasterRotation(shape.Angle);
             (double X, double Y) Point(double offsetX, double offsetY) =>
-                OfficeGeometry.RotatePoint((x + (size * offsetX), y + (size * offsetY)), x, y, -rasterRotation);
+                OfficeGeometry.RotatePoint((x + (size * offsetX), y + (size * offsetY)), x, y, rasterRotation);
             (double X, double Y)[] Points(params (double X, double Y)[] offsets) {
                 (double X, double Y)[] points = new (double X, double Y)[offsets.Length];
                 for (int i = 0; i < offsets.Length; i++) {
@@ -128,9 +128,9 @@ namespace OfficeIMO.Visio {
                 ? shape.Height / 2D
                 : shape.Height - Math.Min(shape.Height * 0.3D, imageHeight * 0.72D);
             (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
-            (double centerX, double centerY) = ToRaster(page, cx, cy, canvas.Scale);
-            double targetWidth = imageWidth * canvas.Scale;
-            double targetHeight = imageHeight * canvas.Scale;
+            (double centerX, double centerY) = ToRaster(page, cx, cy, canvas.Projection);
+            double targetWidth = imageWidth * canvas.Projection.GeometryDensity;
+            double targetHeight = imageHeight * canvas.Projection.GeometryDensity;
             OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateTopLeft(
                 raster.Width,
                 raster.Height,
@@ -143,7 +143,7 @@ namespace OfficeIMO.Visio {
             canvas.DrawImage(
                 raster,
                 renderPlan.ToVisibleProjection(
-                    rotationDegrees: -OfficeGeometry.RadiansToDegrees(ToRasterRotation(shape.Angle)),
+                    rotationDegrees: OfficeGeometry.RadiansToDegrees(ToRasterRotation(shape.Angle)),
                     rotationCenterX: centerX,
                     rotationCenterY: centerY));
             return true;

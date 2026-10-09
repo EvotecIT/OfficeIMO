@@ -837,7 +837,8 @@ public sealed partial class OfficeDrawing {
             flipHorizontal,
             flipVertical,
             richText.Padding,
-            richText.ParagraphIndent);
+            richText.ParagraphIndent).WithParagraphs(richText.Paragraphs).WithTextAreaAlignment(richText.TextAreaAlignment);
+        item.NormalizeHorizontalPaint = richText.NormalizeHorizontalPaint;
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(richText), "Drawing rich text must fit inside the drawing bounds.");
         }

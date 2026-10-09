@@ -14,6 +14,7 @@ internal static class OdfPackageTemplates {
             case OdfDocumentKind.Text: bodyName = OdfNamespaces.Office + "text"; break;
             case OdfDocumentKind.Spreadsheet: bodyName = OdfNamespaces.Office + "spreadsheet"; break;
             case OdfDocumentKind.Presentation: bodyName = OdfNamespaces.Office + "presentation"; break;
+            case OdfDocumentKind.Graphics: bodyName = OdfNamespaces.Office + "drawing"; break;
             default: throw new ArgumentOutOfRangeException(nameof(kind));
         }
         root.Add(new XElement(OdfNamespaces.Office + "body", new XElement(bodyName)));

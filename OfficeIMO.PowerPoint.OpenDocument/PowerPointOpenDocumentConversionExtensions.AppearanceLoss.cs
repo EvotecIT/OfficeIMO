@@ -216,9 +216,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         A.Blip? blip = fill.Blip;
         return blip?.ChildElements.Count > 0 ||
             fill.ChildElements.Any(child => child is not A.Blip and not A.SourceRectangle and not A.Stretch) ||
-            fill.GetFirstChild<A.SourceRectangle>() is A.SourceRectangle crop &&
-                crop.GetAttributes().Any(attribute => attribute.LocalName is "l" or "t" or "r" or "b" &&
-                    (!int.TryParse(attribute.Value, out int value) || value < 0 || value > 100000)) ||
             fill.Descendants<A.FillRectangle>().Any(rectangle => rectangle.HasAttributes);
     }
 
@@ -504,7 +501,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             stroke != null && stroke != "solid") return true;
         if (fill == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Draw + "fill-color"), out _)) return true;
         if (stroke == "solid" && !OdfColor.TryParse((string?)properties.Attribute(OdfNamespaces.Svg + "stroke-color"), out _)) return true;
-        bool mappedImageClip = shape is OdpImage image && image.Crop.HasValue;
+        // Image clips, including malformed imported values, are handled by the crop mapper.
+        bool mappedImageClip = shape is OdpImage;
         return properties.HasElements || properties.Attributes().Any(attribute =>
             attribute.Name != OdfNamespaces.Draw + "fill" && attribute.Name != OdfNamespaces.Draw + "fill-color" &&
             attribute.Name != OdfNamespaces.Draw + "stroke" && attribute.Name != OdfNamespaces.Svg + "stroke-color" &&

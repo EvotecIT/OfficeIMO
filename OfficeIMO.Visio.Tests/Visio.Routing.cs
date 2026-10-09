@@ -49,10 +49,16 @@ namespace OfficeIMO.Tests {
                 .ToArray();
 
             Assert.Equal(3, lineToRows.Length);
-            Assert.Equal("4.5", CellValue(lineToRows[0], ns, "X"));
-            Assert.Equal("5", CellValue(lineToRows[0], ns, "Y"));
-            Assert.Equal("4.5", CellValue(lineToRows[1], ns, "X"));
-            Assert.Equal("3", CellValue(lineToRows[1], ns, "Y"));
+            // Native geometry is local to the connector; transform it to page inches.
+            double Read(XElement element, string name) => double.Parse(CellValue(element, ns, name), System.Globalization.CultureInfo.InvariantCulture);
+            var frame = new VisioShape("frame") {
+                PinX = Read(connectorShape, "PinX"), PinY = Read(connectorShape, "PinY"),
+                LocPinX = Read(connectorShape, "LocPinX"), LocPinY = Read(connectorShape, "LocPinY"), Angle = Read(connectorShape, "Angle")
+            };
+            var first = frame.GetAbsolutePoint(Read(lineToRows[0], "X"), Read(lineToRows[0], "Y"));
+            var second = frame.GetAbsolutePoint(Read(lineToRows[1], "X"), Read(lineToRows[1], "Y"));
+            Assert.Equal(4.5, first.X, 8); Assert.Equal(5, first.Y, 8);
+            Assert.Equal(4.5, second.X, 8); Assert.Equal(3, second.Y, 8);
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single();
@@ -448,8 +454,10 @@ namespace OfficeIMO.Tests {
                     string.Equals((string?)shape.Attribute("NameU"), "Connector", StringComparison.Ordinal) ||
                     string.Equals((string?)shape.Attribute("NameU"), "Dynamic connector", StringComparison.Ordinal));
 
-            Assert.Equal("4.25", ShapeCellValue(connectorShape, ns, "TxtPinX"));
-            Assert.Equal("5.35", ShapeCellValue(connectorShape, ns, "TxtPinY"));
+            double ReadCell(string name) => double.Parse(ShapeCellValue(connectorShape, ns, name), System.Globalization.CultureInfo.InvariantCulture);
+            var labelFrame = new VisioShape("frame") { PinX = ReadCell("PinX"), PinY = ReadCell("PinY"), LocPinX = ReadCell("LocPinX"), LocPinY = ReadCell("LocPinY"), Angle = ReadCell("Angle") };
+            var labelPoint = labelFrame.GetAbsolutePoint(ReadCell("TxtPinX"), ReadCell("TxtPinY"));
+            Assert.Equal(4.25, labelPoint.X, 8); Assert.Equal(5.35, labelPoint.Y, 8);
             Assert.Equal("1.4", ShapeCellValue(connectorShape, ns, "TxtWidth"));
             Assert.Equal("0.35", ShapeCellValue(connectorShape, ns, "TxtHeight"));
             Assert.Equal("0.7", ShapeCellValue(connectorShape, ns, "TxtLocPinX"));
@@ -552,10 +560,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
+            return shape.GetAbsolutePoint(x, y);
         }
 
         private static bool SegmentIntersectsBounds(RoutePoint a, RoutePoint b, VisioBounds bounds) {

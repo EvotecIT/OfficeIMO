@@ -99,7 +99,7 @@ public sealed partial class MainWindowViewModel {
             !ReferenceEquals(_workspace, workspace) || revision != workspace.Revision) return;
         PdfRedactionMarkViewModel[] candidates = marks.Select(mark => new PdfRedactionMarkViewModel(mark.Area,
             new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height),
-            mark.Description, textSelection)).ToArray();
+            mark.Description, textSelection, _localizer)).ToArray();
         PdfRedactionMarkViewModel? conflict = candidates.Select(FindRedactionPolicyConflict).FirstOrDefault(existing => existing is not null);
         if (conflict is not null) {
             ReportRedactionPolicyConflict(conflict);

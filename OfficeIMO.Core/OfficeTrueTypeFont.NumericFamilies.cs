@@ -5,7 +5,7 @@ using System.IO;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeTrueTypeFont {
-    private static readonly Dictionary<string, IReadOnlyList<OfficeTrueTypeFont>> NumericFamilyCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, IReadOnlyList<FontFamilyResolution>> NumericFamilyCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly OfficeFontFaceDescriptor _faceDescriptor;
 
     /// <summary>Face attributes declared by the font's OS/2 and head tables.</summary>
@@ -17,9 +17,8 @@ public sealed partial class OfficeTrueTypeFont {
         resolvedStyle = OfficeFontStyle.Regular;
         if (string.IsNullOrWhiteSpace(families)) return TryLoadDefault();
         foreach (string family in ExpandFontFamilyFallbacks(families!)) {
-            var candidates = new List<OfficeTrueTypeFont>(GetNumericFamily(family));
-            candidates.Sort((left, right) => OfficeFontFaceMatcher.Compare(left.FaceDescriptor, right.FaceDescriptor, descriptor));
-            foreach (OfficeTrueTypeFont candidate in candidates) {
+            foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, descriptor)) {
+                OfficeTrueTypeFont candidate = resolved.Font!;
                 if (!string.IsNullOrEmpty(text) && !candidate.HasGlyphs(text!)) continue;
                 resolvedStyle = candidate.FaceDescriptor.ToStyle();
                 return candidate;
@@ -28,11 +27,17 @@ public sealed partial class OfficeTrueTypeFont {
         return null;
     }
 
-    private static IReadOnlyList<OfficeTrueTypeFont> GetNumericFamily(string family) {
+    private static List<FontFamilyResolution> OrderedNumericFamily(string family, OfficeFontFaceDescriptor descriptor) {
+        var candidates = new List<FontFamilyResolution>(GetNumericFamily(family));
+        candidates.Sort((left, right) => OfficeFontFaceMatcher.Compare(left.Font!.FaceDescriptor, right.Font!.FaceDescriptor, descriptor));
+        return candidates;
+    }
+
+    private static IReadOnlyList<FontFamilyResolution> GetNumericFamily(string family) {
         string key = NormalizeFontFamilyKey(family);
         lock (FontCacheLock) { if (NumericFamilyCache.TryGetValue(key, out var cached)) return cached; }
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var result = new List<OfficeTrueTypeFont>();
+        var result = new List<FontFamilyResolution>();
         foreach (OfficeFontStyle style in new[] { OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic }) {
             foreach (string path in CandidateStyledFamilyPaths(key, style)) paths.Add(path);
         }
@@ -43,7 +48,7 @@ public sealed partial class OfficeTrueTypeFont {
                 paths.Add(Path.Combine(windows, "Fonts", file));
         }
         foreach (string path in paths) foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
-            if (font.HasFamilyKey(key)) result.Add(font);
+            if (font.HasFamilyKey(key)) result.Add(new FontFamilyResolution(font, path));
         }
         lock (FontCacheLock) {
             if (NumericFamilyCache.Count >= 32) NumericFamilyCache.Clear();

@@ -159,9 +159,9 @@ internal static partial class PdfPageExtractor {
             case PdfStringObj text:
                 return context.PreserveRawStringBytes
                     ? CountHexStringBytes(text.RawBytes.LongLength, maximumBytes)
-                    : text.UseTextStringEncoding
-                        ? CountTextStringBytes(text.Value, maximumBytes, context.CancellationToken)
-                        : CountLiteralStringBytes(text.RawBytes, maximumBytes, context.CancellationToken);
+                    : text.PreserveRawBytes || !text.UseTextStringEncoding
+                        ? CountLiteralBytes(text.RawBytes, maximumBytes, context.CancellationToken)
+                        : CountTextStringBytes(text.Value, maximumBytes, context.CancellationToken);
             case PdfNull:
                 return 4L;
             case PdfReference reference:
@@ -247,22 +247,23 @@ internal static partial class PdfPageExtractor {
         return AddCounted(total, MultiplyCounted(encodedNonAsciiBytes, 3L, maximumBytes), maximumBytes);
     }
 
-    private static long CountLiteralStringBytes(byte[] value, long maximumBytes, CancellationToken cancellationToken) {
+    private static long CountLiteralBytes(byte[] bytes, long maximumBytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         long total = 2L;
-        foreach (char character in value) {
-            cancellationToken.ThrowIfCancellationRequested();
-            long count;
-            if (character is '\\' or '(' or ')' or '\r' or '\n' or '\t' or '\b' or '\f') count = 2L;
-            else if (character < 32 || character == 127) count = 4L;
-            else count = 1L;
-            total = AddCounted(total, count, maximumBytes);
+        for (int index = 0; index < bytes.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            total = AddCounted(total, CountLiteralCharacterBytes((char)bytes[index]), maximumBytes);
         }
         return total;
     }
 
+    private static long CountLiteralCharacterBytes(char character) =>
+        character is '\\' or '(' or ')' or '\r' or '\n' or '\t' or '\b' or '\f' ? 2L
+            : character < 32 || character == 127 ? 4L : 1L;
+
     private static long CountTextStringBytes(string value, long maximumBytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        long encodedBytes = PdfDocEncoding.CanEncode(value, cancellationToken)
+        long encodedBytes = PdfTextString.CanEncodeAsAscii(value, cancellationToken)
             ? value.Length
             : AddCounted(2L, MultiplyCounted(value.Length, 2L, maximumBytes), maximumBytes);
         cancellationToken.ThrowIfCancellationRequested();
@@ -336,6 +337,8 @@ internal static partial class PdfPageExtractor {
             case PdfStringObj text:
                 if (context.PreserveRawStringBytes) {
                     PdfSyntaxEscaper.AppendHexStringCancellable(sb, text.RawBytes, context.CancellationToken);
+                } else if (text.PreserveRawBytes) {
+                    PdfSyntaxEscaper.AppendLiteralBytesCancellable(sb, text.RawBytes, context.CancellationToken);
                 } else if (text.UseTextStringEncoding) {
                     PdfSyntaxEscaper.AppendTextStringCancellable(sb, text.Value, context.CancellationToken);
                 } else {
@@ -439,24 +442,17 @@ internal static partial class PdfPageExtractor {
         return PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
     }
     
-    private static string FormatNumber(double value) {
-        if (Math.Abs(value % 1) < 0.0000001) {
-            return ((long)Math.Round(value)).ToString(CultureInfo.InvariantCulture);
-        }
-    
-        return value.ToString("0.###", CultureInfo.InvariantCulture);
-    }
+    private static string FormatNumber(double value) => PdfNumberFormatter.Precise(value);
 
     private static void AppendNumber(StringBuilder destination, double value) {
 #if NET6_0_OR_GREATER
         Span<char> buffer = stackalloc char[64];
-        if (Math.Abs(value % 1) < 0.0000001) {
-            long rounded = (long)Math.Round(value);
-            if (rounded.TryFormat(buffer, out int integerWritten, default, CultureInfo.InvariantCulture)) {
-                destination.Append(buffer.Slice(0, integerWritten));
-                return;
-            }
-        } else if (value.TryFormat(buffer, out int realWritten, "0.###", CultureInfo.InvariantCulture)) {
+        // Keep the allocation-free common path, but preserve imported PDF reals
+        // exactly and expand exponent notation through the canonical formatter.
+        if (!double.IsNaN(value) && !double.IsInfinity(value) &&
+            value.TryFormat(buffer, out int realWritten, "R", CultureInfo.InvariantCulture) &&
+            buffer.Slice(0, realWritten).IndexOf('E') < 0 &&
+            buffer.Slice(0, realWritten).IndexOf('e') < 0) {
             destination.Append(buffer.Slice(0, realWritten));
             return;
         }

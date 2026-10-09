@@ -52,7 +52,7 @@ namespace OfficeIMO.Visio {
             List<ConnectorLabelBounds> placedLabels = new();
 
             foreach (VisioConnector connector in page.Connectors) {
-                VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+                VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
                 if (placement == null || string.IsNullOrWhiteSpace(connector.Label)) {
                     continue;
                 }
@@ -90,7 +90,8 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                connector.LabelPlacement = bestPlacement;
+                if (bestScore.IsBetterThan(currentScore))
+                    VisioConnectorLabelFrame.ApplyLayoutPlacement(connector, bestPlacement);
                 placedLabels.Add(new ConnectorLabelBounds(connector, bestBounds));
             }
 
@@ -125,7 +126,7 @@ namespace OfficeIMO.Visio {
                     ? OrderConnectorsForLabelCleanup(page, labelBounds, shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths)
                     : page.Connectors.ToList();
                 foreach (VisioConnector connector in connectors) {
-                    VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+                    VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
                     if (placement == null || string.IsNullOrWhiteSpace(connector.Label)) {
                         continue;
                     }
@@ -164,7 +165,8 @@ namespace OfficeIMO.Visio {
                         }
                     }
 
-                    connector.LabelPlacement = bestPlacement;
+                    if (bestScore.IsBetterThan(currentScore))
+                        VisioConnectorLabelFrame.ApplyLayoutPlacement(connector, bestPlacement);
                     labelBounds = labelBounds
                         .Where(label => !ReferenceEquals(label.Connector, connector))
                         .Concat(new[] { new ConnectorLabelBounds(connector, bestBounds) })
@@ -190,7 +192,7 @@ namespace OfficeIMO.Visio {
             List<ConnectorLabelWorkItem> workItems = new();
             int index = 0;
             foreach (VisioConnector connector in page.Connectors) {
-                VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+                VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
                 if (placement == null || string.IsNullOrWhiteSpace(connector.Label)) {
                     continue;
                 }
@@ -269,7 +271,6 @@ namespace OfficeIMO.Visio {
             return paths;
         }
 
-
         /// <summary>Gets connector route and label bounds in page inches.</summary>
         public static VisioShapeBounds GetConnectorContentBounds(this VisioConnector connector) {
             if (connector == null) throw new ArgumentNullException(nameof(connector));
@@ -291,40 +292,9 @@ namespace OfficeIMO.Visio {
         }
 
         private static List<Point> BuildConnectorPath(VisioConnector connector) {
-            ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
-            ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
-            List<(double X, double Y)> waypoints = connector.Waypoints
-                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
-                .ToList();
-
-            return OfficeGeometry.BuildConnectorPolyline(
-                    (startX, startY),
-                    (endX, endY),
-                    waypoints,
-                    connector.Kind == ConnectorKind.RightAngle)
-                .Select(point => new Point(point.X, point.Y))
-                .ToList();
+            return VisioConnectorGeometry.GetPoints(connector).Select(p => new Point(p.X, p.Y)).ToList();
         }
 
-        private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
-            if (connectionPoint != null) {
-                (x, y) = shape.GetAbsolutePoint(connectionPoint.X, connectionPoint.Y);
-                return;
-            }
-
-            VisioShapeBounds shapeBounds = shape.GetShapeBounds();
-            VisioShapeBounds otherBounds = other.GetShapeBounds();
-            double dx = otherBounds.CenterX - shapeBounds.CenterX;
-            double dy = otherBounds.CenterY - shapeBounds.CenterY;
-
-            if (Math.Abs(dx) >= Math.Abs(dy)) {
-                x = dx >= 0 ? shapeBounds.Right : shapeBounds.Left;
-                y = shapeBounds.CenterY;
-            } else {
-                x = shapeBounds.CenterX;
-                y = dy >= 0 ? shapeBounds.Top : shapeBounds.Bottom;
-            }
-        }
 
         private static VisioShapeBounds GetPointBounds(IReadOnlyList<Point> points) {
             if (points.Count == 0) {
@@ -347,7 +317,7 @@ namespace OfficeIMO.Visio {
 
         private static bool TryGetConnectorLabelBounds(VisioConnector connector, IReadOnlyList<Point> path, out VisioShapeBounds bounds) {
             bounds = VisioShapeBounds.Empty;
-            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
             return placement != null && TryGetConnectorLabelBounds(connector, path, placement, out bounds);
         }
 
@@ -496,8 +466,8 @@ namespace OfficeIMO.Visio {
             VisioShapeBounds labelBounds,
             IReadOnlyList<VisioShape> shapes,
             IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds) {
-            VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
-            VisioShapeBounds toBounds = connector.To.GetShapeBounds();
+            VisioShapeBounds fromBounds = VisioConnectorEndpoints.Bounds(connector, true);
+            VisioShapeBounds toBounds = VisioConnectorEndpoints.Bounds(connector, false);
             List<VisioShapeBounds> commonEndpointZones = new();
             double unrelatedZoneOverlap = 0D;
 

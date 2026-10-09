@@ -10,30 +10,9 @@ using System.Xml.Linq;
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
-        private static bool ShouldPreserveMasterAttribute(XAttribute attribute) {
-            string localName = attribute.Name.LocalName;
-            string namespaceName = attribute.Name.NamespaceName;
-
-            if (namespaceName == "http://www.w3.org/XML/1998/namespace") {
-                return false;
-            }
-
-            return !string.Equals(localName, "ID", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "Name", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "NameU", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "IsCustomNameU", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "IsCustomName", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "Prompt", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "IconSize", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "AlignName", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "MatchByName", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "IconUpdate", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "UniqueID", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "BaseID", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "PatternFlags", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "Hidden", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "MasterType", StringComparison.OrdinalIgnoreCase);
-        }
+        private static bool ShouldPreserveMasterAttribute(XAttribute attribute) =>
+            !attribute.IsNamespaceDeclaration && attribute.Name != "ID" && attribute.Name != "NameU" &&
+            attribute.Name.Namespace != XNamespace.Xml;
 
         private static bool ShouldPreserveMasterPageSheetAttribute(XAttribute attribute) {
             string localName = attribute.Name.LocalName;
@@ -117,11 +96,7 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            return !string.Equals(localName, "TopPage", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "DefaultTextStyle", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "DefaultLineStyle", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "DefaultFillStyle", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(localName, "DefaultGuideStyle", StringComparison.OrdinalIgnoreCase);
+            return !string.Equals(localName, "TopPage", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldPreserveDocumentSettingsElement(XElement element) {
@@ -219,16 +194,6 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            if ((string.Equals(styleSheetId, "0", StringComparison.Ordinal) ||
-                 string.Equals(styleSheetId, "1", StringComparison.Ordinal) ||
-                 string.Equals(styleSheetId, "2", StringComparison.Ordinal)) &&
-                (string.Equals(localName, "BasedOn", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(localName, "LineStyle", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(localName, "FillStyle", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(localName, "TextStyle", StringComparison.OrdinalIgnoreCase))) {
-                return false;
-            }
-
             return true;
         }
 
@@ -245,6 +210,12 @@ namespace OfficeIMO.Visio {
             return !GetGeneratedStyleSheetCellNames(styleSheetId).Contains(cellName);
         }
 
+        // Native style IDs are unsigned numbers; their lexical leading zeros do not
+        // create a second style. Keep this normalization in the style preservation owner.
+        private static string NormalizeStyleSheetId(string styleSheetId) =>
+            ulong.TryParse(styleSheetId, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong id)
+                ? id.ToString(CultureInfo.InvariantCulture) : styleSheetId;
+
         private static bool IsGeneratedStyleSheet(string styleSheetId) {
             return string.Equals(styleSheetId, "0", StringComparison.Ordinal) ||
                    string.Equals(styleSheetId, "1", StringComparison.Ordinal) ||
@@ -254,7 +225,7 @@ namespace OfficeIMO.Visio {
         private static ISet<string> GetGeneratedStyleSheetCellNames(string styleSheetId) {
             return styleSheetId switch {
                 "0" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-                    "EnableLineProps", "EnableFillProps", "EnableTextProps", "LineWeight", "LineColor", "LinePattern", "FillForegnd", "FillPattern"
+                    "EnableLineProps", "EnableFillProps", "LineWeight", "LineColor", "LinePattern", "FillForegnd", "FillPattern"
                 },
                 "1" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
                     "LinePattern", "LineColor", "FillPattern", "FillForegnd"

@@ -4,13 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using OfficeIMO.Core.Internal;
+
+using DirectoryModel = OfficeIMO.Core.Internal.OfficeVbaDirectoryCodec.DirectoryModel;
+using ModuleModel = OfficeIMO.Core.Internal.OfficeVbaDirectoryCodec.ModuleModel;
+using ReferenceModel = OfficeIMO.Core.Internal.OfficeVbaDirectoryCodec.ReferenceModel;
 
 namespace OfficeIMO.Security;
 
 /// <summary>Bounded managed implementation of the MS-OVBA signature-binding transcripts.</summary>
-internal static partial class OfficeVbaProjectCanonicalizer {
+internal static class OfficeVbaProjectCanonicalizer {
     private static readonly byte[][] V3DefaultAttributes = {
         Encoding.ASCII.GetBytes("Attribute VB_Base = \"0{00020820-0000-0000-C000-000000000046}\""),
         Encoding.ASCII.GetBytes("Attribute VB_GlobalNameSpace = False"),
@@ -70,7 +73,7 @@ internal static partial class OfficeVbaProjectCanonicalizer {
             detail = "The VBA project has no VBA/dir stream.";
             return false;
         }
-        if (!TryDecompress(compressedDirectory, checked((int)maximumExpandedBytes), out byte[] directory, out detail)) {
+        if (!OfficeVbaCompression.TryDecompress(compressedDirectory, checked((int)maximumExpandedBytes), out byte[] directory, out detail)) {
             return false;
         }
         if (!DirectoryModel.TryParse(directory, checked((int)maximumExpandedBytes),
@@ -293,89 +296,7 @@ internal static partial class OfficeVbaProjectCanonicalizer {
         }
         var compressed = new byte[stream.Length - module.TextOffset];
         Buffer.BlockCopy(stream, module.TextOffset, compressed, 0, compressed.Length);
-        return TryDecompress(compressed, maximumBytes, out source, out detail);
-    }
-
-    internal static bool TryDecompress(byte[] input, int maximumOutputBytes,
-        out byte[] output, out string detail) {
-        return TryDecompress(input, ref maximumOutputBytes, out output, out detail);
-    }
-
-    /// <summary>Debits bytes expanded even when malformed input fails; cancellation also reaches chunk traversal.</summary>
-    internal static bool TryDecompress(byte[] input, ref int remainingExpandedBytes,
-        out byte[] output, out string detail, CancellationToken cancellationToken = default) {
-        output = Array.Empty<byte>();
-        cancellationToken.ThrowIfCancellationRequested();
-        if (remainingExpandedBytes < 0) throw new ArgumentOutOfRangeException(nameof(remainingExpandedBytes));
-        if (input.Length == 0 || input[0] != 0x01) {
-            detail = "The MS-OVBA compressed container signature is missing.";
-            return false;
-        }
-        int maximumOutputBytes = remainingExpandedBytes;
-        List<byte> decompressed = new List<byte>(Math.Min(input.Length, maximumOutputBytes));
-        try {
-            int position = 1;
-            while (position < input.Length) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int headerPosition = position;
-                if (!TryReadUInt16(input, ref position, out ushort header)) {
-                    detail = "The compressed container ends inside a chunk header.";
-                    return false;
-                }
-                int chunkSize = (header & 0x0FFF) + 3;
-                int chunkEnd = headerPosition + chunkSize;
-                if ((header & 0x7000) != 0x3000 || chunkEnd < position || chunkEnd > input.Length) {
-                    detail = "The compressed container has an invalid chunk header.";
-                    return false;
-                }
-                int chunkOutputStart = decompressed.Count;
-                if ((header & 0x8000) == 0) {
-                    if (chunkSize != 4098 || chunkEnd - position != 4096 ||
-                        decompressed.Count > maximumOutputBytes - 4096) {
-                        detail = "The compressed container has an invalid or oversized raw chunk.";
-                        return false;
-                    }
-                    for (; position < chunkEnd; position++) decompressed.Add(input[position]);
-                    continue;
-                }
-                while (position < chunkEnd) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    byte flags = input[position++];
-                    for (int bit = 0; bit < 8 && position < chunkEnd; bit++) {
-                        if ((flags & 1 << bit) == 0) {
-                            if (decompressed.Count >= maximumOutputBytes) {
-                                detail = "The expanded MS-OVBA container exceeds the configured byte limit.";
-                                return false;
-                            }
-                            decompressed.Add(input[position++]);
-                            continue;
-                        }
-                        if (!TryReadUInt16(input, ref position, out ushort token) || position > chunkEnd) {
-                            detail = "The compressed container ends inside a copy token.";
-                            return false;
-                        }
-                        int decompressedPosition = decompressed.Count - chunkOutputStart;
-                        int bitCount = 4;
-                        while (bitCount < 12 && 1 << bitCount < decompressedPosition) bitCount++;
-                        int lengthMask = 0xFFFF >> bitCount;
-                        int offset = ((token & ~lengthMask) >> (16 - bitCount)) + 1;
-                        int length = (token & lengthMask) + 3;
-                        int sourceOffset = decompressed.Count - offset;
-                        if (decompressedPosition <= 0 || sourceOffset < chunkOutputStart ||
-                            decompressedPosition + length > 4096 || decompressed.Count > maximumOutputBytes - length) {
-                            detail = "The compressed container has an out-of-range copy token.";
-                            return false;
-                        }
-                        for (int copied = 0; copied < length; copied++) decompressed.Add(decompressed[sourceOffset + copied]);
-                    }
-                }
-            }
-            output = decompressed.ToArray();
-            detail = string.Empty;
-            return true;
-        } finally {
-            remainingExpandedBytes -= decompressed.Count;
-        }
+        return OfficeVbaCompression.TryDecompress(compressed, maximumBytes, out source, out detail);
     }
 
     private sealed class BoundedBuffer {

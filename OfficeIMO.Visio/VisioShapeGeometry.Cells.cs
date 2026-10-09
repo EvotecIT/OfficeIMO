@@ -7,7 +7,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Visio {
     internal static partial class VisioShapeGeometry {
 
-        private static bool TryReadCell(XElement row, XNamespace ns, string name, VisioShape shape, out double value) {
+        internal static bool TryReadCell(XElement row, XNamespace ns, string name, VisioShape shape, out double value) {
             XElement? cell = row.Elements(ns + "Cell")
                 .FirstOrDefault(item => string.Equals(item.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase));
             if (cell == null) {
@@ -59,7 +59,7 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static bool TryParseCellLiteral(string? raw, VisioShape shape, out double value) {
+        internal static bool TryParseCellLiteral(string? raw, VisioShape shape, out double value) {
             raw = NormalizeCellLiteral(raw);
             if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
                 IsFinite(value)) {
@@ -76,7 +76,8 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static bool TryParseLiteralWithoutShape(string? raw, out double value) {
+        /// <summary>Reads a finite numeric cache or guarded constant without evaluating shape-dependent expressions.</summary>
+        internal static bool TryParseLiteralWithoutShape(string? raw, out double value) {
             raw = NormalizeCellLiteral(raw);
             if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
                 IsFinite(value)) {
@@ -182,7 +183,7 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static bool TryParseFunctionArguments(string? raw, string functionName, out List<string> arguments) {
+        internal static bool TryParseFunctionArguments(string? raw, string functionName, out List<string> arguments) {
             arguments = new List<string>();
             raw = NormalizeCellLiteral(raw);
             if (string.IsNullOrWhiteSpace(raw)) {

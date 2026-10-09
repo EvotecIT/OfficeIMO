@@ -15,21 +15,17 @@ namespace OfficeIMO.Visio {
         private void WriteConnectorShapeElement(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyList<PackageMasterEntry> packageMasters, IReadOnlyDictionary<string, int> layerIndexes) {
             writer.WriteStartElement("Shape", ns);
             writer.WriteAttributeString("ID", GetPersistedId(persistedIds, connector.Id));
-            bool isDynamic = connector.Kind == ConnectorKind.Dynamic;
-            bool useDynamicMaster = isDynamic &&
-                (UseMastersByDefault || connector.PreserveDynamicConnectorMaster);
+            VisioMaster? effectiveMaster = ResolveEffectiveMaster(connector);
+            bool useDynamicMaster = effectiveMaster != null;
             string connName = useDynamicMaster ? "Dynamic connector" : "Connector";
             writer.WriteAttributeString("Name", connName);
             writer.WriteAttributeString("NameU", connName);
             writer.WriteAttributeString("Type", "Shape");
             if (useDynamicMaster) {
-                var m = EnsureBuiltinMaster("Dynamic connector");
-                writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, m));
-            } else {
-                writer.WriteAttributeString("LineStyle", "0");
-                writer.WriteAttributeString("FillStyle", "0");
-                writer.WriteAttributeString("TextStyle", "0");
+                writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster!));
             }
+            string? defaultStyle = useDynamicMaster ? null : "0";
+            VisioNativeStyleReferences.Write(writer, connector.NativeStyleReferences, defaultStyle, defaultStyle, defaultStyle);
 
             WriteConnectorShapeBody(writer, ns, connector, persistedIds, layerIndexes);
             writer.WriteEndElement();
@@ -43,7 +39,11 @@ namespace OfficeIMO.Visio {
                 HashSet<string> emittedTokens = new(StringComparer.OrdinalIgnoreCase);
                 foreach (VisioConnector.PreservedShapeChildEntry entry in connector.PreservedShapeChildren) {
                     if (entry.RawElement != null) {
-                        entry.RawElement.WriteTo(writer);
+                        string? name = (string?)entry.RawElement.Attribute("N");
+                        if (entry.RawElement.Name.LocalName == "Cell" && VisioConnectorGeometry.IsTransformCell(name)) {
+                            WriteConnectorTransform(writer, ns, connector, name, entry.RawElement);
+                            emittedTokens.Add("Cell:" + name);
+                        } else entry.RawElement.WriteTo(writer);
                         continue;
                     }
 
@@ -55,48 +55,29 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
+                foreach (string name in ConnectorTransformCells)
+                    if (emittedTokens.Add("Cell:" + name)) WriteConnectorTransform(writer, ns, connector, name);
                 WriteRemainingConnectorShapeChildren(writer, ns, connector, connectorOriginalId, emittedTokens, startX, startY, endX, endY, layerIndexes);
                 return;
             }
 
+            WriteConnectorTransform(writer, ns, connector);
             WriteXForm1D(writer, ns, startX, startY, endX, endY);
             WriteModeledConnectorCells(writer, ns, connector, startX, startY, endX, endY, layerIndexes);
-            WritePreservedConnectorCells(writer, connector.PreservedCellElements);
+            WritePreservedConnectorCells(writer, connector.PreservedCellElements.Where(cell => !VisioConnectorGeometry.IsTransformCell((string?)cell.Attribute("N"))));
             WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
-            WriteTextStyleSections(writer, ns, connector.TextStyle);
-            WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
+            WriteTextStyleSections(writer, ns, connector.TextStyle, connector.CharacterSectionSource, connector.ParagraphSectionSource, connector.PreservedNonGeometrySections);
+            WriteHyperlinkSection(writer, ns, connector.Hyperlinks, VisioHyperlinkRowNames.Inherited(connector, this));
             WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
-            WriteDataSection(writer, ns, connector.Data, connector.PreservedDataRows, connectorOriginalId, connector.ShapeData, connector.ShapeDataSectionName);
+            WriteDataSection(writer, ns, GetConnectorLabelData(connector), connector.PreservedDataRows, connectorOriginalId, connector.ShapeData, connector.ShapeDataSectionName);
             WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
         }
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
-            if (connector.FromConnectionPoint != null) {
-                (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
-            } else {
-                var (fL, fB, fR, fT) = connector.From.GetBounds();
-                var (tL2, _, tR2, _) = connector.To.GetBounds();
-                double fromCx = (fL + fR) / 2.0;
-                double toCx = (tL2 + tR2) / 2.0;
-                bool toIsRight = toCx >= fromCx;
-                startX = toIsRight ? fR : fL;
-                startY = (fB + fT) / 2.0;
-            }
-
-            if (connector.ToConnectionPoint != null) {
-                (endX, endY) = connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
-            } else {
-                var (tL, tB, tR, tT) = connector.To.GetBounds();
-                var (fL2, _, fR2, _) = connector.From.GetBounds();
-                double toCx = (tL + tR) / 2.0;
-                double fromCx = (fL2 + fR2) / 2.0;
-                bool fromIsLeft = fromCx <= toCx;
-                endX = fromIsLeft ? tL : tR;
-                endY = (tB + tT) / 2.0;
-            }
+            VisioConnectorEndpoints.Resolve(connector, out startX, out startY, out endX, out endY);
         }
 
-        private static bool TryWriteConnectorShapeChildToken(
+        private bool TryWriteConnectorShapeChildToken(
             XmlWriter writer,
             string ns,
             VisioConnector connector,
@@ -118,22 +99,22 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(token, "Section:Hyperlink", StringComparison.OrdinalIgnoreCase)) {
-                WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
+                WriteHyperlinkSection(writer, ns, connector.Hyperlinks, VisioHyperlinkRowNames.Inherited(connector, this));
                 return true;
             }
 
             if (string.Equals(token, "Section:Char", StringComparison.OrdinalIgnoreCase)) {
-                WriteCharSection(writer, ns, connector.TextStyle);
+                WriteCharSection(writer, ns, connector.TextStyle, connector.CharacterSectionSource, connector.PreservedNonGeometrySections);
                 return true;
             }
 
             if (string.Equals(token, "Section:Para", StringComparison.OrdinalIgnoreCase)) {
-                WriteParaSection(writer, ns, connector.TextStyle);
+                WriteParaSection(writer, ns, connector.TextStyle, connector.ParagraphSectionSource, connector.PreservedNonGeometrySections);
                 return true;
             }
 
             if (string.Equals(token, "Section:Prop", StringComparison.OrdinalIgnoreCase)) {
-                WriteDataSection(writer, ns, connector.Data, connector.PreservedDataRows, connectorOriginalId, connector.ShapeData, connector.ShapeDataSectionName);
+                WriteDataSection(writer, ns, GetConnectorLabelData(connector), connector.PreservedDataRows, connectorOriginalId, connector.ShapeData, connector.ShapeDataSectionName);
                 return true;
             }
 
@@ -149,7 +130,7 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static void WriteRemainingConnectorShapeChildren(
+        private void WriteRemainingConnectorShapeChildren(
             XmlWriter writer,
             string ns,
             VisioConnector connector,
@@ -171,15 +152,15 @@ namespace OfficeIMO.Visio {
             WriteRemainingModeledConnectorCells(writer, ns, connector, emittedTokens, startX, startY, endX, endY, layerIndexes);
 
             if (emittedTokens.Add("Section:Hyperlink")) {
-                WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
+                WriteHyperlinkSection(writer, ns, connector.Hyperlinks, VisioHyperlinkRowNames.Inherited(connector, this));
             }
 
             if (emittedTokens.Add("Section:Char")) {
-                WriteCharSection(writer, ns, connector.TextStyle);
+                WriteCharSection(writer, ns, connector.TextStyle, connector.CharacterSectionSource, connector.PreservedNonGeometrySections);
             }
 
             if (emittedTokens.Add("Section:Para")) {
-                WriteParaSection(writer, ns, connector.TextStyle);
+                WriteParaSection(writer, ns, connector.TextStyle, connector.ParagraphSectionSource, connector.PreservedNonGeometrySections);
             }
 
             if (emittedTokens.Add("Section:Geometry")) {
@@ -187,7 +168,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (emittedTokens.Add("Section:Prop")) {
-                WriteDataSection(writer, ns, connector.Data, connector.PreservedDataRows, connectorOriginalId, connector.ShapeData, connector.ShapeDataSectionName);
+                WriteDataSection(writer, ns, GetConnectorLabelData(connector), connector.PreservedDataRows, connectorOriginalId, connector.ShapeData, connector.ShapeDataSectionName);
             }
 
             if (emittedTokens.Add("Text")) {
@@ -195,13 +176,13 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static void WriteModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
+        private void WriteModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ConnectorModeledCellOrder) {
                 TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY, layerIndexes);
             }
         }
 
-        private static void WriteRemainingModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, ISet<string> emittedTokens, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
+        private void WriteRemainingModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, ISet<string> emittedTokens, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ConnectorModeledCellOrder) {
                 string token = GetModeledCellToken(cellName);
                 if (emittedTokens.Add(token)) {
@@ -210,7 +191,7 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static bool TryWriteModeledConnectorCell(XmlWriter writer, string ns, VisioConnector connector, string cellName, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
+        private bool TryWriteModeledConnectorCell(XmlWriter writer, string ns, VisioConnector connector, string cellName, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             switch (cellName) {
                 case "BeginX":
                     WriteConnectorEndpointCell(writer, ns, connector, "BeginX", startX);
@@ -243,7 +224,7 @@ namespace OfficeIMO.Visio {
                     WriteCell(writer, ns, "OneD", 1);
                     return true;
                 case "LayerMember":
-                    WriteLayerMemberCell(writer, ns, connector.LayerNames, layerIndexes);
+                    WriteLayerMemberCell(writer, ns, connector.LayerNames, layerIndexes, connector.NativeLayerMembership);
                     return true;
                 case "ShapeRouteStyle":
                     if (connector.RouteStyle.HasValue) {
@@ -316,14 +297,14 @@ namespace OfficeIMO.Visio {
                     }
                     return true;
                 case "TextBkgnd":
-                    if (connector.TextStyle?.BackgroundColor.HasValue == true) {
-                        WriteCellValue(writer, ns, "TextBkgnd", connector.TextStyle.BackgroundColor.Value.ToVisioHex());
-                    }
+                    WriteTextBackgroundColorCell(writer, ns, connector.TextStyle);
                     return true;
                 case "TextBkgndTrans":
-                    if (connector.TextStyle?.BackgroundTransparency.HasValue == true) {
-                        WriteCell(writer, ns, "TextBkgndTrans", connector.TextStyle.BackgroundTransparency.Value);
-                    }
+                    WriteTextBackgroundTransparencyCell(writer, ns, connector.TextStyle);
+                    return true;
+                case "TxtAngle":
+                    if (!string.IsNullOrEmpty(connector.Label) || connector.TextStyle?.TextAngle.HasValue == true || connector.LabelPlacement != null)
+                        WriteCell(writer, ns, "TxtAngle", VisioConnectorLabelFrame.ResolveAngle(connector) - VisioConnectorGeometry.CreateShape(connector).Angle);
                     return true;
                 case "TxtPinX":
                     if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out double txtPinX, out _, out _, out _, out _, out _)) {
@@ -402,7 +383,7 @@ namespace OfficeIMO.Visio {
             locPinX = 0D;
             locPinY = 0D;
 
-            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
             if (placement == null) {
                 return false;
             }
@@ -415,28 +396,22 @@ namespace OfficeIMO.Visio {
             if (placement.AbsolutePinX.HasValue && placement.AbsolutePinY.HasValue) {
                 pinX = placement.AbsolutePinX.Value;
                 pinY = placement.AbsolutePinY.Value;
-                return true;
+            } else {
+                (pinX, pinY) = ResolveConnectorPathPoint(connector, startX, startY, endX, endY, placement.Position);
+                pinX += placement.OffsetX;
+                pinY += placement.OffsetY;
             }
-
-            (pinX, pinY) = ResolveConnectorPathPoint(connector, startX, startY, endX, endY, placement.Position);
-            pinX += placement.OffsetX;
-            pinY += placement.OffsetY;
+            VisioShape frame = VisioConnectorGeometry.CreateShape(connector);
+            OfficeIMO.Drawing.OfficePoint local = VisioConnectorEndpoints.ToLocalPoint(frame, new OfficeIMO.Drawing.OfficePoint(pinX, pinY));
+            bool native = connector.NativeGeometry?.AppliesTo(connector) == true;
+            pinX = native && connector.NativeGeometry!.FlipX ? frame.Width - local.X : local.X;
+            pinY = native && connector.NativeGeometry!.FlipY ? frame.Height - local.Y : local.Y;
             return true;
         }
 
         private static (double X, double Y) ResolveConnectorPathPoint(VisioConnector connector, double startX, double startY, double endX, double endY, double position) {
-            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
-            if (connector.Waypoints.Count > 0) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    waypoints.Add((waypoint.X, waypoint.Y));
-                }
-            }
+            List<(double X, double Y)> points = VisioConnectorGeometry.GetPoints(connector);
 
-            List<(double X, double Y)> points = OfficeIMO.Drawing.OfficeGeometry.BuildConnectorPolyline(
-                (startX, startY),
-                (endX, endY),
-                waypoints,
-                connector.Kind == ConnectorKind.RightAngle);
             return OfficeIMO.Drawing.OfficeGeometry.InterpolatePolyline(points, position);
         }
     }

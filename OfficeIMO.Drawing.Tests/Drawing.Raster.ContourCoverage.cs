@@ -4,6 +4,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingRasterTests {
+    [Fact]
+    public void DenseThinDashesWithRepeatedVertexHeightsStayWithinActualCrossingWork() {
+        var image = new OfficeRasterImage(790, 64, OfficeColor.Transparent);
+        var canvas = new OfficeRasterCanvas(image);
+        canvas.DrawPatternedPolyline(new[] { (1D, 1D), (1D, 59D), (786D, 59D), (786D, 1D) },
+            OfficeColor.Black, .25D, new[] { 1D, .5D });
+        Assert.Contains(Enumerable.Range(700, 80), x => image.GetPixel(x, 58).A > 0);
+        Assert.Equal(0, image.GetPixel(400, 30).A);
+    }
+
+    [Fact]
+    public void DistinctDenseContourIntervalsStillEnforceCrossingWorkLimit() {
+        OfficePoint[] points = Enumerable.Range(0, 20_000)
+            .Select(index => new OfficePoint(index % 2 == 0 ? 1 : 9, 2D + index / 20_000D)).ToArray();
+        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(10, 4, OfficeColor.Transparent));
+        Assert.Throws<InvalidOperationException>(() => canvas.FillPolygon(points, OfficeColor.Black));
+    }
+
     [Theory]
     [InlineData(false, 48)]
     [InlineData(true, 48)]
