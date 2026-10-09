@@ -115,11 +115,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     visual.FontDescriptor,
                     allowInstalledFace,
                     webFonts.Options);
-                IReadOnlyList<NamedFaceStyleRun> faceRuns = allowInstalledFace
-                    ? PlanNamedFaceStyleRuns(fallbackRun.Text, family,
-                        visual.Font.IsBold, visual.Font.IsItalic, webFonts.Options)
-                    : new[] { new NamedFaceStyleRun(fallbackRun.Text,
-                        visual.Font.IsBold, visual.Font.IsItalic, true) };
+                IReadOnlyList<NamedFaceStyleRun> faceRuns = PlanNamedFaceStyleRuns(
+                    fallbackRun.Text, family, visual.Font.IsBold, visual.Font.IsItalic, webFonts.Options);
                 return faceRuns.Select(faceRun => new PdfCore.PdfTextRun(
                     faceRun.Text,
                     bold: faceRun.Bold,
