@@ -87,6 +87,8 @@
     "OfficeIMO.PowerPoint.OpenDocument": "3.4.X",
     "OfficeIMO.PowerPoint.Html": "3.4.X",
     "OfficeIMO.PowerPoint.Pdf": "3.4.X",
+    "OfficeIMO.Publisher": "3.4.X",
+    "OfficeIMO.Publisher.Pdf": "3.4.X",
     "OfficeIMO.Reader.Core": "3.4.X",
     "OfficeIMO.Reader.All": "3.4.X",
     "OfficeIMO.Reader.AsciiDoc": "3.4.X",

@@ -1,0 +1,34 @@
+namespace OfficeIMO.Publisher;
+
+/// <summary>Resource bounds for managed Publisher decoding. Limits reject input rather than silently truncate it.</summary>
+public sealed class PublisherReadOptions {
+    /// <summary>Source byte, text, record, object, and compound-stream limits.</summary>
+    public OfficeLegacyImportLimits Limits { get; set; } = new OfficeLegacyImportLimits();
+    /// <summary>Maximum number of document and master pages combined.</summary>
+    public int MaximumPages { get; set; } = 1024;
+    /// <summary>Maximum nesting of publication containers and drawing groups.</summary>
+    public int MaximumNestingDepth { get; set; } = 64;
+    /// <summary>Maximum extracted bytes for one image, including decompressed metafiles.</summary>
+    public int MaximumImageBytes { get; set; } = 16 * 1024 * 1024;
+    /// <summary>Maximum total extracted and projected image bytes.</summary>
+    public int MaximumTotalImageBytes { get; set; } = 64 * 1024 * 1024;
+    /// <summary>Optional trusted application codec for projecting native WMF/EMF pictures. Original bytes remain in Images.</summary>
+    public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
+    /// <summary>Maximum pixels accepted from an application image codec.</summary>
+    public long MaximumRasterPixels { get; set; } = 8_000_000;
+
+    internal PublisherReadOptions Snapshot() {
+        if (Limits == null) throw new ArgumentNullException(nameof(Limits));
+        Limits.Validate();
+        if (MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(MaximumPages));
+        if (MaximumNestingDepth < 1 || MaximumNestingDepth > 128) throw new ArgumentOutOfRangeException(nameof(MaximumNestingDepth));
+        if (MaximumImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumImageBytes));
+        if (MaximumTotalImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalImageBytes));
+        if (MaximumRasterPixels < 1) throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels));
+        return new PublisherReadOptions {
+            Limits = Limits.Clone(), MaximumPages = MaximumPages, MaximumNestingDepth = MaximumNestingDepth,
+            MaximumImageBytes = MaximumImageBytes, MaximumTotalImageBytes = MaximumTotalImageBytes,
+            ImageCodec = ImageCodec, MaximumRasterPixels = MaximumRasterPixels
+        };
+    }
+}

@@ -339,6 +339,15 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
+#### [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md)
+
+Native Publisher publication recovery into positioned pages, styled text stories,
+table cells and embedded image assets, with SVG export and explicit fidelity
+reports. [OfficeIMO.Publisher.Pdf](OfficeIMO.Publisher.Pdf/README.md) adds multi-page
+PDF conversion through the shared drawing and PDF engines. The
+[support contract](OfficeIMO.Publisher/SUPPORT.md) identifies profile and rendering
+limits. The reader references only `OfficeIMO.Core` and does not require Publisher.
+
 #### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
 
 Portable XPS/OpenXPS package reading, native page editing, and writing, with
