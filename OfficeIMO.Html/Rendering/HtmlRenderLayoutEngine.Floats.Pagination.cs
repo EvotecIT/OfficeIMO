@@ -1,6 +1,21 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private static void AppendFloatFragmentationMetadata(
+        HtmlRenderFlowBlock block,
+        InlineFloatPlacement placement,
+        ICollection<HtmlRenderForcedBreak> forcedBreaks,
+        ICollection<HtmlRenderLineBreakGroup> lineBreakGroups,
+        ICollection<HtmlRenderContinuationGroup> continuationGroups,
+        ICollection<HtmlRenderTrailingGroup> trailingGroups) {
+        if (block.BreakBefore != HtmlPageBreakTarget.None) forcedBreaks.Add(new HtmlRenderForcedBreak(placement.Y, block.BreakBefore));
+        foreach (HtmlRenderForcedBreak item in block.ForcedBreaks) forcedBreaks.Add(item.Translate(placement.Y));
+        if (block.BreakAfter != HtmlPageBreakTarget.None) forcedBreaks.Add(new HtmlRenderForcedBreak(placement.Bottom, block.BreakAfter));
+        foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) lineBreakGroups.Add(group.Translate(placement.Y));
+        foreach (HtmlRenderContinuationGroup group in block.ContinuationGroups) continuationGroups.Add(group.Translate(placement.X, placement.Y));
+        foreach (HtmlRenderTrailingGroup group in block.TrailingGroups) trailingGroups.Add(group.Translate(placement.X, placement.Y));
+    }
+
     private IReadOnlyList<double> CollectSafeFloatBreaks(
         IEnumerable<double> existingBreaks,
         IReadOnlyList<InlineFloatPlacement> placements,

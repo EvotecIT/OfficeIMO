@@ -102,7 +102,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             body.SupportsContinuationReflow,
             lineBreakOffsets: body.LineBreakOffsets,
             floatExclusions: body.FloatExclusions,
-            interruptedFlow: body.InterruptedFlow?.WithVisuals(visuals, width: width, height: Math.Max(marker.Height, body.Height)));
+            interruptedFlow: body.InterruptedFlow?.WithVisuals(visuals, width: width, height: Math.Max(marker.Height, body.Height)),
+            forcedBreaks: body.ForcedBreaks,
+            lineBreakGroups: body.LineBreakGroups,
+            continuationGroups: body.ContinuationGroups,
+            trailingGroups: body.TrailingGroups,
+            pagedPaintExtent: Math.Max(marker.Height, body.PagedPaintExtent));
     }
 
     private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>

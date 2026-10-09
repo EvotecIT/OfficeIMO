@@ -71,10 +71,93 @@ public sealed partial class HtmlRenderingTests {
     private static string FloatTableRows(int first, int count) => string.Concat(
         Enumerable.Range(first, count).Select(index => $"<tr><td>ROW_{index:00}</td></tr>"));
 
-    private static string FloatTablePaginationHtml(string rows, string neighbor, string prelude = "") =>
-        "<style>body{margin:0;font:16px Pinned}table{border-collapse:collapse}td{padding:5px}"
-        + ".float{float:left;width:100px}</style><div style='overflow:hidden'>" + prelude
-        + "<div class='float'><table>" + rows + "</table></div>" + neighbor + "</div>";
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "anonymous")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "anonymous")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "nested-inline")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "outside-list")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "interrupted-inline")]
+    public void HtmlFloatPagination_RepeatsTableHeaderAndFooter(HtmlRenderIntentProfile profile, string wrapper) {
+        string rows = "<thead><tr><th>HEAD</th></tr></thead><tbody>" + FloatTableRows(1, 7)
+            + "</tbody><tfoot><tr><td>FOOT</td></tr></tfoot>";
+        string html = FloatTablePaginationHtml(rows, "", wrapper: wrapper);
+        void Check(string input) {
+            HtmlRenderDocument rendered = RenderFloatTablePagination(input, profile);
+            HtmlRenderPage[] bodyPages = rendered.Pages.Where(page => EnumerateRenderVisuals(page.Scene)
+                .OfType<HtmlRenderText>().Any(text => text.Text.StartsWith("ROW_", StringComparison.Ordinal))).ToArray();
+            Assert.True(bodyPages.Length > 1);
+            foreach (HtmlRenderPage page in bodyPages) {
+                HtmlRenderText[] text = EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>().ToArray();
+                HtmlRenderText head = Assert.Single(text, item => item.Text == "HEAD");
+                HtmlRenderText foot = Assert.Single(text, item => item.Text == "FOOT");
+                HtmlRenderText[] body = text.Where(item => item.Text.StartsWith("ROW_", StringComparison.Ordinal)).ToArray();
+                Assert.True(head.Y + head.Height <= body.Min(item => item.Y) + 0.0001D);
+                Assert.True(foot.Y >= body.Max(item => item.Y + item.Height) - 0.0001D);
+                OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
+                Assert.True(FloatPaintContainsGlyphInk(raster, head));
+                Assert.True(FloatPaintContainsGlyphInk(raster, foot));
+            }
+            AssertFloatPaginationMarkers(rendered, Enumerable.Range(1, 7).Select(index => $"ROW_{index:00}"));
+            IReadOnlyList<string> pdfPages = FloatTablePaginationPdfText(input, profile);
+            Assert.Equal(rendered.Pages.Count, pdfPages.Count);
+            foreach (string pageText in pdfPages.Where(text => text.Contains("ROW_", StringComparison.Ordinal))) {
+                Assert.Equal(1, CountFloatPaginationMarker(pageText, "HEAD"));
+                Assert.Equal(1, CountFloatPaginationMarker(pageText, "FOOT"));
+            }
+            foreach (int index in Enumerable.Range(1, 7)) Assert.Equal(1, CountFloatPaginationMarker(string.Concat(pdfPages), $"ROW_{index:00}"));
+        }
+        Check(html.Replace("float:left;", ""));
+        Check(html);
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "before")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "before")]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, "after")]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, "after")]
+    public void HtmlFloatPagination_PreservesForcedRowBreak(HtmlRenderIntentProfile profile, string breakPosition) {
+        string rows = breakPosition == "before"
+            ? FloatTableRows(1, 1) + "<tr style='break-before:page'><td>ROW_02</td></tr>" + FloatTableRows(3, 1)
+            : "<tr style='break-after:page'><td>ROW_01</td></tr>" + FloatTableRows(2, 2);
+        string html = FloatTablePaginationHtml(rows, "");
+        void Check(string input) {
+            HtmlRenderDocument rendered = RenderFloatTablePagination(input, profile);
+            Assert.Equal(2, rendered.Pages.Count);
+            Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(), text => text.Text == "ROW_01");
+            Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(), text => text.Text == "ROW_02");
+            Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(), text => text.Text == "ROW_02");
+            AssertFloatPaginationMarkers(rendered, Enumerable.Range(1, 3).Select(index => $"ROW_{index:00}"));
+            IReadOnlyList<string> pdfPages = FloatTablePaginationPdfText(input, profile);
+            Assert.Equal(2, pdfPages.Count);
+            Assert.Contains("ROW_01", pdfPages[0], StringComparison.Ordinal);
+            Assert.DoesNotContain("ROW_02", pdfPages[0], StringComparison.Ordinal);
+            Assert.Contains("ROW_02", pdfPages[1], StringComparison.Ordinal);
+        }
+        Check(html.Replace("float:left;", ""));
+        Check(html);
+    }
+
+    private static IReadOnlyList<string> FloatTablePaginationPdfText(string html, HtmlRenderIntentProfile profile) {
+        byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, FloatTablePaginationOptions())).ToBytes();
+        return PdfCore.PdfTextExtractor.ExtractTextByPage(pdf)
+            .Select(text => string.Concat(text.Where(character => !char.IsWhiteSpace(character)))).ToArray();
+    }
+
+    private static int CountFloatPaginationMarker(string text, string marker) =>
+        (text.Length - text.Replace(marker, "").Length) / marker.Length;
+
+    private static string FloatTablePaginationHtml(string rows, string neighbor, string prelude = "", string wrapper = "anonymous") {
+        string table = "<table>" + rows + "</table>";
+        string floated = wrapper switch {
+            "nested-inline" => "<span><span class='float'>" + table + "</span></span>",
+            "outside-list" => "<ul style='margin:0;padding:0'><li><span><span class='float'>" + table + "</span></span></li></ul>",
+            "interrupted-inline" => "<span><span class='float'>" + table + "</span><div>AFTER</div></span>",
+            _ => "<div class='float'>" + table + "</div>"
+        };
+        return "<style>body{margin:0;font:16px Pinned}table{border-collapse:collapse}td{padding:5px}"
+            + ".float{float:left;width:100px}</style><div style='overflow:hidden'>" + prelude + floated + neighbor + "</div>";
+    }
 
     private static HtmlRenderOptions FloatTablePaginationOptions() {
         HtmlRenderOptions options = TableIntrinsicOptions();

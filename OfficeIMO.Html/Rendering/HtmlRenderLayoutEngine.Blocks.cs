@@ -258,7 +258,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // preceding sibling already contributes that boundary; forwarding
                     // zero through a bordered parent can strand its top edge on the
                     // previous page before any child content fits.
-                    if (offset > 0.0001D) contentBreakOffsets.Add(childStart + offset);
+                    // An anonymous float chunk can have a painted tail beyond its
+                    // normal-flow height. Keep its internal opportunities, while
+                    // the float context owns its final boundary and deferral.
+                    bool isAnonymousFloatTail = child.OwnerElement == null
+                        && child.PagedPaintExtent > child.Height + 0.0001D
+                        && offset >= child.PagedPaintExtent - 0.0001D;
+                    if (offset > 0.0001D && !isAnonymousFloatTail) contentBreakOffsets.Add(childStart + offset);
                 }
 
                 foreach (HtmlRenderLineBreakGroup group in child.LineBreakGroups) {
@@ -313,6 +319,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentBreakOffsets.AddRange(inline.BreakOffsets);
             lineBreakOffsets.AddRange(inline.LineBreakOffsets);
             runningStringAssignments.AddRange(inline.RunningStringAssignments);
+            forcedBreaks.AddRange(inline.ForcedBreaks);
+            lineBreakGroups.AddRange(inline.LineBreakGroups);
+            continuationGroups.AddRange(inline.ContinuationGroups);
+            trailingGroups.AddRange(inline.TrailingGroups);
         }
 
         if (ownsFloatContext) contentHeight = Math.Max(contentHeight, contentFloats.Bottom);
@@ -400,6 +410,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
+        if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null) {
+            pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
+        }
         HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style, contentHeight,
             outerHeight, contentYForBreaks, contentBreakOffsets, continuationBreakProgress);
         if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
@@ -428,7 +441,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             group.Translate(
                 contentX,
                 contentYForBreaks,
-                group.SourceEndsAt >= contentHeight - 0.0001D ? outerHeight : (double?)null));
+                // Only a footer at the normal-flow end inherits the box's tail.
+                // A float can end later; clamping it back to flow height would
+                // rewind pagination after its footer and repeat pages.
+                Math.Abs(group.SourceEndsAt - contentHeight) <= 0.0001D ? outerHeight : (double?)null));
         string? pageName = style.PageName;
         if (pageName == null && children.Count > 0) {
             pageName = children[0].PageName;
@@ -611,10 +627,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inline.LineBreakOffsets,
             style.Orphans,
             style.Widows,
+            lineBreakGroups: inline.LineBreakGroups,
+            continuationGroups: inline.ContinuationGroups,
+            trailingGroups: inline.TrailingGroups,
             pageName: style.PageName,
             runningStringAssignments: inline.RunningStringAssignments,
+            forcedBreaks: inline.ForcedBreaks,
             layoutViewportWidth: ActiveSurfaceWidth,
-            layoutViewportHeight: _activePageGeometry.Height);
+            layoutViewportHeight: _activePageGeometry.Height,
+            pagedPaintExtent: inline.PagedPaintExtent);
         blocks.Add(block);
         return block.Height;
     }
