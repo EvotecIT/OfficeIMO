@@ -22,7 +22,49 @@ public static class OfficeDocumentModelIdentity {
         BuildTableIdentity(table, null, null);
 
     /// <summary>Builds a page-scoped table identity.</summary>
-    public static string BuildTableIdentity(OfficeDocumentModelTable table, OfficeDocumentModelPage page, int tableIndex) {
+    public static string BuildTableIdentity(OfficeDocumentModelTable table, OfficeDocumentModelPage page, int tableIndex) =>
+        BuildPageTableIdentity(table, page, tableIndex);
+
+    // Aggregate/page reconciliation counts equal source occurrences separately. Its
+    // key must omit an inferred collection index that the aggregate does not have.
+    internal static string BuildTableCollectionIdentity(OfficeDocumentModelTable table, OfficeDocumentModelPage page) {
+        var scope = new OfficeDocumentModelLocation {
+            Path = page.Location.Path, Sheet = page.Location.Sheet, Slide = page.Location.Slide,
+            Page = page.Location.Page ?? page.Number
+        };
+        return BuildTableIdentity(table, scope, null);
+    }
+
+    internal static string BuildTableContentIdentity(OfficeDocumentModelTable table) =>
+        BuildTableIdentity(table, null, null, includeLocation: false);
+
+    internal static bool TableLocationMatches(OfficeDocumentModelLocation? aggregate,
+        OfficeDocumentModelLocation? table, OfficeDocumentModelPage page) =>
+        SameWhenKnown(aggregate?.Path, table?.Path ?? page.Location.Path)
+        && SameWhenKnown(aggregate?.Sheet, table?.Sheet ?? page.Location.Sheet)
+        && SameWhenKnown(aggregate?.Slide, table?.Slide ?? page.Location.Slide)
+        && SameWhenKnown(aggregate?.Page, table?.Page ?? page.Location.Page ?? page.Number)
+        && SameWhenKnown(aggregate?.LogicalOrder, table?.LogicalOrder)
+        && SameWhenKnown(aggregate?.BlockIndex, table?.BlockIndex)
+        && SameWhenKnown(aggregate?.SourceBlockIndex, table?.SourceBlockIndex)
+        && SameWhenKnown(aggregate?.TableIndex, table?.TableIndex)
+        && SameWhenKnown(aggregate?.StartLine, table?.StartLine)
+        && SameWhenKnown(aggregate?.EndLine, table?.EndLine)
+        && SameWhenKnown(aggregate?.NormalizedStartLine, table?.NormalizedStartLine)
+        && SameWhenKnown(aggregate?.NormalizedEndLine, table?.NormalizedEndLine)
+        && SameWhenKnown(aggregate?.HeadingPath, table?.HeadingPath)
+        && SameWhenKnown(aggregate?.HeadingSlug, table?.HeadingSlug)
+        && SameWhenKnown(aggregate?.SourceBlockKind, table?.SourceBlockKind)
+        && SameWhenKnown(aggregate?.BlockAnchor, table?.BlockAnchor)
+        && SameWhenKnown(aggregate?.A1Range, table?.A1Range);
+
+    private static bool SameWhenKnown<T>(T? left, T? right) where T : struct =>
+        !left.HasValue || !right.HasValue || EqualityComparer<T>.Default.Equals(left.Value, right.Value);
+
+    private static bool SameWhenKnown(string? left, string? right) =>
+        string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right) || string.Equals(left, right, StringComparison.Ordinal);
+
+    private static string BuildPageTableIdentity(OfficeDocumentModelTable table, OfficeDocumentModelPage page, int? tableIndex) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         OfficeDocumentModelLocation source = page.Location;
         var fallback = new OfficeDocumentModelLocation {
@@ -79,13 +121,14 @@ public static class OfficeDocumentModelIdentity {
     private static string BuildTableIdentity(
         OfficeDocumentModelTable table,
         OfficeDocumentModelLocation? fallback,
-        int? fallbackTableIndex) {
+        int? fallbackTableIndex,
+        bool includeLocation = true) {
         if (table == null) throw new ArgumentNullException(nameof(table));
         var builder = new StringBuilder();
         Append(builder, table.PayloadHash);
         Append(builder, table.Kind);
         Append(builder, table.Title);
-        AppendLocation(builder, table.Location, fallback, fallbackTableIndex);
+        if (includeLocation) AppendLocation(builder, table.Location, fallback, fallbackTableIndex);
         Append(builder, table.Columns);
         foreach (IReadOnlyList<string> row in table.Rows ?? Array.Empty<IReadOnlyList<string>>()) Append(builder, row);
         Append(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));

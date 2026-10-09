@@ -81,6 +81,70 @@ public sealed class ReaderPublisherReviewTests {
         Assert.True(text.IndexOf("OrderBravo", StringComparison.Ordinal) < text.IndexOf("OrderCharlie", StringComparison.Ordinal));
         Assert.True(text.IndexOf("OrderCharlie", StringComparison.Ordinal) < text.IndexOf("OrderDelta", StringComparison.Ordinal));
         Assert.Single(Regex.Matches(text, "OrderAlpha"));
+        Assert.Single(Regex.Matches(text, "OrderCharlie"));
+    }
+
+    [Theory]
+    [InlineData(1, 2, false)]
+    [InlineData(1, 2, true)]
+    [InlineData(2, 1, false)]
+    [InlineData(2, 1, true)]
+    [InlineData(2, 2, false)]
+    [InlineData(2, 2, true)]
+    public void PdfMergesAggregateAndPageTablesWithoutLosingEqualOccurrences(int aggregateCount, int pageCount, bool transport) {
+        var table = new ReaderTable { Columns = new[] { "OccurrenceTable" }, Rows = new[] { new[] { "cell" } },
+            Location = new() { Page = 1, LogicalOrder = 5 } };
+        var source = new OfficeDocumentReadResult { Tables = Enumerable.Repeat(table, aggregateCount).ToArray(),
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = Enumerable.Repeat(table, pageCount).ToArray() } } };
+        if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        string text = PdfReadDocument.Open(source.ToPdfDocumentResult(new PdfProjectionOptions {
+            PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false
+        }).ToBytes()).ExtractText();
+        Assert.Equal(Math.Max(aggregateCount, pageCount), Regex.Matches(text, "OccurrenceTable").Count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UniquePageTableWithoutAuthoredLocationsIsNotRepeatedByItsAggregate(bool transport) {
+        var table = new ReaderTable { Columns = new[] { "UniquePageTable" }, Rows = new[] { new[] { "cell" } } };
+        var source = new OfficeDocumentReadResult { Tables = new[] { table },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { table } } } };
+        if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        string text = PdfReadDocument.Open(source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false }).ToBytes()).ExtractText();
+        Assert.Single(Regex.Matches(text, "UniquePageTable"));
+        Assert.Null(table.Location);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AmbiguousUnlocatedAggregateTableIsPreservedWithUnassessedEvidence(bool transport) {
+        ReaderTable Table() => new() { Columns = new[] { "AmbiguousTable" }, Rows = new[] { new[] { "cell" } } };
+        var source = new OfficeDocumentReadResult { Tables = new[] { Table() }, Pages = new[] {
+            new OfficeDocumentPage { Number = 1, Tables = new[] { Table() } },
+            new OfficeDocumentPage { Number = 2, Tables = new[] { Table() } }
+        } };
+        if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false });
+        Assert.Equal(3, Regex.Matches(PdfReadDocument.Open(conversion.ToBytes()).ExtractText(), "AmbiguousTable").Count);
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED"
+            && warning.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EqualTableContentWithConflictingSourcePositionsRemainsDistinct(bool transport) {
+        ReaderTable Table(int page) => new() { Columns = new[] { "DistinctTable" }, Rows = new[] { new[] { "cell" } },
+            Location = new() { Page = page, LogicalOrder = page } };
+        var source = new OfficeDocumentReadResult { Tables = new[] { Table(2) },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { Table(1) } } } };
+        if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
+        PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false });
+        Assert.Equal(2, Regex.Matches(PdfReadDocument.Open(conversion.ToBytes()).ExtractText(), "DistinctTable").Count);
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED");
     }
 
     [Fact]

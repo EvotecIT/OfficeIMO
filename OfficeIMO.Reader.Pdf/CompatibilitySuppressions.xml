@@ -1,88 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<!-- Reviewed 3.4 removals apply to every baseline framework asset.
+     Exact symbol selectors also cover net472-to-netstandard fallback on non-Windows hosts. -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProvider</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProviderOptions</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProvider</Target>
-    <Left>lib/net472/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net472/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProviderOptions</Target>
-    <Left>lib/net472/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net472/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProvider</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProviderOptions</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProvider</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.Reader.Pdf.OfficeOcrEnginePdfProviderOptions</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
-    <Left>lib/net472/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net472/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.Pdf.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.OfficeDocumentReadResultPdfExtensions.ToPdfDocumentResult(OfficeIMO.Reader.OfficeDocumentReadResult,OfficeIMO.Pdf.PdfProjectionOptions)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>
