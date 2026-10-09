@@ -28,6 +28,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v11.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v11.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v11.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v11.schema.json</LogicalName>
+    </EmbeddedResource>
     <None Include="Schemas\officeimo.document.read-result.v10.schema.json">
       <Pack>True</Pack>
       <PackagePath>schemas\officeimo.document.read-result.v10.schema.json</PackagePath>
