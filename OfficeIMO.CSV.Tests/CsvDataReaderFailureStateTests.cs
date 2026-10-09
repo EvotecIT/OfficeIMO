@@ -1,7 +1,10 @@
 using System;
+using System.Data;
 using System.Data.Common;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
@@ -69,4 +72,52 @@ public sealed class CsvDataReaderFailureStateTests {
         Assert.False(reader.Read());
         if (input is not null) Assert.True(input.CanRead);
     }
+    [Fact]
+    public async Task FailedAdvanceCannotBufferThroughHasRows() {
+        using DbDataReader reader = CsvDocument.OpenTextDataReader("Id,Name\n10,kept\n20,later\n");
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.ReadAsync(new CancellationToken(canceled: true)));
+
+        Assert.Throws<InvalidOperationException>(() => reader.HasRows);
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+        Assert.Throws<InvalidOperationException>(() => reader.GetString(1));
+    }
+
+    [Fact]
+    public async Task RejectedLookaheadIsTerminal() {
+        using DbDataReader reader = CsvDocument.OpenTextDataReader(
+            "Id,Name\n20\n10,kept\n",
+            new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict });
+        Assert.Throws<CsvException>(() => reader.HasRows);
+
+        Assert.Throws<InvalidOperationException>(() => reader.Read());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+        Assert.Throws<InvalidOperationException>(() => reader.HasRows);
+        Assert.Throws<InvalidOperationException>(() => reader.GetString(0));
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public async Task FailedAdvanceCannotResumeThroughParallelMapping() {
+        const string csv = "Id,Name\n10,kept\n20,later\n";
+        var options = new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2 };
+        using (DbDataReader control = CsvDocument.OpenTextDataReader(csv)) {
+            Assert.Equal(new[] { "kept", "later" }, control.RowsAsParallel(
+                (IDataRecord row) => row.GetString(1), options).ToArray());
+        }
+        using DbDataReader reader = CsvDocument.OpenTextDataReader(csv);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.ReadAsync(new CancellationToken(canceled: true)));
+
+        string[]? returned = null;
+        Exception? failure = Record.Exception(() => returned = reader.RowsAsParallel(
+            (IDataRecord row) => row.GetString(1), options).ToArray());
+        Assert.True(failure is InvalidOperationException,
+            "Expected the failed reader to reject mapping. Returned rows: " +
+            (returned is null ? "none" : string.Join(",", returned)) + "; failure: " + failure);
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+    }
+#endif
+
 }

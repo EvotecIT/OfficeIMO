@@ -24,7 +24,7 @@ internal sealed partial class CsvDataReader
 
 #if NET8_0_OR_GREATER
     bool IDataReaderParallelBatchSource.CanReadParallelBatches =>
-        !_closed && !_checkedForRows && _currentRawRow is null &&
+        !_closed && !_readFailed && !_checkedForRows && _currentRawRow is null &&
         _currentStringRow is null && !_hasCurrentTextRow &&
         _textRowSource is CsvParser.CsvTextDataReaderRowSource { CanTakeParallelBatch: true };
 
@@ -42,7 +42,7 @@ internal sealed partial class CsvDataReader
         (_textRowSource as ICsvDataReaderParallelBatchInfo)?.RowCount ?? 0;
 
     internal bool CanBenefitFromParallelProcessing =>
-        !_closed && _columns.Length != 0 && !_useRawStringValues;
+        !_closed && !_readFailed && _columns.Length != 0 && !_useRawStringValues;
 
     internal int PreferredParallelProcessingBatchSize =>
 #if NET8_0_OR_GREATER
@@ -61,7 +61,7 @@ internal sealed partial class CsvDataReader
         cancellationToken.ThrowIfCancellationRequested();
         batchReader = null;
 #if NET8_0_OR_GREATER
-        if (_closed || _checkedForRows || _currentRawRow is not null ||
+        if (_closed || _readFailed || _checkedForRows || _currentRawRow is not null ||
             _currentStringRow is not null || _hasCurrentTextRow ||
             _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows)
         {
@@ -107,7 +107,7 @@ internal sealed partial class CsvDataReader
         source = null;
         dataStart = 0;
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_useRawStringValues || _closed || _checkedForRows || _currentRawRow is not null ||
+        if (!_useRawStringValues || _closed || _readFailed || _checkedForRows || _currentRawRow is not null ||
             _currentStringRow is not null || _hasCurrentTextRow ||
             _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows ||
             !textRows.CanTakeParallelBatch)
@@ -127,7 +127,7 @@ internal sealed partial class CsvDataReader
     {
         cancellationToken.ThrowIfCancellationRequested();
         batch = null;
-        if (!_useRawStringValues || _closed || _checkedForRows || _currentRawRow is not null ||
+        if (!_useRawStringValues || _closed || _readFailed || _checkedForRows || _currentRawRow is not null ||
             _currentStringRow is not null || _hasCurrentTextRow ||
             _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows)
         {

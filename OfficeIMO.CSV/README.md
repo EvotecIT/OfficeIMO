@@ -619,9 +619,10 @@ Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
 the current record when the selected reader path retains that information.
 Physical line values are `null` for materialized paths rather than estimated.
 
-CSV data readers clear the current row and its position when `Read` or
-`ReadAsync` throws, and reject subsequent advances. Scalar getter conversion
-errors leave the current row available.
+CSV data readers clear the current row and its position when `Read`,
+`ReadAsync` or `HasRows` lookahead throws, and reject subsequent advances,
+including parallel mapping. Scalar getter conversion errors leave the current
+row available.
 
 ## Real-world headers
 

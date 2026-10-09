@@ -205,8 +205,21 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
                 return false;
             }
 
-            _hasRows ??= EnsureBufferedRow();
-            return _hasRows.Value;
+            if (_readFailed)
+            {
+                throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+            }
+
+            try
+            {
+                _hasRows ??= EnsureBufferedRow();
+                return _hasRows.Value;
+            }
+            catch
+            {
+                MarkReadFailed();
+                throw;
+            }
         }
     }
 
@@ -935,8 +948,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         }
         catch
         {
-            _readFailed = true;
-            ClearCurrentRow();
+            MarkReadFailed();
             throw;
         }
     }
@@ -964,8 +976,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         }
         catch
         {
-            _readFailed = true;
-            ClearCurrentRow();
+            MarkReadFailed();
             throw;
         }
     }
@@ -1244,6 +1255,15 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         _currentStringRow = _stringRows.Current;
         ValidateStringRowColumnCount(_currentStringRow);
         return true;
+    }
+
+    private void MarkReadFailed()
+    {
+        _readFailed = true;
+        ClearCurrentRow();
+        _bufferedRawRow = null;
+        _bufferedStringRow = null;
+        _hasBufferedRow = false;
     }
 
     private void ClearCurrentRow()
