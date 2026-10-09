@@ -485,6 +485,19 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.publisher": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.publisher.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Publisher": "[3.4.4, )"
+        }
+      },
       "officeimo.reader.core": {
         "type": "Project"
       },
@@ -616,6 +629,7 @@
           "OfficeIMO.PowerPoint": "[3.4.4, )",
           "OfficeIMO.PowerPoint.Pdf": "[3.4.4, )",
           "OfficeIMO.Project": "[3.4.4, )",
+          "OfficeIMO.Publisher.Pdf": "[3.4.4, )",
           "OfficeIMO.Reader.Image": "[3.4.4, )",
           "OfficeIMO.Reader.Ocr": "[3.4.4, )",
           "OfficeIMO.Rtf.Pdf": "[3.4.4, )",

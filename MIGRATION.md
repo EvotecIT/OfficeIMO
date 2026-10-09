@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## Conversion workflow diagnostics
+
+PDF import and export workflows retain the owning engine's diagnostic code and message separately, with source, loss kind and location in `Details`. Read `Code` instead of extracting a code from `Message`. PDF-to-Excel omissions use `PDF_EXCEL_PAGE_CONTENT_OMITTED` rather than `PdfTablesOnly`; other PDF import findings use their owning codes rather than the generic `ConversionWarning` code. Available reports also remain in `ConversionEvidence` when serialization or later workflow steps fail.
+
+## Legacy DOC conversion rejection reports
+
+`LegacyDocPdfConverter.ToPdfDocumentResult()` throws `OfficeConversionException` when the import reports errors or the default loss policy blocks conversion. Inspect `exception.Report` for the canonical import findings. Code that catches `InvalidOperationException` still catches this derived exception; update code that expects `InvalidDataException` directly for reported import errors. The underlying import error remains available as `InnerException`.
+
 ## Shared raster workflow contracts
 
 `OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.

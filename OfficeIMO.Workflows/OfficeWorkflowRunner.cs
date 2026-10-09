@@ -158,8 +158,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             OfficeWorkflowConversionEvidence? cancelledConversionEvidence = (error as WorkflowConversionCancellationException)?.Evidence
                 ?? artifact?.ConversionEvidence;
-            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false })
-                AddConversionDiagnostics(cancelledConversionEvidence!, diagnostics);
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelled)
+                AddConversionDiagnostics(cancelledConversionEvidence!, diagnostics, cancelled.ImportDiagnosticSources);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -185,8 +185,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence
                 ?? artifact?.ConversionEvidence;
-            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
-                AddConversionDiagnostics(failedConversionEvidence, diagnostics);
+            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false } failed)
+                AddConversionDiagnostics(failedConversionEvidence, diagnostics, failed.ImportDiagnosticSources);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "WorkflowFailed",
                 ex.Message,
@@ -604,18 +604,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string AddSuffix(string path, int suffix) => Path.Combine(
         Path.GetDirectoryName(path)!,
         Path.GetFileNameWithoutExtension(path) + " (" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")" + Path.GetExtension(path));
-
-    private static void AddPdfWarnings(IEnumerable<PdfConversionWarning> warnings, List<OfficeWorkflowDiagnostic> diagnostics) {
-        foreach (PdfConversionWarning warning in warnings) {
-            diagnostics.Add(new OfficeWorkflowDiagnostic(
-                warning.Code,
-                warning.Message,
-                warning.Severity == PdfConversionWarningSeverity.Information
-                    ? OfficeWorkflowDiagnosticSeverity.Information
-                    : warning.Severity == PdfConversionWarningSeverity.Error ? OfficeWorkflowDiagnosticSeverity.Error : OfficeWorkflowDiagnosticSeverity.Warning,
-                "convert", new Dictionary<string, string> { ["source"] = warning.Source, ["lossKind"] = warning.LossKind.ToString(), ["converter"] = warning.Converter }));
-        }
-    }
 
     private static void AddMessages(IEnumerable<string> warnings, bool hasLoss, List<OfficeWorkflowDiagnostic> diagnostics) {
         foreach (string warning in warnings) {

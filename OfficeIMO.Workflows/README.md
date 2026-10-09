@@ -12,6 +12,8 @@ The package does not add a second document or PDF engine. Desktop applications, 
 
 Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` with a registered directory-package converter. The shared runner preserves member layout in bounded private staging and verifies original provider membership and content before publication. The host supplies permission-aware root identity and output-separation checks through `OfficeWorkflowDirectoryPackageInput.SourcePublicationGuard`. The selected filename determines routing; an explicit output is required.
 
+Registered converters can throw `OfficeConversionException` with their available report when destination serialization fails. Use an `OfficeWorkflowConversionEvidence` report to retain compact facts as well. An inner `OperationCanceledException` retains cancellation classification when the workflow token is cancelled. Available reports also survive cancellation after the delegate returns.
+
 ## Single conversions and file batches
 
 `OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.

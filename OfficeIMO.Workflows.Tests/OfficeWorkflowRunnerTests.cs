@@ -83,6 +83,33 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Theory]
+    [InlineData("pdf-docx")]
+    [InlineData("pdf-xlsx")]
+    [InlineData("pdf-pptx")]
+    public async Task PdfImportSerializationFailureRetainsTheAvailableOwnerReport(string routeId) {
+        using var scope = new TestDirectory();
+        var route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.Id == routeId);
+        string input = CreateInput(scope.Path, routeId);
+        string output = Path.Combine(scope.Path, "result" + NormalizeExtension(route.TargetExtension));
+        byte[] sentinel = [1, 2, 3]; File.WriteAllBytes(output, sentinel);
+        var result = await new OfficeWorkflowRunner().RunAsync(new() {
+            Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
+            ConversionRouteId = routeId, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            Limits = new() { MaximumOutputBytes = 512 }
+        });
+        Assert.False(result.Succeeded);
+        Assert.Equal(sentinel, File.ReadAllBytes(output));
+        var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+        foreach (var findings in evidence.FidelityDiagnostics.GroupBy(finding => (finding.Source, finding.Code, finding.Message, finding.LossKind, finding.Location))) {
+            var finding = findings.Key;
+            Assert.Equal(findings.Count(), result.Diagnostics.Count(diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
+                && diagnostic.Details.TryGetValue("source", out string? source) && source == finding.Source
+                && diagnostic.Details.TryGetValue("lossKind", out string? loss) && loss == finding.LossKind.ToString()
+                && (diagnostic.Details.TryGetValue("location", out string? location) ? location : null) == finding.Location));
+        }
+    }
+
+    [Theory]
     [InlineData("docx-pdf")]
     [InlineData("xlsx-pdf")]
     [InlineData("pptx-pdf")]
@@ -115,6 +142,14 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
+        if (routeId.StartsWith("pdf-", StringComparison.Ordinal)) {
+            var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+            if (routeId == "pdf-xlsx") Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == "PDF_EXCEL_PAGE_CONTENT_OMITTED"
+                && finding.Source == "OfficeIMO.Excel.Pdf" && finding.LossKind == OfficeConversionLossKind.Omission);
+            foreach (var finding in evidence.FidelityDiagnostics)
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
+                    && diagnostic.Details["source"] == finding.Source && diagnostic.Details["lossKind"] == finding.LossKind.ToString());
+        }
     }
 
     [Theory]
