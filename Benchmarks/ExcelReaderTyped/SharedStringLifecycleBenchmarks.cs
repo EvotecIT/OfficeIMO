@@ -33,6 +33,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 ComparisonWorkbookFormat.Xlsb => StringHeavyWorkbookGenerator.BuildXlsbAsync(rows),
                 _ => throw new ArgumentOutOfRangeException(nameof(format)),
             });
+            if (configured != null) WrittenWorkbookValidation.ValidateSavedXlsxRowCount(deflated, rows, configured);
             _bytes = storage == SharedStringZipStorage.Stored ? Store(deflated) : deflated;
             _rows = rows + 1;
             if (storage == SharedStringZipStorage.Stored) ValidateInflatedParts(deflated, _bytes);

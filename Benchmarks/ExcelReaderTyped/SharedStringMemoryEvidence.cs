@@ -24,7 +24,21 @@ internal static class SharedStringMemoryEvidence {
             WrittenWorkbookValidation.ValidateEntries(package);
             WrittenWorkbookValidation.ValidateRelationships(package);
         }
-        using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write)) output.Write(source);
+        string destination = Path.GetFullPath(path);
+        string directory = Path.GetDirectoryName(destination)
+            ?? throw new ArgumentException("The fixture destination must have a parent directory.", nameof(path));
+        string temporary = Path.Combine(directory, ".shared-memory-" + Guid.NewGuid().ToString("N") + ".tmp");
+        bool ownsTemporary = false;
+        try {
+            using (FileStream output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                ownsTemporary = true;
+                output.Write(source);
+            }
+            File.Move(temporary, destination, overwrite: false);
+            ownsTemporary = false;
+        } finally {
+            if (ownsTemporary) File.Delete(temporary);
+        }
         BenchmarkInput.WriteWorkbookFixtureIdentity($"shared-memory-frozen/Xlsx/dataRows={rows}", source);
     }
 
@@ -92,6 +106,7 @@ internal static class SharedStringMemoryEvidence {
     private static async Task<Fixture> BuildFixtureAsync(int rows, SharedStringZipStorage storage) {
         string? configured = Environment.GetEnvironmentVariable("OFFICEIMO_SHARED_XLSX_FIXTURE");
         byte[] source = configured == null ? await StringHeavyWorkbookGenerator.BuildXlsxAsync(rows) : File.ReadAllBytes(configured);
+        if (configured != null) WrittenWorkbookValidation.ValidateSavedXlsxRowCount(source, rows, configured);
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
         byte[] bytes = storage == SharedStringZipStorage.Stored ? SharedStringLifecycleWorkload.Store(source) : source;
         if (storage == SharedStringZipStorage.Stored)

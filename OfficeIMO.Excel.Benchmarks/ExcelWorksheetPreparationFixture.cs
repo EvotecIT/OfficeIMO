@@ -46,8 +46,8 @@ internal static class ExcelWorksheetPreparationFixture {
                 + "</Relationships>"),
             (WorksheetPartName, CreateWorksheet(dataRows, dimension, mixedPrefixValues))
         ];
-        using var output = new MemoryStream();
-        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: Utf8)) {
+        using MemoryStream output = new MemoryStream();
+        using (ZipArchive archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: Utf8)) {
             foreach ((string name, string xml) in parts) {
                 CompressionLevel compression = storedWorksheet && name == WorksheetPartName
                     ? CompressionLevel.NoCompression : CompressionLevel.Optimal;
@@ -63,8 +63,8 @@ internal static class ExcelWorksheetPreparationFixture {
 
     internal static void ValidatePackage(byte[] bytes, int dataRows,
         WorksheetPreparationDimension dimension, bool storedWorksheet, bool mixedPrefixValues = false) {
-        using (var input = new MemoryStream(bytes, writable: false))
-        using (var archive = new ZipArchive(input, ZipArchiveMode.Read)) {
+        using (MemoryStream input = new MemoryStream(bytes, writable: false))
+        using (ZipArchive archive = new ZipArchive(input, ZipArchiveMode.Read)) {
             if (archive.Entries.Count != PartNames.Length
                 || !archive.Entries.Select(entry => entry.FullName).ToHashSet(StringComparer.Ordinal).SetEquals(PartNames)) {
                 throw new InvalidDataException("Preparation package entries differ.");
@@ -75,7 +75,7 @@ internal static class ExcelWorksheetPreparationFixture {
             foreach (string name in PartNames) {
                 ZipArchiveEntry entry = archive.GetEntry(name) ?? throw new InvalidDataException($"Preparation part '{name}' is missing.");
                 using Stream part = entry.Open();
-                using var inflated = new MemoryStream();
+                using MemoryStream inflated = new MemoryStream();
                 part.CopyTo(inflated);
                 byte[] payload = inflated.ToArray();
                 if (payload.LongLength != entry.Length)
@@ -89,9 +89,9 @@ internal static class ExcelWorksheetPreparationFixture {
                     + $"compressedBytes={entry.CompressedLength}; SHA256={Convert.ToHexString(SHA256.HashData(payload))}.");
             }
         }
-        using var packageStream = new MemoryStream(bytes, writable: false);
-        using var document = SpreadsheetDocument.Open(packageStream, isEditable: false);
-        var errors = new OpenXmlValidator().Validate(document).Take(3).ToArray();
+        using MemoryStream packageStream = new MemoryStream(bytes, writable: false);
+        using SpreadsheetDocument document = SpreadsheetDocument.Open(packageStream, isEditable: false);
+        ValidationErrorInfo[] errors = new OpenXmlValidator().Validate(document).Take(3).ToArray();
         if (errors.Length != 0) {
             throw new InvalidDataException("Preparation package is invalid Open XML: "
                 + string.Join(" | ", errors.Select(error => error.Description)));
@@ -119,7 +119,7 @@ internal static class ExcelWorksheetPreparationFixture {
     }
 
     private static void ValidateWorksheetMarkup(byte[] payload, bool mixedPrefixValues) {
-        using var input = new MemoryStream(payload, writable: false);
+        using MemoryStream input = new MemoryStream(payload, writable: false);
         using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
         if (reader.MoveToContent() != XmlNodeType.Element || reader.LocalName != "worksheet"
             || reader.Prefix.Length != 0 || reader.NamespaceURI != SpreadsheetNamespace
@@ -148,7 +148,7 @@ internal static class ExcelWorksheetPreparationFixture {
 
     private static string CreateWorksheet(int dataRows, WorksheetPreparationDimension dimension,
         bool mixedPrefixValues = false) {
-        var xml = new StringBuilder(checked(dataRows * 100 + 512));
+        StringBuilder xml = new StringBuilder(checked(dataRows * 100 + 512));
         xml.Append(XmlDeclaration).Append("<worksheet xmlns=\"").Append(SpreadsheetNamespace).Append('"');
         if (mixedPrefixValues) xml.Append(" xmlns:p=\"").Append(SpreadsheetNamespace).Append('"');
         xml.Append('>');
