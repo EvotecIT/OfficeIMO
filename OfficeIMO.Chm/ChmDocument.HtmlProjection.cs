@@ -16,14 +16,14 @@ public sealed partial class ChmDocument {
         var anchors = topics.Select((topic, index) => new { topic.Path, Anchor = "chm-topic-" + (index + 1).ToString(CultureInfo.InvariantCulture) })
             .ToDictionary(item => item.Path, item => item.Anchor, StringComparer.OrdinalIgnoreCase);
         long characters = 0, embeddedBytes = 0;
-        int nodes = 8;
+        int nodes = 8, sourceNodes = 0;
         bool styles = false;
         string? previousStyle = null;
         foreach (ChmTopic topic in topics) {
             cancellationToken.ThrowIfCancellationRequested();
             string html = topic.ReadHtml(cancellationToken);
             ReserveCharacters(ref characters, html.Length, configured);
-            HtmlConversionDocument source = HtmlConversionDocument.Parse(html, CreateHtmlOptions(topic.Path), cancellationToken);
+            HtmlConversionDocument source = ParseConversionTopic(html, topic.Path, configured, ref sourceNodes, cancellationToken);
             if (source.Document.QuerySelectorAll("script,object,embed,iframe,frame,frameset").Count != 0 ||
                 source.Document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
                     attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase) || attribute.LocalName.Equals("srcdoc", StringComparison.OrdinalIgnoreCase))))
@@ -81,8 +81,11 @@ public sealed partial class ChmDocument {
                 container.AppendChild(copy);
             }
             // Topic headings own book/chapter boundaries. Demote authored headings one level.
+            bool demotedHeadings = false;
             foreach (HtmlElement headingElement in section.QuerySelectorAll("h1,h2,h3,h4,h5")) {
                 if (ReferenceEquals(headingElement, heading)) continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                demotedHeadings = true;
                 HtmlElement replacement = output.CreateElement("h" + (headingElement.LocalName[1] - '0' + 1).ToString(CultureInfo.InvariantCulture));
                 foreach (HtmlAttribute attribute in headingElement.Attributes) replacement.SetAttribute(attribute.Name, attribute.Value);
                 foreach (HtmlNode child in headingElement.ChildNodes.ToArray()) replacement.AppendChild(child);
@@ -91,6 +94,9 @@ public sealed partial class ChmDocument {
                 foreach (HtmlNode sibling in siblings) sibling.Remove();
                 foreach (HtmlNode sibling in siblings) parent.AppendChild(ReferenceEquals(sibling, headingElement) ? replacement : sibling);
             }
+            if (demotedHeadings) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_HEADING_LEVELS",
+                "Authored headings are demoted one level beneath the topic heading. Heading element selectors in retained CSS are not rewritten.",
+                OfficeConversionLossKind.Approximation, "OfficeIMO.Chm", topic.Path));
             output.Body!.AppendChild(section);
             diagnostics.AddRange(source.Diagnostics.Select(item => new OfficeConversionFidelityDiagnostic(item.Code, item.Message, item.LossKind, "OfficeIMO.Html", topic.Path)));
         }
@@ -104,8 +110,9 @@ public sealed partial class ChmDocument {
         // The book section and retained html/body wrappers can add three levels.
         conversion.Limits.MaxHtmlDepth = checked(_options.MaxHtmlDepth + 3);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlConversionDocument value = HtmlConversionDocument.FromDocument(output, conversion);
+        HtmlConversionDocument value = HtmlConversionDocument.FromDocument(output, conversion, cancellationToken);
         EnforceOutput(Encoding.UTF8.GetByteCount(value.SourceHtml), configured);
+        cancellationToken.ThrowIfCancellationRequested();
         return new ChmConversionResult<HtmlConversionDocument>(value, new ChmConversionReport(topics.Select(item => item.Path), diagnostics));
     }
 

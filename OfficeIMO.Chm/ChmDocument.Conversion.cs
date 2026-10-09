@@ -27,4 +27,23 @@ public sealed partial class ChmDocument {
     internal static void EnforceOutput(long length, ChmConversionOptions options) {
         if (length > options.MaxOutputBytes) throw ChmBinary.Error("CONVERSION_LIMIT", "The serialized CHM conversion exceeds MaxOutputBytes.");
     }
+
+    internal static void LimitHtmlNodes(HtmlConversionDocumentOptions parsing, int usedNodes, ChmConversionOptions options) {
+        int remaining = options.MaxHtmlNodes - usedNodes;
+        if (remaining < 1) throw ChmBinary.Error("CONVERSION_LIMIT", "The selected HTML exceeds MaxHtmlNodes.");
+        parsing.Limits.MaxHtmlNodes = Math.Min(parsing.Limits.MaxHtmlNodes ?? int.MaxValue, remaining);
+    }
+
+    internal static void ReserveHtmlNodes(ref int count, int additional, ChmConversionOptions options) {
+        if (additional > options.MaxHtmlNodes - count) throw ChmBinary.Error("CONVERSION_LIMIT", "The selected HTML exceeds MaxHtmlNodes.");
+        count += additional;
+    }
+
+    internal HtmlConversionDocument ParseConversionTopic(string html, string path, ChmConversionOptions options, ref int nodes, CancellationToken token) {
+        HtmlConversionDocumentOptions parsing = CreateHtmlOptions(path);
+        LimitHtmlNodes(parsing, nodes, options);
+        HtmlConversionDocument result = HtmlConversionDocument.Parse(html, parsing, token);
+        ReserveHtmlNodes(ref nodes, result.CountSourceNodes(token), options);
+        return result;
+    }
 }

@@ -156,6 +156,10 @@ public sealed partial class HtmlConversionDocument {
         return AnalyzeSource(projection);
     }
 
+    /// <summary>Counts the source nodes covered by the shared parser budget, including template and srcdoc trees.</summary>
+    internal int CountSourceNodes(CancellationToken cancellationToken) =>
+        AnalyzeSource(source => HtmlConversionInputGuard.ValidateDocument(source, _options.Limits, cancellationToken));
+
     /// <summary>
     /// Creates a policy-normalized adapter DOM without selecting a media context. Structural
     /// adapters can preserve responsive alternatives while still inheriting the document's trust

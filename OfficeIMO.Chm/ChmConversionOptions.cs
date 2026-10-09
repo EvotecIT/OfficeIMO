@@ -2,7 +2,7 @@ namespace OfficeIMO.Chm;
 
 /// <summary>Selection and aggregate budgets shared by CHM conversion adapters.</summary>
 public sealed class ChmConversionOptions {
-    /// <summary>Maximum nodes retained in a combined HTML book projection.</summary>
+    /// <summary>Maximum aggregate parsed nodes across selected topics and nodes retained in a combined HTML book.</summary>
     public int MaxHtmlNodes { get; set; } = 1_000_000;
     /// <summary>Optional topic paths. Selected topics retain book order; unknown or non-topic paths are rejected.</summary>
     public IReadOnlyList<string>? TopicPaths { get; set; }

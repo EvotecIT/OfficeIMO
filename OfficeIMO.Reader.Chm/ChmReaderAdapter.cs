@@ -17,6 +17,7 @@ internal static class ChmReaderAdapter {
         var documents = new List<OfficeDocumentReadResult>(topics.Count);
         var chunks = new List<ReaderChunk>();
         long characters = 0;
+        int nodes = 0;
         int topicIndex = 0, tableIndex = 0;
         foreach (ChmTopic topic in topics) {
             token.ThrowIfCancellationRequested();
@@ -24,7 +25,9 @@ internal static class ChmReaderAdapter {
             string virtualPath = input.Source.Path + "!" + topic.Path;
             ReaderHtmlOptions htmlOptions = options.HtmlOptions.Clone();
             htmlOptions.ConversionOptions = book.CreateHtmlOptions(topic.Path, htmlOptions.ConversionOptions);
-            OfficeDocumentReadResult projected = HtmlReaderAdapter.ReadContentDocument(html, virtualPath, reader, htmlOptions, token);
+            ChmDocument.LimitHtmlNodes(htmlOptions.ConversionOptions, nodes, options.ConversionOptions);
+            OfficeDocumentReadResult projected = HtmlReaderAdapter.ReadContentDocument(html, virtualPath, reader, htmlOptions, token, out int topicNodes);
+            ChmDocument.ReserveHtmlNodes(ref nodes, topicNodes, options.ConversionOptions);
             string prefix = "chm-topic-" + (++topicIndex).ToString("D5", CultureInfo.InvariantCulture) + "-";
             HtmlReaderAdapter.PrefixProjection(prefix, projected, ref tableIndex);
             foreach (ReaderChunk chunk in projected.Chunks) {
@@ -47,6 +50,7 @@ internal static class ChmReaderAdapter {
             Category = OfficeDocumentDiagnosticCategory.Parsing, Severity = OfficeDocumentDiagnosticSeverity.Warning,
             IsRecoverable = true, Location = new ReaderLocation { Path = input.Source.Path + "!" + (item.Path ?? "/") }
         })).ToArray();
+        token.ThrowIfCancellationRequested();
         return result;
     }
 }

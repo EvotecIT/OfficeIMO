@@ -28,6 +28,7 @@ public static class ChmPdfConverterExtensions {
         template.PdfOptions.ClearEncryption();
         var pdfs = new List<PdfDocument>();
         long characters = 0, retainedBytes = 0;
+        int nodes = 0;
         foreach (ChmTopic topic in topics) {
             cancellationToken.ThrowIfCancellationRequested();
             string html = topic.ReadHtml(cancellationToken); ChmDocument.ReserveCharacters(ref characters, html.Length, configured);
@@ -35,7 +36,7 @@ public static class ChmPdfConverterExtensions {
             document.ConfigureRenderOptions(rendering, topic.Path);
             rendering.EmbeddedPackageResourceResolver = rendering.ResourcePolicy.AllowEmbeddedPackageResources ? document.CreateResourceResolver() : null;
             rendering.ResourceResolver = rendering.EmbeddedPackageResourceResolver;
-            PdfDocumentConversionResult converted = await HtmlConversionDocument.Parse(html, document.CreateHtmlOptions(topic.Path), cancellationToken)
+            PdfDocumentConversionResult converted = await document.ParseConversionTopic(html, topic.Path, configured, ref nodes, cancellationToken)
                 .ToPdfDocumentResultAsync(rendering, cancellationToken).ConfigureAwait(false);
             // Bound retained merge inputs before accumulating the entire publication.
             retainedBytes += converted.ToBytes(cancellationToken).LongLength;

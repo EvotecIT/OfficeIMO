@@ -57,6 +57,13 @@ internal static partial class HtmlReaderAdapter {
         return BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken);
     }
 
+    // Archive adapters need the parser's source count to enforce a budget across topic projections.
+    internal static OfficeDocumentReadResult ReadContentDocument(string html, string sourceName, ReaderOptions readerOptions,
+        ReaderHtmlOptions htmlOptions, CancellationToken cancellationToken, out int sourceNodeCount) {
+        SourceMetadata source = BuildSourceMetadataFromHtmlString(sourceName, html, readerOptions.ComputeHashes);
+        return BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken, true, out sourceNodeCount);
+    }
+
     /// <summary>Reads an HTML file into the shared rich document JSON envelope.</summary>
     public static string ReadDocumentJson(string htmlPath, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
         return OfficeDocumentReadResultJson.Serialize(ReadDocument(htmlPath, readerOptions, htmlOptions, cancellationToken), indented);
@@ -73,7 +80,11 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source,
-        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
+        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) =>
+        BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken, false, out _);
+
+    private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source,
+        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken, bool countSourceNodes, out int sourceNodeCount) {
         ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
         HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
@@ -81,7 +92,9 @@ internal static partial class HtmlReaderAdapter {
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
             effectiveHtmlOptions,
-            projectionOptions.BaseUri);
+            projectionOptions.BaseUri,
+            cancellationToken);
+        sourceNodeCount = countSourceNodes ? conversionDocument.CountSourceNodes(cancellationToken) : 0;
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
             conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen),
             projectionOptions, cancellationToken);
@@ -120,6 +133,7 @@ internal static partial class HtmlReaderAdapter {
         result.Forms = projection.Forms;
         result.Visuals = projection.Visuals;
         result.Metadata = BuildHtmlMetadata(logical, projection);
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 
