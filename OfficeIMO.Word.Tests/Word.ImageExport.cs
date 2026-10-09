@@ -4205,6 +4205,7 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = document.AddParagraph(string.Join(
                 " ",
                 Enumerable.Range(1, 8).Select(index => "FitSplit" + index.ToString("00", CultureInfo.InvariantCulture))));
+            paragraph.FontSizePoints = 14D;
             paragraph.AvoidWidowAndOrphan = false;
 
             WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White });
@@ -4218,6 +4219,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("FitSplit01", secondPageText, StringComparison.Ordinal);
             Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
             Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            AssertPaintedTokensAcrossPages(document, "FitSplit", 8);
         }
 
         [Fact]
@@ -4894,7 +4896,7 @@ namespace OfficeIMO.Tests {
             List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
             Assert.NotEmpty(richTexts);
             string renderedText = string.Concat(richTexts.Select(text => text.PlainText));
-            Assert.Contains("RichSplitToken07", renderedText, StringComparison.Ordinal);
+            Assert.Contains("RichSplitToken", renderedText, StringComparison.Ordinal);
             Assert.DoesNotContain("RichSplitToken01", renderedText, StringComparison.Ordinal);
             Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Bold);
             Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Italic);
@@ -4904,6 +4906,7 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<text", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("RichSplitToken01", svgText, StringComparison.Ordinal);
+            AssertPaintedTokensAcrossPages(document, "RichSplitToken", 40);
         }
 
         [Fact]
@@ -5003,6 +5006,7 @@ namespace OfficeIMO.Tests {
             section.PageSettings.Height = (UInt32Value)3000U;
             section.SetMargins(WordMargin.Narrow);
             document.AddParagraph("Lead paragraph before partial table one");
+            document.AddParagraph("Lead paragraph before partial table two");
             WordTable table = document.AddTable(2, 1);
             table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 3600;
@@ -5245,7 +5249,7 @@ namespace OfficeIMO.Tests {
                 .OfType<OfficeDrawingText>()
                 .Select(text => text.Text)
                 .ToList();
-            Assert.Contains(renderedText, text => text.Contains("SplitCellToken07", StringComparison.Ordinal));
+            Assert.Contains(renderedText, text => text.Contains("SplitCellToken", StringComparison.Ordinal));
             Assert.DoesNotContain(renderedText, text => text.Contains("SplitCellToken01", StringComparison.Ordinal));
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
@@ -5253,6 +5257,7 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<text", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("SplitCellToken01", svgText, StringComparison.Ordinal);
+            AssertPaintedTokensAcrossPages(document, "SplitCellToken", 40);
         }
 
         [Fact]
@@ -5284,7 +5289,7 @@ namespace OfficeIMO.Tests {
             List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
             Assert.NotEmpty(richTexts);
             string renderedText = string.Concat(richTexts.Select(text => text.PlainText));
-            Assert.Contains("RichCellToken07", renderedText, StringComparison.Ordinal);
+            Assert.Contains("RichCellToken", renderedText, StringComparison.Ordinal);
             Assert.DoesNotContain("RichCellToken01", renderedText, StringComparison.Ordinal);
             Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Bold);
             Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Italic);
@@ -5294,6 +5299,7 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<text", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("RichCellToken01", svgText, StringComparison.Ordinal);
+            AssertPaintedTokensAcrossPages(document, "RichCellToken", 40);
         }
 
         [Fact]

@@ -386,8 +386,7 @@ public sealed class VisioSourceProducerCorpusTests {
                 return directory.FullName;
             directory = directory.Parent;
         }
-        throw new DirectoryNotFoundException(
-            "Could not locate the OfficeIMO repository root.");
+        return RepositoryTestPaths.Find();
     }
 
     private sealed class VisioSourceCorpusManifest {

@@ -54,6 +54,8 @@ The default `PreserveVector` policy keeps the imported vector scene and reports 
 
 Prepared artifacts retain their resolved viewport and accessible text. The default scale is 0.75 points per pixel; `PointsPerPixel` changes that scale, while `WidthPoints` or `HeightPoints` can set the document size explicitly. Raster DPI metadata does not change the chosen placement size.
 
+Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. Keep the placement within the page's usable width or the slide's authored content region. The [document delivery example](../OfficeIMO.ChartForgeX.Examples/README.md) demonstrates readable light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
+
 Apply static watermarks before conversion with the Visuals decorator:
 
 ```csharp
@@ -92,7 +94,7 @@ ChartForgeX owns chart and diagram semantics, deterministic rendering, interchan
 
 ### Preserve placement and enforce fidelity
 
-`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Prepared topology graphs retain their resolved connector routes and label rectangles. Envelopes without a resolved route retain authored connector bends and named port offsets; native route construction is reported when neither is available. Native titles use clear space above the preserved content; when no header band is available, the title is omitted and `TitleNotProjected` is reported. Native graph styling maps source card, surface, border, and foreground colors, with Arial text for portable previews. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
+`LayoutMode = Auto` preserves complete topology bounds and reflows other inputs. Choose `Preserve` to require prepared topology coordinates, or `Reflow` to explicitly request native layout. Prepared topology graphs retain their resolved connector routes and label rectangles. Envelopes without a resolved route retain authored connector bends and named port offsets; native route construction is reported when neither is available. Native titles use clear space above the preserved content; when no header band is available, the title is omitted and `TitleNotProjected` is reported. Native graph styling maps the source page background, card, surface, border, and foreground colors, with Arial text for portable previews. The page fill is a protected native adornment behind the editable graph objects; it keeps the same page count and gives titles and connector captions the intended light or dark surface. Set `NativeTheme` to override it, for example with `VisioStyleTheme.Technical()` for the previous native defaults. Curves, advanced edge styling, icons, source fonts, and complete CFX themes still have limits described by the diagnostics.
 
 Flow and sequence remain native editable diagrams with recomputed layout. Their prepared coordinates remain in the interchange envelope, and `LayoutRecomputed` reports that the native page uses a different layout. `Preserve` rejects those families instead of claiming exact placement.
 

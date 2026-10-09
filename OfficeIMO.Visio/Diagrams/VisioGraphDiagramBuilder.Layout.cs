@@ -57,6 +57,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 ResolveConnectorShapeIntersections = _layout != VisioGraphLayout.Radial,
                 ResolveConnectorLabelOverlaps = true
             });
+            VisioDiagramPageBackground.Apply(page, _theme.PageBackgroundColor);
             _document.RequestRecalcOnOpen();
             return page;
         }

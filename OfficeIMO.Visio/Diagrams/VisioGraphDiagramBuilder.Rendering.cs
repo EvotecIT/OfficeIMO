@@ -102,10 +102,10 @@ namespace OfficeIMO.Visio.Diagrams {
                 0.34D,
                 node.Text);
             label.TextStyle = new VisioTextStyle {
-                FontFamily = "Aptos",
-                Size = 9.5D,
-                Color = Color.FromRgb(25, 35, 45),
-                BackgroundColor = Color.White,
+                FontFamily = _theme.Primary.TextStyle?.FontFamily ?? "Aptos",
+                Size = _theme.Primary.TextStyle?.Size ?? 9.5D,
+                Color = _theme.LegendText.Color ?? _theme.TitleText.Color ?? Color.FromRgb(25, 35, 45),
+                BackgroundColor = _theme.PageBackgroundColor ?? Color.White,
                 BackgroundTransparency = 0,
                 HorizontalAlignment = VisioTextHorizontalAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
@@ -150,8 +150,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 if (!string.IsNullOrWhiteSpace(edge.Label)) {
                     VisioTextStyle labelStyle = connector.TextStyle?.Clone() ?? new VisioTextStyle();
-                    labelStyle.BackgroundColor = Color.White;
-                    labelStyle.BackgroundTransparency = 0;
+                    if (!labelStyle.BackgroundColor.HasValue) {
+                        labelStyle.BackgroundColor = _theme.PageBackgroundColor ?? Color.White;
+                        labelStyle.BackgroundTransparency = 0;
+                    }
                     labelStyle.Size = Math.Max(labelStyle.Size ?? 0D, 8.5D);
                     connector.TextStyle = labelStyle;
                     connector.PlaceLabel(0.5D, offsetY: 0.26D, width: 1.35D, height: 0.32D);

@@ -23,9 +23,9 @@ namespace OfficeIMO.Word {
 
             WordParagraph? firstParagraph = paragraphs.FirstOrDefault(paragraph => !string.IsNullOrEmpty(paragraph.Text));
             OfficeFontInfo font = firstParagraph == null ? OfficeFontInfo.Default : CreateFont(firstParagraph);
-            double lineHeight = Math.Max(font.Size * 1.25D, 12D);
+            double lineHeight = ResolvePlainTextLineHeight(font);
             OfficeTextPadding padding = GetTextBoxPadding(textBox);
-            if (!TryGetTextBoxSize(textBox, text, font.Size, lineHeight, padding, out double width, out double height)) {
+            if (!TryGetTextBoxSize(textBox, text, font, lineHeight, padding, context, colorScheme, listMarkers, out double width, out double height)) {
                 AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word text box because its size could not be resolved.", "Word text box");
                 return false;
             }
@@ -233,12 +233,8 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
-            bool hasListMarkers = textBox.Content != null && EnumerateTextBoxParagraphFragments(textBox.Document, textBox.Content)
-                .Any(fragment => fragment.IncludeMarker &&
-                    CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers).HasValue);
-            if (richRuns.Count > 0 && (hasListMarkers || ShouldRenderTextBoxAsRichText(textBox, richRuns))) {
-                double maxFontSize = richRuns.Max(run => run.FontSize);
-                double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
+            if (ShouldPaintTextBoxAsRichText(textBox, richRuns, listMarkers)) {
+                double richLineHeight = ResolveRichTextFrameLineHeight(richRuns);
                 if (drawBehindContent) {
                     context.Drawing.AddRichTextBehindContent(
                         richRuns,
@@ -323,9 +319,12 @@ namespace OfficeIMO.Word {
         private static bool TryGetTextBoxSize(
             WordTextBox textBox,
             string text,
-            double fontSize,
+            OfficeFontInfo font,
             double lineHeight,
             OfficeTextPadding padding,
+            WordImageFlowContext context,
+            A.ColorScheme? colorScheme,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             out double width,
             out double height) {
             width = 0D;
@@ -361,7 +360,7 @@ namespace OfficeIMO.Word {
                 return width > 0D && height > 0D;
             }
 
-            if (TryGetVmlTextBoxSize(textBox.VmlShape, text, fontSize, lineHeight, padding, out width, out height)) {
+            if (TryGetVmlTextBoxSize(textBox, text, font, lineHeight, padding, context, colorScheme, listMarkers, out width, out height)) {
                 return true;
             }
 
@@ -370,10 +369,12 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static bool TryGetVmlTextBoxSize(V.Shape? shape, string text, double fontSize, double lineHeight, OfficeTextPadding padding, out double width, out double height) {
+        private static bool TryGetVmlTextBoxSize(WordTextBox textBox, string text, OfficeFontInfo font, double lineHeight,
+            OfficeTextPadding padding, WordImageFlowContext context, A.ColorScheme? colorScheme,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, out double width, out double height) {
             width = 0D;
             height = 0D;
-            string? style = shape?.Style?.Value;
+            string? style = textBox.VmlShape?.Style?.Value;
             if (string.IsNullOrWhiteSpace(style)) {
                 return false;
             }
@@ -385,8 +386,12 @@ namespace OfficeIMO.Word {
             }
 
             if (!hasHeight && HasVmlStyleFlag(style!, "mso-fit-shape-to-text", "t")) {
-                double contentWidth = Math.Max(1D, width - padding.Horizontal);
-                height = EstimateTextHeight(text, fontSize, contentWidth, lineHeight) + padding.Vertical;
+                double contentWidth = Math.Max(1D, Math.Min(width, context.ContentWidth) - padding.Horizontal);
+                List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, listMarkers, contentWidth, context);
+                double contentHeight = ShouldPaintTextBoxAsRichText(textBox, richRuns, listMarkers)
+                    ? EstimateRichTextFrameHeight(richRuns, contentWidth, context.TextMetrics, context.CancellationToken)
+                    : EstimateTextHeight(text, font, contentWidth, lineHeight, context.TextMetrics, context.CancellationToken);
+                height = contentHeight + padding.Vertical;
                 hasHeight = true;
             }
 
@@ -532,6 +537,13 @@ namespace OfficeIMO.Word {
                 context.Y = top;
             }
         }
+
+        private static bool ShouldPaintTextBoxAsRichText(WordTextBox textBox, IReadOnlyList<OfficeRichTextRun> richRuns,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) =>
+            richRuns.Count > 0 && (ShouldRenderTextBoxAsRichText(textBox, richRuns) ||
+                (textBox.Content != null && EnumerateTextBoxParagraphFragments(textBox.Document, textBox.Content)
+                    .Any(fragment => fragment.IncludeMarker &&
+                        CreateListMarker(textBox.Document, fragment.Paragraph, listMarkers).HasValue)));
 
         private static bool ShouldRenderTextBoxAsRichText(WordTextBox textBox, IReadOnlyList<OfficeRichTextRun> richRuns) {
             if (richRuns.Any(run => run.BackgroundColor.HasValue)) {
