@@ -8,15 +8,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Theory]
-    [InlineData(false, PdfCellVerticalAlign.Middle)]
-    [InlineData(true, PdfCellVerticalAlign.Middle)]
-    [InlineData(false, PdfCellVerticalAlign.Bottom)]
-    [InlineData(true, PdfCellVerticalAlign.Bottom)]
-    public void MergedAlignmentUsesTheCompleteLogicalCell(bool inRow, PdfCellVerticalAlign alignment) {
+    [InlineData(false, PdfCellVerticalAlign.Middle, 0)]
+    [InlineData(true, PdfCellVerticalAlign.Middle, 0)]
+    [InlineData(false, PdfCellVerticalAlign.Bottom, 0)]
+    [InlineData(true, PdfCellVerticalAlign.Bottom, 0)]
+    [InlineData(false, PdfCellVerticalAlign.Middle, 2)]
+    [InlineData(true, PdfCellVerticalAlign.Middle, 2)]
+    [InlineData(false, PdfCellVerticalAlign.Bottom, 2)]
+    [InlineData(true, PdfCellVerticalAlign.Bottom, 2)]
+    public void MergedAlignmentUsesTheCompleteLogicalCell(bool inRow, PdfCellVerticalAlign alignment, double rowGap) {
         double Position(double height, out int markerPage) {
             PdfTableStyle style = Style();
             style.RowMinHeights = new() { 80, 80, 80 };
             style.CellVerticalAlignments = new() { [(0, 0)] = alignment };
+            style.CellSpacing = rowGap;
             PdfDocument document = PdfDocument.Create(Options(height));
             AddTable(document, new[] {
                 new[] { PdfTableCell.Merge("ANCHOR", rowSpan: 3), PdfTableCell.TextCell("First") },
@@ -27,7 +32,7 @@ public partial class PdfDocumentVisualQualityTests {
             var marker = Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()
                 .Where(word => word.Text == "ANCHOR").Select(word => (page, word))));
             markerPage = marker.page.Number;
-            return (marker.page.Number - 1) * 80 + marker.page.Height - marker.word.BoundingBox.Top - 20;
+            return (marker.page.Number - 1) * (80 + rowGap) + marker.page.Height - marker.word.BoundingBox.Top - 20;
         }
         double whole = Position(300, out int wholePage);
         double split = Position(140, out int splitPage);

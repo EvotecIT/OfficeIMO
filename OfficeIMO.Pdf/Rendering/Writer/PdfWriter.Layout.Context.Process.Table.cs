@@ -541,7 +541,7 @@ internal static partial class PdfWriter {
                 if (style?.Position == null) RecordFlowPlacement(y);
                 else ResolveFloatingBookmarks(y);
                 double rowBottom = y - rowHeight;
-                if (!suppressCellObjects) spanFlow.AdmitRow(rowIndex, y, rowBottom);
+                if (!suppressCellObjects) spanFlow.AdmitRow(rowIndex, y, rowBottom, rowGapPx);
                 if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
                 int bodyRowIndex = bodyRowOffset + rowIndex - headerRowCount;
                 bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;

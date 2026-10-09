@@ -35,7 +35,7 @@ internal static partial class PdfWriter {
         public int GetConsumedLines(int row, int column) => anchors.TryGetValue((row, column), out var span) ? span.ConsumedLines : 0;
         public bool CoversRow(int row) => coveredRows.Contains(row);
 
-        public void AdmitRow(int row, double top, double bottom) {
+        public void AdmitRow(int row, double top, double bottom, double rowGap) {
             ActiveCells.RemoveAll(cell => cell.EndRow <= row);
             while (nextCell < Cells.Count && Cells[nextCell].Row <= row) {
                 TableSpanCellFlow cell = Cells[nextCell++];
@@ -43,6 +43,10 @@ internal static partial class PdfWriter {
             }
             foreach (TableSpanCellFlow cell in ActiveCells) {
                 if (cell.Height <= .001D) {
+                    // A gap between physical rows can fall outside both page fragments.
+                    // Count it once in logical alignment, never between pieces of one row.
+                    if (cell.ProcessedHeight > 0D && cell.LastFragmentRow < row)
+                        cell.ProcessedHeight += (row - cell.LastFragmentRow) * rowGap;
                     cell.Top = top;
                     cell.FirstFragmentRow = row;
                     cell.FragmentRowHeights.Clear();

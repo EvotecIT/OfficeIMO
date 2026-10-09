@@ -223,7 +223,7 @@ internal static partial class PdfWriter {
 
             var cells = GetTableCellLayouts(tbColumn, rowIndex, table.Columns);
             double rowBottom = state.Y - rowHeight;
-            if (!suppressCellObjects) table.SpanFlow.AdmitRow(rowIndex, state.Y, rowBottom);
+            if (!suppressCellObjects) table.SpanFlow.AdmitRow(rowIndex, state.Y, rowBottom, columnTableRowGap);
             int bodyRowIndex = rowIndex - table.HeaderRowCount;
             bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;
             bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tbColumn, rowIndex, table.Columns);
