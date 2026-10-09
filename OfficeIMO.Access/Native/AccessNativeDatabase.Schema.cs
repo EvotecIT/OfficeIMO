@@ -20,6 +20,7 @@ namespace OfficeIMO.Access {
                     Flags = block[Layout.ColumnFlags], ExtraFlags = Layout.IsJet3 ? (byte)0 : block[16], FixedOffset = U16(block, Layout.ColumnFixedOffset), Size = U16(block, Layout.ColumnLength), Precision = block[11], Scale = block[12],
                     CodePage = Layout.IsJet3 && (block[0] == 10 || block[0] == 12) ? U16(block, 11) : 0,
                     ComplexId = _document.Format == AccessFileFormat.Accdb && block[0] == 18 ? I32(block, 11) : 0 };
+                column.RedactConnection = StringComparer.OrdinalIgnoreCase.Equals(name, "MSysObjects") && StringComparer.OrdinalIgnoreCase.Equals(column.Name, "Connect");
                 if (column.Number >= table.MaxColumns || column.Variable && column.VariableIndex >= table.MaxVariableColumns) throw new InvalidDataException("Native Access field coordinates exceed the declared row schema.");
                 if (table.Columns.Any(x => x.Number == column.Number || StringComparer.OrdinalIgnoreCase.Equals(x.Name, column.Name))) throw new InvalidDataException("Native Access fields have duplicate numbers or ambiguous names.");
                 table.Columns.Add(column);

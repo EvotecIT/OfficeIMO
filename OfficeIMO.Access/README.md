@@ -74,7 +74,7 @@ if (structured.Read()) {
 
 Ordinary fields decode when requested. Binary `GetStream` reads forward through native storage without allocating the whole payload; `GetValue` returns a defensive byte array. Attachment enumeration reads metadata first; requesting content allocates a bounded decoded payload. Structured fields also offer `OpenDataReader` for their backing rows. Complex-value scans use the same per-reader row limit.
 
-Calculated fields, unknown representations and Decimal definitions outside the qualified .NET precision range return `AccessOpaqueValue` with a reason and column diagnostics. `GetBytes()` returns their exact representation as a defensive copy. Rich-text markup and hyperlink strings retain their persisted content; the reader does not render or follow them.
+Calculated fields, unknown representations, unsupported Jet 3 column encodings and Decimal definitions outside the qualified .NET precision range return `AccessOpaqueValue` with a reason and column diagnostics. `GetFieldType` reports that value type so `DataTable.Load` retains the opaque value. `GetBytes()` returns its exact representation as a defensive copy. Rich-text markup and hyperlink strings retain their persisted content; the reader does not render or follow them.
 
 ## Inspect saved queries and links
 
@@ -89,9 +89,9 @@ foreach (AccessTable table in source.Tables.Where(x => x.IsLinked)) {
 }
 ```
 
-Saved queries are inert. SQL reconstruction covers the qualified simple single-table SELECT and two-part UNION shapes. Sized parameters, external-source qualifiers and other unqualified shapes have `HasSql` false and `Sql` then throws. `NativeRecords` retains all query attributes and exact record bytes, including unsupported definitions. Original expressions and typed parameters remain available without execution.
+Saved queries are inert. SQL reconstruction covers the qualified simple single-table SELECT and two-part UNION shapes. Sized parameters, external-source qualifiers, unavailable text encodings and other unqualified shapes have `HasSql` false and `Sql` then throws. `NativeRecords` retains all query attributes and exact record bytes, including unsupported definitions. Qualified expressions and typed parameters remain available without execution. Query diagnostics identify an unavailable parameter inventory when names cannot be decoded; the system-table reader retains opaque text values.
 
-Ordinary linked-table views and the `MSysObjects.Connect` reader redact credential fields. Explicit raw catalog-row access can contain sensitive native data; callers control whether to inspect or export those bytes.
+Ordinary linked-table views and the `MSysObjects.Connect` reader redact credential fields. Connection text with an unsupported encoding returns a redacted placeholder. Linked-table diagnostics identify unavailable source or table-name encodings. Explicit raw catalog-row access can contain sensitive native data; callers control whether to inspect or export those bytes.
 
 ## Inspection, limits and lifetime
 

@@ -115,6 +115,8 @@ namespace OfficeIMO.Access {
 
     /// <summary>A typed column with immutable definition in the foundation slice.</summary>
     public sealed class AccessColumn : AccessNamedObject {
+        // The declared native text type remains available while reader metadata describes the opaque returned value.
+        internal bool HasOpaqueTextValues { get; set; }
         internal AccessColumn(AccessTable table, string name, AccessDataType type, int? maxLength) : base(table.Document, name) {
             if (!Enum.IsDefined(typeof(AccessDataType), type)) throw new ArgumentOutOfRangeException(nameof(type));
             if (type == AccessDataType.ShortText) { maxLength ??= 255; if (maxLength < 1 || maxLength > 255) throw new ArgumentOutOfRangeException(nameof(maxLength)); }

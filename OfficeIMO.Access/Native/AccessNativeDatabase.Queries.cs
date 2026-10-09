@@ -4,6 +4,8 @@ namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeDatabase {
         private void LoadQueries(CancellationToken cancellation) {
             Dictionary<int, List<AccessQueryRecord>> records = new Dictionary<int, List<AccessQueryRecord>>();
+            HashSet<int> opaqueTextQueries = new HashSet<int>();
+            HashSet<int> opaqueParameterQueries = new HashSet<int>();
             if (_tables.TryGetValue("MSysQueries", out AccessNativeTable? table)) {
                 RequireFields(table, "ObjectId", "Attribute", "Name1", "Name2", "Expression", "Flag", "Order");
                 if (!Layout.IsJet3) RequireFields(table, "LvExtra");
@@ -11,19 +13,26 @@ namespace OfficeIMO.Access {
                 while (rows.Read(cancellation)) {
                     int id = Convert.ToInt32(RequiredField(table, rows, "ObjectId", cancellation));
                     if (!records.TryGetValue(id, out List<AccessQueryRecord>? definitions)) records.Add(id, definitions = new List<AccessQueryRecord>());
-                    definitions.Add(new AccessQueryRecord(Convert.ToByte(RequiredField(table, rows, "Attribute", cancellation)), Field(table, rows, "Name1", cancellation) as string,
-                        Field(table, rows, "Name2", cancellation) as string, Field(table, rows, "Expression", cancellation) as string,
+                    object? name1 = Field(table, rows, "Name1", cancellation), name2 = Field(table, rows, "Name2", cancellation), expression = Field(table, rows, "Expression", cancellation);
+                    byte attribute = Convert.ToByte(RequiredField(table, rows, "Attribute", cancellation));
+                    if (name1 is AccessOpaqueValue || name2 is AccessOpaqueValue || expression is AccessOpaqueValue) opaqueTextQueries.Add(id);
+                    if (attribute == 2 && name1 is AccessOpaqueValue) opaqueParameterQueries.Add(id);
+                    definitions.Add(new AccessQueryRecord(attribute, name1 as string,
+                        name2 as string, expression as string,
                         Field(table, rows, "Flag", cancellation) as short?, Field(table, rows, "LvExtra", cancellation) as int?, Field(table, rows, "Order", cancellation) as byte[], rows.Current.NativeBytes()));
                 }
             }
             foreach (NativeCatalogRecord? record in _catalog.Where(x => x.Type == 5)) {
                 cancellation.ThrowIfCancellationRequested(); records.TryGetValue(record.Id, out List<AccessQueryRecord>? definitions); definitions ??= new List<AccessQueryRecord>();
                 AccessQueryRecord[] ordered = definitions.OrderBy(x => x.GetOrderBytes(), QueryOrderComparer.Instance).ToArray();
-                string? sql = SelectSql(record.Flags, ordered);
+                bool opaqueText = opaqueTextQueries.Contains(record.Id);
+                string? sql = opaqueText ? null : SelectSql(record.Flags, ordered);
                 AccessQueryDefinition query = new AccessQueryDefinition(_document, record.Name, sql, ordered) { NativeFlags = record.Flags };
-                query.Parameters = Array.AsReadOnly(ordered.Where(x => x.Attribute == 2).Select(x => new AccessQueryParameter(x.Name1 ?? throw new InvalidDataException("Native Access query parameter has no name."), x.Flag ?? 0,
+                query.Parameters = Array.AsReadOnly((opaqueParameterQueries.Contains(record.Id) ? Array.Empty<AccessQueryRecord>() : ordered.Where(x => x.Attribute == 2)).Select(x => new AccessQueryParameter(x.Name1 ?? throw new InvalidDataException("Native Access query parameter has no name."), x.Flag ?? 0,
                     x.Flag < 0 || x.Flag > 255 ? AccessDataType.Unknown : DataType(new AccessNativeColumn { Type = (byte)(x.Flag ?? 0) }))).ToArray());
-                if (sql == null) query.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.query.sql-not-decoded", "The query records are retained exactly. SQL reconstruction for this definition is unqualified; no query is executed.", query.Id) });
+                if (sql == null) query.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic(opaqueText ? "access.query.text-encoding-opaque" : "access.query.sql-not-decoded", opaqueText
+                    ? "Unqualified native query text remains available through the system-table reader and exact query records. SQL is not reconstructed from unavailable names or expressions; parameter inventory is unavailable when its names cannot be decoded."
+                    : "The query records are retained exactly. SQL reconstruction for this definition is unqualified; no query is executed.", query.Id) });
                 _document.Queries.AddNativeItem(query);
             }
             _document.Queries.CatalogStatus = AccessCatalogStatus.Decoded;

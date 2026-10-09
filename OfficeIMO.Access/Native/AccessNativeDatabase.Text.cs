@@ -14,11 +14,17 @@ namespace OfficeIMO.Access {
             catch (ArgumentException exception) { throw new InvalidDataException("Native Access name is invalid.", exception); }
         }
         private object NativeText(AccessNativeColumn column, OfficeByteView bytes, CancellationToken cancellation) {
-            if (!Layout.IsJet3) return Text(bytes);
+            if (!Layout.IsJet3) {
+                string unicode = Text(bytes);
+                return column.RedactConnection ? RedactConnection(unicode)! : unicode;
+            }
             int codePage = column.CodePage == 0 ? _document.CodePage!.Value : column.CodePage;
-            if (!QualifiedJet3CodePage(codePage))
+            if (!QualifiedJet3CodePage(codePage)) {
+                if (column.RedactConnection) return "[redacted: unsupported connection encoding]";
                 return new AccessOpaqueValue(column.Type, bytes.ToArray(), "Jet3 text outside the qualified code-page subset is retained without character conversion.");
-            return OfficeLegacySingleByteEncoding.Decode(bytes, codePage, cancellation);
+            }
+            string text = OfficeLegacySingleByteEncoding.Decode(bytes, codePage, cancellation);
+            return column.RedactConnection ? RedactConnection(text)! : text;
         }
     }
 }

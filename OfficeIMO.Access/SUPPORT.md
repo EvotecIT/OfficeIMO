@@ -35,7 +35,7 @@ The reader uses one schema and `DbDataReader` API for MDB and ACCDB. Required sy
 | Dates and identities | Ordinary Date/Time including pre-epoch/leap dates, GUID and extended Date/Time with persisted scale 0–7; dates have unspecified timezone |
 | Field presentation | Rich-text markup, hyperlink strings and lookup properties/keys retained without rendering, navigation or value substitution |
 | Complex values | Multivalued text and attachments retain parent key, typed backing schema/rows and exact encoded content; attachment decode checks the native envelope, zlib checksum and expansion limit. Other backing structures expose native rows without claiming a qualified convenience interpretation |
-| Queries | Exact native records and parameter inventory; qualified simple single-table SELECT (including wildcard/expressions) and two-part UNION reconstruction. Sized parameters, external-source qualifiers and other unqualified shapes keep `HasSql=false` and diagnostics; no SQL is executed |
+| Queries | Exact native records and qualified parameter inventory; qualified simple single-table SELECT (including wildcard/expressions) and two-part UNION reconstruction. Sized parameters, external-source qualifiers, unavailable name/expression encodings and other unqualified shapes keep `HasSql=false` and diagnostics; no SQL is executed |
 | Calculated/unknown fields | Exact `AccessOpaqueValue`, expression metadata and column diagnostics; no evaluation or silent coercion |
 | Security metadata | Catalog owner SID bytes and system permission records are inspectable; no authentication, permission enforcement or security-policy changes |
 
