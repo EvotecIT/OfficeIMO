@@ -40,6 +40,27 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Fact]
+    public void HtmlIntrinsicIndent_CaptionRetainsInheritedIndentAndNestedSignedEdges() {
+        var options = TableIntrinsicOptions();
+        HtmlRenderDocument rendered = RenderTableIntrinsic(
+            "<table id='target' style='text-indent:30px'><caption id='caption' "
+            + "style='padding:2px;border:1px solid black;background:lime;text-align:left'>"
+            + "<span style='padding:0 5px'><span style='text-indent:100px;padding:0 3px;"
+            + "margin:0 -2px;border:1px solid black'>AAAA</span></span></caption>"
+            + "<tr><td>A</td></tr></table>", options);
+
+        // 30px inherited indent, 14px signed nested inline edges, and 6px
+        // caption padding/border each contribute once to the table minimum.
+        double expected = IntrinsicIndentTextWidth(options, "AAAA") + 50D;
+        Assert.Equal(expected, TableIntrinsicGroup(rendered, "table#target").Width, 3);
+        Assert.Equal(expected, TableGeometryShape(rendered, "caption#caption").Width, 3);
+        HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), item => item.Text == "AAAA");
+        Assert.Equal(40D, text.X, 3);
+        rendered.RequireNoLoss();
+    }
+
     [Theory]
     [InlineData("min-content", "A AAAAAAAA", "")]
     [InlineData("max-content", "A<br>AAAAAAAA", "")]

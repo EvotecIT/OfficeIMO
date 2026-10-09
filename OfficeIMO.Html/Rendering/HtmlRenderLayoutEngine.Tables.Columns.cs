@@ -61,7 +61,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (caption == null) return 0D;
         HtmlRenderBoxStyle captionStyle = _styleResolver.Resolve(caption, containingWidth, tableStyle);
         if (captionStyle.Display == "none") return 0D;
-        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(new FlexItem(caption, captionStyle, 0), containingWidth);
+        IReadOnlyList<IntrinsicTextRun> runs = ResolveInFlowIntrinsicTextRuns(
+            new FlexItem(caption, captionStyle, 0), containingWidth, includeDescendantInsets: true);
         double minimum = MeasureMinContentRuns(runs) + captionStyle.HorizontalInsets;
         if (captionStyle.ExplicitWidth.HasValue && !captionStyle.ExplicitWidthUsesPercentage) {
             minimum = Math.Max(minimum, captionStyle.ExplicitWidth.Value

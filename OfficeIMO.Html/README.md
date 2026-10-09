@@ -554,7 +554,11 @@ The managed renderer also honors author soft hyphens and the bounded CSS control
 CSS length math. It affects the first formatted line, including wrapping beside
 floats and right-to-left alignment. Inherited lengths retain the declaring
 element's font context; percentages use the receiving block's inline size. Page
-continuations do not restart the indent. The `hanging` and `each-line` keywords
+continuations do not restart the indent. Intrinsic widths include the first-line
+indent once per paragraph, including table cells and captions. Percentage terms
+contribute zero during intrinsic measurement; absolute terms in length math
+remain. Nested blocks and atomic inline boxes measure their own paragraphs.
+The `hanging` and `each-line` keywords
 are not implemented and produce `TextIndentValueUnsupported` diagnostics.
 
 Character-relative `ch` lengths use the rendered zero glyph's advance, including
