@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Xml.Linq;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio;
@@ -11,9 +12,10 @@ namespace OfficeIMO.Visio;
 internal static partial class VisioLegacyXmlCodec {
     private const string ImageRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
     private const string ObjectRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject";
-    private static void ExtractForeignData(XElement content, PackagePart owner, VisioXmlConversionReport report, ref int resourceCount, ref long totalBytes) {
+    private static void ExtractForeignData(XElement content, PackagePart owner, VisioXmlConversionReport report, ref int resourceCount, ref long totalBytes, CancellationToken cancellationToken) {
         int index = 1;
         foreach (XElement foreign in content.Descendants(Modern + "ForeignData")) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (++resourceCount > 1024) throw new InvalidDataException("Legacy foreign content exceeds 1024 resources.");
             if (foreign.Value.Length > 90_000_000) throw new InvalidDataException("Legacy foreign resource exceeds its encoded size limit.");
             byte[] bytes;

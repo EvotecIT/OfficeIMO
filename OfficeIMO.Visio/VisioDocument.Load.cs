@@ -66,7 +66,7 @@ namespace OfficeIMO.Visio {
             using var source = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken, ResolveInputLimit(resolved)).ConfigureAwait(false);
-            return LoadDocument(bytes, fullPath, sourceStream: null, options: resolved);
+            return LoadDocument(bytes, fullPath, sourceStream: null, options: resolved, cancellationToken: cancellationToken);
         }
 
         /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
@@ -84,20 +84,25 @@ namespace OfficeIMO.Visio {
                 sourceStream: OfficeDocumentLifecycle.ResolveAssociatedDestination(
                     stream,
                     DocumentAccessMode.ReadWrite),
-                options: resolved);
+                options: resolved,
+                cancellationToken: cancellationToken);
         }
 
         private static VisioDocument LoadDocument(
             byte[] bytes,
             string? filePath,
             Stream? sourceStream,
-            VisioLoadOptions options) {
+            VisioLoadOptions options,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             ValidatePackageSecurity(bytes, options);
+            cancellationToken.ThrowIfCancellationRequested();
             using var buffer = new MemoryStream(bytes, writable: false);
             using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
-            VisioDocument document = LoadCore(package, filePath);
+            VisioDocument document = LoadCore(package, filePath, cancellationToken);
             document._loadedSignatureInfo = InspectPackageSignatures(bytes);
             document._sourceStream = sourceStream;
+            cancellationToken.ThrowIfCancellationRequested();
             return document;
         }
 

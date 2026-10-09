@@ -2,26 +2,30 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using System.Threading;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Visio;
 
 internal static partial class VisioLegacyXmlCodec {
     private static readonly XNamespace Legacy2002 = "urn:schemas-microsoft-com:office:visio";
 
-    private static XElement NormalizeLegacyRoot(XDocument source, VisioXmlConversionReport report) {
+    private static XElement NormalizeLegacyRoot(XDocument source, VisioXmlConversionReport report, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         XElement root = source.Root ?? throw new InvalidDataException("Visio XML has no root element.");
         if (root.Name == Legacy + "VisioDocument") return root;
         if (root.Name != Legacy2002 + "VisioDocument")
             throw new InvalidDataException("Expected a Visio 2002 or 2003 core VisioDocument root.");
         // Work on the bounded parser's private tree. Keep extension namespaces intact.
         foreach (XElement element in root.DescendantsAndSelf()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element.Name.Namespace == Legacy2002) element.Name = Legacy + element.Name.LocalName;
         }
         report.Add("VDX_2002_INPUT", "Visio 2002 XML is normalized into the shared model; legacy XML export uses the Visio 2003 namespace.", OfficeConversionLossKind.None);
         return root;
     }
 
-    private static void ResolveLegacyFontTable(XElement root, VisioXmlConversionReport report) {
+    private static void ResolveLegacyFontTable(XElement root, VisioXmlConversionReport report, CancellationToken cancellationToken) {
         XElement? fonts = root.Element(Modern + "Fonts");
         if (fonts == null) return;
         XElement? faces = root.Element(Modern + "FaceNames");
@@ -30,6 +34,7 @@ internal static partial class VisioLegacyXmlCodec {
             .GroupBy(face => (string)face.Attribute("ID")!, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         foreach (XElement font in fonts.Elements(Modern + "FontEntry")) {
+            cancellationToken.ThrowIfCancellationRequested();
             string? id = (string?)font.Attribute("ID"), name = (string?)font.Attribute("Name");
             if (id == null || string.IsNullOrWhiteSpace(name)) continue;
             if (existing.TryGetValue(id, out XElement? face)) {
@@ -43,5 +48,12 @@ internal static partial class VisioLegacyXmlCodec {
             if (font.Attribute("CharSet") is XAttribute charSet) face.SetAttributeValue("CharSets", charSet.Value);
             faces.Add(face); existing.Add(id, face);
         }
+    }
+
+    private static XElement CloneImportedElement(XElement source, CancellationToken cancellationToken) {
+        using var reader = source.CreateReader();
+        using var cancellable = new OfficeXmlLimitingReader(reader, "Visio imported XML",
+            int.MaxValue, int.MaxValue, int.MaxValue, cancellationToken);
+        return XElement.Load(cancellable, LoadOptions.PreserveWhitespace);
     }
 }

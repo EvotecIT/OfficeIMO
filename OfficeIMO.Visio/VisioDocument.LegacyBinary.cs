@@ -30,11 +30,13 @@ namespace OfficeIMO.Visio {
             var codec = new VisioLegacyBinaryCodec(bytes, operation, cancellationToken);
             var xml = codec.Read();
             var normalizationReport = new VisioXmlConversionReport();
-            using MemoryStream normalized = VisioLegacyXmlCodec.ToPackage(xml, packageType, normalizationReport);
+            using MemoryStream normalized = VisioLegacyXmlCodec.ToPackage(xml, packageType, normalizationReport, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             using Package package = Package.Open(normalized, FileMode.Open, FileAccess.Read);
-            VisioDocument document = LoadCore(package, filePath: null);
-            return new OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>(document, codec.CreateReport(normalizationReport));
+            VisioDocument document = LoadCore(package, filePath: null, cancellationToken: cancellationToken);
+            OfficeLegacyImportReport report = codec.CreateReport(normalizationReport);
+            cancellationToken.ThrowIfCancellationRequested();
+            return new OfficeConversionResult<VisioDocument, OfficeLegacyImportReport>(document, report);
         }
     }
 }

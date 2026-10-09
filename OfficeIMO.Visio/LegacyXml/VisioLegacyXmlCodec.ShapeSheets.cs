@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Visio;
 
 internal static partial class VisioLegacyXmlCodec {
     private static bool IsSheet(string name) => name == "Shape" || name == "PageSheet" || name == "StyleSheet" || name == "DocumentSheet";
 
-    private static XElement ToModern(XElement source, VisioXmlConversionReport report) {
-        if (source.Name.Namespace != Legacy) return new XElement(source);
+    private static XElement ToModern(XElement source, VisioXmlConversionReport report, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (source.Name.Namespace != Legacy) return CloneImportedElement(source, cancellationToken);
         var target = new XElement(Modern + source.Name.LocalName, CopyAttributes(source));
         if (source.Name.LocalName == "Connect" && source.Attribute("FromCell") == null) {
             string? part = (string?)source.Attribute("FromPart");
@@ -20,34 +22,39 @@ internal static partial class VisioLegacyXmlCodec {
         if (source.Name.LocalName == "Shape" && source.Element(Legacy + "XForm1D") != null)
             target.Add(new XElement(Modern + "Cell", new XAttribute("N", "OneD"), new XAttribute("V", "1")));
         if (!IsSheet(source.Name.LocalName)) {
-            foreach (XNode node in source.Nodes()) target.Add(node is XElement element ? ToModern(element, report) : CloneNode(node));
+            foreach (XNode node in source.Nodes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                target.Add(node is XElement element ? ToModern(element, report, cancellationToken) : CloneNode(node));
+            }
             return target;
         }
         foreach (XElement child in source.Elements()) {
+            cancellationToken.ThrowIfCancellationRequested();
             string name = child.Name.LocalName;
-            if (child.Name.Namespace != Legacy) { target.Add(new XElement(child)); continue; }
+            if (child.Name.Namespace != Legacy) { target.Add(CloneImportedElement(child, cancellationToken)); continue; }
             if (SingletonRows.ContainsKey(name)) {
-                foreach (XElement cell in child.Elements()) target.Add(ToCell(cell));
+                foreach (XElement cell in child.Elements()) target.Add(ToCell(cell, cancellationToken));
                 if (child.HasAttributes) report.Add("VDX_SINGLETON_ATTRIBUTES", "Singleton row attributes are not mapped.", location: name);
             } else if (IndexedRows.TryGetValue(name, out string? sectionName)) {
                 XElement? section = target.Elements(Modern + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == sectionName);
                 if (section == null) { section = new XElement(Modern + "Section", new XAttribute("N", sectionName)); target.Add(section); }
                 var row = new XElement(Modern + "Row", CopyRowAttributes(child, true, NamedRows.Contains(name)));
-                row.Add(child.Elements().Select(ToCell)); section.Add(row);
+                row.Add(child.Elements().Select(cell => ToCell(cell, cancellationToken))); section.Add(row);
             } else if (name == "Geom") {
                 var section = new XElement(Modern + "Section", new XAttribute("N", "Geometry"), CopyAttributes(child));
                 foreach (XElement entry in child.Elements()) {
-                    if (entry.Name.LocalName.StartsWith("No", StringComparison.Ordinal) && !entry.HasElements) section.Add(ToCell(entry));
-                    else section.Add(new XElement(Modern + "Row", new XAttribute("T", entry.Name.LocalName), CopyRowAttributes(entry, true), entry.Elements().Select(ToCell)));
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (entry.Name.LocalName.StartsWith("No", StringComparison.Ordinal) && !entry.HasElements) section.Add(ToCell(entry, cancellationToken));
+                    else section.Add(new XElement(Modern + "Row", new XAttribute("T", entry.Name.LocalName), CopyRowAttributes(entry, true), entry.Elements().Select(cell => ToCell(cell, cancellationToken))));
                 }
                 target.Add(section);
             } else if (name == "ForeignData") {
                 target.Add(new XElement(Modern + "ForeignData", CopyAttributes(child), child.Value));
             } else if (name == "Tabs" || name == "ConnectionABCD") {
                 // Preserve the native fragment rather than translating it into an incorrect modern section.
-                target.Add(new XElement(child));
+                target.Add(CloneImportedElement(child, cancellationToken));
                 report.Add("VDX_PRESERVED_ROW", "Native row is preserved without model interpretation.", OfficeConversionLossKind.Approximation, name);
-            } else target.Add(ToModern(child, report));
+            } else target.Add(ToModern(child, report, cancellationToken));
         }
         return target;
     }
@@ -144,7 +151,8 @@ internal static partial class VisioLegacyXmlCodec {
         }
         geometry.Add(FromCell(cell, name));
     }
-    private static XElement ToCell(XElement source) {
+    private static XElement ToCell(XElement source, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var cell = new XElement(Modern + "Cell", new XAttribute("N", source.Name.LocalName), new XAttribute("V", source.Value));
         string? error = (string?)source.Attribute("Err");
         string? preservedError = error != null && !ModernErrors.Contains(error) ? error : null;
