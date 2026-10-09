@@ -78,9 +78,10 @@ internal sealed partial class WordPerfectReader {
             _budget.Record();
             int value = U16(_data, at);
             if (value == 0) break;
-            text.Append(Character(value & 255, value >> 8));
+            string character = Character(value & 255, value >> 8);
+            _budget.Text(character.Length);
+            text.Append(character);
         }
-        _budget.Text(text.Length);
         return text.ToString();
     }
 

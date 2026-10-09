@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Word.Legacy;
 
@@ -40,7 +41,10 @@ internal sealed partial class WordPerfectReader {
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = 96d / 72d, MaximumRasterPixels = _budget.Limits.MaxImagePixels, CancellationToken = _budget.Cancellation
             });
-            byte[] png = OfficePngWriter.Encode(raster, _budget.Cancellation);
+            if (_budget.RemainingResourceBytes == 0) throw new InvalidDataException("WordPerfect exceeds the configured resource-byte limit.");
+            using var encoded = new OfficeBoundedMemoryStream(_budget.RemainingResourceBytes);
+            OfficePngWriter.EncodeTo(raster, encoded, _budget.Cancellation);
+            byte[] png = encoded.ToArray();
             _budget.Resource(png.Length); _budget.Item();
             Paragraph().Runs.Add(new LegacyWordRun(string.Empty) { Image = new LegacyWordImage {
                 SourceBytes = source, PngBytes = png, WidthPoints = drawing.Width, HeightPoints = drawing.Height

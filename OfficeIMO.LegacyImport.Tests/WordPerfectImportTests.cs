@@ -189,6 +189,13 @@ public sealed class WordPerfectImportTests {
     public void RejectsImageExpansionAndResourceBudgetsBeforeProjection() {
         byte[] wpg = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WordPerfect", "WPG1.wpg"));
         Assert.Throws<InvalidDataException>(() => Import(GraphicDocument(wpg), new OfficeLegacyImportLimits { MaxResourceBytes = wpg.Length - 1 }));
+        Assert.Throws<InvalidDataException>(() => Import(GraphicDocument(wpg), new OfficeLegacyImportLimits { MaxResourceBytes = wpg.Length }));
+        Assert.Throws<InvalidDataException>(() => Import(GraphicDocument(wpg), new OfficeLegacyImportLimits { MaxResourceBytes = wpg.Length + 64 }));
+        using (var qualified = Import(GraphicDocument(wpg))) {
+            int resourceBytes = wpg.Length + qualified.Content.Paragraphs[0].Runs.Single(run => run.Image != null).Image!.GetPngBytes().Length;
+            using var bounded = Import(GraphicDocument(wpg), new OfficeLegacyImportLimits { MaxResourceBytes = resourceBytes });
+            Assert.Single(bounded.Value.Images);
+        }
         Assert.Throws<InvalidDataException>(() => Import(GraphicDocument(wpg), new OfficeLegacyImportLimits { MaxImagePixels = 100 }));
         byte[] broken = (byte[])wpg.Clone(); broken[17] = 255;
         Assert.Throws<InvalidDataException>(() => Import(GraphicDocument(broken)));

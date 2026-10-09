@@ -90,7 +90,10 @@ internal sealed partial class WordPerfectReader {
                     if ((next & 4095) == 0) _budget.Cancellation.ThrowIfCancellationRequested();
                     next++;
                 }
-                if (!Suppressed) Append(Encoding.ASCII.GetString(_data, position, next - position));
+                if (!Suppressed) {
+                    _budget.Text(next - position);
+                    AppendRun(Encoding.ASCII.GetString(_data, position, next - position));
+                }
                 position = next;
             } else if (_version == 6) position = ReadCode6(position, end);
             else position = ReadCode5(position, end);
@@ -111,6 +114,10 @@ internal sealed partial class WordPerfectReader {
 
     private void Append(string text) {
         _budget.Text(text.Length);
+        AppendRun(text);
+    }
+
+    private void AppendRun(string text) {
         var run = new LegacyWordRun(text) {
             Bold = (_attributes & (1u << 12)) != 0,
             Italic = (_attributes & (1u << 8)) != 0,
@@ -285,6 +292,7 @@ internal sealed partial class WordPerfectReader {
         internal readonly OfficeLegacyImportLimits Limits;
         internal readonly CancellationToken Cancellation;
         internal readonly HashSet<string> Reported = new(StringComparer.Ordinal);
+        internal int RemainingResourceBytes => Limits.MaxResourceBytes - _resourceBytes;
         private int _records, _items, _characters, _resourceBytes;
         private long _imagePixels;
         internal Budget(OfficeLegacyImportLimits limits, CancellationToken cancellation) { Limits = limits; Cancellation = cancellation; }
