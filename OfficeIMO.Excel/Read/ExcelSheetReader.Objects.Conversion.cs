@@ -467,7 +467,9 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (TryParseRawDouble(rawText, out double doubleValue)
+                    if ((excelNumericCell
+                            ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
+                            : TryParseRawDouble(rawText, out doubleValue))
                         && doubleValue >= int.MinValue
                         && doubleValue <= int.MaxValue
                         && Math.Truncate(doubleValue) == doubleValue) {
@@ -488,7 +490,9 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (TryParseRawDouble(rawText, out double doubleValue)
+                    if ((excelNumericCell
+                            ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
+                            : TryParseRawDouble(rawText, out doubleValue))
                         && doubleValue >= long.MinValue
                         && doubleValue <= long.MaxValue
                         && Math.Truncate(doubleValue) == doubleValue) {
@@ -504,7 +508,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if (TryParseRawDouble(rawText, out double doubleValue)) {
+                    if (excelNumericCell
+                            ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
+                            : TryParseRawDouble(rawText, out doubleValue)) {
                         binding.SetDouble(target, doubleValue);
                         return true;
                     }
@@ -607,7 +613,9 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (TryParseRawDouble(rawText, out double doubleValue)
+                if ((excelNumericCell
+                        ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
+                        : TryParseRawDouble(rawText, out doubleValue))
                     && doubleValue >= int.MinValue
                     && doubleValue <= int.MaxValue
                     && Math.Truncate(doubleValue) == doubleValue) {
@@ -624,7 +632,9 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (TryParseRawDouble(rawText, out double doubleValue)
+                if ((excelNumericCell
+                        ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
+                        : TryParseRawDouble(rawText, out doubleValue))
                     && doubleValue >= long.MinValue
                     && doubleValue <= long.MaxValue
                     && Math.Truncate(doubleValue) == doubleValue) {
@@ -636,7 +646,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(double)) {
-                if (TryParseRawDouble(rawText, out double doubleValue)) {
+                if (excelNumericCell
+                        ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
+                        : TryParseRawDouble(rawText, out doubleValue)) {
                     converted = doubleValue;
                     return true;
                 }

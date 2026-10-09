@@ -580,7 +580,7 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (TryParseRawDouble(rawText, out var dbl)) {
+                if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var dbl)) {
                     value = dbl;
                     return true;
                 }
@@ -589,7 +589,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryParseRawDouble(rawText, out var num)) {
+            if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var num)) {
                 value = num;
             } else {
                 value = rawText;
@@ -661,11 +661,11 @@ namespace OfficeIMO.Excel {
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
                         return dec;
-                    if (TryParseRawDouble(rawText, out var dbl))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var dbl))
                         return dbl;
                     return rawText;
                 } else {
-                    if (TryParseRawDouble(rawText, out var num))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var num))
                         return num;
                 }
                 return rawText;
@@ -694,10 +694,10 @@ namespace OfficeIMO.Excel {
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec2))
                         return dec2;
-                    if (TryParseRawDouble(rawText, out var dbl2))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var dbl2))
                         return dbl2;
                 } else {
-                    if (TryParseRawDouble(rawText, out var num))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var num))
                         return num;
                 }
                 return rawText;

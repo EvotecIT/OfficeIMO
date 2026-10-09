@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             rawText = ReadXmlValueTextAndSkipCell(cellReader, depth);
@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
@@ -396,7 +396,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             return ReadXmlSharedStringTextAndSkipCell(cellReader, depth, sharedStringItems);

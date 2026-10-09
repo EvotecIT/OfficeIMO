@@ -146,6 +146,7 @@ namespace OfficeIMO.Excel {
             }
 
             int depth = inlineReader.Depth;
+            int richRunDepth = -1;
             string? first = null;
             System.Text.StringBuilder? builder = null;
             while (inlineReader.Read()) {
@@ -153,7 +154,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (inlineReader.NodeType != XmlNodeType.Element || inlineReader.LocalName != "t") {
+                if (!IsXmlInlineStringTextElement(inlineReader, depth, ref richRunDepth)) {
                     continue;
                 }
 
@@ -172,6 +173,27 @@ namespace OfficeIMO.Excel {
             return builder?.ToString() ?? first ?? string.Empty;
         }
 
+        /// <summary>Includes visible inline text in direct text elements and rich runs, excluding extension and phonetic payloads.</summary>
+        private static bool IsXmlInlineStringTextElement(XmlReader reader, int inlineStringDepth, ref int richRunDepth) {
+            if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == richRunDepth) {
+                richRunDepth = -1;
+                return false;
+            }
+
+            if (IsXmlCellChildElement(reader, inlineStringDepth)) {
+                if (reader.LocalName == "r") {
+                    richRunDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                    return false;
+                }
+
+                return reader.LocalName == "t";
+            }
+
+            return richRunDepth >= 0
+                && IsXmlCellChildElement(reader, richRunDepth)
+                && reader.LocalName == "t";
+        }
+
         private static string ReadXmlTextElement(XmlReader textReader) {
             if (textReader.IsEmptyElement) {
                 return string.Empty;
@@ -183,6 +205,10 @@ namespace OfficeIMO.Excel {
             while (textReader.Read()) {
                 if (textReader.NodeType == XmlNodeType.EndElement && textReader.Depth == depth && textReader.LocalName == "t") {
                     break;
+                }
+
+                if (textReader.NodeType == XmlNodeType.Element) {
+                    throw new XmlException("Inline string text elements must contain text only.");
                 }
 
                 if (!IsXmlTextNode(textReader.NodeType)) {

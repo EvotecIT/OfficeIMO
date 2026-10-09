@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (cellKind == XmlCellKind.SharedString
                             && !hasFormula
@@ -477,7 +477,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         rawText = textBudget == null ? cellReader.ReadElementContentAsString()
                             : textBudget.ReadElementText(cellReader, advancePastEnd: true);
@@ -517,6 +517,13 @@ namespace OfficeIMO.Excel {
             if (textBudget != null && !ReferenceEquals(raw.RawText, rawText)) textBudget.Charge(raw.RawText);
             raw.InlineText = preferFormulaText ? null : inlineText;
             return raw;
+        }
+
+        /// <summary>Matches direct SpreadsheetML children without interpreting extension descendants as cell content.</summary>
+        private static bool IsXmlCellChildElement(XmlReader reader, int cellDepth) {
+            return reader.NodeType == XmlNodeType.Element
+                && reader.Depth == cellDepth + 1
+                && (reader.NamespaceURI == SpreadsheetNamespace || reader.NamespaceURI == StrictSpreadsheetNamespace);
         }
 
         private static void SkipXmlElement(XmlReader reader, string localName) {

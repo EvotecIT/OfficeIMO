@@ -32,6 +32,17 @@ namespace OfficeIMO.Excel {
                 || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
         }
 
+        /// <summary>
+        /// Parses numeric-cell wire text using invariant culture before the legacy
+        /// culture fallback. String-cell conversions use <see cref="TryParseRawDouble"/>.
+        /// </summary>
+        private static bool TryParseExcelNumberAsDouble(string rawText, CultureInfo culture, out double value) {
+            return TryParseInvariantDouble(rawText, out value)
+                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
+                || (culture != CultureInfo.InvariantCulture
+                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out value));
+        }
+
         private bool TryParseRawInt32(string rawText, out int value) {
             if (_opt.Culture == CultureInfo.InvariantCulture && TryParseInvariantInt32Fast(rawText, out value)) {
                 return true;
@@ -158,11 +169,8 @@ namespace OfficeIMO.Excel {
 
         private static bool TryParseExcelNumberAsDecimal(string rawText, CultureInfo culture, out decimal value) {
             value = 0m;
-            bool parsed = TryParseInvariantDouble(rawText, out double number)
-                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)
-                || (culture != CultureInfo.InvariantCulture
-                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out number));
-            return parsed && TryConvertExcelNumberToDecimal(number, out value);
+            return TryParseExcelNumberAsDouble(rawText, culture, out double number)
+                && TryConvertExcelNumberToDecimal(number, out value);
         }
 
         private static bool TryConvertExcelNumberToDecimal(double number, out decimal value) {

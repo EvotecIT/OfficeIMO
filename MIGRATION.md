@@ -2839,6 +2839,17 @@ formula followers. Indexed UTF-8 and SDK worksheet-chunk caches keep their
 existing limits. This option does not cap framework XML parser memory; a CDATA
 or attribute node can be buffered before its decoded text is charged.
 
+XLSX numeric cells and cached numeric formula results now retain their invariant
+wire values under a configured reader culture. For example, `1.5` reads as `1.5`
+under `de-DE` instead of `15`, including decimal overflow fallback and typed object
+mapping. Culture-aware conversion of string cells and custom converter precedence
+remain unchanged. Re-read affected files if earlier imports persisted altered values.
+
+XML inline strings include visible text and rich runs while excluding phonetic
+guidance and extension payloads. Cell extensions cannot replace the cell's value
+or formula. XML streaming data readers reject child markup inside individual text
+elements; valid rich runs, CDATA and preserved whitespace remain supported.
+
 The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 
 ### PDF conversion and import

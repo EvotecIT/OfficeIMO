@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            internal string ReadElementText(XmlReader reader, bool advancePastEnd, bool allowNestedElements = false) {
+            internal string ReadElementText(XmlReader reader, bool advancePastEnd) {
                 _checkCancellation();
                 if (reader.IsEmptyElement) {
                     if (advancePastEnd) reader.Read();
@@ -69,8 +69,8 @@ namespace OfficeIMO.Excel {
 
                     if (IsXmlTextNode(reader.NodeType)) {
                         AppendCurrentText(reader, ref first, ref builder);
-                    } else if (!allowNestedElements && reader.NodeType == XmlNodeType.Element) {
-                        throw new XmlException("Cell value and formula elements must contain text only.");
+                    } else if (reader.NodeType == XmlNodeType.Element) {
+                        throw new XmlException("Cell text elements must contain text only.");
                     }
                 }
 
@@ -85,6 +85,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 int depth = reader.Depth;
+                int richRunDepth = -1;
                 string? first = null;
                 StringBuilder? builder = null;
                 while (reader.Read()) {
@@ -92,9 +93,9 @@ namespace OfficeIMO.Excel {
                     if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "is") {
                         return builder?.ToString() ?? first ?? string.Empty;
                     }
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "t") continue;
+                    if (!IsXmlInlineStringTextElement(reader, depth, ref richRunDepth)) continue;
 
-                    string text = ReadElementText(reader, advancePastEnd: false, allowNestedElements: true);
+                    string text = ReadElementText(reader, advancePastEnd: false);
                     if (builder != null) {
                         builder.Append(text);
                     } else if (first == null) {
