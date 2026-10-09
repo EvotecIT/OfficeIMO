@@ -46,7 +46,7 @@
     var surfaceNames = {};
     each(root.querySelectorAll('[data-surface][data-name]'), function (b) { surfaceNames[b.getAttribute('data-surface')] = b.getAttribute('data-name'); });
 
-    var state = { surface: root.getAttribute('data-surface') || 'all', from: null, to: null, hover: null, hidden: {} };
+    var state = { surface: root.getAttribute('data-surface') || 'all', from: null, to: null, hover: null, focus: null, hidden: {} };
     var panel = root.querySelector('.imo-fmap__panel');
     var chips = Array.prototype.slice.call(root.querySelectorAll('.imo-fmap__chip'));
     var surfaceButtons = Array.prototype.slice.call(root.querySelectorAll('button.imo-fmap__surface'));
@@ -213,7 +213,7 @@
 
     function renderPanel() {
       panel.textContent = '';
-      var focus = state.from || state.hover;
+      var focus = state.from || state.hover || state.focus;
       if (!focus) {
         panel.appendChild(heading('Pick a format'));
         var lines = state.surface === 'all'
@@ -357,6 +357,7 @@
     var legend = Array.prototype.slice.call(root.querySelectorAll('.imo-fmap__legend button'));
 
     function drawRadial() {
+      state.hover = state.focus = null;
       if (!svg) return;
       while (svg.firstChild) svg.removeChild(svg.firstChild);
       edgeEls = []; nodeEls = {};
@@ -400,10 +401,10 @@
         var lx = C + (R + 18) * c, ly = C + (R + 18) * s;
         g.appendChild(sv('text', { x: lx, y: ly, 'text-anchor': c >= 0 ? 'start' : 'end', 'dominant-baseline': 'middle', transform: 'rotate(' + ((c >= 0 ? at.a : at.a + Math.PI) * 180 / Math.PI) + ' ' + lx + ' ' + ly + ')' }, n));
         if (degree) {
-          g.addEventListener('mouseenter', function () { state.hover = n; paint(); });
-          g.addEventListener('mouseleave', function () { state.hover = null; paint(); });
-          g.addEventListener('focus', function () { state.hover = n; paint(); });
-          g.addEventListener('blur', function () { state.hover = null; paint(); });
+          g.addEventListener('mouseenter', function () { state.hover = n; refreshPreview(); });
+          g.addEventListener('mouseleave', function () { state.hover = null; refreshPreview(); });
+          g.addEventListener('focus', function () { state.focus = n; refreshPreview(); });
+          g.addEventListener('blur', function () { state.focus = null; refreshPreview(); });
           g.addEventListener('click', function (e) { e.stopPropagation(); pick(n, true); });
           g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(n, true); } });
         }
@@ -419,7 +420,7 @@
 
     function paint() {
       if (!svg) return;
-      var focus = state.from || state.hover;
+      var focus = state.from || state.hover || state.focus;
       svg.classList.toggle('is-focus', !!focus);
       var paths = state.from && state.to ? shortest(state.from, state.to) : [];
       var onPath = [];
@@ -486,7 +487,7 @@
       if (window.IntersectionObserver) new window.IntersectionObserver(function (entries) { onScreen = entries[0].isIntersecting; }).observe(svg);
       var pulses = [];
       window.setInterval(function () {
-        if (state.from || state.hover || document.hidden || !onScreen || !pulseLayer) return;
+        if (state.from || state.hover || state.focus || document.hidden || !onScreen || !pulseLayer) return;
         var pool = edgeEls.filter(function (p) { return p.classList.contains('is-hl'); });
         if (!pool.length || Math.random() < 0.35) pool = edgeEls;
         if (!pool.length) return;
@@ -499,7 +500,7 @@
       var step = function (now) {
         for (var i = pulses.length - 1; i >= 0; i--) {
           var u = (now - pulses[i].t0) / 1700;
-          if (u >= 1 || state.from || state.hover || !pulses[i].p.isConnected) { pulses[i].dot.remove(); pulses.splice(i, 1); continue; }
+          if (u >= 1 || state.from || state.hover || state.focus || !pulses[i].p.isConnected) { pulses[i].dot.remove(); pulses.splice(i, 1); continue; }
           var pt = pulses[i].p.getPointAtLength(pulses[i].len * u);
           pulses[i].dot.setAttribute('cx', pt.x);
           pulses[i].dot.setAttribute('cy', pt.y);
@@ -510,6 +511,10 @@
     }
 
     // ---------------------------------------------------------------- update
+    function refreshPreview() {
+      paint();
+      renderPanel();
+    }
     function update(redraw) {
       syncSurfaceButtons();
       syncChips();

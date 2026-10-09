@@ -76,6 +76,9 @@
     grid: null,
     generation: 0,
     inputGeneration: 0,
+    intakeGeneration: 0,
+    replacementGeneration: 0,
+    fileIntake: null,
     inputReady: false
   };
 
@@ -229,17 +232,37 @@
     var keep = cfg.max > 1 ? state.files.slice() : [];
     var room = cfg.max > 1 ? cfg.max - keep.length : 1;
     if (room <= 0) { setHint('This tool takes up to ' + cfg.max + ' files. Remove one first.', 'bad'); return Promise.resolve(); }
-    incoming = incoming.slice(0, room);
+    if (incoming.length > room) {
+      setHint('This tool takes up to ' + cfg.max + ' files. There is room for ' + plural(room, 'more file') + '. No files were added.', 'bad');
+      return Promise.resolve();
+    }
     var total = keep.concat(incoming).reduce(function (sum, file) { return sum + file.size; }, 0);
     if (total > MAX_TOTAL_BYTES) { setHint('Together these files are ' + bytes(total) + '. The limit is 75 MB.', 'bad'); return Promise.resolve(); }
-    return Promise.all(incoming.map(function (file) {
-      return readFile(file).then(function (buffer) { return { name: file.name, size: file.size, ext: extOf(file.name), buffer: buffer }; });
-    })).then(function (loaded) {
+    var intake = ++state.intakeGeneration;
+    var replacement = cfg.max > 1 ? state.replacementGeneration : ++state.replacementGeneration;
+    var inputGeneration = state.inputGeneration;
+    function current() {
+      return replacement === state.replacementGeneration && (cfg.max > 1 || (intake === state.intakeGeneration && inputGeneration === state.inputGeneration));
+    }
+    // Additive selections keep request order and merge with the current list after reading.
+    // Replacements and intervening removals must not be undone by an older read.
+    var previous = cfg.max > 1 && state.fileIntake ? state.fileIntake : Promise.resolve();
+    var operation = previous.then(function () {
+      if (!current()) return null;
+      return Promise.all(incoming.map(function (file) {
+        return readFile(file).then(function (buffer) { return { name: file.name, size: buffer.byteLength, ext: extOf(file.name), buffer: buffer }; });
+      }));
+    }).then(function (loaded) {
+      if (!loaded || !current()) return;
+      var keep = cfg.max > 1 ? state.files.slice() : [];
+      if (keep.length + loaded.length > cfg.max) { setHint('This tool takes up to ' + cfg.max + ' files. No files were added.', 'bad'); return; }
       var all = keep.concat(loaded);
       var total = all.reduce(function (sum, file) { return sum + file.size; }, 0);
       if (total > MAX_TOTAL_BYTES) { setHint('Together these files are ' + bytes(total) + '. The limit is 75 MB.', 'bad'); return; }
       return setFiles(all);
-    }, function () { setHint('That file couldn’t be read. It may be open in another program.', 'bad'); });
+    }).catch(function () { if (current() && intake === state.intakeGeneration) setHint('That file couldn’t be read. It may be open in another program.', 'bad'); });
+    if (cfg.max > 1) state.fileIntake = operation;
+    return operation;
   }
 
   function setFiles(files) {
@@ -346,6 +369,9 @@
 
   function loadSample() {
     if (!cfg.sample) return Promise.resolve();
+    var intake = ++state.intakeGeneration;
+    ++state.replacementGeneration;
+    var generation = state.generation;
     setHint('Loading the sample…');
     function get(path) {
       return fetch(cfg.base + path).then(function (response) {
@@ -355,6 +381,7 @@
     }
     var wantsTwo = cfg.input === 'pair' || cfg.input === 'files';
     return Promise.all([get(cfg.sample), wantsTwo && cfg.sampleSecond ? get(cfg.sampleSecond) : Promise.resolve(null)]).then(function (buffers) {
+      if (intake !== state.intakeGeneration || generation !== state.generation) return;
       var buffer = buffers[0];
       var files = [{ name: cfg.sampleName || cfg.sample.split('/').pop(), size: buffer.byteLength, ext: extOf(cfg.sample), buffer: buffer }];
       if (wantsTwo) {
@@ -367,12 +394,22 @@
         var field = ui.form && at > 0 ? ui.form.querySelector('[name="' + pair.slice(0, at) + '"]') : null;
         if (field) field.value = pair.slice(at + 1);
       });
-      return setFiles(files).then(function () { if (cfg.sampleNote) setHint(cfg.sampleNote); });
-    }).catch(function (error) { setHint(error.message, 'bad'); });
+      var staging = setFiles(files);
+      generation = state.generation;
+      return staging.then(function () { if (intake === state.intakeGeneration && generation === state.generation && cfg.sampleNote) setHint(cfg.sampleNote); });
+    }).catch(function (error) { if (intake === state.intakeGeneration && generation === state.generation) setHint(error.message, 'bad'); });
   }
 
   // ---------------------------------------------------------------- input: text
+  function textProblem(value) {
+    var limit = ui.text && ui.text.maxLength;
+    return limit > 0 && value.length > limit ? 'Text input is limited to ' + limit.toLocaleString('en-US') + ' characters here. The current input was kept.' : '';
+  }
   function setText(value, fromFile) {
+    var problem = textProblem(value);
+    if (problem) { setHint(problem, 'bad'); return; }
+    ++state.intakeGeneration;
+    ++state.replacementGeneration;
     markStale();
     state.text = value;
     state.textFromFile = !!fromFile;
@@ -384,7 +421,7 @@
   // ---------------------------------------------------------------- options
   function collectOptions() {
     var options = {};
-    var problem = '';
+    var problem = cfg.input === 'text' ? textProblem(state.text || '') : '';
     if (ui.form) {
       var fields = ui.form.querySelectorAll('input, select, textarea');
       for (var i = 0; i < fields.length; i++) {
@@ -1100,27 +1137,29 @@
   if (ui.fileInput) {
     ui.fileInput.addEventListener('change', function () {
       var files = ui.fileInput.files;
-      if (cfg.input === 'text') {
-        var file = files && files[0];
-        if (!file) return;
-        addTextFile(file);
-        ui.fileInput.value = '';
-        return;
-      }
-      addFiles(files);
+      addInputFiles(files);
       ui.fileInput.value = '';
     });
+  }
+  function addInputFiles(list) {
+    if (cfg.input !== 'text') return addFiles(list);
+    if (!list || !list.length) return Promise.resolve();
+    if (list.length > 1) { setHint('Choose one text file at a time. No files were added.', 'bad'); return Promise.resolve(); }
+    return addTextFile(list[0]);
   }
   function addTextFile(file) {
     if (!acceptFile(file.name)) { setHint('Choose ' + describeAccept() + '.', 'bad'); return Promise.resolve(); }
     if (file.size > 1024 * 1024) { setHint('Text files up to 1 MB can be checked here.', 'bad'); return Promise.resolve(); }
+    var intake = ++state.intakeGeneration;
+    ++state.replacementGeneration;
     if (cfg.kind !== 'text') {
-      return file.text().then(function (text) { setText(text, false); }).catch(function () { setHint('That text file could not be read.', 'bad'); });
+      return file.text().then(function (text) { if (intake === state.intakeGeneration) setText(text, false); }).catch(function () { if (intake === state.intakeGeneration) setHint('That text file could not be read.', 'bad'); });
     }
     return readFile(file).then(function (buffer) {
+      if (intake !== state.intakeGeneration) return;
       state.textFromFile = true;
       return setFiles([{ name: file.name, size: buffer.byteLength, ext: extOf(file.name), buffer: buffer }]);
-    }).catch(function () { setHint('That text file could not be read. Choose it again.', 'bad'); });
+    }).catch(function () { if (intake === state.intakeGeneration) setHint('That text file could not be read. Choose it again.', 'bad'); });
   }
 
   if (ui.drop) {
@@ -1132,7 +1171,7 @@
     });
     ui.drop.addEventListener('drop', function (event) {
       event.preventDefault();
-      addFiles(event.dataTransfer && event.dataTransfer.files);
+      addInputFiles(event.dataTransfer && event.dataTransfer.files);
     });
   }
   // Dropping anywhere on the page feeds the tool rather than navigating away.
@@ -1141,8 +1180,7 @@
     if (!event.dataTransfer || !event.dataTransfer.files || !event.dataTransfer.files.length) return;
     if (ui.drop && ui.drop.contains(event.target)) return;
     event.preventDefault();
-    if (cfg.input === 'text') { var file = event.dataTransfer.files[0]; addTextFile(file); }
-    else addFiles(event.dataTransfer.files);
+    addInputFiles(event.dataTransfer.files);
   });
 
   if (ui.sample) ui.sample.addEventListener('click', loadSample);
@@ -1171,12 +1209,15 @@
 
   // The originating tab keeps the bytes in memory until this tab receives them.
   if (window.OfficeIMOBrowserHandoff) {
+    var handoffIntake = state.intakeGeneration;
     window.OfficeIMOBrowserHandoff.receive().then(function (file) {
-      if (!file) return;
+      if (!file || handoffIntake !== state.intakeGeneration) return;
       if (!acceptFile(file.name)) throw new Error('This tool cannot open the transferred file type.');
       if (cfg.input === 'text') return addTextFile(new File([file.buffer], file.name, { type: file.type || '' }));
+      ++state.intakeGeneration;
+      ++state.replacementGeneration;
       return setFiles([{ name: file.name, size: file.buffer.byteLength, ext: extOf(file.name), buffer: file.buffer }]);
-    }).catch(function (error) { setHint(error.message, 'bad'); });
+    }).catch(function (error) { if (handoffIntake === state.intakeGeneration) setHint(error.message, 'bad'); });
   }
 
   registerWebMcp();
