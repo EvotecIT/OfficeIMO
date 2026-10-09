@@ -61,6 +61,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         Console.WriteLine($"PASS | native Keynote creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation");
         RunRichText();
         RunImages();
+        RunTables();
     }
 
     private static IWorkKeynoteDocument CreateAcceptedModel() {

@@ -8,10 +8,14 @@ public sealed class IWorkKeynoteWriteOptions {
     public int MaximumTextBoxes { get; set; } = 16_384;
     /// <summary>Gets or sets the maximum combined number of retained character runs across all text boxes.</summary>
     public int MaximumTextRuns { get; set; } = 65_536;
-    /// <summary>Gets or sets the maximum combined text length in UTF-16 code units, before native paragraph terminators.</summary>
+    /// <summary>Gets or sets the maximum combined text length in UTF-16 code units across text boxes, table names and table cells, before native paragraph terminators.</summary>
     public int MaximumTextCharacters { get; set; } = 8_000_000;
     /// <summary>Gets or sets the maximum number of image instances across all slides.</summary>
     public int MaximumImages { get; set; } = 4096;
+    /// <summary>Gets or sets the maximum number of tables across all slides.</summary>
+    public int MaximumTables { get; set; } = 1024;
+    /// <summary>Gets or sets the maximum combined table grid positions, including unset empty cells.</summary>
+    public int MaximumTableCells { get; set; } = 65_536;
     /// <summary>Gets or sets the maximum combined encoded image bytes, counting each instance.</summary>
     public long MaximumEncodedImageBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Gets or sets the maximum combined RGBA pixel bytes, counting each image instance.</summary>
@@ -24,6 +28,7 @@ public sealed class IWorkKeynoteWriteOptions {
             MaximumSlides = MaximumSlides, MaximumTextBoxes = MaximumTextBoxes,
             MaximumTextRuns = MaximumTextRuns,
             MaximumImages = MaximumImages, MaximumEncodedImageBytes = MaximumEncodedImageBytes,
+            MaximumTables = MaximumTables, MaximumTableCells = MaximumTableCells,
             MaximumDecodedImageBytes = MaximumDecodedImageBytes,
             MaximumTextCharacters = MaximumTextCharacters, MaximumPackageBytes = MaximumPackageBytes
         };
@@ -32,6 +37,8 @@ public sealed class IWorkKeynoteWriteOptions {
         if (copy.MaximumTextRuns <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTextRuns));
         if (copy.MaximumTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTextCharacters));
         if (copy.MaximumImages <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumImages));
+        if (copy.MaximumTables <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTables));
+        if (copy.MaximumTableCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTableCells));
         if (copy.MaximumEncodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumEncodedImageBytes));
         if (copy.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumDecodedImageBytes));
         if (copy.MaximumPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumPackageBytes));

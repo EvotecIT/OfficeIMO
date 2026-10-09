@@ -37,7 +37,6 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         Add(DocumentId, 1, P().Message(3, P().Message(1, P().String(4, "en_US")).String(3, "en")).Reference(2, ShowId));
         AddDefaultStyles();
         if (slides.Any(slide => slide.Drawables.Any(drawable => drawable is IWorkKeynoteImage))) AddImageStyle();
-        AddTheme();
         Add(BlankSlideId, 5, P().Reference(1, BlankBackgroundId).Message(4, Transition())
             .String(10, "Blank").Bool(19, true).Bool(41, false));
         Add(BlankNodeId, 4, Node(BlankSlideId, "blank-node"));
@@ -56,6 +55,11 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
                 if (drawable is IWorkKeynoteImage image) {
                     ulong imageId = AddImage(slideId, image);
                     slide.Reference(7, imageId).Reference(42, imageId);
+                    continue;
+                }
+                if (drawable is IWorkKeynoteTable table) {
+                    ulong tableId = AddTable(slideId, table);
+                    slide.Reference(7, tableId).Reference(42, tableId);
                     continue;
                 }
                 var box = (IWorkKeynoteTextBox)drawable;
@@ -82,6 +86,8 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         }
         Add(ShowId, 2, P().Reference(2, ThemeId).Reference(5, StylesheetId).Message(4, Size(size.WidthPoints, size.HeightPoints))
             .Message(3, tree).Bool(6, false).Bool(8, false).UInt(9, 0).Bool(18, false));
+        // Table style presets are registered while building their typed drawables.
+        AddTheme();
 
         var stylesheet = P().Bool(4, false);
         foreach (var style in _styles) {

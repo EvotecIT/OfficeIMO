@@ -16,6 +16,7 @@ internal static class IWorkKeynotePackageWriter {
         var slides = new List<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)>(input.Length);
         long totalBoxes = 0, totalCharacters = 0, totalRuns = 0;
         long totalImages = 0, encodedImageBytes = 0, decodedImageBytes = 0;
+        long totalTables = 0, totalTableCells = 0;
         foreach (IWorkKeynoteSlideBuilder slide in input) {
             cancellationToken.ThrowIfCancellationRequested();
             totalBoxes += slide.TextBoxes.Count;
@@ -39,6 +40,19 @@ internal static class IWorkKeynotePackageWriter {
                     throw new InvalidDataException("The native Keynote decoded-image limit was exceeded.");
                 if (encodedImageBytes > limits.MaximumPackageBytes)
                     throw new InvalidDataException("The native Keynote package limit was exceeded by image payloads.");
+            }
+            foreach (IWorkKeynoteTable table in drawables.OfType<IWorkKeynoteTable>()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++totalTables > limits.MaximumTables) throw new InvalidDataException("The native Keynote table limit was exceeded.");
+                totalTableCells += (long)table.RowCount * table.ColumnCount;
+                if (totalTableCells > limits.MaximumTableCells) throw new InvalidDataException("The native Keynote table-cell limit was exceeded.");
+                totalCharacters += table.Name.Length;
+                foreach (IWorkTableCell cell in table.Cells) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (cell.Kind == IWorkCellKind.Text) totalCharacters += ((string)cell.Value!).Length;
+                    if (totalCharacters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
+                }
+                if (totalCharacters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
             }
             slides.Add((slide, drawables));
         }
@@ -73,7 +87,7 @@ internal static class IWorkKeynotePackageWriter {
         var input = P().Float(1, (float)size.WidthPoints).Float(2, (float)size.HeightPoints);
         foreach (var slide in slides) {
             var row = P().String(1, slide.Slide.BackgroundColor.RgbHex);
-            bool hasImages = slide.Drawables.Any(drawable => drawable is IWorkKeynoteImage);
+            bool hasMixedDrawables = slide.Drawables.Any(drawable => drawable is not IWorkKeynoteTextBox);
             foreach (IWorkKeynoteCreationDrawable drawable in slide.Drawables) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (drawable is IWorkKeynoteImage image) {
@@ -82,6 +96,21 @@ internal static class IWorkKeynotePackageWriter {
                         .Float(5, (float)image.Geometry.HeightPoints);
                     if (image.AccessibilityDescription != null) data.String(6, image.AccessibilityDescription);
                     row.Message(3, P().Message(2, data));
+                    continue;
+                }
+                if (drawable is IWorkKeynoteTable table) {
+                    var data = P().UInt(1, (uint)table.RowCount).UInt(2, (uint)table.ColumnCount).String(3, table.Name)
+                        .Float(4, (float)table.Geometry.LeftPoints).Float(5, (float)table.Geometry.TopPoints)
+                        .Float(6, (float)table.Geometry.WidthPoints).Float(7, (float)table.Geometry.HeightPoints)
+                        .String(8, table.FontName).Float(9, table.FontSizePoints).String(10, table.Color.RgbHex);
+                    foreach (IWorkTableCell cell in table.Cells) {
+                        var value = P().UInt(1, (uint)cell.Row).UInt(2, (uint)cell.Column).UInt(3, (uint)cell.Kind);
+                        if (cell.Kind == IWorkCellKind.Text) value.String(4, (string)cell.Value!);
+                        else if (cell.Kind == IWorkCellKind.Number) value.Double(5, (double)cell.Value!);
+                        else if (cell.Kind == IWorkCellKind.Boolean) value.Bool(6, (bool)cell.Value!);
+                        data.Message(11, value);
+                    }
+                    row.Message(3, P().Message(3, data));
                     continue;
                 }
                 var box = (IWorkKeynoteTextBox)drawable;
@@ -95,7 +124,7 @@ internal static class IWorkKeynotePackageWriter {
                     }
                 }
                 // Keep the established text-only hash and native bytes unchanged.
-                if (hasImages) row.Message(3, P().Message(1, textBox));
+                if (hasMixedDrawables) row.Message(3, P().Message(1, textBox));
                 else row.Message(2, textBox);
             }
             input.Message(3, row);

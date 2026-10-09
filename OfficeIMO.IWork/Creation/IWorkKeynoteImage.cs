@@ -11,10 +11,10 @@ public sealed class IWorkKeynoteImage : IWorkKeynoteCreationDrawable {
     internal IWorkKeynoteImage(byte[] data, float left, float top, float width, float height,
         string? accessibilityDescription, CancellationToken cancellationToken) {
         if (data == null) throw new ArgumentNullException(nameof(data));
-        IWorkKeynoteTextBox.ValidateFinite(left, nameof(left));
-        IWorkKeynoteTextBox.ValidateFinite(top, nameof(top));
-        IWorkKeynoteTextBox.ValidatePositive(width, nameof(width));
-        IWorkKeynoteTextBox.ValidatePositive(height, nameof(height));
+        IWorkCreationValidation.ValidateFinite(left, nameof(left));
+        IWorkCreationValidation.ValidateFinite(top, nameof(top));
+        IWorkCreationValidation.ValidatePositive(width, nameof(width));
+        IWorkCreationValidation.ValidatePositive(height, nameof(height));
         cancellationToken.ThrowIfCancellationRequested();
         // Core rejects incomplete image bodies and imposes its encoded/pixel/decode bounds.
         // Check metadata before copying an unbounded caller buffer.
@@ -30,7 +30,7 @@ public sealed class IWorkKeynoteImage : IWorkKeynoteCreationDrawable {
             // CRLF normalization can at most halve the raw UTF-16 length.
             if (accessibilityDescription.Length > 8192)
                 throw new ArgumentException("An image description supports at most 4096 UTF-16 code units.", nameof(accessibilityDescription));
-            accessibilityDescription = IWorkKeynoteTextBox.NormalizeText(accessibilityDescription);
+            accessibilityDescription = IWorkCreationValidation.NormalizeText(accessibilityDescription);
             if (accessibilityDescription.Length > 4096)
                 throw new ArgumentException("An image description supports at most 4096 UTF-16 code units.", nameof(accessibilityDescription));
         }

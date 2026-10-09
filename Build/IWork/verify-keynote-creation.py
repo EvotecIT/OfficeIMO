@@ -15,13 +15,17 @@ from zipfile import ZipFile
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory
 from numbers_parser.iwafile import IWACompressedChunk, get_archive_info_and_remainder
 from iwork_protobuf_evidence import fields
+from keynote_table_creation_evidence import verify_tables
 
 SCHEMAS = {1: 'KN.DocumentArchive', 11006: 'TSP.PackageMetadata', 2: 'KN.ShowArchive',
     10: 'KN.ThemeArchive', 401: 'TSS.StylesheetArchive', 2021: 'TSWP.CharacterStyleArchive',
     2022: 'TSWP.ParagraphStyleArchive', 2025: 'TSWP.ShapeStyleArchive', 9: 'KN.SlideStyleArchive',
     2023: 'TSWP.ListStyleArchive', 2050: 'TSWP.TextStylePresetArchive', 5: 'KN.SlideArchive',
     4: 'KN.SlideNodeArchive', 2011: 'TSWP.ShapeInfoArchive', 2001: 'TSWP.StorageArchive',
-    3005: 'TSD.ImageArchive', 3016: 'TSD.MediaStyleArchive'}
+    3005: 'TSD.ImageArchive', 3016: 'TSD.MediaStyleArchive',
+    6000: 'TST.TableInfoArchive', 6001: 'TST.TableModelArchive', 6002: 'TST.Tile',
+    6003: 'TST.TableStyleArchive', 6004: 'TST.CellStyleArchive', 6005: 'TST.TableDataList',
+    6006: 'TST.HeaderStorageBucket', 6008: 'TST.TableStylePresetArchive', 6247: 'TST.TableStyleNetworkArchive'}
 
 
 def records(package):
@@ -76,7 +80,8 @@ def verify(path, descriptor):
             refs = references(message)
             if kind == 10:
                 theme = fields(fields(payload)[1][0])
-                for number, schema in [(100, 'TSD.ThemePresetsArchive'), (110, 'TSWP.ThemePresetsArchive')]:
+                for number, schema in [(100, 'TSD.ThemePresetsArchive'), (110, 'TSWP.ThemePresetsArchive'),
+                                       (200, 'TST.ThemePresetsArchive')]:
                     for value in theme.get(number, []):
                         refs.update(references(decode(schema, value)))
             assert set(header.message_infos[0].object_references) == refs, identifier
@@ -172,6 +177,7 @@ def verify(path, descriptor):
                 'pixel_size': [message.naturalSize.width, message.naturalSize.height],
                 'image_attributes_extension': 100,
                 'description': message.super.accessibility_description})
+        tables = verify_tables(graph, decoded)
         names = package.namelist()
         assert names == sorted(names) and len(names) == 5 + len(resource_paths)
         assert all(item.compress_type == 0 and item.date_time == (1980, 1, 1, 0, 0, 0)
@@ -186,7 +192,7 @@ def verify(path, descriptor):
         'reference_graph_complete': True, 'deterministic_zip_profile': True,
         'character_ranges_complete': True, 'records': len(objects), 'objects': objects,
         'modern_text_colors': text_colors, 'native_text_runs': text_runs,
-        'data_reference_graph_complete': True, 'image_resources': images}
+        'data_reference_graph_complete': True, 'image_resources': images, 'native_tables': tables}
 
 
 def main():
@@ -198,7 +204,8 @@ def main():
     assert version('numbers-parser') == '4.19.0'
     result = verify(args.package, args.descriptor)
     args.output.write_text(json.dumps(result, indent=2) + '\n')
-    print({key: value for key, value in result.items() if key not in ('objects', 'modern_text_colors', 'native_text_runs', 'image_resources')})
+    print({key: value for key, value in result.items() if key not in
+           ('objects', 'modern_text_colors', 'native_text_runs', 'image_resources', 'native_tables')})
 
 
 if __name__ == '__main__':

@@ -1,0 +1,278 @@
+{
+  "title": "Native Keynote scalar-table creation",
+  "recordedUtc": "2026-10-09T20:52:29.843421+00:00",
+  "license": "Newly authored OfficeIMO documents and evidence use the repository MIT license. No seed package or standalone font files are distributed.",
+  "producer": {
+    "application": "Keynote Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "factory": "OfficeIMO.IWork.AotSmoke/NativeKeynoteWriterSmoke.Tables.cs",
+    "canvasPoints": [
+      960,
+      540
+    ],
+    "slides": 3,
+    "tables": [
+      {
+        "id": 41,
+        "name": "Values",
+        "rows": 4,
+        "columns": 4,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "kind": "Text",
+            "value": "Product"
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "kind": "Text",
+            "value": "Units"
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "kind": "Text",
+            "value": "Revenue"
+          },
+          {
+            "row": 1,
+            "column": 4,
+            "kind": "Text",
+            "value": "Active"
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "kind": "Text",
+            "value": "Widget"
+          },
+          {
+            "row": 2,
+            "column": 2,
+            "kind": "Number",
+            "value": 12.0
+          },
+          {
+            "row": 2,
+            "column": 3,
+            "kind": "Number",
+            "value": 1200.5
+          },
+          {
+            "row": 2,
+            "column": 4,
+            "kind": "Boolean",
+            "value": true
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "kind": "Text",
+            "value": "Gadget"
+          },
+          {
+            "row": 3,
+            "column": 2,
+            "kind": "Number",
+            "value": 0.0
+          },
+          {
+            "row": 3,
+            "column": 3,
+            "kind": "Number",
+            "value": -25.75
+          },
+          {
+            "row": 3,
+            "column": 4,
+            "kind": "Boolean",
+            "value": false
+          },
+          {
+            "row": 4,
+            "column": 1,
+            "kind": "Text",
+            "value": "Zażółć 😀"
+          },
+          {
+            "row": 4,
+            "column": 2,
+            "kind": "Text",
+            "value": "=SUM(A1:A2)"
+          },
+          {
+            "row": 4,
+            "column": 3,
+            "kind": "Text",
+            "value": ""
+          },
+          {
+            "row": 4,
+            "column": 4,
+            "kind": "Empty",
+            "value": null
+          }
+        ],
+        "row_offsets_and_counts_complete": true,
+        "style_preset_network_complete": true
+      },
+      {
+        "id": 82,
+        "name": "Unicode",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "kind": "Text",
+            "value": "A😀B\nZażółć — café"
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "kind": "Text",
+            "value": "REPEATED"
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "kind": "Text",
+            "value": "REPEATED"
+          },
+          {
+            "row": 2,
+            "column": 2,
+            "kind": "Number",
+            "value": 0.125
+          }
+        ],
+        "row_offsets_and_counts_complete": true,
+        "style_preset_network_complete": true
+      },
+      {
+        "id": 119,
+        "name": "Empty",
+        "rows": 1,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "kind": "Empty",
+            "value": null
+          }
+        ],
+        "row_offsets_and_counts_complete": true,
+        "style_preset_network_complete": true
+      }
+    ],
+    "fonts": [
+      "Arial",
+      "Times New Roman"
+    ],
+    "grid": "uniform one-point solid black; white cells; four-point padding; top alignment",
+    "nativeNumericEncoding": "version5 Decimal128 bit0; distinct boolean float64 bit1",
+    "themeTablePresetField": 200,
+    "modelHasNoAppleSeedBytes": true
+  },
+  "files": [
+    {
+      "path": "native-exports/keynote-created-tables-v15.4.key",
+      "bytes": 25227,
+      "sha256": "51d624971820bd161909e957dcb11ece88b59f39f95268db75dc166068fbce88",
+      "role": "OfficeIMO template-free scalar-table creation"
+    },
+    {
+      "path": "native-exports/keynote-created-tables-v15.4.pdf",
+      "bytes": 101277,
+      "sha256": "67f901c6e03c40f77e01943a732440de1ff594613d1bb8894321a0b4f420dbb5",
+      "role": "Native PDF, all three slides before edits"
+    },
+    {
+      "path": "native-exports/keynote-created-tables-v15.4.pptx",
+      "bytes": 17663,
+      "sha256": "99bffcd325ff7856b9d78828897eba4a4d036c78983daaa32ee8cbf74a7fdc21",
+      "role": "Native PPTX before edits"
+    },
+    {
+      "path": "native-exports/keynote-created-tables-edited-v15.4.key",
+      "bytes": 176379,
+      "sha256": "71f6ef56918b9c30c459436f6f1da581a4d28ef46045932b7604a9dafd584d62",
+      "role": "Native edits, saved and reopened"
+    }
+  ],
+  "independentDecode": {
+    "tool": "Build/IWork/verify-keynote-creation.py",
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+    "numbersParserVersion": "4.19.0",
+    "records": 121,
+    "requiredFieldsComplete": true,
+    "referenceGraphComplete": true,
+    "dataReferenceGraphComplete": true,
+    "stringRefcountsRowOffsetsAndTypedCells": true
+  },
+  "nativeAcceptance": {
+    "openWithoutRepair": true,
+    "allThreeSlidesInspected": true,
+    "tableStyleGalleryEnabled": true,
+    "pdfAndPptxExported": true,
+    "edits": [
+      {
+        "slide": 1,
+        "cell": "B2",
+        "before": 12,
+        "after": 42
+      },
+      {
+        "slide": 1,
+        "cell": "D4",
+        "before": "empty",
+        "after": "Edited 😀"
+      },
+      {
+        "slide": 3,
+        "cell": "A1",
+        "before": "empty",
+        "after": "Created in empty table\n"
+      }
+    ],
+    "saveCloseReopenObserved": true,
+    "originalSourceUnchanged": true,
+    "editedSourceStrictSavedReopenedPptx": true,
+    "declarationIssues": 0,
+    "referenceIssues": 0,
+    "ownedAppClosed": true
+  },
+  "directPdfQualification": {
+    "allThreePagesInspected": true,
+    "completeTextAndGeometry": true,
+    "fontProfile": "installed Arial and Times New Roman; test-only Noto Emoji fallback",
+    "defaultUnicodePreflightRejectsEmoji": true,
+    "knownDifferences": [
+      "Native Polish number/boolean display versus invariant destination values",
+      "Native color emoji versus explicit monochrome fallback",
+      "Native black borders versus destination default grid; I3 fidelity work remains open"
+    ]
+  },
+  "boundaries": [
+    "Scalar creation only; no formulas, merges, headers/footers, comments or per-cell styles",
+    "No loaded-source save-back or native Pages/Numbers writer acceptance",
+    "Keynote 15.4 macOS arm64 only; other native versions/architectures are not qualified by this fixture"
+  ],
+  "reproduction": [
+    "Compile pinned KNArchives.proto, TSTArchives.proto and TSPArchiveMessages.proto with protoc --include_imports.",
+    "Run Build/IWork/verify-keynote-creation.py with the owned package, descriptor and evidence output path.",
+    "Run OfficeIMO.IWork.AotSmoke with --native-keynote-create to exercise the byte-identical table factory."
+  ]
+}

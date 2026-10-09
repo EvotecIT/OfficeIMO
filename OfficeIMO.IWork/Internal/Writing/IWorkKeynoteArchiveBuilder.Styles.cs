@@ -52,6 +52,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             .Reference(6, DefaultCharacterId).Reference(1, ListId);
         var theme = P().Reference(4, StylesheetId).String(3, "OfficeIMO")
             .Message(100, drawingPresets).Message(110, textPresets);
+        AddTableThemePresets(theme);
         // Keynote's color-preset UI addresses a 30-slot palette. Generate our own palette, including the no-fill slot.
         foreach (float grey in new[] { 1f, .8f, .6f, .3f, 0f }) theme.Message(10, PaletteColor(grey, grey, grey, 1));
         theme.Message(10, PaletteColor(0, 0, 0, 0));
