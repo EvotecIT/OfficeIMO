@@ -29,8 +29,19 @@ public sealed class PublisherGroupTransformTests {
                 .Any(image => image.SourceElementIds?.Contains("publisher-object-346") == true));
         OfficeDrawingImage image = PublisherNativeTests.Elements(artwork.InnerDrawing).OfType<OfficeDrawingImage>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-346") == true);
-        OfficePoint untransformed = image.Projection.CreateUnitSquareTransform().TransformPoint(new OfficePoint(0, 0));
-        Equal(Transform(untransformed, centerX, centerY, angle, horizontal, vertical), artwork.Transform.TransformPoint(untransformed));
+        OfficeDrawingImage original = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"))
+            .Pages.SelectMany(item => PublisherNativeTests.Elements(item.Drawing)).OfType<OfficeDrawingImage>()
+            .Single(item => item.SourceElementIds?.Contains("publisher-object-346") == true);
+        foreach (OfficePoint point in new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(1, 1) }) {
+            OfficePoint unrotated = original.Projection.CreateUnitSquareTransform().TransformPoint(point);
+            // The fixture's native group anchor exchanges its width/height at
+            // quarter turns; child coordinates map through that restored frame.
+            if (angle is 90 or 270) unrotated = new OfficePoint(
+                centerX + (unrotated.X - centerX) * 1543214D / 2050741D,
+                centerY + (unrotated.Y - centerY) * 2050741D / 1543214D);
+            OfficePoint expected = Transform(unrotated, centerX, centerY, angle, horizontal, vertical);
+            Equal(expected, artwork.Transform.TransformPoint(image.Projection.CreateUnitSquareTransform().TransformPoint(point)));
+        }
         Assert.Equal(publication.Pages.Count, PdfReadDocument.Open(publication.ToPdfBytes()).Pages.Count);
         Assert.Contains("matrix(", publication.ToSvg(publication.Pages.ToList().IndexOf(page)));
     }
@@ -99,6 +110,29 @@ public sealed class PublisherGroupTransformTests {
     }
 
     [Fact]
+    public void Off_page_group_picture_is_retained_when_reflection_moves_it_onto_the_page() {
+        PublisherDocument control = PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"));
+        OfficeDrawingImage original = control.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+            .OfType<OfficeDrawingImage>().Single(image => image.SourceElementIds?.Contains("publisher-object-346") == true);
+        double offsetY = -original.Projection.Y - 20D;
+        PublisherDocument reflected = PublisherDocument.Load(MutateGroup(0, false, true, yOffsetPoints: offsetY));
+        PublisherPage page = reflected.Pages.Single(item => item.TextFrames.Any(frame => frame.Id == 345));
+        OfficeDrawingEffectGroup artwork = PublisherNativeTests.Elements(page.Drawing).OfType<OfficeDrawingEffectGroup>()
+            .Single(group => PublisherNativeTests.Elements(group.InnerDrawing).OfType<OfficeDrawingImage>()
+                .Any(image => image.SourceElementIds?.Contains("publisher-object-346") == true));
+        OfficeDrawingImage picture = PublisherNativeTests.Elements(artwork.InnerDrawing).OfType<OfficeDrawingImage>().Single();
+        var bounds = artwork.Transform.TransformRectangleBounds(picture.Projection.X, picture.Projection.Y,
+            picture.Projection.Width, picture.Projection.Height);
+        Assert.True(bounds.Top >= 0 && bounds.Bottom < page.Height);
+        var isolated = new OfficeDrawing(page.Width, page.Height).AddEffectDrawing(artwork.Drawing, artwork.Transform);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(isolated);
+        // This band originated above the page before reflection. It must retain
+        // its pixels until the final page clip, even without any backing artwork.
+        Assert.Equal(255, raster.GetPixel((int)((bounds.Left + bounds.Right) / 2), (int)(bounds.Bottom - 10D)).A);
+        Assert.Contains("data:image/", OfficeDrawingSvgExporter.ToSvg(isolated));
+    }
+
+    [Fact]
     public void Inherited_transform_wrappers_cannot_bypass_the_projected_element_budget() {
         var child = new OfficeDrawing(10, 10).AddShape(OfficeShape.Rectangle(2, 2), 1, 1);
         var drawing = new OfficeDrawing(10, 10).AddEffectDrawing(child, OfficeTransform.RotateDegrees(30));
@@ -108,7 +142,7 @@ public sealed class PublisherGroupTransformTests {
         Assert.Throws<InvalidDataException>(() => context.AccountProjection(drawing));
     }
 
-    private static byte[] MutateGroup(double angle, bool horizontal, bool vertical, bool hidden = false) =>
+    private static byte[] MutateGroup(double angle, bool horizontal, bool vertical, bool hidden = false, double yOffsetPoints = 0D) =>
         PublisherInputContractTests.Mutate("Escher/EscherStm", bytes => {
             bool found = false;
             Visit(bytes, 0, bytes.Length, (children, id) => {
@@ -126,6 +160,16 @@ public sealed class PublisherGroupTransformTests {
                         bytes[offset] = (byte)property; bytes[offset + 1] = (byte)(property >> 8);
                         PublisherInputContractTests.WriteUInt32(bytes, offset + 2,
                             hidden ? 0x40004000U : unchecked((uint)(int)(angle * 65536)));
+                    }
+                    if (kind == 0xF010 && yOffsetPoints != 0D) {
+                        for (int item = offset + 4; item < offset + length; item += 6) {
+                            ushort key = BitConverter.ToUInt16(bytes, item);
+                            if (key is 0x2002 or 0x2004) {
+                                int y = BitConverter.ToInt32(bytes, item + 2);
+                                PublisherInputContractTests.WriteUInt32(bytes, item + 2,
+                                    unchecked((uint)checked(y + (int)Math.Round(yOffsetPoints * 12700D))));
+                            }
+                        }
                     }
                 }
             });
