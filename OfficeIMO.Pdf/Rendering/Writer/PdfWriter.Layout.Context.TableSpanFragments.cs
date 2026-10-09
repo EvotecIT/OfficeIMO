@@ -8,6 +8,22 @@ internal static partial class PdfWriter {
             double tableX, int? tableStructureElementIndex, ref StringBuilder? pairedBorders,
             int completedRow = -1, double cornerRadius = 0D, double fullFrameHeight = double.PositiveInfinity,
             bool logicalTopBoundary = true, bool logicalBottomBoundary = true, double closingPadding = 0D) {
+            // Alignment belongs to the complete logical cell, not each page fragment.
+            foreach (TableSpanCellFlow span in flow.ActiveCells) {
+                if (span.Height <= .001D || span.AlignmentLeadingHeight.HasValue) continue;
+                PdfCellVerticalAlign alignment = GetTableCellVerticalAlignment(style, span.Row, span.Cell.Column);
+                span.AlignmentLeadingHeight = 0D;
+                if (alignment == PdfCellVerticalAlign.Top) continue;
+                TableCellTextLayout text = rows.Lines[span.Row][span.Cell.Column];
+                double innerWidth = GetTableCellWidth(columnWidths, span.Cell.Column, span.Cell.ColumnSpan, columnGap) -
+                    GetTableCellPaddingLeft(style, span.Row, span.Cell.Column) - GetTableCellPaddingRight(style, span.Row, span.Cell.Column);
+                double logicalHeight = GetTableCellHeight(rows.Heights, span.Row, span.Cell.RowSpan, rowGap) -
+                    GetTableCellPaddingTop(style, span.Row, span.Cell.Column) - GetTableCellPaddingBottom(style, span.Row, span.Cell.Column);
+                double textHeight = MeasureTableCellContentHeight(span.Cell, text, 0, text.LineCount,
+                    rows.Leadings[span.Row], innerWidth, includeObjects: false);
+                double unusedHeight = Math.Max(0D, logicalHeight - textHeight);
+                span.AlignmentLeadingHeight = alignment == PdfCellVerticalAlign.Middle ? unusedHeight / 2D : unusedHeight;
+            }
             // Paint every deferred fill before any adjacent span's content or borders.
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.Height <= .001D || completedRow >= 0 && span.EndRow != completedRow + 1 ||
@@ -72,7 +88,8 @@ internal static partial class PdfWriter {
                     renderAsHeader: false, wholeRowSegment: span.ConsumedLines == 0 && completedRow >= 0,
                     suppressCellObjects: true, style.TextColor, rowStructure, span.RowStructure,
                     fragmentRowSpan: span.LastFragmentRow - span.FirstFragmentRow + 1,
-                    includeNamedDestination: !span.DestinationEmitted);
+                    includeNamedDestination: !span.DestinationEmitted,
+                    verticalOffsetOverride: Math.Max(0D, (span.AlignmentLeadingHeight ?? 0D) - span.ProcessedHeight));
                 span.ConsumedLines += take;
                 span.DestinationEmitted = true;
                 PdfCellBorder? border = null;
@@ -98,6 +115,7 @@ internal static partial class PdfWriter {
                         Top = continuation, Bottom = continues, Left = false, Right = false
                     }, x, bottom, width, span.Height, emitGeneratedStructure);
                 }
+                span.ProcessedHeight += span.Height;
                 span.Height = 0D;
             }
         }
@@ -108,7 +126,8 @@ internal static partial class PdfWriter {
             TableCellLayout cell = span.Cell;
             TableCellTextLayout lines = rows.Lines[row][cell.Column];
             double padding = GetTableCellPaddingTop(style, row, cell.Column) + GetTableCellPaddingBottom(style, row, cell.Column);
-            double available = Math.Max(0D, span.Height - padding);
+            double leadingHeight = Math.Max(0D, (span.AlignmentLeadingHeight ?? 0D) - span.ProcessedHeight);
+            double available = Math.Max(0D, span.Height - padding - leadingHeight);
             int count = LimitTableCellLineCountToHeight(lines, span.ConsumedLines,
                 Math.Max(0, lines.LineCount - span.ConsumedLines), rows.Leadings[row], available);
             double fullTextHeight = Math.Max(0D, fullFrameHeight - closingPadding - padding);

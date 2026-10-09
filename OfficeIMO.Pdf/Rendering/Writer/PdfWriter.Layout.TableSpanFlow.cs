@@ -73,6 +73,8 @@ internal static partial class PdfWriter {
         public TableCellLayout Cell { get; }
         public int EndRow => Row + Cell.RowSpan;
         public int ConsumedLines { get; set; }
+        public double ProcessedHeight { get; set; }
+        public double? AlignmentLeadingHeight { get; set; }
         public double Top { get; set; }
         public double Height { get; set; }
         public int FirstFragmentRow { get; set; }

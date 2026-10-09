@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
             double rowLeading, double runFontSizeScale, bool rowUsesBold, bool renderAsHeader,
             bool wholeRowSegment, bool suppressCellObjects, PdfColor? textColor,
             int? rowStructureElementIndex, PageStructElement? rowStructureElement = null,
-            int? fragmentRowSpan = null, bool includeNamedDestination = true) {
+            int? fragmentRowSpan = null, bool includeNamedDestination = true, double? verticalOffsetOverride = null) {
             int c = cell.Column;
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             double cellPadLeft = GetTableCellPaddingLeft(style, rowIndex, c);
@@ -23,18 +23,20 @@ internal static partial class PdfWriter {
             PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, c);
 
             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
-            double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
+            double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom - (verticalOffsetOverride ?? 0D));
             // A neighboring horizontal cell can continue the row after the
             // turned cell's content has already been painted on its first fragment.
             int visibleLineCount = cell.TextRotation != 0 ? (sourceStartLine == 0 ? 1 : 0) : LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, style.PreservePartialCellLines);
-            double verticalOffset = 0;
+            double verticalOffset = verticalOffsetOverride ?? 0D;
             double visibleTextHeight = 0D;
             if (visibleLineCount > 0) {
                 visibleTextHeight = MeasureTableCellTextHeight(lines, sourceStartLine, visibleLineCount, rowLeading);
                 double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW);
                 double unusedTextHeight = Math.Max(0, availableTextHeight - visibleContentHeight);
-                if (verticalAlign == PdfCellVerticalAlign.Middle) verticalOffset = unusedTextHeight / 2;
-                else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
+                if (!verticalOffsetOverride.HasValue) {
+                    if (verticalAlign == PdfCellVerticalAlign.Middle) verticalOffset = unusedTextHeight / 2;
+                    else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
+                }
             }
 
             double firstBaseline = contentFrame.Top - cellPadTop - verticalOffset - (sourceStartLine == 0 ? lines.TopSpacing : 0D) - GetAscenderForOptions(cellFont, rowSize, currentOpts) + style.RowBaselineOffset;
@@ -111,6 +113,20 @@ internal static partial class PdfWriter {
             }
 
             if (HasCellLinkTarget(linkUri, linkDestinationName) && (cell.TextRotation == 0 || sourceStartLine == 0)) {
+                if (visibleLineCount == 0 && emitGeneratedStructure && currentPage != null) {
+                    string structureType = renderAsHeader ? "TH" : "TD";
+                    int rowSpan = fragmentRowSpan ?? (wholeRowSegment ? cell.RowSpan : 1);
+                    if (rowStructureElement == null) {
+                        int? cellIndex = RegisterStructureContainer(structureType, rowStructureElementIndex,
+                            renderAsHeader ? "Column" : string.Empty, cell.ColumnSpan, rowSpan, logicalOrder: c);
+                        cellLinkStructElementIndex = RegisterStructureContainer("Link", cellIndex);
+                    } else {
+                        PageStructElement? cellElement = RegisterStructureContainer(structureType, rowStructureElement,
+                            renderAsHeader ? "Column" : string.Empty, cell.ColumnSpan, rowSpan, logicalOrder: c);
+                        PageStructElement? linkElement = RegisterStructureContainer("Link", cellElement);
+                        if (linkElement != null) cellLinkStructElementIndex = currentPage.StructElements.IndexOf(linkElement);
+                    }
+                }
                 double x1 = cellX + cellPadLeft - textClipBleed;
                 double x2 = cellX + cellWidth - cellPadRight + textClipBleed;
                 double linkCellHeight = cellHeight;
