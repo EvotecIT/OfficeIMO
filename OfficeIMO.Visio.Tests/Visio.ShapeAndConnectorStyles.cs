@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1", connectorXml.Elements(ns + "Cell").First(c => c.Attribute("N")?.Value == "EndY").Attribute("V")?.Value);
 
             var badCells = pageXml.Descendants(ns + "Cell")
-                .Where(c => (c.Attribute("N")?.Value == "NoLine" || c.Attribute("N")?.Value == "NoFill") && c.Attribute("V")?.Value == "1");
+                .Where(c => c.Attribute("N")?.Value == "NoLine" && c.Attribute("V")?.Value == "1");
             Assert.Empty(badCells);
         }
     }

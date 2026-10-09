@@ -111,7 +111,7 @@ namespace OfficeIMO.Visio {
         private const string DocumentContentType = VisioPackageFormat.DrawingContentType;
         private const string VbaProjectRelationshipType = "http://schemas.microsoft.com/office/2006/relationships/vbaProject";
         private const string VbaProjectContentType = "application/vnd.ms-office.vbaProject";
-        private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
+        internal const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
         private const string ThemeRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/theme";
         private const string ThemeContentType = "application/vnd.ms-visio.theme+xml";
         private const string CommentsRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/comments";
@@ -261,21 +261,39 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            ImportStencilPackageVisualContext(packagePath);
+            var fontIds = ImportStencilPackageVisualContext(packagePath, out var nativeCells, out var textBackgroundColors, out var fontWire);
             List<VisioMaster> imported = new();
             foreach (VisioAssets.MasterContent content in contents) {
-                VisioShape shape = CreateImportedMasterShape(content);
                 XDocument rawMasterXml = new(content.MasterXml);
                 NormalizeImportedMasterRoot(rawMasterXml);
+                NormalizeImportedTextBackgroundColors(rawMasterXml, textBackgroundColors);
+                if (rawMasterXml.Root != null) fontWire?.DecodeCells(rawMasterXml.Root, nativeCells, VisioNativeCellMetadata.MasterScope(content.NameU));
+                RemapImportedFontIds(rawMasterXml.Root!, fontIds, nativeCells, VisioNativeCellMetadata.MasterScope(content.NameU));
+                VisioShape shape = CreateImportedMasterShape(rawMasterXml);
+                XElement? nativeShape = FindFirstMasterShape(rawMasterXml);
+                if (nativeShape != null) VisioNativeCellMetadata.BindTree(shape, nativeShape, VisioNativeCellMetadata.MasterScope(content.NameU), nativeCells);
                 VisioMaster master = new(content.Id, content.NameU, shape) {
                     RawMasterContentXml = rawMasterXml,
+                    LoadedModelShapeXml = CreateMasterModelShapeXml(shape, rawMasterXml),
                     IsPackageBacked = true,
                     StencilSourcePackagePath = normalizedPackagePath
                 };
+                foreach (XElement additionalShape in rawMasterXml.Root?.Element(XName.Get("Shapes", VisioNamespace))?
+                             .Elements(XName.Get("Shape", VisioNamespace)).Skip(1) ?? Enumerable.Empty<XElement>())
+                    VisioNativeCellMetadata.BindRawShapeTree(master.NativeAdditionalShapeMetadata, additionalShape,
+                        VisioNativeCellMetadata.MasterScope(content.NameU), nativeCells);
+                fontWire?.DecodeCells(content.MasterElement, nativeCells, VisioNativeCellMetadata.MasterScope(content.NameU));
+                RemapImportedFontIds(content.MasterElement, fontIds, nativeCells, VisioNativeCellMetadata.MasterScope(content.NameU));
+                XElement? pageSheet = content.MasterElement.Element(XName.Get("PageSheet", VisioNamespace));
+                if (pageSheet != null) {
+                    master.LoadedPageSheetXml = new XElement(pageSheet);
+                    master.NativePageSheetMetadata = VisioNativeCellMetadata.Bind(pageSheet, VisioNativeCellMetadata.MasterScope(content.NameU), nativeCells);
+                }
                 foreach (VisioAssets.MasterRelationshipContent relationship in content.Relationships) {
                     master.RawMasterRelationships.Add(relationship);
                 }
 
+                CaptureMasterFontScope(master);
                 RegisterMaster(master);
                 imported.Add(master);
             }
@@ -436,15 +454,25 @@ namespace OfficeIMO.Visio {
                 .ToArray();
         }
 
-        private void ImportStencilPackageVisualContext(string packagePath) {
+        private Dictionary<string, string> ImportStencilPackageVisualContext(string packagePath, out Dictionary<string, XElement?> nativeCells, out Dictionary<int, string> textBackgroundColors, out VisioFontWireCodec? fontWire) {
+            var fontIds = new Dictionary<string, string>(StringComparer.Ordinal);
             VisioAssets.PackageVisualContext context = VisioAssets.LoadVisualContext(packagePath);
             XNamespace ns = VisioNamespace;
 
             XElement? documentRoot = context.DocumentXml?.Root;
+            fontWire = documentRoot == null ? null : VisioFontWireCodec.ReadDocument(documentRoot);
+            nativeCells = VisioNativeCellMetadata.Read(documentRoot?.Elements() ?? Enumerable.Empty<XElement>());
+            if (documentRoot != null) fontWire!.DecodeCells(documentRoot, nativeCells);
+            textBackgroundColors = ReadTextBackgroundPalette(documentRoot?.Element(ns + "Colors")?.Elements() ?? Enumerable.Empty<XElement>());
             if (documentRoot != null) {
                 ImportColors(documentRoot.Element(ns + "Colors"), ns);
-                ImportFaceNames(documentRoot.Element(ns + "FaceNames"), ns);
-                ImportStyleSheets(documentRoot.Element(ns + "StyleSheets"), ns);
+                fontIds = ImportFaceNames(documentRoot.Element(ns + "FaceNames"));
+                fontWire?.BindAliasImporter(face => {
+                    foreach (var alias in ImportFaceNames(new XElement(ns + "FaceNames", face)))
+                        fontIds[alias.Key] = alias.Value;
+                });
+                RemapImportedFontIds(documentRoot, fontIds, nativeCells);
+                ImportStyleSheets(documentRoot.Element(ns + "StyleSheets"), ns, nativeCells);
             }
 
             if (PackageTheme == null && context.ThemeXml?.Root != null) {
@@ -453,6 +481,7 @@ namespace OfficeIMO.Visio {
                     TemplateXml = new XDocument(context.ThemeXml)
                 };
             }
+            return fontIds;
         }
 
         private void ImportColors(XElement? colors, XNamespace ns) {
@@ -475,74 +504,6 @@ namespace OfficeIMO.Visio {
                 }
 
                 PreservedColorsElements.Add(new XElement(element));
-            }
-        }
-
-        private void ImportFaceNames(XElement? faceNames, XNamespace ns) {
-            if (faceNames == null) {
-                return;
-            }
-
-            foreach (XAttribute attribute in faceNames.Attributes().Where(ShouldPreserveFaceNamesAttribute)) {
-                AddMissingAttribute(PreservedFaceNamesAttributes, attribute);
-            }
-
-            HashSet<string> existingFaces = new HashSet<string>(PreservedFaceNamesElements
-                .Where(element => string.Equals(element.Name.LocalName, "FaceName", StringComparison.OrdinalIgnoreCase))
-                .Select(element => element.Attribute("NameU")?.Value ?? element.Attribute("Name")?.Value ?? element.Attribute("ID")?.Value ?? string.Empty)
-                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.OrdinalIgnoreCase);
-            foreach (XElement element in faceNames.Elements().Where(ShouldPreserveFaceNamesElement)) {
-                string faceKey = element.Attribute("NameU")?.Value ?? element.Attribute("Name")?.Value ?? element.Attribute("ID")?.Value ?? Guid.NewGuid().ToString("N");
-                if (!existingFaces.Add(faceKey)) {
-                    continue;
-                }
-
-                PreservedFaceNamesElements.Add(new XElement(element));
-            }
-        }
-
-        private void ImportStyleSheets(XElement? styleSheets, XNamespace ns) {
-            if (styleSheets == null) {
-                return;
-            }
-
-            foreach (XAttribute attribute in styleSheets.Attributes().Where(ShouldPreserveStyleSheetsAttribute)) {
-                AddMissingAttribute(PreservedStyleSheetsAttributes, attribute);
-            }
-
-            foreach (XElement element in styleSheets.Elements().Where(ShouldPreserveStyleSheetsElement)) {
-                if (!PreservedStyleSheetsElements.Any(existing => XNode.DeepEquals(existing, element))) {
-                    PreservedStyleSheetsElements.Add(new XElement(element));
-                }
-            }
-
-            HashSet<string> existingAdditionalStyleIds = new HashSet<string>(PreservedAdditionalStyleSheets
-                .Select(styleSheet => styleSheet.Attribute("ID")?.Value ?? string.Empty)
-                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.Ordinal);
-            foreach (XElement styleSheet in styleSheets.Elements(ns + "StyleSheet")) {
-                string id = styleSheet.Attribute("ID")?.Value ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(id)) {
-                    continue;
-                }
-
-                if (!IsGeneratedStyleSheet(id)) {
-                    if (existingAdditionalStyleIds.Add(id)) {
-                        PreservedAdditionalStyleSheets.Add(new XElement(styleSheet));
-                    }
-
-                    continue;
-                }
-
-                PreservedStyleSheetData preserved = GetOrCreatePreservedStyleSheet(this, id);
-                foreach (XAttribute attribute in styleSheet.Attributes().Where(attribute => ShouldPreserveStyleSheetAttribute(attribute, id))) {
-                    AddMissingAttribute(preserved.Attributes, attribute);
-                }
-
-                foreach (XElement element in styleSheet.Elements().Where(element => ShouldPreserveStyleSheetElement(element, id))) {
-                    if (!preserved.ChildElements.Any(existing => XNode.DeepEquals(existing, element))) {
-                        preserved.ChildElements.Add(new XElement(element));
-                    }
-                }
             }
         }
 
@@ -609,24 +570,15 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static VisioShape CreateImportedMasterShape(VisioAssets.MasterContent content) {
-            XElement? shapeElement = FindFirstMasterShape(content.MasterXml);
-
-            string shapeId = shapeElement?.Attribute("ID")?.Value ?? "1";
-            double width = TryReadImportedMasterCell(shapeElement, "Width", out double parsedWidth) && parsedWidth > 0 ? parsedWidth : 1D;
-            double height = TryReadImportedMasterCell(shapeElement, "Height", out double parsedHeight) && parsedHeight > 0 ? parsedHeight : 1D;
-            double pinX = TryReadImportedMasterCell(shapeElement, "PinX", out double parsedPinX) ? parsedPinX : width / 2D;
-            double pinY = TryReadImportedMasterCell(shapeElement, "PinY", out double parsedPinY) ? parsedPinY : height / 2D;
-            double locPinX = TryReadImportedMasterCell(shapeElement, "LocPinX", out double parsedLocPinX) ? parsedLocPinX : width / 2D;
-            double locPinY = TryReadImportedMasterCell(shapeElement, "LocPinY", out double parsedLocPinY) ? parsedLocPinY : height / 2D;
-
-            return new VisioShape(shapeId, pinX, pinY, width, height, string.Empty) {
-                Name = shapeElement?.Attribute("Name")?.Value ?? content.NameU,
-                NameU = shapeElement?.Attribute("NameU")?.Value ?? content.NameU,
-                Type = shapeElement?.Attribute("Type")?.Value,
-                LocPinX = locPinX,
-                LocPinY = locPinY
-            };
+        private VisioShape CreateImportedMasterShape(XDocument masterXml) {
+            XElement? element = FindFirstMasterShape(masterXml);
+            if (element == null) return new VisioShape("1", .5, .5, 1, 1, string.Empty);
+            var fonts = new Dictionary<int, string>();
+            foreach (XElement face in PreservedFaceNamesElements) {
+                if (int.TryParse((string?)face.Attribute("ID"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int id) &&
+                    (string?)face.Attribute("Name") is string name && !fonts.ContainsKey(id)) fonts.Add(id, name);
+            }
+            return ParseShapeCore(element, VisioNamespace, fonts, textBackgroundColors: ReadTextBackgroundPalette(PreservedColorsElements));
         }
 
         private static bool TryReadImportedMasterCell(XElement? shapeElement, string name, out double value) {
@@ -731,14 +683,15 @@ namespace OfficeIMO.Visio {
         /// </summary>
         internal VisioMaster EnsureBuiltinMaster(string nameU) {
             if (_builtinMasters.TryGetValue(nameU, out var existing)) return existing;
+            return RegisterMaster(CreateBuiltinMaster(nameU));
+        }
 
+        // Editors can validate a replacement without registering it in the live document.
+        internal static VisioMaster CreateBuiltinMaster(string nameU) {
             if (!TryGetBuiltinMasterDefinition(nameU, out BuiltinMasterDefinition? definition)) {
-                VisioMaster fallbackMaster = new("10", nameU, CreateMasterBlueprint(nameU, null));
-                return RegisterMaster(fallbackMaster);
+                return new("10", nameU, CreateMasterBlueprint(nameU, null));
             }
-
-            VisioMaster builtInMaster = new(definition!.Id, nameU, CreateMasterBlueprint(nameU, definition));
-            return RegisterMaster(builtInMaster);
+            return new(definition!.Id, nameU, CreateMasterBlueprint(nameU, definition));
         }
 
         internal bool TryEnsureBuiltinMaster(string nameU, out VisioMaster? master) {

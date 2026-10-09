@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio {
     /// <summary>
     /// Editing helpers for duplicating Visio content while keeping copied shapes independent.
     /// </summary>
-    public static class VisioDuplicationExtensions {
+    public static partial class VisioDuplicationExtensions {
         private const double DefaultDuplicateOffsetX = 0.35D;
         private const double DefaultDuplicateOffsetY = -0.35D;
 
@@ -59,6 +59,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioPage DuplicatePageCore(VisioDocument document, VisioPage sourcePage, string? name, VisioPage? backgroundPageOverride) {
+            var sourceIdentifiers = VisioDocument.AssignPageElementIdentifiers(sourcePage);
             string duplicateName = ResolveDuplicatePageName(document, sourcePage, name);
             VisioPage clone = document.AddPage(duplicateName, sourcePage.Width, sourcePage.Height);
             clone.NameU = duplicateName;
@@ -72,23 +73,25 @@ namespace OfficeIMO.Visio {
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap = new();
 
             foreach (VisioShape shape in sourcePage.Shapes) {
-                VisioShape shapeClone = CloneShape(shape, ids, 0D, 0D, applyOffset: false, shapeMap, connectionPointMap);
+                VisioShape shapeClone = CloneShape(shape, ids, 0D, 0D, applyOffset: false, shapeMap, connectionPointMap, sourceDocument: document);
                 clone.Shapes.Add(shapeClone);
             }
 
             RemapContainerMembership(shapeMap);
 
             foreach (VisioConnector connector in sourcePage.Connectors) {
-                if (!shapeMap.TryGetValue(connector.From, out VisioShape? clonedFrom) ||
-                    !shapeMap.TryGetValue(connector.To, out VisioShape? clonedTo)) {
+                VisioShape? clonedFrom = null, clonedTo = null;
+                if ((connector.From != null && !shapeMap.TryGetValue(connector.From, out clonedFrom)) ||
+                    (connector.To != null && !shapeMap.TryGetValue(connector.To, out clonedTo))) {
                     continue;
                 }
 
-                VisioConnector connectorClone = CloneConnector(connector, ids, clonedFrom, clonedTo, 0D, 0D, connectionPointMap);
+                VisioConnector connectorClone = CloneConnector(connector, ids, clonedFrom, clonedTo, 0D, 0D, connectionPointMap, sourceDocument: document);
                 clone.Connectors.Add(connectorClone);
                 connectorMap[connector] = connectorClone;
             }
 
+            RemapCopiedFormulaReferences(clone, shapeMap, connectorMap, sourceIdentifiers, remapPageSheet: true);
             CopyComments(sourcePage, clone, shapeMap, connectorMap);
 
             if (sourcePage.IsBackground) {
@@ -216,13 +219,13 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Duplicates shapes on the same page and optionally copies connectors whose endpoints are both duplicated.
+        /// Duplicates shapes on the same page and optionally copies connectors whose attached shapes are all duplicated; fully free connectors are excluded.
         /// </summary>
         /// <param name="page">Page that owns the shapes.</param>
         /// <param name="shapes">Shapes to duplicate. Nested children are copied with their selected ancestor.</param>
         /// <param name="offsetX">Horizontal offset for duplicated top-level shapes and page-coordinate routing points.</param>
         /// <param name="offsetY">Vertical offset for duplicated top-level shapes and page-coordinate routing points.</param>
-        /// <param name="includeInternalConnectors">Whether connectors between duplicated shapes should also be copied.</param>
+        /// <param name="includeInternalConnectors">Whether connectors whose attached shapes are all duplicated should also be copied, including partial connectors.</param>
         /// <returns>A selection containing the duplicated root shapes.</returns>
         public static VisioShapeSelection DuplicateShapes(this VisioPage page, IEnumerable<VisioShape> shapes, double offsetX = DefaultDuplicateOffsetX, double offsetY = DefaultDuplicateOffsetY, bool includeInternalConnectors = true) {
             return DuplicateShapes(page, shapes, new VisioShapeDuplicationOptions {
@@ -233,7 +236,7 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Duplicates shapes on the same page and optionally copies connectors whose endpoints are both duplicated.
+        /// Duplicates shapes on the same page and optionally copies connectors whose attached shapes are all duplicated; fully free connectors are excluded.
         /// </summary>
         /// <param name="page">Page that owns the shapes.</param>
         /// <param name="shapes">Shapes to duplicate. Nested children are copied with their selected ancestor.</param>
@@ -269,6 +272,7 @@ namespace OfficeIMO.Visio {
                 .Where(shape => !HasSelectedAncestor(shape, selectedSet))
                 .ToList();
 
+            var sourceIdentifiers = VisioDocument.AssignPageElementIdentifiers(page);
             IdAllocator ids = new(page);
             Dictionary<VisioShape, VisioShape> shapeMap = new();
             Dictionary<VisioConnector, VisioConnector> connectorMap = new();
@@ -276,7 +280,7 @@ namespace OfficeIMO.Visio {
             List<VisioShape> duplicatedRoots = new();
 
             foreach (VisioShape root in rootShapes) {
-                VisioShape clone = CloneShape(root, ids, effectiveOptions.OffsetX, effectiveOptions.OffsetY, applyOffset: true, shapeMap, connectionPointMap, effectiveOptions);
+                VisioShape clone = CloneShape(root, ids, effectiveOptions.OffsetX, effectiveOptions.OffsetY, applyOffset: true, shapeMap, connectionPointMap, effectiveOptions, page.OwnerDocument);
                 page.Shapes.Add(clone);
                 duplicatedRoots.Add(clone);
             }
@@ -285,17 +289,20 @@ namespace OfficeIMO.Visio {
 
             if (effectiveOptions.IncludeInternalConnectors) {
                 foreach (VisioConnector connector in page.Connectors.ToList()) {
-                    if (!shapeMap.TryGetValue(connector.From, out VisioShape? clonedFrom) ||
-                        !shapeMap.TryGetValue(connector.To, out VisioShape? clonedTo)) {
+                    VisioShape? clonedFrom = null, clonedTo = null;
+                    if ((connector.From == null && connector.To == null) ||
+                        (connector.From != null && !shapeMap.TryGetValue(connector.From, out clonedFrom)) ||
+                        (connector.To != null && !shapeMap.TryGetValue(connector.To, out clonedTo))) {
                         continue;
                     }
 
-                    VisioConnector clonedConnector = CloneConnector(connector, ids, clonedFrom, clonedTo, effectiveOptions.OffsetX, effectiveOptions.OffsetY, connectionPointMap, effectiveOptions);
+                    VisioConnector clonedConnector = CloneConnector(connector, ids, clonedFrom, clonedTo, effectiveOptions.OffsetX, effectiveOptions.OffsetY, connectionPointMap, effectiveOptions, page.OwnerDocument);
                     page.Connectors.Add(clonedConnector);
                     connectorMap[connector] = clonedConnector;
                 }
             }
 
+            RemapCopiedFormulaReferences(page, shapeMap, connectorMap, sourceIdentifiers);
             CopyTargetedComments(page, shapeMap, connectorMap);
 
             return new VisioShapeSelection(duplicatedRoots, page);
@@ -307,7 +314,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Selection to duplicate.</param>
         /// <param name="offsetX">Horizontal offset for duplicated top-level shapes and page-coordinate routing points.</param>
         /// <param name="offsetY">Vertical offset for duplicated top-level shapes and page-coordinate routing points.</param>
-        /// <param name="includeInternalConnectors">Whether connectors between duplicated shapes should also be copied.</param>
+        /// <param name="includeInternalConnectors">Whether connectors whose attached shapes are all duplicated should also be copied, including partial connectors.</param>
         /// <returns>A selection containing the duplicated root shapes.</returns>
         public static VisioShapeSelection Duplicate(this VisioShapeSelection selection, double offsetX = DefaultDuplicateOffsetX, double offsetY = DefaultDuplicateOffsetY, bool includeInternalConnectors = true) {
             return Duplicate(selection, new VisioShapeDuplicationOptions {
@@ -348,81 +355,21 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static VisioShape CloneShape(
-            VisioShape source,
-            IdAllocator ids,
-            double offsetX,
-            double offsetY,
-            bool applyOffset,
-            Dictionary<VisioShape, VisioShape> shapeMap,
-            Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap,
-            VisioShapeDuplicationOptions? options = null) {
-            VisioShape clone = new(ResolveShapeCloneId(source, ids, options), source.PinX + (applyOffset ? offsetX : 0D), source.PinY + (applyOffset ? offsetY : 0D), source.Width, source.Height, source.Text ?? string.Empty) {
-                Name = source.Name,
-                NameU = source.NameU,
-                Type = source.Type,
-                Master = source.Master,
-                MasterShapeId = source.MasterShapeId,
-                MasterShape = source.MasterShape,
-                LineWeight = source.LineWeight,
-                LocPinX = source.LocPinX,
-                LocPinY = source.LocPinY,
-                Angle = source.Angle,
-                LineColor = source.LineColor,
-                FillColor = source.FillColor,
-                LinePattern = source.LinePattern,
-                FillPattern = source.FillPattern,
-                PlacementStyle = source.PlacementStyle,
-                PlacementFlip = source.PlacementFlip,
-                PlowCode = source.PlowCode,
-                AllowPlacementOnTop = source.AllowPlacementOnTop,
-                AllowHorizontalConnectorRoutingThrough = source.AllowHorizontalConnectorRoutingThrough,
-                AllowVerticalConnectorRoutingThrough = source.AllowVerticalConnectorRoutingThrough,
-                CanSplitShapes = source.CanSplitShapes,
-                CanBeSplit = source.CanBeSplit,
-                RelationshipsValue = source.RelationshipsValue,
-                RelationshipsFormula = source.RelationshipsFormula,
-                TextStyle = source.TextStyle?.Clone(),
-                PreservedTextElement = source.PreservedTextElement == null ? null : new XElement(source.PreservedTextElement),
-                PreservedTextValue = source.PreservedTextValue,
-                HasModeledCharSection = source.HasModeledCharSection,
-                HasModeledParaSection = source.HasModeledParaSection,
-                ShapeDataSectionName = source.ShapeDataSectionName
-            };
-
-            CopyStringSet(source.LayerNames, clone.LayerNames);
-            CopyStringList(source.ContainerMemberIds, clone.ContainerMemberIds);
-            CopyStringList(source.ContainerOwnerIds, clone.ContainerOwnerIds);
-            CopyDictionary(source.Data, clone.Data);
-            CopyConnectionPoints(source, clone, connectionPointMap);
-            CopyHyperlinks(source.Hyperlinks, clone.Hyperlinks);
-            CopyUserCells(source.UserCells, clone.UserCells);
-            CopyShapeData(source.ShapeData, clone.ShapeData, clone.Data);
-            CopyProtection(source.Protection, clone.Protection);
-            CopyElements(source.PreservedGeometrySections, clone.PreservedGeometrySections);
-            CopyElements(source.PreservedCellElements, clone.PreservedCellElements);
-            CopyElements(source.PreservedNonGeometrySections, clone.PreservedNonGeometrySections);
-            CopyElements(source.PreservedDataRows, clone.PreservedDataRows);
-
-            shapeMap[source] = clone;
-
-            foreach (VisioShape child in source.Children) {
-                clone.Children.Add(CloneShape(child, ids, offsetX, offsetY, applyOffset: false, shapeMap, connectionPointMap, options));
-            }
-
-            return clone;
-        }
-
         private static VisioConnector CloneConnector(
             VisioConnector source,
             IdAllocator ids,
-            VisioShape clonedFrom,
-            VisioShape clonedTo,
+            VisioShape? clonedFrom,
+            VisioShape? clonedTo,
             double offsetX,
             double offsetY,
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap,
-            VisioShapeDuplicationOptions? options = null) {
-            VisioConnector clone = new(ResolveConnectorCloneId(source, ids, options), clonedFrom, clonedTo) {
+            VisioShapeDuplicationOptions? options = null,
+            VisioDocument? sourceDocument = null) {
+            VisioConnector clone = new(ResolveConnectorCloneId(source, ids, options),
+                new OfficeIMO.Drawing.OfficePoint(source.StartPoint.X + offsetX, source.StartPoint.Y + offsetY),
+                new OfficeIMO.Drawing.OfficePoint(source.EndPoint.X + offsetX, source.EndPoint.Y + offsetY)) {
+                From = clonedFrom, To = clonedTo,
+                StartAttachment = source.StartAttachment, EndAttachment = source.EndAttachment,
                 Kind = source.Kind,
                 BeginArrow = source.BeginArrow,
                 EndArrow = source.EndArrow,
@@ -443,7 +390,12 @@ namespace OfficeIMO.Visio {
                 PreservedTextValue = source.PreservedTextValue,
                 HasModeledCharSection = source.HasModeledCharSection,
                 HasModeledParaSection = source.HasModeledParaSection,
-                ShapeDataSectionName = source.ShapeDataSectionName
+                CharacterSectionSource = source.CharacterSectionSource?.Clone(),
+                ParagraphSectionSource = source.ParagraphSectionSource?.Clone(),
+                ShapeDataSectionName = source.ShapeDataSectionName,
+                NativeStyleReferences = source.NativeStyleReferences,
+                PreserveDynamicConnectorMaster = source.PreserveDynamicConnectorMaster,
+                NativeCellMetadata = source.NativeCellMetadata?.Clone()
             };
 
             if (source.FromConnectionPoint != null &&
@@ -461,7 +413,8 @@ namespace OfficeIMO.Visio {
             }
 
             CopyStringSet(source.LayerNames, clone.LayerNames);
-            CopyHyperlinks(source.Hyperlinks, clone.Hyperlinks);
+            clone.NativeLayerMembership = source.NativeLayerMembership?.Clone();
+            CopyHyperlinks(source.Hyperlinks, clone.Hyperlinks, VisioHyperlinkRowNames.Inherited(source, sourceDocument));
             CopyDictionary(source.Data, clone.Data);
             CopyShapeData(source.ShapeData, clone.ShapeData, clone.Data);
             CopyProtection(source.Protection, clone.Protection);
@@ -469,7 +422,15 @@ namespace OfficeIMO.Visio {
             CopyElements(source.PreservedCellElements, clone.PreservedCellElements);
             CopyElements(source.PreservedNonGeometrySections, clone.PreservedNonGeometrySections);
             CopyElements(source.PreservedDataRows, clone.PreservedDataRows);
+            clone.ForeignResources.AddRange(source.ForeignResources);
+            if (source.ForeignResources.Count > 0) {
+                foreach (VisioConnector.PreservedShapeChildEntry entry in source.PreservedShapeChildren)
+                    clone.PreservedShapeChildren.Add(entry.RawElement != null
+                        ? new VisioConnector.PreservedShapeChildEntry(entry.RawElement)
+                        : new VisioConnector.PreservedShapeChildEntry(entry.Token!));
+            }
             CopyConnectorPreservation(source, clone);
+            clone.NativeGeometry = source.NativeGeometry?.AppliesTo(source) == true ? source.NativeGeometry.CopyFor(clone) : null;
             return clone;
         }
 
@@ -546,10 +507,12 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static void CopyHyperlinks(IEnumerable<VisioHyperlink> source, IList<VisioHyperlink> target) {
-            foreach (VisioHyperlink hyperlink in source) {
+        private static void CopyHyperlinks(IList<VisioHyperlink> source, IList<VisioHyperlink> target, IList<VisioHyperlink>? inherited = null) {
+            string?[] names = VisioHyperlinkRowNames.Create(source, inherited);
+            for (int i = 0; i < source.Count; i++) {
+                VisioHyperlink hyperlink = source[i];
                 VisioHyperlink clone = new(hyperlink.Address, hyperlink.Description, hyperlink.SubAddress) {
-                    RowName = hyperlink.RowName,
+                    RowName = names[i],
                     ExtraInfo = hyperlink.ExtraInfo,
                     Frame = hyperlink.Frame,
                     NewWindow = hyperlink.NewWindow,
@@ -564,6 +527,7 @@ namespace OfficeIMO.Visio {
                     clone.PreservedKnownCells[cell.Key] = new XElement(cell.Value);
                 }
 
+                clone.CopyValueAssignmentsFrom(hyperlink);
                 target.Add(clone);
             }
         }
@@ -581,6 +545,7 @@ namespace OfficeIMO.Visio {
                 CopyAttributes(userCell.PreservedValueAttributes, clone.PreservedValueAttributes);
                 CopyAttributes(userCell.PreservedPromptAttributes, clone.PreservedPromptAttributes);
                 CopyElements(userCell.PreservedCells, clone.PreservedCells);
+                clone.CopyValueAssignmentsFrom(userCell);
                 target.Add(clone);
             }
         }
@@ -624,6 +589,7 @@ namespace OfficeIMO.Visio {
                     clone.PreservedCellOrder.Add(cellName);
                 }
 
+                clone.CopyValueAssignmentsFrom(row);
                 target.Add(clone);
                 if (clone.Value != null && !data.ContainsKey(clone.Name)) {
                     data[clone.Name] = clone.Value;
@@ -686,11 +652,11 @@ namespace OfficeIMO.Visio {
             target.PrintOrientation = source.PrintOrientation;
 
             if (source.HasExplicitMargins) {
-                target.SetMargins(
-                    source.LeftMargin.FromInches(source.MarginUnit),
-                    source.RightMargin.FromInches(source.MarginUnit),
-                    source.TopMargin.FromInches(source.MarginUnit),
-                    source.BottomMargin.FromInches(source.MarginUnit),
+                target.SetLoadedMargins(
+                    source.LeftMargin,
+                    source.RightMargin,
+                    source.TopMargin,
+                    source.BottomMargin,
                     source.MarginUnit);
             }
 
@@ -724,18 +690,22 @@ namespace OfficeIMO.Visio {
                     Lock = layer.Lock,
                     Snap = layer.Snap,
                     Glue = layer.Glue,
-                    ColorTransparency = layer.ColorTransparency
+                    ColorTransparency = layer.ColorTransparency,
+                    SourceIndex = layer.SourceIndex
                 };
                 CopyAttributes(layer.PreservedRowAttributes, clone.PreservedRowAttributes);
                 foreach (KeyValuePair<string, XElement> cell in layer.PreservedKnownCells) {
                     clone.PreservedKnownCells[cell.Key] = new XElement(cell.Value);
                 }
                 CopyElements(layer.PreservedCells, clone.PreservedCells);
+                clone.CopyValueAssignmentsFrom(layer);
                 target.Layers.Add(clone);
             }
         }
 
         private static void CopyPagePreservation(VisioPage source, VisioPage target) {
+            target.NativePageSheetMetadata = source.NativePageSheetMetadata?.Clone();
+            target.PageSheetLengthCells = source.PageSheetLengthCells?.Clone();
             CopyAttributes(source.PreservedPageAttributes, target.PreservedPageAttributes);
             CopyAttributes(source.PreservedPageContentAttributes, target.PreservedPageContentAttributes);
             CopyElements(source.PreservedPageContentElements, target.PreservedPageContentElements);

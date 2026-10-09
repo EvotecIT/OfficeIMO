@@ -91,8 +91,7 @@ namespace OfficeIMO.Visio {
                 maximumWidth,
                 connector.TextStyle);
 
-            placement.Width = width;
-            placement.Height = height;
+            VisioConnectorLabelFrame.SetMeasuredDimensions(connector, placement, width, height);
             connector.LabelPlacement = placement;
             return connector;
         }

@@ -14,7 +14,7 @@ namespace OfficeIMO.Visio {
             return ParseShapeCore(shapeElement, ns, null, parent, depth);
         }
 
-        private static VisioShape ParseShapeCore(XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById = null, VisioShape? parent = null, int depth = 0) {
+        private static VisioShape ParseShapeCore(XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById = null, VisioShape? parent = null, int depth = 0, IReadOnlyDictionary<int, string>? textBackgroundColors = null) {
             if (depth > MaxShapeNestingDepth) {
                 throw new InvalidOperationException("Maximum nesting depth exceeded");
             }
@@ -22,9 +22,9 @@ namespace OfficeIMO.Visio {
             VisioShape shape = ParseShapeBasics(shapeElement, ns);
             shape.Parent = parent;
 
-            ParseShapeTransform(shape, shapeElement, ns);
+            ParseShapeTransform(shape, shapeElement, ns, textBackgroundColors);
             ParseShapeProperties(shape, shapeElement, ns, faceNamesById);
-            ParseChildShapes(shape, shapeElement, ns, faceNamesById, depth);
+            ParseChildShapes(shape, shapeElement, ns, faceNamesById, depth, textBackgroundColors);
             CaptureShapeChildOrder(shape, shapeElement);
 
             return shape;
@@ -41,6 +41,7 @@ namespace OfficeIMO.Visio {
             };
 
             shape.PersistedId = persistedId;
+            shape.NativeStyleReferences = VisioNativeStyleReferences.Read(shapeElement);
             shape.Type = shapeElement.Attribute("Type")?.Value;
             shape.MasterShapeId = shapeElement.Attribute("MasterShape")?.Value;
             shape.PreservedTextElement = textElement != null ? new XElement(textElement) : null;
@@ -49,7 +50,7 @@ namespace OfficeIMO.Visio {
             return shape;
         }
 
-        private static void ParseShapeTransform(VisioShape shape, XElement shapeElement, XNamespace ns) {
+        private static void ParseShapeTransform(VisioShape shape, XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? textBackgroundColors) {
             List<XElement> cellElements = shapeElement.Elements(ns + "Cell").ToList();
             bool pinXFound = false;
             bool pinYFound = false;
@@ -138,10 +139,10 @@ namespace OfficeIMO.Visio {
 
                         break;
                     case "TextBkgnd":
-                        EnsureTextStyle(shape).BackgroundColor = ParseColor(v, default);
+                        LoadTextBackgroundColor(EnsureTextStyle(shape), cell, textBackgroundColors);
                         break;
                     case "TextBkgndTrans":
-                        EnsureTextStyle(shape).BackgroundTransparency = ParseDouble(v);
+                        LoadTextBackgroundTransparency(EnsureTextStyle(shape), cell);
                         break;
                     case "TxtPinX":
                         EnsureTextStyle(shape).TextPinX = ParseDouble(v);
@@ -166,6 +167,7 @@ namespace OfficeIMO.Visio {
                         break;
                     case "LayerMember":
                         ParseLayerIndexes(v, shape.LayerIndexes);
+                        shape.NativeLayerMembership = new VisioLayerMembership(cell, shape.LayerIndexes);
                         break;
                     case "Relationships":
                         shape.RelationshipsValue = v;
@@ -286,6 +288,8 @@ namespace OfficeIMO.Visio {
             if (!locPinYFound) {
                 shape.LocPinY = shape.Height / 2;
             }
+            shape.HasExplicitLocPinX = locPinXFound;
+            shape.HasExplicitLocPinY = locPinYFound;
             if (!angleFound) {
                 shape.Angle = 0;
             }
@@ -300,11 +304,13 @@ namespace OfficeIMO.Visio {
             XElement? charSection = sectionElements.FirstOrDefault(e => IsCharacterSection(e.Attribute("N")?.Value));
             if (charSection != null && TryParseSimpleCharSection(shape, charSection, ns, faceNamesById)) {
                 shape.HasModeledCharSection = true;
+                shape.CharacterSectionSource = CaptureTextSection(charSection, shape.TextStyle, character: true);
             }
 
             XElement? paraSection = sectionElements.FirstOrDefault(e => IsParagraphSection(e.Attribute("N")?.Value));
             if (paraSection != null && TryParseSimpleParaSection(shape, paraSection, ns)) {
                 shape.HasModeledParaSection = true;
+                shape.ParagraphSectionSource = CaptureTextSection(paraSection, shape.TextStyle, character: false);
             }
 
             foreach (XElement geometrySection in sectionElements.Where(section =>
@@ -382,7 +388,7 @@ namespace OfficeIMO.Visio {
                 ?.Attribute("V")?.Value;
         }
 
-        private static void ParseChildShapes(VisioShape shape, XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById, int depth) {
+        private static void ParseChildShapes(VisioShape shape, XElement shapeElement, XNamespace ns, IReadOnlyDictionary<int, string>? faceNamesById, int depth, IReadOnlyDictionary<int, string>? textBackgroundColors) {
             XElement? childShapes = shapeElement.Element(ns + "Shapes");
             if (childShapes == null) {
                 return;
@@ -390,7 +396,7 @@ namespace OfficeIMO.Visio {
 
             List<XElement> childElements = childShapes.Elements(ns + "Shape").ToList();
             foreach (XElement childElement in childElements) {
-                VisioShape childShape = ParseShapeCore(childElement, ns, faceNamesById, shape, depth + 1);
+                VisioShape childShape = ParseShapeCore(childElement, ns, faceNamesById, shape, depth + 1, textBackgroundColors);
                 shape.Children.Add(childShape);
             }
         }

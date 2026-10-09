@@ -30,16 +30,7 @@ namespace OfficeIMO.Visio {
         /// transform for a nested shape.
         /// </summary>
         public static VisioShapeBounds GetPageShapeBounds(this VisioShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
-            (double x1, double y1) = GetPagePoint(shape, 0D, 0D);
-            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0D);
-            (double x3, double y3) = GetPagePoint(shape, 0D, shape.Height);
-            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
-            return new VisioShapeBounds(
-                Math.Min(Math.Min(x1, x2), Math.Min(x3, x4)),
-                Math.Min(Math.Min(y1, y2), Math.Min(y3, y4)),
-                Math.Max(Math.Max(x1, x2), Math.Max(x3, x4)),
-                Math.Max(Math.Max(y1, y2), Math.Max(y3, y4)));
+            return shape.GetShapeBounds();
         }
 
         /// <summary>
@@ -102,14 +93,6 @@ namespace OfficeIMO.Visio {
             }
 
             return bounds;
-        }
-
-        private static (double X, double Y) GetPagePoint(VisioShape shape,
-            double x, double y) {
-            (double absoluteX, double absoluteY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent == null
-                ? (absoluteX, absoluteY)
-                : GetPagePoint(shape.Parent, absoluteX, absoluteY);
         }
 
         /// <summary>

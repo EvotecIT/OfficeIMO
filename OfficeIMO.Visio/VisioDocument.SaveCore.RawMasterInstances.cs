@@ -12,6 +12,10 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
+        private static bool UsesRawMasterInstanceChildren(VisioShape shape, VisioMaster master) =>
+            master.IsPackageBacked && master.RawMasterContentXml != null &&
+            shape.MasterShape == null && shape.MasterShapeId == null && shape.Children.Count == 0;
+
         private static void ReserveRawMasterInstanceChildIds(VisioShape shape, VisioMaster master, Action<string> reserve) {
             XElement? rootShape = FindFirstMasterShape(master.RawMasterContentXml!);
             if (rootShape == null) {

@@ -22,6 +22,8 @@ namespace OfficeIMO.Visio {
             public string? Token { get; }
         }
 
+        internal List<VisioForeignResource> ForeignResources { get; } = new();
+
         private readonly List<VisioShape> _children = new();
         private readonly IList<VisioShape> _childCollection;
 
@@ -73,6 +75,9 @@ namespace OfficeIMO.Visio {
         /// Identifier stored in the package when different from <see cref="Id"/>.
         /// </summary>
         internal string? PersistedId { get; set; }
+        internal VisioNativeCellMetadata? NativeCellMetadata { get; set; }
+        internal VisioNativeStyleReferences? NativeStyleReferences { get; set; }
+        internal VisioMasterFontScope? NativeFontScope { get; set; }
 
         // Raw parse-presence flags used by the loader so explicit zero values are
         // not mistaken for missing geometry when master defaults are applied.
@@ -147,12 +152,14 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets or sets the X coordinate of the local pin.
         /// </summary>
-        public double LocPinX { get; set; }
+        public double LocPinX { get => _locPinX; set { _locPinX = value; HasExplicitLocPinX = true; } }
+        private double _locPinX;
 
         /// <summary>
         /// Gets or sets the Y coordinate of the local pin.
         /// </summary>
-        public double LocPinY { get; set; }
+        public double LocPinY { get => _locPinY; set { _locPinY = value; HasExplicitLocPinY = true; } }
+        private double _locPinY;
 
         /// <summary>
         /// Gets or sets the rotation angle of the shape in radians.
@@ -318,6 +325,8 @@ namespace OfficeIMO.Visio {
 
         internal IList<int> LayerIndexes { get; } = new List<int>();
 
+        internal VisioLayerMembership? NativeLayerMembership { get; set; }
+
         internal string? RelationshipsValue { get; set; }
 
         internal string? RelationshipsFormula { get; set; }
@@ -337,9 +346,15 @@ namespace OfficeIMO.Visio {
 
         internal string? PreservedTextValue { get; set; }
 
+        internal bool HasInheritedText { get; set; }
+
         internal bool HasModeledCharSection { get; set; }
 
         internal bool HasModeledParaSection { get; set; }
+
+        internal VisioTextSectionSource? CharacterSectionSource { get; set; }
+
+        internal VisioTextSectionSource? ParagraphSectionSource { get; set; }
 
         internal IList<XElement> PreservedDataRows { get; } = new List<XElement>();
 
@@ -500,10 +515,7 @@ namespace OfficeIMO.Visio {
             }
 
             row.Value = value ?? string.Empty;
-            row.ValueFormula = null;
-            if (row.PreservedKnownCells.TryGetValue("Value", out XElement? valueCell)) {
-                valueCell.Attribute("F")?.Remove();
-            }
+            row.ClearValueFormula();
 
             if (label != null) row.Label = label;
             if (type.HasValue) row.Type = type.Value;
@@ -730,30 +742,19 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="x">X coordinate of the point relative to the shape's local coordinate system.</param>
         /// <param name="y">Y coordinate of the point relative to the shape's local coordinate system.</param>
-        /// <returns>The point's absolute coordinates on the page.</returns>
+        /// <returns>The point's absolute coordinates on the page, including cached reflections and every containing group.</returns>
+        /// <exception cref="System.IO.InvalidDataException">A native reflection has neither a finite cache nor a constant numeric formula.</exception>
         public (double X, double Y) GetAbsolutePoint(double x, double y) {
-            double cos = Math.Cos(Angle);
-            double sin = Math.Sin(Angle);
-            double dx = x - LocPinX;
-            double dy = y - LocPinY;
-            double absX = PinX + cos * dx - sin * dy;
-            double absY = PinY + sin * dx + cos * dy;
-            return (absX, absY);
+            OfficeIMO.Drawing.OfficePoint point = VisioNativeShapeTransform.Create(this).PagePoint(x, y);
+            return (point.X, point.Y);
         }
 
         /// <summary>
         /// Computes the absolute bounds of the shape on the page.
         /// </summary>
         public (double Left, double Bottom, double Right, double Top) GetBounds() {
-            (double x1, double y1) = GetAbsolutePoint(0, 0);
-            (double x2, double y2) = GetAbsolutePoint(Width, 0);
-            (double x3, double y3) = GetAbsolutePoint(0, Height);
-            (double x4, double y4) = GetAbsolutePoint(Width, Height);
-            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
-            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
-            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
-            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
-            return (left, bottom, right, top);
+            var bounds = VisioNativeShapeTransform.Create(this).Matrix.TransformRectangleBounds(0, 0, Width, Height);
+            return (bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
         }
 
         private static bool IsBackgroundSurfaceKind(string? kind) {

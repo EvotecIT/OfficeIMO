@@ -58,4 +58,10 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="Fixtures\LegacyXml\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\SourceSansPro-Regular.otf" Link="TestAssets\SourceSansPro-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\OFL-1.1.txt" Link="TestAssets\OFL-1.1.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NOTICE.md" Link="TestAssets\NOTICE.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
