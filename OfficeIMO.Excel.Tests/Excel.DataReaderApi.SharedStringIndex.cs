@@ -22,16 +22,20 @@ public partial class Excel {
             Assert.Equal("Header", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal("Ready", reader.GetString(0));
+#if NET8_0_OR_GREATER
             if (!utf16Worksheet) {
                 Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text));
                 Assert.Equal("Ready", Encoding.UTF8.GetString(text));
             }
+#endif
             Assert.True(reader.Read());
             Assert.Equal(" last ", reader.GetString(0));
+#if NET8_0_OR_GREATER
             if (!utf16Worksheet) {
                 Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text));
                 Assert.Equal(" last ", Encoding.UTF8.GetString(text));
             }
+#endif
             Assert.False(reader.Read());
             reader.Dispose();
             File.Delete(path);
@@ -57,8 +61,10 @@ public partial class Excel {
             Assert.Equal("Ready", reader.GetString(0));
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetString(0));
+#if NET8_0_OR_GREATER
             Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text));
             Assert.Equal(expected, Encoding.UTF8.GetString(text));
+#endif
             Assert.False(reader.Read());
         } finally {
             File.Delete(path);
