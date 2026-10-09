@@ -7,7 +7,7 @@ internal sealed partial class PublisherPageProjector {
         FrameRectangle bounds, IReadOnlyDictionary<uint, PublisherEscherShape> artwork) {
         var result = new List<OfficeTextFlowRegion>();
         if (frame.WrapObjects.Count == 0) return result;
-        OfficeTransform toFrame = Transform(source, bounds).CreateDestinationTransform().Invert()
+        OfficeTransform toFrame = PageTransform(source, bounds).Invert()
             .Then(OfficeTransform.Translate(-bounds.X, -bounds.Y));
         foreach (uint id in frame.WrapObjects) {
             _context.Record();
@@ -17,11 +17,11 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
                 continue;
             }
-            if (obstacle.Style.Hidden == true) continue;
+            if (obstacle.Hidden) continue;
             FrameRectangle objectBounds = FrameBounds(obstacle, _source.Width, _source.Height);
             double left = WrapDistance(obstacle, 0x384), top = WrapDistance(obstacle, 0x385);
             double right = WrapDistance(obstacle, 0x386), bottom = WrapDistance(obstacle, 0x387);
-            var local = Transform(obstacle, objectBounds).CreateDestinationTransform().Then(toFrame)
+            var local = PageTransform(obstacle, objectBounds).Then(toFrame)
                 .TransformRectangleBounds(objectBounds.X - left, objectBounds.Y - top,
                     objectBounds.Width + left + right, objectBounds.Height + top + bottom);
             result.Add(new OfficeTextFlowRegion(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top));
@@ -44,4 +44,15 @@ internal sealed partial class PublisherPageProjector {
     private static OfficeImageFrameTransform Transform(PublisherEscherShape shape, FrameRectangle bounds) =>
         new(shape.Transform.RotationDegrees.GetValueOrDefault(), bounds.X + bounds.Width / 2,
             bounds.Y + bounds.Height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
+
+    private OfficeTransform PageTransform(PublisherEscherShape shape, FrameRectangle bounds) =>
+        Transform(shape, bounds).CreateDestinationTransform().Then(GroupPageTransform(shape));
+
+    private OfficeTransform GroupPageTransform(PublisherEscherShape shape) =>
+        shape.GroupTransform == OfficeTransform.Identity ? OfficeTransform.Identity :
+        OfficeTransform.Translate(-_source.Width / 2, -_source.Height / 2)
+            .Then(OfficeTransform.Scale(12700, 12700))
+            .Then(shape.GroupTransform)
+            .Then(OfficeTransform.Scale(1 / 12700D, 1 / 12700D))
+            .Then(OfficeTransform.Translate(_source.Width / 2, _source.Height / 2));
 }

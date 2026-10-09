@@ -100,7 +100,7 @@ internal sealed partial class PublisherPageProjector {
             return;
         }
         if (shape.IsGroup) { _projected.Add(shape.Id); return; }
-        if (shape.Style.Hidden == true) { _projected.Add(shape.Id); return; }
+        if (shape.Hidden) { _projected.Add(shape.Id); return; }
         if (!shape.Bounds.HasValue) {
             _context.Add("PUB_OBJECT_ANCHOR_UNRESOLVED", "A publication object has no resolved native anchor.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
@@ -113,7 +113,8 @@ internal sealed partial class PublisherPageProjector {
             _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "A zero-sized drawing object was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
         if (!FiniteRectangle(x, y, width, height)) throw new InvalidDataException("Publisher group projection produced invalid geometry.");
-        if (x < 0 || y < 0 || x + width > page.Width || y + height > page.Height)
+        var printableBounds = PageTransform(shape, bounds).TransformRectangleBounds(x, y, width, height);
+        if (printableBounds.Left < 0 || printableBounds.Top < 0 || printableBounds.Right > page.Width || printableBounds.Bottom > page.Height)
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(shape.Id));
         var local = new OfficeDrawing(width, height);
         ProjectGraphic(shape, local, geometryWidth, geometryHeight);
@@ -136,7 +137,12 @@ internal sealed partial class PublisherPageProjector {
         foreach (OfficeDrawingElement element in local.Elements) element.SourceElementIds = new[] { "publisher-object-" + shape.Id };
         var transform = new OfficeImageFrameTransform(rotation, x + width / 2, y + height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
         _context.AccountProjection(local);
-        page.AddDrawingForClippedRendering(local, x, y, transform);
+        if (shape.GroupTransform == OfficeTransform.Identity) page.AddDrawingForClippedRendering(local, x, y, transform);
+        else {
+            var placed = new OfficeDrawing(page.Width, page.Height);
+            placed.AddDrawingForClippedRendering(local, x, y, transform);
+            page.AddEffectDrawing(placed, GroupPageTransform(shape));
+        }
         if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id)) _projected.Add(shape.Id);
     }
     private OfficeTextPadding TextPadding(PublisherEscherShape shape) => new(
