@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel {
             private readonly List<AsciiTextEntry> _entries;
             private readonly object _textLock = new object();
             private string?[]?[]? _textPages;
+            private int _disposed;
 
             internal IndexedAsciiItems(OpenXmlPooledPartStream stream, byte[] bytes, List<AsciiTextEntry> entries) {
                 _stream = stream;
@@ -77,7 +78,14 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            public void Dispose() => _stream.Dispose();
+            public void Dispose() {
+                if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+                try {
+                    _stream.Dispose();
+                } finally {
+                    IndexedAsciiEntryPool.Return(_entries);
+                }
+            }
         }
     }
 }

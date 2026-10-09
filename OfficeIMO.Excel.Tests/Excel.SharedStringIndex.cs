@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
 
-public sealed class SharedStringIndexTests {
+public sealed partial class SharedStringIndexTests {
     [Fact]
     public void IndexedTable_UsesActualCountAndKeepsBorrowedTextUntilDisposal() {
         using OpenXmlPooledPartStream stream = CreateStream(

@@ -25,63 +25,69 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            var parsed = new List<AsciiTextEntry>(Math.Min(declaredUniqueCount,
+            var parsed = IndexedAsciiEntryPool.Rent(Math.Min(declaredUniqueCount,
                 Math.Min(_maxSharedStringItems, length / 7)));
-            long totalCharacters = 0;
-            while (!Consume(bytes, length, ref position, "</sst>")) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                bool preservesWhitespace = false;
-                if (!Consume(bytes, length, ref position, "<si><t>")) {
-                    if (!Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
-                        return false;
-                    }
-                    preservesWhitespace = true;
-                }
-
-                int textStart = position;
-                while (position < length && bytes[position] != (byte)'<') {
-                    if ((position & 16383) == 0) _cancellationToken.ThrowIfCancellationRequested();
-                    byte value = bytes[position];
-                    if (value < 0x20 || value > 0x7E || value == (byte)'&'
-                        || value == (byte)']' && position + 2 < length
-                            && bytes[position + 1] == (byte)']'
-                            && bytes[position + 2] == (byte)'>') {
-                        return false;
-                    }
-                    // Leave SpreadsheetML escaped text to the canonical XML/SDK loader.
-                    if (value == (byte)'_' && position + 1 < length
-                        && bytes[position + 1] is (byte)'x' or (byte)'X') return false;
-                    position++;
-                }
-
-                int textLength = position - textStart;
-                if (!preservesWhitespace && textLength > 0) {
-                    bool onlyWhitespace = true;
-                    for (int index = textStart; index < position; index++) {
-                        if (bytes[index] != (byte)' ') {
-                            onlyWhitespace = false;
-                            break;
+            bool transferred = false;
+            try {
+                long totalCharacters = 0;
+                while (!Consume(bytes, length, ref position, "</sst>")) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    bool preservesWhitespace = false;
+                    if (!Consume(bytes, length, ref position, "<si><t>")) {
+                        if (!Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
+                            return false;
                         }
+                        preservesWhitespace = true;
                     }
-                    if (onlyWhitespace) return false;
+
+                    int textStart = position;
+                    while (position < length && bytes[position] != (byte)'<') {
+                        if ((position & 16383) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                        byte value = bytes[position];
+                        if (value < 0x20 || value > 0x7E || value == (byte)'&'
+                            || value == (byte)']' && position + 2 < length
+                                && bytes[position + 1] == (byte)']'
+                                && bytes[position + 2] == (byte)'>') {
+                            return false;
+                        }
+                        // Leave SpreadsheetML escaped text to the canonical XML/SDK loader.
+                        if (value == (byte)'_' && position + 1 < length
+                            && bytes[position + 1] is (byte)'x' or (byte)'X') return false;
+                        position++;
+                    }
+
+                    int textLength = position - textStart;
+                    if (!preservesWhitespace && textLength > 0) {
+                        bool onlyWhitespace = true;
+                        for (int index = textStart; index < position; index++) {
+                            if (bytes[index] != (byte)' ') {
+                                onlyWhitespace = false;
+                                break;
+                            }
+                        }
+                        if (onlyWhitespace) return false;
+                    }
+                    if (!Consume(bytes, length, ref position, "</t></si>")) {
+                        return false;
+                    }
+
+                    EnsureCanAddSharedString(parsed.Count);
+                    ValidateSharedStringLength(textLength, ref totalCharacters);
+                    parsed.Add(new AsciiTextEntry(textStart, textLength));
                 }
-                if (!Consume(bytes, length, ref position, "</t></si>")) {
+
+                SkipWhitespace(bytes, length, ref position);
+                if (position != length) {
                     return false;
                 }
 
-                EnsureCanAddSharedString(parsed.Count);
-                ValidateSharedStringLength(textLength, ref totalCharacters);
-                parsed.Add(new AsciiTextEntry(textStart, textLength));
+                _cancellationToken.ThrowIfCancellationRequested();
+                items = new IndexedAsciiItems(stream, bytes, parsed);
+                transferred = true;
+                return true;
+            } finally {
+                if (!transferred) IndexedAsciiEntryPool.Return(parsed, retain: false);
             }
-
-            SkipWhitespace(bytes, length, ref position);
-            if (position != length) {
-                return false;
-            }
-
-            _cancellationToken.ThrowIfCancellationRequested();
-            items = new IndexedAsciiItems(stream, bytes, parsed);
-            return true;
         }
 
         /// <summary>Limits large-part buffering to the simple table header handled by this scanner.</summary>

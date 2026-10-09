@@ -121,7 +121,8 @@ public partial class Excel {
         bool stored = false,
         bool utf16Worksheet = false,
         int lastIndex = IndexedSharedStringFillerCount + 2,
-        string? declaredCount = null) {
+        string? declaredCount = null,
+        int fillerCount = IndexedSharedStringFillerCount) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.IndexedSst.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             ExcelSheet sheet = document.AddWorksheet("Data");
@@ -129,12 +130,12 @@ public partial class Excel {
             sheet.CellValue(2, 1, "Ready");
             document.Save();
         }
-        string count = declaredCount ?? (IndexedSharedStringFillerCount + 3).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string count = declaredCount ?? (fillerCount + 3).ToString(System.Globalization.CultureInfo.InvariantCulture);
         var sharedStrings = new StringBuilder(
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"" + count +
             "\" uniqueCount=\"" + count + "\"><si><t>Header</t></si><si><t>Ready</t></si>");
-        for (int index = 0; index < IndexedSharedStringFillerCount; index++) {
+        for (int index = 0; index < fillerCount; index++) {
             sharedStrings.Append("<si><t>unreferenced-").Append(index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture)).Append("</t></si>");
         }
         sharedStrings.Append(lastItem).Append("</sst>");
