@@ -178,7 +178,7 @@ public sealed class IWorkTableMergeRange {
 }
 
 /// <summary>A sparse table shared by Pages, Numbers, and Keynote projections.</summary>
-public sealed class IWorkTable {
+public sealed partial class IWorkTable {
     private readonly Dictionary<long, IWorkTableCell> _cells;
     private readonly Internal.IWorkTableBorderResolver? _borderResolver;
 

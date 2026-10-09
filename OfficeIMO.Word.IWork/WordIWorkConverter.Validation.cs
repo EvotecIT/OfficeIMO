@@ -97,6 +97,8 @@ public static partial class WordIWorkConverter {
             if (TableBorderWidths(table, cancellationToken).Any(width => width < 0.25d || width > 12d
                 || !allowPartialEditableReconstruction && !IsExactDestinationUnit(width, 8d)))
                 return $"Pages table '{table.Name}' has border widths outside the DOCX quarter-to-twelve-point range or eighth-point precision.";
+            if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                return $"Pages table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
             if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
                 && (cell.Value == null || !cell.CachedValueIsComplete))) {
                 return $"Pages table '{table.Name}' contains a formula without a complete cached value that the DOCX owner cannot evaluate.";

@@ -37,6 +37,8 @@ internal sealed class IWorkTableBorderStyles(int rows, int columns, int headerRo
     }
 
     internal bool RoleEdgesAreUnambiguous() {
+        if (headerRows > 0 && footerRows > 0 && headerRows + footerRows == rows
+            && IWorkTableBorderResolver.Choose(Stroke(46), Stroke(54))?.IsSupported == false) return false;
         // Roles are constant within rectangular regions; their boundaries and one interior
         // representative cover every adjacent role pair without allocating or walking the grid.
         var selectedRows = new[] { 1, headerRows, headerRows + 1, rows - footerRows, rows - footerRows + 1, rows }
@@ -53,8 +55,10 @@ internal sealed class IWorkTableBorderStyles(int rows, int columns, int headerRo
 
     internal IWorkBorderDeclaration? Horizontal(int line, int column) {
         if (!StructureIsComplete) return IWorkBorderDeclaration.Invalid;
-        if (line == 0) return Stroke(headerRows > 0 ? 47 : column < headerColumns ? 50 : 58);
-        if (line == rows) return Stroke(footerRows > 0 ? 55 : column < headerColumns ? 50 : headerRows == rows ? 47 : 58);
+        if (line == 0) return Stroke(headerRows > 0 ? 47 : footerRows == rows ? 55 : column < headerColumns ? 50 : 58);
+        if (line == rows) return Stroke(footerRows > 0 ? 55 : headerRows == rows ? 47 : column < headerColumns ? 50 : 58);
+        if (headerRows > 0 && footerRows > 0 && line == headerRows && line == rows - footerRows)
+            return IWorkTableBorderResolver.Choose(Stroke(46), Stroke(54));
         if (headerRows > 0 && line == headerRows) return Stroke(46);
         if (footerRows > 0 && line == rows - footerRows) return Stroke(54);
         if (line < headerRows) return Stroke(48);

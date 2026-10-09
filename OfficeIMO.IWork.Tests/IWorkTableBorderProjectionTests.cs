@@ -51,6 +51,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(projection.SourceDeclarationIssues);
         Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
         AssertBorder(projection.Slides[0].Tables[0].GetBorders(1, 1).Right, "000000", 1);
+        AssertBorder(projection.Slides[0].Tables[0].GetBorders(1, 1).Bottom, "000000", 2);
     }
 
     [Theory]

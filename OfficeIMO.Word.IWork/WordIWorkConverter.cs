@@ -58,6 +58,13 @@ public static partial class WordIWorkConverter {
         int reconstructedSectionCount = 1 + projection.Body.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section);
         if (editable) {
+            if (projection.Tables.Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+                destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                    new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_MERGED_TABLE_BORDERS_APPROXIMATED",
+                        "Merged DOCX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+                }).ToArray();
+            }
             if (AllPagesText(projection).SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null
                     && !CanApplyQualifiedListLayout(paragraph))) {
                 destinationDiagnostics = destinationDiagnostics.Concat(new[] {

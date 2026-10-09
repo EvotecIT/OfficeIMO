@@ -323,6 +323,8 @@ public static partial class PowerPointIWorkConverter {
                 if (TableBorderWidths(table, cancellationToken).Any(width => Math.Round(width * 12700d) > 20116800d
                     || !allowPartialEditableReconstruction && !IsExactEmu(width)))
                     return $"Keynote table '{table.Name}' has border strokes outside the PPTX line-width range or EMU precision.";
+                if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                    return $"Keynote table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
                 if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
                     && (cell.Value == null || !cell.CachedValueIsComplete))) {
                     return $"Keynote table '{table.Name}' contains a formula without a complete cached value that the PPTX owner cannot evaluate.";
@@ -400,6 +402,13 @@ public static partial class PowerPointIWorkConverter {
                     box.Layout.TopInsetPoints, box.Layout.RightInsetPoints, box.Layout.BottomInsetPoints }
                     .Any(points => points.HasValue && !IsExactEmu(points.Value)));
         var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(slide => slide.Tables)
+            .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_MERGED_TABLE_BORDERS_APPROXIMATED",
+                "Merged PPTX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation));
+        }
         if (projection.Slides.SelectMany(SlideText).SelectMany(content => content.Paragraphs)
                 .SelectMany(paragraph => paragraph.Runs.Select(run => run.Style).Prepend(paragraph.Style.TextStyle))
                 .Concat(projection.Slides.SelectMany(slide => slide.Tables).SelectMany(TableParagraphStyles).Select(style => style.TextStyle))

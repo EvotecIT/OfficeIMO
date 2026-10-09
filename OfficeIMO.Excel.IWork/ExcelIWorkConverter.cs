@@ -22,7 +22,8 @@ public static partial class ExcelIWorkConverter {
         IWorkNumbersProjection projection = source.ReadNumbers();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames);
+            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames,
+                settings.AllowPartialEditableReconstruction, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -82,6 +83,14 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables)
+            .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_MERGED_TABLE_BORDERS_APPROXIMATED",
+                    "Merged XLSX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => TableBorderWidths(table, cancellationToken))
             .Any(width => width is not (0.5d or 1d or 2d or 3d))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
@@ -229,6 +238,8 @@ public static partial class ExcelIWorkConverter {
                             if (cell.NumberFormat is { } numberFormat)
                                 sheet.FormatCell(cell.Row, cell.Column, numberFormat.ToSpreadsheetFormatCode());
                         }
+                        foreach (var merge in table.ResolveMergedBorders(cancellationToken))
+                            ApplyTableBorders(sheet.CellAt(merge.Range.FirstRow, merge.Range.FirstColumn), merge.Borders);
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();
                             sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
@@ -288,11 +299,12 @@ public static partial class ExcelIWorkConverter {
                 or "#NUM!" or "#N/A" or "#GETTING_DATA";
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection,
-        bool normalizeWorksheetNames) {
+        bool normalizeWorksheetNames, bool allowPartialEditableReconstruction, CancellationToken cancellationToken) {
         long styledCellCount = 0;
         var commentAuthors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
                 return $"Numbers sheet '{sheet.Name}' contains more text boxes than the XLSX row limit of 1,048,576.";
             }
@@ -305,6 +317,7 @@ public static partial class ExcelIWorkConverter {
                 return $"Numbers sheet '{sheet.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
             }
             for (int tableIndex = 0; tableIndex < sheet.Tables.Count; tableIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 IWorkTable table = sheet.Tables[tableIndex];
                 string tableSheetName = sheet.Tables.Count == 1 && sheet.TextBoxes.Count == 0
                     ? sheet.Name
@@ -333,6 +346,8 @@ public static partial class ExcelIWorkConverter {
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
                 }
+                if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                    return $"Numbers table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
                 if (table.DefaultRowHeight is double rowHeight
                     && (!IsFinite(rowHeight) || rowHeight > 409d
                         || rowHeight <= 0d)) {

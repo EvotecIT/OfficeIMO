@@ -1,4 +1,5 @@
 using System.Threading;
+using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
 
 namespace OfficeIMO.Word.IWork;
@@ -14,6 +15,17 @@ public static partial class WordIWorkConverter {
         // Rows and Cells enumerate and rebuild wrapper lists on every access.
         // Keep row wrappers once and materialize cells only when a row needs them.
         List<WordTableRow> rows = table.Rows;
+        var mergedBorders = new Dictionary<(int Row, int Column), OfficeBorderBox>();
+        var hiddenEdge = new OfficeBorderSide(default, 0);
+        foreach (var merge in source.ResolveMergedBorders(cancellationToken)) {
+            for (int row = merge.Range.FirstRow; row <= merge.Range.LastRow; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                // Word retains one horizontal-span cell per row of a vertical merge.
+                mergedBorders[(row, merge.Range.FirstColumn)] = new OfficeBorderBox(merge.Borders.Left,
+                    row == merge.Range.FirstRow ? merge.Borders.Top : hiddenEdge, merge.Borders.Right,
+                    row == merge.Range.LastRow ? merge.Borders.Bottom : hiddenEdge);
+            }
+        }
         table.Description = source.AccessibilityDescription;
         if (source.DefaultColumnWidth is > 0 || source.ColumnWidths.Count > 0) {
             List<int> widths = table.ColumnWidth;
@@ -36,7 +48,8 @@ public static partial class WordIWorkConverter {
             List<WordTableCell>? targetCells = null;
             for (int column = 1; column <= source.ColumnCount; column++) {
                 var fill = source.GetFill(row, column);
-                var borders = source.GetBorders(row, column);
+                var borders = mergedBorders.TryGetValue((row, column), out var perimeter)
+                    ? perimeter : source.GetBorders(row, column);
                 IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
                 if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null) continue;
                 targetCells ??= rows[row - 1].Cells;
