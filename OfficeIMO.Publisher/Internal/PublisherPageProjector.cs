@@ -141,7 +141,17 @@ internal sealed partial class PublisherPageProjector {
         else {
             var placed = new OfficeDrawing(page.Width, page.Height);
             placed.AddDrawingForClippedRendering(local, x, y, transform);
-            page.AddEffectDrawing(placed, GroupPageTransform(shape));
+            OfficeTransform groupTransform = GroupPageTransform(shape);
+            if (!groupTransform.TryInvert(out OfficeTransform inverse))
+                throw new InvalidDataException("Publisher group projection produced a singular transform.");
+            var visible = inverse.TransformRectangleBounds(0, 0, page.Width, page.Height);
+            // Retain pre-transform paint that can enter the final page viewport.
+            // This expands vector coordinates only; renderers enforce their own
+            // pixel budgets before allocating the intermediate raster surface.
+            if (!placed.TryExpandViewportCanvas(visible.Left, visible.Top, visible.Right, visible.Bottom,
+                    double.MaxValue, double.MaxValue, out OfficeDrawing retained, out double left, out double top))
+                throw new InvalidDataException("Publisher group projection produced invalid viewport geometry.");
+            page.AddEffectDrawing(retained, OfficeTransform.Translate(left, top).Then(groupTransform));
         }
         if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id)) _projected.Add(shape.Id);
     }

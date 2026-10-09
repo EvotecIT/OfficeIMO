@@ -79,7 +79,9 @@ linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
 Group rotation/reflection mutations verify text-frame corners, picture placement,
-hidden-child wrapping and scene copying. Constructed nested native records check
+hidden-child wrapping and scene copying. A reflected picture starting above the
+page retains its pixels through the group transform and final page clip.
+Constructed nested native records check
 composition about distinct centres, quarter-turn anchor dimensions and the
 projected-item ceiling. These tests do not establish Publisher-rendered fidelity.
 The brochure and newsletter also verify referenced style defaults, direct
