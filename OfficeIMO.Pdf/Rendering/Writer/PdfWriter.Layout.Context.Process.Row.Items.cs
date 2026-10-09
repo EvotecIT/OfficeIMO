@@ -149,48 +149,15 @@ internal static partial class PdfWriter {
                     double[] colPixel = preparedColumns.Widths;
                     double tableWidth = preparedColumns.Width;
 
-                    var rowLines = new TableCellTextLayout[tb2.Rows.Count][];
-                    var rowLineCounts = new int[tb2.Rows.Count];
-                    var rowHeights = new double[tb2.Rows.Count];
-                    var rowLeadings = new double[tb2.Rows.Count];
-                    var rowSizes = new double[tb2.Rows.Count];
-                    var rowRunFontSizeScales = new double[tb2.Rows.Count];
-                    var rowBold = new bool[tb2.Rows.Count];
-                    var textLayouts = new TableTextLayoutReuse(currentOpts);
-                    for (int ri = 0; ri < tb2.Rows.Count; ri++) {
-                        bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
-                        double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
-                        TableRowTextSizing sizing = ResolveTableRowTextSizing(tb2, style, ri, cols, colPixel, columnGap, originalRowSize, rowUsesBold, currentOpts);
-                        double rowSize = sizing.FontSize;
-                        double runFontSizeScale = sizing.RunFontSizeScale;
-                        double rowLeading = GetTableLeading(style, rowSize);
-                        rowSizes[ri] = rowSize;
-                        rowRunFontSizeScales[ri] = runFontSizeScale;
-                        rowLeadings[ri] = rowLeading;
-                        rowBold[ri] = rowUsesBold;
-                        rowLines[ri] = new TableCellTextLayout[cols];
-                        int maxLines = 1;
-                        double maxRequiredHeight = GetTableRowInitialTextHeight(tb2, ri, cols, rowLeading) + GetTableRowMaxPaddingTop(tb2, style, ri, cols) + GetTableRowMaxPaddingBottom(tb2, style, ri, cols);
-                        var cells = GetTableCellLayouts(tb2, ri, cols);
-                        for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                            TableCellLayout cell = cells[cellIndex];
-                            var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
-                            double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, columnGap);
-                            double innerWidth = Math.Max(1, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                            TableCellTextLayout lines = textLayouts.Create(cell, innerWidth, cellFont, rowSize, rowLeading, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
-                            rowLines[ri][cell.Column] = lines;
-                            if (cell.RowSpan <= 1 && cell.Viewport == null) {
-                                maxLines = Math.Max(maxLines, cell.TextRotation == 0 ? lines.LineCount : 1);
-                                maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
-                            }
-                        }
-                        for (int ci = 0; ci < cols; ci++) {
-                            rowLines[ri][ci] ??= new TableCellTextLayout(new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() }, new System.Collections.Generic.List<double> { rowLeading });
-                        }
-                        rowLineCounts[ri] = maxLines;
-                        rowHeights[ri] = ResolveTableRowHeight(style, ri, maxRequiredHeight);
-                    }
-                    ApplyTableRowSpanHeights(tb2, style, cols, colPixel, rowLines, rowHeights, rowLeadings, columnGap, tableRowGap);
+                    PreparedFlowTableRows preparedRows = PrepareFlowTableRows(tb2, style, cols, colPixel,
+                        columnGap, tableRowGap, headerRowCount, footerStartRowIndex);
+                    TableCellTextLayout[][] rowLines = preparedRows.Lines;
+                    int[] rowLineCounts = preparedRows.LineCounts;
+                    double[] rowHeights = preparedRows.Heights;
+                    double[] rowLeadings = preparedRows.Leadings;
+                    double[] rowSizes = preparedRows.Sizes;
+                    double[] rowRunFontSizeScales = preparedRows.RunFontSizeScales;
+                    bool[] rowBold = preparedRows.Bold;
 
                     System.Collections.Generic.IReadOnlyList<PdfTextRun>? captionRuns = null;
                     System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? captionLines = null;
@@ -213,7 +180,7 @@ internal static partial class PdfWriter {
                         }
                     }
 
-                    items.Add(new ColTable { Block = tb2, Style = style, Columns = cols, ColumnWidths = colPixel, RowLines = rowLines, RowLineCounts = rowLineCounts, RowHeights = rowHeights, RowLeadings = rowLeadings, RowSizes = rowSizes, RowRunFontSizeScales = rowRunFontSizeScales, RowBold = rowBold, Width = tableWidth, Size = size, HeaderRowCount = headerRowCount, RepeatHeaderRowCount = repeatHeaderRowCount, FooterStartRowIndex = footerStartRowIndex, CaptionRuns = captionRuns, CaptionLines = captionLines, CaptionLineHeights = captionLineHeights, CaptionLeading = captionLeading, CaptionHeight = captionHeight });
+                    items.Add(new ColTable { Block = tb2, Style = style, PreparedRows = preparedRows, SpanFlow = new TableSpanFlow(tb2, style, cols, headerRowCount, footerStartRowIndex), Columns = cols, ColumnWidths = colPixel, RowLines = rowLines, RowLineCounts = rowLineCounts, RowHeights = rowHeights, RowLeadings = rowLeadings, RowSizes = rowSizes, RowRunFontSizeScales = rowRunFontSizeScales, RowBold = rowBold, Width = tableWidth, Size = size, HeaderRowCount = headerRowCount, RepeatHeaderRowCount = repeatHeaderRowCount, FooterStartRowIndex = footerStartRowIndex, CaptionRuns = captionRuns, CaptionLines = captionLines, CaptionLineHeights = captionLineHeights, CaptionLeading = captionLeading, CaptionHeight = captionHeight });
                 } else if (cb is HorizontalRuleBlock hr2) {
                     items.Add(new ColRule { Block = hr2 });
                 } else if (cb is ImageBlock ib2) {
