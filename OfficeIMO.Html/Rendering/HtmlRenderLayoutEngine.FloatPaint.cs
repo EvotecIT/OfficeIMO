@@ -18,16 +18,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool ContainsFloatPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase == HtmlRenderPaintPhase.Float
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual is HtmlRenderSemanticGroup group
-            && group.Visuals.Any(ContainsFloatPaint);
+            && group.StackingContext == null && group.Visuals.Any(ContainsFloatPaint);
 
     private static HtmlRenderVisual? FilterFloatPaint(HtmlRenderVisual visual, HtmlRenderPaintPhase phase) {
-        if (visual.PaintPhase == HtmlRenderPaintPhase.Content && visual is HtmlRenderSemanticGroup group) {
+        // A positioned/effect stacking context already owns its descendants'
+        // order. Splitting it into root float phases can cover its own text.
+        if (visual.StackingContext == null
+            && visual.PaintPhase == HtmlRenderPaintPhase.Content && visual is HtmlRenderSemanticGroup group) {
             HtmlRenderVisual[] children = group.Visuals.Select(child => FilterFloatPaint(child, phase))
                 .Where(child => child != null).Cast<HtmlRenderVisual>().ToArray();
             if (children.Length == 0) return null;
-            return new HtmlRenderSemanticGroup(group.Role, group.X, group.Y, group.Width, group.Height,
-                children, group.PaintOrder, group.Source, group.ColumnSpan, group.RowSpan, group.HeaderScope,
-                group.LayoutY, group.StructureElementKey) { PaintPhase = phase };
+            HtmlRenderVisual fragment = group.CopyStackingContextTo(
+                group.ProjectPaint(children, 0D, 0D, group.PaintOrder));
+            fragment.PaintPhase = phase;
+            return fragment;
         }
         HtmlRenderPaintPhase effective = visual.PaintPhase == HtmlRenderPaintPhase.Atomic ? HtmlRenderPaintPhase.Content : visual.PaintPhase;
         return effective == phase ? visual : null;
