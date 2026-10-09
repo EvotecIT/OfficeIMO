@@ -8,6 +8,12 @@ Use `OfficeRasterDecodeOptions.FrameLossPolicy` and `OfficeRasterFrameLossPolicy
 
 Raster text effects move from the long positional `OfficeRasterText.Draw` overload to `OfficeRasterTextOptions`. Pass the same options to `Measure` and `Draw` for consistent font, style, language, shaping, and wrapping. The short plain-text primitives retain their distinct convenience role.
 
+`OfficeRasterText.Draw` places the complete layout measured by `Measure`, including fractional line spacing. Rectangle height no longer removes lines. `Clip` controls glyph and effect clipping at the rectangle edges; `Wrap = false` preserves authored line breaks without adding soft wraps.
+
+Common raster decoding interpolates subsampled JPEG chroma by default. Set `OfficeRasterDecodeOptions.JpegHighQualityChroma = false` to select nearest-sample chroma reconstruction, including when reproducing pixels decoded with the earlier common default. This setting does not change EXIF orientation or acceptance of truncated input.
+
+Rotated and affine canvas images use fractional coverage at their outer boundaries. Edge pixels can therefore have partial alpha where the earlier renderer selected fully opaque pixels by their centers. Identity placement keeps the source pixels unchanged.
+
 The raster constructor now enforces the existing 50-million-pixel limit before allocation. `GetPixels` applies the same source-plus-copy managed-storage limit as `Clone`; applications retaining a large decoded image may need a smaller result before making another complete copy. Pixel setters retain clipping behavior. Canvas drawing onto its own image samples a guarded snapshot of the original pixels.
 
 `OfficeRasterResizeOptions` and an immutable `OfficeRasterResizePlan` replace consumer-owned aspect, crop, and temporary-memory calculations. Contain rounds midpoint ties away from zero within the requested bounds; Cover rounds upward and center-crops, with an odd extra pixel removed from the right or bottom. Percentage frame resizing retains floor rounding with a one-pixel minimum. See [managed raster workflows](Docs/officeimo.core-raster-workflows.md) for examples and metadata-omission evidence.
