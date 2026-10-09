@@ -12,8 +12,8 @@ Foundation tests cover stream ownership and position, byte/page budgets, malform
 
 | Profile | Header code / page size | Independent producer evidence | Current operations |
 | --- | --- | --- | --- |
-| Jet 4 MDB | `1` / 4096 | DAO 16 tables, typed values, indexes, relationships and queries; Access format 9 (2000) and 10 (2002/2003) files; independent creation reopen/edit/save | Catalog/schema/rows, application/VBA inventory, whole-file preservation and qualified creation; compact designers are preserve-only |
-| ACE 12 ACCDB | `2` / 4096 | DAO 16 scalar/fragmented tables, attachments and multivalued fields; independent application exports and creation reopen/edit/save | Same read/preserve/create API, structured-value reading and qualified version-21 designer metadata |
+| Jet 4 MDB | `1` / 4096 | DAO 16 tables, typed values, indexes, relationships and queries; Access format 9 (2000) and 10 (2002/2003) files; independent creation reopen/edit/save | Catalog/schema/rows, application/VBA inventory, whole-file preservation, qualified VBA persistence and creation; compact designers are preserve-only |
+| ACE 12 ACCDB | `2` / 4096 | DAO 16 scalar/fragmented tables, attachments and multivalued fields; independent application exports and creation reopen/edit/save | Same read/preserve/create API, qualified VBA persistence, structured-value reading and qualified version-21 designer metadata |
 | Jet 3 MDB | `0` / 2048 | Representative Access 97 producer fixture still required | Header recognition only |
 | ACE 14 | `3`, subversion `1` / 4096 | DAO calculated field and independent value observation; native rich designer and code-behind editing; separate password-required fixture | Unprotected catalog/rows and qualified VBA persistence; calculated payload is exact opaque data with diagnostics. Protected catalogs remain unavailable |
 | ACE 16 | `5` / 4096 | DAO BigInt definition and independently observed `5,000,000,000` value | Catalog/rows and native signed 64-bit integers |

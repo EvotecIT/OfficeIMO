@@ -9,9 +9,10 @@ namespace OfficeIMO.Access {
             if (recovery > options.MaximumRecoveryBytes) throw new InvalidDataException("Native Access recovery snapshots exceed MaximumRecoveryBytes.");
             // Access uses a direct native signature carrier rather than OPC relationships.
             // Unknown VBA-side siblings must remain preserve-only until their carrier is qualified.
+            var modulePaths = new HashSet<string>(VbaProject.Modules.Select(x => x.StoragePath), StringComparer.OrdinalIgnoreCase);
             if (ApplicationStreams.Any(x => x.Path.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase)
                 && !x.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && !x.Path.Equals("VBA/AcessVBAData", StringComparison.OrdinalIgnoreCase)
-                || x.Path.IndexOf("DigitalSignature", StringComparison.OrdinalIgnoreCase) >= 0))
+                || x.Path.IndexOf("DigitalSignature", StringComparison.OrdinalIgnoreCase) >= 0 && !modulePaths.Contains(x.Path)))
                 throw new NotSupportedException("An unqualified VBA or signature carrier prevents native Access editing.");
         }
     }

@@ -56,12 +56,14 @@ namespace OfficeIMO.Access {
             ValidateAccessVbaHostModules(current, project, hosts, appliedNames, addedHosts);
             foreach (AccessApplicationObject host in Forms.Concat(Reports)) {
                 string name = (host.CatalogEntry.NativeType == -32768 ? "Form_" : "Report_") + host.Name;
-                if (!hosts.Contains(name) && project.Modules.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                if (!hosts.Contains(name) && project.Modules.Any(x => x.Kind == OfficeVbaModuleKind.Document && x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
                     throw new NotSupportedException("Adding new form/report code-behind requires qualified host metadata authoring.");
             }
             ValidateNativeApplicationMutation(options);
             long maximumBytes = Math.Min(int.MaxValue, checked(Math.Max(_inputLimit, source.Snapshot().Length) + options.MaximumProjectBytes));
-            AccessNativeWriter plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, appliedNames, hostStreams);
+            AccessNativeWriter plan;
+            using (source.PreserveMutationMetadataAllowance())
+                plan = source.BuildVbaMutation(project, compound, maximumBytes, cancellationToken, hosts, appliedNames, hostStreams);
             ApplyNativeApplicationPlan(plan, bytes, project, hosts, maximumBytes, cancellationToken, "vba.apply");
         }
 

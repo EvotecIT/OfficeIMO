@@ -26,7 +26,9 @@ namespace OfficeIMO.Access {
                 native.MaxCatalogObjects, native.MaxMetadataBytes, cancellation);
             if (blob.SequenceEqual(changed)) return;
             long maximumBytes = Math.Min(int.MaxValue, checked(Math.Max(_inputLimit, native.Snapshot().Length) + options.MaximumProjectBytes));
-            AccessNativeWriter plan = native.BuildApplicationStreamReplacement(new Dictionary<string, byte[]> { [host.StoragePath + "Blob"] = changed }, maximumBytes, cancellation);
+            AccessNativeWriter plan;
+            using (native.PreserveMutationMetadataAllowance())
+                plan = native.BuildApplicationStreamReplacement(new Dictionary<string, byte[]> { [host.StoragePath + "Blob"] = changed }, maximumBytes, cancellation);
             ApplyNativeApplicationPlan(plan, _vbaMutation?.ProjectBytes, null, new HashSet<string>(), maximumBytes, cancellation, "event.set");
         }
     }

@@ -44,7 +44,7 @@ namespace OfficeIMO.Access {
                     object?[] row = (object?[])source.Clone(); row[idOrdinal] = module[catalogId]; additions.Add(row);
                 }
             }
-            writer.MutateApplicationRows(this, permissions, additions, removals);
+            writer.MutateApplicationRows(this, permissions, additions, removals, rowLimit: checked((long)MaxCatalogObjects * 16));
         }
     }
 }

@@ -34,7 +34,8 @@ namespace OfficeIMO.Access.Verification {
                     if (saved.GetVbaProject().GetModule(module.Name).Source.TrimEnd('\r', '\n') != module.Source.TrimEnd('\r', '\n'))
                         throw new InvalidDataException("Persisted VBA source differs: " + module.Name);
                 }
-                foreach (AccessStorageStream stream in database.ApplicationStreams.Where(x => !x.Path.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase) && !x.Path.StartsWith("Modules/", StringComparison.OrdinalIgnoreCase))) {
+                using AccessDocument baseline = AccessDocument.Load(new MemoryStream(original));
+                foreach (AccessStorageStream stream in baseline.ApplicationStreams.Where(x => !x.Path.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase) && !x.Path.StartsWith("Modules/", StringComparison.OrdinalIgnoreCase))) {
                     if (!stream.Payload.GetBytes().SequenceEqual(saved.ApplicationStreams.Single(x => x.Path == stream.Path).Payload.GetBytes()))
                         throw new InvalidDataException("Unrelated native stream differs: " + stream.Path);
                 }

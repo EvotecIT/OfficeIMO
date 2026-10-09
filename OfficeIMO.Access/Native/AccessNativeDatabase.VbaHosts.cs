@@ -42,6 +42,8 @@ namespace OfficeIMO.Access {
             foreach (AccessApplicationObject host in _document.Forms.Concat(_document.Reports)) {
                 string name = (host.CatalogEntry.NativeType == -32768 ? "Form_" : "Report_") + host.Name;
                 OfficeVbaModule? module = project.Modules.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (module != null && (module.Kind == OfficeVbaModuleKind.Standard || module.Kind == OfficeVbaModuleKind.Class)
+                    && _catalog.Any(x => x.Type == -32761 && x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) module = null;
                 byte[]? metadata = host.StoragePath != null && _applicationStreams.TryGetValue(host.StoragePath + "PropData", out AccessStorageStream? properties)
                     ? properties.Payload.GetBytes() : null;
                 int valueOffset;

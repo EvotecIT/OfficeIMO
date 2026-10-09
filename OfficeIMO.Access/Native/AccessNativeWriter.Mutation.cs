@@ -5,6 +5,14 @@ namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeWriter {
         private readonly Dictionary<AccessNativeColumn, List<int>> _mutationLongPages = new Dictionary<AccessNativeColumn, List<int>>();
         private readonly Dictionary<AccessNativeTable, List<int>> _mutationRowPages = new Dictionary<AccessNativeTable, List<int>>();
+        private long _mutationMetadataBytes;
+        // One writer covers every affected application/catalog/permission index.
+        // Failed plans are discarded without consuming the source read budget.
+        private void ReserveMutationMetadata(AccessNativeDatabase database, int bytes) {
+            if (bytes < 0 || _mutationMetadataBytes > database.RemainingMetadataBytes - bytes)
+                throw new InvalidDataException("Native mutation index entries exceed the remaining aggregate metadata budget.");
+            _mutationMetadataBytes += bytes;
+        }
         /// <summary>Plans bounded replacement of nonindexed long-binary values without changing row or catalog identities.</summary>
         /// <remarks>The original snapshot is untouched. Old payload pages remain allocated; this operation is not database compaction.</remarks>
         internal static AccessNativeWriter BuildBinaryReplacements(AccessNativeDatabase database, AccessNativeTable table,
