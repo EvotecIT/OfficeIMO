@@ -73,8 +73,9 @@ namespace OfficeIMO.Visio {
                 paths = new List<VisioShapeGeometryPath>();
                 // A loaded master child with no Geometry is often a text-only shape.
                 // Painting an authored fallback rectangle would cover its parent's outline.
-                if (shape.PreservedGeometrySections.Count == 0 && masterShape?.NativeStyleReferences != null &&
-                    masterShape.PreservedGeometrySections.Count == 0) return true;
+                VisioShape? referencedChild = GetReferencedMasterChild(shape);
+                if (referencedChild?.NativeStyleReferences != null && shape.PreservedGeometrySections.Count == 0 &&
+                    referencedChild.PreservedGeometrySections.Count == 0) return true;
                 // Groups without their own geometry are containers, not implicit rectangles.
                 return shape.Children.Count > 0 || string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase);
             }
