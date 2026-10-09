@@ -601,6 +601,233 @@
         }
       ],
       "qualificationBoundary": "Only frozen WAI Print pages1\u20132 plus exact-resource two-card Print public-API reduction and canonical Chromium comparison. No whole-page browser print parity, arbitrary-web fidelity, screenshot-profile equivalence, cross-platform/package or accessibility qualification implied."
+    },
+    "nistCapturedFontClassification": {
+      "recordedUtc": "2026-10-09T18:17:55.908483+00:00",
+      "sourceCommit": "044477ee600e1075f5df5ec2a8da7407baaa8962",
+      "archiveSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
+      "diagnosisReceiptSha256": "cbb4f20138978586ed0b9227af2a540ec395b922c187cb74bd4dc006b1f3dde4",
+      "classification": "frozen-archive font coverage/precondition limit; no skipped usable captured font or reachable font-selection defect established",
+      "declaredFaces": 20,
+      "capturedFaces": 5,
+      "absentFaces": 15,
+      "capturedFonts": [
+        {
+          "part": 27,
+          "location": "https://www.nist.gov/libraries/nist-component-library/dist/fonts/source-sans-pro/sourcesanspro-bold-webfont.woff2",
+          "postScriptName": "SourceSansPro-Bold",
+          "capturedBytes": 20368,
+          "capturedSha256": "83f67df68dac5c435d964be278d39f70ad8605265b6b99918a46451b77552e92",
+          "decodedSha256": "ecd77ad17c9e0de92910b73e08cce5473bdbd784f5961e4526571436e97e6772",
+          "unicodeCmapSubtables": 4,
+          "mappingsPerSubtable": 301,
+          "minusGlyph": 0
+        },
+        {
+          "part": 28,
+          "location": "https://www.nist.gov/libraries/nist-component-library/dist/fonts/source-sans-pro/sourcesanspro-bolditalic-webfont.woff2",
+          "postScriptName": "SourceSansPro-BoldIt",
+          "capturedBytes": 16416,
+          "capturedSha256": "a33113771d3c777aac563e996042ba93dd85265f39eb2dfe79dc9b925f29fec2",
+          "decodedSha256": "1f216e3110f83874fdcd7e0973f07765a9f4a4fc76d2b8c15b3c9e708f0c7668",
+          "unicodeCmapSubtables": 4,
+          "mappingsPerSubtable": 301,
+          "minusGlyph": 0
+        },
+        {
+          "part": 29,
+          "location": "https://www.nist.gov/libraries/nist-component-library/dist/fonts/source-sans-pro/sourcesanspro-italic-webfont.woff2",
+          "postScriptName": "SourceSansPro-It",
+          "capturedBytes": 16372,
+          "capturedSha256": "8a6e1d4b336524d25462b8f966760a40624f8416d5fdc6c226db2edbf67443e8",
+          "decodedSha256": "58ac804aad25cf8d23299e6c0dbab3c58bfe338ae63cd786d2830cbfac9aca91",
+          "unicodeCmapSubtables": 4,
+          "mappingsPerSubtable": 301,
+          "minusGlyph": 0
+        },
+        {
+          "part": 30,
+          "location": "https://www.nist.gov/libraries/nist-component-library/dist/fonts/source-sans-pro/sourcesanspro-regular-webfont.woff2",
+          "postScriptName": "SourceSansPro-Regular",
+          "capturedBytes": 20540,
+          "capturedSha256": "8792619becd8b285e78f14bfcf1ad66e2adbae0f5ec8ad131246621f806ac535",
+          "decodedSha256": "fff7de97dcf6f5b80d57f704f508742d9b44ba3e9ddb23f4378ee6a38aba1f2b",
+          "unicodeCmapSubtables": 4,
+          "mappingsPerSubtable": 301,
+          "minusGlyph": 0
+        },
+        {
+          "part": 31,
+          "location": "https://www.nist.gov/libraries/nist-component-library/dist/fonts/source-sans-pro/sourcesanspro-semibold-webfont.woff2",
+          "postScriptName": "SourceSansPro-Semibold",
+          "capturedBytes": 20500,
+          "capturedSha256": "d6ed6562ea657562b33b75cdfccef314d836a0bede8d34e9e75cdbfa80dede5d",
+          "decodedSha256": "8a4e2fb32c5d1ae5194bae6f2cd81b6e985887538a888d9ff6fc684c31adfb21",
+          "unicodeCmapSubtables": 4,
+          "mappingsPerSubtable": 301,
+          "minusGlyph": 0
+        }
+      ],
+      "cmapProof": {
+        "corePublicCoverageAndRawSfntInspectionAgree": true,
+        "unicodeSubtablesInspected": 20,
+        "allCapturedMinusGlyphs": 0,
+        "independentOriginalWoff2LiteralCmapsEqualCore": true,
+        "independentReceiptSha256": "6833996c0dcd80428804633c8b7bf0007669760627c0f8f166fa1783c3b93326",
+        "scriptSha256": "d301b53e060440f51b6cc11156aea4a21b87a84bcb20bb263fc819d84dd2bd33",
+        "boundary": "Independent Node builtin Brotli decoding and literal cmap extraction from original WOFF2 bytes; does not claim full independent glyph/font decoding.",
+        "formatReference": "https://www.w3.org/TR/WOFF2/#table_dir_format"
+      },
+      "authoredFontContract": {
+        "screenFile": "part-024.css",
+        "screenSha256": "824f02a8d8bb20dcd374bc20c87e0ba8196e0513d22de686401aefbab7e7ed4c",
+        "screenBodyRule": "body, html { font-family: \"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif; }",
+        "printFile": "part-009.css",
+        "printSha256": "5144d3c6740e01d850db060326ada159752cc5e999196d37d5ea0d2f92a5d3a9",
+        "printBodyRule": "body { font-family: Georgia, \"Times New Roman\", Times, serif; font-size: 16px; line-height: 1.4; }",
+        "printLinkMedia": "print",
+        "fontfacesScope": "All 20 font-face rules are inside outer @media screen in part-024.css."
+      },
+      "request": {
+        "profiles": [
+          "PrintPaged",
+          "ScreenMediaPaged",
+          "ScreenSnapshotPaged"
+        ],
+        "encoder": "Pdf",
+        "viewport": [
+          816,
+          900
+        ],
+        "marginsAllPoints": 48,
+        "resourcePolicy": "PortableDeterministic",
+        "callerFonts": null,
+        "systemFontsEnabled": false,
+        "source": "/Volumes/Samsung/Development/Scratch/html-layout-unfamiliar/frozen-restored/nist/h10-nist-outline-fallback-91951f8ef/source.mhtml"
+      },
+      "selectionScenes": [
+        {
+          "profile": "PrintPaged",
+          "sha256": "f61719d5343aeb065b7ec6abac32f45c5363a1e057560bd62b9f3efd280d64c2",
+          "capturedFontFacesLoaded": 0,
+          "retainedMinusVisuals": 104,
+          "requestedMinusGroups": [
+            {
+              "family": "Georgia, \"Times New Roman\", Times, serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "paragraph",
+              "visuals": 4
+            },
+            {
+              "family": "Georgia, \"Times New Roman\", Times, serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "sup",
+              "visuals": 99
+            },
+            {
+              "family": "Georgia, \"Times New Roman\", Times, serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "table-cell",
+              "visuals": 1
+            }
+          ]
+        },
+        {
+          "profile": "ScreenMediaPaged",
+          "sha256": "7fe7a34e9401089c57e2ee2fca2fb5b3a5d89080ebc963b3a9b6ef314ca3dceb",
+          "capturedFontFacesLoaded": 5,
+          "retainedMinusVisuals": 105,
+          "requestedMinusGroups": [
+            {
+              "family": "\"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "paragraph",
+              "visuals": 4
+            },
+            {
+              "family": "\"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "sup",
+              "visuals": 99
+            },
+            {
+              "family": "\"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "table-cell",
+              "visuals": 2
+            }
+          ]
+        },
+        {
+          "profile": "ScreenSnapshotPaged",
+          "sha256": "62024900037e1b2e1974b71bb4be8c48515d602ae184774695089d2ed372224d",
+          "capturedFontFacesLoaded": 5,
+          "retainedMinusVisuals": 109,
+          "requestedMinusGroups": [
+            {
+              "family": "\"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "paragraph",
+              "visuals": 4
+            },
+            {
+              "family": "\"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "sup",
+              "visuals": 101
+            },
+            {
+              "family": "\"Source Sans Pro Web\", \"Helvetica Neue\", Helvetica, Roboto, Arial, sans-serif",
+              "weight": 400,
+              "slant": 0,
+              "source": "table-cell",
+              "visuals": 4
+            }
+          ]
+        }
+      ],
+      "canonicalPublicFailureReceiptSha256": "0af16edc34351d94613a904f2d30ccec9cb4b7639af0fc13360f1a6e698b01e3",
+      "canonicalFailures": [
+        {
+          "profile": "print-paged",
+          "failure": "OfficeIMO.Html.HtmlConversionException",
+          "message": "HTML conversion failed: Text contains character U+2212 '\u2212' at index 37 that cannot be encoded with PDF WinAnsiEncoding. Embedded Unicode fonts are required for this text.",
+          "glyphDiagnosticCount": 109
+        },
+        {
+          "profile": "screen-media-paged",
+          "failure": "OfficeIMO.Html.HtmlConversionException",
+          "message": "HTML conversion failed: Text contains character U+2212 '\u2212' at index 0 that cannot be encoded with embedded TrueType font 'SourceSansProWeb-Regular'. Choose a font that contains this glyph or configure a fallback before rendering.",
+          "glyphDiagnosticCount": 109
+        },
+        {
+          "profile": "screen-snapshot-paged",
+          "failure": "OfficeIMO.Html.HtmlConversionException",
+          "message": "HTML conversion failed: Text contains character U+2212 '\u2212' at index 0 that cannot be encoded with embedded TrueType font 'SourceSansProWeb-Regular'. Choose a font that contains this glyph or configure a fallback before rendering.",
+          "glyphDiagnosticCount": 113
+        }
+      ],
+      "conclusion": [
+        "Print source font-face declarations are screen-only; its authored Georgia/Times serif chain has no captured font bytes. WinAnsi U+2212 failure is expected under the declared deterministic policy.",
+        "Media/Snapshot regular paragraph and superscript requests use Source Sans Pro Web + Helvetica Neue, Helvetica, Roboto, Arial, sans-serif. All five captured Source Sans faces load and all lack minus. Later listed family bytes are absent.",
+        "No captured usable face covers minus in any weight/slant. Selecting a different captured face cannot close this source precondition.",
+        "Keep bare archived-source requests failing truthfully; no glyph substitution, implicit font acquisition, production fallback or new caller replay.",
+        "Smallest next deliverable is this source-boundary classification in canonical H10 qualification evidence/roadmap. Caller-supplied font appearance qualification remains a separate previously documented route; this census does not accept NIST chapter/table native appearance."
+      ],
+      "scopeLimits": [
+        "No source reacquisition, host-font inspection, replacement font/glyph or dependency expansion.",
+        "No new native NIST PDF is generated because the canonical requests fail before an encodable artifact.",
+        "Retained scene counts may include clipped continuation surfaces; they do not establish exact-once painted glyphs.",
+        "Source font coverage and request selection classification only; broader native appearance and archived-font acceptance remain unqualified."
+      ]
     }
   },
   "h4ResourceProof": {
