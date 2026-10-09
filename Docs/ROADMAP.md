@@ -51,16 +51,6 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 - [ ] Add bounded EMF/WMF rasterization when older Office-document fixtures demonstrate a material fidelity gain. Keep ICO, PCX, BMP/GIF encoding, and uncommon or expensive codecs behind the caller-codec boundary until a first-party consumer justifies ownership.
 
-## DjVu scanned documents
-
-Read `.djvu` and `.djv` archival books through `OfficeIMO.DjVu`, with stored-text extraction, scanned-page rendering and PDF conversion. The [managed document and codec design](officeimo.djvu-design.md) defines the planned APIs, dependency boundary and acceptance evidence.
-
-- [ ] **DJ0 — Independent format evidence:** establish redistributable, hash-bound single-page and bundled books with expected text, zones, page order and reference images, including malformed inputs.
-- [ ] **DJ1 — Stored-text reading:** expose bounded document/page APIs and a thin Reader adapter for compressed and uncompressed text, with explicit absent/corrupt-layer behavior and independent book evidence.
-- [ ] **DJ2 — Scanned-page rendering:** render monochrome, colour and compound pages with correct physical geometry, rotation and selection; qualify output against independent all-page reference images.
-- [ ] **DJ3 — PDF and optional OCR:** preserve page order, physical size and searchable existing text in PDF; reuse the OCR contract for an explicit missing-text policy with provenance and independent reopen/render/search evidence.
-- [ ] **DJ4 — Consumer qualification:** expose qualified profiles through Reader and thin Workflows/Tool/Studio consumers, and validate source/packed consumers and supported platforms with explicit limits.
-
 ## PDF engine and conversion fidelity
 
 - [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.

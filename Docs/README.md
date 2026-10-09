@@ -81,7 +81,6 @@ The package README is the primary usage guide for its public API. These reposito
 ## Architecture
 
 - [Access document design](officeimo.access-design.md) — proposed typed API, native codec ownership, database-provider boundary, preservation, security, and qualification. Open milestones live in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
-- [DjVu document design](officeimo.djvu-design.md) — planned document/text/page APIs, managed codec ownership, PDF/OCR integration and independent acceptance evidence. Open deliverables live in the [DjVu roadmap](ROADMAP.md#djvu-scanned-documents).
 - [Owned HTML documents and providers](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
 - [Independent HTML engine design](officeimo.html-engine-design.md) — proposed shared DOM, CSS, layout, conversion and optional web-runtime boundaries, with staged dependency retirement. Open milestones live in the [roadmap](ROADMAP.md#independent-html-engine).
 - [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
