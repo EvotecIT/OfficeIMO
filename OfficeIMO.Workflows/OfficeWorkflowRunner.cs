@@ -39,6 +39,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? providerStagingDirectory = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedRequest? validated = prepared.Validated;
+        OperationArtifact? artifact = null;
         var inputs = new WorkflowInputSnapshots();
 
         try {
@@ -60,7 +61,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
             Report(progress, validated.Id, "execute", DescribeOperation(validated.Operation), 0.18D);
             failureStage = WorkflowFailureStage.Operation;
-            OperationArtifact artifact = await Task.Run(
+            artifact = await Task.Run(
                 () => Execute(validated, diagnostics, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -172,12 +173,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 outputBytes: 0,
                 stopwatch.Elapsed,
                 "Cancelled",
-                diagnostics);
+                diagnostics,
+                conversionEvidence: artifact?.ConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
-            OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence;
+            OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence
+                ?? artifact?.ConversionEvidence;
             if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
                 AddConversionDiagnostics(failedConversionEvidence, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
