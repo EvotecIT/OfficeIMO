@@ -550,7 +550,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (requireComplete && offset != end)
-                throw new InvalidDataException("Truncated native list paragraph formatting operand.");
+                throw new InvalidDataException("A paragraph or table property operand is truncated or invalid.");
 
             return new LegacyDocParagraphFormat(
                 alignment,

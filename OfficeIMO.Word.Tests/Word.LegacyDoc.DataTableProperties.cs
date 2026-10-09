@@ -43,6 +43,26 @@ public partial class Word {
     }
 
     [Fact]
+    public void LegacyDoc_DataTableProperties_RejectLongPointerOnlyChains() {
+        const int records = 4096;
+        byte[] data = new byte[records * 12];
+        for (int record = 0; record < records; record++) {
+            int start = record * 12;
+            data[start] = 10;
+            if (record + 1 < records) {
+                data[start + 2] = 0x6B; data[start + 3] = 0x64;
+                Buffer.BlockCopy(BitConverter.GetBytes(start + 12), 0, data, start + 4, 4);
+            } else {
+                byte[] final = { 0x07, 0x94, 0x20, 3, 0x16, 0x24, 1, 0x17, 0x24, 1 };
+                Buffer.BlockCopy(final, 0, data, start + 2, final.Length);
+            }
+        }
+        byte[] root = { 0x6B, 0x64, 0, 0, 0, 0 };
+        Assert.Throws<InvalidDataException>(() =>
+            LegacyDocParagraphFormattingReader.ResolveDataProperties(root, 0, root.Length, data));
+    }
+
+    [Fact]
     public void LegacyDoc_HugeParagraphProperties_RequireOnlyPapxPropertyAndStyleZero() {
         byte[] child = { 0x07, 0x94, 0x20, 3, 0x16, 0x24, 1, 0x17, 0x24, 1 };
         byte[] root = { 0x46, 0x66, 0, 0, 0, 0 };

@@ -224,7 +224,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? dataStreamCandidate!
                 : Array.Empty<byte>();
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(
-                wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning, dataStream);
+                wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning, dataStream, options);
             if (paragraphFormattingWarning != null) {
                 AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
             }

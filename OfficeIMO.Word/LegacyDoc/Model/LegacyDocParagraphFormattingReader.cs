@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             byte[] tableStream,
             LegacyDocFib fib,
             out string? warning,
-            byte[]? dataStream = null) {
+            byte[]? dataStream = null, LegacyDocImportOptions? options = null) {
             warning = null;
 
             if (fib.LcbPlcfBtePapx == 0) {
@@ -97,6 +97,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int cpArrayOffset = fib.FcPlcfBtePapx;
             int bteArrayOffset = cpArrayOffset + ((binCount + 1) * 4);
             var ranges = new List<LegacyDocParagraphFormatRange>();
+            var dataContext = new LegacyDocDataPropertyContext(dataStream ?? Array.Empty<byte>(), options ?? new LegacyDocImportOptions());
 
             for (int binIndex = 0; binIndex < binCount; binIndex++) {
                 int fcStart = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + (binIndex * 4));
@@ -112,7 +113,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return ranges;
                 }
 
-                ReadPapxFkp(wordDocumentStream, pageOffset, ranges, dataStream ?? Array.Empty<byte>(), ref warning);
+                ReadPapxFkp(wordDocumentStream, pageOffset, ranges, dataContext, ref warning);
+                if (dataContext.WorkLimitExceeded) break;
             }
 
             return ranges
@@ -122,7 +124,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static void ReadPapxFkp(byte[] wordDocumentStream, int pageOffset, List<LegacyDocParagraphFormatRange> ranges,
-            byte[] dataStream, ref string? warning) {
+            LegacyDocDataPropertyContext dataContext, ref string? warning) {
             int cpara = wordDocumentStream[pageOffset + OleSectorSize - 1];
             if (cpara <= 0) {
                 return;
@@ -153,8 +155,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 LegacyDocParagraphFormat format;
                 try {
-                    format = ReadPapx(wordDocumentStream, absolutePapxOffset, pageOffset + OleSectorSize - 1, dataStream);
+                    format = ReadPapx(wordDocumentStream, absolutePapxOffset, pageOffset + OleSectorSize - 1, dataContext);
                 } catch (InvalidDataException exception) {
+                    if (dataContext.WorkLimitExceeded) {
+                        warning = exception.Message;
+                        return;
+                    }
                     warning ??= exception.Message;
                     continue;
                 }
@@ -164,7 +170,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static LegacyDocParagraphFormat ReadPapx(byte[] bytes, int offset, int pageEnd, byte[] dataStream) {
+        private static LegacyDocParagraphFormat ReadPapx(byte[] bytes, int offset, int pageEnd, LegacyDocDataPropertyContext dataContext) {
             if (offset >= pageEnd) {
                 return LegacyDocParagraphFormat.Default;
             }
@@ -186,7 +192,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             ushort styleIndex = LegacyDocFib.ReadUInt16(bytes, grpprlOffset);
-            byte[] properties = ResolveDataProperties(bytes, grpprlOffset + 2, grpprlLength - 2, dataStream, styleIndex);
+            byte[] properties = ResolveDataProperties(bytes, grpprlOffset + 2, grpprlLength - 2, dataContext.DataStream, styleIndex, dataContext);
             return ReadGrpprl(properties, 0, properties.Length, styleIndex == 0 ? null : styleIndex, requireComplete: true);
         }
 
