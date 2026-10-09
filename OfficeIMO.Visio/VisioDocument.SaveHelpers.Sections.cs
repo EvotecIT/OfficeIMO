@@ -9,9 +9,7 @@ using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Save-time helper methods for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Save-time helper methods for VisioDocument.
     public partial class VisioDocument {
 
         private static void WriteHyperlinkSection(XmlWriter writer, string ns, IList<VisioHyperlink> hyperlinks, IList<VisioHyperlink>? inherited = null) {

@@ -5,9 +5,7 @@ using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
-    /// <summary>
-    /// High-level builder for generic graph diagrams where OfficeIMO lays out arbitrary nodes and edges.
-    /// </summary>
+    // High-level builder for generic graph diagrams where OfficeIMO lays out arbitrary nodes and edges.
     public sealed partial class VisioGraphDiagramBuilder {
         private sealed class NodeItem {
             public NodeItem(string id, string text, VisioGraphNodeKind kind, VisioStencilShape? stencil, string? stencilCatalogName) {

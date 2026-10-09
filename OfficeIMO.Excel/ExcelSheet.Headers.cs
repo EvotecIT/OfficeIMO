@@ -5,9 +5,7 @@ using System.Threading;
 using OpenXmlCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Header-based helpers for addressing cells and columns by header name.
-    /// </summary>
+    // Header-based helpers for addressing cells and columns by header name.
     public partial class ExcelSheet {
         private Dictionary<string, int>? _headerMapCache;
         private string? _headerMapSourceA1;

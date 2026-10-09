@@ -1,7 +1,5 @@
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Layout primitives for SheetComposer (titles, sections, lists, KPIs, score, references).
-    /// </summary>
+    // Layout primitives for SheetComposer (titles, sections, lists, KPIs, score, references).
     public sealed partial class SheetComposer {
         /// <summary>Adds vertical spacing by advancing the current row.</summary>
         /// <param name="rows">Number of rows to skip; when negative uses the theme default.</param>

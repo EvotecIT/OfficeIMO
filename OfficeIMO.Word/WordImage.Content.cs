@@ -18,10 +18,8 @@ using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Represents an image contained in a <see cref="WordDocument"/> and provides
-    /// functionality to insert and manipulate pictures.
-    /// </summary>
+    // Represents an image contained in a WordDocument and provides
+    // functionality to insert and manipulate pictures.
     public partial class WordImage : WordElement {
 
         /// <summary>

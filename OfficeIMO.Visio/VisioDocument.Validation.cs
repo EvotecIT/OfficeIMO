@@ -4,9 +4,7 @@ using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Authoring-time validation helpers for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Authoring-time validation helpers for VisioDocument.
     public partial class VisioDocument {
         /// <summary>
         /// Validates the in-memory document model and returns authoring-time issues.

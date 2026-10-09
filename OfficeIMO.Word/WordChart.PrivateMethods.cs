@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Holds private helper methods for chart construction.
-    /// </summary>
+    // Holds private helper methods for chart construction.
     public partial class WordChart {
         private CategoryAxisData InitializeCategoryAxisData() {
             var pieChartSeries = InitializePieChartSeries();

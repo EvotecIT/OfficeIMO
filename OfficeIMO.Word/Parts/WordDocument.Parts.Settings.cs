@@ -7,9 +7,7 @@ using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Contains document settings part generators.
-    /// </summary>
+    // Contains document settings part generators.
     public partial class WordDocument {
         /// <summary>
         /// Adds default settings for WebSettings

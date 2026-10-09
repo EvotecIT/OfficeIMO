@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides public methods for field manipulation.
-    /// </summary>
+    // Provides public methods for field manipulation.
     public partial class WordField {
         /// <summary>
         /// Inserts a field into the specified paragraph.

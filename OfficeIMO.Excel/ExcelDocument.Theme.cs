@@ -6,10 +6,8 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Represents an Excel document and provides methods for creating,
-    /// loading and saving spreadsheets.
-    /// </summary>
+    // Represents an Excel document and provides methods for creating,
+    // loading and saving spreadsheets.
     public partial class ExcelDocument {
         private static readonly XNamespace DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
 

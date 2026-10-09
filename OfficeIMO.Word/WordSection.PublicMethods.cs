@@ -3,9 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Adds public operations for working with sections.
-    /// </summary>
+    // Adds public operations for working with sections.
     public partial class WordSection {
         /// <summary>
         /// Updates the margins for this section.
