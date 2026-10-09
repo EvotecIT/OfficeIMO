@@ -70,26 +70,30 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ValidateDirectTabularWorkbook(document, sheets, source.SheetName);
             cancellationToken.ThrowIfCancellationRequested();
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
-            if (!XlsbWorksheetPartWriter.TryCreateDirectTabular(
-                document,
-                sheet,
-                source,
-                cancellationToken,
-                out ArraySegment<byte> worksheetPart,
-                sharedStrings)) {
-                return false;
+            XlsbDirectTabularPlan? plan = null;
+            ArraySegment<byte> worksheetPart = default;
+            try {
+                if (XlsbDirectTabularPlan.CanCapture(source)) {
+                    if (!XlsbDirectTabularPlan.TryCreate(document, sheet, source, sharedStrings, cancellationToken, out plan)) return false;
+                } else if (!XlsbWorksheetPartWriter.TryCreateDirectTabular(
+                    document, sheet, source, cancellationToken, out worksheetPart, sharedStrings)) {
+                    return false;
+                }
+
+                // Validate temporal styles and shared strings before touching the
+                // destination, whether cells were captured or staged as BIFF12.
+                Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+                byte[]? stylesPart = stylesheet == null ? null : XlsbStylesheetPartWriter.Create(stylesheet, out _);
+                ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+                WriteDirectTabularPackage(document, destination, source.SheetName, stylesPart,
+                    worksheetPart, sharedStringsPart, plan, cancellationToken);
+                if (destination.CanSeek) destination.SetLength(destination.Position);
+                return true;
+            } finally {
+                plan?.Dispose();
             }
-
-            // Direct temporal cells resolve their existing insertion format while
-            // staging the worksheet, before any bytes reach the destination.
-            Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            byte[]? stylesPart = stylesheet == null ? null : XlsbStylesheetPartWriter.Create(stylesheet, out _);
-
-            ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
-            if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
-            WriteDirectTabularPackage(document, destination, source.SheetName, stylesPart, worksheetPart, sharedStringsPart);
-            if (destination.CanSeek) destination.SetLength(destination.Position);
-            return true;
         }
 
         private static void WriteDirectTabularPackage(
@@ -98,7 +102,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             string sheetName,
             byte[]? stylesPart,
             ArraySegment<byte> worksheetPart,
-            ArraySegment<byte>? sharedStringsPart) {
+            ArraySegment<byte>? sharedStringsPart,
+            XlsbDirectTabularPlan? plan,
+            CancellationToken cancellationToken) {
             using var positionReportingDestination = destination.CanSeek
                 ? null
                 : new ExcelPositionReportingWriteStream(destination);
@@ -110,7 +116,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     sheetName,
                     document.DateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
                 WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: stylesPart != null, hasSharedStrings: sharedStringsPart.HasValue), CompressionLevel.Fastest);
-                WriteEntry(archive, "xl/worksheets/sheet1.bin", worksheetPart, CompressionLevel.Fastest);
+                if (plan == null) {
+                    WriteEntry(archive, "xl/worksheets/sheet1.bin", worksheetPart, CompressionLevel.Fastest);
+                } else {
+                    ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
+                    entry.LastWriteTime = ReproducibleEntryTime;
+                    using Stream output = entry.Open();
+                    XlsbWorksheetPartWriter.WriteDirectTabular(output, plan, cancellationToken);
+                }
                 if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart, CompressionLevel.Fastest);
                 if (sharedStringsPart.HasValue) WriteEntry(archive, "xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
             }
