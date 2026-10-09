@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertPublisher(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
+        OfficeWorkflowConversionOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         PublisherReadOptions read = settings.PublisherRead?.Clone() ?? new PublisherReadOptions();
         read.Limits.MaxInputBytes = (int)Math.Min(read.Limits.MaxInputBytes, request.Limits.MaximumInputBytes);
@@ -23,7 +23,6 @@ public sealed partial class OfficeWorkflowRunner {
             conversion = source.ToPdfDocumentResult(settings.PublisherPdf, token);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
             if (settings.RequireNoLoss) evidence.RequireNoLoss();
-            AddConversionDiagnostics(evidence, diagnostics);
             return (bytes, evidence);
         } catch (OperationCanceledException exception) when (token.IsCancellationRequested && exception is not WorkflowConversionCancellationException) {
             IReadOnlyList<IOfficeConversionReport> reports = conversion?.ConversionReports ?? new IOfficeConversionReport[] { source.ReadReport };

@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertDraw(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
+        OfficeWorkflowConversionOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         using var stream = new MemoryStream(input, writable: false);
         var loadOptions = new OdfLoadOptions {
@@ -27,24 +27,12 @@ public sealed partial class OfficeWorkflowRunner {
             conversion = source.ToPdfDocumentResult(settings.Draw, token);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
             if (settings.RequireNoLoss) evidence.RequireNoLoss();
-            AddConversionDiagnostics(evidence, diagnostics);
             return (bytes, evidence);
         } catch (OdfConversionLossException exception) {
             throw new WorkflowConversionFailureException(exception, new OfficeWorkflowConversionEvidence(exception.Report, facts));
         } catch (Exception exception) when (conversion != null && exception is not WorkflowConversionFailureException and not OperationCanceledException
             and not OutOfMemoryException and not StackOverflowException) {
             throw new WorkflowConversionFailureException(exception, new OfficeWorkflowConversionEvidence(conversion.ConversionReports, facts));
-        }
-    }
-
-    private static void AddConversionDiagnostics(OfficeWorkflowConversionEvidence evidence, List<OfficeWorkflowDiagnostic> diagnostics) {
-        foreach (OfficeConversionFidelityDiagnostic finding in evidence.FidelityDiagnostics) {
-            var details = new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() };
-            if (finding.Location != null) details["location"] = finding.Location;
-            diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
-                finding.LossKind == OfficeConversionLossKind.Failure ? OfficeWorkflowDiagnosticSeverity.Error
-                    : finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
-                "convert", details));
         }
     }
 }

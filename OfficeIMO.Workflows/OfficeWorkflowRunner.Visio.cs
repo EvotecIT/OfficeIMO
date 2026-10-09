@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertVisio(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
+        OfficeWorkflowConversionOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         using var stream = new MemoryStream(input, writable: false);
         var loadOptions = new VisioLoadOptions {
@@ -34,7 +34,6 @@ public sealed partial class OfficeWorkflowRunner {
             if (imported != null) conversion = conversion.WithSourceConversionReport(imported.Report);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
             if (settings.RequireNoLoss) evidence.RequireNoLoss();
-            AddConversionDiagnostics(evidence, diagnostics);
             return (bytes, evidence);
         } catch (OfficeConversionException exception) {
             var reports = new List<IOfficeConversionReport>();
