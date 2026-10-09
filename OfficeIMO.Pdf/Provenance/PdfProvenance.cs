@@ -72,7 +72,7 @@ public static partial class PdfProvenance {
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"PDF/Filespec[{attachment.FileSpecObjectNumber}]/{attachment.FileName}",
                 valid,
-                manifest.LongLength));
+                manifest.LongLength).WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
         }
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Pdf,

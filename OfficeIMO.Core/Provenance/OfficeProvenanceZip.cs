@@ -84,7 +84,7 @@ internal static class OfficeProvenanceZip {
                     OfficeProvenanceCarrierKind.C2paManifest,
                     $"ZIP/{ManifestPath}[{index++}]",
                     valid,
-                    manifest.Length));
+                    manifest.Length).WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
                 continue;
             }
             if (!options.ProcessEmbeddedAssets ||

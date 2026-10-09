@@ -92,6 +92,16 @@ public sealed class OfficeProvenanceEvidence {
     public string? Value { get; }
     /// <summary>Gets the classified digital source type, when applicable.</summary>
     public OfficeProvenanceDigitalSourceKind DigitalSourceKind { get; }
+    /// <summary>
+    /// Gets what an embedded C2PA manifest says (generator, actions, signer), when the carrier is a readable
+    /// Content Credentials store. The values are not signature-verified.
+    /// </summary>
+    public OfficeC2paManifestSummary? Manifest { get; private set; }
+
+    internal OfficeProvenanceEvidence WithManifest(OfficeC2paManifestSummary? manifest) {
+        Manifest = manifest;
+        return this;
+    }
 }
 
 /// <summary>Structural provenance inspection of one asset.</summary>
