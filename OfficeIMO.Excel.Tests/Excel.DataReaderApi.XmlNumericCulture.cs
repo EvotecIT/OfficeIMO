@@ -59,6 +59,36 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void DataReader_XmlNumericWireValuesPreserveLegacyLocalizedFallback(bool numericAsDecimal, bool decliningConverter) {
+        string path = CreateXmlTextBudgetWorkbook(
+            "<row r=\"2\"><c r=\"A2\" t=\"n\"><v>1,23</v></c>"
+            + "<c r=\"B2\"><v>1.5</v></c>"
+            + "<c r=\"C2\"><f>2+0.75</f><v>2,75</v></c>"
+            + "<c r=\"D2\" t=\"inlineStr\"><is><t>1,23</t></is></c></row>", columns: 4);
+        try {
+            var options = new ExcelReadOptions {
+                Culture = CultureInfo.GetCultureInfo("pl-PL"),
+                NumericAsDecimal = numericAsDecimal
+            };
+            if (decliningConverter) options.CellValueConverter = static _ => ExcelCellValue.NotHandled;
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path, options);
+            Assert.True(reader.Read());
+            AssertXmlNumericCultureValue(reader.GetValue(0), 1.23D, numericAsDecimal);
+            AssertXmlNumericCultureValue(reader.GetValue(1), 1.5D, numericAsDecimal);
+            AssertXmlNumericCultureValue(reader.GetValue(2), 2.75D, numericAsDecimal);
+            Assert.Equal("1,23", reader.GetString(3));
+            Assert.Equal(1.23M, reader.GetDecimal(3));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void DataReader_XmlNumericWireValuesPreserveConverterRawTextAndCulture() {
         string path = CreateXmlTextBudgetWorkbook(

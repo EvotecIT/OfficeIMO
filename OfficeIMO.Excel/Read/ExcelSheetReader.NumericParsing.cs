@@ -33,14 +33,30 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Parses numeric-cell wire text using invariant culture before the legacy
+        /// Parses numeric-cell wire text using strict invariant syntax before the legacy
         /// culture fallback. String-cell conversions use <see cref="TryParseRawDouble"/>.
         /// </summary>
         private static bool TryParseExcelNumberAsDouble(string rawText, CultureInfo culture, out double value) {
             return TryParseInvariantDouble(rawText, out value)
-                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)
                 || (culture != CultureInfo.InvariantCulture
-                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out value));
+                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out value))
+                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
+        }
+
+        /// <summary>
+        /// Converts an integral double only when it fits Int64. The upper bound is
+        /// exclusive because converting <see cref="long.MaxValue"/> to double rounds up to 2^63.
+        /// </summary>
+        private static bool TryConvertExactDoubleToInt64(double number, out long value) {
+            value = 0L;
+            if (number >= long.MinValue
+                && number < 9223372036854775808D
+                && Math.Truncate(number) == number) {
+                value = (long)number;
+                return true;
+            }
+
+            return false;
         }
 
         private bool TryParseRawInt32(string rawText, out int value) {

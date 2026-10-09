@@ -71,34 +71,33 @@ namespace OfficeIMO.Excel {
             bool completedSheetData = false;
             int sheetDataDepth = -1;
             int rowDepth = -1;
+            var worksheetRows = new WorksheetXmlRowSelector();
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
                 XmlNodeType nodeType = reader.NodeType;
                 string localName = reader.LocalName;
-                if (nodeType == XmlNodeType.Element && localName == "row") textBudget.Reset();
-                if (nodeType != XmlNodeType.Element || localName != "c") {
+                bool isCellElement = worksheetRows.IsCellElement(reader);
+                bool isRowElement = localName == "row" && worksheetRows.IsRowElement(reader);
+                if (isRowElement) textBudget.Reset();
+                if (!isCellElement) {
                     if (bounds != null) {
-                        bool spreadsheetElement = reader.NamespaceURI == SpreadsheetNamespace
-                            || reader.NamespaceURI == StrictSpreadsheetNamespace;
                         if (nodeType == XmlNodeType.Element && reader.Depth == 0
-                            && (localName != "worksheet" || !spreadsheetElement)) {
+                            && !SpreadsheetXmlContent.IsSpreadsheetElement(reader, "worksheet")) {
                             bounds = null;
-                        } else if (!_hasSdkWorksheetPart && localName == "tableParts"
-                            && nodeType == XmlNodeType.Element) {
+                        } else if (!_hasSdkWorksheetPart && worksheetRows.IsWorksheetChildElement(reader, "tableParts")) {
                             // Table extents may include intentional empty rows and
                             // columns; their discovery retains the SDK owner.
                             bounds = null;
-                        } else if (localName == "sheetData" && nodeType == XmlNodeType.Element) {
-                            if (haveSheetData || reader.Depth != 1 || !spreadsheetElement) {
+                        } else if (worksheetRows.IsWorksheetChildElement(reader, "sheetData")) {
+                            if (haveSheetData) {
                                 bounds = null;
                             } else {
                                 haveSheetData = true;
                                 completedSheetData = reader.IsEmptyElement;
                                 sheetDataDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                             }
-                        } else if (localName == "row" && nodeType == XmlNodeType.Element) {
-                            if (sheetDataDepth < 0 || rowDepth >= 0
-                                || reader.Depth != sheetDataDepth + 1 || !spreadsheetElement) {
+                        } else if (isRowElement) {
+                            if (rowDepth >= 0) {
                                 bounds = null;
                             } else {
                                 int declaredRowIndex = bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
@@ -124,13 +123,8 @@ namespace OfficeIMO.Excel {
 
                 XmlCoordinateReference reference = ReadXmlReferenceAttribute(reader);
                 if (bounds != null) {
-                    if (rowDepth >= 0 && reader.Depth == rowDepth + 1
-                        && (reader.NamespaceURI == SpreadsheetNamespace || reader.NamespaceURI == StrictSpreadsheetNamespace)) {
-                        bounds.AddCell(reference.Text);
-                        coordinates?.AddCell(reference.Text);
-                    } else {
-                        bounds = null;
-                    }
+                    bounds.AddCell(reference.Text);
+                    coordinates?.AddCell(reference.Text);
                 }
                 XmlStyleAttribute styleIndex = ReadXmlStyleAttribute(reader);
                 if (styleIndex.Present) {
@@ -158,16 +152,7 @@ namespace OfficeIMO.Excel {
                         && reader.LocalName == "c") {
                         break;
                     }
-                    if (reader.NodeType != XmlNodeType.Element
-                        || reader.Depth != cellDepth + 1
-                        || (!string.Equals(
-                                reader.NamespaceURI,
-                                SpreadsheetNamespace,
-                                StringComparison.Ordinal)
-                            && !string.Equals(
-                                reader.NamespaceURI,
-                                StrictSpreadsheetNamespace,
-                                StringComparison.Ordinal))) {
+                    if (!IsXmlCellChildElement(reader, cellDepth)) {
                         continue;
                     }
 

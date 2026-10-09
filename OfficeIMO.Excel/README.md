@@ -247,8 +247,13 @@ while (reader.Read()) {
 
 XLSX numeric cells and cached numeric formula results use invariant number notation,
 so `1.5` remains `1.5` when `ExcelReadOptions.Culture` is `de-DE`. The configured
-culture still controls conversions from string cells. `CellValueConverter` receives
+culture remains the fallback for legacy localized numeric text and controls
+conversions from string cells. `CellValueConverter` receives
 the original decoded text and the configured culture before built-in conversion.
+
+Worksheet rows and cells come from the worksheet's direct `sheetData` content.
+Inline and shared strings include visible text and rich runs. Extension payloads
+and phonetic guidance do not add cells, shift shared-string indexes or append text.
 
 `OpenDataReaderAsync` reads local files and the remaining bytes of a readable stream
 using asynchronous I/O, bounded by `MaxInputBytes`. Workbook validation and worksheet

@@ -2842,13 +2842,16 @@ or attribute node can be buffered before its decoded text is charged.
 XLSX numeric cells and cached numeric formula results now retain their invariant
 wire values under a configured reader culture. For example, `1.5` reads as `1.5`
 under `de-DE` instead of `15`, including decimal overflow fallback and typed object
-mapping. Culture-aware conversion of string cells and custom converter precedence
+mapping. Legacy localized numeric text still uses the configured culture fallback.
+Culture-aware conversion of string cells and custom converter precedence
 remain unchanged. Re-read affected files if earlier imports persisted altered values.
 
-XML inline strings include visible text and rich runs while excluding phonetic
-guidance and extension payloads. Cell extensions cannot replace the cell's value
-or formula. XML streaming data readers reject child markup inside individual text
-elements; valid rich runs, CDATA and preserved whitespace remain supported.
+XML inline and shared strings include visible text and rich runs while excluding
+phonetic guidance and extension payloads. Only direct worksheet rows and cells
+contribute values, and only direct shared-string items contribute indexes. Cell
+extensions cannot replace a cell's value or formula. Re-read imports that included
+extension content. XML streaming data readers reject child markup inside individual
+text elements; valid rich runs, CDATA and preserved whitespace remain supported.
 
 The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 

@@ -174,25 +174,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Includes visible inline text in direct text elements and rich runs, excluding extension and phonetic payloads.</summary>
-        private static bool IsXmlInlineStringTextElement(XmlReader reader, int inlineStringDepth, ref int richRunDepth) {
-            if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == richRunDepth) {
-                richRunDepth = -1;
-                return false;
-            }
-
-            if (IsXmlCellChildElement(reader, inlineStringDepth)) {
-                if (reader.LocalName == "r") {
-                    richRunDepth = reader.IsEmptyElement ? -1 : reader.Depth;
-                    return false;
-                }
-
-                return reader.LocalName == "t";
-            }
-
-            return richRunDepth >= 0
-                && IsXmlCellChildElement(reader, richRunDepth)
-                && reader.LocalName == "t";
-        }
+        private static bool IsXmlInlineStringTextElement(XmlReader reader, int inlineStringDepth, ref int richRunDepth) =>
+            SpreadsheetXmlContent.IsRichTextElement(reader, inlineStringDepth, ref richRunDepth);
 
         private static string ReadXmlTextElement(XmlReader textReader) {
             if (textReader.IsEmptyElement) {

@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
                         _currentRowFinished = true;
                         break;
                     }
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "c") continue;
+                    if (!SpreadsheetXmlContent.IsDirectChildElement(_reader, _currentRowDepth, "c")) continue;
 
                     int columnIndex = GetXmlCellColumnIndex(_reader, ref _currentNextCellColumnIndex);
                     if (columnIndex < _firstColumn || columnIndex > _lastColumn) {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                 while (_reader.Read()) {
                     ThrowIfReadCancellationRequested();
                     if (_reader.NodeType == XmlNodeType.EndElement && _reader.Depth == depth && _reader.LocalName == "row") return;
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "c") continue;
+                    if (!SpreadsheetXmlContent.IsDirectChildElement(_reader, depth, "c")) continue;
 
                     int columnIndex = GetXmlCellColumnIndex(_reader, ref nextColumn);
                     if (columnIndex < _firstColumn || columnIndex > _lastColumn) {

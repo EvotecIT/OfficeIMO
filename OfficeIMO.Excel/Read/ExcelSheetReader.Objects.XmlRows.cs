@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -521,9 +521,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Matches direct SpreadsheetML children without interpreting extension descendants as cell content.</summary>
         private static bool IsXmlCellChildElement(XmlReader reader, int cellDepth) {
-            return reader.NodeType == XmlNodeType.Element
-                && reader.Depth == cellDepth + 1
-                && (reader.NamespaceURI == SpreadsheetNamespace || reader.NamespaceURI == StrictSpreadsheetNamespace);
+            return SpreadsheetXmlContent.IsDirectChildElement(reader, cellDepth, reader.LocalName);
         }
 
         private static void SkipXmlElement(XmlReader reader, string localName) {

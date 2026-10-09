@@ -16,10 +16,11 @@ namespace OfficeIMO.Excel {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 int nextRowIndex = 1;
                 while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType != System.Xml.XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -47,7 +48,7 @@ namespace OfficeIMO.Excel {
                             reader.LocalName == "row") {
                             break;
                         }
-                        if (reader.NodeType != System.Xml.XmlNodeType.Element || reader.LocalName != "c") {
+                        if (!SpreadsheetXmlContent.IsDirectChildElement(reader, rowDepth, "c")) {
                             continue;
                         }
 

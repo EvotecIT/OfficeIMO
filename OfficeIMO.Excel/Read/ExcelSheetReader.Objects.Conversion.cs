@@ -493,10 +493,8 @@ namespace OfficeIMO.Excel {
                     if ((excelNumericCell
                             ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
                             : TryParseRawDouble(rawText, out doubleValue))
-                        && doubleValue >= long.MinValue
-                        && doubleValue <= long.MaxValue
-                        && Math.Truncate(doubleValue) == doubleValue) {
-                        binding.SetInt64(target, (long)doubleValue);
+                        && TryConvertExactDoubleToInt64(doubleValue, out long exactLong)) {
+                        binding.SetInt64(target, exactLong);
                         return true;
                     }
 
@@ -635,10 +633,8 @@ namespace OfficeIMO.Excel {
                 if ((excelNumericCell
                         ? TryParseExcelNumberAsDouble(rawText, _opt.Culture, out double doubleValue)
                         : TryParseRawDouble(rawText, out doubleValue))
-                    && doubleValue >= long.MinValue
-                    && doubleValue <= long.MaxValue
-                    && Math.Truncate(doubleValue) == doubleValue) {
-                    converted = (long)doubleValue;
+                    && TryConvertExactDoubleToInt64(doubleValue, out long exactLong)) {
+                    converted = exactLong;
                     return true;
                 }
 
@@ -898,10 +894,8 @@ namespace OfficeIMO.Excel {
                 if (destType == typeof(long)) {
                     if (value is long longValue) return longValue;
                     if (value is double doubleValue
-                        && doubleValue >= long.MinValue
-                        && doubleValue <= long.MaxValue
-                        && Math.Truncate(doubleValue) == doubleValue) {
-                        return (long)doubleValue;
+                        && TryConvertExactDoubleToInt64(doubleValue, out long exactLong)) {
+                        return exactLong;
                     }
 
                     return Convert.ToInt64(value, culture);

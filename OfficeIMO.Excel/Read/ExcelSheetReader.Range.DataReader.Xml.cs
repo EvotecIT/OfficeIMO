@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
             private readonly ExcelSheetReader _owner;
             private readonly Stream _stream = Stream.Null;
             private XmlReader _reader = null!;
+            private WorksheetXmlRowSelector _worksheetRows;
             private readonly XmlDataReaderTextBudget? _xmlTextBudget;
             private readonly ExcelUtf8RangeRowSource? _utf8Source;
             private readonly int _utf8SourceOrdinalOffset;
@@ -464,7 +465,7 @@ namespace OfficeIMO.Excel {
                 while (_reader.Read()) {
                     ThrowIfReadCancellationRequested();
 
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "row") {
+                    if (!_worksheetRows.IsRowElement(_reader)) {
                         continue;
                     }
 
@@ -637,7 +638,7 @@ namespace OfficeIMO.Excel {
                 while (_reader.Read()) {
                     ThrowIfReadCancellationRequested();
 
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "row") {
+                    if (!_worksheetRows.IsRowElement(_reader)) {
                         continue;
                     }
 
