@@ -68,20 +68,53 @@ namespace OfficeIMO.Access.Tests {
         [InlineData("Application/objects-jet4.mdb")]
         [InlineData("Application/objects-ace12.accdb")]
         public void RebuiltIndexesConsumeRemainingAggregateMetadataWithoutPoisoningRetry(string file) {
-            byte[] input = File.ReadAllBytes(Fixture(file)); int low = 1, high = 4 * 1024 * 1024;
-            while (low < high) {
-                int midpoint = low + (high - low) / 2; bool decoded;
-                try { using AccessDocument probe = AccessDocument.Load(new MemoryStream(input), new AccessLoadOptions { MaxMetadataBytes = midpoint }); decoded = probe.VbaProject.CatalogStatus == AccessCatalogStatus.Decoded; }
-                catch (InvalidDataException) { decoded = false; }
-                if (decoded) high = midpoint; else low = midpoint + 1;
-            }
-            using AccessDocument document = AccessDocument.Load(new MemoryStream(input), new AccessLoadOptions { MaxMetadataBytes = low + (file.EndsWith("accdb") ? 4096 : 1024) });
+            byte[] input = File.ReadAllBytes(Fixture(file)); int minimum = MinimumDecodedMetadata(input);
+            using AccessDocument document = AccessDocument.Load(new MemoryStream(input), new AccessLoadOptions { MaxMetadataBytes = minimum + (file.EndsWith("accdb") ? 4096 : 1024) });
             OfficeVbaProject renamed = document.GetVbaProject(); string name = Assert.Single(renamed.Modules).Name;
             renamed.RenameModule(name, new string('X', name.Length));
             InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.SetVbaProject(renamed));
             Assert.True(error.Message.Contains("aggregate metadata"), error.ToString()); Assert.Equal(input, Save(document)); Assert.False(document.IsModified);
             OfficeVbaProject source = document.GetVbaProject(); source.SetModuleSource(name, source.GetModule(name).Source.Replace("Value = 42", "Value = 43")); document.SetVbaProject(source);
             Assert.Contains("Value = 43", document.GetVbaProject().GetModule(name).Source);
+        }
+
+        [Theory]
+        [InlineData("Application/objects-jet4.mdb", "Add", 2598)]
+        [InlineData("Application/objects-ace12.accdb", "Add", 7011)]
+        [InlineData("Application/objects-jet4.mdb", "Rename", 1235)]
+        [InlineData("Application/objects-ace12.accdb", "Rename", 5038)]
+        [InlineData("Application/objects-jet4.mdb", "Branch", 13087)]
+        [InlineData("Application/objects-ace12.accdb", "Branch", 74568)]
+        public void MutationKeysBranchesAndLaterRowsShareOneAllowanceAndRejectWithoutChangingSource(string file, string operation, int extraBytes) {
+            byte[] input = File.ReadAllBytes(Fixture(file));
+            if (operation == "Branch") {
+                using AccessDocument seed = AccessDocument.Load(new MemoryStream(input)); OfficeVbaProject many = seed.GetVbaProject();
+                for (int i = 0; i < 240; i++) many.AddModule("LongCatalogModule_" + i.ToString("D4"), "Public Const Inert As Long = 1\r\n");
+                seed.SetVbaProject(many); input = Save(seed);
+            }
+            // Independently produced fixtures and a public multi-leaf mutation give
+            // observed boundary budgets. Older separate counters accepted each one.
+            int limit = MinimumDecodedMetadata(input) + extraBytes;
+            using AccessDocument document = AccessDocument.Load(new MemoryStream(input), new AccessLoadOptions { MaxMetadataBytes = limit });
+            AccessCatalogEntry[] catalog = document.Catalog.ToArray(); OfficeVbaProject project = document.GetVbaProject(); string name = project.Modules[0].Name;
+            if (operation == "Add") project.AddModule("BudgetAddedModule", "Public Const Inert As Long = 1\r\n");
+            else project.RenameModule(name, new string('X', name.Length));
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.SetVbaProject(project));
+            Assert.True(error.Message.Contains("metadata"), error.ToString()); Assert.Equal(input, Save(document)); Assert.False(document.IsModified);
+            Assert.Equal(catalog, document.Catalog.ToArray()); Assert.Contains(document.GetVbaProject().Modules, x => x.Name == name);
+            OfficeVbaProject retry = document.GetVbaProject(); retry.SetModuleSource(name, retry.GetModule(name).Source.Replace("Value = 42", "Value = 43")); document.SetVbaProject(retry);
+            Assert.Contains("Value = 43", document.GetVbaProject().GetModule(name).Source);
+        }
+
+        private static int MinimumDecodedMetadata(byte[] input) {
+            int low = 1, high = 4 * 1024 * 1024;
+            while (low < high) {
+                int midpoint = low + (high - low) / 2; bool decoded;
+                try { using AccessDocument probe = AccessDocument.Load(new MemoryStream(input), new AccessLoadOptions { MaxMetadataBytes = midpoint }); decoded = probe.VbaProject.CatalogStatus == AccessCatalogStatus.Decoded; }
+                catch (InvalidDataException) { decoded = false; }
+                if (decoded) high = midpoint; else low = midpoint + 1;
+            }
+            return low;
         }
     }
 }
