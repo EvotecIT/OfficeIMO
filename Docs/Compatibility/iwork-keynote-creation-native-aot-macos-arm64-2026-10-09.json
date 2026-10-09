@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "recordedUtc": "2026-10-09T19:50:46.571237+00:00",
-  "sourceRevision": "f4456dd96ea23943222c235e7ce95836f95cd4cf",
+  "recordedUtc": "2026-10-09T21:10:33.690565+00:00",
+  "sourceRevision": "7388296926c5266e1bc559390535a3f10cf320e9",
   "sourceOnly": true,
   "host": {
     "os": "macOS27.0.1 (26A434)",
@@ -24,6 +24,11 @@
       "kind": "PNG alpha and JPEG",
       "bytes": 13399,
       "sha256": "5523dbe029b9a508d2bf3e3ad1a54c6266ac6c3bddf8f23d6051fcc5f1e2f765"
+    },
+    {
+      "kind": "scalar and empty tables",
+      "bytes": 25227,
+      "sha256": "51d624971820bd161909e957dcb11ece88b59f39f95268db75dc166068fbce88"
     }
   ],
   "executions": [
@@ -32,8 +37,8 @@
       "runtimeVersion": "8.0.31",
       "runtimeIdentifier": "osx-arm64",
       "executableType": "Mach-O64bit arm64 native executable",
-      "executableSha256": "6b6fc6ca29aaff9ae27dacecbcaa8b79ba2ff5c018a89b6e10cb66c9a9e781f7",
-      "executableBytes": 86874984,
+      "executableSha256": "b6b23d1b917bd81edc9d537ca6d24e5b2541316dbdfd1c245bd765f67f9f3ef4",
+      "executableBytes": 87356536,
       "nativeExitCode": 0,
       "publishExitCode": 0,
       "warnings": [
@@ -47,7 +52,8 @@
         "PASS | bounded iWork NativeAOT destination conversions | .NET 8.0.31",
         "PASS | native Keynote creation | 8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1 | 7423 bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation",
         "PASS | native Keynote rich runs | AA1A3834B31716024420F37B808AE0E8A164BD5BFDCC59719C0B17F5CC1F6654 | 8281 bytes | UTF-16 ranges, decoration resets, deterministic creation, saved/reopened PPTX and run limits",
-        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits"
+        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits",
+        "PASS | native Keynote tables | 51D624971820BD161909E957DCB11ECE88B59F39F95268DB75DC166068FBCE88 | 25227 bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits"
       ]
     },
     {
@@ -55,8 +61,8 @@
       "runtimeVersion": "10.0.12",
       "runtimeIdentifier": "osx-arm64",
       "executableType": "Mach-O64bit arm64 native executable",
-      "executableSha256": "34fb8f17a3f084781490596514836fbb0b491282d031e5f775e25e9730d36aa1",
-      "executableBytes": 51533352,
+      "executableSha256": "e65aa5be7f3cfa16d483aab7f3c7b65d574e66bac0c8643970994dc9d88f3175",
+      "executableBytes": 51649464,
       "nativeExitCode": 0,
       "publishExitCode": 0,
       "warnings": [],
@@ -68,7 +74,8 @@
         "PASS | bounded iWork NativeAOT destination conversions | .NET 10.0.12",
         "PASS | native Keynote creation | 8E25C78B8FFF278DFF256515D6D1A7B171F7C313F82EBCD841457C527F87D6A1 | 7423 bytes | deterministic Unicode model, byte/stream/path saves, readback and active cancellation",
         "PASS | native Keynote rich runs | AA1A3834B31716024420F37B808AE0E8A164BD5BFDCC59719C0B17F5CC1F6654 | 8281 bytes | UTF-16 ranges, decoration resets, deterministic creation, saved/reopened PPTX and run limits",
-        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits"
+        "PASS | native Keynote images | 5523DBE029B9A508D2BF3E3AD1A54C6266AC6C3BDDF8F23D6051FCC5F1E2F765 | 13399 bytes | PNG alpha/JPEG, reserved metadata identities, stacking, deterministic creation, saved/reopened PPTX and image limits",
+        "PASS | native Keynote tables | 51D624971820BD161909E957DCB11ECE88B59F39F95268DB75DC166068FBCE88 | 25227 bytes | Decimal128 numbers, text/booleans, empty grid, Unicode, stacking, deterministic creation, saved/reopened PPTX and table limits"
       ]
     }
   ],
@@ -76,11 +83,13 @@
     "fixed encoded image inputs; byte-identical native packages on both runtimes",
     "source projection and strict saved/reopened PPTX preserve image bytes, descriptions, ordered drawables and frames",
     "aggregate image count, encoded and decoded byte limits reject before destination mutation",
-    "basic and rich-run creation and destination conversions remain qualified"
+    "basic and rich-run creation and destination conversions remain qualified",
+    "scalar and empty tables preserve Decimal128 values, typed cells, Unicode and drawable order",
+    "table count and full-grid-position limits reject before destination mutation"
   ],
   "boundaries": [
     "unsigned local source executables; no published package or distribution qualification",
-    "image and rich-run extensions recorded only for macOS arm64 on these runtimes",
+    "table, image and rich-run extensions recorded only for macOS arm64 on these runtimes",
     "native application appearance acceptance is in the separately linked Keynote15.4 fixtures",
     "broader images, fonts, layouts, encoding cancellation latency and architectures remain open"
   ]

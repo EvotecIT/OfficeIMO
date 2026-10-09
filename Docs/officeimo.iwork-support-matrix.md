@@ -93,14 +93,14 @@ caller stream open. This does not qualify native encoding or path-staging
 cancellation latency, every writer limit, additional architectures or font rendering.
 
 The [macOS native creation evidence](Compatibility/iwork-keynote-creation-native-aot-macos-arm64-2026-10-09.json)
-extends this host's qualification to rich character runs and PNG/JPEG images under
+extends this host's qualification to rich character runs, PNG/JPEG images and scalar tables under
 .NET 8.0.31 and .NET 10.0.12. Actual `osx-arm64` native executables create the
-Apple-qualified 8,281-byte rich-run and 13,399-byte image packages with identical
+Apple-qualified 8,281-byte rich-run, 13,399-byte image and 25,227-byte table packages with identical
 SHA-256 values on both runtimes. The image model uses identical encoded inputs;
 valid encodings of the same pixels can differ across runtime versions. Readback,
 saved/reopened PPTX, decoration resets, image alpha, descriptions, geometry,
-stacking and configured run/image budgets are checked. This bounded evidence does
-not extend the rich-run/image claims to Windows, Linux or other architectures.
+stacking, Decimal128 scalar values, empty tables and configured run/image/table budgets are checked. This bounded evidence does
+not extend the rich-run/image/table claims to Windows, Linux or other architectures.
 
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
