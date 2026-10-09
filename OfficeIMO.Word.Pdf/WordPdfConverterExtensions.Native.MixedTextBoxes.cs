@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using System.Collections.Generic;
+using System.Threading;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -14,6 +15,8 @@ public static partial class WordPdfConverterExtensions {
         Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering notes,
         WordToPdfOptions? options, NativeDocumentDefaults defaults, NativeFontMap fontMap, int depth,
         WordParagraph? nextParagraph = null) {
+        CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken.ThrowIfCancellationRequested();
         RecordNativeMixedTextBoxDiagnostic(runs, options,
             defaults.RunningContentContext == null ? "body paragraph" : "header/footer paragraph");
         int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
@@ -25,9 +28,11 @@ public static partial class WordPdfConverterExtensions {
         if (paragraphStyle.SpacingBefore is > 0D)
             pdf.ParagraphSpacingBefore(paragraphStyle.SpacingBefore);
         bool first = true;
-        foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs)) {
+        foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
             foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (child is W.RunProperties) continue;
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
                 List<WordTextBox> boxes = view.GetTextBoxes().ToList();
@@ -119,17 +124,23 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static List<WordParagraph> GetNativeMixedTextBoxContentRuns(WordParagraph paragraph,
-        IReadOnlyList<WordParagraph> runs) {
+        IReadOnlyList<WordParagraph> runs, CancellationToken cancellationToken) {
         // Reuse the canonical equation occurrences and visible run projection.
         // Include each equation in the same source order as its sibling drawing,
         // rather than asking the whole-paragraph equation helper to replay it.
+        cancellationToken.ThrowIfCancellationRequested();
         var equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
         if (equations.Count == 0) return runs.ToList();
-        var positions = paragraph._paragraph.Descendants().Select((element, index) => (element, index))
-            .ToDictionary(item => item.element, item => item.index);
+        var positions = new Dictionary<OpenXmlElement, int>();
+        foreach (OpenXmlElement element in paragraph._paragraph.Descendants()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            positions.Add(element, positions.Count);
+        }
         var ordered = new List<(int Position, WordParagraph Run)>();
         foreach (WordParagraph run in runs) {
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (child is W.RunProperties) continue;
                 if (child.Ancestors().Prepend(child).Any(element =>
                     equations.Any(equation => equation.Equation.IsBackingElement(element)))) continue;
@@ -142,10 +153,13 @@ public static partial class WordPdfConverterExtensions {
             element => element is not W.Run source ||
                 !IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, source), paragraph));
         foreach (var equation in equations) {
+            cancellationToken.ThrowIfCancellationRequested();
             var segment = segments.FirstOrDefault(item => ReferenceEquals(item.Equation, equation.Equation));
             if (segment == null || string.IsNullOrEmpty(equation.Equation.Text)) continue;
-            OpenXmlElement start = positions.OrderBy(item => item.Value)
-                .First(item => equation.Equation.IsBackingElement(item.Key)).Key;
+            OpenXmlElement start = paragraph._paragraph.Descendants().First(element => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return equation.Equation.IsBackingElement(element);
+            });
             WordParagraph source = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
             if (source._run == null) {
                 // A wrapper-backed equation has no Wordprocessing run. Give
