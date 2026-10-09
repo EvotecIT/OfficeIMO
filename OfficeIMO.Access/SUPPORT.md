@@ -64,7 +64,7 @@ The Access adapter reads Jet `MSysAccessObjects` compound storage and ACE `MSysA
 
 | Content | Qualified interpretation | Preserve-only boundary |
 | --- | --- | --- |
-| Forms and reports | ACE designer version 21 property trees, native sections/control kinds, Name/Caption, record/control/row sources, explicit size properties and Click bindings | Jet compact version 19, unknown node/property semantics and delta merging; missing defaults are not invented |
+| Forms and reports | ACE designer version 21 property trees, native sections/control kinds, Name/Caption, record/control/row sources, explicit size properties and Open, Click and AfterUpdate bindings | Jet compact version 19, unknown node/property semantics and delta merging; missing defaults are not invented |
 | Action macros | Independently observed 76-byte single `StopMacro` definition, standalone and embedded | Other actions/argument layouts retain exact streams; action macros are distinct from VBA |
 | Table data macros | MR2 wide-property map, qualified Access XML namespace, event/name and top-level statement names; exact XML retained with DTD/resolver disabled | No action execution, expression evaluation or editing |
 | Resources | `MSysResources` identity/type/name metadata and attachment access through the existing reader | No automatic theme unpacking, rendering or OLE activation |
@@ -84,14 +84,15 @@ VBA inspection shares one expansion allowance across the directory and module so
 | --- | --- |
 | Input | Unprotected Jet 4 and ACE 12/14 applications with decoded source and qualified storage, permission and index layouts |
 | Modules | Source replacement; standard/class add, remove and rename; first project in an existing native empty application |
-| Code-behind | Existing native form/report `DocClass` modules with their original name, kind and `VB_Base`; designer streams and event bindings remain exact |
+| Code-behind | New and existing native form/report `DocClass` modules on existing objects; retained modules keep their name, kind and `VB_Base`; code-only changes retain designer/event bytes |
+| Events | ACE expanded version-21 form/report Open, label/text-box/combo-box Click, text-box/combo-box AfterUpdate; inert expression/macro-name/procedure binding and clearing. Replacing Click removes its associated embedded macro carrier |
 | Identity | Existing ordinary module native IDs, storage slots and logical catalog identities survive repeated staging; new identities receive distinct catalog and permission entries |
 | Preservation | Unrelated native pages, application streams, catalog payloads and existing permission bytes remain retained; obsolete allocated pages require separate compaction |
 | Bounds | Shared project/expansion limits; encoded native input and metadata limits; default 64 MiB recovery budget; cancellation in parsing, allocation, index traversal and writing |
 | Commit | Explicit Save; same-source replacement uses Core's guarded atomic commit, including displaced-source validation and rollback on mismatch |
-| Unqualified | General table/schema edits, new form/report modules, designer/event authoring, new application creation without an existing carrier, signed/protected edits, signature validation and other native generations |
+| Unqualified | General table/schema edits, new form/report objects, Jet compact version-19 event authoring, nonempty designer deltas, other control/event layouts, embedded action creation, new application creation without an existing carrier, signed/protected edits, signature validation and other native generations |
 
-Independent Access proof covers four application/designer files, ordinary class/standard module source and growth, first projects in existing native applications, and existing form/report code-behind. Access reopens output, reads exact edited source and retained host events, verifies ordinary versus host module inventories, and compiles in VBE with macros disabled. No code is executed. Native signed-project fixtures have not been qualified; unknown VBA/signature carriers are preserve-only.
+Independent Access proof covers four application/designer files, ordinary class/standard module source and growth, first projects in existing native applications, and new/existing form/report code-behind. The ACE event oracle observes inserted, replaced and cleared bindings, including replacement of a Click macro and a first form class in a native application without source modules. Access reopens output, reads exact edited source and event state, verifies ordinary versus host module inventories, and compiles in VBE with macros disabled. No code is executed. Native signed-project fixtures have not been qualified; unknown VBA/signature carriers are preserve-only.
 
 Portable source tests retain code-page-1250 Polish text exactly. The native oracle's Windows ANSI code page is 1252: the unchanged native fixture itself displays the Polish comment through that code page. Native exact-text qualification uses characters representable with identical bytes in both code pages. Native Polish-text qualification requires a compatible locale; the library does not change machine language settings.
 

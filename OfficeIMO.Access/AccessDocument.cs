@@ -101,6 +101,9 @@ namespace OfficeIMO.Access {
                     if (operation.Operation == "native.create") enabled &= CatalogStatus == AccessCatalogStatus.Modeled;
                     if (operation.Operation == "native.preserve") enabled &= Inspection != null;
                     if (operation.Operation == "application.objects.read") enabled &= Forms.CatalogStatus == AccessCatalogStatus.Decoded;
+                    if (operation.Operation == "application.events.write") enabled &= Inspection != null && AccessMode == DocumentAccessMode.ReadWrite
+                        && CatalogStatus == AccessCatalogStatus.Decoded && Forms.CatalogStatus == AccessCatalogStatus.Decoded
+                        && (Profile == AccessFormatProfile.Ace12 || Profile == AccessFormatProfile.Ace14);
                     if (operation.Operation == "vba.inspect") enabled &= VbaProject.CatalogStatus == AccessCatalogStatus.Decoded;
                     if (operation.Operation == "vba.edit") enabled &= Inspection != null && AccessMode == DocumentAccessMode.ReadWrite
                         && CatalogStatus == AccessCatalogStatus.Decoded && VbaProject.CatalogStatus == AccessCatalogStatus.Decoded
