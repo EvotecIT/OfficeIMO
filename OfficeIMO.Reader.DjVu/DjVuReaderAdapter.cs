@@ -41,7 +41,8 @@ internal static class DjVuReaderAdapter {
         long assetBytes = 0, chunkCharacters = 0;
         foreach (var page in DjVuPageSelection.Select(document, options.PageNumbers, options.ReadOptions.MaxPages, token)) {
             token.ThrowIfCancellationRequested();
-            var location = new ReaderLocation { Path = source.Path, Page = page.Number, LogicalOrder = page.Number };
+            int pageOrder = pages.Count + 1;
+            var location = new ReaderLocation { Path = source.Path, Page = page.Number, LogicalOrder = pageOrder };
             var text = page.GetText(token);
             var pageBlocks = new List<OfficeDocumentBlock>();
             int part = 0;
@@ -50,7 +51,7 @@ internal static class DjVuReaderAdapter {
                 Check(chunks.Count + 1L, limits?.MaxChunks, nameof(ReaderResourceLimits.MaxChunks));
                 Check(chunkCharacters + value.Length * 2L, limits?.MaxChunkCharacters, nameof(ReaderResourceLimits.MaxChunkCharacters));
                 chunkCharacters += value.Length * 2L;
-                var chunkLocation = new ReaderLocation { Path = source.Path, Page = page.Number, LogicalOrder = chunks.Count + 1, BlockAnchor = "djvu-page-" + page.Number + "-part-" + part };
+                var chunkLocation = new ReaderLocation { Path = source.Path, Page = page.Number, LogicalOrder = pageOrder, BlockIndex = chunks.Count, BlockAnchor = "djvu-page-" + page.Number + "-part-" + part };
                 chunks.Add(new ReaderChunk { Id = chunkLocation.BlockAnchor!, Kind = ReaderInputKind.DjVu, Location = chunkLocation,
                     Text = value, Markdown = value, ContinuesPreviousChunk = part++ > 0,
                     SourceId = source.SourceId, SourceHash = source.SourceHash, SourceLengthBytes = source.LengthBytes,
@@ -62,7 +63,7 @@ internal static class DjVuReaderAdapter {
                 var display = page.GetDisplayBounds(zone.Bounds);
                 var block = new OfficeDocumentBlock { Id = "djvu-page-" + page.Number + "-word-" + pageBlocks.Count, Kind = "word",
                     Text = text.Text.Substring(zone.CharacterOffset, zone.CharacterLength),
-                    Location = new ReaderLocation { Path = source.Path, Page = page.Number, SourceBlockKind = "stored-text", SourceBlockIndex = pageBlocks.Count },
+                    Location = new ReaderLocation { Path = source.Path, Page = page.Number, LogicalOrder = pageOrder, SourceBlockKind = "stored-text", SourceBlockIndex = pageBlocks.Count },
                     Region = Points(display, page.Dpi) };
                 blocks.Add(block); pageBlocks.Add(block);
             }

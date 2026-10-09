@@ -50,6 +50,44 @@ public sealed class ReaderAdapterTests {
         Assert.All(rich.Chunks, c => Assert.False(c.Text.Length > 0 && (char.IsLowSurrogate(c.Text[0]) || char.IsHighSurrogate(c.Text[c.Text.Length - 1]))));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SelectedPageOrderSurvivesRichTraversalAndTransport(bool wordZones) {
+        byte[] index = File.ReadAllBytes(Fixture(Path.Combine("Shared", "Indirect", "index.djvu")));
+        var components = SharedComponentTests.Components();
+        byte[] nativeText = SharedComponentTests.Payload(File.ReadAllBytes(Fixture("unicode.djvu")), "TXTz");
+        for (int number = 1; number <= 2; number++) {
+            string id = "shared-" + number + ".djvu";
+            byte[] text = Encoding.UTF8.GetBytes("Page " + number + " stored text");
+            var payload = new byte[text.Length + 3];
+            payload[0] = (byte)(text.Length >> 16); payload[1] = (byte)(text.Length >> 8); payload[2] = (byte)text.Length;
+            text.CopyTo(payload, 3);
+            components[id] = SharedComponentTests.AppendChunk(components[id], wordZones ? "TXTz" : "TXTa", wordZones ? nativeText : payload);
+        }
+        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var rich = document.ToReadResult(new ReaderDjVuOptions { PageNumbers = new[] { 2, 1 } }, readerOptions: new ReaderOptions { MaxChars = 3 });
+        AssertOrder(rich);
+        var restored = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(rich));
+        AssertOrder(restored);
+        restored.Blocks = Array.Empty<OfficeDocumentBlock>();
+        foreach (var page in restored.Pages) page.Blocks = Array.Empty<OfficeDocumentBlock>();
+        Assert.Equal(new[] { 2, 1 }, restored.EnumerateContent().Select(item => item.Location!.Page!.Value).Distinct());
+
+        static void AssertOrder(OfficeDocumentReadResult result) {
+            Assert.Equal(new[] { 2, 1 }, result.Pages.Select(page => page.Number!.Value));
+            Assert.Equal(new[] { 2, 1 }, result.Chunks.Select(chunk => chunk.Location.Page!.Value).Distinct());
+            Assert.Equal(new[] { 2, 1 }, result.EnumerateBlocks().Select(block => block.Location!.Page!.Value).Distinct());
+            Assert.Equal(new[] { 2, 1 }, result.EnumerateContent().Select(item => item.Location!.Page!.Value).Distinct());
+            Assert.Equal(result.Blocks.Select(block => block.Text), result.EnumerateBlocks().Select(block => block.Text));
+            Assert.Equal(new long?[] { 1, 2 }, result.Pages.Select(page => page.Location.LogicalOrder));
+            foreach (var page in result.Pages) {
+                Assert.All(page.Blocks, block => Assert.Equal(page.Location.LogicalOrder, block.Location!.LogicalOrder));
+                Assert.All(result.Chunks.Where(chunk => chunk.Location.Page == page.Number), chunk => Assert.Equal(page.Location.LogicalOrder, chunk.Location.LogicalOrder));
+            }
+        }
+    }
+
     [Fact]
     public void DjVuTransportRequiresItsVersionedSchemaAndRetainsGeometry() {
         var rich = DjVuDocument.Load(Fixture("reader-book.djvu")).ToReadResult();

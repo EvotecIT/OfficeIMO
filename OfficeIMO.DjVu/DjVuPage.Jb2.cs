@@ -6,7 +6,7 @@ public sealed partial class DjVuPage {
         foreach (var chunk in DjVuDictionaryReader.Chain(Document, Component, budget.Cancellation))
             dictionary = new Jb2Decoder(chunk, budget, dictionary).Decode(true).Library;
         DjVuChunk? image = null;
-        foreach (var chunk in Component.Form.Children) {
+        foreach (var chunk in Document.PageChunks(Component, budget.Cancellation)) {
             if (chunk.Id == "Sjbz") {
                 if (image != null) throw new InvalidDataException("Multiple JB2 page masks.");
                 image = chunk;

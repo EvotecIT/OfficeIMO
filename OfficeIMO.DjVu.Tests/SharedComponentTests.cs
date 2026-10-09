@@ -1,3 +1,7 @@
+using OfficeIMO.DjVu.Pdf;
+using OfficeIMO.Pdf;
+using OfficeIMO.Reader.DjVu;
+
 namespace OfficeIMO.DjVu.Tests;
 
 public sealed class SharedComponentTests {
@@ -48,6 +52,34 @@ public sealed class SharedComponentTests {
         }));
     }
 
+    [Theory]
+    [InlineData("Sjbz")]
+    [InlineData("Smmr")]
+    public void IncludedPageMasksReachRenderingReaderImagesAndPdf(string maskId) {
+        byte[] index = File.ReadAllBytes(Path.Combine(Folder, "Indirect", "index.djvu"));
+        var components = Components();
+        string dictionary = components.Keys.Single(k => k.EndsWith(".iff", StringComparison.Ordinal));
+        byte[] direct = maskId == "Sjbz" ? components["shared-1.djvu"] : File.ReadAllBytes(ReaderAdapterTests.Fixture("fax.djvu"));
+        byte[] mask = Payload(direct, maskId);
+        components["shared-1.djvu"] = WithoutChunks(direct, maskId);
+        if (maskId == "Smmr") {
+            components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], "INCL", Encoding.UTF8.GetBytes(dictionary));
+            components[dictionary] = WithoutChunks(components[dictionary], "Djbz");
+        }
+        components[dictionary] = AppendChunk(components[dictionary], maskId, mask);
+        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        string reference = maskId == "Sjbz" ? Path.Combine(Folder, "page-1-reference.ppm") : ReaderAdapterTests.Fixture("fax-reference.ppm");
+        Assert.Equal(PageRenderTests.ReadPpm(reference).GetPixels(), document.Pages[0].Render().Image.GetPixels());
+        var rich = document.ToReadResult(new ReaderDjVuOptions { PageNumbers = new[] { 1 }, ImageMode = ReaderDjVuImageMode.AllPages });
+        Assert.Equal("image/png", Assert.Single(rich.Assets).MediaType);
+        var pdf = PdfReadDocument.Open(document.ToPdfBytes(new DjVuToPdfOptions { PageNumbers = new[] { 1 } }));
+        Assert.Single(pdf.Pages);
+
+        components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], maskId, mask);
+        var duplicate = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        Assert.Throws<InvalidDataException>(() => duplicate.Pages[0].Render());
+    }
+
     internal static byte[] AppendChunk(byte[] source, string id, byte[] payload) {
         int form = Encoding.ASCII.GetString(source, 0, 4) == "AT&T" ? 4 : 0;
         int size = (source[form + 4] << 24) | (source[form + 5] << 16) | (source[form + 6] << 8) | source[form + 7];
@@ -66,6 +98,28 @@ public sealed class SharedComponentTests {
         for (int i = 0; i < 4; i++) bytes[offset + i] = (byte)(value >> (24 - i * 8));
     }
 
-    private static System.Collections.Generic.Dictionary<string, byte[]> Components() => Directory.GetFiles(Path.Combine(Folder, "Indirect"))
+    internal static byte[] Payload(byte[] source, string id) => Chunks(source).Single(chunk => chunk.Id == id).Payload;
+
+    internal static byte[] WithoutChunks(byte[] source, params string[] ids) {
+        int form = Encoding.ASCII.GetString(source, 0, 4) == "AT&T" ? 4 : 0;
+        byte[] result = source.Take(form + 12).ToArray();
+        WriteSize(result, form + 4, 4);
+        foreach (var chunk in Chunks(source))
+            if (!ids.Contains(chunk.Id, StringComparer.Ordinal)) result = AppendChunk(result, chunk.Id, chunk.Payload);
+        return result;
+    }
+
+    private static System.Collections.Generic.IEnumerable<(string Id, byte[] Payload)> Chunks(byte[] source) {
+        int form = Encoding.ASCII.GetString(source, 0, 4) == "AT&T" ? 4 : 0;
+        for (int at = form + 12; at < source.Length;) {
+            int size = (source[at + 4] << 24) | (source[at + 5] << 16) | (source[at + 6] << 8) | source[at + 7];
+            var payload = new byte[size];
+            Buffer.BlockCopy(source, at + 8, payload, 0, size);
+            yield return (Encoding.ASCII.GetString(source, at, 4), payload);
+            at += 8 + size + (size & 1);
+        }
+    }
+
+    internal static System.Collections.Generic.Dictionary<string, byte[]> Components() => Directory.GetFiles(Path.Combine(Folder, "Indirect"))
         .Where(p => Path.GetFileName(p) != "index.djvu").ToDictionary(p => Path.GetFileName(p), File.ReadAllBytes, StringComparer.Ordinal);
 }
