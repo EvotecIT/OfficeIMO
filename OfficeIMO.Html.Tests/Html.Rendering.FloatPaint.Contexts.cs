@@ -49,6 +49,51 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, 230D, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, 230D, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, 230D, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, 400D, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, 230D, false)]
+    public void HtmlFloatPaint_ClippedOwnerKeepsParagraphVisibleBesidePositionedFloat(
+        HtmlRenderIntentProfile profile, double pageHeight, bool positionedTable) {
+        string html = "<style>html,body{margin:0;font:20px/26px Pinned;color:black}"
+            + "#outer{background:#ddd;overflow:hidden}#normal{float:left;width:200px}"
+            + "p{margin:0}table{background:lightblue;float:left;"
+            + (positionedTable ? "position:relative" : "") + "}</style>"
+            + "<div id='outer'><div id='normal'><p>VISIBLE</p></div><table>"
+            + "<tr><td>ROW01</td></tr><tr><td>ROW02</td></tr>"
+            + "<tr><td>ROW03</td></tr><tr><td>ROW04</td></tr></table></div>";
+        HtmlRenderOptions options = TableIntrinsicOptions();
+        options.AllowSystemFontFallback = false;
+        options.ViewportWidth = 816D;
+        options.ViewportHeight = 900D;
+        options.Margins = HtmlRenderMargins.All(48D);
+        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch,
+            pageHeight / HtmlRenderOptions.CssPixelsPerInch);
+        options.HonorCssPageRules = false;
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
+
+        HtmlRenderPage page = rendered.Pages[0];
+        HtmlRenderVisual[] visuals = EnumerateRenderVisuals(page.Scene).ToArray();
+        HtmlRenderText text = Assert.Single(visuals.OfType<HtmlRenderText>(), item => item.Text == "VISIBLE");
+        int background = Array.FindIndex(visuals,
+            visual => visual is HtmlRenderShape && visual.Source == "div#outer");
+        Assert.True(background >= 0 && background < Array.IndexOf(visuals, text),
+            "Splitting an ancestor around a positioned descendant must retain its background paint order.");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
+        Assert.True(FloatPaintContainsGlyphInk(raster, text),
+            "A paragraph retained in the display list must remain visible above its ancestor background.");
+        if (pageHeight == 400D) Assert.Single(rendered.Pages);
+        else Assert.True(rendered.Pages.Count > 1, "The short page must exercise fragmented paint envelopes.");
+        foreach (string marker in new[] { "VISIBLE", "ROW01", "ROW02", "ROW03", "ROW04" }) {
+            Assert.Single(rendered.Pages.SelectMany(item => EnumerateRenderVisuals(item.Scene))
+                .OfType<HtmlRenderText>(), item => item.Text == marker);
+        }
+        rendered.RequireNoLoss();
+    }
+
     private static bool FloatPaintContainsGlyphInk(OfficeRasterImage raster, HtmlRenderText text) {
         int left = Math.Max(0, (int)Math.Floor(text.X));
         int right = Math.Min(raster.Width, (int)Math.Ceiling(text.X + (text.TextAdvanceWidth ?? text.Width)));
