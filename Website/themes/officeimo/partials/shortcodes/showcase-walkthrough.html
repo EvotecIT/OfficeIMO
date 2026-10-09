@@ -30,6 +30,8 @@
     <p>This is the complete example file used to generate the download. The walkthrough runner creates the output directory and produces the additional previews.</p>
     <pre class="language-csharp" tabindex="0" aria-label="Scrollable C# source"><code class="language-csharp">{{ source | html.escape }}</code></pre>
     <a href="{{ card.source_url }}">Open the C# source file</a>
+    {{~ api_links_title = "API used in this example"; api_links_path = card.walkthrough_url ~}}
+    {{ include "api-links" }}
   </section>
   <section id="run-example" class="imo-walkthrough__section">
     <h2>Run it from the source checkout</h2>

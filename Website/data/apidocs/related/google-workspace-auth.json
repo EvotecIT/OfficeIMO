@@ -1,0 +1,3 @@
+[
+  {"title":"Authentication","url":"/docs/google-workspace/authentication/","summary":"Choose static, delegate, service-account, or Google APIs credential sources without leaking token policy into translators.","kind":"guide","targets":["OfficeIMO.GoogleWorkspace.Auth.GoogleApis.GoogleApisCredentialSource","OfficeIMO.GoogleWorkspace.Auth.GoogleApis.GoogleInstalledApplicationAuthorization"]}
+]

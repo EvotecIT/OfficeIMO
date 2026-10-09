@@ -535,3 +535,16 @@ pre code{background:none;padding:0;color:inherit}
   .imo-prose table.imo-table--stack td:first-child { font-weight: 700; color: var(--imo-text); }
   .imo-prose table.imo-table--stack td:first-child::before { display: none; }
 }
+
+/* API used by a page (docs, examples) and code that links to the reference. */
+.imo-api-used{margin:2.5rem 0 0;padding:1.1rem 1.2rem 1.2rem;border:1px solid var(--imo-border);border-radius:14px;background:var(--imo-bg-elevated)}
+.imo-api-used .imo-api-used__title{margin:0 0 .75rem;font-size:.72rem;font-weight:700;letter-spacing:.12em;line-height:1.4;text-transform:uppercase;color:var(--imo-text-muted)}
+.imo-api-used .imo-api-used__list{display:flex;flex-wrap:wrap;gap:.45rem;margin:0;padding:0;list-style:none}
+.imo-api-used .imo-api-used__list li{margin:0}
+.imo-api-used__link{display:inline-flex;padding:.28rem .6rem;border:1px solid var(--imo-border);border-radius:999px;background:var(--imo-bg);text-decoration:none;transition:border-color var(--imo-duration) var(--imo-ease)}
+.imo-api-used__link code{padding:0;border:0;background:none;font-size:.8rem;color:var(--imo-text)}
+.imo-api-used__link:hover{border-color:color-mix(in srgb,var(--imo-accent) 55%,var(--imo-border))}
+.imo-api-used__link:hover code{color:var(--imo-accent)}
+.imo-code-ref{color:inherit;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
+.imo-code-ref:hover{color:var(--imo-accent);text-decoration-style:solid;text-decoration-color:currentColor}
+a.imo-code-ref > code{color:var(--imo-accent)}

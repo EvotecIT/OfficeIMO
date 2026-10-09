@@ -1962,4 +1962,117 @@
 
   .member-header,
   .type-title-row { flex-direction: column; }
+
+  .type-title-row { align-items: flex-start; }
+}
+
+/* Type pages: one eyebrow, badge, button and source style shared with the docs pages.
+   The reference rail and page-level heading sizes live with the shell in site-shell.css. */
+.member-kind,
+.member-expand-all,
+.member-collapse-all,
+.member-reset,
+.type-source-action {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.type-header .ev-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--imo-accent);
+}
+
+.type-title-row .type-badge {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.type-actions {
+  align-self: center;
+}
+
+.type-source-action {
+  text-decoration: none;
+}
+
+.member-section-toggle svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--imo-duration) var(--imo-ease);
+}
+
+.member-section:not(.collapsed) .member-section-toggle svg {
+  transform: rotate(90deg);
+}
+
+/* Inheritance reads as one chain rather than a stack of rows. */
+.type-inheritance {
+  padding: 0.7rem 0.9rem;
+}
+
+.inheritance-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.35rem;
+  margin: 0;
+  list-style: none;
+}
+
+.inheritance-list li {
+  position: relative;
+  min-height: 0;
+  padding: 0.22rem 0.6rem;
+  font-family: var(--imo-font-mono);
+  font-size: 0.8rem;
+}
+
+.inheritance-list li + li::before {
+  content: "\203A";
+  position: absolute;
+  left: -0.95rem;
+  color: var(--imo-text-muted);
+}
+
+.inheritance-list .inheritance-current {
+  color: var(--imo-text);
+  border-color: color-mix(in srgb, var(--imo-accent) 45%, var(--imo-border));
+}
+
+/* Source locations are short file links; the repository path is the tooltip. */
+.source-link {
+  font-family: var(--imo-font-mono);
+  font-size: 0.76rem;
+  color: var(--imo-text-muted);
+  text-decoration: none;
+}
+
+a.source-link:hover {
+  color: var(--imo-accent);
+  text-decoration: underline;
+}
+
+.type-meta-row .source-link {
+  font-size: 0.82rem;
+}
+
+.usage-count {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--imo-accent) 14%, transparent);
+  color: var(--imo-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: middle;
 }

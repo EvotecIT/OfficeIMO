@@ -729,9 +729,80 @@
   }
   window.OfficeIMOEnsurePrism = ensurePrism;
 
+  // Pages list the API symbols they use (data/api_links.json, written by Build-ApiCrossLinks.ps1).
+  // Inline code that names one becomes a link to the reference; code blocks are linked after Prism runs.
+  var apiLinks = null;
+
+  function readApiLinks() {
+    if (apiLinks) return apiLinks;
+    var data = document.getElementById("imo-api-links");
+    apiLinks = { map: {}, pattern: null };
+    if (!data) return apiLinks;
+    var list;
+    try { list = JSON.parse(data.textContent); } catch (e) { return apiLinks; }
+    var codeNames = [];
+    list.forEach(function (link) {
+      if (apiLinks.map[link.n]) return;
+      apiLinks.map[link.n] = link.h;
+      if (link.k !== "member") codeNames.push(link.n.replace(/[.]/g, "\\."));
+    });
+    codeNames.sort(function (a, b) { return b.length - a.length; });
+    if (codeNames.length) apiLinks.pattern = new RegExp("(^|[^\\w.$@-])(" + codeNames.join("|") + ")(?![\\w-])", "g");
+    return apiLinks;
+  }
+
+  function initApiLinks() {
+    var links = readApiLinks();
+    Array.prototype.forEach.call(document.querySelectorAll(".imo-prose code, .imo-walkthrough__body p code"), function (code) {
+      if (code.closest("pre, a")) return;
+      var name = code.textContent.trim().replace(/^new\s+/, "").replace(/\(.*\)$/, "");
+      var href = links.map[name];
+      if (!href) return;
+      var anchor = document.createElement("a");
+      anchor.className = "imo-code-ref";
+      anchor.href = href;
+      code.parentNode.insertBefore(anchor, code);
+      anchor.appendChild(code);
+    });
+  }
+
+  function linkApiCode(element) {
+    var links = readApiLinks();
+    if (!links.pattern || !element || element.querySelector(".imo-code-ref")) return;
+    var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = [];
+    while (walker.nextNode()) {
+      var parent = walker.currentNode.parentNode;
+      if (parent.closest(".token.string, .token.comment, a")) continue;
+      nodes.push(walker.currentNode);
+    }
+    nodes.forEach(function (node) {
+      var text = node.nodeValue;
+      links.pattern.lastIndex = 0;
+      if (!links.pattern.test(text)) return;
+      links.pattern.lastIndex = 0;
+      var fragment = document.createDocumentFragment();
+      var last = 0;
+      var match;
+      while ((match = links.pattern.exec(text))) {
+        var start = match.index + match[1].length;
+        fragment.appendChild(document.createTextNode(text.slice(last, start)));
+        var anchor = document.createElement("a");
+        anchor.className = "imo-code-ref";
+        anchor.href = links.map[match[2]];
+        anchor.textContent = match[2];
+        fragment.appendChild(anchor);
+        last = start + match[2].length;
+      }
+      fragment.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(fragment, node);
+    });
+  }
+
   function initPrism() {
     if (!document.querySelector('code[class*="language-"], pre[class*="language-"]')) return;
     ensurePrism().then(function () {
+      if (readApiLinks().pattern && Prism.hooks) Prism.hooks.add("complete", function (env) { linkApiCode(env.element); });
       if (typeof Prism.highlightAllUnder === "function") Prism.highlightAllUnder(document);
       else Prism.highlightAll();
     }).catch(function () { /* Code stays readable without highlighting. */ });
@@ -938,6 +1009,7 @@
     initHeaderScroll();
     initBrowserToolDirectory();
     initDocsSidebar();
+    initApiLinks();
     initPrism();
   }
 
