@@ -8,7 +8,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## VBA host integration
 
-- [ ] Connect the Access carrier to the [shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects) after native database storage is available. Keep database reading/writing in the Access owner, preserve database-specific module identities, and qualify source edits against Access-produced files.
+- [ ] Extend [Access VBA persistence](../OfficeIMO.Access/SUPPORT.md#native-vba-persistence) to create qualified form/report code-behind and author inert event bindings, with native Access/VBE and unrelated-designer preservation proof.
 
 ## OfficeIMO JavaScript
 
@@ -608,7 +608,7 @@ Acceptance: Access opens changed/generated files without repair, independently o
 - [ ] Extend the qualified native application-object codecs to typed create/edit/delete of sections, labels/text boxes/buttons/images, bound controls, common form/report properties and stable object/event references. Preserve unsupported controls and block unsafe interactions with them.
 - [ ] Author saved select/action/crosstab/union/pass-through query definitions and typed parameters without executing them. Preserve original SQL for unsupported grammar, qualify dependency-aware structural edits against Access's query design and reopened state, and block unproven rename/reference rewrites rather than replacing text across arbitrary SQL/VBA.
 - [ ] Create/edit standalone and embedded macro actions and the qualified table-data-macro subset, retaining action arguments and event associations. Saving their definitions never invokes them.
-- [ ] Create/edit VBA module source and references through shared project primitives, with explicit cache/signature invalidation and no execution. Verify new/edited projects reopen in the VBE and compile in an isolated oracle when source compilation is part of the claim.
+- [ ] Extend the [qualified VBA and event authoring contract](../OfficeIMO.Access/SUPPORT.md#native-vba-persistence) to Jet compact version-19 event designers, remaining control/event layouts and incremental designer deltas without losing unknown native records.
 - [ ] Qualify a complete small native application in both supported file families: related tables, a saved parameter query, a bound form, a grouped report, a macro and a module/event binding. Separate modern-only object features and their conversion losses.
 
 Acceptance: Access can inspect, edit and re-save newly authored and edited application objects, with independent object exports/state comparisons. Copied opaque blobs satisfy preservation only. Neither ACE/COM generation nor object-text export closes native authoring.
