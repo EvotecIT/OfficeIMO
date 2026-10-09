@@ -499,6 +499,32 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*ColdStartReadBenchmarks*' '*ColdStartWriteBenchmarks*' --artifacts ./Ignore/Benchmarks/first-use --noOverwrite
 ```
 
+## Ordinary mapping strategies
+
+`GeneratedModelReadBenchmarks` compares OfficeIMO's automatic property mapping,
+handwritten `RowMapper<T>` configuration, and generated configuration for the same
+four-field class and struct models. Every operation opens and disposes the reader,
+materializes its selected model, and consumes all four fields. Setup verifies each
+field in every row, headers, row order/count, the single-sheet contract, and the
+checksum for every route before measurement.
+
+Enable the lane with `-p:OfficeIMOBenchmarkGeneratedMapping=true`. It uses the
+existing `OfficeIMO.Data.Generators` source project as a build-time analyzer. The
+generated public `Configure` method supplies typed assignments to `RowsAs<T>`;
+generation is outside timing, while each invocation includes reader opening and
+mapping configuration/binding. No generator assembly becomes a runtime dependency.
+Keep these ordinary-model strategies separate from borrowed ref-struct mapping.
+
+```powershell
+dotnet run -c Release -p:OfficeIMOBenchmarkGeneratedMapping=true --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-generated
+dotnet run -c Release -p:OfficeIMOBenchmarkGeneratedMapping=true --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*GeneratedModelReadBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/generated-model-dry --noOverwrite
+```
+
+The row-count selector and saved-assembly or package selectors apply to this lane.
+The selected OfficeIMO input must supply the existing `GenerateRowMapper` and
+`RowMapper<T>` public contracts. The generator selector is preserved in
+BenchmarkDotNet's generated build and printed with the input identity.
+
 ## Model strategies and shared-string lifecycle
 
 `TypedModelReadBenchmarks` compares public automatic mapping to the same class

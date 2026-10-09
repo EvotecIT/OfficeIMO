@@ -15,6 +15,7 @@ string? assemblyDirectory = metadata.Single(attribute => attribute.Key == "Offic
 string? newApis = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkNewApis").Value;
 string? csv = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkCsv").Value;
 string? arrow = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkArrow").Value;
+string? generatedMapping = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkGeneratedMapping").Value;
 BenchmarkInput.WriteDescription();
 
 if (args is ["--validate-bdn"]) {
@@ -66,6 +67,18 @@ if (args is ["--validate-models"]) {
 #endif
     }
     return;
+}
+
+if (args is ["--validate-generated"]) {
+#if OFFICEIMO_BENCHMARK_GENERATED_MAPPING
+    foreach (int rows in new GeneratedModelReadBenchmarks().RowCounts()) {
+        foreach (TypedModelKind model in Enum.GetValues<TypedModelKind>())
+            await new GeneratedModelReadBenchmarks { RowCount = rows, Model = model }.SetupAsync();
+    }
+    return;
+#else
+    throw new InvalidOperationException("Generated mapping qualification requires -p:OfficeIMOBenchmarkGeneratedMapping=true.");
+#endif
 }
 
 if (args is ["--validate-real-typed"]) {
@@ -285,6 +298,8 @@ if (!string.IsNullOrEmpty(assemblyDirectory)) {
 }
 if (string.Equals(newApis, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkNewApis=true"));
+if (string.Equals(generatedMapping, "true", StringComparison.OrdinalIgnoreCase))
+    buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkGeneratedMapping=true"));
 if (string.Equals(csv, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkCsv=true"));
 if (string.Equals(arrow, "true", StringComparison.OrdinalIgnoreCase))
