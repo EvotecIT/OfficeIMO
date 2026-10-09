@@ -114,6 +114,7 @@ internal static partial class PdfWriter {
                 DrawShapeGeometryAt(fill, xShape, bottomY);
                 OfficeShape? stroke = CreateGradientStrokeShape(shape);
                 if (stroke != null) DrawShapeGeometryAt(stroke, xShape, bottomY);
+                DrawShapeMarkersAt(shape, xShape, bottomY);
                 return;
             }
 
@@ -177,6 +178,7 @@ internal static partial class PdfWriter {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
             }
+            DrawShapeMarkersAt(shape, xShape, bottomY);
         }
 
         private int? DrawShapeAt(ShapeBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {

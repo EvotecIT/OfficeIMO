@@ -11,8 +11,7 @@ internal sealed partial class PublisherPageProjector {
         shape.StrokeColor = style.LineEnabled != false ? Resolve(style.LineColor, source.Id) : null;
         shape.StrokeWidth = Math.Max(0, (style.LineWidthEmus ?? 9525) / 12700D);
         shape.FillOpacity = style.FillOpacity; shape.StrokeOpacity = style.LineOpacity;
-        shape.StrokeDashStyle = style.LineDashing switch { 1 or 5 => OfficeStrokeDashStyle.Dash, 2 or 6 => OfficeStrokeDashStyle.Dot,
-            3 or 7 => OfficeStrokeDashStyle.DashDot, 4 or 8 => OfficeStrokeDashStyle.DashDotDot, _ => OfficeStrokeDashStyle.Solid };
+        ProjectLineDetails(source, shape);
         if (style.HasProjectableShadow) {
             shape.Shadow = new OfficeShadow(Resolve(style.ShadowColor, source.Id) ?? OfficeColor.Black, style.ShadowOpacity ?? 1,
                 (style.ShadowOffsetXEmus ?? 0) / 12700D, (style.ShadowOffsetYEmus ?? 0) / 12700D, Math.Max(0, (style.ShadowSoftnessEmus ?? 0) / 12700D));
@@ -20,8 +19,6 @@ internal sealed partial class PublisherPageProjector {
         if (style.FillEnabled != false && style.FillType.HasValue && style.FillType > 0) {
             _context.Add("PUB_FILL_APPROXIMATED", "A non-solid native fill was approximated by its primary color.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(source.Id));
         }
-        if ((style.LineStartArrowhead ?? 0) != 0 || (style.LineEndArrowhead ?? 0) != 0 || (style.LineStyle ?? 0) != 0)
-            _context.Add("PUB_LINE_DETAIL_UNASSESSED", "Native arrowheads and compound line styles require additional projection.", OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
         uint? imageId = source.Property(0x104);
         if (!imageId.HasValue) {
             if (shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);

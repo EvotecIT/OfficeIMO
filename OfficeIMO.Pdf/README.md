@@ -256,6 +256,9 @@ placement and run backgrounds. Fully transparent glyphs remain searchable in the
 
 Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
+Line and open-path end markers retain their stroke brush, opacity, transform and
+clip. Triangle, stealth, diamond and oval ends paint filled geometry; open-arrow
+ends paint an outline.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
 uses the existing bounded CMYK sampling path with the gradient's interpolation

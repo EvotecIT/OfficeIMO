@@ -480,12 +480,14 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        string? paint = BuildLineMarkerPaintAttributes(shape, strokeGradientId);
+        bool open = marker!.Kind == OfficeLineMarkerKind.Arrow;
+        string? paint = BuildLineMarkerPaintAttributes(shape, strokeGradientId, open);
         if (paint == null) {
             return;
         }
 
-        sb.AppendPolygonElement(contour, paint + transform);
+        if (open) sb.AppendPolylineElement(contour, paint + transform);
+        else sb.AppendPolygonElement(contour, paint + transform);
     }
 
     private static void AppendPolygon(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY) {
@@ -653,32 +655,26 @@ public static partial class OfficeDrawingSvgExporter {
         }
     }
 
-    private static string? BuildLineMarkerPaintAttributes(OfficeShape shape, string? strokeGradientId) {
-        if (strokeGradientId != null) {
-            var gradientPaint = new StringBuilder();
-            gradientPaint.Append(" fill=\"url(#").Append(Escape(strokeGradientId)).Append(")\"");
-            double gradientOpacity = shape.StrokeOpacity ?? 1D;
-            if (gradientOpacity < 1D) {
-                gradientPaint.Append(" fill-opacity=\"").Append(Format(gradientOpacity)).Append('"');
-            }
-
-            gradientPaint.Append(" stroke=\"none\"");
-            return gradientPaint.ToString();
-        }
-
-        OfficeColor? color = shape.StrokeColor ?? shape.FillColor;
-        if (!color.HasValue || color.Value.A == 0) {
-            return null;
-        }
-
+    private static string? BuildLineMarkerPaintAttributes(OfficeShape shape, string? strokeGradientId, bool open) {
+        if (shape.StrokeWidth <= 0D) return null;
+        OfficeColor? color = shape.StrokeColor;
+        if (strokeGradientId == null && (!color.HasValue || color.Value.A == 0)) return null;
+        string paint = open ? "stroke" : "fill";
         var sb = new StringBuilder();
-        sb.Append(" fill=\"").Append(ToCssColor(color.Value)).Append('"');
-        double opacity = (shape.StrokeOpacity ?? 1D) * ToOpacity(color.Value);
+        sb.Append(' ').Append(paint).Append("=\"");
+        if (strokeGradientId != null) sb.Append("url(#").Append(Escape(strokeGradientId)).Append(')');
+        else sb.Append(ToCssColor(color!.Value));
+        sb.Append('"');
+        double opacity = (shape.StrokeOpacity ?? 1D) * (strokeGradientId != null ? 1D : ToOpacity(color!.Value));
         if (opacity < 1D) {
-            sb.Append(" fill-opacity=\"").Append(Format(opacity)).Append('"');
+            sb.Append(' ').Append(paint).Append("-opacity=\"").Append(Format(opacity)).Append('"');
         }
-
-        sb.Append(" stroke=\"none\"");
+        if (open) {
+            sb.Append(" fill=\"none\" stroke-width=\"").Append(Format(shape.StrokeWidth)).Append('"');
+            if (shape.StrokeLineCap.HasValue) sb.AppendStrokeLineCapAttribute(shape.StrokeLineCap.Value);
+            if (shape.StrokeLineJoin.HasValue) sb.AppendStrokeLineJoinAttribute(shape.StrokeLineJoin.Value);
+            sb.Append(" stroke-miterlimit=\"").Append(Format(shape.StrokeMiterLimit)).Append('"');
+        } else sb.Append(" stroke=\"none\"");
         return sb.ToString();
     }
 

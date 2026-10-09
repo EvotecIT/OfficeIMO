@@ -45,6 +45,7 @@ internal static class OfficeLineMarkerGeometry {
                     baseRight
                 };
             case OfficeLineMarkerKind.Arrow:
+                return new[] { baseLeft, tip, baseRight };
             case OfficeLineMarkerKind.Triangle:
             default:
                 return new[] {
