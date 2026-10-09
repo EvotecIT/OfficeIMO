@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -22,7 +23,8 @@ internal static class ExcelWorksheetPreparationFixture {
 
     internal static double Value(int id) => 1000D + id * 0.25D;
 
-    internal static byte[] Create(int dataRows, WorksheetPreparationDimension dimension, bool storedWorksheet) {
+    internal static byte[] Create(int dataRows, WorksheetPreparationDimension dimension, bool storedWorksheet,
+        bool mixedPrefixValues = false) {
         (string Name, string Xml)[] parts = [
             (PartNames[0], XmlDeclaration
                 + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
@@ -42,7 +44,7 @@ internal static class ExcelWorksheetPreparationFixture {
                 + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
                 + "<Relationship Id=\"rId1\" Type=\"" + RelationshipNamespace + "/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
                 + "</Relationships>"),
-            (WorksheetPartName, CreateWorksheet(dataRows, dimension))
+            (WorksheetPartName, CreateWorksheet(dataRows, dimension, mixedPrefixValues))
         ];
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true, entryNameEncoding: Utf8)) {
@@ -60,7 +62,7 @@ internal static class ExcelWorksheetPreparationFixture {
     }
 
     internal static void ValidatePackage(byte[] bytes, int dataRows,
-        WorksheetPreparationDimension dimension, bool storedWorksheet) {
+        WorksheetPreparationDimension dimension, bool storedWorksheet, bool mixedPrefixValues = false) {
         using (var input = new MemoryStream(bytes, writable: false))
         using (var archive = new ZipArchive(input, ZipArchiveMode.Read)) {
             if (archive.Entries.Count != PartNames.Length
@@ -68,7 +70,8 @@ internal static class ExcelWorksheetPreparationFixture {
                 throw new InvalidDataException("Preparation package entries differ.");
             }
             Console.WriteLine($"WorksheetPreparation package: rows={dataRows}; dimension={dimension}; "
-                + $"storedWorksheet={storedWorksheet}; bytes={bytes.Length}; SHA256={Convert.ToHexString(SHA256.HashData(bytes))}.");
+                + $"storedWorksheet={storedWorksheet}; markup={(mixedPrefixValues ? WorksheetPreparationMarkup.MixedPrefixValues : WorksheetPreparationMarkup.Canonical)}; "
+                + $"bytes={bytes.Length}; SHA256={Convert.ToHexString(SHA256.HashData(bytes))}.");
             foreach (string name in PartNames) {
                 ZipArchiveEntry entry = archive.GetEntry(name) ?? throw new InvalidDataException($"Preparation part '{name}' is missing.");
                 using Stream part = entry.Open();
@@ -81,6 +84,7 @@ internal static class ExcelWorksheetPreparationFixture {
                     ? entry.CompressedLength != entry.Length : entry.CompressedLength >= entry.Length)) {
                     throw new InvalidDataException("Preparation worksheet ZIP storage differs.");
                 }
+                if (name == WorksheetPartName) ValidateWorksheetMarkup(payload, mixedPrefixValues);
                 Console.WriteLine($"WorksheetPreparation part: name={name}; bytes={payload.Length}; "
                     + $"compressedBytes={entry.CompressedLength}; SHA256={Convert.ToHexString(SHA256.HashData(payload))}.");
             }
@@ -114,17 +118,49 @@ internal static class ExcelWorksheetPreparationFixture {
         }
     }
 
-    private static string CreateWorksheet(int dataRows, WorksheetPreparationDimension dimension) {
+    private static void ValidateWorksheetMarkup(byte[] payload, bool mixedPrefixValues) {
+        using var input = new MemoryStream(payload, writable: false);
+        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit });
+        if (reader.MoveToContent() != XmlNodeType.Element || reader.LocalName != "worksheet"
+            || reader.Prefix.Length != 0 || reader.NamespaceURI != SpreadsheetNamespace
+            || reader.LookupNamespace("p") != (mixedPrefixValues ? SpreadsheetNamespace : null)) {
+            throw new InvalidDataException("Preparation worksheet root namespace differs.");
+        }
+        string? row = null;
+        string? cell = null;
+        int prefixedValues = 0;
+        while (reader.Read()) {
+            if (reader.NodeType != XmlNodeType.Element) continue;
+            if (reader.LocalName == "row") row = reader.GetAttribute("r");
+            if (reader.LocalName == "c") cell = reader.GetAttribute("r");
+            if (reader.Prefix.Length == 0) continue;
+            if (!mixedPrefixValues || reader.Prefix != "p" || reader.LocalName != "v"
+                || reader.NamespaceURI != SpreadsheetNamespace || row != "2" || cell != "A2"
+                || reader.ReadElementContentAsString() != "1") {
+                throw new InvalidDataException("Preparation mixed prefix must be the same-namespace value in A2 only.");
+            }
+            prefixedValues++;
+        }
+        if (prefixedValues != (mixedPrefixValues ? 1 : 0))
+            throw new InvalidDataException("Preparation mixed-prefix value count differs.");
+        Console.WriteLine($"WorksheetPreparation markup: mixedPrefixValues={mixedPrefixValues}; prefixedValues={prefixedValues}.");
+    }
+
+    private static string CreateWorksheet(int dataRows, WorksheetPreparationDimension dimension,
+        bool mixedPrefixValues = false) {
         var xml = new StringBuilder(checked(dataRows * 100 + 512));
-        xml.Append(XmlDeclaration).Append("<worksheet xmlns=\"").Append(SpreadsheetNamespace).Append("\">");
+        xml.Append(XmlDeclaration).Append("<worksheet xmlns=\"").Append(SpreadsheetNamespace).Append('"');
+        if (mixedPrefixValues) xml.Append(" xmlns:p=\"").Append(SpreadsheetNamespace).Append('"');
+        xml.Append('>');
         string? reference = DimensionReference(dataRows, dimension);
         if (reference != null) xml.Append("<dimension ref=\"").Append(reference).Append("\"/>");
         xml.Append("<sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Id</t></is></c>"
             + "<c r=\"B1\" t=\"inlineStr\"><is><t>Value</t></is></c></row>");
         for (int id = 1; id <= dataRows; id++) {
             string row = (id + 1).ToString(CultureInfo.InvariantCulture);
-            xml.Append("<row r=\"").Append(row).Append("\"><c r=\"A").Append(row).Append("\"><v>")
-                .Append(id.ToString(CultureInfo.InvariantCulture)).Append("</v></c><c r=\"")
+            string valueTag = mixedPrefixValues && id == 1 ? "p:v" : "v";
+            xml.Append("<row r=\"").Append(row).Append("\"><c r=\"A").Append(row).Append("\"><").Append(valueTag).Append('>')
+                .Append(id.ToString(CultureInfo.InvariantCulture)).Append("</").Append(valueTag).Append("></c><c r=\"")
                 .Append(id == dataRows ? 'C' : 'B').Append(row).Append("\"><v>")
                 .Append(Value(id).ToString("R", CultureInfo.InvariantCulture)).Append("</v></c></row>");
         }

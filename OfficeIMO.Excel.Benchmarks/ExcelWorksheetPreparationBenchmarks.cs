@@ -12,6 +12,11 @@ public enum WorksheetPreparationDimension {
     StaleNarrow
 }
 
+public enum WorksheetPreparationMarkup {
+    Canonical,
+    MixedPrefixValues
+}
+
 /// <summary>Measures public XLSX preparation and traversal with a later wider row.</summary>
 [MemoryDiagnoser]
 public class ExcelWorksheetPreparationBenchmarks {
@@ -32,6 +37,18 @@ public class ExcelWorksheetPreparationBenchmarks {
     [Params(false, true)]
     public bool EnableWorksheetPrefetch { get; set; }
 
+    [ParamsSource(nameof(MarkupForms))]
+    public WorksheetPreparationMarkup Markup { get; set; }
+
+    public IEnumerable<WorksheetPreparationMarkup> MarkupForms() {
+        string value = (Environment.GetEnvironmentVariable("OFFICEIMO_WORKSHEET_BENCHMARK_MARKUP") ?? "Canonical").Trim();
+        yield return value switch {
+            "Canonical" => WorksheetPreparationMarkup.Canonical,
+            "MixedPrefixValues" => WorksheetPreparationMarkup.MixedPrefixValues,
+            _ => throw new ArgumentException("OFFICEIMO_WORKSHEET_BENCHMARK_MARKUP must be Canonical or MixedPrefixValues.")
+        };
+    }
+
     public IEnumerable<int> RowCounts() {
         string value = Environment.GetEnvironmentVariable("OFFICEIMO_TYPED_BENCHMARK_ROWS") ?? "25000";
         if (!int.TryParse(value.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int count)
@@ -47,15 +64,25 @@ public class ExcelWorksheetPreparationBenchmarks {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         try {
-            _workbook = ExcelWorksheetPreparationFixture.Create(RowCount, Dimension, StoredWorksheet);
-            ExcelWorksheetPreparationFixture.ValidatePackage(_workbook, RowCount, Dimension, StoredWorksheet);
+            bool mixedPrefixValues = Markup == WorksheetPreparationMarkup.MixedPrefixValues;
+            _workbook = ExcelWorksheetPreparationFixture.Create(RowCount, Dimension, StoredWorksheet, mixedPrefixValues);
+            ExcelWorksheetPreparationFixture.ValidatePackage(_workbook, RowCount, Dimension, StoredWorksheet, mixedPrefixValues);
             _expectedHeaderChecksum = ExpectedChecksum(0);
             _expectedFullChecksum = ExpectedChecksum(RowCount);
             ValidateCompleteFields();
+            bool borrowedUtf8 = ValidateBorrowedRoute(_workbook, expectedBorrowed: !mixedPrefixValues);
+            bool canonicalControlBorrowedUtf8 = borrowedUtf8;
+            if (mixedPrefixValues) {
+                byte[] canonicalControl = ExcelWorksheetPreparationFixture.Create(RowCount, Dimension, StoredWorksheet);
+                ExcelWorksheetPreparationFixture.ValidatePackage(canonicalControl, RowCount, Dimension, StoredWorksheet);
+                ValidateCompleteFields(canonicalControl);
+                canonicalControlBorrowedUtf8 = ValidateBorrowedRoute(canonicalControl, expectedBorrowed: true);
+            }
             OpenThroughFirstRow();
             FullScan();
             Console.WriteLine($"Qualified worksheet preparation: dataRows={RowCount}; dimension={Dimension}; "
-                + $"storedWorksheet={StoredWorksheet}; prefetch={EnableWorksheetPrefetch}; fields=3; "
+                + $"storedWorksheet={StoredWorksheet}; prefetch={EnableWorksheetPrefetch}; markup={Markup}; fields=3; "
+                + $"borrowedUtf8={borrowedUtf8}; canonicalControlBorrowedUtf8={canonicalControlBorrowedUtf8}; "
                 + $"headerChecksum={_expectedHeaderChecksum}; fullChecksum={_expectedFullChecksum}.");
         } catch {
             Cleanup();
@@ -64,8 +91,10 @@ public class ExcelWorksheetPreparationBenchmarks {
     }
 
     /// <summary>Checks every public field, scalar type, null, row and schema outside measurement.</summary>
-    public void ValidateCompleteFields() {
-        using ExcelWorkbookDataReader reader = OpenReader();
+    public void ValidateCompleteFields() => ValidateCompleteFields(_workbook);
+
+    private void ValidateCompleteFields(byte[] workbook) {
+        using ExcelWorkbookDataReader reader = OpenReader(workbook);
         ValidateSchema(reader);
         int row = 0;
         long checksum = 0;
@@ -121,7 +150,21 @@ public class ExcelWorksheetPreparationBenchmarks {
     [GlobalCleanup]
     public void Cleanup() => _workbook = [];
 
-    private ExcelWorkbookDataReader OpenReader() => ExcelDocument.OpenDataReader(_workbook,
+    private bool ValidateBorrowedRoute(byte[] workbook, bool expectedBorrowed) {
+        using ExcelWorkbookDataReader reader = OpenReader(workbook);
+        ValidateSchema(reader);
+        if (!reader.Read()) throw new InvalidDataException("Preparation route header is missing.");
+        bool borrowed = reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text);
+        if (borrowed != expectedBorrowed || (borrowed ? !text.SequenceEqual("Id"u8) : !text.IsEmpty)
+            || reader.GetString(0) != "Id") {
+            throw new InvalidDataException($"Preparation public UTF-8 route differs: expected borrowed={expectedBorrowed}, actual={borrowed}.");
+        }
+        return borrowed;
+    }
+
+    private ExcelWorkbookDataReader OpenReader() => OpenReader(_workbook);
+
+    private ExcelWorkbookDataReader OpenReader(byte[] workbook) => ExcelDocument.OpenDataReader(workbook,
         new ExcelReadOptions {
             HasHeaderRow = false,
             NumericAsDecimal = false,
