@@ -18,11 +18,13 @@ namespace OfficeIMO.Excel {
         /// borrowed UTF-8 text uses the canonical ASCII bytes until the workbook closes.
         /// </summary>
         private sealed class IndexedAsciiItems : IDisposable {
+            private const int TextPageShift = 10;
+            private const int TextPageSize = 1 << TextPageShift;
             private readonly OpenXmlPooledPartStream _stream;
             private readonly byte[] _bytes;
             private readonly List<AsciiTextEntry> _entries;
             private readonly object _textLock = new object();
-            private string?[]? _text;
+            private string?[]?[]? _textPages;
 
             internal IndexedAsciiItems(OpenXmlPooledPartStream stream, byte[] bytes, List<AsciiTextEntry> entries) {
                 _stream = stream;
@@ -34,12 +36,16 @@ namespace OfficeIMO.Excel {
 
             internal string? Get(int index) {
                 if ((uint)index >= (uint)_entries.Count) return null;
-                string?[] text = Volatile.Read(ref _text) ?? InitializeText();
-                string? value = Volatile.Read(ref text[index]);
+                int pageIndex = index >> TextPageShift;
+                string?[]?[]? pages = Volatile.Read(ref _textPages);
+                string?[] text = (pages == null ? null : Volatile.Read(ref pages[pageIndex]))
+                    ?? InitializeTextPage(pageIndex);
+                int pageOffset = index & (TextPageSize - 1);
+                string? value = Volatile.Read(ref text[pageOffset]);
                 if (value != null) return value;
                 AsciiTextEntry entry = _entries[index];
                 value = Encoding.ASCII.GetString(_bytes, entry.Offset, entry.Length);
-                return Interlocked.CompareExchange(ref text[index], value, null) ?? value;
+                return Interlocked.CompareExchange(ref text[pageOffset], value, null) ?? value;
             }
 
             internal bool TryGetUtf8(int index, out ArraySegment<byte> value) {
@@ -52,12 +58,20 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            private string?[] InitializeText() {
+            // Materializing a few strings should not allocate slots for the complete table.
+            private string?[] InitializeTextPage(int pageIndex) {
                 lock (_textLock) {
-                    string?[]? text = Volatile.Read(ref _text);
+                    string?[]?[]? pages = Volatile.Read(ref _textPages);
+                    if (pages == null) {
+                        int pageCount = ((_entries.Count - 1) >> TextPageShift) + 1;
+                        pages = new string?[pageCount][];
+                        Volatile.Write(ref _textPages, pages);
+                    }
+                    string?[]? text = Volatile.Read(ref pages[pageIndex]);
                     if (text == null) {
-                        text = new string?[_entries.Count];
-                        Volatile.Write(ref _text, text);
+                        int pageLength = Math.Min(TextPageSize, _entries.Count - (pageIndex << TextPageShift));
+                        text = new string?[pageLength];
+                        Volatile.Write(ref pages[pageIndex], text);
                     }
                     return text;
                 }
