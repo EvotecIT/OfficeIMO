@@ -261,6 +261,27 @@ public sealed partial class PdfDocument {
                 case PdfCanvasEffectItem effect:
                     AnalyzeCanvasItems(effect.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasEffect[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
+                case PdfCanvasStructureItem structure:
+                    AnalyzeCanvasItems(structure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasStructure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
+                case PdfCanvasActualTextItem actualText:
+                    AnalyzeCanvasItems(actualText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasActualText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
+                case PdfCanvasArtifactItem artifact:
+                    AnalyzeCanvasItems(artifact.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasArtifact[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
+                case PdfCanvasFigureItem figure:
+                    AnalyzeCanvasItems(figure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFigure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
+                case PdfCanvasParagraphAnchorItem paragraphAnchor:
+                    AnalyzeCanvasItems(paragraphAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasParagraphAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
+                case PdfCanvasMarginAnchorItem marginAnchor:
+                    AnalyzeCanvasItems(marginAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasMarginAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
+                case PdfCanvasBehindTextItem behindText:
+                    AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasBehindText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
                 case PdfCanvasDrawingItem drawing:
                     AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;

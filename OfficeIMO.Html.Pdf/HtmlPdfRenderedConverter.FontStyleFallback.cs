@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,7 +32,17 @@ internal static partial class HtmlPdfRenderedConverter {
         if (NamedFontCoversText(options, family, text, bold, italic)) {
             return new[] { new NamedFaceStyleRun(text, bold, italic, true) };
         }
-        if (!bold && !italic) return new[] { new NamedFaceStyleRun(text, bold, italic, false) };
+        if (!options.HasNamedFontFamily(family)) return new[] { new NamedFaceStyleRun(text, bold, italic, false) };
+
+        // Resource policy controls loading new fonts; already registered faces can serve
+        // missing glyphs in the same CSS family regardless of their source.
+        OfficeFontStyle requested = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        OfficeFontStyle[] styles = [OfficeFontStyle.Regular, OfficeFontStyle.Bold,
+            OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic];
+        Array.Sort(styles, (left, right) => OfficeFontFaceCollection.CompareFaceDescriptors(
+            OfficeFontFaceDescriptor.FromStyle(left), OfficeFontFaceDescriptor.FromStyle(right),
+            OfficeFontFaceDescriptor.FromStyle(requested)));
 
         var result = new List<NamedFaceStyleRun>();
         var current = new StringBuilder();
@@ -41,19 +52,15 @@ internal static partial class HtmlPdfRenderedConverter {
         foreach (string element in OfficeTextElements.Split(text)) {
             bool selectedBold = bold;
             bool selectedItalic = italic;
-            bool covered = NamedFontCoversText(options, family, element, bold, italic);
-            if (!covered && bold && italic && NamedFontCoversText(options, family, element, true, false)) {
-                selectedItalic = false;
+            bool covered = false;
+            foreach (OfficeFontStyle style in styles) {
+                bool candidateBold = (style & OfficeFontStyle.Bold) != 0;
+                bool candidateItalic = (style & OfficeFontStyle.Italic) != 0;
+                if (!NamedFontCoversText(options, family, element, candidateBold, candidateItalic)) continue;
+                selectedBold = candidateBold;
+                selectedItalic = candidateItalic;
                 covered = true;
-            }
-            if (!covered && bold && italic && NamedFontCoversText(options, family, element, false, true)) {
-                selectedBold = false;
-                covered = true;
-            }
-            if (!covered && NamedFontCoversText(options, family, element, false, false)) {
-                selectedBold = false;
-                selectedItalic = false;
-                covered = true;
+                break;
             }
             if (current.Length > 0 && (currentBold != selectedBold || currentItalic != selectedItalic || currentCovered != covered)) {
                 result.Add(new NamedFaceStyleRun(current.ToString(), currentBold, currentItalic, currentCovered));

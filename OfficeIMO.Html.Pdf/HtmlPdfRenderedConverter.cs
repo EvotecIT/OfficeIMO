@@ -325,6 +325,18 @@ internal static partial class HtmlPdfRenderedConverter {
             });
         }
 
+        IReadOnlyList<PdfCore.PdfTextEncodingDiagnostic> encodingDiagnostics = pdf.AnalyzeTextEncoding();
+        if (encodingDiagnostics.Count > 0) {
+            throw new HtmlConversionException(diagnostics.Concat(encodingDiagnostics.Select(
+                diagnostic => new HtmlDiagnostic(
+                    "OfficeIMO.Html.Pdf",
+                    diagnostic.Code,
+                    diagnostic.Message,
+                    HtmlDiagnosticSeverity.Error,
+                    diagnostic.Source,
+                    detail: diagnostic.Location))));
+        }
+
         if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
             && diagnostics.Any(static diagnostic =>
                 diagnostic.LossKind != OfficeConversionLossKind.None

@@ -17,7 +17,7 @@ internal static partial class HtmlPdfRenderedConverter {
             string family = ResolvePdfFontFamilyForText(font.FamilyName, text, font.IsBold,
                 font.IsItalic, descriptor, useInstalledFonts, measurementOptions);
             return ResolveNamedFaceMetrics(measurementOptions, family, text, font.Size,
-                font.IsBold, font.IsItalic, useInstalledFonts);
+                font.IsBold, font.IsItalic, allowStyleFallback: true);
         };
     }
 
@@ -61,11 +61,11 @@ internal static partial class HtmlPdfRenderedConverter {
                     }
                 }
             }
-            if (useInstalledFonts) {
-                double? styledWidth = MeasureNamedFaceStyledText(measurementOptions,
-                    measuredFamily, text, font.Size, font.IsBold, font.IsItalic);
-                if (styledWidth.HasValue) return styledWidth.Value;
-            }
+            measuredFamily = ResolvePdfFontFamilyForText(measuredFamily, text, font.IsBold,
+                font.IsItalic, descriptor, allowInstalledFaces: false, measurementOptions);
+            double? styledWidth = MeasureNamedFaceStyledText(measurementOptions,
+                measuredFamily, text, font.Size, font.IsBold, font.IsItalic);
+            if (styledWidth.HasValue) return styledWidth.Value;
             return PdfCore.PdfWriter.MeasurePositionedText(
                 new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
                     fontSize: font.Size, font: MapStandardFont(measuredFamily), fontFamily: measuredFamily),
@@ -121,9 +121,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         if (familyNames.IndexOf(',') < 0) return familyNames;
         foreach (string familyName in EnumerateBoundedSystemFamilies(familyNames)) {
-            if ((allowInstalledFaces
-                    ? NamedFontCoversTextWithStyleFallback(options, familyName, text, bold, italic)
-                    : NamedFontCoversText(options, familyName, text, bold, italic))) return familyName;
+            if (NamedFontCoversTextWithStyleFallback(options, familyName, text, bold, italic)) return familyName;
         }
         return familyNames;
     }
