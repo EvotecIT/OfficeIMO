@@ -4,6 +4,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // A ch is the used zero-glyph advance, without letter or word spacing.
     // Select the same scoped face and shaping features as an ordinary text run.
     private double MeasureCharacterAdvance(HtmlRenderBoxStyle style) {
+        // A supported zero-size CSS font also has a zero ch advance. Do not send
+        // it to shaping or fallback providers that require positive text sizes.
+        if (style.Font.Size <= 0D) return 0D;
         if (IsVerticalWritingMode(style.WritingMode) && style.TextOrientation == "upright") return style.Font.Size;
         var fallback = _fonts.PlanFallbackRuns("0", style.Font.FamilyName, style.Font.Face).FirstOrDefault();
         HtmlRenderBoxStyle measurementStyle = style.Clone();

@@ -53,7 +53,13 @@ public sealed partial class HtmlRenderingTests {
         // 30px inherited indent, 14px signed nested inline edges, and 6px
         // caption padding/border each contribute once to the table minimum.
         double expected = IntrinsicIndentTextWidth(options, "AAAA") + 50D;
-        Assert.Equal(expected, TableIntrinsicGroup(rendered, "table#target").Width, 3);
+        HtmlRenderSemanticGroup[] tableFragments = rendered.Pages
+            .SelectMany(page => EnumerateTablePaginationScene(page.Scene))
+            .OfType<HtmlRenderSemanticGroup>()
+            .Where(group => group.Source == "table#target" && group.Role == HtmlRenderSemanticGroupRole.Table)
+            .ToArray();
+        Assert.NotEmpty(tableFragments);
+        Assert.All(tableFragments, group => Assert.Equal(expected, group.Width, 3));
         Assert.Equal(expected, TableGeometryShape(rendered, "caption#caption").Width, 3);
         HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
             .OfType<HtmlRenderText>(), item => item.Text == "AAAA");

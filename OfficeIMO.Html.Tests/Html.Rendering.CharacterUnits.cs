@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
 using System.Globalization;
@@ -30,6 +31,30 @@ public sealed class HtmlCharacterUnitTests {
     public void FontSizeCharacterUnitUsesParentFontMetrics() {
         var text = Render("<div style='font-family:Courier New;font-size:20px'><div>0</div><div style='font-size:2ch;font-family:Arial'>Child</div></div>");
         Assert.Equal(Find(text, "0").TextAdvanceWidth!.Value * 2D, Find(text, "Child").Font.Size, 3);
+    }
+
+    [Theory]
+    [InlineData("<div style='font-size:0;width:10ch'>Hidden</div><p>Visible</p>")]
+    [InlineData("<style>:root{--measure:20ch}</style><div style='font-size:0'>Hidden<span style='font-size:16px'>Visible</span></div>")]
+    [InlineData("<div style='font-size:0'><span style='font-size:2ch'>Hidden</span><span style='font-size:16px'>Visible</span></div>")]
+    public void ZeroSizeCharacterMeasurementPreservesVisiblePdfDescendants(string html) {
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        });
+
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Equal("Visible", text.Trim());
+    }
+
+    [Fact]
+    public void ZeroSizeCharacterEdgesAndInheritedIndentDoNotShiftVisibleDescendants() {
+        HtmlRenderText visible = Assert.Single(Render(
+            "<div style='font-size:0;margin-left:3ch;padding-left:2ch;text-indent:1ch'>Hidden"
+            + "<span style='font-size:16px'>Visible</span></div>"));
+
+        Assert.Equal("Visible", visible.Text);
+        Assert.Equal(16D, visible.Font.Size, 3);
+        Assert.Equal(0D, visible.X, 3);
     }
 
     [Fact]
