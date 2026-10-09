@@ -138,10 +138,11 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData(1, 9)]
-    [InlineData(3, 9)]
-    [InlineData(9, 9)]
-    public void HtmlFloatPagination_ParallelTablesRetainEveryBodyRow(int leftCount, int rightCount) {
+    [InlineData(1, 9, 230D)]
+    [InlineData(1, 9, 400D)]
+    [InlineData(3, 9, 230D)]
+    [InlineData(9, 9, 230D)]
+    public void HtmlFloatPagination_ParallelTablesRetainEveryBodyRow(int leftCount, int rightCount, double pageHeight) {
         static string Rows(string prefix, int count) => string.Concat(Enumerable.Range(1, count)
             .Select(index => $"<tr><td>{prefix}{index:00}</td></tr>"));
         static string Table(string prefix, int count) => "<table id='" + prefix + "'><thead><tr><th>" + prefix + "HEAD</th></tr></thead><tbody>"
@@ -151,10 +152,8 @@ public sealed partial class HtmlRenderingTests {
                 "<div class='float'>" + Table("A", leftCount) + "</div>"
                 + "<div style='float:right;width:100px'>" + Table("B", rightCount) + "</div>");
         HtmlRenderOptions options = FloatTablePaginationOptions();
-        if (leftCount == 1) {
-            options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 400D / HtmlRenderOptions.CssPixelsPerInch);
-            options.ViewportHeight = 400D;
-        }
+        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, pageHeight / HtmlRenderOptions.CssPixelsPerInch);
+        options.ViewportHeight = pageHeight;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.DisplayList, options)).Document;
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed

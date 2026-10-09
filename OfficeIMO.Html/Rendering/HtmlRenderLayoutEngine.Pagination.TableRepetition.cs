@@ -3,6 +3,24 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock QualifySharedTableRepetition(HtmlRenderFlowBlock block) {
         if (block.ContinuationGroups.Count == 0 && block.TrailingGroups.Count == 0) return block;
+        var tablePaintEnds = new Dictionary<string, double>(StringComparer.Ordinal);
+        double DiagnosticEnd(string? owner, double sourceEnd) {
+            if (owner == null) return sourceEnd;
+            if (!tablePaintEnds.TryGetValue(owner, out double paintEnd)) {
+                paintEnd = sourceEnd;
+                foreach (HtmlRenderVisual visual in EnumeratePageFloatVisuals(block.Visuals)) {
+                    ChargeLayoutOperation("table repetition painted extent");
+                    if (visual is HtmlRenderSemanticGroup table && table.Role == HtmlRenderSemanticGroupRole.Table
+                        && table.StructureElementKey == owner) {
+                        paintEnd = LastAtomicParallelVisualBottom(new[] { table }, includePaintAndMetadata: true);
+                        break;
+                    }
+                }
+                tablePaintEnds.Add(owner, paintEnd);
+            }
+            // A wrapper's unpainted trailing margin needs no repeated group.
+            return Math.Min(sourceEnd, paintEnd);
+        }
         var headers = block.ContinuationGroups.Select(group =>
             (Group: group, Table: RepeatedTable(group.Visuals))).ToArray();
         var owners = headers.Select(header => (Owner: header.Table?.StructureElementKey, Start: header.Group.StartsAfter, End: header.Group.EndsAt))
@@ -22,7 +40,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
             if (parallel) suppressed.Add(new SuppressedTableRepeat(header.Table?.StructureElementKey, header.Table?.Source, true,
-                header.Group.StartsAfter, header.Group.EndsAt));
+                header.Group.StartsAfter, DiagnosticEnd(header.Table?.StructureElementKey, header.Group.EndsAt)));
             else continuations.Add(header.Group);
         }
 
@@ -36,7 +54,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // paragraphs participate alongside other floats.
             bool parallel = owner != null && HasForeignContentInTableFooterInterval(
                 block.Visuals, owner, group.ContentEndsAt, group.SourceEndsAt);
-            if (parallel) suppressed.Add(new SuppressedTableRepeat(owner, table?.Source, false, group.StartsAt, group.SourceEndsAt));
+            if (parallel) suppressed.Add(new SuppressedTableRepeat(owner, table?.Source, false,
+                group.StartsAt, DiagnosticEnd(owner, group.SourceEndsAt)));
             else trailing.Add(group);
         }
         if (suppressed.Count == 0) return block;
@@ -93,7 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!_suppressedParallelTableRepeats.TryGetValue(block, out IReadOnlyList<SuppressedTableRepeat>? groups)) return;
         foreach (SuppressedTableRepeat group in groups) {
             // Eligibility filtering is conservative. Report loss only when an
-            // actual page boundary fragments the rejected group's source span.
+            // actual page boundary fragments the rejected table's content or paint.
             if (fragmentEnd > group.Start + 0.0001D && fragmentEnd < group.End - 0.0001D) {
                 ReportParallelTableRepeatSuppressed(block, group.Owner, group.Source, group.Header);
             }
