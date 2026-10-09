@@ -5,6 +5,28 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfVisualComparerTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Gallery_DistinguishesMatchingVisualPagesFromStructuralDifferences(bool extraExpectedPage) {
+        byte[] single = BuildPdf("Common page");
+        byte[] multiple = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })
+            .Paragraph(paragraph => paragraph.Text("Common page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Extra page"))
+            .ToBytes();
+        PdfVisualComparisonReport report = PdfVisualComparer.Compare(
+            extraExpectedPage ? multiple : single, extraExpectedPage ? single : multiple);
+
+        Assert.False(report.IsMatch);
+        Assert.True(Assert.Single(report.Pages).IsMatch);
+        Assert.Single(report.StructuralDifferences);
+        string gallery = report.ToHtmlGallery();
+        Assert.Contains("1 visual match", gallery, StringComparison.Ordinal);
+        Assert.Contains("0 visual differences", gallery, StringComparison.Ordinal);
+        Assert.Contains("1 structural difference", gallery, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Compare_ReportsPixelDifferencesThresholdsIgnoredRegionsAndGallery() {
         byte[] expected = BuildPdf("Expected visual text");

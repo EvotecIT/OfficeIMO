@@ -1014,6 +1014,7 @@
   var ROLE_LABEL = { report: 'Report (JSON)', overlay: 'Layout check image', support: 'Bug report files (ZIP)' };
 
   function supportBundle() {
+    var generation = state.generation;
     var box = el('div', 'bt-support');
     var label = el('label', 'bt-check');
     var include = el('input');
@@ -1026,18 +1027,27 @@
     var button = el('button', 'bt-chip', 'Prepare bug report files');
     button.type = 'button';
     button.addEventListener('click', function () {
+      if (generation !== state.generation || state.stale || state.busy) {
+        setHint('The input or settings changed. Run the tool again before preparing a bug report.', 'warn');
+        return;
+      }
       button.disabled = true;
       button.textContent = 'Preparing…';
       engine.call('run', { kind: cfg.kind, target: cfg.target, action: 'support', options: { includeContent: include.checked ? 'true' : 'false' } }).then(function (result) {
+        if (generation !== state.generation || !button.isConnected) return;
         if (!result.ok || !result.artifacts.length) throw new Error(result.verdict ? result.verdict.detail : 'Not available.');
         var info = result.artifacts[0];
         return engine.call('artifact', { index: info.index }).then(function (buffer) {
+          if (generation !== state.generation || !button.isConnected) return;
           var a = el('a', 'bt-chip', 'Download bug report files');
           a.href = objectUrl(new Blob([buffer], { type: 'application/zip' }));
           a.download = info.fileName;
           button.replaceWith(a);
         });
-      }).catch(function (error) { button.disabled = false; button.textContent = 'Prepare bug report files'; setHint(error.message, 'bad'); });
+      }).catch(function (error) {
+        if (generation !== state.generation || !button.isConnected) return;
+        button.disabled = false; button.textContent = 'Prepare bug report files'; setHint(error.message, 'bad');
+      });
     });
     box.appendChild(label);
     box.appendChild(button);
@@ -1045,8 +1055,13 @@
   }
 
   function nextTools(primary) {
-    if (!ui.next || !primary) return [];
-    var ext = extOf(primary.info.fileName);
+    if (!ui.next) return [];
+    // Inspection reports describe the staged input; transforming tools continue with their output.
+    var file = primary ? { name: primary.info.fileName, type: primary.blob.type, buffer: primary.buffer } :
+      state.result && state.result.ok && state.files.length === 1 ? state.files[0] : null;
+    if (!file) return [];
+    var generation = state.generation;
+    var ext = extOf(file.name);
     return Array.prototype.slice.call(ui.next.querySelectorAll('a')).filter(function (a) {
       return split(a.getAttribute('data-accept') || '', ',').indexOf(ext) >= 0;
     }).map(function (source) {
@@ -1056,9 +1071,14 @@
       link.rel = 'noopener';
       link.addEventListener('click', function (event) {
         event.preventDefault();
+        if (generation !== state.generation || state.stale || state.busy) {
+          setHint('The input or settings changed. Run the tool again before continuing.', 'warn');
+          return;
+        }
         window.OfficeIMOBrowserHandoff.send(link.href, function () {
-          return { name: primary.info.fileName, type: primary.blob.type, buffer: primary.buffer };
-        }).catch(function (error) { setHint(error.message, 'bad'); });
+          if (generation !== state.generation || state.stale || state.busy) throw new Error('The input changed before the file could be carried to the next tool.');
+          return { name: file.name, type: file.type, buffer: file.buffer };
+        }).catch(function (error) { if (generation === state.generation) setHint(error.message, 'bad'); });
       });
       return link;
     });

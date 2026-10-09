@@ -114,21 +114,26 @@ $pipelinePath = Join-Path $websiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json -Depth 40
 # Multi-input suite steps (the adapters) have no single package page to attach guides to.
 $apiSteps = @($pipeline.steps | Where-Object { $_.task -eq 'apidocs' -and $_.baseUrl })
-$packageByDocsHome = @{}
+$packagesByDocsHome = @{}
 foreach ($step in $apiSteps) {
-    if ($step.docsHome -and $step.baseUrl) { $packageByDocsHome[$step.docsHome] = $step.baseUrl.Split('/')[2] }
+    if ($step.docsHome -and $step.baseUrl) {
+        if (-not $packagesByDocsHome.ContainsKey($step.docsHome)) {
+            $packagesByDocsHome[$step.docsHome] = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        }
+        [void] $packagesByDocsHome[$step.docsHome].Add($step.baseUrl.Split('/')[2])
+    }
 }
 
 # A short name counts only when the page imports its namespace, belongs to its package, or
 # the name is a distinctive compound: a Word guide's `Paragraph` is not the Markdown type.
-function Resolve-Type([string] $short, [string[]] $usings, [string] $contextPackage) {
+function Resolve-Type([string] $short, [string[]] $usings, [string[]] $contextPackages) {
     $candidates = $typesByShortName[$short]
     if (-not $candidates) { return $null }
     $byUsing = @($candidates | Where-Object { $usings -contains $_.Namespace })
     if ($byUsing.Count -eq 1) { return $byUsing[0] }
-    $byPackage = @($candidates | Where-Object Package -eq $contextPackage)
+    $byPackage = @($candidates | Where-Object { $contextPackages -contains $_.Package })
     if ($byPackage.Count -eq 1) { return $byPackage[0] }
-    if ($contextPackage) { return $null }
+    if ($contextPackages.Count -gt 0) { return $null }
     $distinctive = $short -cmatch '^[A-Z][a-z0-9]+(?:[A-Z][A-Za-z0-9]*)+$' -and $short.Length -ge 8
     if ($candidates.Count -eq 1 -and $distinctive) { return $candidates[0] }
     $null
@@ -152,7 +157,7 @@ function Add-Mention([hashtable] $mentions, $symbol, [string] $kind, [int] $weig
     $mentions[$key].Weight += $weight
 }
 
-function Find-Mentions([string] $code, [string[]] $usings, [string] $contextPackage, [hashtable] $mentions, [int] $weight) {
+function Find-Mentions([string] $code, [string[]] $usings, [string[]] $contextPackages, [hashtable] $mentions, [int] $weight) {
     foreach ($match in [regex]::Matches($code, '\b[A-Z][a-z]+-[A-Z][A-Za-z0-9]+\b')) {
         if ($commands.ContainsKey($match.Value)) { Add-Mention $mentions $commands[$match.Value] 'command' $weight }
     }
@@ -166,7 +171,7 @@ function Find-Mentions([string] $code, [string[]] $usings, [string] $contextPack
         }
         if (-not $type) {
             for ($i = 0; $i -lt $parts.Count -and -not $type; $i++) {
-                $type = Resolve-Type $parts[$i] $usings $contextPackage
+                $type = Resolve-Type $parts[$i] $usings $contextPackages
                 $memberIndex = $i + 1
             }
         }
@@ -180,7 +185,7 @@ function Find-Mentions([string] $code, [string[]] $usings, [string] $contextPack
     }
 }
 
-function Get-PageMentions([string] $body, [string] $contextPackage) {
+function Get-PageMentions([string] $body, [string[]] $contextPackages) {
     $mentions = @{}
     $normalized = $body.Replace("`r`n", "`n")
     $blocks = [regex]::Matches($normalized, '(?ms)^[ \t]*```[ \t]*([\w#+-]*)[^\n]*\n(.*?)^[ \t]*```')
@@ -188,7 +193,7 @@ function Get-PageMentions([string] $body, [string] $contextPackage) {
     foreach ($block in $blocks) {
         if ($codeLanguages -contains $block.Groups[1].Value.ToLowerInvariant()) {
             $language = $block.Groups[1].Value.ToLowerInvariant()
-            Find-Mentions (Remove-CodeNoise $block.Groups[2].Value $language) $usings $contextPackage $mentions 1
+            Find-Mentions (Remove-CodeNoise $block.Groups[2].Value $language) $usings $contextPackages $mentions 1
         }
     }
     # Prose names an API on purpose; weigh inline code above incidental use in a sample.
@@ -196,7 +201,7 @@ function Get-PageMentions([string] $body, [string] $contextPackage) {
     foreach ($inline in [regex]::Matches($prose, '`([^`\n]+)`')) {
         # Very short spans such as `A1` are cell addresses or values, not type names.
         if ($inline.Groups[1].Value.Trim().Length -lt 4) { continue }
-        Find-Mentions $inline.Groups[1].Value $usings $contextPackage $mentions 3
+        Find-Mentions $inline.Groups[1].Value $usings $contextPackages $mentions 3
     }
     $mentions
 }
@@ -208,11 +213,11 @@ foreach ($collection in $collections) {
         $parsed = Get-FrontMatter ([IO.File]::ReadAllText($file.FullName).Replace("`r`n", "`n"))
         if ($parsed.Meta.draft -eq 'true' -or -not $parsed.Meta.title) { continue }
         $route = Get-Route $file.FullName $inputRoot $collection.Output $parsed.Meta
-        $contextPackage = $null
-        foreach ($docsHome in $packageByDocsHome.Keys | Sort-Object Length -Descending) {
-            if ($route.StartsWith($docsHome)) { $contextPackage = $packageByDocsHome[$docsHome]; break }
+        $contextPackages = @()
+        foreach ($docsHome in $packagesByDocsHome.Keys | Sort-Object Length -Descending) {
+            if ($route.StartsWith($docsHome)) { $contextPackages = @($packagesByDocsHome[$docsHome]); break }
         }
-        $mentions = Get-PageMentions $parsed.Body $contextPackage
+        $mentions = Get-PageMentions $parsed.Body $contextPackages
         if ($mentions.Count -eq 0) { continue }
         $pages.Add([pscustomobject]@{ Route = $route; Title = $parsed.Meta.title; Summary = Get-Summary $parsed.Meta.description; Kind = 'guide'; Mentions = $mentions })
     }

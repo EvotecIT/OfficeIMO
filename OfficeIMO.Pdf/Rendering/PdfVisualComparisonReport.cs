@@ -43,8 +43,14 @@ public sealed class PdfVisualComparisonReport {
         html.AppendHtmlEncoded(heading);
         html.Append("</h1><p class=\"summary\"><span class=\"badge ").Append(IsMatch ? "ok\">Match" : "bad\">Different").Append("</span>")
             .Append(Pages.Count.ToString(CultureInfo.InvariantCulture)).Append(Pages.Count == 1 ? " page compared" : " pages compared")
-            .Append(" · ").Append((Pages.Count - differing).ToString(CultureInfo.InvariantCulture)).Append(" matching · ")
-            .Append(differing.ToString(CultureInfo.InvariantCulture)).Append(" different</p>");
+            .Append(" · ").Append((Pages.Count - differing).ToString(CultureInfo.InvariantCulture))
+            .Append(Pages.Count - differing == 1 ? " visual match · " : " visual matches · ")
+            .Append(differing.ToString(CultureInfo.InvariantCulture)).Append(differing == 1 ? " visual difference" : " visual differences");
+        if (StructuralDifferences.Count > 0) {
+            html.Append(" · ").Append(StructuralDifferences.Count.ToString(CultureInfo.InvariantCulture))
+                .Append(StructuralDifferences.Count == 1 ? " structural difference" : " structural differences");
+        }
+        html.Append("</p>");
         if (differing > 0) {
             html.Append("<p class=\"jump\">Go to ");
             int listed = 0;

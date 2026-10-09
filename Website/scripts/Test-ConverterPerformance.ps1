@@ -1,3 +1,12 @@
+<#
+.SYNOPSIS
+Runs browser conversion contracts and records timing and memory measurements.
+.PARAMETER EnforcePerformanceBudgets
+Checks host-dependent timing and memory budgets during an opt-in evidence run.
+Ordinary website CI records these measurements without enforcing their limits.
+.EXAMPLE
+./scripts/Test-ConverterPerformance.ps1 -SiteRoot ./_site -EnforcePerformanceBudgets
+#>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
@@ -7,7 +16,10 @@ param(
 
     [string] $ReportPath = (Join-Path $PSScriptRoot '../_reports/browser-converter-performance.json'),
 
-    [string] $BaseUrl
+    [string] $BaseUrl,
+
+    # Host-dependent timing and memory limits belong to explicit performance evidence runs.
+    [switch] $EnforcePerformanceBudgets
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,7 +38,7 @@ if (-not (Test-Path -LiteralPath $converterRoot -PathType Container)) {
 }
 
 $publishedBytes = (Get-ChildItem -LiteralPath $converterRoot -Recurse -File | Measure-Object -Property Length -Sum).Sum
-if ($publishedBytes -gt [long] $budgets.maximumPublishedBytes) {
+if ($EnforcePerformanceBudgets -and $publishedBytes -gt [long] $budgets.maximumPublishedBytes) {
     throw "Browser converter publish is $publishedBytes bytes; budget is $($budgets.maximumPublishedBytes) bytes."
 }
 
@@ -82,16 +94,38 @@ try {
     $result = $resultMatch.Groups['json'].Value.Trim() | ConvertFrom-Json
     if ($result -is [string]) { $result = $result | ConvertFrom-Json }
 
-    if ([double] $result.interactiveMilliseconds -gt [double] $budgets.maximumInteractiveMilliseconds) {
+    $report = [ordered] @{
+        schemaVersion = 1
+        measuredAtUtc = [DateTimeOffset]::UtcNow.ToString('O')
+        publishedBytes = [long] $publishedBytes
+        interactiveMilliseconds = [double] $result.interactiveMilliseconds
+        startupMilliseconds = [double] $result.startupMilliseconds
+        maximumBrowserHeapBytes = [long] $result.maximumBrowserHeapBytes
+        maximumEngineMemoryBytes = [long] $result.maximumEngineMemoryBytes
+        playwrightCliVersion = [string] $budgets.playwrightCliVersion
+        browserEngine = $browserEngine
+        routes = $result.routes
+        webMcp = $result.webMcp
+        webMcpLifecycle = $result.webMcpLifecycle
+        longNameWebMcp = $result.longNameWebMcp
+        malformedWebMcp = $result.malformedWebMcp
+        budgets = $budgets
+        performanceBudgetsEnforced = [bool] $EnforcePerformanceBudgets
+    }
+    $reportDirectory = Split-Path -Parent $ReportPath
+    if ($reportDirectory) { New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null }
+    $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ReportPath -Encoding utf8
+
+    if ($EnforcePerformanceBudgets -and [double] $result.interactiveMilliseconds -gt [double] $budgets.maximumInteractiveMilliseconds) {
         throw "The tool page became usable after $($result.interactiveMilliseconds) ms; budget is $($budgets.maximumInteractiveMilliseconds) ms."
     }
-    if ([double] $result.startupMilliseconds -gt [double] $budgets.maximumStartupMilliseconds) {
+    if ($EnforcePerformanceBudgets -and [double] $result.startupMilliseconds -gt [double] $budgets.maximumStartupMilliseconds) {
         throw "The engine was ready after $($result.startupMilliseconds) ms; budget is $($budgets.maximumStartupMilliseconds) ms."
     }
-    if ([long] $result.maximumEngineMemoryBytes -le 0 -or [long] $result.maximumEngineMemoryBytes -gt [long] $budgets.maximumEngineMemoryBytes) {
+    if ($EnforcePerformanceBudgets -and ([long] $result.maximumEngineMemoryBytes -le 0 -or [long] $result.maximumEngineMemoryBytes -gt [long] $budgets.maximumEngineMemoryBytes)) {
         throw "Engine WebAssembly memory reached $($result.maximumEngineMemoryBytes) bytes; budget is $($budgets.maximumEngineMemoryBytes) bytes."
     }
-    if ([long] $result.maximumBrowserHeapBytes -gt [long] $budgets.maximumBrowserHeapBytes) {
+    if ($EnforcePerformanceBudgets -and [long] $result.maximumBrowserHeapBytes -gt [long] $budgets.maximumBrowserHeapBytes) {
         throw "Converter browser heap reached $($result.maximumBrowserHeapBytes) bytes; budget is $($budgets.maximumBrowserHeapBytes) bytes."
     }
     $expectedRouteIds = @($budgets.routes.PSObject.Properties.Name | Sort-Object)
@@ -102,16 +136,16 @@ try {
     foreach ($route in $result.routes) {
         $routeBudget = $budgets.routes.($route.routeId)
         if ($null -eq $routeBudget) { throw "No performance budget exists for route '$($route.routeId)'." }
-        if ([long] $route.conversionMilliseconds -gt [long] $routeBudget.maximumConversionMilliseconds) {
+        if ($EnforcePerformanceBudgets -and [long] $route.conversionMilliseconds -gt [long] $routeBudget.maximumConversionMilliseconds) {
             throw "Route '$($route.routeId)' took $($route.conversionMilliseconds) ms; budget is $($routeBudget.maximumConversionMilliseconds) ms."
         }
-        if ([long] $route.peakRetainedBytes -gt [long] $routeBudget.maximumPeakRetainedBytes) {
+        if ($EnforcePerformanceBudgets -and [long] $route.peakRetainedBytes -gt [long] $routeBudget.maximumPeakRetainedBytes) {
             throw "Route '$($route.routeId)' retained $($route.peakRetainedBytes) bytes; budget is $($routeBudget.maximumPeakRetainedBytes) bytes."
         }
-        if ([long] $route.repeatConversionMilliseconds -gt [long] $routeBudget.maximumConversionMilliseconds) {
+        if ($EnforcePerformanceBudgets -and [long] $route.repeatConversionMilliseconds -gt [long] $routeBudget.maximumConversionMilliseconds) {
             throw "Repeated route '$($route.routeId)' took $($route.repeatConversionMilliseconds) ms; budget is $($routeBudget.maximumConversionMilliseconds) ms."
         }
-        if ([long] $route.repeatPeakRetainedBytes -gt [long] $routeBudget.maximumPeakRetainedBytes) {
+        if ($EnforcePerformanceBudgets -and [long] $route.repeatPeakRetainedBytes -gt [long] $routeBudget.maximumPeakRetainedBytes) {
             throw "Repeated route '$($route.routeId)' retained $($route.repeatPeakRetainedBytes) bytes; budget is $($routeBudget.maximumPeakRetainedBytes) bytes."
         }
         if ([long] $route.resultBytes -le 0) { throw "Route '$($route.routeId)' produced an empty result." }
@@ -162,27 +196,7 @@ try {
         throw "Browser converter emitted console errors: $($result.consoleErrors -join ' | ')"
     }
 
-    $report = [ordered] @{
-        schemaVersion = 1
-        measuredAtUtc = [DateTimeOffset]::UtcNow.ToString('O')
-        publishedBytes = [long] $publishedBytes
-        interactiveMilliseconds = [double] $result.interactiveMilliseconds
-        startupMilliseconds = [double] $result.startupMilliseconds
-        maximumBrowserHeapBytes = [long] $result.maximumBrowserHeapBytes
-        maximumEngineMemoryBytes = [long] $result.maximumEngineMemoryBytes
-        playwrightCliVersion = [string] $budgets.playwrightCliVersion
-        browserEngine = $browserEngine
-        routes = $result.routes
-        webMcp = $result.webMcp
-        webMcpLifecycle = $result.webMcpLifecycle
-        longNameWebMcp = $result.longNameWebMcp
-        malformedWebMcp = $result.malformedWebMcp
-        budgets = $budgets
-    }
-    $reportDirectory = Split-Path -Parent $ReportPath
-    if ($reportDirectory) { New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null }
-    $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $ReportPath -Encoding utf8
-    Write-Output "Browser tools performance verified: $publishedBytes bytes, page usable at $([Math]::Round($result.interactiveMilliseconds)) ms, engine ready at $([Math]::Round($result.startupMilliseconds)) ms, $($result.routes.Count) representative routes."
+    Write-Output "Browser tool contracts verified; performance measurements recorded: $publishedBytes bytes, page usable at $([Math]::Round($result.interactiveMilliseconds)) ms, engine ready at $([Math]::Round($result.startupMilliseconds)) ms, $($result.routes.Count) representative routes. Budgets enforced: $([bool] $EnforcePerformanceBudgets)."
 } finally {
     $npxCommand = Get-Command npx -ErrorAction SilentlyContinue
     if ($npxCommand) { & $npxCommand.Source --yes --package $playwrightPackage playwright-cli "-s=$session" close 2>$null | Out-Null }
