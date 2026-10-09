@@ -46,7 +46,7 @@
     {
       "feature": "AOT and trimming reality",
       "values": [
-        "117 of 139 production projects have Windows and Linux NativeAOT evidence, including 114 fully rooted libraries and one build-time source generator; the invoice engine, PDF adapter, standards validator and KSeF client, document-AI engine, its IntelligenceX adapter and example, Chromium browser-PDF bridge, HTML/PDF workbench, JavaScript asset package, OfficeIMO Studio and its UI-independent core, Project and Access libraries, Draw PDF bridge, XPS engine, its PDF bridge and Reader adapter, static Mermaid document adapter, and WPF/WebView2 renderer use managed deployment; the iOS host has simulator evidence but remains unqualified for device AOT",
+        "117 of 140 production projects have Windows and Linux NativeAOT evidence, including 114 fully rooted libraries and one build-time source generator; the invoice engine, PDF adapter, standards validator and KSeF client, document-AI engine, its IntelligenceX adapter and example, Chromium browser-PDF bridge, HTML/PDF workbench, JavaScript asset package, OfficeIMO Studio and its UI-independent core, Project and Access libraries, DBF Reader adapter, Draw PDF bridge, XPS engine, its PDF bridge and Reader adapter, static Mermaid document adapter, and WPF/WebView2 renderer use managed deployment; the iOS host has simulator evidence but remains unqualified for device AOT",
         "Varies by vendor, package, and feature set",
         "Real publish profiles, linker settings, and the exact package mix you plan to ship"
       ]
