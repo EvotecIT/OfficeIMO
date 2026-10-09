@@ -1,5 +1,16 @@
 # Upgrading OfficeIMO
 
+## PDF form value assessment
+
+`PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
+precision and range checks from the supported inert field/widget action profile.
+Unsupported script constraints produce assessment errors without executing code.
+Applications that previously displayed only length and choice errors must also
+display these errors and block acceptance until the assessment succeeds. Correct
+numeric values to the recovered rules; use a qualified form application for
+unsupported script constraints.
+The [form review contract](OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+defines the supported helper calls; the policy does not emulate Acrobat formatting.
 ## Shared raster workflow contracts
 
 `OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.
@@ -47,6 +58,15 @@ Replace `pdf.AssessMutations(default)` with
 `pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
 the positional `default` literal ambiguous. Parameterless calls and calls with
 an explicit operation collection retain their existing behavior.
+
+## PDF inputs without readable objects
+
+Lenient typed reading throws `PdfParseException` with code `NoIndirectObjects`
+when an input contains no recoverable indirect objects. Reject these inputs
+instead of treating their former empty page collection as an opened PDF.
+`PdfDocument.Load` still captures the source lazily; call `Read`, `Inspect`, or
+`InspectForViewing` to require a typed read. `Preflight` retains read blockers,
+and zero-page catalogs and recoverable object fragments keep their existing behavior.
 
 ## EPUB XHTML image export
 

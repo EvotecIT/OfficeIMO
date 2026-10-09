@@ -59,19 +59,17 @@ public static class PdfOcrExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument snapshot = PdfDocument.Load(document.GetBytesForOperation(cancellationToken), document.ReadOptions);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
-        PdfPageSelection? selection = effectiveOptions.ReadOptions.PageSelection;
-        if (selection != null) {
-            int pageCount = snapshot.Inspect(snapshot.ReadOptions, cancellationToken).PageCount;
-            int[] uniquePages = selection
-                .ToPageNumbers(pageCount, nameof(options))
-                .Distinct()
-                .ToArray();
-            effectiveOptions.ReadOptions = PdfReadOptions.WithPageSelection(
-                effectiveOptions.ReadOptions,
-                PdfPageSelection.From(uniquePages));
-        }
+        if (effectiveOptions.ReadOptions.PageSelection != null)
+            NormalizeReviewPageSelection(effectiveOptions, snapshot.Inspect(snapshot.ReadOptions, cancellationToken).PageCount);
 
         PdfOcrMergeResult ocr = await snapshot.ReadWithOcrAsync(engine, effectiveOptions, cancellationToken).ConfigureAwait(false);
         return new PdfSearchableOcrReview(snapshot, effectiveOptions, ocr);
+    }
+
+    // Mutation-oriented reviews recognize each physical page once, in its first selected order.
+    internal static void NormalizeReviewPageSelection(PdfOcrMergeOptions capturedOptions, int pageCount) {
+        if (capturedOptions.ReadOptions.PageSelection is not { } selection) return;
+        int[] uniquePages = selection.ToPageNumbers(pageCount, "options").Distinct().ToArray();
+        capturedOptions.ReadOptions = PdfReadOptions.WithPageSelection(capturedOptions.ReadOptions, PdfPageSelection.From(uniquePages));
     }
 }

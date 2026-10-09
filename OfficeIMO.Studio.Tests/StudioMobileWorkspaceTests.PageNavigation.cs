@@ -150,28 +150,10 @@ public sealed partial class StudioMobileWorkspaceTests {
     }
 
     private static async Task OpenPageChooserAsync(MobileWorkspaceView view, Window window, int width, int height) {
-        // Synchronous render ticks count toward this deadline too on a busy validation host.
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var button = view.FindControl<Button>("GoToPageButton")!;
-        Point? previous = null;
-        int stableFrames = 0;
-        // Headless pointer input also pumps rendering. Let the resized navigation pane
-        // settle before capturing coordinates so that down/up reach the same button.
-        while (true) {
-            Layout(window, width, height);
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Dispatcher.UIThread.RunJobs();
-            Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
-            bool hitsButton = window.InputHitTest(point) is Visual hit && hit.GetSelfAndVisualAncestors().Contains(button);
-            stableFrames = hitsButton && previous == point ? stableFrames + 1 : 0;
-            if (stableFrames >= 3) {
-                window.MouseDown(point, MouseButton.Left);
-                window.MouseUp(point, MouseButton.Left);
-                return;
-            }
-            previous = point;
-            await Task.Delay(10, timeout.Token);
-        }
+        Point point = await StudioHeadlessInput.WaitForTargetAsync(window, button, () => Layout(window, width, height));
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
     }
 
     private static async Task WaitForPageChooserAsync(MobileWorkspaceView view) {

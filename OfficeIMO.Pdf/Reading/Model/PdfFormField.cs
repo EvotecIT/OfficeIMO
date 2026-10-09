@@ -59,7 +59,8 @@ public sealed class PdfFormField {
     private IReadOnlyList<int>? _pageNumbers;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerKey = null, int? defaultValueOwnerKey = null, bool hasValueEntry = false, bool hasDefaultValueEntry = false, string? richValue = null, string? richValuePlainText = null, int? richValueOwnerKey = null, bool hasRichValueEntry = false) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerKey = null, int? defaultValueOwnerKey = null, bool hasValueEntry = false, bool hasDefaultValueEntry = false, string? richValue = null, string? richValuePlainText = null, int? richValueOwnerKey = null, bool hasRichValueEntry = false, IReadOnlyList<PdfFormWidgetAction>? actions = null) {
+        Actions = actions ?? Array.Empty<PdfFormWidgetAction>();
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -86,6 +87,9 @@ public sealed class PdfFormField {
         RichValueOwnerKey = richValueOwnerKey;
         HasRichValueEntry = hasRichValueEntry;
     }
+
+    /// <summary>Actions attached to a separate field dictionary; merged widgets expose their actions on the widget.</summary>
+    public IReadOnlyList<PdfFormWidgetAction> Actions { get; }
 
     /// <summary>Indirect object number for the field dictionary, when known.</summary>
     public int? ObjectNumber { get; }
@@ -335,9 +339,10 @@ public sealed class PdfFormField {
     /// <summary>True when at least one widget annotation was associated with this field.</summary>
     public bool HasWidgets => Widgets.Count > 0;
 
-    /// <summary>First readable JavaScript source attached to one of this field's widgets, when present.</summary>
+    /// <summary>First readable JavaScript source attached to this field or one of its widgets, when present.</summary>
     public string? JavaScript {
         get {
+            foreach (var action in Actions) if (action.JavaScript is not null) return action.JavaScript;
             for (int widgetIndex = 0; widgetIndex < Widgets.Count; widgetIndex++) {
                 IReadOnlyList<PdfFormWidgetAction> actions = Widgets[widgetIndex].Actions;
                 for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++) {
@@ -351,7 +356,7 @@ public sealed class PdfFormField {
         }
     }
 
-    /// <summary>True when at least one widget exposes a readable JavaScript action.</summary>
+    /// <summary>True when the field or at least one widget exposes a readable JavaScript action.</summary>
     public bool HasJavaScript => JavaScript is not null;
 
     /// <summary>Distinct one-based page numbers where this field has readable widget annotations.</summary>
@@ -642,7 +647,7 @@ public sealed class PdfFormWidget {
     }
 }
 
-/// <summary>Action metadata and safe JavaScript source read from an AcroForm widget.</summary>
+/// <summary>Action metadata and inert JavaScript source read from an AcroForm field or widget.</summary>
 public sealed class PdfFormWidgetAction {
     internal PdfFormWidgetAction(string triggerName, string actionType, string? javaScript, string? uri, string? payloadFingerprint = null, long javaScriptSourceBytes = 0L) {
         TriggerName = triggerName;

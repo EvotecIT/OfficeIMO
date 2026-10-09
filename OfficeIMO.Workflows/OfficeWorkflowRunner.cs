@@ -92,10 +92,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Output;
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath!)!
                 : providerStagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provider-output-");
-            if (stagingGuard != null)
+            if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
-            if (stagingGuard != null)
+            if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
@@ -247,10 +247,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] actual = ReadInput(request.ComparisonPath!, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions, cancellationToken);
         PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions, cancellationToken);
+        // The comparer admits both documents before resolving selectors. Retained PNGs
+        // and the final UTF-8 gallery are bounded separately by their canonical owners.
         var comparisonOptions = new PdfVisualComparisonOptions {
-            MaxTotalOutputBytes = CalculateComparisonRetainedOutputBudget(
-                request.Limits.MaximumOutputBytes,
-                Math.Min(before.PageCount, after.PageCount))
+            ExpectedPages = request.ComparisonExpectedPages,
+            ActualPages = request.ComparisonActualPages,
+            MaxTotalOutputBytes = request.Limits.MaximumOutputBytes
         };
         PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
             expected,
@@ -260,13 +262,23 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             expectedReadOptions: request.PdfLoadOptions,
             actualReadOptions: request.ComparisonPdfLoadOptions);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["expectedTotalPages"] = comparison.ExpectedPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["actualTotalPages"] = comparison.ActualPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["expectedSelectedPageCount"] = comparison.ExpectedPageNumbers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["actualSelectedPageCount"] = comparison.ActualPageNumbers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["expectedSelectedPages"] = string.Join(",", comparison.ExpectedPageNumbers),
+            ["actualSelectedPages"] = string.Join(",", comparison.ActualPageNumbers),
+            ["unmatchedExpectedPages"] = string.Join(",", comparison.UnmatchedExpectedPageNumbers),
+            ["unmatchedActualPages"] = string.Join(",", comparison.UnmatchedActualPageNumbers),
+            ["expectedSha256"] = comparison.ExpectedSha256,
+            ["actualSha256"] = comparison.ActualSha256,
             ["pagesCompared"] = comparison.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["differentPages"] = comparison.Pages.Count(page => !page.IsMatch).ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["structuralDifferences"] = comparison.StructuralDifferences.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
         string summary = comparison.IsMatch
-            ? "The PDFs match within the managed structural and visual thresholds."
-            : "The PDFs differ; review the structural findings and visual comparison gallery.";
+            ? "The compared page pairs match within managed rendering thresholds. Pages outside the selected scope were not compared."
+            : "The selected page sequences differ; review the ordinal rendered comparison gallery. No semantic or moved-page alignment is inferred.";
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Compare,
             before,
@@ -283,16 +295,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken),
                 request.Limits.MaximumOutputBytes);
         return new OperationArtifact(gallery, summary, report);
-    }
-
-    private static long CalculateComparisonRetainedOutputBudget(long maximumOutputBytes, int pageCount) {
-        const long fixedGalleryOverheadBytes = 1024L;
-        const long perPageGalleryOverheadBytes = 1024L;
-        long estimatedMarkupBytes = checked(
-            fixedGalleryOverheadBytes + perPageGalleryOverheadBytes * Math.Max(0, pageCount));
-        long markupReserve = Math.Min(maximumOutputBytes - 1L, estimatedMarkupBytes);
-        long availableBase64Bytes = maximumOutputBytes - markupReserve;
-        return Math.Max(1L, (availableBase64Bytes / 4L) * 3L);
     }
 
     private static OperationArtifact Optimize(
@@ -789,5 +791,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowConversionRegistration? Registration = null,
         IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null,
         WordImageOptimizationOptions? WordImageOptimization = null,
-        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null);
+        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null,
+        PdfPageSelector? PageSelector = null,
+        int MaximumExtractedPages = 100_000,
+        PdfPageSelector? ComparisonExpectedPages = null,
+        PdfPageSelector? ComparisonActualPages = null);
 }
