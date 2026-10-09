@@ -136,6 +136,7 @@ public static partial class HtmlComputedStyleEngine {
         "break-inside",
         "caption-side",
         "clear",
+        "clip",
         "clip-path",
         "color",
         "column-gap",

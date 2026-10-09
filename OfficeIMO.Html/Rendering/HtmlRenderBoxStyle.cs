@@ -201,6 +201,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string IndividualScale = "none";
     internal string TransformOrigin = "50% 50%";
     internal string ClipPath = "none";
+    internal string Clip = "auto";
     internal bool OpacityWasSpecified;
     internal string UnsupportedOpacity = string.Empty;
     internal int BoxShadowLayerCount;

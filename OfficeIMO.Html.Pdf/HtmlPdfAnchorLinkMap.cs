@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html.Pdf;
 
@@ -55,6 +56,10 @@ internal sealed class HtmlPdfAnchorLinkMap {
             else if (visual is HtmlRenderLogicalTextGroup logical) Collect(logical.Visuals, space, grouped, linkedVisuals, activeFragments);
             else if (visual is HtmlRenderLayoutRegion layout) Collect(layout.Visuals, space, grouped, linkedVisuals, activeFragments);
             else if (visual is HtmlRenderClipGroup clip) Collect(clip.Visuals, space, grouped, linkedVisuals, activeFragments);
+            // Rectangular path clips retain the exact anchor rectangle intersection
+            // in the PDF canvas, including nested overflow and legacy clip rectangles.
+            else if (visual is HtmlRenderPathClipGroup rectangular && rectangular.ClipPath.Kind == OfficeClipPathKind.Rectangle)
+                Collect(rectangular.Visuals, space, grouped, linkedVisuals, activeFragments);
             // PDF annotation rectangles do not inherit a nonrectangular path clip.
             // Keep the existing per-visual link handling inside that path instead.
             else if (visual is HtmlRenderPathClipGroup) continue;

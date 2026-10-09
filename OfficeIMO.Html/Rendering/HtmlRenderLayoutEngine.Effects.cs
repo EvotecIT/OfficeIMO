@@ -34,6 +34,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double boxHeight = Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
+        HtmlCssResolvedClipPath? legacyClip = null;
+        if (style.Clip != "auto" && !HtmlCssLegacyClipParser.TryResolve(
+                style.Clip, boxWidth, boxHeight, style.Font.Size, _styleResolver.RootFontSize,
+                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
+                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+                style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
+                out legacyClip, style.CharacterAdvance)) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ClipValueUnsupported,
+                "An applicable CSS clip value used no clipping.", HtmlDiagnosticSeverity.Warning,
+                source, "clip=" + style.Clip, OfficeConversionLossKind.Omission);
+        }
         HtmlCssResolvedClipPath? clipPath = null;
         bool hasClipPath = style.ClipPath != "none";
         if (hasClipPath && !HtmlCssClipPathParser.TryResolve(
@@ -79,13 +90,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
         createsStackingContext = hasTransform || hasOpacity || hasClipPath;
-        if (!createsStackingContext || block.Visuals.Count == 0) return block;
-        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity || hasClipPath
+        if ((!createsStackingContext && legacyClip == null) || block.Visuals.Count == 0) return block;
+        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity || hasClipPath || legacyClip != null
             ? ReplaceDescendantFormFieldsForPaintEffect(
                 block.Visuals,
                 hasTransform ? "ancestor-transform=" + source
                     : hasOpacity ? "ancestor-opacity=" + style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    : "ancestor-clip-path=" + style.ClipPath)
+                    : hasClipPath ? "ancestor-clip-path=" + style.ClipPath
+                    : "ancestor-clip=" + style.Clip)
             : block.Visuals;
         if (clipPath != null) {
             effectVisuals = new[] {
@@ -96,6 +108,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     effectVisuals,
                     0,
                     source)
+            };
+        }
+        if (legacyClip != null) {
+            effectVisuals = new[] {
+                new HtmlRenderClipGroup(style.MarginLeft + legacyClip.X, style.MarginTop + legacyClip.Y,
+                    legacyClip.ClipPath.Width, legacyClip.ClipPath.Height, true, true,
+                    effectVisuals, 0, source)
             };
         }
         if (!hasTransform && !hasOpacity) return block.WithVisuals(effectVisuals);

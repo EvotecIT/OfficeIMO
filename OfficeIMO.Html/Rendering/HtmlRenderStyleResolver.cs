@@ -353,6 +353,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
+        // Positioned layout temporarily uses a static clone; retain applicability here.
+        style.Clip = style.Position is "absolute" or "fixed"
+            ? NormalizeCssValue(computed.GetValue("clip"), "auto")
+            : "auto";
         ApplyFlex(computed, containingWidth, fontSize, style);
         if (style.Display == "flex"
             && string.Equals(computed.GetValue("display").Trim(), "-webkit-box", StringComparison.OrdinalIgnoreCase)

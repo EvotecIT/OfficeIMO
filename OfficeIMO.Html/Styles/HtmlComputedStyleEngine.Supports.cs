@@ -289,6 +289,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
         }
+        if (string.Equals(propertyName, "clip", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssLegacyClipParser.IsSupportedSyntax(normalized);
+        }
         if (string.Equals(propertyName, "clip-path", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssClipPathParser.IsSupportedSyntax(normalized);
         }

@@ -130,6 +130,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
     /// <summary>A CSS clip-path value used no clipping because it could not be represented.</summary>
     public const string ClipPathValueUnsupported = "HtmlRenderClipPathValueUnsupported";
+    /// <summary>An applicable legacy CSS clip value used no clipping because it could not be represented.</summary>
+    public const string ClipValueUnsupported = "HtmlRenderClipValueUnsupported";
     /// <summary>A PDF semantic tag override was invalid and automatic HTML semantics were used.</summary>
     public const string PdfSemanticTagUnsupported = "HtmlRenderPdfSemanticTagUnsupported";
     /// <summary>A CSS bookmark value was invalid and automatic heading navigation was used.</summary>
@@ -315,6 +317,7 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowValueUnsupported,
         TransformValueUnsupported,
         ClipPathValueUnsupported,
+        ClipValueUnsupported,
         PdfSemanticTagUnsupported,
         BookmarkValueUnsupported,
         FormFieldTransformStaticFallback,
