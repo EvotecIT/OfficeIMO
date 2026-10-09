@@ -68,21 +68,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet[] sheets = [sheet];
 
             ValidateDirectTabularWorkbook(document, sheets, source.SheetName);
-            Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            byte[]? stylesPart = null;
-            if (stylesheet != null) {
-                stylesPart = XlsbStylesheetPartWriter.Create(stylesheet, out _);
-            }
-
             cancellationToken.ThrowIfCancellationRequested();
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
             if (!XlsbWorksheetPartWriter.TryCreateDirectTabular(
+                document,
+                sheet,
                 source,
                 cancellationToken,
                 out ArraySegment<byte> worksheetPart,
                 sharedStrings)) {
                 return false;
             }
+
+            // Direct temporal cells resolve their existing insertion format while
+            // staging the worksheet, before any bytes reach the destination.
+            Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+            byte[]? stylesPart = stylesheet == null ? null : XlsbStylesheetPartWriter.Create(stylesheet, out _);
 
             ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
             if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
@@ -189,11 +190,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties != null) {
-                bool hasOnlyDateSystem = !properties.HasChildren
-                    && properties.GetAttributes().All(attribute =>
-                        string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal)
-                        && string.Equals(attribute.NamespaceUri, string.Empty, StringComparison.Ordinal));
-                if (!hasOnlyDateSystem) {
+                if (!ExcelDocument.HasOnlyDateSystemWorkbookProperties(properties)) {
                     throw new NotSupportedException("Native XLSB generation currently supports only the workbook date1904 property.");
                 }
             }
@@ -223,7 +220,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("Native XLSB generation does not yet support modified document properties.");
             }
             if (document.WorkbookRoot.ChildElements.Any(element => element is not Sheets
-                && !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views)))) {
+                && !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
+                && !(element is WorkbookProperties properties && ExcelDocument.HasOnlyDateSystemWorkbookProperties(properties)))) {
                 throw new NotSupportedException("Native XLSB direct tabular generation requires default workbook metadata.");
             }
             if (document.WorkbookPartRoot.ExternalRelationships.Any()) {

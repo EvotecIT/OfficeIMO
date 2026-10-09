@@ -83,12 +83,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _position = offset;
         }
 
-        internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value) {
+        internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value, uint styleIndex = 0U) {
             byte[] buffer = EnsureAvailable(22);
             int offset = _position;
             offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 16, buffer, offset);
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
-            offset = AppendUInt32(buffer, offset, 0U);
+            offset = AppendUInt32(buffer, offset, styleIndex);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             offset = AppendUInt64(buffer, offset, bits);
             _position = offset;
