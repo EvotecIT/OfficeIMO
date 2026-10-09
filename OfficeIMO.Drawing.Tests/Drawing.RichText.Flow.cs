@@ -57,6 +57,48 @@ public sealed class DrawingRichTextFlowTests {
         Assert.Equal(source, recovered); Assert.Equal(source.Length, flow.CharacterPosition); Assert.False(flow.HasRemaining);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SplitCrLfConsumesOneLineAndBothSourceCharactersAcrossRegions(bool includeEmptyRun) {
+        var runs = new List<OfficeRichTextRun> { new("A\r", 10, OfficeColor.Black) };
+        if (includeEmptyRun) runs.Add(new OfficeRichTextRun(string.Empty, 10, OfficeColor.Black));
+        runs.Add(new OfficeRichTextRun("\nB", 10, OfficeColor.Red, bold: true));
+        var paragraph = new OfficeRichTextParagraph(runs);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { paragraph }, 100, 100, Measure);
+        Assert.Equal(2, layout.Lines.Count);
+
+        var flow = new OfficeRichTextFlow(new[] { paragraph }, _ => { });
+        Assert.Equal("A\r\n", Text(flow.Take(100, 12, Measure, default)));
+        Assert.Equal(3, flow.CharacterPosition);
+        IReadOnlyList<OfficeRichTextParagraph> second = flow.Take(100, 12, Measure, default);
+        Assert.Equal("B", Text(second));
+        OfficeRichTextRun tail = Assert.Single(Assert.Single(second).Runs);
+        Assert.True(tail.Bold); Assert.Equal(OfficeColor.Red, tail.Color);
+        Assert.Equal(4, flow.CharacterPosition); Assert.False(flow.HasRemaining);
+    }
+
+    [Fact]
+    public void SplitTerminalCrLfRetainsOnePendingEmptyLineAndItsHeight() {
+        var paragraphs = new[] {
+            new OfficeRichTextParagraph(new[] {
+                new OfficeRichTextRun("A\r", 10, OfficeColor.Black),
+                new OfficeRichTextRun("\n", 20, OfficeColor.Red)
+            }),
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("B", 10, OfficeColor.Black) })
+        };
+        var flow = new OfficeRichTextFlow(paragraphs, _ => { });
+        Assert.Equal("A\r\n", Text(flow.Take(100, 12, Measure, default)));
+        Assert.Equal(3, flow.CharacterPosition);
+        Assert.Empty(flow.Take(100, 12, Measure, default));
+        Assert.Equal(3, flow.CharacterPosition);
+        IReadOnlyList<OfficeRichTextParagraph> blank = flow.Take(100, 24, Measure, default);
+        Assert.Equal(string.Empty, Text(blank)); Assert.Single(blank);
+        Assert.Equal(24, Assert.Single(OfficeDrawingTextLayout.CreateParagraphs(blank, 100, 24, Measure).Lines).LineHeight);
+        Assert.Equal(4, flow.CharacterPosition);
+        Assert.Equal("B", Text(flow.Take(100, 12, Measure, default))); Assert.False(flow.HasRemaining);
+    }
+
     [Fact]
     public void EmptyParagraphsConsumeLinesAndUnusableRegionsDoNotConsumeText() {
         var paragraphs = new[] {

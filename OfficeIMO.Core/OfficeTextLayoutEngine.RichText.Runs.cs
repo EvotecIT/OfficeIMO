@@ -132,6 +132,7 @@ public static partial class OfficeTextLayoutEngine {
         IReadOnlyList<OfficeRichTextRun> runs,
         CancellationToken cancellationToken, bool preserveTabs = false) {
         int sourceOffset = 0;
+        bool skipLeadingLineFeed = false;
         for (int i = 0; i < runs.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextRun run = runs[i];
@@ -142,8 +143,17 @@ public static partial class OfficeTextLayoutEngine {
             for (int c = 0; c < normalized.Length; c++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 char value = normalized[c];
+                if (skipLeadingLineFeed && c == 0 && value == '\n') {
+                    skipLeadingLineFeed = false;
+                    continue;
+                }
+                skipLeadingLineFeed = false;
+                bool consumesNextLineFeed = false;
                 if (value == '\r') {
                     if (c + 1 < normalized.Length && normalized[c + 1] == '\n') c++;
+                    else if (c + 1 == normalized.Length)
+                        consumesNextLineFeed = NextRichTextRunStartsWithLineFeed(runs, i, cancellationToken);
+                    skipLeadingLineFeed = consumesNextLineFeed;
                     value = '\n';
                 }
                 if (value == '\t') {
@@ -160,7 +170,8 @@ public static partial class OfficeTextLayoutEngine {
                         yield return token;
                     }
 
-                    yield return RichTextToken.CreateHardBreak(run, sourceOffset + c + 1);
+                    // A CRLF split by a style boundary is one break with both source characters consumed.
+                    yield return RichTextToken.CreateHardBreak(run, sourceOffset + c + 1 + (consumesNextLineFeed ? 1 : 0));
                     column = 0;
                     continue;
                 }
@@ -184,6 +195,16 @@ public static partial class OfficeTextLayoutEngine {
             }
             sourceOffset += normalized.Length;
         }
+    }
+
+    private static bool NextRichTextRunStartsWithLineFeed(IReadOnlyList<OfficeRichTextRun> runs, int current,
+        CancellationToken cancellationToken) {
+        for (int next = current + 1; next < runs.Count; next++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string text = runs[next].Text;
+            if (text.Length != 0) return text[0] == '\n';
+        }
+        return false;
     }
 
     private static IEnumerable<RichTextToken> FlushRichTextWord(OfficeRichTextRun run, StringBuilder word, int start) {
