@@ -50,13 +50,13 @@ public static partial class ExcelIWorkConverter {
 
     /// <summary>Formula caches cannot store XLSX rich runs; one effective font and alignment can be applied without changing the expression or cache.</summary>
     private static bool TryGetUniformFormulaTextStyle(IWorkTextContent content, bool forceBold,
-        IWorkParagraphStyle? defaults, out ExcelRichTextRun? font, out IWorkTextAlignment? alignment) {
+        IWorkParagraphStyle? defaults, out ExcelRichTextRun? font, out ExcelHorizontalAlignment? alignment) {
         font = null;
         alignment = null;
-        if (!content.IsFormattingComplete || content.HasUnresolvedInlineObjects) return false;
+        if (!content.IsTextComplete || !content.IsFormattingComplete || content.HasUnresolvedInlineObjects) return false;
         bool haveParagraph = false;
         foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
-            IWorkTextAlignment? currentAlignment = paragraph.Style.Alignment ?? defaults?.Alignment;
+            ExcelHorizontalAlignment? currentAlignment = ResolveFormulaAlignment(paragraph, defaults);
             if (haveParagraph && alignment != currentAlignment) return false;
             alignment = currentAlignment;
             haveParagraph = true;
@@ -76,23 +76,27 @@ public static partial class ExcelIWorkConverter {
         && string.Equals(left.FontName, right.FontName, StringComparison.Ordinal)
         && string.Equals(left.FontColor, right.FontColor, StringComparison.Ordinal);
 
+    private static ExcelHorizontalAlignment? ResolveFormulaAlignment(IWorkTextParagraph paragraph,
+        IWorkParagraphStyle? defaults) => (paragraph.Style.Alignment ?? defaults?.Alignment) switch {
+            null => null,
+            IWorkTextAlignment.Center => ExcelHorizontalAlignment.Center,
+            IWorkTextAlignment.Right => ExcelHorizontalAlignment.Right,
+            IWorkTextAlignment.Justified => ExcelHorizontalAlignment.Justify,
+            IWorkTextAlignment.Natural => OfficeTextElements.ResolveBaseDirection(paragraph.Text)
+                == OfficeTextDirection.RightToLeft ? ExcelHorizontalAlignment.Right : ExcelHorizontalAlignment.General,
+            _ => ExcelHorizontalAlignment.Left
+        };
+
     private static void ApplyUniformFormulaTextStyle(ExcelSheet sheet, ExcelCell cell,
         IWorkTextContent content, bool forceBold, IWorkParagraphStyle? defaults) {
         if (!TryGetUniformFormulaTextStyle(content, forceBold, defaults, out ExcelRichTextRun? font,
-                out IWorkTextAlignment? alignment)) return;
+                out ExcelHorizontalAlignment? alignment)) return;
         cell.SetBold(font!.Bold == true).SetItalic(font.Italic == true)
             .SetUnderline(font.Underline == true).SetStrikethrough(font.Strikethrough == true);
         if (font.FontSize.HasValue) cell.SetFontSize(font.FontSize.Value);
         if (!string.IsNullOrWhiteSpace(font.FontName)) cell.SetFontName(font.FontName!);
         if (font.FontColor != null) cell.SetFontColor(font.FontColor);
-        if (alignment.HasValue) sheet.CellAlign(cell.Row, cell.Column, alignment.Value switch {
-            IWorkTextAlignment.Center => ExcelHorizontalAlignment.Center,
-            IWorkTextAlignment.Right => ExcelHorizontalAlignment.Right,
-            IWorkTextAlignment.Justified => ExcelHorizontalAlignment.Justify,
-            IWorkTextAlignment.Natural => OfficeTextElements.ResolveBaseDirection(content.PlainText)
-                == OfficeTextDirection.RightToLeft ? ExcelHorizontalAlignment.Right : ExcelHorizontalAlignment.General,
-            _ => ExcelHorizontalAlignment.Left
-        });
+        if (alignment.HasValue) sheet.CellAlign(cell.Row, cell.Column, alignment.Value);
         if (UniformCellHyperlink(content) is { } hyperlink)
             sheet.SetHyperlinkReference(cell.Row, cell.Column, hyperlink, style: false);
     }
