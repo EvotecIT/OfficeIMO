@@ -58,9 +58,9 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>A CSS font-variant used a documented managed-rendering approximation.</summary>
     public const string FontVariantApproximated = "HtmlRenderFontVariantApproximated";
-    /// <summary>An authored overline cannot be painted by the static text renderer.</summary>
+    /// <summary>An authored overline cannot be painted in a specialized text context.</summary>
     public const string TextDecorationLineUnsupported = "HtmlRenderTextDecorationLineUnsupported";
-    /// <summary>Authored decoration thickness uses automatic paint thickness while preserving line style and color.</summary>
+    /// <summary>Decoration geometry retains a named approximation outside ordinary horizontal explicit-length paint.</summary>
     public const string TextDecorationThicknessApproximated = "HtmlRenderTextDecorationThicknessApproximated";
     /// <summary>A requested OpenType feature requires a shaping lookup outside the bounded managed subset.</summary>
     public const string OpenTypeFeatureUnsupported = "HtmlRenderOpenTypeFeatureUnsupported";

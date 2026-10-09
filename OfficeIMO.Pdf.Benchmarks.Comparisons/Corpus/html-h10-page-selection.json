@@ -418,7 +418,7 @@
     {
       "id": "nasa-reference-systems",
       "sourceClass": "illustrated-reference-chapter",
-      "role": "held-out",
+      "role": "development-regression",
       "selectionDate": "2026-09-29",
       "url": "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-1/",
       "rightsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
@@ -437,7 +437,7 @@
         {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "figures and links", "saved and reopened content"]},
         {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and captions", "links", "serialized and reparsed content"]}
       ],
-      "reason": "The official NASA chapter was selected from its published title, contents and reuse policy before local capture or OfficeIMO conversion, after the earlier planetary chapter became development evidence. Its acceptance criteria are fixed here before inspecting output."
+      "reason": "Selected independently before capture; its later responsive-image, footer, decoration and generated-box findings informed owner fixes, so it now serves as development-regression evidence. Chesapeake remains the predeclared held-out page."
     }
   ]
 }

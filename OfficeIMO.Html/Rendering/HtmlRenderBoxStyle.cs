@@ -123,6 +123,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeFontFaceDescriptor FontDescriptor = OfficeFontFaceDescriptor.Regular;
     internal OfficeTextDecorationStyle UnderlineStyle;
     internal OfficeTextDecorationStyle StrikethroughStyle;
+    internal OfficeTextDecorationStyle OverlineStyle;
+    internal double? DecorationThickness;
+    internal double? UnderlineOffset;
+    internal bool VectorTextDecoration;
     internal OfficeColor DecorationColor = OfficeColor.Black;
     internal OfficeTextBaseline Baseline;
     internal int BaselineLevel;
