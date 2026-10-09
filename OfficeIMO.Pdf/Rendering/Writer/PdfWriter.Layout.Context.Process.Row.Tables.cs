@@ -621,6 +621,7 @@ internal static partial class PdfWriter {
                 state.Consumed = flowConsumedBeforeTable;
             }
         } else {
+            PrepareTableFrameContinuation(tbColumn, state.Line);
             return false;
         }
             return true;

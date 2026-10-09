@@ -304,6 +304,12 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, layout, style, contentWidth, tableStyleDefaults);
             style.CellVerticalPaddingFromBorderInterior = !usesConfiguredDefaultStyle && style.CellSpacing <= 0D;
+            if (style.CellVerticalPaddingFromBorderInterior && style.Position == null && style.ConsumesVerticalFlow) {
+                style.BorderFrame = new PdfCore.PdfTableBorderFrame { ReserveCellBorderOutsets = true };
+                // Container continuation already reserves the border's actual
+                // outward paint and repeats source headers without a synthetic gap.
+                style.PageContinuationSpacingBefore = 0D;
+            }
             ApplyNativeTableRowOptions(table, style);
             SuppressNativeTableRoleBoundariesCrossedByRowSpans(style, layout);
             return style;

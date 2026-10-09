@@ -215,10 +215,10 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
-            void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0) {
+            void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
                 maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
                 double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-                if (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D) return;
+                if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
                 preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
                 tableWidth = preparedColumns.Width;
@@ -431,6 +431,7 @@ internal static partial class PdfWriter {
 
             void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
                 FlushPairedBorders();
+                PrepareTableFrameContinuation(tb, rowIndex);
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     ColumnFlowScope scope = activeColumnFlow!;
                     QueueColumnBalanceRemainder(MeasurePreparedTableColumnBalanceUnits(tb, style, preparedRows, cols, colPixel, rowGapPx,
@@ -438,7 +439,10 @@ internal static partial class PdfWriter {
                         rowIndex, startLine), tb, blockList, blockIndex);
                 }
                 NewPage();
-                ReflowTableForCurrentFrame(rowIndex, startLine);
+                PdfTableStyle continuationStyle = PrepareTableBorderContinuation(tb, style, rowIndex);
+                bool paddingChanged = !ReferenceEquals(style, continuationStyle);
+                style = continuationStyle;
+                ReflowTableForCurrentFrame(rowIndex, startLine, paddingChanged);
                 repeatHeaderHeight = 0D;
                 for (int header = 0; header < repeatHeaderRowCount; header++)
                     repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
