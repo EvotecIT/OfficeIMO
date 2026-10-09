@@ -338,9 +338,11 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Reuses opened bytes under the requested read contract; explicit overrides keep their own parse.</summary>
-    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(PdfLoadOptions? options) {
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken = default) {
         PdfDocumentSource? source = _source;
-        return source is null ? null : () => source.Read(options);
+        return source is null ? null : () => source.Read(options, cancellationToken);
     }
 
     /// <summary>

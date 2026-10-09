@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests.Pdf
         }
 
         [Fact]
-        public void GeneratedPreflightUsesOneSerializedSnapshot() {
+        public void GeneratedDiagnosticReportsUseOneSerializedSnapshot() {
             int compositionCalls = 0;
             PdfDocument CreateDocument() => PdfDocument.Create(new PdfOptions {
                 TextLineBreakCallback = text => {
@@ -77,13 +77,109 @@ namespace OfficeIMO.Tests.Pdf
             CreateDocument().ToBytes();
             int callsForOneSerialization = compositionCalls;
             Assert.True(callsForOneSerialization > 0);
-            compositionCalls = 0;
+            Action<PdfDocument>[] reports = {
+                document => Assert.True(document.Preflight().CanRead),
+                document => Assert.True(document.PlanMutation(PdfMutationOperation.ExtractPages).CanExecute),
+                document => Assert.True(document.AssessMutations(new[] { PdfMutationOperation.ExtractPages }).CanExecuteAll)
+            };
+            foreach (Action<PdfDocument> report in reports) {
+                compositionCalls = 0;
+                report(CreateDocument());
+                Assert.Equal(callsForOneSerialization, compositionCalls);
+            }
+        }
 
-            PdfDocumentPreflight preflight = CreateDocument().Preflight();
+        [Theory]
+        [InlineData("")]
+        [InlineData("This is not a PDF document.")]
+        [InlineData("%PDF-1.7\nbroken")]
+        public void MutationReportsBlockUnreadableInputWithoutThrowingOrChangingBytes(string input) {
+            byte[] bytes = Encoding.ASCII.GetBytes(input);
+            PdfDocument document = PdfDocument.Load(bytes);
 
-            Assert.True(preflight.CanRead);
-            Assert.Single(Assert.IsType<PdfDocumentInfo>(preflight.DocumentInfo).Pages);
-            Assert.Equal(callsForOneSerialization, compositionCalls);
+            PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.ExtractPages);
+            Assert.False(plan.CanExecute);
+            Assert.False(plan.Preflight.CanRead);
+            Assert.NotEmpty(plan.Diagnostics);
+
+            PdfMutationPortfolioReport portfolio = document.AssessMutations();
+            Assert.False(portfolio.Preflight.CanRead);
+            Assert.Empty(portfolio.ExecutablePlans);
+            Assert.NotEmpty(portfolio.BlockedPlans);
+            Assert.All(portfolio.Plans, blocked => {
+                Assert.False(blocked.CanExecute);
+                Assert.NotEmpty(blocked.Diagnostics);
+                Assert.Same(portfolio.Preflight, blocked.Preflight);
+            });
+            Assert.Equal(bytes, document.ToBytes());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MutationReportsCaptureWrongPasswordsWithoutAuthorizingOperations(bool withOutline) {
+            byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content
+                .H1("Protected report input")),
+                new PdfOptions { CreateOutlineFromHeadings = withOutline }.SetEncryption("open", "owner")).ToBytes();
+            PdfLoadOptions incorrect = new PdfLoadOptions { Password = "incorrect" };
+            PdfDocument document = PdfDocument.Load(bytes, incorrect);
+
+            Assert.True(document.Preflight().HasReadBlocker(PdfReadBlockerKind.Encryption));
+            Assert.True(PdfDocument.Preflight(bytes, incorrect).HasReadBlocker(PdfReadBlockerKind.Encryption));
+            PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.ExtractPages);
+            Assert.False(plan.CanExecute);
+            Assert.Contains("Read.Encryption", plan.BlockerCodes);
+            PdfMutationPortfolioReport portfolio = document.AssessMutations();
+            Assert.Empty(portfolio.ExecutablePlans);
+            Assert.Equal(PdfPasswordAuthenticationRole.None, portfolio.Preflight.Probe.Security.PasswordAuthenticationRole);
+            PdfOperationResult<PdfDocument> result = document.Pages.ExtractResult("1");
+            Assert.False(result.CanAttempt);
+            Assert.Null(result.Value);
+            Assert.NotEmpty(result.Diagnostics);
+            Assert.Equal(bytes, document.ToBytes());
+
+            Assert.Throws<PdfInvalidPasswordException>(() => document.Read());
+            Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Probe(bytes, incorrect));
+            PdfLoadOptions authorized = new PdfLoadOptions { Password = "open" };
+            Assert.True(document.PlanMutation(PdfMutationOperation.ExtractPages, options: authorized).CanExecute);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MetadataReportsRetainStrictParserBlockersWithoutReparsingInvalidInput(bool withStartXref) {
+            byte[] bytes = Encoding.ASCII.GetBytes("%PDF-1.7\ntrailer\n<< /Root 1 0 R /Size 2 >>\n" +
+                (withStartXref ? "startxref\n0\n" : string.Empty) + "%%EOF\n");
+            PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict });
+
+            PdfDocumentPreflight preflight = document.Preflight();
+            Assert.False(preflight.CanRead);
+            Assert.False(preflight.CanAppendMetadataRevision);
+            Assert.False(preflight.CanAppendFormFieldRevision);
+            Assert.False(preflight.CanPrepareExternalSignatureRevision);
+            Assert.False(preflight.Can(PdfPreflightCapability.AppendMetadataRevision));
+            Assert.False(preflight.Can(PdfPreflightCapability.AppendFormFieldRevision));
+            Assert.False(preflight.Can(PdfPreflightCapability.PrepareExternalSignatureRevision));
+            PdfMutationOperation[] operations = { PdfMutationOperation.UpdateMetadata, PdfMutationOperation.SynchronizeMetadata };
+            foreach (PdfMutationOperation operation in operations) {
+                PdfMutationPlan plan = document.PlanMutation(operation);
+                Assert.False(plan.CanExecute);
+                Assert.Contains("Read.ParserUnsupported", plan.BlockerCodes);
+            }
+            PdfMutationPortfolioReport portfolio = document.AssessMutations();
+            Assert.Empty(portfolio.ExecutablePlans);
+            PdfOperationResult<PdfDocument>[] results = {
+                document.UpdateMetadataResult(title: "Blocked update"),
+                document.SynchronizeMetadataResult(title: "Blocked synchronization")
+            };
+            foreach (PdfOperationResult<PdfDocument> result in results) {
+                Assert.False(result.CanAttempt);
+                Assert.False(result.Succeeded);
+                Assert.Null(result.Value);
+                Assert.NotEmpty(result.Diagnostics);
+                Assert.True(result.Preflight.HasReadBlocker(PdfReadBlockerKind.ParserUnsupported));
+            }
+            Assert.Equal(bytes, document.ToBytes());
         }
 
         [Fact]

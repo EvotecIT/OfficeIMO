@@ -14,6 +14,8 @@ internal static class PdfMutationPlanner {
         PdfSignatureProfile? signatureProfile = null) {
         PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference, signatureProfile);
         if (!plan.CanExecute) {
+            // Signature preparation retains its resource admission error before a signer can be invoked.
+            plan.Preflight.RethrowTypedReadFailure(includeResourceLimits: operation == PdfMutationOperation.PrepareExternalSignature);
             throw new PdfMutationBlockedException(plan);
         }
 
@@ -141,6 +143,7 @@ internal static class PdfMutationPlanner {
                     PdfMutationExecutionPreference.RequireFullRewrite,
                     effectiveOptions);
             }
+            plan.Preflight.RethrowTypedReadFailure();
             throw new PdfMutationBlockedException(plan);
         }
 
@@ -222,8 +225,10 @@ internal static class PdfMutationPlanner {
         Guard.NotNull(pdf, nameof(pdf));
         bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||
             PdfIncrementalUpdater.HasFinalizableExternalSignatureReservation(pdf, preflight.Probe.Security);
+        // A raw trailer is insufficient to prove metadata preservation after structural parsing failed.
         bool metadataPreservationValidated = !RequiresMetadataPreservationValidation(operation) ||
-            PdfIncrementalUpdater.CanPreserveXmpMetadataAppendOnly(pdf, options);
+            (preflight.UncheckedDocumentInfo is not null &&
+                PdfIncrementalUpdater.CanPreserveXmpMetadataAppendOnly(pdf, options));
         return PlanCore(preflight, operation, fieldNames, executionPreference, finalizationReservationValidated, metadataPreservationValidated, signatureProfile);
     }
 
@@ -259,7 +264,8 @@ internal static class PdfMutationPlanner {
             (securityRewrite ||
                 (!requiresAppendOnly &&
                 (!security.BlocksOfficeIMOFullRewriteMutation || unsignedSignatureFieldRewrite || normalizedObjectGraphRewrite || authorizedEncryptedRewrite || CanExtractPagesViaNormalization(preflight, operation))));
-        bool appendOnlyAvailable = appendOnlyImplemented &&
+        bool appendOnlyAvailable = preflight.UncheckedDocumentInfo is not null &&
+            appendOnlyImplemented &&
             CanAppend(appendOnly, operation, finalizationReservationValidated) &&
             PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation) &&
             metadataPreservationValidated &&

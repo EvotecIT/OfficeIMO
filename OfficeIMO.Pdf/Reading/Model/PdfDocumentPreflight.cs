@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed partial class PdfDocumentPreflight {
     private readonly PdfDocumentInfo? _documentInfo;
+    private readonly Exception? _readFailure;
 
     internal PdfDocumentPreflight(
         PdfDocumentProbe probe,
@@ -14,7 +15,8 @@ public sealed partial class PdfDocumentPreflight {
         IReadOnlyList<string> diagnostics,
         IReadOnlyList<PdfReadBlocker> readBlockers,
         IReadOnlyList<PdfRewriteBlocker> rewriteBlockers,
-        PdfPermissionPolicy permissionPolicy) {
+        PdfPermissionPolicy permissionPolicy,
+        Exception? readFailure = null) {
         Probe = probe;
         _documentInfo = documentInfo;
         CanRead = canRead;
@@ -23,6 +25,14 @@ public sealed partial class PdfDocumentPreflight {
         ReadBlockers = readBlockers;
         RewriteBlockers = rewriteBlockers;
         PermissionPolicy = permissionPolicy;
+        _readFailure = readFailure;
+    }
+
+    /// <summary>Preserves authentication failures and caller-selected resource admission errors for throwing APIs.</summary>
+    internal void RethrowTypedReadFailure(bool includeResourceLimits = false) {
+        if (_readFailure is PdfInvalidPasswordException || (includeResourceLimits && _readFailure is PdfReadLimitException)) {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(_readFailure).Throw();
+        }
     }
 
     /// <summary>Lightweight PDF markers read before full parsing.</summary>
