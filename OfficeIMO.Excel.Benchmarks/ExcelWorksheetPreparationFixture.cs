@@ -93,12 +93,13 @@ internal static class ExcelWorksheetPreparationFixture {
                 + string.Join(" | ", errors.Select(error => error.Description)));
         }
         WorkbookPart workbook = document.WorkbookPart ?? throw new InvalidDataException("Preparation workbook is missing.");
-        Sheet[] sheets = workbook.Workbook.Sheets?.Elements<Sheet>().ToArray() ?? [];
+        Workbook root = workbook.Workbook ?? throw new InvalidDataException("Preparation workbook root is missing.");
+        Sheet[] sheets = root.Sheets?.Elements<Sheet>().ToArray() ?? [];
         if (sheets.Length != 1 || sheets[0].Name?.Value != "Data"
             || workbook.GetPartById(sheets[0].Id?.Value ?? string.Empty) is not WorksheetPart worksheetPart) {
             throw new InvalidDataException("Preparation worksheet relationship differs.");
         }
-        Worksheet worksheet = worksheetPart.Worksheet;
+        Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidDataException("Preparation worksheet root is missing.");
         if (worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value != DimensionReference(dataRows, dimension))
             throw new InvalidDataException("Preparation dimension declaration differs.");
         SheetData data = worksheet.GetFirstChild<SheetData>() ?? throw new InvalidDataException("Preparation rows are missing.");
