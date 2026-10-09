@@ -59,7 +59,9 @@
         "DocBook",
         "IWork",
         "Xps",
-        "Dbf"
+        "Chm",
+        "Dbf",
+        "Publisher"
       ]
     },
     "source": {
