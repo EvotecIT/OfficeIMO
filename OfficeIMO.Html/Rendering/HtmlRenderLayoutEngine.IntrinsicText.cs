@@ -7,21 +7,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureMinContentRuns(IReadOnlyList<IntrinsicTextRun> runs) {
         double maximum = 1D;
         double current = 0D;
+        // Indentation contributes to required width without shifting the
+        // content-relative tab stops used by ordinary inline layout.
+        double firstLineIndent = 0D;
+        bool hasContent = false;
         bool pendingAtomicBreak = false;
         var cloned = new List<(HtmlRenderBoxStyle Style, double Start, double End)>();
         var ends = new Dictionary<HtmlRenderBoxStyle, double>();
         foreach (IntrinsicTextRun edge in runs.Where(run => run.IsInlineInset && run.IsInlineInsetEnd)) {
             ends[edge.Style] = edge.ReplacedWidth;
         }
+        void AddAdvance(double advance) {
+            current += advance;
+            hasContent = true;
+        }
         void FinishSegment() {
-            maximum = Math.Max(maximum, current + cloned.Sum(edge => edge.End));
+            if (hasContent) maximum = Math.Max(maximum, firstLineIndent + current + cloned.Sum(edge => edge.End));
             current = cloned.Sum(edge => edge.Start);
+            firstLineIndent = 0D;
+            hasContent = false;
             pendingAtomicBreak = false;
         }
         foreach (IntrinsicTextRun run in runs) {
+            if (run.IsParagraphStart) {
+                FinishSegment();
+                firstLineIndent = run.Style.TextIndent?.ResolveIntrinsicContribution() ?? 0D;
+                continue;
+            }
             if (run.IsInlineInset) {
                 if (!run.IsInlineInsetEnd && pendingAtomicBreak) FinishSegment();
-                current += run.ReplacedMinWidth;
+                AddAdvance(run.ReplacedMinWidth);
                 if (run.Style.BoxDecorationBreak == "clone") {
                     if (run.IsInlineInsetEnd) {
                         cloned.RemoveAll(edge => ReferenceEquals(edge.Style, run.Style));
@@ -38,14 +53,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (pendingAtomicBreak) FinishSegment();
             if (run.IsReplaced) {
-                current += run.ReplacedMinWidth;
+                AddAdvance(run.ReplacedMinWidth);
                 pendingAtomicBreak = !run.Style.PreventTextWrapping;
                 continue;
             }
             if (run.Style.PreventTextWrapping) {
-                current += run.Text.IndexOf('\t') >= 0
+                AddAdvance(run.Text.IndexOf('\t') >= 0
                     ? MeasureTabExpandedText(run.Text, run.Style, current)
-                    : MeasureInlineText(run.Text, run.Style);
+                    : MeasureInlineText(run.Text, run.Style));
                 continue;
             }
             int start = 0;
@@ -58,7 +73,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (breakEverywhere) {
                         IReadOnlyList<string> elements = OfficeTextElements.Split(token);
                         for (int part = 0; part < elements.Count; part++) {
-                            current += MeasureInlineText(elements[part], run.Style);
+                            AddAdvance(MeasureInlineText(elements[part], run.Style));
                             if (part < elements.Count - 1) FinishSegment();
                         }
                     } else {
@@ -71,39 +86,54 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             if (end <= segmentStart || end > paintToken.Length) continue;
                             string segment = paintToken.Substring(segmentStart, end - segmentStart);
                             if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
-                            current += MeasureInlineText(segment, run.Style);
+                            AddAdvance(MeasureInlineText(segment, run.Style));
                             FinishSegment();
                             segmentStart = end;
                         }
-                        if (segmentStart < paintToken.Length) current += MeasureInlineText(paintToken.Substring(segmentStart), run.Style);
+                        if (segmentStart < paintToken.Length) AddAdvance(MeasureInlineText(paintToken.Substring(segmentStart), run.Style));
                     }
                 }
                 if (!atEnd) {
-                    if (run.Style.BreakSpaces) current += MeasureInlineText(run.Text[index].ToString(), run.Style);
+                    if (run.Style.BreakSpaces) AddAdvance(MeasureInlineText(run.Text[index].ToString(), run.Style));
                     FinishSegment();
                     start = index + 1;
                 }
             }
         }
-        return Math.Max(maximum, current);
+        FinishSegment();
+        return maximum;
     }
 
     private double MeasureMaxContentRuns(IReadOnlyList<IntrinsicTextRun> runs) {
         double maximum = 1D;
         double current = 0D;
+        double firstLineIndent = 0D;
+        bool hasContent = false;
+        void FinishLine() {
+            if (hasContent) maximum = Math.Max(maximum, firstLineIndent + current);
+            current = 0D;
+            firstLineIndent = 0D;
+            hasContent = false;
+        }
         foreach (IntrinsicTextRun run in runs) {
-            if (run.IsForcedBreak) {
-                maximum = Math.Max(maximum, current);
-                current = 0D;
+            if (run.IsParagraphStart) {
+                FinishLine();
+                firstLineIndent = run.Style.TextIndent?.ResolveIntrinsicContribution() ?? 0D;
                 continue;
             }
+            if (run.IsForcedBreak) {
+                FinishLine();
+                continue;
+            }
+            hasContent = true;
             current += run.IsReplaced
                 ? run.ReplacedWidth
                 : run.Text.IndexOf('\t') >= 0
                     ? MeasureTabExpandedText(run.Text, run.Style, current)
                     : MeasureMaxContentTextRun(run);
         }
-        return Math.Max(maximum, current);
+        FinishLine();
+        return maximum;
     }
 
     private double MeasureMaxContentTextRun(IntrinsicTextRun run) {
@@ -123,7 +153,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<IntrinsicTextRun> ResolveInFlowIntrinsicTextRuns(FlexItem item, double availableSize, int depth = 1, bool skipSizedNestedTables = false, bool includeDescendantInsets = false) {
         var rawRuns = new List<IntrinsicTextRun>();
         if (item.Element == null) {
-            if (item.Style.Font.Size > 0D) rawRuns.Add(new IntrinsicTextRun(item.TextContent, item.Style));
+            if (item.Style.Font.Size > 0D) {
+                rawRuns.Add(IntrinsicTextRun.ParagraphStart(item.Style));
+                rawRuns.Add(new IntrinsicTextRun(item.TextContent, item.Style));
+            }
         } else {
             AppendInFlowIntrinsicTextRuns(item.Element, item.Style, availableSize, depth, rawRuns, skipSizedNestedTables, includeDescendantInsets);
         }
@@ -133,9 +166,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<IntrinsicTextRun> NormalizeIntrinsicTextRuns(IReadOnlyList<IntrinsicTextRun> rawRuns) {
         var normalized = new List<IntrinsicTextRun>();
         HtmlRenderBoxStyle? pendingWhitespaceStyle = null;
+        bool hasLineContent = false;
+        bool hasAnyContent = false;
         foreach (IntrinsicTextRun run in rawRuns) {
+            if (run.IsParagraphStart) {
+                pendingWhitespaceStyle = null;
+                hasLineContent = false;
+                normalized.Add(run);
+                continue;
+            }
             if (run.IsForcedBreak) {
                 pendingWhitespaceStyle = null;
+                hasLineContent = false;
                 if (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak) {
                     normalized.Add(run);
                 }
@@ -147,6 +189,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     pendingWhitespaceStyle = null;
                 }
                 normalized.Add(run);
+                hasLineContent = hasAnyContent = true;
                 continue;
             }
             string transformed = ApplyTextTransform(run.Text, run.Style);
@@ -163,12 +206,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (!atEnd && !atLineBreak) continue;
                     if (index > segmentStart) {
                         AppendNormalizedIntrinsicText(normalized, transformed.Substring(segmentStart, index - segmentStart), run.Style);
+                        hasLineContent = hasAnyContent = true;
                     }
                     if (atLineBreak) {
                         if (transformed[index] == '\r' && index + 1 < transformed.Length && transformed[index + 1] == '\n') index++;
                         if (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak) {
                             normalized.Add(IntrinsicTextRun.ForcedBreak(run.Style));
                         }
+                        hasLineContent = false;
                         segmentStart = index + 1;
                     }
                 }
@@ -179,7 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (char current in transformed) {
                 if (char.IsWhiteSpace(current)) {
                     if (pendingWhitespaceStyle == null
-                        && (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak || text.Length > 0)) {
+                        && (hasLineContent || text.Length > 0)) {
                         pendingWhitespaceStyle = run.Style;
                     }
                     continue;
@@ -198,13 +243,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (text.Length == 0) continue;
             AppendNormalizedIntrinsicText(normalized, text.ToString(), run.Style);
+            hasLineContent = hasAnyContent = true;
         }
-        return normalized;
+        return hasAnyContent ? normalized : Array.Empty<IntrinsicTextRun>();
     }
 
     private static void AppendNormalizedIntrinsicText(List<IntrinsicTextRun> runs, string text, HtmlRenderBoxStyle style) {
         if (text.Length == 0) return;
         if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak
+            && !runs[runs.Count - 1].IsParagraphStart
             && !runs[runs.Count - 1].IsReplaced && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
             IntrinsicTextRun previous = runs[runs.Count - 1];
             runs[runs.Count - 1] = new IntrinsicTextRun(previous.Text + text, style);
@@ -220,7 +267,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         ICollection<IntrinsicTextRun> result,
         bool skipSizedNestedTables,
-        bool includeDescendantInsets) {
+        bool includeDescendantInsets,
+        bool startsParagraph = true) {
         if (parentStyle.Display is "flex" or "inline-flex"
             && TryCollectFlexItems(parent, availableSize, parentStyle, depth, captureRunningElements: false,
                 out List<FlexItem> items, out _, registerOutOfFlowElements: false)) {
@@ -255,6 +303,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.Add(IntrinsicTextRun.Replaced(Math.Max(0D, minimum - insets), Math.Max(0D, maximum - insets), parentStyle));
             return;
         }
+        // Inline descendants retain the surrounding paragraph owner even when
+        // they override text-indent. Blocks and atomic boxes measure their own
+        // first formatted line; flex/grid containers contribute their items above.
+        if (startsParagraph) result.Add(IntrinsicTextRun.ParagraphStart(parentStyle));
         AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             CheckCancellation();
@@ -340,7 +392,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? childStyle.BorderRightWidth + childStyle.PaddingRight + childStyle.MarginRight
                     : 0D;
                 if (leadingInset != 0D || trailingInset != 0D) result.Add(IntrinsicTextRun.InlineInset(leadingInset, childStyle));
-                AppendInFlowIntrinsicTextRuns(child, childStyle, availableSize, depth + 1, result, skipSizedNestedTables, includeDescendantInsets);
+                AppendInFlowIntrinsicTextRuns(child, childStyle, availableSize, depth + 1, result,
+                    skipSizedNestedTables, includeDescendantInsets, startsParagraph: establishesLineBoundary);
                 if (leadingInset != 0D || trailingInset != 0D) result.Add(IntrinsicTextRun.InlineInset(trailingInset, childStyle, closing: true));
             }
             if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(childStyle));
@@ -374,10 +427,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class IntrinsicTextRun {
-        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false, bool isInlineInsetEnd = false) {
+        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false, bool isInlineInsetEnd = false, bool isParagraphStart = false) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
+            IsParagraphStart = isParagraphStart;
             IsReplaced = isReplaced;
             IsInlineInset = isInlineInset;
             IsInlineInsetEnd = isInlineInsetEnd;
@@ -386,6 +440,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal static IntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
+        internal static IntrinsicTextRun ParagraphStart(HtmlRenderBoxStyle style) => new(string.Empty, style, isParagraphStart: true);
         internal static IntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
         internal static IntrinsicTextRun Replaced(double minimum, double maximum, HtmlRenderBoxStyle style) =>
             new(string.Empty, style, isReplaced: true, replacedWidth: maximum, replacedMinWidth: minimum);
@@ -395,6 +450,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
+        internal bool IsParagraphStart { get; }
         internal bool IsReplaced { get; }
         internal bool IsInlineInset { get; }
         internal bool IsInlineInsetEnd { get; }

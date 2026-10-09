@@ -253,6 +253,12 @@ decorations. Explicit horizontal decoration thickness, underline offset and
 overline use vector bands; the corresponding `HtmlRenderText.UnderlineStyle` or
 `StrikethroughStyle` can be `None` because the band is painted separately.
 
+Missing painted-glyph coverage in HTML-to-PDF conversion now throws
+`HtmlConversionException` before returning a generated document. Callers that
+caught the PDF encoder's `ArgumentException` should catch `HtmlConversionException`
+and inspect its `Diagnostics`, including `unsupported-text-glyph`. Supply covering
+fonts explicitly when using the portable deterministic resource policy.
+
 ## Optional HTML automation planning
 
 `OfficeIMO.AI.Html` targets .NET 10, matching `OfficeIMO.AI`. Use a .NET 10 host

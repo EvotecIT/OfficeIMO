@@ -38,6 +38,11 @@ public sealed class HtmlPdfSvgFontTests {
         };
         const string html = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='60'><svg width='200' height='60'><text x='5' y='30'>ęłź</text></svg></svg>";
 
-        Assert.ThrowsAny<ArgumentException>(() => HtmlConversionDocument.Parse(html).ToPdfBytes(options));
+        HtmlConversionException failure = Assert.Throws<HtmlConversionException>(() =>
+            HtmlConversionDocument.Parse(html).ToPdfBytes(options));
+        Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "unsupported-text-glyph"
+            && diagnostic.Severity == HtmlDiagnosticSeverity.Error
+            && diagnostic.LossKind == OfficeConversionLossKind.Failure
+            && diagnostic.Message.Contains("U+0119", StringComparison.Ordinal));
     }
 }

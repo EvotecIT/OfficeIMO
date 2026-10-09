@@ -56,10 +56,12 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
+        options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Following",
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('N', 'E', 'X', 'T')));
         string image = Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(255, 0, 0));
         string html = "<div style='font:20px/20px Arial'><span style='font-size:100px'>A</span>"
             + "<img style='width:40px;height:40px' src='data:image/png;base64," + image + "'></div>"
-            + "<div style='margin:0;font:10px/20px Arial;background:blue'>NEXT</div>";
+            + "<div style='margin:0;font:10px/20px Following;background:blue'>NEXT</div>";
 
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
 
@@ -69,6 +71,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(following.LayoutY >= renderedImage.Y + renderedImage.Height,
             "The selected-face image baseline must also advance the containing line's flow height.");
         Assert.Equal(40D, renderedImage.Height, 3);
+        Assert.Contains("NEXT", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

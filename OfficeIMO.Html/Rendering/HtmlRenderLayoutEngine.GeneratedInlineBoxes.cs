@@ -19,7 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.ExplicitWidth.HasValue) {
             boxWidth = ResolveBoxWidth(availableWidth, style);
         } else {
-            var intrinsic = new List<IntrinsicTextRun>();
+            var intrinsic = new List<IntrinsicTextRun> { IntrinsicTextRun.ParagraphStart(style) };
             foreach (HtmlInlineRun run in runs) {
                 if (run.AtomicBlock != null) intrinsic.Add(IntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
                 else if (run.Text.Length > 0) intrinsic.Add(new IntrinsicTextRun(run.Text, run.Style));

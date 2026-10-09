@@ -284,6 +284,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontVariantApproximated,
         TextDecorationThicknessApproximated,
         TextDecorationLineUnsupported,
+        TextIndentValueUnsupported,
         OpenTypeFeatureUnsupported,
         ComplexTextShapingUnsupported,
         InlinePaintEffectUnsupported,
