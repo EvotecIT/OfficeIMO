@@ -475,6 +475,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _nextSemanticNodeId = _initialSemanticNodeId;
         // Convergence and print fitting remain part of this render operation.
         _fixedPositionedElements.Clear();
+        ResetFixedClipPaintBoundaries();
         _rootPositionedElements.Clear();
         _localPositionedElements.Clear();
         _normalFlowPlacements.Clear();
@@ -578,6 +579,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddTranslatedVisuals(visuals, placement.Block.Visuals, placement.X, placement.Y, placement.Block);
         }
         AppendGlobalPositionedRequests(visuals, includeRoot: true, viewportWidth, viewportHeight, rootContainingWidth, rootContainingHeight, PositionedPaintBand.NonNegative);
+        ApplyFixedAncestorLegacyClips(visuals);
         ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, OrderPageFloatPaint(visuals), fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
@@ -860,6 +862,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _currentRunningStringPage.Assign(assignment, _runningStringValues);
             }
         }
+        ApplyFixedAncestorLegacyClips(visuals);
         ApplyViewportOverflow(visuals, width, height);
         AddPrintProductionMarks(visuals, geometry);
         pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, OrderPageFloatPaint(visuals), pageName, _fonts, _currentRunningStringPage, geometry.Margins, geometry.PrintProduction));

@@ -301,7 +301,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
             int fallback = band == PositionedPaintBand.Negative ? -1000000000 : _paintOrder++;
             int paintOrder = ResolveRootStackingPaintOrder(placement.Request.SourceOrder, fallback);
-            visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder).IdentifyOutOfFlowPaint());
+            HtmlRenderVisual painted = visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder).IdentifyOutOfFlowPaint();
+            visuals.Add(painted);
+            if (placement.Request.IsFixed) _fixedClipPaintRequests[painted] = placement.Request;
         }
     }
 

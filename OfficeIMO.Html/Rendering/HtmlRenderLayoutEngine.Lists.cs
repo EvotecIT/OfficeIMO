@@ -106,7 +106,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 children,
                 clip.PaintOrder,
                 clip.Source,
-                clip.LayoutY);
+                clip.LayoutY, clip.IsViewportOverflow, clip.IsFlowFragment, clip.LegacyClipOwnerNodeId);
         }
 
         if (visual is HtmlRenderPathClipGroup pathClip) {

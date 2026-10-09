@@ -21,7 +21,8 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
         string? source = null,
         double? layoutY = null,
         bool isViewportOverflow = false,
-        bool isFlowFragment = false)
+        bool isFlowFragment = false,
+        int? legacyClipOwnerNodeId = null)
         : this(
             CreateState(x, y, width, height, clipHorizontal, clipVertical, visuals),
             x,
@@ -33,7 +34,7 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
             paintOrder,
             source,
             layoutY,
-            isViewportOverflow, isFlowFragment) {
+            isViewportOverflow, isFlowFragment, legacyClipOwnerNodeId) {
     }
 
     private HtmlRenderClipGroup(
@@ -48,7 +49,8 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
         string? source,
         double? layoutY,
         bool isViewportOverflow,
-        bool isFlowFragment)
+        bool isFlowFragment,
+        int? legacyClipOwnerNodeId)
         : base(HtmlRenderVisualKind.ClipGroup, state.X, state.Y, state.Width, state.Height, paintOrder, null, source, layoutY ?? state.Y) {
         if (!clipHorizontal && !clipVertical) {
             throw new ArgumentException("A clipped render group must constrain at least one axis.", nameof(clipHorizontal));
@@ -61,6 +63,7 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
         ClipVertical = clipVertical;
         IsViewportOverflow = isViewportOverflow;
         IsFlowFragment = isFlowFragment;
+        LegacyClipOwnerNodeId = legacyClipOwnerNodeId;
         _visuals = state.Visuals;
     }
 
@@ -90,6 +93,10 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
     // that segment clip; authored overflow clips have already moved with paint.
     internal bool IsFlowFragment { get; }
 
+    // Stable source identity lets extracted fixed descendants retain this paint
+    // boundary after translation and page projection without retaining the DOM.
+    internal int? LegacyClipOwnerNodeId { get; }
+
     /// <summary>Ordered child visuals in the same coordinate space as the group.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
@@ -105,7 +112,7 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
             paintOrder,
             Source,
             LayoutY + offsetY,
-            IsViewportOverflow, IsFlowFragment);
+            IsViewportOverflow, IsFlowFragment, LegacyClipOwnerNodeId);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderClipGroup(
@@ -119,13 +126,13 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
             paintOrder,
             Source,
             LayoutY,
-            IsViewportOverflow, IsFlowFragment);
+            IsViewportOverflow, IsFlowFragment, LegacyClipOwnerNodeId);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder,
         double fragmentPaintOffsetY = 0D) =>
         new HtmlRenderClipGroup(
             ClipX + offsetX, ClipY + offsetY + fragmentPaintOffsetY, ClipWidth, ClipHeight,
-            ClipHorizontal, ClipVertical, visuals, paintOrder, Source, LayoutY, IsViewportOverflow);
+            ClipHorizontal, ClipVertical, visuals, paintOrder, Source, LayoutY, IsViewportOverflow, legacyClipOwnerNodeId: LegacyClipOwnerNodeId);
 
     private static ClipGroupState CreateState(
         double clipX,

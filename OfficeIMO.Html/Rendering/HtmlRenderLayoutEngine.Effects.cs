@@ -10,14 +10,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         IElement element,
         out bool createsStackingContext) =>
-        ApplyPaintEffects(block, style, containingWidth, HtmlRenderStyleResolver.DescribeSource(element), out createsStackingContext);
+        ApplyPaintEffects(block, style, containingWidth, HtmlRenderStyleResolver.DescribeSource(element), out createsStackingContext, style.Clip != "auto" ? GetSemanticNodeId(element) : null);
 
     private HtmlRenderFlowBlock ApplyPaintEffects(
         HtmlRenderFlowBlock block,
         HtmlRenderBoxStyle style,
         double containingWidth,
         string source,
-        out bool createsStackingContext) {
+        out bool createsStackingContext,
+        int? legacyClipOwnerNodeId = null) {
         createsStackingContext = false;
         if (style.UnsupportedOpacity.Length > 0) {
             _diagnostics.Add(
@@ -90,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
         createsStackingContext = hasTransform || hasOpacity || hasClipPath;
-        if ((!createsStackingContext && legacyClip == null) || block.Visuals.Count == 0) return block;
+        if ((!createsStackingContext && legacyClip == null) || (block.Visuals.Count == 0 && legacyClip == null)) return block;
         IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity || hasClipPath || legacyClip != null
             ? ReplaceDescendantFormFieldsForPaintEffect(
                 block.Visuals,
@@ -114,7 +115,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             effectVisuals = new[] {
                 new HtmlRenderClipGroup(style.MarginLeft + legacyClip.X, style.MarginTop + legacyClip.Y,
                     legacyClip.ClipPath.Width, legacyClip.ClipPath.Height, true, true,
-                    effectVisuals, 0, source)
+                    effectVisuals, 0, source, legacyClipOwnerNodeId: legacyClipOwnerNodeId)
             };
         }
         if (!hasTransform && !hasOpacity) return block.WithVisuals(effectVisuals);
