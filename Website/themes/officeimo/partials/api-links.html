@@ -1,6 +1,8 @@
 {{~ # The API symbols this page uses, from data/api_links.json (scripts/Build-ApiCrossLinks.ps1). ~}}
 {{~ api_page_links = data.api_links.pages[api_links_path ?? current_path] ~}}
 {{~ if api_page_links && api_page_links.size > 0 ~}}
+{{~ # Landing pages pass api_links_quiet to link their code without adding the list. ~}}
+{{~ if !api_links_quiet ~}}
 <section class="imo-api-used" aria-labelledby="imo-api-used-title">
   <h2 id="imo-api-used-title" class="imo-api-used__title">{{ api_links_title ?? "API used on this page" }}</h2>
   <ul class="imo-api-used__list">
@@ -11,5 +13,6 @@
     {{~ end ~}}
   </ul>
 </section>
+{{~ end ~}}
 <script type="application/json" id="imo-api-links">[{{ for link in api_page_links }}{"n":"{{ link.n }}","h":"{{ link.h }}","k":"{{ link.k }}"}{{ if !for.last }},{{ end }}{{ end }}]</script>
 {{~ end ~}}

@@ -233,7 +233,6 @@ body.imo-body { overflow-x: clip; }
 .imo-body--reference .api-overview, .imo-body--reference .type-detail { padding: 0; margin: 0; }
 .imo-body--reference .type-toc { display: none; }
 .imo-body--reference .api-content .api-overview-header { margin: 0 0 24px; }
-.imo-body--reference .api-overview-header > .ev-eyebrow { display: none; }
 .imo-body--reference .api-content h2 { font-size: 24px; line-height: 1.2; margin-top: 28px; }
 .imo-body--reference .api-content .type-inheritance h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--imo-text-muted); }
 .imo-body--reference .type-chip { font-size: 12px; }

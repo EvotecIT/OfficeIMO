@@ -42,6 +42,8 @@
         <div class="imo-product-next__actions"><a class="imo-btn imo-btn-primary" href="{{ page.docs_url ?? page.meta.docs_url ?? "/docs/" }}">Open the guide</a>{{ if browser_workflow }}<a class="imo-btn imo-btn-ghost" href="{{ browser_workflow.url }}">{{ browser_workflow.label }}</a>{{ else }}<a class="imo-btn imo-btn-ghost" href="/libraries/">Explore libraries</a>{{ end }}</div>
       </div>
     </section>
+  {{~ api_links_quiet = true ~}}
+  {{ include "api-links" }}
   </main>
 
   {{ include "footer" }}
