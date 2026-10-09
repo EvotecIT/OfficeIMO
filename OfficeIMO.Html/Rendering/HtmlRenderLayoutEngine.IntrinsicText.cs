@@ -189,7 +189,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     pendingWhitespaceStyle = null;
                 }
                 normalized.Add(run);
-                hasLineContent = hasAnyContent = true;
+                // Inline edges contribute width, but do not make leading
+                // collapsible whitespace into content on the formatted line.
+                if (!run.IsInlineInset) hasLineContent = true;
+                hasAnyContent = true;
                 continue;
             }
             string transformed = ApplyTextTransform(run.Text, run.Style);
@@ -413,7 +416,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || style.Position == "absolute"
             || style.Position == "fixed") return;
         bool establishesLineBoundary = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item" || style.Display == "table" || style.Display == "flex" || style.Display == "grid";
-        if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(style));
+        if (establishesLineBoundary) {
+            result.Add(IntrinsicTextRun.ForcedBreak(style));
+            result.Add(IntrinsicTextRun.ParagraphStart(style));
+        }
         var inlineRuns = new List<HtmlInlineRun>();
         AddGeneratedInlineRun(element, kind, availableSize, null, parentStyle, null, 0D, 0D, inlineRuns);
         foreach (HtmlInlineRun run in inlineRuns) {

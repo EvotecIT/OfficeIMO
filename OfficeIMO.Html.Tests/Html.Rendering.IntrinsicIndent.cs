@@ -40,6 +40,46 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData("min-content", false)]
+    [InlineData("max-content", false)]
+    [InlineData("min-content", true)]
+    [InlineData("max-content", true)]
+    public void HtmlIntrinsicIndent_LeadingWhitespaceAfterInlineEdgesDoesNotConsumeIndent(
+        string sizing, bool nestedEmptyInline) {
+        var options = TableIntrinsicOptions();
+        string content = nestedEmptyInline ? "<span> </span> AAAA" : " AAAA";
+        HtmlRenderDocument rendered = RenderTableIntrinsic(
+            "<div id='target' style='width:" + sizing + ";text-indent:30px;background:lime'>"
+            + "<span style='padding:0 10px'>" + content + "</span></div>", options);
+
+        Assert.Equal(IntrinsicIndentTextWidth(options, "AAAA") + 50D,
+            TableGeometryShape(rendered, "div#target").Width, 3);
+        HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), item => item.Text == "AAAA");
+        Assert.Equal(40D, text.X, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("min-content", "before")]
+    [InlineData("max-content", "before")]
+    [InlineData("min-content", "after")]
+    [InlineData("max-content", "after")]
+    public void HtmlIntrinsicIndent_GeneratedBlockOwnsItsFirstLine(string sizing, string pseudo) {
+        var options = TableIntrinsicOptions();
+        HtmlRenderDocument rendered = RenderTableIntrinsic(
+            "<style>#target::" + pseudo + "{display:block;content:'AAAA';text-indent:30px}</style>"
+            + "<div id='target' style='width:" + sizing + ";background:lime'></div>", options);
+
+        Assert.Equal(IntrinsicIndentTextWidth(options, "AAAA") + 30D,
+            TableGeometryShape(rendered, "div#target").Width, 3);
+        HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), item => item.Text == "AAAA");
+        Assert.Equal(30D, text.X, 3);
+        rendered.RequireNoLoss();
+    }
+
     [Fact]
     public void HtmlIntrinsicIndent_CaptionRetainsInheritedIndentAndNestedSignedEdges() {
         var options = TableIntrinsicOptions();
