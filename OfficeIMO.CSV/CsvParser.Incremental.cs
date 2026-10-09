@@ -49,7 +49,11 @@ internal static partial class CsvParser
                     if (reuseValues && CanBorrowFields && _pending.Count == 0)
                     {
                         if (!await EnsureBufferAsync(asynchronous, token).ConfigureAwait(false)) return false;
-                        if (TryReadBorrowedRecord(out bool emitted))
+                        bool borrowed = TryReadBorrowedRecord(out bool emitted, out bool canRefill);
+                        if (!borrowed && canRefill &&
+                            await RefillBorrowedTailAsync(asynchronous, token).ConfigureAwait(false))
+                            borrowed = TryReadBorrowedRecord(out emitted, out _);
+                        if (borrowed)
                         {
                             if (emitted) return true;
                             continue;
